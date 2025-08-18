@@ -40,13 +40,13 @@ impl UserService {
 
         // 5) INSERT
         let q = r#"
-INSERT INTO users (
-    user_email, user_password, user_name,
-    user_nickname, user_language, user_country, user_birthday, user_gender,
-    user_terms_service, user_terms_personal
-) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-RETURNING user_id, user_email, user_name, user_created_at, user_state, user_auth
-"#;
+                                INSERT INTO users (
+                                    user_email, user_password, user_name,
+                                    user_nickname, user_language, user_country, user_birthday, user_gender,
+                                    user_terms_service, user_terms_personal
+                                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+                                RETURNING user_id, user_email, user_name, user_created_at, user_state, user_auth
+                                "#;
 
         let res = sqlx::query_as::<_, UserOut>(q)
             .bind(&req.email)
