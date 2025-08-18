@@ -1,6 +1,6 @@
 use axum::{extract::State, http::StatusCode, Json};
 use crate::{
-    error::{AppError, AppResult},
+    error::AppResult,
     state::AppState,
 };
 use super::{dto::CreateUserReq, service::UserService};
