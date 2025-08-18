@@ -1,6 +1,6 @@
 use argon2::{password_hash::{rand_core::OsRng, SaltString}, Argon2, PasswordHasher};
 use chrono::{DateTime, Utc};
-use sqlx::PgPool;
+use validator::Validate;
 
 use crate::{
     api::auth::dto::UserOut,
