@@ -1,1 +1,17 @@
-/target
+# Rust build
+/target/
+/**/*.rs.bk
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+
+# Secrets (절대 커밋 금지)
+.env
+.env.local
+.env.*.local
+.env.*
+
+# allow example template (예외사항)
+!.env.example
