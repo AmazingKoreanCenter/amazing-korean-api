@@ -11,6 +11,7 @@ pub mod user;
 
 use self::course::router::course_router;
 use self::auth::router::auth_router;
+
 pub fn app_router(state: AppState) -> axum::Router {
     axum::Router::new()
         .merge(course_router())
