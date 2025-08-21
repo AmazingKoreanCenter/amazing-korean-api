@@ -7,6 +7,7 @@
 ## Stack
 - Rust (Axum 0.8, Tokio, SQLx(PostgreSQL), utoipa/Swagger)
 - DB: PostgreSQL (도커 컨테이너: `amk-pg`, 포트 5432)
+  * 적용된 마이그레이션 수정/개명 금지, 변경은 새 마이그레이션으로 *
 - 실행: `cargo run` (bind: 0.0.0.0:3000), OpenAPI: `/api-docs/openapi.json`, Swagger UI: `/docs`
 
 ## Current APIs

@@ -9,4 +9,5 @@ pub struct AppState {
 fn _assert_state_traits()
 where
     AppState: Clone + Send + Sync + 'static,
-{}
+{
+}

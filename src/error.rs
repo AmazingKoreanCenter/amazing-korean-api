@@ -55,6 +55,12 @@ impl IntoResponse for AppError {
                 StatusCode::INTERNAL_SERVER_ERROR
             }
         };
-        (status, Json(ErrorBody { error: self.to_string() })).into_response()
+        (
+            status,
+            Json(ErrorBody {
+                error: self.to_string(),
+            }),
+        )
+            .into_response()
     }
 }

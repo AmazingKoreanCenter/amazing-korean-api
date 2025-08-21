@@ -1,9 +1,12 @@
 use argon2::{Argon2, PasswordHasher, PasswordVerifier};
-use password_hash::{PasswordHash, /*PasswordHasher as _*/SaltString};
+use password_hash::{PasswordHash, /*PasswordHasher as _*/ SaltString};
 use rand_core::OsRng;
 
-use crate::{error::{AppError, AppResult}, state::AppState};
-use super::{repo, dto::UserOut, jwt};
+use super::{dto::UserOut, jwt, repo};
+use crate::{
+    error::{AppError, AppResult},
+    state::AppState,
+};
 
 pub struct AuthService;
 
@@ -27,18 +30,26 @@ impl AuthService {
             .to_string();
 
         // UNIQUE 위반(동시가입 등)은 여기서도 잡아준다.
-        let res = repo::create_user(&st.db, email, &hash, name, terms_service, terms_personal).await;
+        let res =
+            repo::create_user(&st.db, email, &hash, name, terms_service, terms_personal).await;
         match res {
             Ok(user_id) => Ok(user_id),
-            Err(AppError::Sqlx(sqlx::Error::Database(db_err))) if db_err.code().as_deref() == Some("23505") => {
+            Err(AppError::Sqlx(sqlx::Error::Database(db_err)))
+                if db_err.code().as_deref() == Some("23505") =>
+            {
                 Err(AppError::Conflict("email already exists".into()))
             }
             Err(e) => Err(e), // 나머지는 그대로 전파 (Internal/Sqlx 등)
         }
     }
 
-    pub async fn login(st: &AppState, email: &str, password: &str) -> AppResult<(String, i64, UserOut)> {
-        let user = repo::find_by_email(&st.db, email).await?
+    pub async fn login(
+        st: &AppState,
+        email: &str,
+        password: &str,
+    ) -> AppResult<(String, i64, UserOut)> {
+        let user = repo::find_by_email(&st.db, email)
+            .await?
             .ok_or(AppError::Unauthorized("invalid credentials".into()))?;
 
         let parsed = PasswordHash::new(&user.user_password)
@@ -52,8 +63,8 @@ impl AuthService {
             return Err(AppError::Unauthorized("user is not active".into()));
         }
 
-        let (token, expires_in) = jwt::encode_token(user.user_id)
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let (token, expires_in) =
+            jwt::encode_token(user.user_id).map_err(|e| AppError::Internal(e.to_string()))?;
 
         let out = UserOut {
             user_id: user.user_id,
@@ -68,7 +79,8 @@ impl AuthService {
     }
 
     pub async fn me(st: &AppState, user_id: i64) -> AppResult<UserOut> {
-        let out = repo::get_user_out(&st.db, user_id).await?
+        let out = repo::get_user_out(&st.db, user_id)
+            .await?
             .ok_or(AppError::NotFound)?;
         Ok(out)
     }

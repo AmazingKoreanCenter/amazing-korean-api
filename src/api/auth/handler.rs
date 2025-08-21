@@ -5,14 +5,14 @@ use axum::{
 };
 use validator::Validate;
 
-use crate::{
-    error::{AppError, AppResult},
-    state::AppState,
-};
 use super::{
     dto::{LoginReq, LoginResp, SignUpReq, UserOut},
     jwt,
     service::AuthService,
+};
+use crate::{
+    error::{AppError, AppResult},
+    state::AppState,
 };
 
 #[utoipa::path(
@@ -87,10 +87,7 @@ pub async fn login(
     ),
     security(("bearer_auth" = []))
 )]
-pub async fn me(
-    State(st): State<AppState>,
-    headers: HeaderMap,
-) -> AppResult<Json<UserOut>> {
+pub async fn me(State(st): State<AppState>, headers: HeaderMap) -> AppResult<Json<UserOut>> {
     let token = bearer_from_headers(&headers)?;
     let claims =
         jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;

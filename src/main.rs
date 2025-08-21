@@ -1,13 +1,13 @@
-mod state;
-mod error;
 mod api;
 mod docs;
+mod error;
+mod state;
 
+use crate::state::AppState;
+use sqlx::postgres::PgPoolOptions;
+use sqlx::{Pool, Postgres};
 use std::env;
 use tokio::net::TcpListener;
-use sqlx::{Pool, Postgres};
-use sqlx::postgres::PgPoolOptions;
-use crate::state::AppState;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

@@ -1,10 +1,10 @@
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use jsonwebtoken::{Header, EncodingKey, DecodingKey, Validation, Algorithm, encode, decode};
 use time::{Duration, OffsetDateTime};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: i64,     // user_id
+    pub sub: i64, // user_id
     pub iat: i64,
     pub exp: i64,
     pub iss: String,
@@ -15,7 +15,8 @@ fn secret() -> String {
 }
 
 fn ttl_hours() -> i64 {
-    std::env::var("JWT_EXPIRE_HOURS").ok()
+    std::env::var("JWT_EXPIRE_HOURS")
+        .ok()
         .and_then(|s| s.parse::<i64>().ok())
         .unwrap_or(24 * 7)
 }

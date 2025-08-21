@@ -1,25 +1,149 @@
-use axum::{extract::State, http::StatusCode, Json};
+use super::{
+    dto::{ProfileRes, SignupReq, UpdateReq},
+    service::UserService,
+};
 use crate::{
-    error::AppResult,
+    api::auth::jwt,
+    error::{AppError, AppResult},
     state::AppState,
 };
-use super::{dto::CreateUserReq, service::UserService};
+use axum::{
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    Json,
+};
+
+// ← 어트리뷰트 내의 json! 매크로를 위해 필요
+#[allow(unused_imports)]
+use serde_json::json;
+
+/// Authorization: Bearer <token> 헤더에서 토큰 추출
+fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
+    let auth = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| AppError::Unauthorized("missing Authorization header".into()))?;
+
+    let Some(rest) = auth.strip_prefix("Bearer ") else {
+        return Err(AppError::Unauthorized("invalid Authorization scheme".into()));
+    };
+    Ok(rest.to_string())
+}
 
 #[utoipa::path(
     post,
     path = "/users",
     tag = "user",
-    request_body = CreateUserReq,
+    request_body = SignupReq,
     responses(
-        (status = 201, description = "User created", body = crate::api::auth::dto::UserOut),
-        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
-        (status = 409, description = "Email already exists", body = crate::error::ErrorBody)
+        // 예시는 순수 JSON 값으로!
+        (status = 201, description = "User created", body = ProfileRes, example = json!({
+            "id": 1,
+            "email": "newuser@example.com",
+            "name": "New User",
+            "nickname": "NewNick",
+            "language": "en",
+            "country": "US",
+            "birthday": "2000-01-01",
+            "gender": "male",
+            "user_state": "on",
+            "user_auth": "user",
+            "created_at": "2025-08-21T10:00:00Z"
+        })),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody, example = json!({
+            "error": "Validation error: email is not valid"
+        })),
+        (status = 409, description = "Email already exists", body = crate::error::ErrorBody, example = json!({
+            "error": "email already exists"
+        }))
     )
 )]
-pub async fn create_user(
+pub async fn signup(
     State(st): State<AppState>,
-    Json(req): Json<CreateUserReq>,
-) -> AppResult<(StatusCode, Json<crate::api::auth::dto::UserOut>)> {
-    let user = UserService::create_user(&st, req).await?;
+    Json(req): Json<SignupReq>,
+) -> AppResult<(StatusCode, Json<ProfileRes>)> {
+    let user = UserService::signup(&st, req).await?;
     Ok((StatusCode::CREATED, Json(user)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/users/me",
+    tag = "user",
+    responses(
+        (status = 200, description = "User profile", body = ProfileRes, example = json!({
+            "id": 1,
+            "email": "user@example.com",
+            "name": "Existing User",
+            "nickname": "ExistingNick",
+            "language": "ko",
+            "country": "KR",
+            "birthday": "1990-05-10",
+            "gender": "female",
+            "user_state": "on",
+            "user_auth": "user",
+            "created_at": "2025-08-21T10:00:00Z"
+        })),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody, example = json!({
+            "error": "missing Authorization header"
+        })),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody, example = json!({
+            "error": "forbidden"
+        })),
+        (status = 404, description = "Not Found", body = crate::error::ErrorBody, example = json!({
+            "error": "not found"
+        }))
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn get_me(State(st): State<AppState>, headers: HeaderMap) -> AppResult<Json<ProfileRes>> {
+    let token = bearer_from_headers(&headers)?;
+    let claims = jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let user = UserService::get_me(&st, claims.sub).await?;
+    Ok(Json(user))
+}
+
+#[utoipa::path(
+    put,
+    path = "/users/me",
+    tag = "user",
+    request_body = UpdateReq,
+    responses(
+        (status = 200, description = "User profile updated", body = ProfileRes, example = json!({
+            "id": 1,
+            "email": "user@example.com",
+            "name": "Existing User",
+            "nickname": "UpdatedNick",
+            "language": "ko",
+            "country": "KR",
+            "birthday": "1990-05-10",
+            "gender": "female",
+            "user_state": "on",
+            "user_auth": "user",
+            "created_at": "2025-08-21T10:00:00Z"
+        })),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody, example = json!({
+            "error": "Validation error: nickname length must be between 1 and 100"
+        })),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody, example = json!({
+            "error": "missing Authorization header"
+        })),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody, example = json!({
+            "error": "forbidden"
+        })),
+        (status = 404, description = "Not Found", body = crate::error::ErrorBody, example = json!({
+            "error": "not found"
+        }))
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn update_me(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<UpdateReq>,
+) -> AppResult<Json<ProfileRes>> {
+    let token = bearer_from_headers(&headers)?;
+    let claims = jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let user = UserService::update_me(&st, claims.sub, req).await?;
+    Ok(Json(user))
 }
