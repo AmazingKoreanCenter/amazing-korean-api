@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use validator::Validate;
 use utoipa::ToSchema;
+use validator::Validate;
 
 /// 회원가입 요청
 #[derive(Serialize, Deserialize, Validate, ToSchema)]

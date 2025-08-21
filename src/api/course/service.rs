@@ -1,5 +1,5 @@
-use crate::{state::AppState, error::AppResult};
-use super::{repo, dto::CourseListItem};
+use super::{dto::CourseListItem, repo};
+use crate::{error::AppResult, state::AppState};
 
 pub struct CourseService;
 
@@ -13,7 +13,7 @@ impl CourseService {
         title: &str,
         price: i32,
         ctype: &str,
-        subtitle: Option<&str>
+        subtitle: Option<&str>,
     ) -> AppResult<i64> {
         repo::create(&state.db, title, price, ctype, subtitle).await
     }
