@@ -1,6 +1,6 @@
-use super::dto::ProfileRes;
+use super::dto::{ProfileRes, SettingsRes, SettingsUpdateReq, StudyLangItem};
 use crate::error::AppResult;
-use chrono::NaiveDate;
+use chrono::{NaiveDate, Utc};
 use sqlx::PgPool;
 
 pub async fn create_user(
@@ -147,4 +147,115 @@ pub async fn insert_user_log_after(
     .await?;
 
     Ok(())
+}
+
+pub async fn find_settings_by_user_id(pool: &PgPool, user_id: i64) -> AppResult<SettingsRes> {
+    let user_setting = sqlx::query_as::<_, (Option<String>, Option<String>, Option<bool>, Option<bool>)>(
+        r#"
+        SELECT
+            us.ui_language,
+            us.timezone,
+            us.notifications_email,
+            us.notifications_push
+        FROM user_settings us
+        WHERE us.user_id = $1
+        "#,
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
+
+    let study_languages = sqlx::query_as::<_, StudyLangItem>(
+        r#"
+        SELECT
+            lang_code,
+            priority,
+            is_primary
+        FROM user_language_prefs
+        WHERE user_id = $1
+        ORDER BY priority ASC
+        "#,
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?;
+
+    let (ui_language, timezone, notifications_email, notifications_push) = user_setting.unwrap_or_default();
+
+    Ok(SettingsRes {
+        user_id,
+        ui_language,
+        timezone,
+        notifications_email,
+        notifications_push,
+        study_languages,
+    })
+}
+
+pub async fn upsert_settings(
+    pool: &PgPool,
+    user_id: i64,
+    req: &SettingsUpdateReq,
+) -> AppResult<SettingsRes> {
+    let mut tx = pool.begin().await?;
+
+    // Update user_settings
+    sqlx::query(
+        r#"
+        INSERT INTO user_settings (user_id, ui_language, timezone, notifications_email, notifications_push, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (user_id) DO UPDATE SET
+            ui_language = COALESCE($2, user_settings.ui_language),
+            timezone = COALESCE($3, user_settings.timezone),
+            notifications_email = COALESCE($4, user_settings.notifications_email),
+            notifications_push = COALESCE($5, user_settings.notifications_push),
+            updated_at = $6
+        "#,
+    )
+    .bind(user_id)
+    .bind(req.ui_language.as_ref())
+    .bind(req.timezone.as_ref())
+    .bind(req.notifications_email)
+    .bind(req.notifications_push)
+    .bind(Utc::now())
+    .execute(&mut *tx)
+    .await?;
+
+    // Update study_languages if provided
+    if let Some(study_langs) = &req.study_languages {
+        // Delete existing preferences
+        sqlx::query(
+            r#"
+            DELETE FROM user_language_prefs
+            WHERE user_id = $1
+            "#,
+        )
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
+
+        // Insert new preferences with normalized priorities
+        let mut sorted_langs = study_langs.clone();
+        sorted_langs.sort_by_key(|item| item.priority);
+
+        for (idx, item) in sorted_langs.iter().enumerate() {
+            sqlx::query(
+                r#"
+                INSERT INTO user_language_prefs (user_id, lang_code, priority, is_primary)
+                VALUES ($1, $2, $3, $4)
+                "#,
+            )
+            .bind(user_id)
+            .bind(&item.lang_code)
+            .bind((idx + 1) as i32) // Normalize priority
+            .bind(item.is_primary)
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+
+    tx.commit().await?;
+
+    // Fetch the latest settings after update
+    find_settings_by_user_id(pool, user_id).await
 }
