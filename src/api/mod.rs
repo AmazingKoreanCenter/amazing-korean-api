@@ -8,16 +8,19 @@ use utoipa_swagger_ui::SwaggerUi;
 pub mod auth;
 pub mod course;
 pub mod user;
+pub mod admin;
 
 use self::auth::router::auth_router;
 use self::course::router::course_router;
 use self::user::router::user_router;
+use self::admin::user::router::admin_user_router;
 
 pub fn app_router(state: AppState) -> axum::Router {
     axum::Router::new()
         .merge(course_router())
         .merge(user_router())
         .merge(auth_router())
+        .nest("/admin", admin_user_router())
         .route("/healthz", get(|| async { "ok" }))
         .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)

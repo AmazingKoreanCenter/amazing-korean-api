@@ -27,6 +27,9 @@ impl Modify for SecurityAddon {
         crate::api::user::handler::update_me,
         crate::api::user::handler::get_settings,
         crate::api::user::handler::update_settings,
+        crate::api::admin::user::handler::admin_list_users,
+        crate::api::admin::user::handler::admin_get_user,
+        crate::api::admin::user::handler::admin_update_user,
     ),
     components(
         schemas(
@@ -38,12 +41,18 @@ impl Modify for SecurityAddon {
             crate::api::user::dto::SettingsRes,
             crate::api::user::dto::SettingsUpdateReq,
             crate::api::user::dto::StudyLangItem,
+            crate::api::admin::user::dto::AdminUserRes,
+            crate::api::admin::user::dto::AdminListUsersRes,
+            crate::api::admin::user::dto::AdminUpdateUserReq,
+            crate::api::admin::user::dto::UserAuth,
+            crate::api::admin::user::dto::UserState,
             crate::error::ErrorBody,
         )
     ),
     modifiers(&SecurityAddon),
     tags(
-        (name = "user", description = "User management")
+        (name = "user", description = "User management"),
+        (name = "admin", description = "Admin user management")
     )
 )]
 pub struct ApiDoc;
