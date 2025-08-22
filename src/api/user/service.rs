@@ -1,6 +1,6 @@
 use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
-    Argon2, PasswordHasher, Algorithm, Params, Version,
+    Algorithm, Argon2, Params, PasswordHasher, Version,
 };
 use validator::Validate;
 
@@ -13,6 +13,9 @@ use super::{
     dto::{Gender, ProfileRes, SignupReq, UpdateReq},
     repo,
 };
+
+// 로깅 실패 무시용
+use tracing::warn;
 
 pub struct UserService;
 
@@ -48,11 +51,11 @@ impl UserService {
         let salt = SaltString::generate(&mut OsRng);
         let params = Params::new(19_456, 2, 1, None).unwrap();
         let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
-        //let argon2 = Argon2::default();
+        // let argon2 = Argon2::default();
 
         let password_hash = argon2
             .hash_password(req.password.as_bytes(), &salt)
-            .map_err(|e| AppError::Internal(format!("password hash error: {e}")))?
+            .map_err(|e| AppError::Internal(format!("password hash error: {e}")))? // 500
             .to_string();
 
         // 3) 성별 문자열
@@ -75,9 +78,16 @@ impl UserService {
         .await;
 
         match res {
-            Ok(user) => Ok(user),
+            Ok(user) => {
+                // ⭐ (NEW) 사용자 스냅샷 기록: action = "create"
+                // DB의 실제 저장값을 INSERT ... SELECT로 스냅샷하는 repo::insert_user_log_after 호출
+                if let Err(le) = repo::insert_user_log_after(&st.db, "create", Some(user.id), &user).await {
+                    warn!(error=?le, user_id = user.id, "user_log(create) insert failed");
+                }
+                Ok(user)
+            }
             Err(e) if Self::is_unique_violation(&e) => {
-                Err(AppError::Conflict("email already exists".into()))
+                Err(AppError::Conflict("email already exists".into())) // 409
             }
             Err(e) => Err(e),
         }
@@ -86,10 +96,10 @@ impl UserService {
     pub async fn get_me(st: &AppState, user_id: i64) -> AppResult<ProfileRes> {
         let user = repo::find_by_id(&st.db, user_id)
             .await?
-            .ok_or(AppError::NotFound)?;
+            .ok_or(AppError::NotFound)?; // 404
 
         if user.user_state != "on" {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden); // 403
         }
         Ok(user)
     }
@@ -103,10 +113,10 @@ impl UserService {
         // 2) 사용자 상태 확인
         let current_user = repo::find_by_id(&st.db, user_id)
             .await?
-            .ok_or(AppError::NotFound)?;
+            .ok_or(AppError::NotFound)?; // 404
 
         if current_user.user_state != "on" {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden); // 403
         }
 
         // 3) 성별 문자열
@@ -122,10 +132,12 @@ impl UserService {
             req.birthday,
             gender_str.as_deref(),
         )
-        .await?;
+        .await?; // 200
 
-        // TODO: (스펙 #37) user_log에 before/after 스냅샷 기록
-        // repo::insert_user_log(&st.db, user_id, &current_user, &updated_user).await?;
+        // ⭐ (NEW) 사용자 스냅샷 기록: action = "update"
+        if let Err(le) = repo::insert_user_log_after(&st.db, "update", Some(user_id), &updated_user).await {
+            warn!(error=?le, user_id = user_id, "user_log(update) insert failed");
+        }
 
         Ok(updated_user)
     }
