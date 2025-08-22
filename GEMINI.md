@@ -11,7 +11,9 @@
 - 실행: `cargo run` (bind: 0.0.0.0:3000), OpenAPI: `/api-docs/openapi.json`, Swagger UI: `/docs`
 
 ## Current APIs
-- `GET /courses`, `POST /courses` (DTO/에러 규칙 준수)
+- `POST /users` (회원가입)
+- `GET /users/me` (JWT 인증)
+- `PUT /users/me` (JWT 인증, 닉네임/언어/국가/생일/성별 업데이트)
 
 ### Health Endpoints
 - `GET /health/live` : liveness (초경량, DB 미접속), 200 OK만 응답
@@ -50,10 +52,11 @@
 ```
 
 ## Files (참조용 앵커)
-- @./src  ← 소스 전체
+- @./src/api/user/repo.rs
+- @./src/api/user/service.rs
+- @./src/api/user/dto.rs
+- @./src/api/user/handler.rs
 - @./Cargo.toml
-- @./openapi/README.md  （있다면）
-- @./docs/ERD.png       （있다면）
 - @./.env.example
 
 ## Tasks for Gemini
@@ -90,7 +93,7 @@
 - **H/S/R**: `signup` → `signup` → `create_user` (또는 `repo::signup`)
 - **DTO**: `SignupReq → SignupRes{ user_id }`
 - **Status**: 201, 409, 400, 500
-- **Rule**: 이메일 UNIQUE(23505→409), validator, 약관 필수, (이메일 인증 도입 시) 완료 후 `user_state='on'`.
+- **Rule**: 이메일 UNIQUE(23505→409), validator, 약관 필수, (이메일 인증 도입 시) 완료 후 `user_state='on'`, 성공 시 `USER_LOG` 스냅샷 기록.
 
 2) **내 프로필 조회**
 - `GET /users/me`  (Bearer)
@@ -105,14 +108,29 @@
 - **Status**: 200, 400, 401, 403, 404, 500
 - **Rule**: 성공 시 `USER_LOG` 스냅샷 기록.
 
-4) **환경 설정(계정/학습/알림)**
+4) **사용자 스냅샷 기록**
+- `POST /users`, `PUT /user/me`
+- **H/S/R**
+    - 가입: `signup` → `signup`(성공 후 insert_user_log("create")) → `create_user`, `insert_user_log`
+    - 수정: `update_me` → `update_me`(성공 후 insert_user_log("update")) → `update_profile`, `insert_user_log`
+- **DTO** : (내부 후처리); 스냅샷 소스 = ProfileRes(After)
+- **Status**
+    - 가입: 201/400/409/500
+    - 수정: 200/400/401/403/404/500, 로깅 실패 시 상태 변화 없음
+-  **Rule** 
+    - action: 가입 시 "create", 수정 시 "update" 로 기록
+    - updated_by_user_id: 가입은 신규 사용자 ID, 수정은 JWT 주체 ID
+    - user_password_log: 항상 NULL(민감정보 미기록)
+    - 로깅 에러는 잡아서 warn 로그만 남기고 요청 처리는 계속 진행
+
+5) **환경 설정(계정/학습/알림)**
 - `GET /users/me/settings`, `PUT /users/me/settings`
-- **H/S/R**: `get_settings`/`update_settings` → 同 → `find_settings_by_user_id`/`upsert_settings`
-- **DTO**: `— → SettingsRes`, `SettingsUpdateReq → SettingsRes`
+- **H/S/R**: `update_settings` → `update_settings` → `update_settings`
+- **DTO**: `SettingsRes`, `SettingsUpdateReq → SettingsRes`
 - **Status**: 200/204, 400, 401, 403
 - **Note**: 7개국어 지원. UI 언어(단일) + 학습 선호 언어(복수, 우선순위).
 
-5) **관리자: 목록/조회/수정**
+6) **관리자: 목록/조회/수정**
 - `GET /admin/users?query=&state=&page=&size=`
 - `GET /admin/users/{user_id}`
 - `PUT /admin/users/{user_id}`
@@ -121,7 +139,7 @@
 - **Status**: 200, 400, 403(권한부족), 404
 - **Rule**: RBAC(`user_auth in ('HYMN','admin','manager')`), 감사 로그 남김.
 
-6) **개인정보 내보내기(Export, 비동기)**
+7) **개인정보 내보내기(Export, 비동기)**
 - `POST /users/me/export`
 - **H/S/R**: `export` → `export` → `create_export_job`
 - **DTO**: `ExportReq? → ExportAcceptedRes{ job_id }`
@@ -137,6 +155,7 @@ SignupReq {
   nickname?, language?, country?, birthday?: NaiveDate, gender?: String,
   agree_terms_service: bool, agree_terms_personal: bool
 }
+
 SignupRes { user_id: i64 }
 
 ProfileRes {
@@ -156,5 +175,6 @@ SettingsUpdateReq {
   notifications_email?: bool,
   notifications_push?: bool
 }
+
 SettingsRes = SettingsUpdateReq + { user_id }
 
