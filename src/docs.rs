@@ -25,6 +25,8 @@ impl Modify for SecurityAddon {
         crate::api::user::handler::signup,
         crate::api::user::handler::get_me,
         crate::api::user::handler::update_me,
+        crate::api::user::handler::get_settings,
+        crate::api::user::handler::update_settings,
     ),
     components(
         schemas(
@@ -33,6 +35,9 @@ impl Modify for SecurityAddon {
             crate::api::user::dto::ProfileRes,
             crate::api::user::dto::UpdateReq,
             crate::api::user::dto::Gender,
+            crate::api::user::dto::SettingsRes,
+            crate::api::user::dto::SettingsUpdateReq,
+            crate::api::user::dto::StudyLangItem,
             crate::error::ErrorBody,
         )
     ),

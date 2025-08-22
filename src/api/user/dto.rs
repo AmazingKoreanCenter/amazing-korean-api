@@ -137,3 +137,67 @@ pub struct UpdateReq {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gender: Option<Gender>,
 }
+
+/// 학습 언어 아이템
+#[derive(Serialize, Deserialize, Validate, ToSchema, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, sqlx::FromRow)]
+pub struct StudyLangItem {
+    #[validate(length(min = 2, max = 2))] // ISO 639-1
+    pub lang_code: String,
+    #[validate(range(min = 1))]
+    pub priority: i32,
+    pub is_primary: bool,
+}
+
+/// 내 환경 설정 수정 요청
+#[derive(Serialize, Deserialize, Validate, ToSchema)]
+#[schema(example = json!({
+    "ui_language": "ko",
+    "timezone": "Asia/Seoul",
+    "notifications_email": true,
+    "notifications_push": false,
+    "study_languages": [
+        {"lang_code":"ko","priority":2,"is_primary":true},
+        {"lang_code":"en","priority":1,"is_primary":false}
+    ]
+}))]
+pub struct SettingsUpdateReq {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 2, max = 2))] // ISO 639-1
+    pub ui_language: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 1))] // IANA timezone format, basic validation
+    pub timezone: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notifications_email: Option<bool>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notifications_push: Option<bool>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(max = 8))] // Max 8 study languages
+    pub study_languages: Option<Vec<StudyLangItem>>,
+}
+
+/// 내 환경 설정 응답
+#[derive(Serialize, ToSchema, Clone, Debug, PartialEq)]
+#[schema(example = json!({
+    "user_id": 123,
+    "ui_language": "ko",
+    "timezone": "Asia/Seoul",
+    "notifications_email": true,
+    "notifications_push": false,
+    "study_languages": [
+        {"lang_code":"en","priority":1,"is_primary":false},
+        {"lang_code":"ko","priority":2,"is_primary":true}
+    ]
+}))]
+pub struct SettingsRes {
+    pub user_id: i64,
+    pub ui_language: Option<String>,
+    pub timezone: Option<String>,
+    pub notifications_email: Option<bool>,
+    pub notifications_push: Option<bool>,
+    pub study_languages: Vec<StudyLangItem>,
+}
