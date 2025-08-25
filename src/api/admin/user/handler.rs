@@ -1,4 +1,8 @@
-use axum::{extract::{Path, Query, State}, http::HeaderMap, Json};
+use axum::{
+    extract::{Path, Query, State},
+    http::HeaderMap,
+    Json,
+};
 use serde::Deserialize;
 
 use crate::{
@@ -7,7 +11,10 @@ use crate::{
     state::AppState,
 };
 
-use super::{dto::{AdminListUsersRes, AdminUserRes, AdminUpdateUserReq, UserState}, service::AdminUserService};
+use super::{
+    dto::{AdminListUsersRes, AdminUpdateUserReq, AdminUserRes, UserState},
+    service::AdminUserService,
+};
 
 // ← 어트리뷰트 내의 json! 매크로를 위해 필요
 #[allow(unused_imports)]
@@ -21,7 +28,9 @@ fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
         .ok_or_else(|| AppError::Unauthorized("missing Authorization header".into()))?;
 
     let Some(rest) = auth.strip_prefix("Bearer ") else {
-        return Err(AppError::Unauthorized("invalid Authorization scheme".into()));
+        return Err(AppError::Unauthorized(
+            "invalid Authorization scheme".into(),
+        ));
     };
     Ok(rest.to_string())
 }
@@ -82,7 +91,8 @@ pub async fn admin_list_users(
     Query(params): Query<AdminListUsersQueryParams>,
 ) -> AppResult<Json<AdminListUsersRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims =
+        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
 
     let res = AdminUserService::admin_list(
         &st,
@@ -137,7 +147,8 @@ pub async fn admin_get_user(
     Path(user_id): Path<i64>,
 ) -> AppResult<Json<AdminUserRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims =
+        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
 
     let res = AdminUserService::admin_get(&st, claims.sub, user_id).await?;
 
@@ -192,7 +203,8 @@ pub async fn admin_update_user(
     Json(req): Json<AdminUpdateUserReq>,
 ) -> AppResult<Json<AdminUserRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims =
+        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
 
     let res = AdminUserService::admin_update(&st, claims.sub, user_id, req).await?;
 

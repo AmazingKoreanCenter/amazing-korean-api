@@ -6,7 +6,10 @@ use crate::{
 };
 use sqlx::PgPool;
 
-use super::{dto::{AdminListUsersRes, AdminUserRes, AdminUpdateUserReq, UserAuth, UserState}, repo};
+use super::{
+    dto::{AdminListUsersRes, AdminUpdateUserReq, AdminUserRes, UserAuth, UserState},
+    repo,
+};
 
 // 로깅 실패 무시용
 use tracing::warn;
@@ -20,7 +23,9 @@ impl AdminUserService {
     fn is_unique_violation(err: &AppError) -> bool {
         match err {
             AppError::Sqlx(sqlx_err) => match sqlx_err {
-                sqlx::Error::Database(db) => db.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION),
+                sqlx::Error::Database(db) => {
+                    db.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION)
+                }
                 _ => false,
             },
             _ => false,
@@ -33,7 +38,10 @@ impl AdminUserService {
             .await?
             .ok_or(AppError::Unauthorized("Actor user not found".into()))?;
 
-        let actor_auth: UserAuth = actor.user_auth.parse().map_err(|_| AppError::Internal("Invalid user_auth in DB".into()))?;
+        let actor_auth: UserAuth = actor
+            .user_auth
+            .parse()
+            .map_err(|_| AppError::Internal("Invalid user_auth in DB".into()))?;
 
         match actor_auth {
             UserAuth::Hymn | UserAuth::Admin | UserAuth::Manager => Ok(actor_auth),
@@ -70,14 +78,8 @@ impl AdminUserService {
         let page = page.unwrap_or(1).max(1);
         let size = size.unwrap_or(20).clamp(1, 100);
 
-        let (total, items) = repo::admin_list_users(
-            &st.db,
-            query.as_deref(),
-            state,
-            page,
-            size,
-        )
-        .await?;
+        let (total, items) =
+            repo::admin_list_users(&st.db, query.as_deref(), state, page, size).await?;
 
         Ok(AdminListUsersRes { total, items })
     }
@@ -109,15 +111,23 @@ impl AdminUserService {
             .await?
             .ok_or(AppError::NotFound)?;
 
-        let target_user_auth: UserAuth = current_target_user.user_auth.parse().map_err(|_| AppError::Internal("Invalid user_auth in DB".into()))?;
+        let target_user_auth: UserAuth = current_target_user
+            .user_auth
+            .parse()
+            .map_err(|_| AppError::Internal("Invalid user_auth in DB".into()))?;
 
         Self::check_target_user_rbac(actor_auth, target_user_id, target_user_auth).await?;
 
         // Validate gender if provided
         if let Some(gender_str) = &req.gender {
-            let allowed_genders: HashSet<&str> = ["none", "male", "female", "other"].iter().cloned().collect();
+            let allowed_genders: HashSet<&str> = ["none", "male", "female", "other"]
+                .iter()
+                .cloned()
+                .collect();
             if !allowed_genders.contains(gender_str.as_str()) {
-                return Err(AppError::BadRequest(format!("Invalid gender: {}", gender_str).into()));
+                return Err(AppError::BadRequest(
+                    format!("Invalid gender: {}", gender_str).into(),
+                ));
             }
         }
 

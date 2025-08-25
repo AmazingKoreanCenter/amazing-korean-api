@@ -1,8 +1,8 @@
 use crate::error::AppResult;
-use sqlx::{PgPool, PgConnection};
 use serde_json::Value;
+use sqlx::{PgConnection, PgPool};
 
-use super::dto::{AdminUserRes, AdminUpdateUserReq, UserState};
+use super::dto::{AdminUpdateUserReq, AdminUserRes, UserState};
 
 pub async fn admin_list_users(
     pool: &PgPool,
@@ -41,12 +41,18 @@ pub async fn admin_list_users(
 
     if let Some(s) = state {
         let state_str = s.to_string();
-        count_sql.push_str(&format!("
+        count_sql.push_str(&format!(
+            "
             AND user_state = ${}
-        ", bind_idx));
-        select_sql.push_str(&format!("
+        ",
+            bind_idx
+        ));
+        select_sql.push_str(&format!(
+            "
             AND user_state = ${}
-        ", bind_idx));
+        ",
+            bind_idx
+        ));
         query_args.push(state_str);
         bind_idx += 1;
     }
@@ -55,14 +61,24 @@ pub async fn admin_list_users(
     let total = match query_args.len() {
         0 => total_query.fetch_one(pool).await?,
         1 => total_query.bind(&query_args[0]).fetch_one(pool).await?,
-        2 => total_query.bind(&query_args[0]).bind(&query_args[1]).fetch_one(pool).await?,
+        2 => {
+            total_query
+                .bind(&query_args[0])
+                .bind(&query_args[1])
+                .fetch_one(pool)
+                .await?
+        }
         _ => unreachable!(), // Should not happen with current logic
     };
 
-    select_sql.push_str(&format!("
+    select_sql.push_str(&format!(
+        "
         ORDER BY user_created_at DESC
         LIMIT ${} OFFSET ${}
-    ", bind_idx, bind_idx + 1));
+    ",
+        bind_idx,
+        bind_idx + 1
+    ));
 
     let mut select_query = sqlx::query_as::<_, AdminUserRes>(&select_sql);
     for arg in &query_args {
