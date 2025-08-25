@@ -1,6 +1,9 @@
-use crate::state::AppState;
-use axum::{routing::{get, post}, Router};
 use super::handler::{get_me, get_settings, signup, update_me, update_settings};
+use crate::state::AppState;
+use axum::{
+    routing::{get, post},
+    Router,
+};
 
 /// 서브 라우터는 Router<AppState> 반환(프로젝트 규칙)
 pub fn user_router() -> Router<AppState> {

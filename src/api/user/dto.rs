@@ -139,7 +139,19 @@ pub struct UpdateReq {
 }
 
 /// 학습 언어 아이템
-#[derive(Serialize, Deserialize, Validate, ToSchema, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, sqlx::FromRow)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Validate,
+    ToSchema,
+    Clone,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    sqlx::FromRow,
+)]
 pub struct StudyLangItem {
     #[validate(length(min = 2, max = 2))] // ISO 639-1
     pub lang_code: String,

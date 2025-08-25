@@ -25,7 +25,9 @@ fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
         .ok_or_else(|| AppError::Unauthorized("missing Authorization header".into()))?;
 
     let Some(rest) = auth.strip_prefix("Bearer ") else {
-        return Err(AppError::Unauthorized("invalid Authorization scheme".into()));
+        return Err(AppError::Unauthorized(
+            "invalid Authorization scheme".into(),
+        ));
     };
     Ok(rest.to_string())
 }
@@ -98,7 +100,8 @@ pub async fn signup(
 )]
 pub async fn get_me(State(st): State<AppState>, headers: HeaderMap) -> AppResult<Json<ProfileRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims =
+        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
     let user = UserService::get_me(&st, claims.sub).await?;
     Ok(Json(user))
 }
@@ -143,7 +146,8 @@ pub async fn update_me(
     Json(req): Json<UpdateReq>,
 ) -> AppResult<Json<ProfileRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims =
+        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
     let user = UserService::update_me(&st, claims.sub, req).await?;
     Ok(Json(user))
 }
@@ -181,7 +185,8 @@ pub async fn get_settings(
     headers: HeaderMap,
 ) -> AppResult<Json<SettingsRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims =
+        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
     let settings = UserService::get_settings(&st, claims.sub).await?;
     Ok(Json(settings))
 }
@@ -224,7 +229,8 @@ pub async fn update_settings(
     Json(req): Json<SettingsUpdateReq>,
 ) -> AppResult<Json<SettingsRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims =
+        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
     let settings = UserService::update_settings(&st, claims.sub, req).await?;
     Ok(Json(settings))
 }

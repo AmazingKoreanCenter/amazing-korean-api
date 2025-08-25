@@ -27,7 +27,9 @@ impl UserService {
     fn is_unique_violation(err: &AppError) -> bool {
         match err {
             AppError::Sqlx(sqlx_err) => match sqlx_err {
-                sqlx::Error::Database(db) => db.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION),
+                sqlx::Error::Database(db) => {
+                    db.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION)
+                }
                 _ => false,
             },
             _ => false,
@@ -82,7 +84,9 @@ impl UserService {
             Ok(user) => {
                 // ⭐ (NEW) 사용자 스냅샷 기록: action = "create"
                 // DB의 실제 저장값을 INSERT ... SELECT로 스냅샷하는 repo::insert_user_log_after 호출
-                if let Err(le) = repo::insert_user_log_after(&st.db, "create", Some(user.id), &user).await {
+                if let Err(le) =
+                    repo::insert_user_log_after(&st.db, "create", Some(user.id), &user).await
+                {
                     warn!(error=?le, user_id = user.id, "user_log(create) insert failed");
                 }
                 Ok(user)
@@ -136,7 +140,9 @@ impl UserService {
         .await?; // 200
 
         // ⭐ (NEW) 사용자 스냅샷 기록: action = "update"
-        if let Err(le) = repo::insert_user_log_after(&st.db, "update", Some(user_id), &updated_user).await {
+        if let Err(le) =
+            repo::insert_user_log_after(&st.db, "update", Some(user_id), &updated_user).await
+        {
             warn!(error=?le, user_id = user_id, "user_log(update) insert failed");
         }
 
@@ -177,15 +183,15 @@ impl UserService {
         // 3) study_languages 유효성 검사
         if let Some(study_langs) = &req.study_languages {
             if study_langs.len() > 8 {
-                return Err(AppError::BadRequest("Too many study languages (max 8)".into()));
+                return Err(AppError::BadRequest(
+                    "Too many study languages (max 8)".into(),
+                ));
             }
 
-            let allowed_lang_codes: HashSet<&str> = [
-                "en", "ko", "ne", "si", "id", "vi", "th",
-            ]
-            .iter()
-            .cloned()
-            .collect();
+            let allowed_lang_codes: HashSet<&str> = ["en", "ko", "ne", "si", "id", "vi", "th"]
+                .iter()
+                .cloned()
+                .collect();
 
             let mut seen_lang_codes = HashSet::new();
             let mut primary_count = 0;
@@ -198,7 +204,8 @@ impl UserService {
                 }
                 if !seen_lang_codes.insert(&item.lang_code) {
                     return Err(AppError::BadRequest(
-                        format!("Duplicate lang_code in study_languages: {}", item.lang_code).into(),
+                        format!("Duplicate lang_code in study_languages: {}", item.lang_code)
+                            .into(),
                     ));
                 }
                 if item.is_primary {
@@ -207,18 +214,18 @@ impl UserService {
             }
 
             if primary_count > 1 {
-                return Err(AppError::BadRequest("Only one primary study language is allowed".into()));
+                return Err(AppError::BadRequest(
+                    "Only one primary study language is allowed".into(),
+                ));
             }
         }
 
         // 4) ui_language 유효성 검사
         if let Some(ui_lang) = &req.ui_language {
-            let allowed_lang_codes: HashSet<&str> = [
-                "en", "ko", "ne", "si", "id", "vi", "th",
-            ]
-            .iter()
-            .cloned()
-            .collect();
+            let allowed_lang_codes: HashSet<&str> = ["en", "ko", "ne", "si", "id", "vi", "th"]
+                .iter()
+                .cloned()
+                .collect();
             if !allowed_lang_codes.contains(ui_lang.as_str()) {
                 return Err(AppError::BadRequest(
                     format!("Invalid ui_language: {}", ui_lang).into(),
@@ -243,7 +250,9 @@ impl UserService {
                 if let AppError::Sqlx(sqlx_err) = &e {
                     if let sqlx::Error::Database(db_err) = sqlx_err {
                         if db_err.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION) {
-                            return Err(AppError::BadRequest("Duplicate lang_code in study_languages".into()));
+                            return Err(AppError::BadRequest(
+                                "Duplicate lang_code in study_languages".into(),
+                            ));
                         }
                     }
                 }

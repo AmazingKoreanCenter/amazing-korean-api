@@ -150,8 +150,9 @@ pub async fn insert_user_log_after(
 }
 
 pub async fn find_settings_by_user_id(pool: &PgPool, user_id: i64) -> AppResult<SettingsRes> {
-    let user_setting = sqlx::query_as::<_, (Option<String>, Option<String>, Option<bool>, Option<bool>)>(
-        r#"
+    let user_setting =
+        sqlx::query_as::<_, (Option<String>, Option<String>, Option<bool>, Option<bool>)>(
+            r#"
         SELECT
             us.ui_language,
             us.timezone,
@@ -160,10 +161,10 @@ pub async fn find_settings_by_user_id(pool: &PgPool, user_id: i64) -> AppResult<
         FROM user_settings us
         WHERE us.user_id = $1
         "#,
-    )
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await?;
+        )
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await?;
 
     let study_languages = sqlx::query_as::<_, StudyLangItem>(
         r#"
@@ -180,7 +181,8 @@ pub async fn find_settings_by_user_id(pool: &PgPool, user_id: i64) -> AppResult<
     .fetch_all(pool)
     .await?;
 
-    let (ui_language, timezone, notifications_email, notifications_push) = user_setting.unwrap_or_default();
+    let (ui_language, timezone, notifications_email, notifications_push) =
+        user_setting.unwrap_or_default();
 
     Ok(SettingsRes {
         user_id,
