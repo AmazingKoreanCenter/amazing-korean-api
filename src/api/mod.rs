@@ -19,7 +19,7 @@ pub fn app_router(state: AppState) -> axum::Router {
     axum::Router::new()
         .merge(course_router())
         .merge(user_router())
-        .merge(auth_router())
+        .nest("/auth", auth_router()) // Nest auth_router under /auth
         .nest("/admin", admin_router())
         .route("/healthz", get(|| async { "ok" }))
         .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))

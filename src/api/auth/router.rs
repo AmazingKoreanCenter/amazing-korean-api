@@ -1,13 +1,14 @@
 use super::handler;
 use crate::state::AppState;
 use axum::{
-    routing::{get, post},
+    routing::{post},
     Router,
 };
 
 pub fn auth_router() -> Router<AppState> {
     Router::new()
-        .route("/auth/signup", post(handler::signup))
-        .route("/auth/login", post(handler::login))
-        .route("/me", get(handler::me))
+        .route("/login", post(handler::login))
+        .route("/refresh", post(handler::refresh))
+        .route("/logout", post(handler::logout))
+        .route("/logout-all", post(handler::logout_all))
 }

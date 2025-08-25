@@ -18,7 +18,7 @@ use axum::{
 use serde_json::json;
 
 /// Authorization: Bearer <token> 헤더에서 토큰 추출
-fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
+pub fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
     let auth = headers
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
