@@ -1,50 +1,43 @@
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+use std::env;
 use time::{Duration, OffsetDateTime};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: i64, // user_id
-    pub iat: i64,
-    pub exp: i64,
-    pub iss: String,
+    pub sub: i64, // User ID
+    pub exp: i64, // Expiration time
+    pub iat: i64, // Issued at
+    pub iss: String, // Issuer
 }
 
-fn secret() -> String {
-    std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev_super_secret_change_me".to_string())
-}
-
-fn ttl_hours() -> i64 {
-    std::env::var("JWT_EXPIRE_HOURS")
-        .ok()
-        .and_then(|s| s.parse::<i64>().ok())
-        .unwrap_or(24 * 7)
-}
-
-pub fn encode_token(user_id: i64) -> anyhow::Result<(String, i64)> {
+pub async fn create_token(user_id: i64, ttl_minutes: i64) -> Result<(String, i64), jsonwebtoken::errors::Error> {
+    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
     let now = OffsetDateTime::now_utc();
-    let exp = now + Duration::hours(ttl_hours());
+    let expires_in = now + Duration::minutes(ttl_minutes);
 
     let claims = Claims {
         sub: user_id,
+        exp: expires_in.unix_timestamp(),
         iat: now.unix_timestamp(),
-        exp: exp.unix_timestamp(),
-        iss: "amazing-korean-api".to_string(),
+        iss: "amazingkorean".to_string(),
     };
 
     let token = encode(
-        &Header::new(Algorithm::HS256),
+        &Header::default(),
         &claims,
-        &EncodingKey::from_secret(secret().as_bytes()),
+        &EncodingKey::from_secret(secret.as_bytes()),
     )?;
-    Ok((token, (exp - now).whole_seconds()))
+
+    Ok((token, ttl_minutes * 60))
 }
 
-pub fn decode_token(token: &str) -> anyhow::Result<Claims> {
-    let data = decode::<Claims>(
+pub fn decode_token(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
+    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    decode(
         token,
-        &DecodingKey::from_secret(secret().as_bytes()),
-        &Validation::new(Algorithm::HS256),
-    )?;
-    Ok(data.claims)
+        &DecodingKey::from_secret(secret.as_bytes()),
+        &Validation::default(),
+    )
+    .map(|data| data.claims)
 }

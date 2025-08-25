@@ -15,6 +15,12 @@ impl Modify for SecurityAddon {
                     .build(),
             ),
         );
+        components.add_security_scheme(
+            "refreshCookie",
+            SecurityScheme::ApiKey(utoipa::openapi::security::ApiKey::Cookie(
+                utoipa::openapi::security::ApiKeyValue::new("ak_refresh".to_string())
+            )),
+        );
     }
 }
 
@@ -30,6 +36,10 @@ impl Modify for SecurityAddon {
         crate::api::admin::user::handler::admin_list_users,
         crate::api::admin::user::handler::admin_get_user,
         crate::api::admin::user::handler::admin_update_user,
+        crate::api::auth::handler::login,
+        crate::api::auth::handler::refresh,
+        crate::api::auth::handler::logout,
+        crate::api::auth::handler::logout_all,
     ),
     components(
         schemas(
@@ -46,12 +56,17 @@ impl Modify for SecurityAddon {
             crate::api::admin::user::dto::AdminUpdateUserReq,
             crate::api::admin::user::dto::UserAuth,
             crate::api::admin::user::dto::UserState,
+            crate::api::auth::dto::LoginReq,
+            crate::api::auth::dto::LoginRes,
+            crate::api::auth::dto::RefreshRes,
+            crate::api::auth::dto::UserOut,
             crate::error::ErrorBody,
         )
     ),
     modifiers(&SecurityAddon),
     tags(
         (name = "user", description = "User management"),
+        (name = "auth", description = "Authentication management"),
         (name = "admin", description = "Admin user management")
     )
 )]
