@@ -18,7 +18,7 @@ impl Modify for SecurityAddon {
         components.add_security_scheme(
             "refreshCookie",
             SecurityScheme::ApiKey(utoipa::openapi::security::ApiKey::Cookie(
-                utoipa::openapi::security::ApiKeyValue::new("ak_refresh".to_string())
+                utoipa::openapi::security::ApiKeyValue::new("ak_refresh".to_string()),
             )),
         );
     }

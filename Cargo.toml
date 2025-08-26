@@ -32,5 +32,6 @@ redis = { version = "0.26", features = ["tokio-comp"] }
 deadpool-redis = "0.16"
 axum-extra = { version = "0.10", features = ["cookie"] }
 sha2 = "0.10"
-base64 = "0.21"
+base64 = { version = "0.22", default-features = false }
+percent-encoding = "2"
 rand = "0.8"

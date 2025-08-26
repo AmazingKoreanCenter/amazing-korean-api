@@ -3,6 +3,7 @@ use crate::error::AppResult;
 use chrono::{NaiveDate, Utc};
 use sqlx::PgPool;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn create_user(
     pool: &PgPool,
     email: &str,

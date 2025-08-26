@@ -1,9 +1,6 @@
 use super::handler;
 use crate::state::AppState;
-use axum::{
-    routing::{post},
-    Router,
-};
+use axum::{routing::post, Router};
 
 pub fn auth_router() -> Router<AppState> {
     Router::new()

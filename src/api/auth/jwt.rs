@@ -5,13 +5,16 @@ use time::{Duration, OffsetDateTime};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: i64, // User ID
-    pub exp: i64, // Expiration time
-    pub iat: i64, // Issued at
+    pub sub: i64,    // User ID
+    pub exp: i64,    // Expiration time
+    pub iat: i64,    // Issued at
     pub iss: String, // Issuer
 }
 
-pub async fn create_token(user_id: i64, ttl_minutes: i64) -> Result<(String, i64), jsonwebtoken::errors::Error> {
+pub async fn create_token(
+    user_id: i64,
+    ttl_minutes: i64,
+) -> Result<(String, i64), jsonwebtoken::errors::Error> {
     let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
     let now = OffsetDateTime::now_utc();
     let expires_in = now + Duration::minutes(ttl_minutes);

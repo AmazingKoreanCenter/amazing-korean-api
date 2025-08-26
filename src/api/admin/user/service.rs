@@ -21,14 +21,10 @@ impl AdminUserService {
 
     #[inline]
     fn is_unique_violation(err: &AppError) -> bool {
-        match err {
-            AppError::Sqlx(sqlx_err) => match sqlx_err {
-                sqlx::Error::Database(db) => {
-                    db.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION)
-                }
-                _ => false,
-            },
-            _ => false,
+        if let AppError::Sqlx(sqlx::Error::Database(db)) = err {
+            db.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION)
+        } else {
+            false
         }
     }
 
@@ -125,9 +121,10 @@ impl AdminUserService {
                 .cloned()
                 .collect();
             if !allowed_genders.contains(gender_str.as_str()) {
-                return Err(AppError::BadRequest(
-                    format!("Invalid gender: {}", gender_str).into(),
-                ));
+                return Err(AppError::BadRequest(format!(
+                    "Invalid gender: {}",
+                    gender_str
+                )));
             }
         }
 
