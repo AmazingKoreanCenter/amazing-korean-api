@@ -58,6 +58,6 @@ pub async fn get_by_id(
 
     match row {
         Some(course) => Ok(Json(course)),
-        None => Err(AppError::NotFound.into()),
+        None => Err(AppError::NotFound),
     }
 }

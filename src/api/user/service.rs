@@ -25,14 +25,10 @@ impl UserService {
 
     #[inline]
     fn is_unique_violation(err: &AppError) -> bool {
-        match err {
-            AppError::Sqlx(sqlx_err) => match sqlx_err {
-                sqlx::Error::Database(db) => {
-                    db.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION)
-                }
-                _ => false,
-            },
-            _ => false,
+        if let AppError::Sqlx(sqlx::Error::Database(db)) = err {
+            db.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION)
+        } else {
+            false
         }
     }
 
@@ -198,15 +194,16 @@ impl UserService {
 
             for item in study_langs {
                 if !allowed_lang_codes.contains(item.lang_code.as_str()) {
-                    return Err(AppError::BadRequest(
-                        format!("Invalid lang_code: {}", item.lang_code).into(),
-                    ));
+                    return Err(AppError::BadRequest(format!(
+                        "Invalid lang_code: {}",
+                        item.lang_code
+                    )));
                 }
                 if !seen_lang_codes.insert(&item.lang_code) {
-                    return Err(AppError::BadRequest(
-                        format!("Duplicate lang_code in study_languages: {}", item.lang_code)
-                            .into(),
-                    ));
+                    return Err(AppError::BadRequest(format!(
+                        "Duplicate lang_code in study_languages: {}",
+                        item.lang_code
+                    )));
                 }
                 if item.is_primary {
                     primary_count += 1;
@@ -227,9 +224,10 @@ impl UserService {
                 .cloned()
                 .collect();
             if !allowed_lang_codes.contains(ui_lang.as_str()) {
-                return Err(AppError::BadRequest(
-                    format!("Invalid ui_language: {}", ui_lang).into(),
-                ));
+                return Err(AppError::BadRequest(format!(
+                    "Invalid ui_language: {}",
+                    ui_lang
+                )));
             }
         }
 
@@ -246,14 +244,11 @@ impl UserService {
                 Ok(settings)
             }
             Err(e) => {
-                // Map unique violation for study_languages to BadRequest
-                if let AppError::Sqlx(sqlx_err) = &e {
-                    if let sqlx::Error::Database(db_err) = sqlx_err {
-                        if db_err.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION) {
-                            return Err(AppError::BadRequest(
-                                "Duplicate lang_code in study_languages".into(),
-                            ));
-                        }
+                if let AppError::Sqlx(sqlx::Error::Database(db_err)) = &e {
+                    if db_err.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION) {
+                        return Err(AppError::BadRequest(
+                            "Duplicate lang_code in study_languages".into(),
+                        ));
                     }
                 }
                 Err(e)

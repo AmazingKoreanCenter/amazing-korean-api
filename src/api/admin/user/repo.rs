@@ -175,7 +175,7 @@ pub async fn admin_update_user(
 
     // Insert admin action log
     insert_admin_action_log(
-        &mut *tx,
+        &mut tx,
         Some(actor_user_id), // actor_user_id will be set in service layer
         user_id,
         "admin_update",

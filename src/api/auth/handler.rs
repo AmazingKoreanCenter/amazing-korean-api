@@ -1,4 +1,8 @@
-use axum::{extract::State, http::{HeaderMap, StatusCode}, Json};
+use axum::{
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    Json,
+};
 use axum_extra::extract::cookie::CookieJar;
 
 use crate::{
@@ -89,7 +93,10 @@ pub async fn refresh(
     ),
     security(("refreshCookie" = []))
 )]
-pub async fn logout(State(st): State<AppState>, jar: CookieJar) -> AppResult<(CookieJar, StatusCode)> {
+pub async fn logout(
+    State(st): State<AppState>,
+    jar: CookieJar,
+) -> AppResult<(CookieJar, StatusCode)> {
     let jar = AuthService::logout(&st, jar).await?;
     Ok((jar, StatusCode::NO_CONTENT))
 }
@@ -105,10 +112,7 @@ pub async fn logout(State(st): State<AppState>, jar: CookieJar) -> AppResult<(Co
     ),
     security(("bearerAuth" = []))
 )]
-pub async fn logout_all(
-    State(st): State<AppState>,
-    headers: HeaderMap,
-) -> AppResult<StatusCode> {
+pub async fn logout_all(State(st): State<AppState>, headers: HeaderMap) -> AppResult<StatusCode> {
     let token = bearer_from_headers(&headers)?;
     let claims = crate::api::auth::jwt::decode_token(&token)
         .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
