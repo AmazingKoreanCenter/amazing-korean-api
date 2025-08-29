@@ -1,13 +1,12 @@
-use std::collections::HashSet;
-
 use crate::{
     error::{AppError, AppResult},
     state::AppState,
+    types::{UserAuth as GlobalUserAuth, UserState as GlobalUserState},
 };
 use sqlx::PgPool;
 
 use super::{
-    dto::{AdminListUsersRes, AdminUpdateUserReq, AdminUserRes, UserAuth, UserState},
+    dto::{AdminListUsersRes, AdminUpdateUserReq, AdminUserRes},
     repo,
 };
 
@@ -29,32 +28,31 @@ impl AdminUserService {
     }
 
     // RBAC check helper
-    async fn check_admin_rbac(pool: &PgPool, actor_user_id: i64) -> AppResult<UserAuth> {
+    async fn check_admin_rbac(pool: &PgPool, actor_user_id: i64) -> AppResult<GlobalUserAuth> {
         let actor = crate::api::user::repo::find_by_id(pool, actor_user_id)
             .await?
             .ok_or(AppError::Unauthorized("Actor user not found".into()))?;
 
-        let actor_auth: UserAuth = actor
-            .user_auth
-            .parse()
-            .map_err(|_| AppError::Internal("Invalid user_auth in DB".into()))?;
+        let actor_auth: GlobalUserAuth = actor.user_auth;
 
         match actor_auth {
-            UserAuth::Hymn | UserAuth::Admin | UserAuth::Manager => Ok(actor_auth),
+            GlobalUserAuth::Hymn | GlobalUserAuth::Admin | GlobalUserAuth::Manager => {
+                Ok(actor_auth)
+            }
             _ => Err(AppError::Forbidden), // 403
         }
     }
 
     // Target user RBAC check helper for update operations
     async fn check_target_user_rbac(
-        actor_auth: UserAuth,
+        actor_auth: GlobalUserAuth,
         _target_user_id: i64,
-        target_user_auth: UserAuth,
+        target_user_auth: GlobalUserAuth,
     ) -> AppResult<()> {
-        if actor_auth == UserAuth::Manager && target_user_auth == UserAuth::Hymn {
+        if actor_auth == GlobalUserAuth::Manager && target_user_auth == GlobalUserAuth::Hymn {
             return Err(AppError::Forbidden);
         }
-        if actor_auth == UserAuth::Admin && target_user_auth == UserAuth::Hymn {
+        if actor_auth == GlobalUserAuth::Admin && target_user_auth == GlobalUserAuth::Hymn {
             return Err(AppError::Forbidden);
         }
         // Add more specific rules if needed, e.g., preventing self-demotion
@@ -65,7 +63,7 @@ impl AdminUserService {
         st: &AppState,
         actor_user_id: i64,
         query: Option<String>,
-        state: Option<UserState>,
+        state: Option<GlobalUserState>,
         page: Option<i64>,
         size: Option<i64>,
     ) -> AppResult<AdminListUsersRes> {
@@ -107,26 +105,9 @@ impl AdminUserService {
             .await?
             .ok_or(AppError::NotFound)?;
 
-        let target_user_auth: UserAuth = current_target_user
-            .user_auth
-            .parse()
-            .map_err(|_| AppError::Internal("Invalid user_auth in DB".into()))?;
+        let target_user_auth: GlobalUserAuth = current_target_user.user_auth;
 
         Self::check_target_user_rbac(actor_auth, target_user_id, target_user_auth).await?;
-
-        // Validate gender if provided
-        if let Some(gender_str) = &req.gender {
-            let allowed_genders: HashSet<&str> = ["none", "male", "female", "other"]
-                .iter()
-                .cloned()
-                .collect();
-            if !allowed_genders.contains(gender_str.as_str()) {
-                return Err(AppError::BadRequest(format!(
-                    "Invalid gender: {}",
-                    gender_str
-                )));
-            }
-        }
 
         // Normalize email if provided
         if let Some(email) = &mut req.email {
@@ -139,7 +120,7 @@ impl AdminUserService {
             Ok(user) => {
                 // Optionally log user_state changes to user_log
                 if let Some(new_state) = &req.user_state {
-                    if new_state.to_string() != current_target_user.user_state {
+                    if new_state != &current_target_user.user_state {
                         if let Err(le) = crate::api::user::repo::insert_user_log_after(
                             &st.db,
                             "admin_state_change",
@@ -152,9 +133,9 @@ impl AdminUserService {
                                 language: user.language.clone(),
                                 country: user.country.clone(),
                                 birthday: user.birthday,
-                                gender: user.gender.clone(),
-                                user_state: user.user_state.clone(),
-                                user_auth: user.user_auth.clone(),
+                                gender: user.gender,
+                                user_state: user.user_state,
+                                user_auth: user.user_auth,
                                 created_at: user.created_at,
                             },
                         )

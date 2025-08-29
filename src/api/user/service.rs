@@ -7,10 +7,11 @@ use validator::Validate;
 use crate::{
     error::{AppError, AppResult},
     state::AppState,
+    types::{UserGender, UserState},
 };
 
 use super::{
-    dto::{Gender, ProfileRes, SettingsRes, SettingsUpdateReq, SignupReq, UpdateReq},
+    dto::{ProfileRes, SettingsRes, SettingsUpdateReq, SignupReq, UpdateReq},
     repo,
 };
 use std::collections::HashSet;
@@ -57,10 +58,7 @@ impl UserService {
             .map_err(|e| AppError::Internal(format!("password hash error: {e}")))? // 500
             .to_string();
 
-        // 3) 성별 문자열
-        let gender_str = req.gender.unwrap_or(Gender::None).to_string();
-
-        // 4) INSERT
+        // 3) INSERT
         let res = repo::create_user(
             &st.db,
             &req.email,
@@ -70,7 +68,7 @@ impl UserService {
             req.language.as_deref(),
             req.country.as_deref(),
             req.birthday,
-            &gender_str,
+            req.gender.unwrap_or(UserGender::None),
             req.terms_service,
             req.terms_personal,
         )
@@ -99,7 +97,7 @@ impl UserService {
             .await?
             .ok_or(AppError::NotFound)?; // 404
 
-        if user.user_state != "on" {
+        if user.user_state != UserState::On {
             return Err(AppError::Forbidden); // 403
         }
         Ok(user)
@@ -116,14 +114,11 @@ impl UserService {
             .await?
             .ok_or(AppError::NotFound)?; // 404
 
-        if current_user.user_state != "on" {
+        if current_user.user_state != UserState::On {
             return Err(AppError::Forbidden); // 403
         }
 
-        // 3) 성별 문자열
-        let gender_str = req.gender.map(|g| g.to_string());
-
-        // 4) UPDATE
+        // 3) UPDATE
         let updated_user = repo::update_profile(
             &st.db,
             user_id,
@@ -131,7 +126,7 @@ impl UserService {
             req.language.as_deref(),
             req.country.as_deref(),
             req.birthday,
-            gender_str.as_deref(),
+            req.gender,
         )
         .await?; // 200
 
@@ -150,7 +145,7 @@ impl UserService {
             .await?
             .ok_or(AppError::NotFound)?;
 
-        if user.user_state != "on" {
+        if user.user_state != UserState::On {
             return Err(AppError::Forbidden);
         }
 
@@ -172,7 +167,7 @@ impl UserService {
             .await?
             .ok_or(AppError::NotFound)?;
 
-        if current_user.user_state != "on" {
+        if current_user.user_state != UserState::On {
             return Err(AppError::Forbidden);
         }
 

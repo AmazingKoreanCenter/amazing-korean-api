@@ -3,27 +3,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
 
-/// DB의 CHECK 제약과 1:1로 맞춘 enum
-#[derive(Serialize, Deserialize, ToSchema, Clone, Copy)]
-#[serde(rename_all = "lowercase")]
-pub enum Gender {
-    None,
-    Male,
-    Female,
-    Other,
-}
-
-impl std::fmt::Display for Gender {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Gender::None => "none",
-            Gender::Male => "male",
-            Gender::Female => "female",
-            Gender::Other => "other",
-        };
-        write!(f, "{s}")
-    }
-}
+use crate::types::{UserAuth, UserGender, UserState};
 
 /// 회원가입 요청
 #[derive(Serialize, Deserialize, Validate, ToSchema)]
@@ -67,7 +47,7 @@ pub struct SignupReq {
     pub birthday: Option<NaiveDate>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub gender: Option<Gender>,
+    pub gender: Option<UserGender>,
 }
 
 /// 회원가입 응답
@@ -101,9 +81,9 @@ pub struct ProfileRes {
     pub country: Option<String>,
     #[schema(value_type = String, format = "date")]
     pub birthday: Option<NaiveDate>,
-    pub gender: String, // DB에서 String으로 가져오므로
-    pub user_state: String,
-    pub user_auth: String,
+    pub gender: UserGender, // DB에서 String으로 가져오므로
+    pub user_state: UserState,
+    pub user_auth: UserAuth,
     #[schema(value_type = String, format = "date-time")]
     pub created_at: DateTime<Utc>,
 }
@@ -135,7 +115,7 @@ pub struct UpdateReq {
     pub birthday: Option<NaiveDate>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub gender: Option<Gender>,
+    pub gender: Option<UserGender>,
 }
 
 /// 학습 언어 아이템

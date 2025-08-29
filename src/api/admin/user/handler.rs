@@ -12,9 +12,10 @@ use crate::{
 };
 
 use super::{
-    dto::{AdminListUsersRes, AdminUpdateUserReq, AdminUserRes, UserState},
+    dto::{AdminListUsersRes, AdminUpdateUserReq, AdminUserRes},
     service::AdminUserService,
 };
+use crate::types::UserState;
 
 // ← 어트리뷰트 내의 json! 매크로를 위해 필요
 #[allow(unused_imports)]

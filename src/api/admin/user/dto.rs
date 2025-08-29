@@ -3,71 +3,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
 
-/// 사용자 권한 enum
-#[derive(Serialize, Deserialize, ToSchema, Clone, Copy, Debug, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum UserAuth {
-    Hymn,
-    Admin,
-    Manager,
-    User,
-}
-
-impl std::fmt::Display for UserAuth {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            UserAuth::Hymn => "HYMN",
-            UserAuth::Admin => "admin",
-            UserAuth::Manager => "manager",
-            UserAuth::User => "user",
-        };
-        write!(f, "{s}")
-    }
-}
-
-impl std::str::FromStr for UserAuth {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "HYMN" => Ok(UserAuth::Hymn),
-            "admin" => Ok(UserAuth::Admin),
-            "manager" => Ok(UserAuth::Manager),
-            "user" => Ok(UserAuth::User),
-            _ => Err(format!("Invalid UserAuth: {}", s)),
-        }
-    }
-}
-
-/// 사용자 상태 enum
-#[derive(Serialize, Deserialize, ToSchema, Clone, Copy, Debug, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum UserState {
-    On,
-    Off,
-}
-
-impl std::fmt::Display for UserState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            UserState::On => "on",
-            UserState::Off => "off",
-        };
-        write!(f, "{s}")
-    }
-}
-
-impl std::str::FromStr for UserState {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "on" => Ok(UserState::On),
-            "off" => Ok(UserState::Off),
-            _ => Err(format!("Invalid UserState: {}", s)),
-        }
-    }
-}
+use crate::types::{UserAuth, UserGender, UserState};
 
 /// 관리자용 사용자 프로필 응답
 #[derive(Serialize, sqlx::FromRow, ToSchema, Clone, Debug, PartialEq)]
@@ -81,7 +17,7 @@ impl std::str::FromStr for UserState {
     "birthday": "2000-01-01",
     "gender": "male",
     "user_state": "on",
-    "user_auth": "user",
+    "user_auth": "learner",
     "created_at": "2025-08-21T10:00:00Z",
     "quit_at": null
 }))]
@@ -94,9 +30,9 @@ pub struct AdminUserRes {
     pub country: Option<String>,
     #[schema(value_type = String, format = "date")]
     pub birthday: Option<NaiveDate>,
-    pub gender: String,
-    pub user_state: String,
-    pub user_auth: String,
+    pub gender: UserGender,
+    pub user_state: UserState,
+    pub user_auth: UserAuth,
     #[schema(value_type = String, format = "date-time")]
     pub created_at: DateTime<Utc>,
     #[schema(value_type = String, format = "date-time")]
@@ -118,7 +54,7 @@ pub struct AdminUserRes {
             "birthday": "2000-01-01",
             "gender": "male",
             "user_state": "on",
-            "user_auth": "user",
+            "user_auth": "learner",
             "created_at": "2025-08-21T10:00:00Z",
             "quit_at": null
         }
@@ -168,7 +104,7 @@ pub struct AdminUpdateUserReq {
     pub birthday: Option<NaiveDate>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub gender: Option<String>, // Use String for flexibility, validation in service
+    pub gender: Option<UserGender>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_state: Option<UserState>,

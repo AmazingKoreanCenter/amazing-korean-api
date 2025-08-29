@@ -13,6 +13,7 @@ use crate::{
     },
     error::{AppError, AppResult},
     state::AppState,
+    types::{UserGender, UserState},
 };
 
 use axum_extra::extract::cookie::{Cookie, CookieJar};
@@ -141,7 +142,7 @@ impl AuthService {
         }
 
         // 5) 사용자 상태 확인
-        if user_row.user_state != "on" {
+        if user_row.user_state != UserState::On {
             return Err(AppError::Forbidden);
         }
 
@@ -206,11 +207,11 @@ impl AuthService {
             id: user_row.user_id,
             email: user_row.user_email,
             name: user_row.user_name,
-            nickname: None,             // Not available in UserRow
-            language: None,             // Not available in UserRow
-            country: None,              // Not available in UserRow
-            birthday: None,             // Not available in UserRow
-            gender: "none".to_string(), // Not available in UserRow
+            nickname: None,           // Not available in UserRow
+            language: None,           // Not available in UserRow
+            country: None,            // Not available in UserRow
+            birthday: None,           // Not available in UserRow
+            gender: UserGender::None, // Not available in UserRow
             user_state: user_row.user_state,
             user_auth: user_row.user_auth,
             created_at: user_row.user_created_at,
