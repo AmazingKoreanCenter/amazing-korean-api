@@ -77,11 +77,10 @@ impl UserService {
         match res {
             Ok(user) => {
                 // ⭐ (NEW) 사용자 스냅샷 기록: action = "create"
-                // DB의 실제 저장값을 INSERT ... SELECT로 스냅샷하는 repo::insert_user_log_after 호출
                 if let Err(le) =
-                    repo::insert_user_log_after(&st.db, "create", Some(user.id), &user).await
+                    repo::insert_user_log_after(&st.db, Some(user.id), user.id).await
                 {
-                    warn!(error=?le, user_id = user.id, "user_log(create) insert failed");
+                    warn!(error=?le, user_id = user.id, "public.users_log(create) insert failed");
                 }
                 Ok(user)
             }
@@ -132,9 +131,9 @@ impl UserService {
 
         // ⭐ (NEW) 사용자 스냅샷 기록: action = "update"
         if let Err(le) =
-            repo::insert_user_log_after(&st.db, "update", Some(user_id), &updated_user).await
+            repo::insert_user_log_after(&st.db, Some(user_id), user_id).await
         {
-            warn!(error=?le, user_id = user_id, "user_log(update) insert failed");
+            warn!(error=?le, user_id = user_id, "public.users_log(update) insert failed");
         }
 
         Ok(updated_user)
@@ -231,11 +230,6 @@ impl UserService {
 
         match updated_settings {
             Ok(settings) => {
-                // ⭐ (NEW) 사용자 스냅샷 기록: action = "update_settings"
-                // Note: user_log currently only supports ProfileRes, so we'll skip this for now
-                // if let Err(le) = repo::insert_user_log_after(&st.db, "update_settings", Some(user_id), &settings).await {
-                //     warn!(error=?le, user_id = user_id, "user_log(update_settings) insert failed");
-                // }
                 Ok(settings)
             }
             Err(e) => {
