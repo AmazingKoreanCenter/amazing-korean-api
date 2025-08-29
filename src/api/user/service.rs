@@ -33,6 +33,7 @@ impl UserService {
         }
     }
 
+    // 회원가입 service
     pub async fn signup(st: &AppState, mut req: SignupReq) -> AppResult<ProfileRes> {
         // 0) 이메일 정규화 (중복/로그인 일관성)
         req.email = req.email.trim().to_lowercase();
@@ -91,8 +92,9 @@ impl UserService {
         }
     }
 
+    // 프로필 조회 service
     pub async fn get_me(st: &AppState, user_id: i64) -> AppResult<ProfileRes> {
-        let user = repo::find_by_id(&st.db, user_id)
+        let user = repo::find_user(&st.db, user_id)
             .await?
             .ok_or(AppError::NotFound)?; // 404
 
@@ -102,6 +104,7 @@ impl UserService {
         Ok(user)
     }
 
+    // 프로필 수정 service
     pub async fn update_me(st: &AppState, user_id: i64, req: UpdateReq) -> AppResult<ProfileRes> {
         // 1) 유효성 검사
         if let Err(e) = req.validate() {
@@ -109,7 +112,7 @@ impl UserService {
         }
 
         // 2) 사용자 상태 확인
-        let current_user = repo::find_by_id(&st.db, user_id)
+        let current_user = repo::find_user(&st.db, user_id)
             .await?
             .ok_or(AppError::NotFound)?; // 404
 
@@ -118,7 +121,7 @@ impl UserService {
         }
 
         // 3) UPDATE
-        let updated_user = repo::update_profile(
+        let updated_user = repo::update_user(
             &st.db,
             user_id,
             req.nickname.as_deref(),
@@ -139,8 +142,9 @@ impl UserService {
         Ok(updated_user)
     }
 
+    // 환경설정 조회 service
     pub async fn get_settings(st: &AppState, user_id: i64) -> AppResult<SettingsRes> {
-        let user = repo::find_by_id(&st.db, user_id)
+        let user = repo::find_user(&st.db, user_id)
             .await?
             .ok_or(AppError::NotFound)?;
 
@@ -148,10 +152,11 @@ impl UserService {
             return Err(AppError::Forbidden);
         }
 
-        repo::find_settings_by_user_id(&st.db, user_id).await
+        repo::find_user_settings(&st.db, user_id).await
     }
 
-    pub async fn update_settings(
+    // 환경설정 수정 service
+    pub async fn update_user_settings(
         st: &AppState,
         user_id: i64,
         req: SettingsUpdateReq,
@@ -162,7 +167,7 @@ impl UserService {
         }
 
         // 2) 사용자 상태 확인
-        let current_user = repo::find_by_id(&st.db, user_id)
+        let current_user = repo::find_user(&st.db, user_id)
             .await?
             .ok_or(AppError::NotFound)?;
 
@@ -226,9 +231,9 @@ impl UserService {
         }
 
         // 5) UPDATE
-        let updated_settings = repo::upsert_settings(&st.db, user_id, &req).await;
+        let update_user_settings = repo::update_user_settings(&st.db, user_id, &req).await;
 
-        match updated_settings {
+        match update_user_settings {
             Ok(settings) => {
                 Ok(settings)
             }

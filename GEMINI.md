@@ -114,13 +114,13 @@
 
 2) **내 프로필 조회**
 - `GET /users/me` (Bearer)
-- **H/S/R**: `get_me` → `get_me` → `find_by_id`
+- **H/S/R**: `get_me` → `get_me` → `find_user`
 - **DTO**: `— → ProfileRes`
 - **Status**: 200, 401, 403(`user_state!='on'`), 404, 500
 
 3) **내 프로필 수정**
 - `PUT /users/me` (Bearer)
-- **H/S/R**: `update_me` → `update_me` → `update_profile`
+- **H/S/R**: `update_me` → `update_me` → `update_user`
 - **DTO**: `UpdateReq → ProfileRes`
 - **Status**: 200, 400, 401, 403, 404, 500
 - **Rule**: **성공 시 USER_LOG 스냅샷 기록**
@@ -136,7 +136,7 @@
 
 5) **환경 설정(계정/학습/알림)**
 - `GET /users/me/settings`, `PUT /users/me/settings` (Bearer)
-- **H/S/R**: `get_settings` / `update_settings` → 同 → `find_settings_by_user_id` / `upsert_settings`
+- **H/S/R**: `get_settings` / `update_user_settings` → 同 → `find_user_settings` / `upsert_settings`
 - **DTO**: `SettingsRes`, `SettingsUpdateReq → SettingsRes`
 - **동작**:
   - `user_setting`: 제공된 필드만 **부분 업데이트**

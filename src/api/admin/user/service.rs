@@ -29,7 +29,7 @@ impl AdminUserService {
 
     // RBAC check helper
     async fn check_admin_rbac(pool: &PgPool, actor_user_id: i64) -> AppResult<GlobalUserAuth> {
-        let actor = crate::api::user::repo::find_by_id(pool, actor_user_id)
+        let actor = crate::api::user::repo::find_user(pool, actor_user_id)
             .await?
             .ok_or(AppError::Unauthorized("Actor user not found".into()))?;
 
