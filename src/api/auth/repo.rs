@@ -1,4 +1,7 @@
-use crate::error::AppResult;
+use crate::{
+    error::AppResult,
+    types::{UserAuth, UserState},
+};
 use sqlx::PgPool;
 
 #[derive(sqlx::FromRow)]
@@ -8,8 +11,8 @@ pub struct UserRow {
     pub user_password: String,
     pub user_name: String,
     pub user_created_at: chrono::DateTime<chrono::Utc>,
-    pub user_state: String,
-    pub user_auth: String,
+    pub user_state: UserState,
+    pub user_auth: UserAuth,
 }
 
 // 이메일로 조회(대소문자 무시)

@@ -49,7 +49,7 @@ pub fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
             "birthday": "2000-01-01",
             "gender": "male",
             "user_state": "on",
-            "user_auth": "user",
+            "user_auth": "learner",
             "created_at": "2025-08-21T10:00:00Z"
         })),
         (status = 400, description = "Bad request", body = crate::error::ErrorBody, example = json!({
@@ -83,7 +83,7 @@ pub async fn signup(
             "birthday": "1990-05-10",
             "gender": "female",
             "user_state": "on",
-            "user_auth": "user",
+            "user_auth": "learner",
             "created_at": "2025-08-21T10:00:00Z"
         })),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody, example = json!({
@@ -122,7 +122,7 @@ pub async fn get_me(State(st): State<AppState>, headers: HeaderMap) -> AppResult
             "birthday": "1990-05-10",
             "gender": "female",
             "user_state": "on",
-            "user_auth": "user",
+            "user_auth": "learner",
             "created_at": "2025-08-21T10:00:00Z"
         })),
         (status = 400, description = "Bad request", body = crate::error::ErrorBody, example = json!({

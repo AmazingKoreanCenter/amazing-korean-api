@@ -3,6 +3,7 @@ mod config;
 mod docs;
 mod error;
 mod state;
+mod types;
 
 use crate::config::Config;
 use crate::state::AppState;

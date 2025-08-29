@@ -1,5 +1,5 @@
 use super::dto::{ProfileRes, SettingsRes, SettingsUpdateReq, StudyLangItem};
-use crate::error::AppResult;
+use crate::{error::AppResult, types::UserGender};
 use chrono::{NaiveDate, Utc};
 use sqlx::PgPool;
 
@@ -13,7 +13,7 @@ pub async fn create_user(
     language: Option<&str>,
     country: Option<&str>,
     birthday: Option<NaiveDate>,
-    gender: &str,
+    gender: UserGender,
     terms_service: bool,
     terms_personal: bool,
 ) -> AppResult<ProfileRes> {
@@ -72,7 +72,7 @@ pub async fn update_profile(
     language: Option<&str>,
     country: Option<&str>,
     birthday: Option<NaiveDate>,
-    gender: Option<&str>,
+    gender: Option<UserGender>,
 ) -> AppResult<ProfileRes> {
     let res = sqlx::query_as::<_, ProfileRes>(
         r#"
@@ -126,15 +126,15 @@ pub async fn insert_user_log_after(
             $1 AS action,
             $2 AS updated_by_user_id,
             u.user_id,
-            u.user_auth,
-            u.user_state,
+            u.user_auth::text,
+            u.user_state::text,
             u.user_email,
             NULL,                        -- user_password_log (민감정보 금지)
             u.user_nickname,
             u.user_language,
             u.user_country,
             u.user_birthday,
-            u.user_gender,
+            u.user_gender::text,
             u.user_terms_service,
             u.user_terms_personal
         FROM users u
