@@ -136,7 +136,7 @@
 
 5) **환경 설정(계정/학습/알림)**
 - `GET /users/me/settings`, `PUT /users/me/settings` (Bearer)
-- **H/S/R**: `get_settings` / `update_user_settings` → 同 → `find_user_settings` / `upsert_settings`
+- **H/S/R**: `get_settings` / `update_users_setting` → 同 → `find_users_setting` / `upsert_settings`
 - **DTO**: `SettingsRes`, `SettingsUpdateReq → SettingsRes`
 - **동작**:
   - `user_setting`: 제공된 필드만 **부분 업데이트**

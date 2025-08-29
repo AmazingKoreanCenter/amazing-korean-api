@@ -233,7 +233,7 @@ pub async fn get_settings(
 )]
 
 // 환경설정 수정 handler
-pub async fn update_user_settings(
+pub async fn update_users_setting(
     State(st): State<AppState>,
     headers: HeaderMap,
     Json(req): Json<SettingsUpdateReq>,
@@ -241,6 +241,6 @@ pub async fn update_user_settings(
     let token = bearer_from_headers(&headers)?;
     let claims =
         jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
-    let settings = UserService::update_user_settings(&st, claims.sub, req).await?;
+    let settings = UserService::update_users_setting(&st, claims.sub, req).await?;
     Ok(Json(settings))
 }

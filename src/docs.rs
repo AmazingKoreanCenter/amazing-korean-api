@@ -32,7 +32,7 @@ impl Modify for SecurityAddon {
         crate::api::user::handler::get_me,
         crate::api::user::handler::update_me,
         crate::api::user::handler::get_settings,
-        crate::api::user::handler::update_user_settings,
+        crate::api::user::handler::update_users_setting,
         crate::api::admin::user::handler::admin_list_users,
         crate::api::admin::user::handler::admin_get_user,
         crate::api::admin::user::handler::admin_update_user,
