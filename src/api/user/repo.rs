@@ -4,6 +4,7 @@ use chrono::{NaiveDate, Utc};
 use sqlx::PgPool;
 
 #[allow(clippy::too_many_arguments)]
+// 회원 가입 repo
 pub async fn create_user(
     pool: &PgPool,
     email: &str,
@@ -47,7 +48,8 @@ pub async fn create_user(
     Ok(res)
 }
 
-pub async fn find_by_id(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileRes>> {
+// 프로필 조회 repo
+pub async fn find_user(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileRes>> {
     let row = sqlx::query_as::<_, ProfileRes>(
         r#"
         SELECT
@@ -65,7 +67,8 @@ pub async fn find_by_id(pool: &PgPool, user_id: i64) -> AppResult<Option<Profile
     Ok(row)
 }
 
-pub async fn update_profile(
+// 프로필 수정 repo
+pub async fn update_user(
     pool: &PgPool,
     user_id: i64,
     nickname: Option<&str>,
@@ -102,43 +105,8 @@ pub async fn update_profile(
     Ok(res)
 }
 
-// 회원 관련 기록 log repo
-/// - action: "create" | "update" | "deactivate" | "delete" ...
-/// - updated_by_user_id: 행위자(본인/관리자/시스템). None 허용.
-/// - snap: After 기준 스냅샷. 여기서는 snap.id만 사용(나머지는 DB에서 SELECT).
-pub async fn insert_user_log_after(
-    pool: &PgPool,
-    actor_user_id: Option<i64>,
-    user_id: i64,
-) -> AppResult<()> {
-    sqlx::query(
-        r#"
-        INSERT INTO public.users_log (
-          updated_by_user_id, user_id,
-          user_auth_log, user_state_log, user_email_log, user_password_log,
-          user_nickname_log, user_language_log, user_country_log, user_birthday_log,
-          user_gender_log, user_terms_service_log, user_terms_personal_log,
-          user_log_created_at, user_log_quit_at, user_log_updated_at
-        )
-        SELECT
-          $1, u.user_id,
-          u.user_auth::text, u.user_state::text, u.user_email, NULL,
-          u.user_nickname, u.user_language, u.user_country, u.user_birthday,
-          u.user_gender::text, u.user_terms_service, u.user_terms_personal,
-          u.user_created_at, u.user_quit_at, now()
-        FROM public.users u
-        WHERE u.user_id = $2
-        "#
-    )
-    .bind(actor_user_id) // $1
-    .bind(user_id)       // $2
-    .execute(pool)
-    .await?;
-
-    Ok(())
-}
-
-pub async fn find_settings_by_user_id(pool: &PgPool, user_id: i64) -> AppResult<SettingsRes> {
+// 환경설정 조회 repo
+pub async fn find_user_settings(pool: &PgPool, user_id: i64) -> AppResult<SettingsRes> {
     let user_setting =
         sqlx::query_as::<_, (Option<String>, Option<String>, Option<bool>, Option<bool>)>(
             r#"
@@ -183,7 +151,8 @@ pub async fn find_settings_by_user_id(pool: &PgPool, user_id: i64) -> AppResult<
     })
 }
 
-pub async fn upsert_settings(
+// 환경설정 수정 repo
+pub async fn update_user_settings(
     pool: &PgPool,
     user_id: i64,
     req: &SettingsUpdateReq,
@@ -248,5 +217,41 @@ pub async fn upsert_settings(
     tx.commit().await?;
 
     // Fetch the latest settings after update
-    find_settings_by_user_id(pool, user_id).await
+    find_user_settings(pool, user_id).await
+}
+
+// 회원 관련 기록 log repo
+/// - action: "create" | "update" | "deactivate" | "delete" ...
+/// - updated_by_user_id: 행위자(본인/관리자/시스템). None 허용.
+/// - snap: After 기준 스냅샷. 여기서는 snap.id만 사용(나머지는 DB에서 SELECT).
+pub async fn insert_user_log_after(
+    pool: &PgPool,
+    actor_user_id: Option<i64>,
+    user_id: i64,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO public.users_log (
+          updated_by_user_id, user_id,
+          user_auth_log, user_state_log, user_email_log, user_password_log,
+          user_nickname_log, user_language_log, user_country_log, user_birthday_log,
+          user_gender_log, user_terms_service_log, user_terms_personal_log,
+          user_log_created_at, user_log_quit_at, user_log_updated_at
+        )
+        SELECT
+          $1, u.user_id,
+          u.user_auth::text, u.user_state::text, u.user_email, NULL,
+          u.user_nickname, u.user_language, u.user_country, u.user_birthday,
+          u.user_gender::text, u.user_terms_service, u.user_terms_personal,
+          u.user_created_at, u.user_quit_at, now()
+        FROM public.users u
+        WHERE u.user_id = $2
+        "#
+    )
+    .bind(actor_user_id) // $1
+    .bind(user_id)       // $2
+    .execute(pool)
+    .await?;
+
+    Ok(())
 }
