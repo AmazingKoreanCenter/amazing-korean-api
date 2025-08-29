@@ -108,42 +108,30 @@ pub async fn update_profile(
 /// - snap: After 기준 스냅샷. 여기서는 snap.id만 사용(나머지는 DB에서 SELECT).
 pub async fn insert_user_log_after(
     pool: &PgPool,
-    action: &str,
-    updated_by_user_id: Option<i64>,
-    snap: &ProfileRes,
+    actor_user_id: Option<i64>,
+    user_id: i64,
 ) -> AppResult<()> {
-    // INSERT ... SELECT 로 DB 값 그대로 스냅샷 (비밀번호는 항상 NULL)
     sqlx::query(
         r#"
-        INSERT INTO user_log (
-            action, updated_by_user_id, user_id,
-            user_auth_log, user_state_log, user_email_log, user_password_log,
-            user_nickname_log, user_language_log, user_country_log,
-            user_birthday_log, user_gender_log,
-            user_terms_service_log, user_terms_personal_log
+        INSERT INTO public.users_log (
+          updated_by_user_id, user_id,
+          user_auth_log, user_state_log, user_email_log, user_password_log,
+          user_nickname_log, user_language_log, user_country_log, user_birthday_log,
+          user_gender_log, user_terms_service_log, user_terms_personal_log,
+          user_log_created_at, user_log_quit_at, user_log_updated_at
         )
         SELECT
-            $1 AS action,
-            $2 AS updated_by_user_id,
-            u.user_id,
-            u.user_auth::text,
-            u.user_state::text,
-            u.user_email,
-            NULL,                        -- user_password_log (민감정보 금지)
-            u.user_nickname,
-            u.user_language,
-            u.user_country,
-            u.user_birthday,
-            u.user_gender::text,
-            u.user_terms_service,
-            u.user_terms_personal
-        FROM users u
-        WHERE u.user_id = $3
-        "#,
+          $1, u.user_id,
+          u.user_auth::text, u.user_state::text, u.user_email, NULL,
+          u.user_nickname, u.user_language, u.user_country, u.user_birthday,
+          u.user_gender::text, u.user_terms_service, u.user_terms_personal,
+          u.user_created_at, u.user_quit_at, now()
+        FROM public.users u
+        WHERE u.user_id = $2
+        "#
     )
-    .bind(action)
-    .bind(updated_by_user_id)
-    .bind(snap.id)
+    .bind(actor_user_id) // $1
+    .bind(user_id)       // $2
     .execute(pool)
     .await?;
 

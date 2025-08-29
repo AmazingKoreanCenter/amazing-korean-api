@@ -118,30 +118,17 @@ impl AdminUserService {
 
         match res {
             Ok(user) => {
-                // Optionally log user_state changes to user_log
+                // Optionally log user_state changes to public.users_log
                 if let Some(new_state) = &req.user_state {
                     if new_state != &current_target_user.user_state {
                         if let Err(le) = crate::api::user::repo::insert_user_log_after(
                             &st.db,
-                            "admin_state_change",
                             Some(actor_user_id),
-                            &crate::api::user::dto::ProfileRes {
-                                id: user.id,
-                                email: user.email.clone(),
-                                name: user.name.clone(),
-                                nickname: user.nickname.clone(),
-                                language: user.language.clone(),
-                                country: user.country.clone(),
-                                birthday: user.birthday,
-                                gender: user.gender,
-                                user_state: user.user_state,
-                                user_auth: user.user_auth,
-                                created_at: user.created_at,
-                            },
+                            user.id,
                         )
                         .await
                         {
-                            warn!(error=?le, actor_user_id = actor_user_id, target_user_id = target_user_id, "user_log(admin_state_change) insert failed");
+                            warn!(error=?le, actor_user_id = actor_user_id, target_user_id = target_user_id, "public.users_log(admin_state_change) insert failed");
                         }
                     }
                 }
