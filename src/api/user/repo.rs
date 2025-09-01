@@ -106,7 +106,7 @@ pub async fn update_user(
 }
 
 // 환경설정 조회 repo
-pub async fn find_user_settings(pool: &PgPool, user_id: i64) -> AppResult<SettingsRes> {
+pub async fn find_users_setting(pool: &PgPool, user_id: i64) -> AppResult<SettingsRes> {
     let user_setting =
         sqlx::query_as::<_, (Option<String>, Option<String>, Option<bool>, Option<bool>)>(
             r#"
@@ -115,7 +115,7 @@ pub async fn find_user_settings(pool: &PgPool, user_id: i64) -> AppResult<Settin
             us.timezone,
             us.notifications_email,
             us.notifications_push
-        FROM user_settings us
+        FROM users_setting us
         WHERE us.user_id = $1
         "#,
         )
@@ -129,7 +129,7 @@ pub async fn find_user_settings(pool: &PgPool, user_id: i64) -> AppResult<Settin
             lang_code,
             priority,
             is_primary
-        FROM user_language_prefs
+        FROM users_language_pref
         WHERE user_id = $1
         ORDER BY priority ASC
         "#,
@@ -152,23 +152,23 @@ pub async fn find_user_settings(pool: &PgPool, user_id: i64) -> AppResult<Settin
 }
 
 // 환경설정 수정 repo
-pub async fn update_user_settings(
+pub async fn update_users_setting(
     pool: &PgPool,
     user_id: i64,
     req: &SettingsUpdateReq,
 ) -> AppResult<SettingsRes> {
     let mut tx = pool.begin().await?;
 
-    // Update user_settings
+    // Update users_setting
     sqlx::query(
         r#"
-        INSERT INTO user_settings (user_id, ui_language, timezone, notifications_email, notifications_push, updated_at)
+        INSERT INTO users_setting (user_id, ui_language, timezone, notifications_email, notifications_push, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (user_id) DO UPDATE SET
-            ui_language = COALESCE($2, user_settings.ui_language),
-            timezone = COALESCE($3, user_settings.timezone),
-            notifications_email = COALESCE($4, user_settings.notifications_email),
-            notifications_push = COALESCE($5, user_settings.notifications_push),
+            ui_language = COALESCE($2, users_setting.ui_language),
+            timezone = COALESCE($3, users_setting.timezone),
+            notifications_email = COALESCE($4, users_setting.notifications_email),
+            notifications_push = COALESCE($5, users_setting.notifications_push),
             updated_at = $6
         "#,
     )
@@ -186,7 +186,7 @@ pub async fn update_user_settings(
         // Delete existing preferences
         sqlx::query(
             r#"
-            DELETE FROM user_language_prefs
+            DELETE FROM users_language_pref
             WHERE user_id = $1
             "#,
         )
@@ -201,7 +201,7 @@ pub async fn update_user_settings(
         for (idx, item) in sorted_langs.iter().enumerate() {
             sqlx::query(
                 r#"
-                INSERT INTO user_language_prefs (user_id, lang_code, priority, is_primary)
+                INSERT INTO users_language_pref (user_id, lang_code, priority, is_primary)
                 VALUES ($1, $2, $3, $4)
                 "#,
             )
@@ -217,7 +217,7 @@ pub async fn update_user_settings(
     tx.commit().await?;
 
     // Fetch the latest settings after update
-    find_user_settings(pool, user_id).await
+    find_users_setting(pool, user_id).await
 }
 
 // 회원 관련 기록 log repo

@@ -152,11 +152,11 @@ impl UserService {
             return Err(AppError::Forbidden);
         }
 
-        repo::find_user_settings(&st.db, user_id).await
+        repo::find_users_setting(&st.db, user_id).await
     }
 
     // 환경설정 수정 service
-    pub async fn update_user_settings(
+    pub async fn update_users_setting(
         st: &AppState,
         user_id: i64,
         req: SettingsUpdateReq,
@@ -231,9 +231,9 @@ impl UserService {
         }
 
         // 5) UPDATE
-        let update_user_settings = repo::update_user_settings(&st.db, user_id, &req).await;
+        let update_users_setting = repo::update_users_setting(&st.db, user_id, &req).await;
 
-        match update_user_settings {
+        match update_users_setting {
             Ok(settings) => {
                 Ok(settings)
             }
