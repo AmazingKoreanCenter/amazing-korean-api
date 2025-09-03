@@ -1,3 +1,4 @@
+// FILE: src/api/user/handler.rs
 use super::{
     dto::{ProfileRes, SettingsRes, SettingsUpdateReq, SignupReq, UpdateReq},
     service::UserService,
@@ -16,6 +17,10 @@ use axum::{
 // ← 어트리뷰트 내의 json! 매크로를 위해 필요
 #[allow(unused_imports)]
 use serde_json::json;
+
+fn jwt_secret() -> String {
+    std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev_secret_change_me".to_string())
+}
 
 /// Authorization: Bearer <token> 헤더에서 토큰 추출
 pub fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
@@ -104,8 +109,8 @@ pub async fn signup(
 // 프로필 조회 handler
 pub async fn get_me(State(st): State<AppState>, headers: HeaderMap) -> AppResult<Json<ProfileRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims =
-        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims = jwt::decode_token(&token, &jwt_secret())
+        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
     let user = UserService::get_me(&st, claims.sub).await?;
     Ok(Json(user))
 }
@@ -152,8 +157,8 @@ pub async fn update_me(
     Json(req): Json<UpdateReq>,
 ) -> AppResult<Json<ProfileRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims =
-        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims = jwt::decode_token(&token, &jwt_secret())
+        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
     let user = UserService::update_me(&st, claims.sub, req).await?;
     Ok(Json(user))
 }
@@ -193,8 +198,8 @@ pub async fn get_settings(
     headers: HeaderMap,
 ) -> AppResult<Json<SettingsRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims =
-        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims = jwt::decode_token(&token, &jwt_secret())
+        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
     let settings = UserService::get_settings(&st, claims.sub).await?;
     Ok(Json(settings))
 }
@@ -239,8 +244,8 @@ pub async fn update_users_setting(
     Json(req): Json<SettingsUpdateReq>,
 ) -> AppResult<Json<SettingsRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims =
-        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims = jwt::decode_token(&token, &jwt_secret())
+        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
     let settings = UserService::update_users_setting(&st, claims.sub, req).await?;
     Ok(Json(settings))
 }

@@ -42,6 +42,7 @@ dependencies = [
  "axum-extra",
  "base64",
  "chrono",
+ "cookie",
  "deadpool-redis",
  "dotenvy",
  "http",

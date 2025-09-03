@@ -1,3 +1,4 @@
+// FILE: src/api/admin/user/handler.rs
 use axum::{
     extract::{Path, Query, State},
     http::HeaderMap,
@@ -20,6 +21,10 @@ use crate::types::UserState;
 // ← 어트리뷰트 내의 json! 매크로를 위해 필요
 #[allow(unused_imports)]
 use serde_json::json;
+
+fn jwt_secret() -> String {
+    std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev_secret_change_me".to_string())
+}
 
 /// Authorization: Bearer <token> 헤더에서 토큰 추출
 fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
@@ -92,8 +97,8 @@ pub async fn admin_list_users(
     Query(params): Query<AdminListUsersQueryParams>,
 ) -> AppResult<Json<AdminListUsersRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims =
-        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims = jwt::decode_token(&token, &jwt_secret())
+        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
 
     let res = AdminUserService::admin_list(
         &st,
@@ -148,8 +153,8 @@ pub async fn admin_get_user(
     Path(user_id): Path<i64>,
 ) -> AppResult<Json<AdminUserRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims =
-        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims = jwt::decode_token(&token, &jwt_secret())
+        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
 
     let res = AdminUserService::admin_get(&st, claims.sub, user_id).await?;
 
@@ -204,8 +209,8 @@ pub async fn admin_update_user(
     Json(req): Json<AdminUpdateUserReq>,
 ) -> AppResult<Json<AdminUserRes>> {
     let token = bearer_from_headers(&headers)?;
-    let claims =
-        jwt::decode_token(&token).map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let claims = jwt::decode_token(&token, &jwt_secret())
+        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
 
     let res = AdminUserService::admin_update(&st, claims.sub, user_id, req).await?;
 

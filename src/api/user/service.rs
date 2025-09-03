@@ -78,9 +78,7 @@ impl UserService {
         match res {
             Ok(user) => {
                 // ⭐ (NEW) 사용자 스냅샷 기록: action = "create"
-                if let Err(le) =
-                    repo::insert_user_log_after(&st.db, Some(user.id), user.id).await
-                {
+                if let Err(le) = repo::insert_user_log_after(&st.db, Some(user.id), user.id).await {
                     warn!(error=?le, user_id = user.id, "public.users_log(create) insert failed");
                 }
                 Ok(user)
@@ -133,9 +131,7 @@ impl UserService {
         .await?; // 200
 
         // ⭐ (NEW) 사용자 스냅샷 기록: action = "update"
-        if let Err(le) =
-            repo::insert_user_log_after(&st.db, Some(user_id), user_id).await
-        {
+        if let Err(le) = repo::insert_user_log_after(&st.db, Some(user_id), user_id).await {
             warn!(error=?le, user_id = user_id, "public.users_log(update) insert failed");
         }
 
@@ -234,9 +230,7 @@ impl UserService {
         let update_users_setting = repo::update_users_setting(&st.db, user_id, &req).await;
 
         match update_users_setting {
-            Ok(settings) => {
-                Ok(settings)
-            }
+            Ok(settings) => Ok(settings),
             Err(e) => {
                 if let AppError::Sqlx(sqlx::Error::Database(db_err)) = &e {
                     if db_err.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION) {

@@ -246,10 +246,10 @@ pub async fn insert_user_log_after(
           u.user_created_at, u.user_quit_at, now()
         FROM public.users u
         WHERE u.user_id = $2
-        "#
+        "#,
     )
     .bind(actor_user_id) // $1
-    .bind(user_id)       // $2
+    .bind(user_id) // $2
     .execute(pool)
     .await?;
 
