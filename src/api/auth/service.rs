@@ -1,429 +1,481 @@
-use argon2::{password_hash::*, Argon2};
-use base64::engine::{general_purpose, Engine};
-use deadpool_redis::redis::AsyncCommands;
-use deadpool_redis::Pool as RedisPool;
+// FILE: src/api/auth/service.rs
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
+use axum_extra::extract::cookie::{Cookie, SameSite};
+use base64::engine::{general_purpose::URL_SAFE_NO_PAD, Engine};
+use rand::{thread_rng, Rng};
+use redis::AsyncCommands;
 use sha2::{Digest, Sha256};
+use time::OffsetDateTime;
 use uuid::Uuid;
 use validator::Validate;
 
 use crate::{
-    api::{
-        auth::{dto::*, jwt, repo, token_utils},
-        user::dto::ProfileRes,
-    },
+    api::auth::{dto::*, jwt, repo::AuthRepo},
     error::{AppError, AppResult},
     state::AppState,
-    types::{UserGender, UserState},
+    types::UserState,
 };
-
-use axum_extra::extract::cookie::{Cookie, CookieJar};
-use chrono::Utc;
-use time::{format_description, Duration, OffsetDateTime};
-use tracing::warn;
 
 pub struct AuthService;
 
 impl AuthService {
-    // Redis Key Helpers
-    fn key_session(session_id: &Uuid) -> String {
-        format!("ak:session:{}", session_id)
-    }
-    fn key_refresh_map(hash_b64: &str) -> String {
-        format!("ak:refresh:{}", hash_b64)
+    // Helper to map login method for DB
+    fn map_login_method_for_db_password() -> &'static str {
+        "email"
     }
 
-    // Redis 헬퍼: 비동기 커넥션 가져오기
-    async fn get_redis_conn(redis_pool: &RedisPool) -> AppResult<deadpool_redis::Connection> {
-        redis_pool
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(format!("Redis connection error: {e}")))
-    }
-
-    // 토큰 해싱
-    fn hash_token(token_bytes: &[u8]) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(token_bytes);
-        general_purpose::URL_SAFE_NO_PAD.encode(hasher.finalize())
-    }
-
-    // 리프레시 쿠키 설정
-    fn set_refresh_cookie(jar: CookieJar, st: &AppState, refresh_cookie_value: &str) -> CookieJar {
-        let cfg = &st.cfg;
-
-        let expires_at = OffsetDateTime::now_utc() + Duration::days(cfg.refresh_ttl_days);
-        let format = format_description::parse(
-            "[weekday], [day] [month] [year] [hour]:[minute]:[second] GMT",
-        )
-        .unwrap();
-        let expires_http_date = expires_at.format(&format).unwrap();
-
-        let mut cookie_str = format!(
-            "{}={}; HttpOnly; Path=/; SameSite={}; Expires={}",
-            cfg.refresh_cookie_name,
-            refresh_cookie_value,
-            cfg.refresh_cookie_samesite_or("Lax"),
-            expires_http_date
-        );
-
-        if cfg.refresh_cookie_secure {
-            cookie_str.push_str("; Secure");
+    // Helper to map device for DB
+    fn map_device_for_db(dev: Option<&str>) -> &'static str {
+        match dev.unwrap_or("").to_ascii_lowercase().as_str() {
+            "mobile" => "mobile",
+            "tablet" => "tablet",
+            "desktop" | "web" | "browser" => "desktop",
+            _ => "other",
         }
-        if let Some(d) = &cfg.refresh_cookie_domain {
-            cookie_str.push_str(&format!("; Domain={}", d));
-        }
-
-        jar.add(Cookie::parse(cookie_str).unwrap())
     }
 
-    // 리프레시 쿠키 해제
-    fn unset_refresh_cookie(jar: CookieJar, st: &AppState) -> CookieJar {
-        let cfg = &st.cfg;
-        jar.remove(
-            Cookie::build(cfg.refresh_cookie_name.clone())
-                .path("/")
-                .build(),
-        )
+    // 리프레시 토큰 생성 및 해싱
+    fn generate_refresh_token_and_hash() -> (String, String) {
+        let mut refresh_bytes = [0u8; 32];
+        thread_rng().fill(&mut refresh_bytes);
+        let refresh_token = URL_SAFE_NO_PAD.encode(refresh_bytes);
+        let refresh_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(refresh_bytes));
+        (refresh_token, refresh_hash)
     }
 
-    // 로그인 시도 레이트 리밋 체크 및 증가
-    async fn check_rate_limit(st: &AppState, email: &str, ip_addr: &str) -> AppResult<()> {
-        let cfg = &st.cfg;
-        let key = format!("ak:logins:{}:{}", email, ip_addr);
-        let mut conn = Self::get_redis_conn(&st.redis).await?;
-
-        let attempts: i64 = conn.incr(&key, 1).await?;
-        if attempts == 1 {
-            conn.expire::<_, ()>(&key, cfg.rate_limit_login_window_sec)
-                .await?;
-        }
-
-        if attempts > cfg.rate_limit_login_max {
-            return Err(AppError::TooManyRequests("Too many login attempts".into()));
-        }
-        Ok(())
+    // 리프레시 토큰 해싱 (주어진 토큰)
+    fn hash_refresh_token(token: &str) -> AppResult<String> {
+        let decoded_bytes = URL_SAFE_NO_PAD
+            .decode(token)
+            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
+        Ok(URL_SAFE_NO_PAD.encode(Sha256::digest(decoded_bytes)))
     }
 
-    // 로그인 성공 시 레이트 리밋 카운터 초기화
-    async fn reset_rate_limit(st: &AppState, email: &str, ip_addr: &str) -> AppResult<()> {
-        let key = format!("ak:logins:{}:{}", email, ip_addr);
-        let mut conn = Self::get_redis_conn(&st.redis).await?;
-        conn.del::<_, ()>(&key).await?;
-        Ok(())
-    }
-
+    // 로그인 서비스
+    #[allow(clippy::too_many_arguments)]
     pub async fn login(
         st: &AppState,
         req: LoginReq,
-        ip_addr: String,
-    ) -> AppResult<(LoginRes, CookieJar)> {
-        // 1) 유효성 검사
+        login_ip: String,
+        user_agent: Option<String>,
+    ) -> AppResult<(LoginRes, Cookie<'static>, i64)> {
+        // 0) 이메일 정규화 및 유효성 검사
+        let email = req.email.trim().to_lowercase();
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(e.to_string()));
+            return Err(AppError::BadRequest(format!(
+                "AUTH_400_INVALID_INPUT: {}",
+                e
+            )));
         }
 
-        // 2) 레이트 리밋 체크
-        Self::check_rate_limit(st, &req.email, &ip_addr).await?;
+        // (B) 로그인 레이트리밋 체크
+        let rl_key = format!("rl:login:{}:{}", email.to_lowercase(), login_ip.clone());
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // 3) 사용자 조회
-        let user_row = repo::find_by_email(&st.db, &req.email)
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        if attempts == 1 {
+            let _: () = redis_conn
+                .expire(&rl_key, st.cfg.rate_limit_login_window_sec)
+                .await?;
+        }
+        if attempts > st.cfg.rate_limit_login_max {
+            return Err(AppError::TooManyRequests(
+                "AUTH_429_TOO_MANY_ATTEMPTS".into(),
+            ));
+        }
+
+        // 1) 사용자 조회
+        let user_info = AuthRepo::find_user_by_email(&st.db, &email)
             .await?
-            .ok_or(AppError::Unauthorized("Invalid credentials".into()))?;
+            .ok_or(AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()))?;
 
-        // 4) 비밀번호 검증
-        let parsed_hash = PasswordHash::new(&user_row.user_password)
-            .map_err(|_| AppError::Internal("Invalid password hash in DB".into()))?;
-        let is_valid = Argon2::default()
-            .verify_password(req.password.as_bytes(), &parsed_hash)
-            .is_ok();
-
-        if !is_valid {
-            return Err(AppError::Unauthorized("Invalid credentials".into()));
-        }
-
-        // 5) 사용자 상태 확인
-        if user_row.user_state != UserState::On {
+        // 2) 사용자 상태 확인
+        if user_info.user_state != UserState::On {
             return Err(AppError::Forbidden);
         }
 
-        // 6) 레이트 리밋 초기화
-        Self::reset_rate_limit(st, &req.email, &ip_addr).await?;
+        // 3) 비밀번호 검증
+        let parsed_hash = PasswordHash::new(&user_info.user_password)
+            .map_err(|_| AppError::Internal("Failed to parse password hash".into()))?;
+        Argon2::default()
+            .verify_password(req.password.as_bytes(), &parsed_hash)
+            .map_err(|_| AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()))?;
 
-        // 7) Access JWT 생성
-        let (access_token, expires_in) =
-            jwt::create_token(user_row.user_id, st.cfg.jwt_access_ttl_min).await?;
+        // 4) 세션 및 리프레시 토큰 생성
+        let session_id = Uuid::new_v4().to_string();
+        let (refresh_token_value, refresh_hash) = Self::generate_refresh_token_and_hash();
 
-        // 8) Refresh Token 생성 및 세션 저장
-        let (refresh_cookie_value, raw_refresh_token_bytes) =
-            token_utils::generate_refresh_cookie_value();
-        let refresh_hash = Self::hash_token(&raw_refresh_token_bytes);
-        let session_id = Uuid::new_v4();
-        let expires_at = OffsetDateTime::now_utc() + Duration::days(st.cfg.refresh_ttl_days);
+        let refresh_ttl_secs = st.cfg.refresh_ttl_days * 24 * 3600;
 
-        let session_key = Self::key_session(&session_id);
-        let user_sessions_key = format!("ak:user_sessions:{}", user_row.user_id);
+        // (C) jwt.rs의 create_token을 실제로 사용하도록 service.rs에서 호출
+        let access_token_res = jwt::create_token(
+            user_info.user_id,
+            st.cfg.jwt_access_ttl_min,
+            &st.cfg.jwt_secret,
+        )?;
 
-        let mut conn = Self::get_redis_conn(&st.redis).await?;
+        // 5) DB에 로그인 기록 및 로그 삽입 (트랜잭션)
+        let mut tx = st.db.begin().await?;
+        let mapped_device = Self::map_device_for_db(req.device.as_deref());
+        let _login_method = Self::map_login_method_for_db_password();
 
-        // Use pipeline for atomicity
-        let expires_at_unix = expires_at.unix_timestamp();
-        let ttl_secs = (expires_at_unix - OffsetDateTime::now_utc().unix_timestamp()).max(1);
+        AuthRepo::insert_login_record_tx(
+            &mut tx,
+            user_info.user_id,
+            &session_id,
+            &refresh_hash,
+            &login_ip,
+            Some(mapped_device),
+            req.browser.as_deref(),
+            req.os.as_deref(),
+            user_agent.as_deref(),
+        )
+        .await?;
 
-        redis::pipe()
-            .atomic()
-            .hset_multiple(
-                &session_key,
-                &[
-                    ("user_id", user_row.user_id.to_string()),
-                    ("refresh_hash", refresh_hash.clone()),
-                    ("created_at", Utc::now().to_rfc3339()),
-                    (
-                        "expires_at",
-                        expires_at
-                            .format(&format_description::well_known::Rfc3339)
-                            .unwrap(),
-                    ),
-                    ("rotation", "0".to_string()),
-                    ("ip", ip_addr),
-                ],
+        AuthRepo::insert_login_log_tx(
+            &mut tx,
+            user_info.user_id,
+            "login",
+            true,
+            &session_id,
+            &refresh_hash,
+            &login_ip,
+            Some(mapped_device),
+            req.browser.as_deref(),
+            req.os.as_deref(),
+            user_agent.as_deref(),
+        )
+        .await?;
+        tx.commit().await?;
+
+        // 6) Redis에 세션 정보 저장 (커밋 성공 후)
+        let _: () = redis_conn
+            .set_ex(
+                format!("ak:session:{}", session_id),
+                user_info.user_id,
+                st.cfg.jwt_access_ttl_min as u64 * 60, // Access token TTL in seconds
             )
-            .ignore()
-            .expire_at(&session_key, expires_at_unix)
-            .ignore()
-            .sadd(&user_sessions_key, session_id.to_string())
-            .ignore()
-            .set(Self::key_refresh_map(&refresh_hash), session_id.to_string())
-            .ignore()
-            .expire(Self::key_refresh_map(&refresh_hash), ttl_secs)
-            .ignore()
-            .query_async::<()>(&mut conn)
-            .await?;
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // 9) Refresh Cookie 설정
-        let jar = CookieJar::new();
-        let jar = Self::set_refresh_cookie(jar, st, &refresh_cookie_value);
+        let _: () = redis_conn
+            .set_ex(
+                format!("ak:refresh:{}", refresh_hash),
+                &session_id,
+                refresh_ttl_secs as u64,
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        let user_profile = ProfileRes {
-            id: user_row.user_id,
-            email: user_row.user_email,
-            name: user_row.user_name,
-            nickname: None,           // Not available in UserRow
-            language: None,           // Not available in UserRow
-            country: None,            // Not available in UserRow
-            birthday: None,           // Not available in UserRow
-            gender: UserGender::None, // Not available in UserRow
-            user_state: user_row.user_state,
-            user_auth: user_row.user_auth,
-            created_at: user_row.user_created_at,
-        };
+        let _: () = redis_conn
+            .sadd(
+                format!("ak:user_sessions:{}", user_info.user_id),
+                &session_id,
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // (A) refresh cookie 설정
+        let mut refresh_cookie =
+            Cookie::new(st.cfg.refresh_cookie_name.clone(), refresh_token_value);
+        refresh_cookie.set_path("/");
+        refresh_cookie.set_http_only(true);
+        refresh_cookie.set_secure(st.cfg.refresh_cookie_secure);
+        refresh_cookie.set_same_site(match st.cfg.refresh_cookie_samesite_or("Lax") {
+            "Strict" => SameSite::Strict,
+            "Lax" => SameSite::Lax,
+            "None" => SameSite::None,
+            _ => SameSite::Lax, // Default to Lax
+        });
+        refresh_cookie
+            .set_expires(OffsetDateTime::now_utc() + time::Duration::seconds(refresh_ttl_secs));
+        refresh_cookie.set_domain(st.cfg.refresh_cookie_domain.clone().unwrap_or_default());
 
         Ok((
             LoginRes {
-                token: access_token,
-                expires_in,
-                user: user_profile,
+                user_id: user_info.user_id,
+                access: access_token_res,
+                session_id,
             },
-            jar,
+            refresh_cookie.into_owned(),
+            refresh_ttl_secs,
         ))
     }
 
+    // 리프레시 서비스
     pub async fn refresh(
         st: &AppState,
-        jar: CookieJar,
-        ip_addr: String,
-    ) -> AppResult<(RefreshRes, CookieJar)> {
-        let refresh_cookie_name = &st.cfg.refresh_cookie_name;
+        old_refresh_token: &str,
+        login_ip: String,
+        user_agent: Option<String>,
+    ) -> AppResult<(RefreshRes, Cookie<'static>, i64)> {
+        let old_refresh_hash = Self::hash_refresh_token(old_refresh_token)?;
 
-        let refresh_token_from_cookie = jar
-            .get(refresh_cookie_name)
-            .map(|c| c.value().to_string())
-            .ok_or(AppError::Unauthorized("Refresh token missing".into()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        let raw_refresh_token_bytes =
-            token_utils::parse_refresh_token_bytes(&refresh_token_from_cookie)?;
-        let old_refresh_hash = Self::hash_token(&raw_refresh_token_bytes);
+        // 1) Redis에서 세션 ID 조회
+        let session_id: String = redis_conn
+            .get(format!("ak:refresh:{}", old_refresh_hash))
+            .await
+            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_INVALID_REFRESH".into()))?;
 
-        let mut conn = Self::get_redis_conn(&st.redis).await?;
+        // 2) Redis에서 사용자 ID 조회
+        let user_id: i64 = redis_conn
+            .get(format!("ak:session:{}", session_id))
+            .await
+            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
 
-        // 1. Get session_id from refresh_hash mapping
-        let session_id_str: String = conn
-            .get::<_, Option<String>>(&Self::key_refresh_map(&old_refresh_hash))
-            .await?
-            .ok_or(AppError::Unauthorized(
-                "Invalid or expired refresh token".into(),
-            ))?;
-        let session_id = Uuid::parse_str(&session_id_str)
-            .map_err(|_| AppError::Internal("Invalid session ID in Redis mapping".into()))?;
+        // 3) 새 리프레시 토큰 생성 및 해싱 (트랜잭션 시작 전)
+        let (new_refresh_token_value, new_refresh_hash) = Self::generate_refresh_token_and_hash();
 
-        let session_key = Self::key_session(&session_id);
+        // 4) DB에 리프레시 토큰 해시 업데이트 및 로그 기록 (트랜잭션)
+        let mut tx = st.db.begin().await?;
+        AuthRepo::update_login_refresh_hash_tx(&mut tx, &session_id, &new_refresh_hash).await?;
+        AuthRepo::insert_login_log_tx(
+            &mut tx,
+            user_id,
+            "rotate",
+            true,
+            &session_id,
+            &new_refresh_hash,
+            &login_ip,
+            None, // device
+            None, // browser
+            None, // os
+            user_agent.as_deref(),
+        )
+        .await?;
+        tx.commit().await?;
 
-        let session_data: std::collections::HashMap<String, String> =
-            conn.hgetall(&session_key).await?;
+        // 5) Redis에서 기존 리프레시 토큰 삭제, 새 리프레시 토큰 저장 (커밋 성공 후)
+        let _: () = redis_conn
+            .del(format!("ak:refresh:{}", old_refresh_hash))
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        if session_data.is_empty() {
-            return Err(AppError::Unauthorized("Session not found".into()));
-        }
+        let refresh_ttl_secs = st.cfg.refresh_ttl_days * 24 * 3600;
 
-        let stored_refresh_hash = session_data
-            .get("refresh_hash")
-            .ok_or(AppError::Internal("Session data corrupted".into()))?;
-        let user_id: i64 = session_data
-            .get("user_id")
-            .ok_or(AppError::Internal("Session data corrupted".into()))?
-            .parse()
-            .map_err(|_| AppError::Internal("Session data corrupted".into()))?;
-        let rotation: i64 = session_data
-            .get("rotation")
-            .ok_or(AppError::Internal("Session data corrupted".into()))?
-            .parse()
-            .map_err(|_| AppError::Internal("Session data corrupted".into()))?;
-
-        if stored_refresh_hash != &old_refresh_hash {
-            // Token reuse detected - revoke session
-            warn!("Refresh token reuse detected for user_id: {}", user_id);
-            conn.del::<_, ()>(&session_key).await?;
-            let user_sessions_key = format!("ak:user_sessions:{}", user_id);
-            conn.srem::<_, _, ()>(&user_sessions_key, session_id.to_string())
-                .await?;
-            // Also delete the old refresh map entry if it still exists (shouldn't if it was reused)
-            conn.del::<_, ()>(&Self::key_refresh_map(&old_refresh_hash))
-                .await?;
-            return Err(AppError::Unauthorized("Refresh token reused".into()));
-        }
-
-        // Rotate refresh token
-        let (new_refresh_cookie_value, new_raw_refresh_token_bytes) =
-            token_utils::generate_refresh_cookie_value();
-        let new_refresh_hash = Self::hash_token(&new_raw_refresh_token_bytes);
-
-        let expires_at = OffsetDateTime::now_utc() + Duration::days(st.cfg.refresh_ttl_days);
-        let expires_at_unix = expires_at.unix_timestamp();
-        let ttl_secs = (expires_at_unix - OffsetDateTime::now_utc().unix_timestamp()).max(1);
-
-        // Atomic update for session and refresh map
-        redis::pipe()
-            .atomic()
-            .hset(&session_key, "refresh_hash", &new_refresh_hash)
-            .ignore()
-            .hset(&session_key, "rotation", (rotation + 1).to_string())
-            .ignore()
-            .hset(
-                &session_key,
-                "expires_at",
-                expires_at
-                    .format(&format_description::well_known::Rfc3339)
-                    .unwrap(),
+        let _: () = redis_conn
+            .set_ex(
+                format!("ak:refresh:{}", new_refresh_hash),
+                &session_id,
+                refresh_ttl_secs as u64,
             )
-            .ignore()
-            .hset(&session_key, "ip", ip_addr)
-            .ignore()
-            .expire_at(&session_key, expires_at_unix)
-            .ignore()
-            .del(Self::key_refresh_map(&old_refresh_hash))
-            .ignore()
-            .set(
-                Self::key_refresh_map(&new_refresh_hash),
-                session_id.to_string(),
-            )
-            .ignore()
-            .expire(Self::key_refresh_map(&new_refresh_hash), ttl_secs)
-            .ignore()
-            .query_async::<()>(&mut conn)
-            .await?;
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // Issue new Access JWT
-        let (access_token, expires_in) =
-            jwt::create_token(user_id, st.cfg.jwt_access_ttl_min).await?;
+        // 6) 새 액세스 토큰 생성
+        let access_token_res =
+            jwt::create_token(user_id, st.cfg.jwt_access_ttl_min, &st.cfg.jwt_secret)?;
 
-        // Set new Refresh Cookie
-        let jar = Self::set_refresh_cookie(jar, st, &new_refresh_cookie_value);
+        // (A) refresh cookie 설정
+        let mut refresh_cookie =
+            Cookie::new(st.cfg.refresh_cookie_name.clone(), new_refresh_token_value);
+        refresh_cookie.set_path("/");
+        refresh_cookie.set_http_only(true);
+        refresh_cookie.set_secure(st.cfg.refresh_cookie_secure);
+        refresh_cookie.set_same_site(match st.cfg.refresh_cookie_samesite_or("Lax") {
+            "Strict" => SameSite::Strict,
+            "Lax" => SameSite::Lax,
+            "None" => SameSite::None,
+            _ => SameSite::Lax, // Default to Lax
+        });
+        refresh_cookie
+            .set_expires(OffsetDateTime::now_utc() + time::Duration::seconds(refresh_ttl_secs));
+        refresh_cookie.set_domain(st.cfg.refresh_cookie_domain.clone().unwrap_or_default());
 
         Ok((
             RefreshRes {
-                token: access_token,
-                expires_in,
+                access_token: access_token_res.access_token,
+                expires_in: access_token_res.expires_in,
             },
-            jar,
+            refresh_cookie.into_owned(),
+            refresh_ttl_secs,
         ))
     }
 
-    pub async fn logout(st: &AppState, jar: CookieJar) -> AppResult<CookieJar> {
-        let refresh_cookie_name = &st.cfg.refresh_cookie_name;
+    // 로그아웃 서비스
+    pub async fn logout(
+        st: &AppState,
+        refresh_token: Option<&str>,
+        login_ip: String,
+        user_agent: Option<String>,
+    ) -> AppResult<LogoutRes> {
+        let Some(refresh_token) = refresh_token else {
+            return Ok(LogoutRes { ok: true }); // No refresh token, no-op
+        };
 
-        let refresh_token_from_cookie = jar.get(refresh_cookie_name).map(|c| c.value().to_string());
+        let refresh_hash = Self::hash_refresh_token(refresh_token)?;
 
-        if let Some(token) = refresh_token_from_cookie {
-            let raw_refresh_token_bytes = token_utils::parse_refresh_token_bytes(&token)?;
-            let refresh_hash = Self::hash_token(&raw_refresh_token_bytes);
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
-            let mut conn = Self::get_redis_conn(&st.redis).await?;
+        // 1) Redis에서 세션 ID 조회
+        let session_id: String = redis_conn
+            .get(format!("ak:refresh:{}", refresh_hash))
+            .await
+            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
 
-            let session_id_str: Option<String> =
-                conn.get(Self::key_refresh_map(&refresh_hash)).await?;
+        // 2) Redis에서 사용자 ID 조회
+        let user_id: i64 = match redis_conn.get(format!("ak:session:{}", session_id)).await {
+            Ok(uid) => uid,
+            Err(_) => return Ok(LogoutRes { ok: true }), // Already logged out or invalid, no-op
+        };
 
-            if let Some(session_id_str) = session_id_str {
-                let session_id = Uuid::parse_str(&session_id_str).map_err(|_| {
-                    AppError::Internal("Invalid session ID in Redis mapping".into())
-                })?;
-                let session_key = Self::key_session(&session_id);
+        // 3) DB 로그인 상태 업데이트 및 로그 기록 (트랜잭션)
+        let mut tx = st.db.begin().await?;
+        AuthRepo::update_login_state_by_session_tx(&mut tx, &session_id, "logged_out").await?;
+        AuthRepo::insert_logout_log_tx(
+            &mut tx,
+            user_id,
+            &session_id,
+            &refresh_hash,
+            &login_ip,
+            user_agent.as_deref(),
+        )
+        .await?;
+        tx.commit().await?;
 
-                let user_id: Option<i64> = conn.hget(&session_key, "user_id").await?;
+        // 4) Redis 키 삭제 (커밋 성공 후)
+        let _: () = redis_conn
+            .del(format!("ak:refresh:{}", refresh_hash))
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .del(format!("ak:session:{}", session_id))
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .srem(format!("ak:user_sessions:{}", user_id), &session_id)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
-                redis::pipe()
-                    .atomic()
-                    .del(&session_key)
-                    .ignore()
-                    .del(Self::key_refresh_map(&refresh_hash))
-                    .ignore()
-                    .query_async::<()>(&mut conn)
-                    .await?;
-
-                if let Some(uid) = user_id {
-                    let user_sessions_key = format!("ak:user_sessions:{}", uid);
-                    conn.srem::<_, _, ()>(&user_sessions_key, session_id.to_string())
-                        .await?;
-                }
-            } else {
-                // If refresh map entry doesn't exist, token is already invalid or expired.
-                // Just unset the cookie.
-                warn!(
-                    "Logout: Refresh token map entry not found for hash: {}",
-                    refresh_hash
-                );
-            }
-        }
-
-        Ok(Self::unset_refresh_cookie(jar, st))
+        Ok(LogoutRes { ok: true })
     }
 
-    pub async fn logout_all(st: &AppState, user_id: i64) -> AppResult<()> {
-        let user_sessions_key = format!("ak:user_sessions:{}", user_id);
-        let mut conn = Self::get_redis_conn(&st.redis).await?;
+    // 모든 세션 로그아웃 서비스
+    pub async fn logout_all(
+        st: &AppState,
+        refresh_token: Option<&str>,
+        req: LogoutAllReq,
+        login_ip: String,
+        user_agent: Option<String>,
+    ) -> AppResult<LogoutRes> {
+        let mut user_id: Option<i64> = None;
+        let mut current_session_id: Option<String> = None;
 
-        let session_ids: Vec<String> = conn.smembers::<_, Vec<String>>(&user_sessions_key).await?;
-
-        for session_id_str in session_ids {
-            let session_id = Uuid::parse_str(&session_id_str).map_err(|_| {
-                AppError::Internal("Invalid session ID in user sessions set".into())
-            })?;
-            let session_key = Self::key_session(&session_id);
-
-            // Get refresh_hash from session to delete the refresh map entry
-            let refresh_hash: Option<String> = conn.hget(&session_key, "refresh_hash").await?;
-
-            redis::pipe()
-                .atomic()
-                .del(&session_key)
-                .ignore()
-                .query_async::<()>(&mut conn)
-                .await?;
-
-            if let Some(hash) = refresh_hash {
-                conn.del::<_, ()>(Self::key_refresh_map(&hash)).await?;
+        if let Some(token) = refresh_token {
+            let refresh_hash = Self::hash_refresh_token(token)?;
+            let mut redis_conn = st
+                .redis
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+            if let Ok(sid) = redis_conn
+                .get::<_, String>(format!("ak:refresh:{}", refresh_hash))
+                .await
+            {
+                if let Ok(uid) = redis_conn
+                    .get::<_, i64>(format!("ak:session:{}", sid))
+                    .await
+                {
+                    user_id = Some(uid);
+                    current_session_id = Some(sid);
+                }
             }
         }
-        conn.del::<_, ()>(&user_sessions_key).await?;
 
-        Ok(())
+        let Some(uid) = user_id else {
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()));
+        };
+
+        // 1) DB에 모든 세션 로그아웃 기록 (트랜SACTION)
+        let mut tx = st.db.begin().await?;
+        let mut logged_out_session_ids = Vec::new();
+
+        if req.everywhere {
+            let session_ids: Vec<String> = AuthRepo::find_user_session_ids_tx(&mut tx, uid).await?;
+
+            for sid in session_ids {
+                if let Some(login_record) =
+                    AuthRepo::find_login_by_session_id_tx(&mut tx, &sid).await?
+                {
+                    let refresh_hash = login_record.refresh_hash;
+                    AuthRepo::update_login_state_by_session_tx(&mut tx, &sid, "logged_out").await?;
+                    AuthRepo::insert_logout_log_tx(
+                        &mut tx,
+                        uid,
+                        &sid,
+                        &refresh_hash,
+                        &login_ip,
+                        user_agent.as_deref(),
+                    )
+                    .await?;
+                    logged_out_session_ids.push(sid);
+                }
+            }
+            AuthRepo::update_login_state_by_user_tx(&mut tx, uid, "logged_out").await?;
+        } else if let Some(sid) = current_session_id {
+            if let Some(login_record) = AuthRepo::find_login_by_session_id_tx(&mut tx, &sid).await?
+            {
+                let refresh_hash = login_record.refresh_hash;
+                AuthRepo::update_login_state_by_session_tx(&mut tx, &sid, "logged_out").await?;
+                AuthRepo::insert_logout_log_tx(
+                    &mut tx,
+                    uid,
+                    &sid,
+                    &refresh_hash,
+                    &login_ip,
+                    user_agent.as_deref(),
+                )
+                .await?;
+                logged_out_session_ids.push(sid);
+            }
+        }
+        tx.commit().await?;
+
+        // 2) Redis 키 삭제 (커밋 성공 후)
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        for sid in logged_out_session_ids {
+            if let Some(login_record) = AuthRepo::find_login_by_session_id(&st.db, &sid).await? {
+                let refresh_hash = login_record.refresh_hash;
+                let _: () = redis_conn
+                    .del(format!("ak:refresh:{}", refresh_hash))
+                    .await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
+                let _: () = redis_conn
+                    .del(format!("ak:session:{}", sid))
+                    .await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
+                let _: () = redis_conn
+                    .srem(format!("ak:user_sessions:{}", uid), &sid)
+                    .await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
+            }
+        }
+        if req.everywhere {
+            let _: () = redis_conn
+                .del(format!("ak:user_sessions:{}", uid))
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+        }
+
+        Ok(LogoutRes { ok: true })
     }
 }

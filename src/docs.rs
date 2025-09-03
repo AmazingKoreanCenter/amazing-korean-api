@@ -59,7 +59,6 @@ impl Modify for SecurityAddon {
             crate::api::auth::dto::LoginReq,
             crate::api::auth::dto::LoginRes,
             crate::api::auth::dto::RefreshRes,
-            crate::api::auth::dto::UserOut,
             crate::error::ErrorBody,
         )
     ),

@@ -1,7 +1,9 @@
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use std::env;
 use time::{Duration, OffsetDateTime};
+
+use crate::api::auth::dto::AccessTokenRes;
+use crate::error::AppResult;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -11,11 +13,7 @@ pub struct Claims {
     pub iss: String, // Issuer
 }
 
-pub async fn create_token(
-    user_id: i64,
-    ttl_minutes: i64,
-) -> Result<(String, i64), jsonwebtoken::errors::Error> {
-    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+pub fn create_token(user_id: i64, ttl_minutes: i64, secret: &str) -> AppResult<AccessTokenRes> {
     let now = OffsetDateTime::now_utc();
     let expires_in = now + Duration::minutes(ttl_minutes);
 
@@ -23,20 +21,23 @@ pub async fn create_token(
         sub: user_id,
         exp: expires_in.unix_timestamp(),
         iat: now.unix_timestamp(),
-        iss: "amazingkorean".to_string(),
+        iss: "amk".to_string(), // Issuer fixed to "amk" as per context
     };
 
     let token = encode(
         &Header::default(),
         &claims,
         &EncodingKey::from_secret(secret.as_bytes()),
-    )?;
+    )
+    .map_err(|e| crate::error::AppError::Internal(format!("Failed to encode JWT: {}", e)))?;
 
-    Ok((token, ttl_minutes * 60))
+    Ok(AccessTokenRes {
+        access_token: token,
+        expires_in: ttl_minutes * 60,
+    })
 }
 
-pub fn decode_token(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
-    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+pub fn decode_token(token: &str, secret: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
     decode(
         token,
         &DecodingKey::from_secret(secret.as_bytes()),

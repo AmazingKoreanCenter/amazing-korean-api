@@ -31,6 +31,7 @@ utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 redis = { version = "0.26", features = ["tokio-comp"] }
 deadpool-redis = "0.16"
 axum-extra = { version = "0.10", features = ["cookie"] }
+cookie = "0.18"
 sha2 = "0.10"
 base64 = { version = "0.22", default-features = false }
 percent-encoding = "2"
