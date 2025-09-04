@@ -10,6 +10,7 @@ use crate::state::AppState;
 use deadpool_redis::Pool as RedisPool;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
+use std::time::Duration;
 use tokio::net::TcpListener;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -28,9 +29,22 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     // 3) Postgres 풀 생성
-    let db: Pool<Postgres> = PgPoolOptions::new()
-        .max_connections(10)
-        .connect_lazy(&cfg.database_url)?;
+    let database_url = if cfg.database_url.contains("?") {
+        cfg.database_url.clone()
+    } else {
+        format!("{}?connect_timeout=5", cfg.database_url)
+    };
+
+    let pool: Pool<Postgres> = if std::env::var("DB_EAGER").ok().as_deref() == Some("1") {
+        PgPoolOptions::new()
+            .acquire_timeout(Duration::from_secs(5))
+            .connect(&database_url)
+            .await?
+    } else {
+        PgPoolOptions::new()
+            .acquire_timeout(Duration::from_secs(5))
+            .connect_lazy(&database_url)?
+    };
 
     // 4) Redis 풀 생성
     let redis_cfg = deadpool_redis::Config::from_url(cfg.redis_url.clone());
@@ -40,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
 
     // 5) AppState 생성
     let app_state = AppState {
-        db,
+        db: pool,
         redis,
         cfg: cfg.clone(),
     };
@@ -48,7 +62,11 @@ async fn main() -> anyhow::Result<()> {
 
     // 6) 서버 시작
     let listener = TcpListener::bind(&cfg.bind_addr).await?;
-    tracing::debug!("✅ Server running at http://{}", cfg.bind_addr);
+    tracing::info!(
+        "✅ Server listening on http://{} (pid={})",
+        cfg.bind_addr,
+        std::process::id()
+    );
     tracing::debug!(
         "📘 If Swagger UI is enabled in the router, open: http://{}/docs",
         cfg.bind_addr

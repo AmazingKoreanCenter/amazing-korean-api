@@ -40,6 +40,12 @@ impl Modify for SecurityAddon {
         crate::api::auth::handler::refresh,
         crate::api::auth::handler::logout,
         crate::api::auth::handler::logout_all,
+        crate::api::video::handler::health,
+        crate::api::video::handler::list_videos,
+        crate::api::video::handler::get_video_detail,
+        crate::api::video::handler::list_video_captions,
+        crate::api::health::handler::health,
+        crate::api::health::handler::ready,
     ),
     components(
         schemas(
@@ -60,13 +66,22 @@ impl Modify for SecurityAddon {
             crate::api::auth::dto::LoginRes,
             crate::api::auth::dto::RefreshRes,
             crate::error::ErrorBody,
+            crate::api::video::dto::HealthRes,
+            crate::api::video::dto::VideosQuery,
+            crate::api::video::dto::VideoListItem,
+            crate::api::video::dto::VideoDetail,
+            crate::api::video::dto::CaptionItem,
+            crate::api::health::handler::HealthRes,
+            crate::api::health::handler::ReadyRes,
         )
     ),
     modifiers(&SecurityAddon),
     tags(
         (name = "user", description = "User management"),
         (name = "auth", description = "Authentication management"),
-        (name = "admin", description = "Admin user management")
+        (name = "admin", description = "Admin user management"),
+        (name = "videos", description = "Video APIs"),
+        (name = "health", description = "Health and Readiness checks")
     )
 )]
 pub struct ApiDoc;
