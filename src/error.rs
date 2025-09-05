@@ -32,6 +32,12 @@ pub enum AppError {
     Jsonwebtoken(#[from] jsonwebtoken::errors::Error),
 }
 
+impl From<std::convert::Infallible> for AppError {
+    fn from(err: std::convert::Infallible) -> Self {
+        AppError::Internal(format!("Infallible error: {}", err))
+    }
+}
+
 pub type AppResult<T> = Result<T, AppError>;
 
 impl IntoResponse for AppError {

@@ -44,6 +44,8 @@ impl Modify for SecurityAddon {
         crate::api::video::handler::list_videos,
         crate::api::video::handler::get_video_detail,
         crate::api::video::handler::list_video_captions,
+        crate::api::video::handler::get_video_progress,
+        crate::api::video::handler::update_video_progress,
         crate::api::health::handler::health,
         crate::api::health::handler::ready,
     ),
@@ -71,6 +73,9 @@ impl Modify for SecurityAddon {
             crate::api::video::dto::VideoListItem,
             crate::api::video::dto::VideoDetail,
             crate::api::video::dto::CaptionItem,
+            crate::api::video::dto::VideoProgressRes,
+            crate::api::video::dto::VideoProgressUpdateReq,
+            crate::types::LoginDeviceEnum,
             crate::api::health::handler::HealthRes,
             crate::api::health::handler::ReadyRes,
         )

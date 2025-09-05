@@ -61,3 +61,17 @@ impl std::fmt::Display for UserState {
         write!(f, "{s}")
     }
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "login_device_enum")]
+#[serde(rename_all = "lowercase")]
+pub enum LoginDeviceEnum {
+    #[sqlx(rename = "web")]
+    Web,
+    #[sqlx(rename = "ios")]
+    Ios,
+    #[sqlx(rename = "android")]
+    Android,
+    #[sqlx(rename = "other")]
+    Other,
+}
