@@ -8,7 +8,10 @@ pub struct HealthRes {
     pub ok: bool,
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+// 영상 목록/검색 API의 쿼리 파라미터 표준 묶음 개발시에 사용
+
+#[allow(dead_code)]
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
 pub struct VideosQuery {
     pub q: Option<String>,
     pub tag: Option<Vec<String>>,
@@ -76,4 +79,23 @@ pub struct CaptionItem {
     pub kind: String,
     pub is_default: bool,
     pub is_active: bool,
+}
+
+#[derive(Debug, Serialize, FromRow, ToSchema)]
+pub struct VideoProgressRes {
+    pub video_id: i64,
+    pub user_id: i64,
+    pub last_position_seconds: Option<i32>,
+    pub total_duration_seconds: Option<i32>,
+    pub progress: Option<i32>,
+    pub completed: bool,
+    pub last_watched_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct VideoProgressUpdateReq {
+    pub last_position_seconds: i32,
+    pub total_duration_seconds: Option<i32>,
+    pub progress: Option<i32>,
+    pub completed: Option<bool>,
 }

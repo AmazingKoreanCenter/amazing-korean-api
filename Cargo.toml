@@ -36,3 +36,4 @@ sha2 = "0.10"
 base64 = { version = "0.22", default-features = false }
 percent-encoding = "2"
 rand = "0.8"
+async-trait = "0.1"

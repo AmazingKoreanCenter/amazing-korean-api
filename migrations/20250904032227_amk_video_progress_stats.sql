@@ -109,3 +109,60 @@ DROP FUNCTION IF EXISTS tg_video_log_on_insert();
 DROP FUNCTION IF EXISTS api_upsert_video_progress(
   BIGINT, BIGINT, INTEGER, INTEGER, INTEGER, BOOLEAN, INET, login_device_enum, TEXT
 );
+
+-- ===============================
+-- 일별 통계 집계를 위한 트리거 함수들
+-- ===============================
+-- INSERT 시: 조회수 +1, (completed=true라면 완료수 +1)
+CREATE OR REPLACE FUNCTION tg_video_log_on_insert() RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $tglins$
+BEGIN
+  INSERT INTO video_stat_daily (stat_date, video_id, views, completes)
+  VALUES (CURRENT_DATE, NEW.video_id, 1, CASE WHEN NEW.video_log_completed THEN 1 ELSE 0 END)
+  ON CONFLICT (stat_date, video_id) DO UPDATE
+  SET views = video_stat_daily.views + 1,
+      completes = video_stat_daily.completes + EXCLUDED.completes;
+  RETURN NEW;
+END
+$tglins$;
+
+-- UPDATE 시: completed가 false→true로 바뀌었을 때만 완료수 +1
+CREATE OR REPLACE FUNCTION tg_video_log_on_complete() RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $tglupd$
+BEGIN
+  INSERT INTO video_stat_daily (stat_date, video_id, views, completes)
+  VALUES (CURRENT_DATE, NEW.video_id, 0, 1)
+  ON CONFLICT (stat_date, video_id) DO UPDATE
+  SET completes = video_stat_daily.completes + 1;
+  RETURN NEW;
+END
+$tglupd$;
+
+-- ===============================
+-- 트리거 부착
+-- ===============================
+DROP TRIGGER IF EXISTS trg_vlog_stat_ins ON video_log;
+CREATE TRIGGER trg_vlog_stat_ins
+AFTER INSERT ON video_log
+FOR EACH ROW EXECUTE FUNCTION tg_video_log_on_insert();
+
+DROP TRIGGER IF EXISTS trg_vlog_stat_complete ON video_log;
+CREATE TRIGGER trg_vlog_stat_complete
+AFTER UPDATE OF video_log_completed ON video_log
+FOR EACH ROW
+WHEN (NEW.video_log_completed IS TRUE AND (OLD.video_log_completed IS DISTINCT FROM TRUE))
+EXECUTE FUNCTION tg_video_log_on_complete();
+
+--! down
+
+-- 트리거/함수 제거
+DROP TRIGGER IF EXISTS trg_vlog_stat_complete ON video_log;
+DROP TRIGGER IF EXISTS trg_vlog_stat_ins ON video_log;
+
+DROP FUNCTION IF EXISTS tg_video_log_on_complete();
+DROP FUNCTION IF EXISTS tg_video_log_on_insert();
+DROP FUNCTION IF EXISTS api_upsert_video_progress(
+  BIGINT, BIGINT, INTEGER, INTEGER, INTEGER, BOOLEAN, INET, login_device_enum, TEXT
+);
