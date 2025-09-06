@@ -125,7 +125,8 @@ pub async fn list_video_captions(
         (status = 403, description = "Forbidden"),
         (status = 404, description = "Not Found")
     ),
-    security(("bearerAuth" = []))
+    security(("bearerAuth" = [])),
+    tag = "videos"
 )]
 pub async fn get_video_progress(
     State(state): State<AppState>,
@@ -151,7 +152,8 @@ pub async fn get_video_progress(
         (status = 403, description = "Forbidden"),
         (status = 404, description = "Not Found")
     ),
-    security(("bearerAuth" = []))
+    security(("bearerAuth" = [])),
+    tag = "videos"
 )]
 pub async fn update_video_progress(
     State(state): State<AppState>,
