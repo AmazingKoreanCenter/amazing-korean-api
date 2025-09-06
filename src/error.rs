@@ -4,8 +4,10 @@ use axum::{
     Json,
 };
 use thiserror::Error;
+#[allow(unused_imports)] // ValidatorErrors is used in #[from] attribute
+use validator::ValidationErrors;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error)] // Removed Serialize and ToSchema
 pub enum AppError {
     #[error("Internal server error")]
     Internal(String),
@@ -30,6 +32,8 @@ pub enum AppError {
     Redis(#[from] deadpool_redis::redis::RedisError),
     #[error(transparent)]
     Jsonwebtoken(#[from] jsonwebtoken::errors::Error),
+    #[error(transparent)]
+    Validation(#[from] validator::ValidationErrors),
 }
 
 impl From<std::convert::Infallible> for AppError {
@@ -118,6 +122,13 @@ impl IntoResponse for AppError {
                 "JWT_ERROR".to_string(),
                 "JWT error".to_string(),
                 Some(serde_json::json!({ "debug": e.to_string() })),
+                None,
+            ),
+            AppError::Validation(e) => (
+                StatusCode::BAD_REQUEST,
+                "VALIDATION_ERROR".to_string(),
+                "Validation failed".to_string(),
+                Some(serde_json::json!({ "errors": e.to_string() })),
                 None,
             ),
         };
