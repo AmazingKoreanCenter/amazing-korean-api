@@ -1,6 +1,6 @@
+use axum::extract::FromRef;
 use deadpool_redis::Pool as RedisPool;
 use sqlx::PgPool;
-use axum::extract::FromRef;
 
 use crate::config::Config;
 

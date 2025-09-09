@@ -17,9 +17,10 @@ where
     type Rejection = AppError;
 
     // 트레이트 원형: fn -> impl Future + Send (async fn 아님)
-    fn from_request_parts(parts: &mut Parts, state: &S)
-        -> impl core::future::Future<Output = Result<Self, Self::Rejection>> + Send
-    {
+    fn from_request_parts(
+        parts: &mut Parts,
+        state: &S,
+    ) -> impl core::future::Future<Output = Result<Self, Self::Rejection>> + Send {
         // AppState는 소유값으로 얻어와 async move 에 캡쳐
         let app_state = AppState::from_ref(state);
         let secret = app_state.cfg.jwt_secret.clone();
@@ -32,7 +33,9 @@ where
             let token = auth_header
                 .and_then(|h| h.to_str().ok().map(|s| s.to_string()))
                 .and_then(|s| s.strip_prefix("Bearer ").map(|t| t.to_string()))
-                .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".into()))?;
+                .ok_or_else(|| {
+                    AppError::Unauthorized("Missing or invalid Authorization header".into())
+                })?;
 
             let claims = decode(
                 &token,

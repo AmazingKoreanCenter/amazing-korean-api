@@ -1,12 +1,15 @@
-use axum::{response::IntoResponse, Json};
 use axum::extract::{Path, Query, State};
+use axum::{response::IntoResponse, Json};
 
-use crate::error::AppResult;
-use crate::state::AppState;
 use crate::api::auth::extractor::AuthUser;
 use crate::api::video::repo::VideoRepo;
+use crate::error::AppResult;
+use crate::state::AppState;
 
-use super::dto::{CaptionItem, HealthRes, IdParam, VideoDetail, VideoListItem, VideosQuery, VideoProgressRes, VideoProgressUpdateReq};
+use super::dto::{
+    CaptionItem, HealthRes, IdParam, VideoDetail, VideoListItem, VideoProgressRes,
+    VideoProgressUpdateReq, VideosQuery,
+};
 use super::service::VideoService;
 
 #[utoipa::path(
@@ -134,7 +137,9 @@ pub async fn get_video_progress(
     Path(params): Path<IdParam>,
 ) -> AppResult<Json<VideoProgressRes>> {
     let video_service = VideoService::new(VideoRepo::new(state.db.clone()));
-    let progress = video_service.get_video_progress(&state, auth_user.sub, params.id).await?;
+    let progress = video_service
+        .get_video_progress(&state, auth_user.sub, params.id)
+        .await?;
     Ok(Json(progress))
 }
 
@@ -162,6 +167,8 @@ pub async fn update_video_progress(
     Json(req): Json<VideoProgressUpdateReq>,
 ) -> AppResult<Json<VideoProgressRes>> {
     let video_service = VideoService::new(VideoRepo::new(state.db.clone()));
-    let progress = video_service.update_video_progress(&state, auth_user.sub, params.id, req).await?;
+    let progress = video_service
+        .update_video_progress(&state, auth_user.sub, params.id, req)
+        .await?;
     Ok(Json(progress))
 }
