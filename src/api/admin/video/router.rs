@@ -1,12 +1,15 @@
-use super::handler;
-use crate::state::AppState;
+use crate::AppState;
 use axum::{
-    routing::{post, put},
+    routing::{delete, put},
     Router,
 };
 
-pub fn router() -> Router<AppState> {
+use super::handler::{admin_delete_video, /* B2 */ admin_update_video};
+
+pub fn admin_video_router() -> Router<AppState> {
     Router::new()
-        .route("/", post(handler::create_video_handler))
-        .route("/{video_id}", put(handler::admin_update_video))
+        // B2: 업데이트
+        .route("/{video_id}", put(admin_update_video))
+        // B3: 소프트 삭제
+        .route("/{video_id}", delete(admin_delete_video))
 }

@@ -80,6 +80,7 @@ impl FromStr for VideoAccess {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct VideoCreateReq {
     #[validate(length(min = 1, max = 200))]
@@ -100,6 +101,7 @@ pub struct VideoCreateReq {
     pub video_link: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct VideoUpdateReq {
     #[validate(
@@ -130,6 +132,7 @@ fn validate_not_empty_string(s: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct VideoRes {
     pub video_id: i64,

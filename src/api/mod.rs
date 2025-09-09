@@ -1,7 +1,7 @@
 use crate::state::AppState;
 use axum::routing::get;
 
-use crate::docs::ApiDoc;
+use crate::docs::Docs;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -27,6 +27,6 @@ pub fn app_router(state: AppState) -> axum::Router {
         .nest("/videos", video_router())
         .route("/health", get(health::handler::health))
         .route("/ready", get(health::handler::ready))
-        .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", Docs::openapi()))
         .with_state(state)
 }
