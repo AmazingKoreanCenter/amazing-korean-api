@@ -53,6 +53,7 @@ impl Modify for SecurityAddon {
         crate::api::admin::user::handler::admin_get_user,
         crate::api::admin::user::handler::admin_update_user,
         crate::api::admin::video::handler::create_video_handler,
+        crate::api::admin::video::handler::admin_update_video,
     ),
     components(
         schemas(
@@ -87,6 +88,7 @@ impl Modify for SecurityAddon {
             crate::api::admin::user::dto::AdminUpdateUserReq,
             crate::api::admin::video::dto::VideoCreateReq,
             crate::api::admin::video::dto::VideoRes,
+            crate::api::admin::video::dto::VideoUpdateReq,
 
             crate::api::health::handler::HealthRes,
             crate::api::health::handler::ReadyRes,

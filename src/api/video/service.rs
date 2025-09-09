@@ -57,18 +57,23 @@ impl VideoService {
 
         // 입력 검증
         if req.last_position_seconds < 0 {
-            return Err(AppError::BadRequest("last_position_seconds cannot be negative".to_string()));
+            return Err(AppError::BadRequest(
+                "last_position_seconds cannot be negative".to_string(),
+            ));
         }
         if let Some(total) = req.total_duration_seconds {
             if total <= 0 {
-                return Err(AppError::BadRequest("total_duration_seconds must be positive".to_string()));
+                return Err(AppError::BadRequest(
+                    "total_duration_seconds must be positive".to_string(),
+                ));
             }
         }
 
         // 클램프 & 완료 처리
         if let Some(p) = req.progress {
             req.progress = Some(p.clamp(0, 100));
-        } else if let (Some(total), last) = (req.total_duration_seconds, req.last_position_seconds) {
+        } else if let (Some(total), last) = (req.total_duration_seconds, req.last_position_seconds)
+        {
             if total > 0 {
                 let p = ((last as f64 / total as f64) * 100.0).floor() as i32;
                 req.progress = Some(p.clamp(0, 100));
