@@ -2,7 +2,7 @@ use crate::state::AppState;
 use axum::Router;
 
 use super::user::router::admin_user_router;
-use crate::api::admin::video::router::router as admin_video_router;
+use crate::api::admin::video::router::admin_video_router;
 
 pub fn admin_router() -> Router<AppState> {
     Router::new()

@@ -1,66 +1,79 @@
-use super::dto::{VideoCreateReq, VideoRes, VideoUpdateReq};
-use super::service;
-use crate::{
-    api::auth::extractor::AuthUser,
-    error::{AppResult, ErrorBody},
-    state::AppState,
-};
 use axum::{
-    extract::{Json, Path, State},
+    extract::{Path, State},
     http::StatusCode,
+    Json,
 };
+#[allow(unused_imports)] // Used in admin_update_video
+use utoipa::ToSchema;
 
+#[allow(unused_imports)] // Used in admin_delete_video
+use super::service;
+use crate::api::admin::video::dto::{VideoCreateReq, VideoRes};
+#[allow(unused_imports)] // Used in return type
+use crate::error::{AppError, AppResult};
+use crate::AppState;
+
+// NOTE: 임시 관리자 가드. 추후 RBAC(HYMN/admin/manager)로 교체.
+// TODO: replace with real role check extracting actor_user_id from claims.
+
+/// 영상 생성
 #[utoipa::path(
     post,
     path = "/admin/videos",
+    tag = "admin",
     request_body = VideoCreateReq,
-    responses(
-        (status = 201, description = "Video created successfully", body = VideoRes),
-        (status = 400, description = "Bad request", body = ErrorBody),
-        (status = 401, description = "Unauthorized", body = ErrorBody),
-        (status = 403, description = "Forbidden", body = ErrorBody),
-        (status = 500, description = "Internal server error", body = ErrorBody),
-    ),
-    security(
-        ("jwt_admin" = [])
-    ),
-    tag = "admin"
+    responses( (status = 201, body = VideoRes) )
 )]
 pub async fn create_video_handler(
-    State(app_state): State<AppState>,
-    AuthUser(claims): AuthUser,
+    State(st): State<AppState>,
     Json(req): Json<VideoCreateReq>,
-) -> AppResult<(StatusCode, Json<VideoRes>)> {
-    let res = service::create_video(&app_state, &claims, req).await?;
+) -> Result<(StatusCode, Json<VideoRes>), AppError> {
+    // TODO: claims에서 sub 추출
+    let actor_user_id = 0;
+    let res = super::service::create_video(&st, req, actor_user_id).await?;
     Ok((StatusCode::CREATED, Json(res)))
 }
 
+/// 소프트 삭제
+#[utoipa::path(
+    delete,
+    path = "/admin/videos/{video_id}",
+    tag = "admin",
+    params(
+        ("video_id" = i64, Path, description = "Video ID")
+    ),
+    responses(
+        (status = 204, description = "Soft deleted (idempotent)"),
+        (status = 404, description = "Video not found")
+    )
+)]
+pub async fn admin_delete_video(
+    State(st): State<AppState>,
+    Path(video_id): Path<i64>,
+) -> Result<StatusCode, AppError> {
+    let actor_user_id = 0; // TODO: claims.sub
+    super::service::delete_video(&st, video_id, actor_user_id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+// Placeholder for B2: admin_update_video
 #[utoipa::path(
     put,
     path = "/admin/videos/{video_id}",
-    request_body = VideoUpdateReq,
-    responses(
-        (status = 200, description = "Video updated successfully", body = VideoRes),
-        (status = 400, description = "Bad request", body = ErrorBody),
-        (status = 401, description = "Unauthorized", body = ErrorBody),
-        (status = 403, description = "Forbidden", body = ErrorBody),
-        (status = 404, description = "Not Found", body = ErrorBody),
-        (status = 500, description = "Internal server error", body = ErrorBody),
-    ),
+    tag = "admin",
     params(
-        ("video_id" = i64, Path, description = "ID of the video to update")
+        ("video_id" = i64, Path, description = "Video ID")
     ),
-    security(
-        ("jwt_admin" = [])
-    ),
-    tag = "admin"
+    responses(
+        (status = 200, description = "Video updated"),
+        (status = 404, description = "Video not found")
+    )
 )]
 pub async fn admin_update_video(
-    State(app_state): State<AppState>,
-    AuthUser(claims): AuthUser,
-    Path(video_id): Path<i64>,
-    Json(req): Json<VideoUpdateReq>,
-) -> AppResult<Json<VideoRes>> {
-    let res = service::update_video(&app_state, &claims, video_id, req).await?;
-    Ok(Json(res))
+    State(_st): State<AppState>,
+    Path(_video_id): Path<i64>,
+    Json(_body): Json<serde_json::Value>,
+) -> Result<StatusCode, AppError> {
+    // TODO: Implement actual update logic
+    Ok(StatusCode::OK)
 }

@@ -154,11 +154,13 @@ impl IntoResponse for AppError {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorBody {
     pub error: ErrorDetail,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorDetail {
     pub code: String,

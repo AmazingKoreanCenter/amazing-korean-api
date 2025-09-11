@@ -28,20 +28,24 @@ impl Modify for SecurityAddon {
 #[openapi(
     info(title = "Amazing Korean API", version = "1.0.0"),
     paths(
+        // health
         crate::api::health::handler::health,
         crate::api::health::handler::ready,
 
+        // auth
         crate::api::auth::handler::login,
         crate::api::auth::handler::refresh,
         crate::api::auth::handler::logout,
         crate::api::auth::handler::logout_all,
 
+        // user (me/settings)
         crate::api::user::handler::signup,
         crate::api::user::handler::get_me,
         crate::api::user::handler::update_me,
         crate::api::user::handler::get_settings,
         crate::api::user::handler::update_users_setting,
 
+        // videos (user)
         crate::api::video::handler::health,
         crate::api::video::handler::list_videos,
         crate::api::video::handler::get_video_detail,
@@ -49,24 +53,43 @@ impl Modify for SecurityAddon {
         crate::api::video::handler::get_video_progress,
         crate::api::video::handler::update_video_progress,
 
+        // admin - users
         crate::api::admin::user::handler::admin_list_users,
         crate::api::admin::user::handler::admin_get_user,
         crate::api::admin::user::handler::admin_update_user,
-        crate::api::admin::video::handler::create_video_handler,
-        crate::api::admin::video::handler::admin_update_video,
+
+        // admin - videos (B1/B2/B3)
+        crate::api::admin::video::handler::create_video_handler,   // B1 create
+        crate::api::admin::video::handler::admin_update_video,     // B2 update
+        crate::api::admin::video::handler::admin_delete_video,     // B3 soft delete  ← 추가
+
+        // admin - video captions (B4)
+        crate::api::admin::video::caption::handler::admin_create_caption, // B4-1 create  ← 추가
+        crate::api::admin::video::caption::handler::admin_update_caption, // B4-2 update  ← 추가
+        crate::api::admin::video::caption::handler::admin_delete_caption,  // B4-2 delete  ← 추가
+
+        // admin - video tags (B5)
+        crate::api::admin::video::tag::handler::admin_add_tags,
+        crate::api::admin::video::tag::handler::admin_remove_tags,
+
+        // admin - video stats (C1)
+        crate::api::admin::video::stats::handler::admin_get_video_daily_stats,
     ),
     components(
         schemas(
+            // base types
             crate::types::UserGender,
             crate::types::UserAuth,
             crate::types::UserState,
             crate::error::ErrorBody,
             crate::types::LoginDeviceEnum,
 
+            // auth dto
             crate::api::auth::dto::LoginReq,
             crate::api::auth::dto::LoginRes,
             crate::api::auth::dto::RefreshRes,
 
+            // user dto
             crate::api::user::dto::SignupReq,
             crate::api::user::dto::SignupRes,
             crate::api::user::dto::ProfileRes,
@@ -75,6 +98,7 @@ impl Modify for SecurityAddon {
             crate::api::user::dto::SettingsUpdateReq,
             crate::api::user::dto::StudyLangItem,
 
+            // videos dto (user)
             crate::api::video::dto::HealthRes,
             crate::api::video::dto::VideosQuery,
             crate::api::video::dto::VideoListItem,
@@ -83,15 +107,35 @@ impl Modify for SecurityAddon {
             crate::api::video::dto::VideoProgressRes,
             crate::api::video::dto::VideoProgressUpdateReq,
 
+            // admin - users dto
             crate::api::admin::user::dto::AdminUserRes,
             crate::api::admin::user::dto::AdminListUsersRes,
             crate::api::admin::user::dto::AdminUpdateUserReq,
+
+            // admin - videos dto (B1/B2)
             crate::api::admin::video::dto::VideoCreateReq,
             crate::api::admin::video::dto::VideoRes,
             crate::api::admin::video::dto::VideoUpdateReq,
 
+            // admin - video captions dto (B4)  ← 추가
+            crate::api::admin::video::caption::dto::CaptionKind,
+            crate::api::admin::video::caption::dto::CaptionCreateReq,
+            crate::api::admin::video::caption::dto::CaptionUpdateReq,
+            crate::api::admin::video::caption::dto::CaptionRes,
+
+            // admin - video tags dto (B5)
+            crate::api::admin::video::tag::dto::TagsModifyReq,
+            crate::api::admin::video::tag::dto::TagItem,
+            crate::api::admin::video::tag::dto::VideoTagsRes,
+
+            // admin - video stats dto (C1)
+            crate::api::admin::video::stats::dto::DailyStatsQuery,
+            crate::api::admin::video::stats::dto::DailyStatItem,
+            crate::api::admin::video::stats::dto::DailyStatsRes,
+
+            // health dto (kept)
             crate::api::health::handler::HealthRes,
-            crate::api::health::handler::ReadyRes,
+            crate::api::health::handler::ReadyRes
         )
     ),
     modifiers(&SecurityAddon),

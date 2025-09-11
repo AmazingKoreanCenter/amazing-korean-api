@@ -51,6 +51,7 @@ pub struct SignupReq {
 }
 
 // 회원가입 응답 dto
+#[allow(dead_code)]
 #[derive(Serialize, ToSchema)]
 #[schema(example = json!({ "user_id": 123 }))]
 pub struct SignupRes {
