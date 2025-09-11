@@ -1,12 +1,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
+use sqlx::{FromRow, Type};
 use std::fmt;
 use std::str::FromStr;
 use utoipa::ToSchema;
 use validator::{Validate, ValidationError};
 
-#[derive(Debug, Deserialize, Serialize, ToSchema, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, ToSchema, Clone, Copy, PartialEq, Eq, Type)]
+#[sqlx(type_name = "TEXT")]
 #[serde(rename_all = "snake_case")]
 pub enum VideoState {
     Draft,
@@ -43,7 +44,8 @@ impl FromStr for VideoState {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, ToSchema, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, ToSchema, Clone, Copy, PartialEq, Eq, Type)]
+#[sqlx(type_name = "TEXT")]
 #[serde(rename_all = "snake_case")]
 pub enum VideoAccess {
     Free,
@@ -89,8 +91,8 @@ pub struct VideoCreateReq {
     pub video_subtitle: Option<String>,
     #[validate(length(min = 2, max = 10))]
     pub video_language: Option<String>,
-    pub video_state: VideoState,
-    pub video_access: VideoAccess,
+    pub video_state: Option<VideoState>,
+    pub video_access: Option<VideoAccess>,
     #[validate(length(max = 32))]
     pub vimeo_video_id: Option<String>,
     #[validate(range(min = 1))]
@@ -147,5 +149,6 @@ pub struct VideoRes {
     pub video_link: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub updated_by_user_id: i64,
     pub deleted_at: Option<DateTime<Utc>>,
 }

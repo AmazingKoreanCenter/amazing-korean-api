@@ -372,3 +372,23 @@ SettingsRes = SettingsUpdateReq + { user_id: i64 }
 - 자막 기본 선택: `VIDEO_CAPTION.is_default=true`가 있으면 우선, 없으면 `VIDEO.video_language`와 사용자 UI 언어 매칭
 - 목록 정렬 `popular/complete_rate`는 `video_stat_daily` 조인으로 후속 구현
 - 접근권한: 결제 연동 전에는 `access=paid` **게스트 비노출**, 로그인 사용자에 한해 상세 열람 가능하도록 임시 분기 (결제 연동 시 미들웨어로 대체)
+
+---
+
+## Docs Aggregator Policy (src/docs.rs)
+
+`src/docs.rs`는 API 경로 집계기입니다. 파일 전체 교체를 금지합니다.
+
+새 엔드포인트 문서화 시 IN-PLACE 편집으로 `paths(...)`에 줄만 추가합니다.
+
+먼저 핸들러 함수명과 `#[utoipa::path]` 주석이 일치하는지 확인합니다. 불일치 시 핸들러를 정정한 뒤 `docs`에 한 줄을 추가합니다.
+
+프롬프트에는 반드시 "IN-PLACE EDIT ONLY, DO NOT REPLACE WHOLE FILE" 문구를 포함합니다.
+
+---
+
+## Axum Path Style Policy
+
+라우트 파라미터는 반드시 중괄호 `{param}` 표기(Axum 0.8). `/`:id와 같은 콜론 표기는 금지합니다.
+
+경로를 변경하는 패치에서는 이 규칙을 강제하며, 검사 스텝에 `rg -n '"/:" src`를 포함합니다.
