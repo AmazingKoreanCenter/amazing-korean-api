@@ -1,5 +1,15 @@
 {
-  "checkpointing": { "enabled": true },
-  "fileFiltering": { "respectGitIgnore": true },
-  "includeDirectories": ["./"]
+  "general": {
+    "checkpointing": {
+      "enabled": true
+    }
+  },
+  "context": {
+    "fileFiltering": {
+      "respectGitIgnore": true
+    },
+    "includeDirectories": [
+      "./"
+    ]
+  }
 }
