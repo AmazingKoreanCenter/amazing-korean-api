@@ -4,21 +4,17 @@
 - AMK_API_MASTER : 5.0 Phase 0 — health
 
 2) 산출물 종류:
-- (예시)
-  - GEMINI_PATCH_PROMPT: 코드 패치용 프롬프트
-  - DESIGN_NOTE: 설계/스펙 정리
-  - SQL_MIGRATION: 마이그레이션 SQL
+- LLM_PATCH_TEMPLATE
 
 3) 하고 싶은 일:
-- 한글로 구체적인 작업 목표 한두 문장
-  (예: 로그인 API 전체 스펙을 5.1 기준으로 다시 정리하고,
-       dto/handler/router 골격까지 만드는 PATCH 프롬프트 만들어줘)
+- gemini cli, codex 작동 방식 테스트 및 비교
+- 5.0 Phase 0 — health을 기준으로 새롭게 코드 작성
 
 4) 현재 상태/제약:
-- 이미 구현된 부분 있으면 요약
+- 이미 구현된 부분과 상관 없이 다시 코딩
 - cargo check 에러 로그 있으면 붙여넣기
-- 건드리면 안 되는 부분/파일 있으면 명시
+- src/api/health 폴더에 있는 파일만 수정
+- 기존 구조 파일 그대로 사용 : src/api/mod.rs, src/config.rs, docs.rs, error.rs, main.rs, state.rs, types.rs
 
 5) 포함할 파일/정보:
-- (필요하면) dto.rs, handler.rs, router.rs 전체 내용 붙여넣기
-- 또는 “이 파일은 새로 생성” / “이 파일은 전체 교체” 같이 의도 설명
+- 없음
