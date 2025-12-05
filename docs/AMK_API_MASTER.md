@@ -601,7 +601,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 <details>
   <summary>Phase 0 — health 시나리오</summary>
   
-#### 0-1 : `GET /healthz` 시나리오
+#### 5.0-1 : `GET /healthz` 시나리오
 - **성공**
   - When: 클라이언트가 `GET /healthz` 호출, Swagger에서만 실행
   - Then: `200 OK`, JSON 바디 `{"status":"live","uptime_ms":..., "version":"v0.1.0"}`
@@ -613,7 +613,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 0-2 : `GET /docs` 시나리오
+#### 5.0-2 : `GET /docs` 시나리오
 - **성공**
   - When: 클라이언트가 `GET /docs` 호출, Swagger에서만 실행
   - Then: `200 OK`, Swagger UI 렌더링, **태그 순서가 user→auth→videos→lesson→admin→health**로 보임
@@ -642,9 +642,9 @@ audience: server / database / backend / frontend / lead / LLM assistant
 ---
 
 <details>
-  <summary>Phase 1 — user 시나리오</summary>
+  <summary>5.1 Phase 1 — user 시나리오</summary>
 
-#### 1-1 : `POST /users` (회원가입)
+#### 5.1-1 : `POST /users` (회원가입)
 - **성공 → 201 Created**
   - When: `/signup` 폼 입력 후 제출이 서버 검증을 통과한다
   - Then: **201**, `Location: /users/{id}`(권장), 바디는 안전 필드만 반환, **세션/토큰 발급(Session=active)**
@@ -676,7 +676,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 1-2 : `GET /users/me` (내 정보 조회)
+#### 5.1-2 : `GET /users/me` (내 정보 조회)
 - **성공 → 200 OK**
   - When: 인증된 사용자가 `/me` 화면에서 자기 정보를 조회한다
   - Then: **200**, 안전 필드만 반환(비밀번호·해시·토큰 제외)
@@ -692,7 +692,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 1-3 : `POST /users/me` (내 정보 수정)
+#### 5.1-3 : `POST /users/me` (내 정보 수정)
 - **성공 → 200 OK(또는 204)**
   - When: `/me/edit` 폼 입력 후 제출이 서버 검증을 통과한다
   - Then: **200**(변경 후 스냅샷 바디) **또는 204**, USERS 업데이트 후 **USERS_LOG(성공 스냅샷)** 기록
@@ -712,7 +712,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 1-4 : `GET /users/me/settings` (내 설정 조회)
+#### 5.1-4 : `GET /users/me/settings` (내 설정 조회)
 - **성공 → 200 OK**
   - When: 인증된 사용자가 `/settings`에서 설정을 조회한다
   - Then: **200**, USERS_SETTING 반환
@@ -724,7 +724,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 1-5 : `POST /users/me/settings` (내 설정 수정)
+#### 5.1-5 : `POST /users/me/settings` (내 설정 수정)
 - **성공 → 200 OK(또는 204)**
   - When: `/settings` 폼 입력 후 제출이 서버 검증을 통과한다
   - Then: **200**(최신 설정 반환) **또는 204**, USERS_SETTING 수정 후 **USERS_LOG(성공 스냅샷)** 기록
@@ -766,9 +766,9 @@ audience: server / database / backend / frontend / lead / LLM assistant
 ---
 
 <details>
-  <summary>Phase 2 — auth 시나리오 상세 (2-1 ~ 2-5)</summary>
+  <summary>5.2 Phase 2 — auth 시나리오 상세 (5.2-1 ~ 5.2-5)</summary>
 
-#### 공통 정책(2-1 ~ 2-5)
+#### 공통 정책(5.2-1 ~ 5.2-5)
 - **에러 바디(고정)**  
   `{ "error": { "http_status": 400|401|403|409|422|429|500, "code": "...", "message": "...", "details": { }, "trace_id": "..." } }`
 - **로그**: 성공/실패 모두 이벤트 기록  
@@ -779,7 +779,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 2-1 : `POST /auth/login` (로그인)
+#### 5.2-1 : `POST /auth/login` (로그인)
 - **성공 → 200 OK(또는 204)**  
   - When: `/login`에서 이메일/비밀번호 제출(검증 통과)  
   - Then: **200**(또는 **204**), 액세스 토큰·리프레시 토큰 발급(쿠키/헤더), Redis 세션 및 리프레시 키 저장, `LOGIN`/`LOGIN_LOG` 기록  
@@ -799,7 +799,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 2-2 : `POST /auth/logout` (로그아웃)
+#### 5.2-2 : `POST /auth/logout` (로그아웃)
 - **성공 → 204 No Content(또는 200)**  
   - When: 사용자가 로그아웃 트리거  
   - Then: **204**, Redis의 세션/리프레시 키 제거, `LOGIN_LOG`(logout 이벤트) 기록  
@@ -809,7 +809,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 2-3 : `POST /auth/refresh` (토큰 재발급)
+#### 5.2-3 : `POST /auth/refresh` (토큰 재발급)
 - **성공 → 200 OK**  
   - When: 백그라운드 토큰 만료 임박/만료 후 리프레시 제출  
   - Then: **200**, 새 액세스/리프레시 발급(로테이션), Redis: `ak:refresh:<hash> -> <new_session_id>` 갱신, rotate 로그 기록  
@@ -825,7 +825,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 2-4 : `POST /auth/find_id` (회원 아이디 찾기)
+#### 5.2-4 : `POST /auth/find_id` (회원 아이디 찾기)
 - 성공 → **200**
   - When: `/find-id`에서 식별 정보(예: 이름+연락처/생년월일 등)를 입력하고 제출한다
   - Then: **200**, “일치 시 등록 이메일/연락처로 안내가 발송되었습니다” **같은 문구**로 항상 응답(Enumeration Safe), `USERS_LOG` 기록
@@ -843,7 +843,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 2-5 : `POST /auth/reset_pw` (회원 비밀번호 재설정)
+#### 5.2-5 : `POST /auth/reset_pw` (회원 비밀번호 재설정)
 - **성공(재설정 완료) → 200 OK(또는 204)**  
   - When: `/reset-password`에서 토큰/코드 + 새 비밀번호 제출  
   - Then: **200**(또는 **204**), 비밀번호 해시 갱신, 관련 세션 전부 무효화(보안), `USERS_LOG` 기록  
@@ -868,9 +868,9 @@ audience: server / database / backend / frontend / lead / LLM assistant
 ---
 
 <details>
-  <summary>Phase 3 — video 시나리오 상세 (3-1 ~ 3-4)</summary>
+  <summary>5.3 Phase 3 — video 시나리오 상세 (5.3-1 ~ 5.3-4)</summary>
 
-#### 공통 정책(3-1 ~ 3-4)
+#### 공통 정책(5.3-1 ~ 5.3-4)
 - **에러 바디(고정)**  
   `{ "error": { "http_status": 400|401|404|422|429|500, "code": "...", "message": "...", "details": { }, "trace_id": "..." } }`
 - **검증 기준**  
@@ -883,7 +883,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 3-1 : `GET /videos` (비디오 목록)
+#### 5.3-1 : `GET /videos` (비디오 목록)
 - **성공(데이터 있음) → 200**
   - When: `/videos` 진입, `page/per_page/sort`가 유효
   - Then: **200**, 목록 + 페이지 메타, 각 항목에 `video_url_vimeo` 포함
@@ -904,7 +904,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 3-2 : `GET /videos/{id}` (비디오 상세)
+#### 5.3-2 : `GET /videos/{id}` (비디오 상세)
 - **성공 → 200 OK**  
   - When: 상세 진입, 존재하는 영상 id  
   - Then: **200**, 본문에 메타(제목, 설명, 길이, `video_url_vimeo`, **VIDEO_TAG 배열**)  
@@ -917,7 +917,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 3-3 : `GET /videos/{id}/progress` (진행도 조회)
+#### 5.3-3 : `GET /videos/{id}/progress` (진행도 조회)
 - **성공(기록 있음) → 200 OK**  
   - When: 인증된 사용자가 자신의 진행도 조회  
   - Then: **200**, `{ progress_percent, last_watched_at }`  
@@ -932,7 +932,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 3-4 : `POST /videos/{id}/progress` (진행도 갱신)
+#### 5.3-4 : `POST /videos/{id}/progress` (진행도 갱신)
 - **성공 → 200 OK(또는 204 No Content)**  
   - When: 클라이언트가 재생 이벤트 동안 진행도(0~100)를 전송  
   - Then: **200**(업데이트 후 스냅샷 반환) **혹은 204**, 서버는 `progress_percent`(클램프 0~100)와 `last_watched_at` 갱신, **VIDEO_LOG upsert**  
@@ -962,9 +962,9 @@ audience: server / database / backend / frontend / lead / LLM assistant
 ---
 
 <details>
-  <summary>Phase 4 — study 시나리오 상세 (4-1 ~ 4-5)</summary>
+  <summary>5.4 Phase 4 — study 시나리오 상세 (5.4-1 ~ 5.4-5)</summary>
 
-#### 공통 정책(4-1 ~ 4-5)
+#### 공통 정책(5.4-1 ~ 5.4-5)
 - **에러 바디(고정)**  
   `{ "error": { "http_status": 400|401|403|404|422|429|500, "code": "...", "message": "...", "details": { }, "trace_id": "..." } }`
 - **검증 기준**  
@@ -980,7 +980,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 4-1 : `GET /studies` (학습 문제 목록)
+#### 5.4-1 : `GET /studies` (학습 문제 목록)
 - 성공(데이터 있음) → **200**  
   - When: `/studies` 진입, `program/page/per_page/sort` 유효
   - Then: **200**, 목록 + 페이지 메타, `study_program_enum` 필터 반영
@@ -994,7 +994,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 4-2 : `GET /studies/tasks/{id}` (학습 문제 상세)
+#### 5.4-2 : `GET /studies/tasks/{id}` (학습 문제 상세)
 - 성공 → **200**  
   - Then: **200**, 문제 본문/보기/메타(난이도/분류)
   - 상태축: Auth=pass 또는 stop / Page=`task` init→ready / Request=`task` pending→success / Data=`task` present
@@ -1003,7 +1003,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 4-3 : `POST /studies/tasks/{id}/answer` (정답 제출/채점)
+#### 5.4-3 : `POST /studies/tasks/{id}/answer` (정답 제출/채점)
 - 성공 → **200**  
   - When: 인증 사용자, 보기/서술형 답안을 제출
   - Then: **200**, 채점 결과(`is_correct`, `score`, `correct_choice`, `explain_available` 등), **STUDY_TASK_STATUS** 업데이트, **STUDY_TASK_LOG** 적재
@@ -1023,7 +1023,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 4-4 : `GET /studies/tasks/{id}/status` (내 시도/기록)
+#### 5.4-4 : `GET /studies/tasks/{id}/status` (내 시도/기록)
 - 성공 → **200**  
   - Then: **200**, `{ last_attempt_at, attempts, best_score, last_score, progress }`
   - 상태축: Auth=pass / Page=`task` init→ready / Request=`status` pending→success / Data=`status` present(또는 empty)
@@ -1033,7 +1033,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 4-5 : `GET /studies/tasks/{id}/explain` (해설 보기)
+#### 5.4-5 : `GET /studies/tasks/{id}/explain` (해설 보기)
 - 성공 → **200**  
   - Then: **200**, 해설 텍스트/이미지/영상 링크(있다면)
   - 상태축: Auth=pass 또는 stop / Page=`explain` init→ready / Request=`explain` pending→success / Data=`explain` present
@@ -1058,9 +1058,9 @@ audience: server / database / backend / frontend / lead / LLM assistant
 ---
 
 <details>
-  <summary>Phase 5 — lesson 시나리오 상세 (5-1 ~ 5-5)</summary>
+  <summary>5.5 Phase 5 — lesson 시나리오 상세 (5.5-1 ~ 5.5-5)</summary>
 
-#### 공통 정책(5-1 ~ 5-5)
+#### 공통 정책(5.5-1 ~ 5.5-5)
 - **에러 바디(고정)**  
   `{ "error": { "http_status": 400|401|403|404|422|429|500, "code": "...", "message": "...", "details": { }, "trace_id": "..." } }`
 - **검증 기준**  
@@ -1077,7 +1077,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 5-1 : `GET /lessons` (수업 전체 목록)
+#### 5.5-1 : `GET /lessons` (수업 전체 목록)
 - 성공(데이터 있음) → **200**  
   - When: `/lessons` 진입, `page/per_page/sort` 유효  
   - Then: **200**, 목록 + 페이지 메타(`lesson_idx` 기준 정렬)
@@ -1091,7 +1091,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 5-2 : `GET /lessons/{id}` (수업 상세)
+#### 5.5-2 : `GET /lessons/{id}` (수업 상세)
 - 성공 → **200**  
   - Then: **200**, 수업 메타 + 연계 목록(영상 태그/학습 과제 id 집합) 페이지네이션
   - 상태축: Auth=pass 또는 stop / Page=`lesson` init→ready / Request=`lesson` pending→success / Data=`lesson` present
@@ -1099,7 +1099,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 5-3 : `GET /lessons/{id}/items` (수업 학습)
+#### 5.5-3 : `GET /lessons/{id}/items` (수업 학습)
 - 성공 → **200**  
   - Then: **200**, `lesson_item_seq` 기준 아이템 목록(문항/비디오/자료 등), 학습 화면 로드
   - 상태축: Auth=pass 또는 stop / Page=`lesson_items` init→ready / Request=`lesson_items` pending→success / Data=`lesson_items` present
@@ -1109,7 +1109,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 5-4 : `GET /lessons/{id}/progress` (수업 진행 조회)
+#### 5.5-4 : `GET /lessons/{id}/progress` (수업 진행 조회)
 - 성공 → **200**  
   - Then: **200**, `{ progress_percent, last_updated_at }` (없으면 `{0, null}`)
   - 상태축: Auth=pass / Page=`lesson` init→ready / Request=`lesson_progress` pending→success / Data=`lesson_progress` present(또는 empty)
@@ -1118,7 +1118,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-#### 5-5 : `POST /lessons/{id}/progress` (수업 진행 갱신)
+#### 5.5-5 : `POST /lessons/{id}/progress` (수업 진행 갱신)
 - 성공 → **200**(또는 **204**)  
   - When: 학습 중간/완료 시 진행도를 제출(0~100), 멱등 업데이트
   - Then: **200**(업데이트 후 스냅샷) 또는 **204**, 서버는 LESSON_PROGRESS 갱신
@@ -1135,7 +1135,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-### 5.6 Phase 6 — admin
+### 5.5.6 Phase 6 — admin
 | 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 |
 |---|---|---|---|---|---|
 | 6-1 | `GET /admin/users` | `/admin/users?page=&size=&q=&sort=&order=` | 사용자 조회 | ***검색/정렬/페이지네이션, RBAC(admin)***<br>성공(데이터 있음/없음):<br> Auth pass / Page admin_users init→ready / Request admin_users pending→success /<br> Data admin_users present empty → **200**<br>실패(미인증): Auth stop → **401**<br>실패(RBAC): Auth forbid → **403**<br>실패(형식/누락): … → **400**<br>실패(도메인 제약): … → **422** | [ ] |
@@ -1175,7 +1175,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 ---
 
 <details>
-  <summary>Phase 6 — admin 공통 정책 & 시나리오 템플릿</summary>
+  <summary>5.6 Phase 6 — admin 공통 정책 & 시나리오 템플릿</summary>
 
 #### 공통 보안/권한
 - 미인증: Auth=stop → **401**
