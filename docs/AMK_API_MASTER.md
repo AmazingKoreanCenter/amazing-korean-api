@@ -647,7 +647,9 @@ audience: server / database / backend / frontend / lead / LLM assistant
 #### 5.1-1 : `POST /users` (회원가입)
 - **성공 → 201 Created**
   - When: `/signup` 폼 입력 후 제출이 서버 검증을 통과한다
-  - Then: **201**, `Location: /users/{id}`(권장), 바디는 안전 필드만 반환, **세션/토큰 발급(Session=active)**
+  - Then: **201**, `Location: /users/{id}`(권장)
+    - **Body**: `SignupRes` (안전한 유저 정보 + **Access Token**, `session_id`)
+    - **Cookie**: `ak_refresh` (**Refresh Token**, HttpOnly, Secure)
   - 상태축: Auth=pass / Page=`signup` init→ready / **Form=`signup` pristine→dirty→validating→submitting→success** / Request=`signup` pending→success / Data=`signup` present
   - 로그: USERS insert 후 **USERS_LOG(성공 스냅샷)** 기록(민감정보 제외)
 - **실패(형식/누락) → 400 Bad Request**

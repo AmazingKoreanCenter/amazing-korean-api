@@ -1,7 +1,7 @@
 use crate::{
     error::{AppError, AppResult},
     state::AppState,
-    types::{UserAuth as GlobalUserAuth, UserState as GlobalUserState},
+    types::{UserAuth as GlobalUserAuth},
 };
 use sqlx::PgPool;
 
@@ -63,7 +63,7 @@ impl AdminUserService {
         st: &AppState,
         actor_user_id: i64,
         query: Option<String>,
-        state: Option<GlobalUserState>,
+        state: Option<bool>,
         page: Option<i64>,
         size: Option<i64>,
     ) -> AppResult<AdminListUsersRes> {
@@ -125,6 +125,8 @@ impl AdminUserService {
                             &st.db,
                             Some(actor_user_id),
                             user.id,
+                            "update",
+                            true,
                         )
                         .await
                         {

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
 
-use crate::types::{UserAuth, UserGender, UserState};
+use crate::types::{UserAuth, UserGender};
 
 /// 관리자용 사용자 프로필 응답
 #[derive(Serialize, sqlx::FromRow, ToSchema, Clone, Debug, PartialEq)]
@@ -31,7 +31,7 @@ pub struct AdminUserRes {
     #[schema(value_type = String, format = "date")]
     pub birthday: Option<NaiveDate>,
     pub gender: UserGender,
-    pub user_state: UserState,
+    pub user_state: bool,
     pub user_auth: UserAuth,
     #[schema(value_type = String, format = "date-time")]
     pub created_at: DateTime<Utc>,
@@ -107,7 +107,7 @@ pub struct AdminUpdateUserReq {
     pub gender: Option<UserGender>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub user_state: Option<UserState>,
+    pub user_state: Option<bool>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_auth: Option<UserAuth>,

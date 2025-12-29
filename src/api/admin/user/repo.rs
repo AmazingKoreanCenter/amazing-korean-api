@@ -1,4 +1,4 @@
-use crate::{error::AppResult, types::UserState};
+use crate::{error::AppResult};
 use serde_json::Value;
 use sqlx::{PgConnection, PgPool};
 
@@ -7,7 +7,7 @@ use super::dto::{AdminUpdateUserReq, AdminUserRes};
 pub async fn admin_list_users(
     pool: &PgPool,
     query: Option<&str>,
-    state: Option<UserState>,
+    state: Option<bool>,
     page: i64,
     size: i64,
 ) -> AppResult<(i64, Vec<AdminUserRes>)> {

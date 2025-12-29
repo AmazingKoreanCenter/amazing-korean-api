@@ -1,6 +1,5 @@
-// FILE: src/api/user/handler.rs
 use super::{
-    dto::{ProfileRes, SettingsRes, SettingsUpdateReq, SignupReq, UpdateReq},
+    dto::{ProfileRes, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes, UpdateReq},
     service::UserService,
 };
 use crate::{
@@ -10,16 +9,50 @@ use crate::{
 };
 use axum::{
     extract::State,
-    http::{HeaderMap, StatusCode},
+    http::{HeaderMap, HeaderValue, StatusCode},
     Json,
 };
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 
-// ← 어트리뷰트 내의 json! 매크로를 위해 필요
 #[allow(unused_imports)]
 use serde_json::json;
 
 fn jwt_secret() -> String {
     std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev_secret_change_me".to_string())
+}
+
+fn extract_client_ip(headers: &HeaderMap) -> String {
+    if let Some(v) = headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()) {
+        if let Some(first) = v.split(',').next() {
+            let ip = first.trim();
+            if !ip.is_empty() {
+                return ip.to_string();
+            }
+        }
+    }
+    if let Some(v) = headers.get("x-real-ip").and_then(|v| v.to_str().ok()) {
+        let ip = v.trim();
+        if !ip.is_empty() {
+            return ip.to_string();
+        }
+    }
+
+    let use_fallback = std::env::var("AK_DEV_IP_FALLBACK")
+        .ok()
+        .map(|v| v == "true" || v == "1")
+        .unwrap_or(true);
+    if use_fallback {
+        "127.0.0.1".to_string()
+    } else {
+        "0.0.0.0".to_string()
+    }
+}
+
+fn extract_user_agent(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
 }
 
 /// Authorization: Bearer <token> 헤더에서 토큰 추출
@@ -43,36 +76,70 @@ pub fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
     tag = "user",
     request_body = SignupReq,
     responses(
-        // 예시는 순수 JSON 값으로!
-        (status = 201, description = "User created", body = ProfileRes, example = json!({
-            "id": 1,
+        (status = 201, description = "User created", body = SignupRes, example = json!({
+            "user_id": 1,
             "email": "newuser@example.com",
             "name": "New User",
             "nickname": "NewNick",
-            "language": "en",
-            "country": "US",
+            "language": "ko",
+            "country": "KR",
             "birthday": "2000-01-01",
             "gender": "male",
             "user_state": "on",
             "user_auth": "learner",
-            "created_at": "2025-08-21T10:00:00Z"
+            "created_at": "2025-08-21T10:00:00Z",
+            "access": {
+                "access_token": "eyJ...",
+                "expires_in": 3600
+            },
+            "session_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
         })),
-        (status = 400, description = "Bad request", body = crate::error::ErrorBody, example = json!({
-            "error": "Validation error: email is not valid"
-        })),
-        (status = 409, description = "Email already exists", body = crate::error::ErrorBody, example = json!({
-            "error": "email already exists"
-        }))
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 409, description = "Email already exists", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable entity", body = crate::error::ErrorBody),
+        (status = 429, description = "Too many requests", body = crate::error::ErrorBody)
     )
 )]
-
-// 회원가입 handler
 pub async fn signup(
     State(st): State<AppState>,
+    headers: HeaderMap,
+    jar: CookieJar,
     Json(req): Json<SignupReq>,
-) -> AppResult<(StatusCode, Json<ProfileRes>)> {
-    let user = UserService::signup(&st, req).await?;
-    Ok((StatusCode::CREATED, Json(user)))
+) -> AppResult<(CookieJar, (StatusCode, HeaderMap, Json<SignupRes>))> {
+    let ip = extract_client_ip(&headers);
+    let ua = extract_user_agent(&headers);
+
+    let (res, refresh_token, refresh_ttl_secs) = UserService::signup(&st, req, ip, ua).await?;
+
+    let refresh_cookie = Cookie::build(Cookie::new(
+        st.cfg.refresh_cookie_name.to_string(),
+        refresh_token,
+    ))
+    .path("/")
+    .http_only(true)
+    .secure(st.cfg.refresh_cookie_secure)
+    .same_site(match st.cfg.refresh_cookie_samesite_or("Lax") {
+        "Strict" => SameSite::Strict,
+        "Lax" => SameSite::Lax,
+        "None" => SameSite::None,
+        _ => SameSite::Lax,
+    })
+    .expires(
+        cookie::time::OffsetDateTime::now_utc()
+            + cookie::time::Duration::seconds(refresh_ttl_secs),
+    )
+    .domain(st.cfg.refresh_cookie_domain.clone().unwrap_or_default())
+    .build();
+
+    let jar = jar.add(refresh_cookie);
+
+    let mut resp_headers = HeaderMap::new();
+    let location = format!("/users/{}", res.user_id);
+    let location_val = HeaderValue::from_str(&location)
+        .map_err(|e| AppError::Internal(format!("Invalid Location header: {e}")))?;
+    resp_headers.insert(axum::http::header::LOCATION, location_val);
+
+    Ok((jar, (StatusCode::CREATED, resp_headers, Json(res))))
 }
 
 #[utoipa::path(
@@ -93,20 +160,12 @@ pub async fn signup(
             "user_auth": "learner",
             "created_at": "2025-08-21T10:00:00Z"
         })),
-        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody, example = json!({
-            "error": "missing Authorization header"
-        })),
-        (status = 403, description = "Forbidden", body = crate::error::ErrorBody, example = json!({
-            "error": "forbidden"
-        })),
-        (status = 404, description = "Not Found", body = crate::error::ErrorBody, example = json!({
-            "error": "not found"
-        }))
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 404, description = "Not Found", body = crate::error::ErrorBody)
     ),
     security(("bearerAuth" = []))
 )]
-
-// 프로필 조회 handler
 pub async fn get_me(State(st): State<AppState>, headers: HeaderMap) -> AppResult<Json<ProfileRes>> {
     let token = bearer_from_headers(&headers)?;
     let claims = jwt::decode_token(&token, &jwt_secret())
@@ -134,23 +193,13 @@ pub async fn get_me(State(st): State<AppState>, headers: HeaderMap) -> AppResult
             "user_auth": "learner",
             "created_at": "2025-08-21T10:00:00Z"
         })),
-        (status = 400, description = "Bad request", body = crate::error::ErrorBody, example = json!({
-            "error": "Validation error: nickname length must be between 1 and 100"
-        })),
-        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody, example = json!({
-            "error": "missing Authorization header"
-        })),
-        (status = 403, description = "Forbidden", body = crate::error::ErrorBody, example = json!({
-            "error": "forbidden"
-        })),
-        (status = 404, description = "Not Found", body = crate::error::ErrorBody, example = json!({
-            "error": "not found"
-        }))
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 404, description = "Not Found", body = crate::error::ErrorBody)
     ),
     security(("bearerAuth" = []))
 )]
-
-// 프로필 수정 handler
 pub async fn update_me(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -179,20 +228,12 @@ pub async fn update_me(
                 {"lang_code":"ko","priority":2,"is_primary":true}
             ]
         })),
-        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody, example = json!({
-            "error": "missing Authorization header"
-        })),
-        (status = 403, description = "Forbidden", body = crate::error::ErrorBody, example = json!({
-            "error": "forbidden"
-        })),
-        (status = 404, description = "Not Found", body = crate::error::ErrorBody, example = json!({
-            "error": "not found"
-        }))
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 404, description = "Not Found", body = crate::error::ErrorBody)
     ),
     security(("bearerAuth" = []))
 )]
-
-// 환경설정 조회 handler
 pub async fn get_settings(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -221,23 +262,13 @@ pub async fn get_settings(
                 {"lang_code":"ko","priority":2,"is_primary":true}
             ]
         })),
-        (status = 400, description = "Bad request", body = crate::error::ErrorBody, example = json!({
-            "error": "Validation error: ui_language is not valid"
-        })),
-        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody, example = json!({
-            "error": "missing Authorization header"
-        })),
-        (status = 403, description = "Forbidden", body = crate::error::ErrorBody, example = json!({
-            "error": "forbidden"
-        })),
-        (status = 404, description = "Not Found", body = crate::error::ErrorBody, example = json!({
-            "error": "not found"
-        }))
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 404, description = "Not Found", body = crate::error::ErrorBody)
     ),
     security(("bearerAuth" = []))
 )]
-
-// 환경설정 수정 handler
 pub async fn update_users_setting(
     State(st): State<AppState>,
     headers: HeaderMap,

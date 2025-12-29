@@ -4,10 +4,10 @@ use axum::{
     Json,
 };
 use thiserror::Error;
-#[allow(unused_imports)] // ValidatorErrors is used in #[from] attribute
+#[allow(unused_imports)]
 use validator::ValidationErrors;
 
-#[derive(Debug, Error)] // Removed Serialize and ToSchema
+#[derive(Debug, Error)]
 pub enum AppError {
     #[error("Internal server error")]
     Internal(String),
@@ -15,6 +15,8 @@ pub enum AppError {
     HealthInternal(String),
     #[error("Bad request: {0}")]
     BadRequest(String),
+    #[error("Unprocessable entity: {0}")]
+    Unprocessable(String),
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
     #[error("Forbidden")]
@@ -70,6 +72,13 @@ impl IntoResponse for AppError {
                 None,
                 None,
             ),
+            AppError::Unprocessable(msg) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "UNPROCESSABLE_ENTITY".to_string(),
+                msg.clone(),
+                None,
+                None,
+            ),
             AppError::Unauthorized(msg) => (
                 StatusCode::UNAUTHORIZED,
                 "UNAUTHORIZED".to_string(),
@@ -100,10 +109,10 @@ impl IntoResponse for AppError {
             ),
             AppError::TooManyRequests(msg) => (
                 StatusCode::TOO_MANY_REQUESTS,
-                "AUTH_429_TOO_MANY_ATTEMPTS".to_string(), // Specific error code
+                "AUTH_429_TOO_MANY_ATTEMPTS".to_string(),
                 msg.clone(),
                 None,
-                Some(60), // Retry-After header in seconds
+                Some(60),
             ),
             AppError::Sqlx(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -148,7 +157,7 @@ impl IntoResponse for AppError {
                 "http_status": status.as_u16(),
                 "message": message,
                 "details": details,
-                "trace_id": "req-TODO", // TODO: Add trace ID
+                "trace_id": "req-TODO",
             }
         });
 

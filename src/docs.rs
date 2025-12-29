@@ -80,9 +80,8 @@ impl Modify for SecurityAddon {
             // base types
             crate::types::UserGender,
             crate::types::UserAuth,
-            crate::types::UserState,
             crate::error::ErrorBody,
-            crate::types::LoginDeviceEnum,
+            crate::types::LoginDevice,
 
             // auth dto
             crate::api::auth::dto::LoginReq,
