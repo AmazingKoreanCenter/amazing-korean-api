@@ -1,7 +1,8 @@
 // FILE: src/api/auth/repo.rs
-use crate::{error::AppResult, types::UserState};
+use crate::error::AppResult;
 use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Postgres, Transaction};
+//use crate::types::{LoginDevice, LoginMethod}; // types.rs에 정의된 Enum 사용
 
 pub struct AuthRepo;
 
@@ -11,7 +12,7 @@ pub struct UserLoginInfo {
     pub user_id: i64,
     pub user_email: String,
     pub user_password: String,
-    pub user_state: UserState,
+    pub user_state: bool,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -26,7 +27,7 @@ pub struct LoginRecord {
     pub user_agent: Option<String>,
     pub login_method: String,
     pub login_time_at: DateTime<Utc>,
-    pub logout_time_at: Option<DateTime<Utc>>,
+    pub logout_time_at: Option<DateTime<Utc>>, // DB 컬럼 없음, NULL 처리
     pub state: String,
 }
 
@@ -54,6 +55,7 @@ impl AuthRepo {
     }
 
     // 로그인 기록 삽입 (트랜잭션 버전)
+    // 수정사항: login_success 제거, 컬럼명 매핑(login_session_id 등), NOT NULL 컬럼 기본값 추가
     #[allow(clippy::too_many_arguments)]
     pub async fn insert_login_record_tx(
         tx: &mut Transaction<'_, Postgres>,
@@ -69,11 +71,22 @@ impl AuthRepo {
         sqlx::query(
             r#"
             INSERT INTO public.login (
-                user_id, login_success, login_ip, login_device, login_browser, login_os,
-                login_method, session_id, refresh_hash, user_agent, login_time_at, state
+                user_id, 
+                login_ip, 
+                login_device, 
+                login_browser, 
+                login_os,
+                login_method, 
+                login_session_id, 
+                login_refresh_hash, 
+                login_user_agent, 
+                login_begin_at, 
+                login_state,
+                login_country, login_asn, login_org -- NOT NULL 컬럼들
             )
             VALUES (
-                $1, TRUE, CAST($2 AS inet),
+                $1, 
+                CAST($2 AS inet),
                 CASE lower($3)
                     WHEN 'mobile'  THEN 'mobile'::login_device_enum
                     WHEN 'tablet'  THEN 'tablet'::login_device_enum
@@ -82,25 +95,33 @@ impl AuthRepo {
                     WHEN 'browser' THEN 'desktop'::login_device_enum
                     ELSE 'other'::login_device_enum
                 END,
-                $4, $5,
-                'email'::login_method_enum, CAST($6 AS uuid), $7, $8, NOW(), 'active'::login_state_enum
+                $4, 
+                $5,
+                'email'::login_method_enum, 
+                CAST($6 AS uuid), 
+                $7, 
+                $8, 
+                NOW(), 
+                'active'::login_state_enum,
+                'ZZ', 0, 'Unknown' -- GeoIP 미구현 시 기본값 (DB Constraint 충족용)
             )
             "#,
         )
-        .bind(user_id) // $1
-        .bind(login_ip) // $2
-        .bind(device) // $3
-        .bind(browser) // $4
-        .bind(os) // $5
-        .bind(session_id) // $6
+        .bind(user_id)      // $1
+        .bind(login_ip)     // $2
+        .bind(device)       // $3
+        .bind(browser)      // $4
+        .bind(os)           // $5
+        .bind(session_id)   // $6
         .bind(refresh_hash) // $7
-        .bind(user_agent) // $8
+        .bind(user_agent)   // $8
         .execute(&mut **tx)
         .await?;
         Ok(())
     }
 
     // 로그인 로그 기록 삽입 (트랜잭션 버전)
+    // 수정사항: 컬럼명 매핑 (event -> login_event_log, login_success -> login_success_log 등)
     #[allow(clippy::too_many_arguments)]
     pub async fn insert_login_log_tx(
         tx: &mut Transaction<'_, Postgres>,
@@ -118,12 +139,25 @@ impl AuthRepo {
         sqlx::query(
             r#"
             INSERT INTO public.login_log (
-                user_id, event, login_success_log, login_ip_log, login_device_log,
-                login_browser_log, login_os_log, login_method_log, session_id, refresh_hash, user_agent_log,
-                login_log_time_at, logout_log_time_at, created_at, login_log_token_id
+                user_id, 
+                login_event_log, 
+                login_success_log, 
+                login_ip_log, 
+                login_device_log,
+                login_browser_log, 
+                login_os_log, 
+                login_method_log, 
+                login_session_id_log, 
+                login_refresh_hash_log, 
+                login_user_agent_log,
+                login_begin_at_log, 
+                login_created_at_log
             )
             VALUES (
-                $1, CAST($2 AS login_event_enum), TRUE, CAST($3 AS inet),
+                $1, 
+                CAST($2 AS login_event_enum), 
+                TRUE, 
+                CAST($3 AS inet),
                 CASE lower($4)
                     WHEN 'mobile'  THEN 'mobile'::login_device_enum
                     WHEN 'tablet'  THEN 'tablet'::login_device_enum
@@ -132,19 +166,26 @@ impl AuthRepo {
                     WHEN 'browser' THEN 'desktop'::login_device_enum
                     ELSE 'other'::login_device_enum
                 END,
-                $5, $6, 'email'::login_method_enum, CAST($7 AS uuid), $8, $9, NOW(), NULL, NOW(), NULL
+                $5, 
+                $6, 
+                'email'::login_method_enum, 
+                CAST($7 AS uuid), 
+                $8, 
+                $9, 
+                NOW(), 
+                NOW()
             )
             "#,
         )
-        .bind(user_id) // $1
-        .bind(event) // $2
-        .bind(login_ip) // $3
-        .bind(device) // $4
-        .bind(browser) // $5
-        .bind(os) // $6
-        .bind(session_id) // $7
+        .bind(user_id)      // $1
+        .bind(event)        // $2
+        .bind(login_ip)     // $3
+        .bind(device)       // $4
+        .bind(browser)      // $5
+        .bind(os)           // $6
+        .bind(session_id)   // $7
         .bind(refresh_hash) // $8
-        .bind(user_agent) // $9
+        .bind(user_agent)   // $9
         .execute(&mut **tx)
         .await?;
         Ok(())
@@ -163,28 +204,43 @@ impl AuthRepo {
         sqlx::query(
             r#"
             INSERT INTO public.login_log (
-                user_id, event, login_success_log, login_ip_log, login_device_log,
-                login_browser_log, login_os_log, login_method_log, session_id, refresh_hash, user_agent_log,
-                login_log_time_at, logout_log_time_at, created_at, login_log_token_id
+                user_id, 
+                login_event_log, 
+                login_success_log, 
+                login_ip_log, 
+                login_device_log,
+                login_browser_log, 
+                login_os_log, 
+                login_method_log, 
+                login_session_id_log, 
+                login_refresh_hash_log, 
+                login_user_agent_log,
+                login_begin_at_log, 
+                login_created_at_log
             )
             SELECT
-                $1, 'logout'::login_event_enum, TRUE,
+                $1, 
+                'logout'::login_event_enum, 
+                TRUE,
                 COALESCE(CAST($4 AS inet), l.login_ip),
                 COALESCE(l.login_device, 'other'::login_device_enum),
                 COALESCE(l.login_browser, NULL),
                 COALESCE(l.login_os, NULL),
-                'email'::login_method_enum, CAST($2 AS uuid), $3,
-                COALESCE($5, l.user_agent),
-                NOW(), NOW(), NOW(), NULL
+                'email'::login_method_enum, 
+                CAST($2 AS uuid), 
+                $3,
+                COALESCE($5, l.login_user_agent),
+                NOW(), 
+                NOW()
             FROM public.login l
-            WHERE l.session_id = CAST($2 AS uuid)
+            WHERE l.login_session_id = CAST($2 AS uuid)
             "#,
         )
-        .bind(user_id) // $1
-        .bind(session_id) // $2
+        .bind(user_id)      // $1
+        .bind(session_id)   // $2
         .bind(refresh_hash) // $3
-        .bind(login_ip) // $4
-        .bind(user_agent) // $5
+        .bind(login_ip)     // $4
+        .bind(user_agent)   // $5
         .execute(&mut **tx)
         .await?;
         Ok(())
@@ -198,19 +254,19 @@ impl AuthRepo {
         let row = sqlx::query_as::<_, LoginRecord>(
             r#"
             SELECT
-                session_id::text as session_id,
-                refresh_hash,
+                login_session_id::text as session_id,
+                login_refresh_hash as refresh_hash,
                 login_ip::text as login_ip,
                 login_device::text as login_device,
                 login_browser,
                 login_os,
-                user_agent,
+                login_user_agent as user_agent,
                 login_method::text as login_method,
-                login_time_at,
-                logout_time_at,
-                state::text as state
+                login_begin_at as login_time_at,
+                NULL as logout_time_at, -- DB에서 해당 컬럼 제거됨
+                login_state::text as state
             FROM public.login
-            WHERE session_id = CAST($1 AS uuid)
+            WHERE login_session_id = CAST($1 AS uuid)
             "#,
         )
         .bind(session_id)
@@ -227,19 +283,19 @@ impl AuthRepo {
         let row = sqlx::query_as::<_, LoginRecord>(
             r#"
             SELECT
-                session_id::text as session_id,
-                refresh_hash,
+                login_session_id::text as session_id,
+                login_refresh_hash as refresh_hash,
                 login_ip::text as login_ip,
                 login_device::text as login_device,
                 login_browser,
                 login_os,
-                user_agent,
+                login_user_agent as user_agent,
                 login_method::text as login_method,
-                login_time_at,
-                logout_time_at,
-                state::text as state
+                login_begin_at as login_time_at,
+                NULL as logout_time_at,
+                login_state::text as state
             FROM public.login
-            WHERE session_id = CAST($1 AS uuid)
+            WHERE login_session_id = CAST($1 AS uuid)
             "#,
         )
         .bind(session_id)
@@ -257,8 +313,8 @@ impl AuthRepo {
         sqlx::query(
             r#"
             UPDATE public.login
-            SET refresh_hash = $2
-            WHERE session_id = CAST($1 AS uuid)
+            SET login_refresh_hash = $2
+            WHERE login_session_id = CAST($1 AS uuid)
             "#,
         )
         .bind(session_id)
@@ -274,11 +330,13 @@ impl AuthRepo {
         session_id: &str,
         state: &str,
     ) -> AppResult<()> {
+        // logout_time_at 컬럼이 없어졌으므로 state만 업데이트하거나, login_expire_at 등을 조정해야 함
+        // 여기서는 state만 업데이트
         sqlx::query(
             r#"
             UPDATE public.login
-            SET state = CAST($2 AS login_state_enum), logout_time_at = NOW()
-            WHERE session_id = CAST($1 AS uuid)
+            SET login_state = CAST($2 AS login_state_enum)
+            WHERE login_session_id = CAST($1 AS uuid)
             "#,
         )
         .bind(session_id)
@@ -297,8 +355,8 @@ impl AuthRepo {
         sqlx::query(
             r#"
             UPDATE public.login
-            SET state = CAST($2 AS login_state_enum), logout_time_at = NOW()
-            WHERE user_id = $1 AND state = 'active'::login_state_enum
+            SET login_state = CAST($2 AS login_state_enum)
+            WHERE user_id = $1 AND login_state = 'active'::login_state_enum
             "#,
         )
         .bind(user_id)
@@ -315,9 +373,9 @@ impl AuthRepo {
     ) -> AppResult<Vec<String>> {
         let rows = sqlx::query_as::<_, (String,)>(
             r#"
-            SELECT session_id::text
+            SELECT login_session_id::text
             FROM public.login
-            WHERE user_id = $1 AND state = 'active'::login_state_enum
+            WHERE user_id = $1 AND login_state = 'active'::login_state_enum
             "#,
         )
         .bind(user_id)

@@ -1,19 +1,18 @@
 use super::dto::{ProfileRes, SettingsRes, SettingsUpdateReq, StudyLangItem};
 use crate::{error::AppResult, types::UserGender};
 use chrono::{NaiveDate, Utc};
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, Transaction};
 
 #[allow(clippy::too_many_arguments)]
-// 회원 가입 repo
-pub async fn create_user(
-    pool: &PgPool,
+pub async fn signup_tx(
+    tx: &mut Transaction<'_, Postgres>,
     email: &str,
     password_hash: &str,
     name: &str,
-    nickname: Option<&str>,
-    language: Option<&str>,
-    country: Option<&str>,
-    birthday: Option<NaiveDate>,
+    nickname: &str,
+    language: &str,
+    country: &str,
+    birthday: NaiveDate,
     gender: UserGender,
     terms_service: bool,
     terms_personal: bool,
@@ -25,13 +24,26 @@ pub async fn create_user(
             user_nickname, user_language, user_country, user_birthday, user_gender,
             user_terms_service, user_terms_personal
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        VALUES (
+            $1, $2, $3, $4, 
+            $5::user_language_enum,  -- 입력 시 Enum 캐스팅 필요
+            $6, $7, 
+            $8::user_gender_enum,    -- 입력 시 Enum 캐스팅 필요
+            $9, $10
+        )
         RETURNING
-            user_id as id, user_email as email, user_name as name,
-            user_nickname as nickname, user_language as language, user_country as country,
-            user_birthday as birthday, user_gender as gender,
-            user_state, user_auth, user_created_at as created_at
-    "#,
+            user_id as id, 
+            user_email as email, 
+            user_name as name,
+            user_nickname as nickname, 
+            user_language::TEXT as language, -- DTO가 String이므로 TEXT 변환
+            user_country as country,
+            user_birthday as birthday, 
+            user_gender as gender,           -- Enum <-> Enum (자동 매핑)
+            user_state,                      -- bool <-> bool (자동 매핑)
+            user_auth,                       -- [중요] ::TEXT 제거! (Enum <-> Enum 자동 매핑)
+            user_created_at as created_at
+        "#,
     )
     .bind(email)
     .bind(password_hash)
@@ -43,9 +55,23 @@ pub async fn create_user(
     .bind(gender)
     .bind(terms_service)
     .bind(terms_personal)
-    .fetch_one(pool)
+    .fetch_one(&mut **tx)
     .await?;
     Ok(res)
+}
+
+pub async fn find_user_id_by_email(pool: &PgPool, email: &str) -> AppResult<Option<i64>> {
+    let row = sqlx::query_scalar::<_, i64>(
+        r#"
+        SELECT user_id
+        FROM users
+        WHERE user_email = $1
+        "#,
+    )
+    .bind(email)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row)
 }
 
 // 프로필 조회 repo
@@ -221,37 +247,65 @@ pub async fn update_users_setting(
 }
 
 // 회원 관련 기록 log repo
-/// - action: "create" | "update" | "deactivate" | "delete" ...
-/// - updated_by_user_id: 행위자(본인/관리자/시스템). None 허용.
-/// - snap: After 기준 스냅샷. 여기서는 snap.id만 사용(나머지는 DB에서 SELECT).
-pub async fn insert_user_log_after(
-    pool: &PgPool,
+// 회원 관련 기록 log repo
+pub async fn insert_user_log_after_tx(
+    tx: &mut Transaction<'_, Postgres>,
     actor_user_id: Option<i64>,
     user_id: i64,
+    action: &str,
+    success: bool,
 ) -> AppResult<()> {
     sqlx::query(
         r#"
         INSERT INTO public.users_log (
-          updated_by_user_id, user_id,
+          updated_by_user_id, user_action_log, user_action_success, user_id,
           user_auth_log, user_state_log, user_email_log, user_password_log,
           user_nickname_log, user_language_log, user_country_log, user_birthday_log,
           user_gender_log, user_terms_service_log, user_terms_personal_log,
           user_log_created_at, user_log_quit_at, user_log_updated_at
         )
         SELECT
-          $1, u.user_id,
-          u.user_auth::text, u.user_state::text, u.user_email, NULL,
-          u.user_nickname, u.user_language, u.user_country, u.user_birthday,
-          u.user_gender::text, u.user_terms_service, u.user_terms_personal,
-          u.user_created_at, u.user_quit_at, now()
+          $1, 
+          CAST($2 AS user_action_log_enum), -- Rust String($2) -> DB Enum 변환 (필수)
+          $3, 
+          u.user_id,
+          u.user_auth,      -- [수정] ::text 제거 (Enum -> Enum)
+          u.user_state,     -- [수정] ::text 제거 (Bool -> Bool)
+          u.user_email, 
+          false,            -- [수정] Password 변경 아님 (Boolean default false)
+          u.user_nickname, 
+          u.user_language,  -- (Enum -> Enum)
+          u.user_country, 
+          u.user_birthday,
+          u.user_gender,    -- [수정] ::text 제거 (Enum -> Enum)
+          u.user_terms_service, 
+          u.user_terms_personal,
+          u.user_created_at, 
+          u.user_quit_at, 
+          now()
         FROM public.users u
-        WHERE u.user_id = $2
+        WHERE u.user_id = $4
         "#,
     )
-    .bind(actor_user_id) // $1
-    .bind(user_id) // $2
-    .execute(pool)
+    .bind(actor_user_id)
+    .bind(action)
+    .bind(success)
+    .bind(user_id)
+    .execute(&mut **tx)
     .await?;
 
+    Ok(())
+}
+
+pub async fn insert_user_log_after(
+    pool: &PgPool,
+    actor_user_id: Option<i64>,
+    user_id: i64,
+    action: &str,
+    success: bool,
+) -> AppResult<()> {
+    let mut tx = pool.begin().await?;
+    insert_user_log_after_tx(&mut tx, actor_user_id, user_id, action, success).await?;
+    tx.commit().await?;
     Ok(())
 }

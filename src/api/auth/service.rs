@@ -13,7 +13,6 @@ use crate::{
     api::auth::{dto::*, jwt, repo::AuthRepo},
     error::{AppError, AppResult},
     state::AppState,
-    types::UserState,
 };
 
 pub struct AuthService;
@@ -94,7 +93,7 @@ impl AuthService {
             .ok_or(AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()))?;
 
         // 2) 사용자 상태 확인
-        if user_info.user_state != UserState::On {
+        if !user_info.user_state {
             return Err(AppError::Forbidden);
         }
 

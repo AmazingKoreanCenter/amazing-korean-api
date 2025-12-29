@@ -3,26 +3,27 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
 
-use crate::types::{UserAuth, UserGender, UserState};
+use crate::api::auth::dto::AccessTokenRes;
+use crate::types::{UserAuth, UserGender};
 
 // 회원가입 요청 dto
 #[derive(Serialize, Deserialize, Validate, ToSchema)]
 #[schema(example = json!({
-    "email": "test@example.com",
-    "password": "password123",
-    "name": "Test User",
+    "email": "new_user_01@example.com",
+    "password": "Password123!",
+    "name": "홍길동",
     "terms_service": true,
     "terms_personal": true,
-    "nickname": "TestNick",
-    "language": "en",
-    "country": "US",
-    "birthday": "2000-01-01",
+    "nickname": "hong",
+    "language": "ko",
+    "country": "KR",
+    "birthday": "1990-01-01",
     "gender": "male"
 }))]
 pub struct SignupReq {
     #[validate(email)]
     pub email: String,
-    #[validate(length(min = 6, max = 72))]
+    #[validate(length(min = 8, max = 72))]
     pub password: String,
     #[validate(length(min = 1, max = 50))]
     pub name: String,
@@ -30,32 +31,59 @@ pub struct SignupReq {
     pub terms_service: bool,
     pub terms_personal: bool,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[validate(length(min = 1, max = 100))]
-    pub nickname: Option<String>,
+    pub nickname: String,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[validate(length(min = 1, max = 50))]
-    pub language: Option<String>,
+    #[validate(length(min = 2, max = 2))]
+    pub language: String,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[validate(length(min = 1, max = 50))]
-    pub country: Option<String>,
+    #[validate(length(min = 2, max = 50))]
+    pub country: String,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(value_type = String, format = "date")]
-    pub birthday: Option<NaiveDate>,
+    #[serde(alias = "birth")]
+    pub birthday: NaiveDate,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub gender: Option<UserGender>,
+    pub gender: UserGender,
 }
 
 // 회원가입 응답 dto
 #[allow(dead_code)]
 #[derive(Serialize, ToSchema)]
-#[schema(example = json!({ "user_id": 123 }))]
+#[schema(example = json!({
+    "user_id": 123,
+    "email": "new_user_01@example.com",
+    "name": "홍길동",
+    "nickname": "hong",
+    "language": "ko",
+    "country": "KR",
+    "birthday": "1990-01-01",
+    "gender": "male",
+    "user_state": "on",
+    "user_auth": "learner",
+    "created_at": "2025-08-21T10:00:00Z",
+    "access": {
+        "access_token": "eyJ...",
+        "expires_in": 3600
+    },
+    "session_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+}))]
 pub struct SignupRes {
     pub user_id: i64,
+    pub email: String,
+    pub name: String,
+    pub nickname: String,
+    pub language: String,
+    pub country: String,
+    #[schema(value_type = String, format = "date")]
+    pub birthday: NaiveDate,
+    pub gender: UserGender,
+    pub user_state: bool,
+    pub user_auth: UserAuth,
+    #[schema(value_type = String, format = "date-time")]
+    pub created_at: DateTime<Utc>,
+    pub access: AccessTokenRes,
+    pub session_id: String,
 }
 
 // 프로필 조회 dto
@@ -70,7 +98,7 @@ pub struct SignupRes {
     "birthday": "2000-01-01",
     "gender": "male",
     "user_state": "on",
-    "user_auth": "user",
+    "user_auth": "learner",
     "created_at": "2025-08-21T10:00:00Z"
 }))]
 pub struct ProfileRes {
@@ -83,7 +111,7 @@ pub struct ProfileRes {
     #[schema(value_type = String, format = "date")]
     pub birthday: Option<NaiveDate>,
     pub gender: UserGender, // DB에서 String으로 가져오므로
-    pub user_state: UserState,
+    pub user_state: bool,
     pub user_auth: UserAuth,
     #[schema(value_type = String, format = "date-time")]
     pub created_at: DateTime<Utc>,

@@ -16,7 +16,6 @@ use super::{
     dto::{AdminListUsersRes, AdminUpdateUserReq, AdminUserRes},
     service::AdminUserService,
 };
-use crate::types::UserState;
 
 // ← 어트리뷰트 내의 json! 매크로를 위해 필요
 #[allow(unused_imports)]
@@ -44,7 +43,7 @@ fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
 #[derive(Debug, Deserialize)]
 pub struct AdminListUsersQueryParams {
     pub query: Option<String>,
-    pub state: Option<UserState>,
+    pub state: Option<bool>,
     pub page: Option<i64>,
     pub size: Option<i64>,
 }
