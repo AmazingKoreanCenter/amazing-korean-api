@@ -10,7 +10,7 @@ use crate::state::AppState;
 use deadpool_redis::Pool as RedisPool;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::net::TcpListener;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -57,6 +57,7 @@ async fn main() -> anyhow::Result<()> {
         db: pool,
         redis,
         cfg: cfg.clone(),
+        started_at: Instant::now(),
     };
     let app = api::app_router(app_state);
 

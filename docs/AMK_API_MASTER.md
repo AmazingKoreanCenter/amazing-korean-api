@@ -2233,9 +2233,9 @@ src/
    - 작업이 완료되면, LLM은 **AMK_API_MASTER.md에서 수정이 필요한 위치와 변경 내용(체크박스, 메모 등)**을 제안한다.  
    - 실제 파일 수정은 사용자가 수행하되, LLM은 복붙 가능한 형태로 변경안을 제공한다.
 
-### 8.3 GEMINI_PROMPT_TEMPLATE 연동
+### 8.3 LLM_PATCH_TEMPLATE 연동
 
-- 실제 코드 패치는 `GEMINI_PROMPT_TEMPLATE.md` 형식을 따른다.
+- 실제 코드 패치는 `LLM_PATCH_TEMPLATE.md` 형식을 따른다.
 - 기본 구조:
   - ROLE / OBJECTIVE / CONTEXT / CONTRACT / PATCH RULES / ACCEPTANCE / FILE PATCHES / cURL SMOKE
 - 요청 시:
@@ -2247,11 +2247,14 @@ src/
 
 ---
 
-## 9. Open Questions & 설계 TODO
+## 9. MCP(Model Context Protocol) 가이드라인
+
+---
+## 10. Open Questions & 설계 TODO
 
 > 기존 `AMK_PROJECT_JOURNAL.md`의 Open Questions + Engineering Guide의 “다음 단계 로드맵”에서 정책 수준만 정리.
 
-### 9.1 RBAC / 관리자 권한
+### 10.1 RBAC / 관리자 권한
 
 - 임시 가드(모든 요청 허용)를 실제 RBAC로 교체해야 함.
 - 롤 후보:
@@ -2260,14 +2263,14 @@ src/
   - 각 롤별 허용 엔드포인트/액션 정의
   - RBAC 미스매치 시 403 정책 정리
 
-### 9.2 Admin action log actor 연결
+### 10.2 Admin action log actor 연결
 
 - `ADMIN_USERS_LOG` 및 비디오/스터디/레슨 admin 로그에:
   - **actor user id**를 전 경로에서 일관되게 채워야 함.
 - TODO:
   - 인증 추출기 → handler/service/repo까지 actor id 전달 체계 확립
 
-### 9.3 페이징 고도화 (Keyset vs Page)
+### 10.3 페이징 고도화 (Keyset vs Page)
 
 - 현재 표준은 page/size 기반.
 - 비디오/학습 문제와 같이 데이터가 커질 도메인에서는 **Keyset pagination** 검토 필요.
@@ -2275,7 +2278,7 @@ src/
   - 어떤 리스트에 keyset을 우선 적용할지 정의
   - 기존 API와의 호환성 (기존 page/size와 병행할지 여부)
 
-### 9.4 테스트 전략
+### 10.4 테스트 전략
 
 - E2E/K6 부하 테스트:
   - 목표 RPS, 허용 응답시간, peak 시나리오 정의 필요
@@ -2283,7 +2286,7 @@ src/
   - 대표 시나리오 정리 (회원가입+로그인+비디오 시청+진도 저장 등)
   - k6 스크립트 기본 골격 설계
 
-### 9.5 보안/운영 (후순위 계획)
+### 10.5 보안/운영 (후순위 계획)
 
 - 관리자 MFA 도입(특히 HYMN/admin 계정)
 - 세션/리프레시 토큰 정책 강화(관리자 TTL/동시 세션 수 제한/재사용 탐지)
@@ -2291,7 +2294,7 @@ src/
 
 ---
 
-## 10. 변경 이력 (요약)
+## 11. 변경 이력 (요약)
 
 - **2025-11-18**
   - `AMK_Feature_Roadmap.md`, `AMK_PROJECT_JOURNAL.md`, `AMK_ENGINEERING_GUIDE.md`, `AMK_API_OVERVIEW_FULL.md`, `README_for_assistant.md`의 핵심 내용을 통합.

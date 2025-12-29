@@ -39,3 +39,31 @@
    으로 채운다.
 5. FILE PATCHES에 코드/마이그레이션/문서(AMK_API_MASTER, amk_schema_patched.sql 포함 가능)를 나열한 뒤,  
    LLM 응답을 그대로 복붙하여 적용하고 `cargo fmt / clippy / check / sqlx migrate run`으로 검증한다.
+
+## 4. **Writer 모드 선언**
+   - “Gemini는 코드 생성/패치 담당(Writer)”
+   - “범위 밖 변경/개선 제안은 금지(필요하면 코멘트만)”
+
+## 5. **고정 실행 루프(매 Step 동일)**
+   - 입력: ASK.md + AMK_API_MASTER 섹션 + LLM_PATCH_TEMPLATE
+   - 출력: `LLM_PATCH_TEMPLATE` 형식의 PATCH 문서 1개
+   - 적용 → fmt/check/clippy → curl → 종료
+
+## 6. **가드레일**
+   - allowed_paths 밖 파일 수정 금지
+   - Change Budget 초과 금지
+   - 재시도 max 2회
+
+## 7. **“초단문 Writer 프롬프트” 블록(복붙용)**
+   - 매번 긴 프롬프트를 쓰지 않도록,
+   - GEMINI.md에 **짧은 고정 프롬프트(10~20줄)**를 넣어두기
+   - 예시 구성:
+     - “너는 Writer다”
+     - “이 Step은 이 파일만”
+     - “LLM_PATCH_TEMPLATE 형식으로만 출력”
+     - “ACCEPTANCE 통과해야 함”
+
+## 8. **로그 처리 규칙**
+   - 실패하면:
+     - “에러 로그 전체를 그대로 붙여넣고 1회 수정”
+     - 2회 실패 시 중단 후 사람이 Step 분할

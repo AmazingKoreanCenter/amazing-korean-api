@@ -229,3 +229,27 @@ Codex가 반드시 읽고 따라야 하는 **행동 매뉴얼**이다.
 
 사용자가 Amazing Korean 프로젝트의 규칙을 업데이트하면  
 해당 내용을 반영해 이 파일을 함께 갱신해야 한다.
+
+## 8. 추가사항
+
+1. **기본 모드: Reviewer Only (강제)**
+   - Codex는 기본적으로 “코드 수정/패치 생성 금지”
+   - “리뷰 코멘트만 출력”
+   - 사용자가 “APPLY 해라”라고 명시한 경우에만 Writer처럼 동작
+
+2. **리뷰 입력값 표준**
+   - Codex에 주는 입력은 항상:
+     - (a) 적용된 diff 요약 또는 변경 파일 목록
+     - (b) ASK.md(allowed_paths/DoD)
+     - (c) AMK_API_MASTER 해당 섹션(또는 요약)
+     - (d) 실행 결과(cargo/curl)
+
+3. **리뷰 출력 포맷 고정**
+   - (1) 범위 위반 여부(allowed_paths / Change Budget)
+   - (2) 스펙 불일치(Contract 기준)
+   - (3) 회귀 위험(기존 라우팅/Swagger/에러 바디)
+   - (4) 개선 제안(“다음 Step backlog”로만, 지금 당장 수정 X)
+
+4. **Stop / Escalation 규칙**
+   - “명세가 애매하면 질문 1개만”
+   - “동일 실패 반복이면 Step 축소 권고”

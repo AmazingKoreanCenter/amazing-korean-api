@@ -11,6 +11,8 @@ use validator::ValidationErrors;
 pub enum AppError {
     #[error("Internal server error")]
     Internal(String),
+    #[error("Health check failed: {0}")]
+    HealthInternal(String),
     #[error("Bad request: {0}")]
     BadRequest(String),
     #[error("Unauthorized: {0}")]
@@ -52,6 +54,13 @@ impl IntoResponse for AppError {
                 "INTERNAL_SERVER_ERROR".to_string(),
                 "Internal server error".to_string(),
                 Some(serde_json::json!({ "debug": msg })),
+                None,
+            ),
+            AppError::HealthInternal(reason) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "HEALTH_INTERNAL".to_string(),
+                "Health check failed".to_string(),
+                Some(serde_json::json!({ "reason": reason })),
                 None,
             ),
             AppError::BadRequest(msg) => (
