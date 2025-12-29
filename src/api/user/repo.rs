@@ -80,12 +80,31 @@ pub async fn find_user(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileR
         r#"
         SELECT
             user_id as id, user_email as email, user_name as name,
-            user_nickname as nickname, user_language as language, user_country as country,
+            user_nickname as nickname, user_language::TEXT as language, user_country as country,
             user_birthday as birthday, user_gender as gender,
             user_state, user_auth, user_created_at as created_at
         FROM users
         WHERE user_id = $1
     "#,
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row)
+}
+
+// 내 정보 조회 repo
+pub async fn find_profile_by_id(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileRes>> {
+    let row = sqlx::query_as::<_, ProfileRes>(
+        r#"
+        SELECT
+            user_id as id, user_email as email, user_name as name,
+            user_nickname as nickname, user_language::TEXT as language, user_country as country,
+            user_birthday as birthday, user_gender as gender,
+            user_state, user_auth, user_created_at as created_at
+        FROM users
+        WHERE user_id = $1
+        "#,
     )
     .bind(user_id)
     .fetch_optional(pool)
@@ -115,7 +134,7 @@ pub async fn update_user(
         WHERE user_id = $1
         RETURNING
             user_id as id, user_email as email, user_name as name,
-            user_nickname as nickname, user_language as language, user_country as country,
+            user_nickname as nickname, user_language::TEXT as language, user_country as country,
             user_birthday as birthday, user_gender as gender,
             user_state, user_auth, user_created_at as created_at
     "#,

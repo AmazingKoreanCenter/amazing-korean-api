@@ -239,13 +239,13 @@ impl UserService {
     }
 
     pub async fn get_me(st: &AppState, user_id: i64) -> AppResult<ProfileRes> {
-        let user = repo::find_user(&st.db, user_id)
+        let user = repo::find_profile_by_id(&st.db, user_id)
             .await?
             .ok_or(AppError::NotFound)?;
 
-            if !user.user_state {
-                return Err(AppError::Forbidden);
-            }
+        if !user.user_state {
+            return Err(AppError::NotFound);
+        }
         Ok(user)
     }
 

@@ -3,6 +3,7 @@ use super::{
     service::UserService,
 };
 use crate::{
+    api::auth::extractor::AuthUser,
     api::auth::jwt,
     error::{AppError, AppResult},
     state::AppState,
@@ -161,16 +162,15 @@ pub async fn signup(
             "created_at": "2025-08-21T10:00:00Z"
         })),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
-        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
         (status = 404, description = "Not Found", body = crate::error::ErrorBody)
     ),
     security(("bearerAuth" = []))
 )]
-pub async fn get_me(State(st): State<AppState>, headers: HeaderMap) -> AppResult<Json<ProfileRes>> {
-    let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token, &jwt_secret())
-        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
-    let user = UserService::get_me(&st, claims.sub).await?;
+pub async fn get_me(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+) -> AppResult<Json<ProfileRes>> {
+    let user = UserService::get_me(&st, auth_user.sub).await?;
     Ok(Json(user))
 }
 
