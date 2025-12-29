@@ -1,5 +1,5 @@
 use super::{
-    dto::{ProfileRes, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes, UpdateReq},
+    dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes},
     service::UserService,
 };
 use crate::{
@@ -175,10 +175,10 @@ pub async fn get_me(
 }
 
 #[utoipa::path(
-    put,
+    post,
     path = "/users/me",
     tag = "user",
-    request_body = UpdateReq,
+    request_body = ProfileUpdateReq,
     responses(
         (status = 200, description = "User profile updated", body = ProfileRes, example = json!({
             "id": 1,
@@ -194,6 +194,7 @@ pub async fn get_me(
             "created_at": "2025-08-21T10:00:00Z"
         })),
         (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
         (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
         (status = 404, description = "Not Found", body = crate::error::ErrorBody)
@@ -202,13 +203,10 @@ pub async fn get_me(
 )]
 pub async fn update_me(
     State(st): State<AppState>,
-    headers: HeaderMap,
-    Json(req): Json<UpdateReq>,
+    AuthUser(auth_user): AuthUser,
+    Json(req): Json<ProfileUpdateReq>,
 ) -> AppResult<Json<ProfileRes>> {
-    let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token, &jwt_secret())
-        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
-    let user = UserService::update_me(&st, claims.sub, req).await?;
+    let user = UserService::update_me(&st, auth_user.sub, req).await?;
     Ok(Json(user))
 }
 

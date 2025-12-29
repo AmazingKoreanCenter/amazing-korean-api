@@ -92,7 +92,7 @@ impl Modify for SecurityAddon {
             crate::api::user::dto::SignupReq,
             crate::api::user::dto::SignupRes,
             crate::api::user::dto::ProfileRes,
-            crate::api::user::dto::UpdateReq,
+            crate::api::user::dto::ProfileUpdateReq,
             crate::api::user::dto::SettingsRes,
             crate::api::user::dto::SettingsUpdateReq,
             crate::api::user::dto::StudyLangItem,

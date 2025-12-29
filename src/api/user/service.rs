@@ -17,7 +17,7 @@ use crate::{
 };
 
 use super::{
-    dto::{ProfileRes, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes, UpdateReq},
+    dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes},
     repo,
 };
 use std::collections::HashSet;
@@ -249,35 +249,38 @@ impl UserService {
         Ok(user)
     }
 
-    pub async fn update_me(st: &AppState, user_id: i64, req: UpdateReq) -> AppResult<ProfileRes> {
+    pub async fn update_me(
+        st: &AppState,
+        user_id: i64,
+        req: ProfileUpdateReq,
+    ) -> AppResult<ProfileRes> {
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(e.to_string()));
+            return Err(AppError::Unprocessable(e.to_string()));
         }
 
-        let current_user = repo::find_user(&st.db, user_id)
+        if let Some(birthday) = req.birthday {
+            let today = chrono::Utc::now().date_naive();
+            if birthday > today {
+                return Err(AppError::Unprocessable("invalid birthday".into()));
+            }
+        }
+
+        let current_user = repo::find_profile_by_id(&st.db, user_id)
             .await?
             .ok_or(AppError::NotFound)?;
 
-            if !current_user.user_state {
-                return Err(AppError::Forbidden);
-            }
-
-        let updated_user = repo::update_user(
-            &st.db,
-            user_id,
-            req.nickname.as_deref(),
-            req.language.as_deref(),
-            req.country.as_deref(),
-            req.birthday,
-            req.gender,
-        )
-        .await?;
-
-        if let Err(le) =
-            repo::insert_user_log_after(&st.db, Some(user_id), user_id, "update", true).await
-        {
-            warn!(error=?le, user_id = user_id, "users_log(update) insert failed");
+        if !current_user.user_state {
+            return Err(AppError::NotFound);
         }
+
+        let mut tx = st.db.begin().await?;
+        let updated_user = repo::update_profile_tx(&mut tx, user_id, &req)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        repo::insert_user_log_after_tx(&mut tx, Some(user_id), user_id, "update", true).await?;
+
+        tx.commit().await?;
 
         Ok(updated_user)
     }

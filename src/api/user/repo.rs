@@ -1,4 +1,4 @@
-use super::dto::{ProfileRes, SettingsRes, SettingsUpdateReq, StudyLangItem};
+use super::dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq, StudyLangItem};
 use crate::{error::AppResult, types::UserGender};
 use chrono::{NaiveDate, Utc};
 use sqlx::{PgPool, Postgres, Transaction};
@@ -112,40 +112,36 @@ pub async fn find_profile_by_id(pool: &PgPool, user_id: i64) -> AppResult<Option
     Ok(row)
 }
 
-// 프로필 수정 repo
-pub async fn update_user(
-    pool: &PgPool,
+// 내 정보 수정 repo (transaction)
+pub async fn update_profile_tx(
+    tx: &mut Transaction<'_, Postgres>,
     user_id: i64,
-    nickname: Option<&str>,
-    language: Option<&str>,
-    country: Option<&str>,
-    birthday: Option<NaiveDate>,
-    gender: Option<UserGender>,
-) -> AppResult<ProfileRes> {
+    req: &ProfileUpdateReq,
+) -> AppResult<Option<ProfileRes>> {
     let res = sqlx::query_as::<_, ProfileRes>(
         r#"
         UPDATE users
         SET
             user_nickname = COALESCE($2, user_nickname),
-            user_language = COALESCE($3, user_language),
+            user_language = COALESCE($3::user_language_enum, user_language),
             user_country = COALESCE($4, user_country),
             user_birthday = COALESCE($5, user_birthday),
-            user_gender = COALESCE($6, user_gender)
+            user_gender = COALESCE($6::user_gender_enum, user_gender)
         WHERE user_id = $1
         RETURNING
             user_id as id, user_email as email, user_name as name,
             user_nickname as nickname, user_language::TEXT as language, user_country as country,
             user_birthday as birthday, user_gender as gender,
             user_state, user_auth, user_created_at as created_at
-    "#,
+        "#,
     )
     .bind(user_id)
-    .bind(nickname)
-    .bind(language)
-    .bind(country)
-    .bind(birthday)
-    .bind(gender)
-    .fetch_one(pool)
+    .bind(req.nickname.as_ref())
+    .bind(req.language.as_ref())
+    .bind(req.country.as_ref())
+    .bind(req.birthday)
+    .bind(req.gender)
+    .fetch_optional(&mut **tx)
     .await?;
     Ok(res)
 }

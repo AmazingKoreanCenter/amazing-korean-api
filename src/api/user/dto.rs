@@ -126,7 +126,7 @@ pub struct ProfileRes {
     "birthday": "1990-12-25",
     "gender": "female"
 }))]
-pub struct UpdateReq {
+pub struct ProfileUpdateReq {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[validate(length(min = 1, max = 100))]
     pub nickname: Option<String>,
