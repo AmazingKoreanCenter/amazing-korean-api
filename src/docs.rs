@@ -134,8 +134,8 @@ impl Modify for SecurityAddon {
             crate::api::admin::video::stats::dto::DailyStatsRes,
 
             // health dto (kept)
-            crate::api::health::handler::HealthRes,
-            crate::api::health::handler::ReadyRes
+            crate::api::health::dto::HealthRes,
+            crate::api::health::dto::ReadyRes
         )
     ),
     modifiers(&SecurityAddon),
@@ -144,6 +144,8 @@ impl Modify for SecurityAddon {
         (name = "auth", description = "Authentication management"),
         (name = "user", description = "User management"),
         (name = "videos", description = "Video APIs"),
+        (name = "study", description = "Study APIs"),
+        (name = "lesson", description = "Lesson APIs"),
         (name = "admin", description = "Admin user & content management")
     )
 )]

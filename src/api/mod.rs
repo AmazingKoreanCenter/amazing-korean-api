@@ -25,6 +25,7 @@ pub fn app_router(state: AppState) -> axum::Router {
         .nest("/auth", auth_router()) // Nest auth_router under /auth
         .nest("/admin", admin_router())
         .nest("/videos", video_router())
+        .route("/healthz", get(health::handler::health))
         .route("/health", get(health::handler::health))
         .route("/ready", get(health::handler::ready))
         .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
