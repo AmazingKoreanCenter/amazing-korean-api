@@ -1,8 +1,9 @@
 use super::{
-    dto::{ProfileRes, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes, UpdateReq},
+    dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes},
     service::UserService,
 };
 use crate::{
+    api::auth::extractor::AuthUser,
     api::auth::jwt,
     error::{AppError, AppResult},
     state::AppState,
@@ -161,24 +162,23 @@ pub async fn signup(
             "created_at": "2025-08-21T10:00:00Z"
         })),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
-        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
         (status = 404, description = "Not Found", body = crate::error::ErrorBody)
     ),
     security(("bearerAuth" = []))
 )]
-pub async fn get_me(State(st): State<AppState>, headers: HeaderMap) -> AppResult<Json<ProfileRes>> {
-    let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token, &jwt_secret())
-        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
-    let user = UserService::get_me(&st, claims.sub).await?;
+pub async fn get_me(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+) -> AppResult<Json<ProfileRes>> {
+    let user = UserService::get_me(&st, auth_user.sub).await?;
     Ok(Json(user))
 }
 
 #[utoipa::path(
-    put,
+    post,
     path = "/users/me",
     tag = "user",
-    request_body = UpdateReq,
+    request_body = ProfileUpdateReq,
     responses(
         (status = 200, description = "User profile updated", body = ProfileRes, example = json!({
             "id": 1,
@@ -194,6 +194,7 @@ pub async fn get_me(State(st): State<AppState>, headers: HeaderMap) -> AppResult
             "created_at": "2025-08-21T10:00:00Z"
         })),
         (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
         (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
         (status = 404, description = "Not Found", body = crate::error::ErrorBody)
@@ -202,13 +203,10 @@ pub async fn get_me(State(st): State<AppState>, headers: HeaderMap) -> AppResult
 )]
 pub async fn update_me(
     State(st): State<AppState>,
-    headers: HeaderMap,
-    Json(req): Json<UpdateReq>,
+    AuthUser(auth_user): AuthUser,
+    Json(req): Json<ProfileUpdateReq>,
 ) -> AppResult<Json<ProfileRes>> {
-    let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token, &jwt_secret())
-        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
-    let user = UserService::update_me(&st, claims.sub, req).await?;
+    let user = UserService::update_me(&st, auth_user.sub, req).await?;
     Ok(Json(user))
 }
 
@@ -218,15 +216,11 @@ pub async fn update_me(
     tag = "user",
     responses(
         (status = 200, description = "User settings", body = SettingsRes, example = json!({
-            "user_id": 1,
-            "ui_language": "ko",
-            "timezone": "Asia/Seoul",
-            "notifications_email": true,
-            "notifications_push": false,
-            "study_languages": [
-                {"lang_code":"en","priority":1,"is_primary":false},
-                {"lang_code":"ko","priority":2,"is_primary":true}
-            ]
+            "user_set_language": "ko",
+            "user_set_timezone": "UTC",
+            "user_set_note_email": false,
+            "user_set_note_push": false,
+            "updated_at": "2025-08-21T10:00:00Z"
         })),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
         (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
@@ -236,12 +230,9 @@ pub async fn update_me(
 )]
 pub async fn get_settings(
     State(st): State<AppState>,
-    headers: HeaderMap,
+    AuthUser(auth_user): AuthUser,
 ) -> AppResult<Json<SettingsRes>> {
-    let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token, &jwt_secret())
-        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
-    let settings = UserService::get_settings(&st, claims.sub).await?;
+    let settings = UserService::get_settings(&st, auth_user.sub).await?;
     Ok(Json(settings))
 }
 
@@ -252,15 +243,11 @@ pub async fn get_settings(
     request_body = SettingsUpdateReq,
     responses(
         (status = 200, description = "User settings updated", body = SettingsRes, example = json!({
-            "user_id": 1,
-            "ui_language": "ko",
-            "timezone": "Asia/Seoul",
-            "notifications_email": true,
-            "notifications_push": false,
-            "study_languages": [
-                {"lang_code":"en","priority":1,"is_primary":false},
-                {"lang_code":"ko","priority":2,"is_primary":true}
-            ]
+            "user_set_language": "ko",
+            "user_set_timezone": "UTC",
+            "user_set_note_email": false,
+            "user_set_note_push": false,
+            "updated_at": "2025-08-21T10:00:00Z"
         })),
         (status = 400, description = "Bad request", body = crate::error::ErrorBody),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),

@@ -126,7 +126,7 @@ pub struct ProfileRes {
     "birthday": "1990-12-25",
     "gender": "female"
 }))]
-pub struct UpdateReq {
+pub struct ProfileUpdateReq {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[validate(length(min = 1, max = 100))]
     pub nickname: Option<String>,
@@ -170,25 +170,21 @@ pub struct StudyLangItem {
 }
 
 // 사용자 환경 설정 조회 dto
-#[derive(Serialize, ToSchema, Clone, Debug, PartialEq)]
+#[derive(Serialize, sqlx::FromRow, ToSchema, Clone, Debug, PartialEq)]
 #[schema(example = json!({
-    "user_id": 123,
-    "ui_language": "ko",
-    "timezone": "Asia/Seoul",
-    "notifications_email": true,
-    "notifications_push": false,
-    "study_languages": [
-        {"lang_code":"en","priority":1,"is_primary":false},
-        {"lang_code":"ko","priority":2,"is_primary":true}
-    ]
+    "user_set_language": "ko",
+    "user_set_timezone": "UTC",
+    "user_set_note_email": false,
+    "user_set_note_push": false,
+    "updated_at": "2025-08-21T10:00:00Z"
 }))]
 pub struct SettingsRes {
-    pub user_id: i64,
-    pub ui_language: Option<String>,
-    pub timezone: Option<String>,
-    pub notifications_email: Option<bool>,
-    pub notifications_push: Option<bool>,
-    pub study_languages: Vec<StudyLangItem>,
+    pub user_set_language: String,
+    pub user_set_timezone: String,
+    pub user_set_note_email: bool,
+    pub user_set_note_push: bool,
+    #[schema(value_type = String, format = "date-time")]
+    pub updated_at: DateTime<Utc>,
 }
 
 // 사용자 환경설정 수정 dto

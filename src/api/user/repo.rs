@@ -1,5 +1,8 @@
-use super::dto::{ProfileRes, SettingsRes, SettingsUpdateReq, StudyLangItem};
-use crate::{error::AppResult, types::UserGender};
+use super::dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq};
+use crate::{
+    error::{AppError, AppResult},
+    types::UserGender,
+};
 use chrono::{NaiveDate, Utc};
 use sqlx::{PgPool, Postgres, Transaction};
 
@@ -80,7 +83,7 @@ pub async fn find_user(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileR
         r#"
         SELECT
             user_id as id, user_email as email, user_name as name,
-            user_nickname as nickname, user_language as language, user_country as country,
+            user_nickname as nickname, user_language::TEXT as language, user_country as country,
             user_birthday as birthday, user_gender as gender,
             user_state, user_auth, user_created_at as created_at
         FROM users
@@ -93,88 +96,78 @@ pub async fn find_user(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileR
     Ok(row)
 }
 
-// 프로필 수정 repo
-pub async fn update_user(
-    pool: &PgPool,
+// 내 정보 조회 repo
+pub async fn find_profile_by_id(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileRes>> {
+    let row = sqlx::query_as::<_, ProfileRes>(
+        r#"
+        SELECT
+            user_id as id, user_email as email, user_name as name,
+            user_nickname as nickname, user_language::TEXT as language, user_country as country,
+            user_birthday as birthday, user_gender as gender,
+            user_state, user_auth, user_created_at as created_at
+        FROM users
+        WHERE user_id = $1
+        "#,
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row)
+}
+
+// 내 정보 수정 repo (transaction)
+pub async fn update_profile_tx(
+    tx: &mut Transaction<'_, Postgres>,
     user_id: i64,
-    nickname: Option<&str>,
-    language: Option<&str>,
-    country: Option<&str>,
-    birthday: Option<NaiveDate>,
-    gender: Option<UserGender>,
-) -> AppResult<ProfileRes> {
+    req: &ProfileUpdateReq,
+) -> AppResult<Option<ProfileRes>> {
     let res = sqlx::query_as::<_, ProfileRes>(
         r#"
         UPDATE users
         SET
             user_nickname = COALESCE($2, user_nickname),
-            user_language = COALESCE($3, user_language),
+            user_language = COALESCE($3::user_language_enum, user_language),
             user_country = COALESCE($4, user_country),
             user_birthday = COALESCE($5, user_birthday),
-            user_gender = COALESCE($6, user_gender)
+            user_gender = COALESCE($6::user_gender_enum, user_gender)
         WHERE user_id = $1
         RETURNING
             user_id as id, user_email as email, user_name as name,
-            user_nickname as nickname, user_language as language, user_country as country,
+            user_nickname as nickname, user_language::TEXT as language, user_country as country,
             user_birthday as birthday, user_gender as gender,
             user_state, user_auth, user_created_at as created_at
-    "#,
+        "#,
     )
     .bind(user_id)
-    .bind(nickname)
-    .bind(language)
-    .bind(country)
-    .bind(birthday)
-    .bind(gender)
-    .fetch_one(pool)
+    .bind(req.nickname.as_ref())
+    .bind(req.language.as_ref())
+    .bind(req.country.as_ref())
+    .bind(req.birthday)
+    .bind(req.gender)
+    .fetch_optional(&mut **tx)
     .await?;
     Ok(res)
 }
 
 // 환경설정 조회 repo
-pub async fn find_users_setting(pool: &PgPool, user_id: i64) -> AppResult<SettingsRes> {
-    let user_setting =
-        sqlx::query_as::<_, (Option<String>, Option<String>, Option<bool>, Option<bool>)>(
-            r#"
-        SELECT
-            us.ui_language,
-            us.timezone,
-            us.notifications_email,
-            us.notifications_push
-        FROM users_setting us
-        WHERE us.user_id = $1
-        "#,
-        )
-        .bind(user_id)
-        .fetch_optional(pool)
-        .await?;
-
-    let study_languages = sqlx::query_as::<_, StudyLangItem>(
+pub async fn find_users_setting(pool: &PgPool, user_id: i64) -> AppResult<Option<SettingsRes>> {
+    let user_setting = sqlx::query_as::<_, SettingsRes>(
         r#"
         SELECT
-            lang_code,
-            priority,
-            is_primary
-        FROM users_language_pref
+            user_set_language::TEXT as user_set_language,
+            COALESCE(user_set_timezone, 'UTC') as user_set_timezone,
+            user_set_note_email,
+            user_set_note_push,
+            user_set_updated_at as updated_at
+        FROM users_setting
         WHERE user_id = $1
-        ORDER BY priority ASC
         "#,
     )
     .bind(user_id)
-    .fetch_all(pool)
+    .fetch_optional(pool)
     .await?;
 
-    let (ui_language, timezone, notifications_email, notifications_push) =
-        user_setting.unwrap_or_default();
-
-    Ok(SettingsRes {
-        user_id,
-        ui_language,
-        timezone,
-        notifications_email,
-        notifications_push,
-        study_languages,
-    })
+    Ok(user_setting)
 }
 
 // 환경설정 수정 repo
@@ -188,14 +181,28 @@ pub async fn update_users_setting(
     // Update users_setting
     sqlx::query(
         r#"
-        INSERT INTO users_setting (user_id, ui_language, timezone, notifications_email, notifications_push, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO users_setting (
+            user_id,
+            user_set_language,
+            user_set_timezone,
+            user_set_note_email,
+            user_set_note_push,
+            user_set_updated_at
+        )
+        VALUES (
+            $1,
+            COALESCE($2::user_set_language_enum, 'ko'::user_set_language_enum),
+            COALESCE($3, 'UTC'),
+            COALESCE($4, false),
+            COALESCE($5, false),
+            $6
+        )
         ON CONFLICT (user_id) DO UPDATE SET
-            ui_language = COALESCE($2, users_setting.ui_language),
-            timezone = COALESCE($3, users_setting.timezone),
-            notifications_email = COALESCE($4, users_setting.notifications_email),
-            notifications_push = COALESCE($5, users_setting.notifications_push),
-            updated_at = $6
+            user_set_language = COALESCE($2::user_set_language_enum, users_setting.user_set_language),
+            user_set_timezone = COALESCE($3, users_setting.user_set_timezone),
+            user_set_note_email = COALESCE($4, users_setting.user_set_note_email),
+            user_set_note_push = COALESCE($5, users_setting.user_set_note_push),
+            user_set_updated_at = $6
         "#,
     )
     .bind(user_id)
@@ -243,7 +250,9 @@ pub async fn update_users_setting(
     tx.commit().await?;
 
     // Fetch the latest settings after update
-    find_users_setting(pool, user_id).await
+    find_users_setting(pool, user_id)
+        .await?
+        .ok_or(AppError::NotFound)
 }
 
 // 회원 관련 기록 log repo
