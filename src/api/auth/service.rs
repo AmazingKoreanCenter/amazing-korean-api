@@ -3,7 +3,6 @@ use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use argon2::password_hash::{rand_core::OsRng, SaltString};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use base64::engine::{general_purpose::URL_SAFE_NO_PAD, Engine};
-use rand::{thread_rng, Rng};
 use redis::AsyncCommands;
 use sha2::{Digest, Sha256};
 use time::OffsetDateTime;
@@ -48,11 +47,11 @@ impl AuthService {
     }
 
     // 리프레시 토큰 생성 및 해싱
-    fn generate_refresh_token_and_hash() -> (String, String) {
-        let mut refresh_bytes = [0u8; 32];
-        thread_rng().fill(&mut refresh_bytes);
-        let refresh_token = URL_SAFE_NO_PAD.encode(refresh_bytes);
-        let refresh_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(refresh_bytes));
+    fn generate_refresh_token_and_hash(session_id: &str) -> (String, String) {
+        let random_uuid = Uuid::new_v4().to_string();
+        let payload = format!("{session_id}:{random_uuid}");
+        let refresh_token = URL_SAFE_NO_PAD.encode(payload.as_bytes());
+        let refresh_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(payload.as_bytes()));
         (refresh_token, refresh_hash)
     }
 
@@ -62,6 +61,32 @@ impl AuthService {
             .decode(token)
             .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
         Ok(URL_SAFE_NO_PAD.encode(Sha256::digest(decoded_bytes)))
+    }
+
+    fn parse_refresh_token(token: &str) -> AppResult<(String, String)> {
+        let decoded = URL_SAFE_NO_PAD
+            .decode(token)
+            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
+
+        let incoming_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(&decoded));
+        let decoded_str = String::from_utf8(decoded)
+            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
+        let mut parts = decoded_str.splitn(2, ':');
+        let session_id = parts
+            .next()
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
+        let random_part = parts
+            .next()
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
+
+        let _ = Uuid::parse_str(session_id)
+            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
+        let _ = Uuid::parse_str(random_part)
+            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
+
+        Ok((session_id.to_string(), incoming_hash))
     }
 
     // 로그인 서비스
@@ -128,7 +153,8 @@ impl AuthService {
 
         // 4) 세션 및 리프레시 토큰 생성
         let session_id = Uuid::new_v4().to_string();
-        let (refresh_token_value, refresh_hash) = Self::generate_refresh_token_and_hash();
+        let (refresh_token_value, refresh_hash) =
+            Self::generate_refresh_token_and_hash(&session_id);
 
         let refresh_ttl_secs = st.cfg.refresh_ttl_days * 24 * 3600;
 
@@ -234,8 +260,8 @@ impl AuthService {
         old_refresh_token: &str,
         login_ip: String,
         user_agent: Option<String>,
-    ) -> AppResult<(RefreshRes, Cookie<'static>, i64)> {
-        let old_refresh_hash = Self::hash_refresh_token(old_refresh_token)?;
+    ) -> AppResult<(LoginRes, String, i64)> {
+        let (session_id, incoming_hash) = Self::parse_refresh_token(old_refresh_token)?;
 
         let mut redis_conn = st
             .redis
@@ -243,43 +269,87 @@ impl AuthService {
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // 1) Redis에서 세션 ID 조회
-        let session_id: String = redis_conn
-            .get(format!("ak:refresh:{}", old_refresh_hash))
-            .await
-            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_INVALID_REFRESH".into()))?;
-
-        // 2) Redis에서 사용자 ID 조회
-        let user_id: i64 = redis_conn
-            .get(format!("ak:session:{}", session_id))
-            .await
-            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
-
-        // 3) 새 리프레시 토큰 생성 및 해싱 (트랜잭션 시작 전)
-        let (new_refresh_token_value, new_refresh_hash) = Self::generate_refresh_token_and_hash();
-
-        // 4) DB에 리프레시 토큰 해시 업데이트 및 로그 기록 (트랜잭션)
+        // 1) 세션 조회 (FOR UPDATE)
         let mut tx = st.db.begin().await?;
+        let login_record =
+            AuthRepo::find_login_by_session_id_for_update_tx(&mut tx, &session_id).await?;
+        let login_record = match login_record {
+            Some(record) => record,
+            None => return Err(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into())),
+        };
+
+        // 2) 재사용 탐지
+        if login_record.refresh_hash != incoming_hash {
+            AuthRepo::update_login_state_by_session_tx(&mut tx, &session_id, "compromised")
+                .await?;
+            AuthRepo::insert_login_log_tx(
+                &mut tx,
+                login_record.user_id,
+                "reuse_detected",
+                false,
+                &session_id,
+                &login_record.refresh_hash,
+                login_record
+                    .login_ip
+                    .as_deref()
+                    .unwrap_or(login_ip.as_str()),
+                Some(login_record.login_device.as_str()),
+                login_record.login_browser.as_deref(),
+                login_record.login_os.as_deref(),
+                user_agent.as_deref(),
+            )
+            .await?;
+            tx.commit().await?;
+
+            let _: () = redis_conn
+                .del(format!("ak:refresh:{}", login_record.refresh_hash))
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+            let _: () = redis_conn
+                .del(format!("ak:session:{}", session_id))
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+            let _: () = redis_conn
+                .srem(format!("ak:user_sessions:{}", login_record.user_id), &session_id)
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+
+            return Err(AppError::Conflict("AUTH_409_REUSE_DETECTED".into()));
+        }
+
+        // 3) 세션 상태 확인
+        if login_record.state != "active" {
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()));
+        }
+
+        // 4) 새 리프레시 토큰 생성 및 해싱
+        let (new_refresh_token_value, new_refresh_hash) =
+            Self::generate_refresh_token_and_hash(&session_id);
+
+        // 5) DB 업데이트 + 로그 기록
         AuthRepo::update_login_refresh_hash_tx(&mut tx, &session_id, &new_refresh_hash).await?;
         AuthRepo::insert_login_log_tx(
             &mut tx,
-            user_id,
+            login_record.user_id,
             "rotate",
             true,
             &session_id,
             &new_refresh_hash,
-            &login_ip,
-            None, // device
-            None, // browser
-            None, // os
+            login_record
+                .login_ip
+                .as_deref()
+                .unwrap_or(login_ip.as_str()),
+            Some(login_record.login_device.as_str()),
+            login_record.login_browser.as_deref(),
+            login_record.login_os.as_deref(),
             user_agent.as_deref(),
         )
         .await?;
         tx.commit().await?;
 
-        // 5) Redis에서 기존 리프레시 토큰 삭제, 새 리프레시 토큰 저장 (커밋 성공 후)
+        // 6) Redis Sync
         let _: () = redis_conn
-            .del(format!("ak:refresh:{}", old_refresh_hash))
+            .del(format!("ak:refresh:{}", login_record.refresh_hash))
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -294,36 +364,21 @@ impl AuthService {
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // 6) 새 액세스 토큰 생성
+        // 7) 새 액세스 토큰 생성
         let access_token_res = jwt::create_token(
-            user_id,
+            login_record.user_id,
             &session_id,
             st.cfg.jwt_access_ttl_min,
             &st.cfg.jwt_secret,
         )?;
 
-        // (A) refresh cookie 설정
-        let mut refresh_cookie =
-            Cookie::new(st.cfg.refresh_cookie_name.clone(), new_refresh_token_value);
-        refresh_cookie.set_path("/");
-        refresh_cookie.set_http_only(true);
-        refresh_cookie.set_secure(st.cfg.refresh_cookie_secure);
-        refresh_cookie.set_same_site(match st.cfg.refresh_cookie_samesite_or("Lax") {
-            "Strict" => SameSite::Strict,
-            "Lax" => SameSite::Lax,
-            "None" => SameSite::None,
-            _ => SameSite::Lax, // Default to Lax
-        });
-        refresh_cookie
-            .set_expires(OffsetDateTime::now_utc() + time::Duration::seconds(refresh_ttl_secs));
-        refresh_cookie.set_domain(st.cfg.refresh_cookie_domain.clone().unwrap_or_default());
-
         Ok((
-            RefreshRes {
-                access_token: access_token_res.access_token,
-                expires_in: access_token_res.expires_in,
+            LoginRes {
+                user_id: login_record.user_id,
+                access: access_token_res,
+                session_id,
             },
-            refresh_cookie.into_owned(),
+            new_refresh_token_value,
             refresh_ttl_secs,
         ))
     }
