@@ -1,11 +1,13 @@
 // FILE: src/api/auth/service.rs
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use argon2::password_hash::{rand_core::OsRng, SaltString};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use base64::engine::{general_purpose::URL_SAFE_NO_PAD, Engine};
 use rand::{thread_rng, Rng};
 use redis::AsyncCommands;
 use sha2::{Digest, Sha256};
 use time::OffsetDateTime;
+use std::sync::OnceLock;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -18,6 +20,18 @@ use crate::{
 pub struct AuthService;
 
 impl AuthService {
+    fn dummy_password_hash() -> AppResult<PasswordHash<'static>> {
+        static DUMMY_HASH: OnceLock<String> = OnceLock::new();
+        let hash_str = DUMMY_HASH.get_or_init(|| {
+            let salt = SaltString::generate(&mut OsRng);
+            Argon2::default()
+                .hash_password(b"dummy_password", &salt)
+                .expect("argon2 dummy hash should succeed")
+                .to_string()
+        });
+        PasswordHash::new(hash_str)
+            .map_err(|_| AppError::Internal("Failed to parse dummy password hash".into()))
+    }
     // Helper to map login method for DB
     fn map_login_method_for_db_password() -> &'static str {
         "email"
@@ -87,22 +101,30 @@ impl AuthService {
             ));
         }
 
-        // 1) 사용자 조회
-        let user_info = AuthRepo::find_user_by_email(&st.db, &email)
-            .await?
-            .ok_or(AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()))?;
+        // 1) 사용자 조회 (없어도 타이밍 보호를 위해 더미 검증)
+        let user_info = AuthRepo::find_user_by_email(&st.db, &email).await?;
 
-        // 2) 사용자 상태 확인
+        // 2) 비밀번호 검증 (존재하지 않아도 더미 해시로 동일 비용 수행)
+        let parsed_hash = match &user_info {
+            Some(user) => PasswordHash::new(&user.user_password)
+                .map_err(|_| AppError::Internal("Failed to parse password hash".into()))?,
+            None => Self::dummy_password_hash()?,
+        };
+
+        let password_ok = Argon2::default()
+            .verify_password(req.password.as_bytes(), &parsed_hash)
+            .is_ok();
+
+        if user_info.is_none() || !password_ok {
+            return Err(AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()));
+        }
+
+        let user_info = user_info.expect("checked above");
+
+        // 3) 사용자 상태 확인
         if !user_info.user_state {
             return Err(AppError::Forbidden);
         }
-
-        // 3) 비밀번호 검증
-        let parsed_hash = PasswordHash::new(&user_info.user_password)
-            .map_err(|_| AppError::Internal("Failed to parse password hash".into()))?;
-        Argon2::default()
-            .verify_password(req.password.as_bytes(), &parsed_hash)
-            .map_err(|_| AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()))?;
 
         // 4) 세션 및 리프레시 토큰 생성
         let session_id = Uuid::new_v4().to_string();
