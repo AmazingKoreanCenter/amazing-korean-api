@@ -18,6 +18,7 @@ pub struct UserLoginInfo {
 #[derive(Debug, sqlx::FromRow)]
 #[allow(dead_code)]
 pub struct LoginRecord {
+    pub user_id: i64,
     pub session_id: String,
     pub refresh_hash: String,
     pub login_ip: Option<String>,
@@ -127,7 +128,7 @@ impl AuthRepo {
         tx: &mut Transaction<'_, Postgres>,
         user_id: i64,
         event: &str,
-        #[allow(unused_variables)] login_success_log: bool,
+        login_success_log: bool,
         session_id: &str,
         refresh_hash: &str,
         login_ip: &str,
@@ -156,9 +157,9 @@ impl AuthRepo {
             VALUES (
                 $1, 
                 CAST($2 AS login_event_enum), 
-                TRUE, 
-                CAST($3 AS inet),
-                CASE lower($4)
+                $3,
+                CAST($4 AS inet),
+                CASE lower($5)
                     WHEN 'mobile'  THEN 'mobile'::login_device_enum
                     WHEN 'tablet'  THEN 'tablet'::login_device_enum
                     WHEN 'desktop' THEN 'desktop'::login_device_enum
@@ -166,12 +167,12 @@ impl AuthRepo {
                     WHEN 'browser' THEN 'desktop'::login_device_enum
                     ELSE 'other'::login_device_enum
                 END,
-                $5, 
                 $6, 
+                $7, 
                 'email'::login_method_enum, 
-                CAST($7 AS uuid), 
-                $8, 
+                CAST($8 AS uuid), 
                 $9, 
+                $10, 
                 NOW(), 
                 NOW()
             )
@@ -179,13 +180,14 @@ impl AuthRepo {
         )
         .bind(user_id)      // $1
         .bind(event)        // $2
-        .bind(login_ip)     // $3
-        .bind(device)       // $4
-        .bind(browser)      // $5
-        .bind(os)           // $6
-        .bind(session_id)   // $7
-        .bind(refresh_hash) // $8
-        .bind(user_agent)   // $9
+        .bind(login_success_log) // $3
+        .bind(login_ip)     // $4
+        .bind(device)       // $5
+        .bind(browser)      // $6
+        .bind(os)           // $7
+        .bind(session_id)   // $8
+        .bind(refresh_hash) // $9
+        .bind(user_agent)   // $10
         .execute(&mut **tx)
         .await?;
         Ok(())
@@ -254,6 +256,7 @@ impl AuthRepo {
         let row = sqlx::query_as::<_, LoginRecord>(
             r#"
             SELECT
+                user_id,
                 login_session_id::text as session_id,
                 login_refresh_hash as refresh_hash,
                 login_ip::text as login_ip,
@@ -283,6 +286,7 @@ impl AuthRepo {
         let row = sqlx::query_as::<_, LoginRecord>(
             r#"
             SELECT
+                user_id,
                 login_session_id::text as session_id,
                 login_refresh_hash as refresh_hash,
                 login_ip::text as login_ip,
@@ -322,6 +326,36 @@ impl AuthRepo {
         .execute(&mut **tx)
         .await?;
         Ok(())
+    }
+
+    pub async fn find_login_by_session_id_for_update_tx(
+        tx: &mut Transaction<'_, Postgres>,
+        session_id: &str,
+    ) -> AppResult<Option<LoginRecord>> {
+        let row = sqlx::query_as::<_, LoginRecord>(
+            r#"
+            SELECT
+                user_id,
+                login_session_id::text as session_id,
+                login_refresh_hash as refresh_hash,
+                login_ip::text as login_ip,
+                login_device::text as login_device,
+                login_browser,
+                login_os,
+                login_user_agent as user_agent,
+                login_method::text as login_method,
+                login_begin_at as login_time_at,
+                NULL as logout_time_at, -- DB에서 해당 컬럼 제거됨
+                login_state::text as state
+            FROM public.login
+            WHERE login_session_id = CAST($1 AS uuid)
+            FOR UPDATE
+            "#,
+        )
+        .bind(session_id)
+        .fetch_optional(&mut **tx)
+        .await?;
+        Ok(row)
     }
 
     // 로그인 상태 업데이트 (트랜잭션 버전)

@@ -62,6 +62,15 @@ pub struct RefreshRes {
     pub expires_in: i64,
 }
 
+#[derive(Serialize, Deserialize, Validate, ToSchema)]
+#[schema(example = json!({
+    "refresh_token": "c2Vzc2lvbl9pZDp5Yy1yYW5kb20tdXVpZA"
+}))]
+pub struct RefreshReq {
+    #[validate(length(min = 1))]
+    pub refresh_token: String,
+}
+
 #[derive(Serialize, ToSchema)]
 #[schema(example = json!({ "ok": true }))]
 pub struct LogoutRes {
