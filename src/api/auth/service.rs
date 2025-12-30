@@ -1,11 +1,13 @@
 // FILE: src/api/auth/service.rs
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use argon2::password_hash::{rand_core::OsRng, SaltString};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use base64::engine::{general_purpose::URL_SAFE_NO_PAD, Engine};
 use rand::{thread_rng, Rng};
 use redis::AsyncCommands;
 use sha2::{Digest, Sha256};
 use time::OffsetDateTime;
+use std::sync::OnceLock;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -18,6 +20,18 @@ use crate::{
 pub struct AuthService;
 
 impl AuthService {
+    fn dummy_password_hash() -> AppResult<PasswordHash<'static>> {
+        static DUMMY_HASH: OnceLock<String> = OnceLock::new();
+        let hash_str = DUMMY_HASH.get_or_init(|| {
+            let salt = SaltString::generate(&mut OsRng);
+            Argon2::default()
+                .hash_password(b"dummy_password", &salt)
+                .expect("argon2 dummy hash should succeed")
+                .to_string()
+        });
+        PasswordHash::new(hash_str)
+            .map_err(|_| AppError::Internal("Failed to parse dummy password hash".into()))
+    }
     // Helper to map login method for DB
     fn map_login_method_for_db_password() -> &'static str {
         "email"
@@ -87,22 +101,30 @@ impl AuthService {
             ));
         }
 
-        // 1) 사용자 조회
-        let user_info = AuthRepo::find_user_by_email(&st.db, &email)
-            .await?
-            .ok_or(AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()))?;
+        // 1) 사용자 조회 (없어도 타이밍 보호를 위해 더미 검증)
+        let user_info = AuthRepo::find_user_by_email(&st.db, &email).await?;
 
-        // 2) 사용자 상태 확인
+        // 2) 비밀번호 검증 (존재하지 않아도 더미 해시로 동일 비용 수행)
+        let parsed_hash = match &user_info {
+            Some(user) => PasswordHash::new(&user.user_password)
+                .map_err(|_| AppError::Internal("Failed to parse password hash".into()))?,
+            None => Self::dummy_password_hash()?,
+        };
+
+        let password_ok = Argon2::default()
+            .verify_password(req.password.as_bytes(), &parsed_hash)
+            .is_ok();
+
+        if user_info.is_none() || !password_ok {
+            return Err(AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()));
+        }
+
+        let user_info = user_info.expect("checked above");
+
+        // 3) 사용자 상태 확인
         if !user_info.user_state {
             return Err(AppError::Forbidden);
         }
-
-        // 3) 비밀번호 검증
-        let parsed_hash = PasswordHash::new(&user_info.user_password)
-            .map_err(|_| AppError::Internal("Failed to parse password hash".into()))?;
-        Argon2::default()
-            .verify_password(req.password.as_bytes(), &parsed_hash)
-            .map_err(|_| AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()))?;
 
         // 4) 세션 및 리프레시 토큰 생성
         let session_id = Uuid::new_v4().to_string();
@@ -113,6 +135,7 @@ impl AuthService {
         // (C) jwt.rs의 create_token을 실제로 사용하도록 service.rs에서 호출
         let access_token_res = jwt::create_token(
             user_info.user_id,
+            &session_id,
             st.cfg.jwt_access_ttl_min,
             &st.cfg.jwt_secret,
         )?;
@@ -272,8 +295,12 @@ impl AuthService {
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // 6) 새 액세스 토큰 생성
-        let access_token_res =
-            jwt::create_token(user_id, st.cfg.jwt_access_ttl_min, &st.cfg.jwt_secret)?;
+        let access_token_res = jwt::create_token(
+            user_id,
+            &session_id,
+            st.cfg.jwt_access_ttl_min,
+            &st.cfg.jwt_secret,
+        )?;
 
         // (A) refresh cookie 설정
         let mut refresh_cookie =
@@ -304,63 +331,51 @@ impl AuthService {
     // 로그아웃 서비스
     pub async fn logout(
         st: &AppState,
-        refresh_token: Option<&str>,
+        user_id: i64,
+        session_id: &str,
         login_ip: String,
         user_agent: Option<String>,
-    ) -> AppResult<LogoutRes> {
-        let Some(refresh_token) = refresh_token else {
-            return Ok(LogoutRes { ok: true }); // No refresh token, no-op
-        };
-
-        let refresh_hash = Self::hash_refresh_token(refresh_token)?;
-
+    ) -> AppResult<()> {
         let mut redis_conn = st
             .redis
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // 1) Redis에서 세션 ID 조회
-        let session_id: String = redis_conn
-            .get(format!("ak:refresh:{}", refresh_hash))
-            .await
-            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
-
-        // 2) Redis에서 사용자 ID 조회
-        let user_id: i64 = match redis_conn.get(format!("ak:session:{}", session_id)).await {
-            Ok(uid) => uid,
-            Err(_) => return Ok(LogoutRes { ok: true }), // Already logged out or invalid, no-op
-        };
-
-        // 3) DB 로그인 상태 업데이트 및 로그 기록 (트랜잭션)
+        // 1) DB 로그인 상태 업데이트 및 로그 기록 (트랜잭션)
         let mut tx = st.db.begin().await?;
-        AuthRepo::update_login_state_by_session_tx(&mut tx, &session_id, "logged_out").await?;
-        AuthRepo::insert_logout_log_tx(
-            &mut tx,
-            user_id,
-            &session_id,
-            &refresh_hash,
-            &login_ip,
-            user_agent.as_deref(),
-        )
-        .await?;
+        let login_record = AuthRepo::find_login_by_session_id_tx(&mut tx, session_id).await?;
+        if let Some(record) = &login_record {
+            AuthRepo::update_login_state_by_session_tx(&mut tx, session_id, "logged_out").await?;
+            AuthRepo::insert_logout_log_tx(
+                &mut tx,
+                user_id,
+                session_id,
+                &record.refresh_hash,
+                &login_ip,
+                user_agent.as_deref(),
+            )
+            .await?;
+        }
         tx.commit().await?;
 
-        // 4) Redis 키 삭제 (커밋 성공 후)
-        let _: () = redis_conn
-            .del(format!("ak:refresh:{}", refresh_hash))
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+        // 2) Redis 키 삭제 (커밋 성공 후)
+        if let Some(record) = login_record {
+            let _: () = redis_conn
+                .del(format!("ak:refresh:{}", record.refresh_hash))
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+        }
         let _: () = redis_conn
             .del(format!("ak:session:{}", session_id))
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
         let _: () = redis_conn
-            .srem(format!("ak:user_sessions:{}", user_id), &session_id)
+            .srem(format!("ak:user_sessions:{}", user_id), session_id)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        Ok(LogoutRes { ok: true })
+        Ok(())
     }
 
     // 모든 세션 로그아웃 서비스

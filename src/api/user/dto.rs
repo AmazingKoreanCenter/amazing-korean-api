@@ -190,31 +190,23 @@ pub struct SettingsRes {
 // 사용자 환경설정 수정 dto
 #[derive(Serialize, Deserialize, Validate, ToSchema)]
 #[schema(example = json!({
-    "ui_language": "ko",
-    "timezone": "Asia/Seoul",
-    "notifications_email": true,
-    "notifications_push": false,
-    "study_languages": [
-        {"lang_code":"ko","priority":2,"is_primary":true},
-        {"lang_code":"en","priority":1,"is_primary":false}
-    ]
+    "user_set_language": "ko",
+    "user_set_timezone": "UTC",
+    "user_set_note_email": true,
+    "user_set_note_push": false
 }))]
 pub struct SettingsUpdateReq {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[validate(length(min = 2, max = 2))] // ISO 639-1
-    pub ui_language: Option<String>,
+    pub user_set_language: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[validate(length(min = 1))] // IANA timezone format, basic validation
-    pub timezone: Option<String>,
+    pub user_set_timezone: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub notifications_email: Option<bool>,
+    pub user_set_note_email: Option<bool>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub notifications_push: Option<bool>,
-
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[validate(length(max = 8))] // Max 8 study languages
-    pub study_languages: Option<Vec<StudyLangItem>>,
+    pub user_set_note_push: Option<bool>,
 }
