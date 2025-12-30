@@ -21,6 +21,11 @@ use tracing::{info, warn};
 pub struct AuthService;
 
 impl AuthService {
+    fn validate_password_policy(password: &str) -> bool {
+        let has_letter = password.chars().any(|c| c.is_ascii_alphabetic());
+        let has_digit = password.chars().any(|c| c.is_ascii_digit());
+        password.len() >= 8 && has_letter && has_digit
+    }
     fn dummy_password_hash() -> AppResult<PasswordHash<'static>> {
         static DUMMY_HASH: OnceLock<String> = OnceLock::new();
         let hash_str = DUMMY_HASH.get_or_init(|| {
@@ -426,6 +431,86 @@ impl AuthService {
 
         Ok(FindIdRes {
             message: "If the account exists, the ID has been sent to your email.".to_string(),
+        })
+    }
+
+    pub async fn reset_password(
+        st: &AppState,
+        req: ResetPwReq,
+        client_ip: String,
+    ) -> AppResult<ResetPwRes> {
+        if let Err(e) = req.validate() {
+            return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
+        }
+
+        if !Self::validate_password_policy(&req.new_password) {
+            return Err(AppError::Unprocessable(
+                "password policy violation".into(),
+            ));
+        }
+
+        let rl_key = format!("rl:reset_pw:{}", client_ip);
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        if attempts == 1 {
+            let _: () = redis_conn
+                .expire(&rl_key, st.cfg.rate_limit_login_window_sec)
+                .await?;
+        }
+        if attempts > st.cfg.rate_limit_login_max {
+            return Err(AppError::TooManyRequests(
+                "AUTH_429_TOO_MANY_ATTEMPTS".into(),
+            ));
+        }
+
+        let claims = jwt::decode_token(&req.reset_token, &st.cfg.jwt_secret)
+            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_RESET_TOKEN".into()))?;
+        let user_id = claims.sub;
+
+        let salt = SaltString::generate(&mut OsRng);
+        let params = argon2::Params::new(19_456, 2, 1, None).unwrap();
+        let argon2 = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params);
+        let new_password_hash = argon2
+            .hash_password(req.new_password.as_bytes(), &salt)
+            .map_err(|e| AppError::Internal(format!("password hash error: {e}")))?
+            .to_string();
+
+        let mut tx = st.db.begin().await?;
+        AuthRepo::update_user_password_tx(&mut tx, user_id, &new_password_hash).await?;
+        user_repo::insert_user_log_after_tx(&mut tx, Some(user_id), user_id, "reset_pw", true)
+            .await?;
+        AuthRepo::update_login_state_by_user_tx(&mut tx, user_id, "revoked").await?;
+        tx.commit().await?;
+
+        let session_key = format!("ak:user_sessions:{}", user_id);
+        let session_ids: Vec<String> = redis_conn.smembers(&session_key).await.unwrap_or_default();
+        for sid in session_ids.iter() {
+            if let Some(login_record) = AuthRepo::find_login_by_session_id(&st.db, sid).await? {
+                let _: () = redis_conn
+                    .del(format!("ak:refresh:{}", login_record.refresh_hash))
+                    .await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
+            }
+            let _: () = redis_conn
+                .del(format!("ak:session:{}", sid))
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+            let _: () = redis_conn
+                .srem(&session_key, sid)
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+        }
+        let _: () = redis_conn
+            .del(&session_key)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        Ok(ResetPwRes {
+            message: "Password has been reset. All active sessions are invalidated.".to_string(),
         })
     }
 

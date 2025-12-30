@@ -73,6 +73,26 @@ pub struct RefreshReq {
 
 #[derive(Serialize, Deserialize, Validate, ToSchema)]
 #[schema(example = json!({
+    "reset_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "new_password": "newStrongPassword123!"
+}))]
+pub struct ResetPwReq {
+    #[validate(length(min = 1))]
+    pub reset_token: String,
+    #[validate(length(min = 1))]
+    pub new_password: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[schema(example = json!({
+    "message": "Password has been reset. All active sessions are invalidated."
+}))]
+pub struct ResetPwRes {
+    pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Validate, ToSchema)]
+#[schema(example = json!({
     "name": "홍길동",
     "email": "test@example.com"
 }))]

@@ -12,4 +12,5 @@ pub fn auth_router() -> Router<AppState> {
         .route("/logout/all", post(handler::logout_all))
         .route("/refresh", post(handler::refresh))
         .route("/find-id", post(handler::find_id))
+        .route("/reset-pw", post(handler::reset_password))
 }

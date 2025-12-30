@@ -5,7 +5,8 @@ use axum_extra::extract::cookie::{Cookie, CookieJar}; // SameSite 등 불필요�
 // use cookie::time::{Duration, OffsetDateTime}; // <-- 불필요하므로 제거 (Service에서 처리함)
 
 use crate::api::auth::dto::{
-    FindIdReq, FindIdRes, LoginReq, LoginRes, LogoutAllReq, LogoutRes, RefreshReq,
+    FindIdReq, FindIdRes, LoginReq, LoginRes, LogoutAllReq, LogoutRes, RefreshReq, ResetPwReq,
+    ResetPwRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::api::auth::service::AuthService;
@@ -183,6 +184,31 @@ pub async fn find_id(
 ) -> Result<Json<FindIdRes>, AppError> {
     let ip = extract_client_ip(&headers);
     let res = AuthService::find_id(&st, req, ip).await?;
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    post,
+    path = "/auth/reset-pw",
+    tag = "auth",
+    request_body = ResetPwReq,
+    responses(
+        (status = 200, description = "Reset password success", body = ResetPwRes, example = json!({
+            "message": "Password has been reset. All active sessions are invalidated."
+        })),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody),
+        (status = 429, description = "Too Many Requests", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn reset_password(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<ResetPwReq>,
+) -> Result<Json<ResetPwRes>, AppError> {
+    let ip = extract_client_ip(&headers);
+    let res = AuthService::reset_password(&st, req, ip).await?;
     Ok(Json(res))
 }
 
