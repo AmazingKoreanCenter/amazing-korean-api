@@ -8,6 +8,14 @@ pub struct AuthRepo;
 
 #[derive(Debug, sqlx::FromRow)]
 #[allow(dead_code)]
+pub struct UserFindIdInfo {
+    pub user_id: i64,
+    pub user_email: String,
+    pub user_name: String,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+#[allow(dead_code)]
 pub struct UserLoginInfo {
     pub user_id: i64,
     pub user_email: String,
@@ -49,6 +57,53 @@ impl AuthRepo {
             WHERE user_email = $1
             "#,
         )
+        .bind(email)
+        .fetch_optional(pool)
+        .await?;
+        Ok(row)
+    }
+
+    pub async fn update_user_password_tx(
+        tx: &mut Transaction<'_, Postgres>,
+        user_id: i64,
+        new_password_hash: &str,
+    ) -> AppResult<()> {
+        let res = sqlx::query(
+            r#"
+            UPDATE users
+            SET user_password = $2
+            WHERE user_id = $1
+            "#,
+        )
+        .bind(user_id)
+        .bind(new_password_hash)
+        .execute(&mut **tx)
+        .await?;
+
+        if res.rows_affected() == 0 {
+            return Err(crate::error::AppError::NotFound);
+        }
+        Ok(())
+    }
+
+    pub async fn find_user_by_name_and_email(
+        pool: &PgPool,
+        name: &str,
+        email: &str,
+    ) -> AppResult<Option<UserFindIdInfo>> {
+        let row = sqlx::query_as::<_, UserFindIdInfo>(
+            r#"
+            SELECT
+                user_id,
+                user_email,
+                user_name
+            FROM users
+            WHERE user_name = $1
+              AND user_email = $2
+              AND user_state = true
+            "#,
+        )
+        .bind(name)
         .bind(email)
         .fetch_optional(pool)
         .await?;

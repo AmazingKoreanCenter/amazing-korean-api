@@ -71,6 +71,46 @@ pub struct RefreshReq {
     pub refresh_token: String,
 }
 
+#[derive(Serialize, Deserialize, Validate, ToSchema)]
+#[schema(example = json!({
+    "reset_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "new_password": "newStrongPassword123!"
+}))]
+pub struct ResetPwReq {
+    #[validate(length(min = 1))]
+    pub reset_token: String,
+    #[validate(length(min = 1))]
+    pub new_password: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[schema(example = json!({
+    "message": "Password has been reset. All active sessions are invalidated."
+}))]
+pub struct ResetPwRes {
+    pub message: String,
+}
+
+#[derive(Serialize, Deserialize, Validate, ToSchema)]
+#[schema(example = json!({
+    "name": "홍길동",
+    "email": "test@example.com"
+}))]
+pub struct FindIdReq {
+    #[validate(length(min = 1, max = 100))]
+    pub name: String,
+    #[validate(email)]
+    pub email: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[schema(example = json!({
+    "message": "If the account exists, the ID has been sent to your email."
+}))]
+pub struct FindIdRes {
+    pub message: String,
+}
+
 #[derive(Serialize, ToSchema)]
 #[schema(example = json!({ "ok": true }))]
 pub struct LogoutRes {
