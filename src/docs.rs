@@ -34,9 +34,10 @@ impl Modify for SecurityAddon {
 
         // auth
         crate::api::auth::handler::login,
-        crate::api::auth::handler::refresh,
         crate::api::auth::handler::logout,
         crate::api::auth::handler::logout_all,
+        crate::api::auth::handler::refresh,
+        crate::api::auth::handler::find_id,
 
         // user (me/settings)
         crate::api::user::handler::signup,
@@ -87,6 +88,8 @@ impl Modify for SecurityAddon {
             crate::api::auth::dto::LoginReq,
             crate::api::auth::dto::LoginRes,
             crate::api::auth::dto::RefreshRes,
+            crate::api::auth::dto::FindIdReq,
+            crate::api::auth::dto::FindIdRes,
 
             // user dto
             crate::api::user::dto::SignupReq,

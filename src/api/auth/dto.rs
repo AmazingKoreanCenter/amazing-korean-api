@@ -71,6 +71,26 @@ pub struct RefreshReq {
     pub refresh_token: String,
 }
 
+#[derive(Serialize, Deserialize, Validate, ToSchema)]
+#[schema(example = json!({
+    "name": "홍길동",
+    "email": "test@example.com"
+}))]
+pub struct FindIdReq {
+    #[validate(length(min = 1, max = 100))]
+    pub name: String,
+    #[validate(email)]
+    pub email: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[schema(example = json!({
+    "message": "If the account exists, the ID has been sent to your email."
+}))]
+pub struct FindIdRes {
+    pub message: String,
+}
+
 #[derive(Serialize, ToSchema)]
 #[schema(example = json!({ "ok": true }))]
 pub struct LogoutRes {
