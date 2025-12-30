@@ -4,7 +4,6 @@ use super::{
 };
 use crate::{
     api::auth::extractor::AuthUser,
-    api::auth::jwt,
     error::{AppError, AppResult},
     state::AppState,
 };
@@ -17,10 +16,6 @@ use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 
 #[allow(unused_imports)]
 use serde_json::json;
-
-fn jwt_secret() -> String {
-    std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev_secret_change_me".to_string())
-}
 
 fn extract_client_ip(headers: &HeaderMap) -> String {
     if let Some(v) = headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()) {
@@ -54,21 +49,6 @@ fn extract_user_agent(headers: &HeaderMap) -> Option<String> {
         .get("user-agent")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string())
-}
-
-/// Authorization: Bearer <token> 헤더에서 토큰 추출
-pub fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
-    let auth = headers
-        .get(axum::http::header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok())
-        .ok_or_else(|| AppError::Unauthorized("missing Authorization header".into()))?;
-
-    let Some(rest) = auth.strip_prefix("Bearer ") else {
-        return Err(AppError::Unauthorized(
-            "invalid Authorization scheme".into(),
-        ));
-    };
-    Ok(rest.to_string())
 }
 
 #[utoipa::path(
@@ -237,7 +217,7 @@ pub async fn get_settings(
 }
 
 #[utoipa::path(
-    put,
+    post,
     path = "/users/me/settings",
     tag = "user",
     request_body = SettingsUpdateReq,
@@ -256,14 +236,11 @@ pub async fn get_settings(
     ),
     security(("bearerAuth" = []))
 )]
-pub async fn update_users_setting(
+pub async fn update_settings(
     State(st): State<AppState>,
-    headers: HeaderMap,
+    AuthUser(auth_user): AuthUser,
     Json(req): Json<SettingsUpdateReq>,
 ) -> AppResult<Json<SettingsRes>> {
-    let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token, &jwt_secret())
-        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
-    let settings = UserService::update_users_setting(&st, claims.sub, req).await?;
+    let settings = UserService::update_settings(&st, auth_user.sub, req).await?;
     Ok(Json(settings))
 }

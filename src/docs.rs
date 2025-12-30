@@ -43,7 +43,7 @@ impl Modify for SecurityAddon {
         crate::api::user::handler::get_me,
         crate::api::user::handler::update_me,
         crate::api::user::handler::get_settings,
-        crate::api::user::handler::update_users_setting,
+        crate::api::user::handler::update_settings,
 
         // videos (user)
         crate::api::video::handler::health,

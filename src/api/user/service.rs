@@ -305,7 +305,7 @@ impl UserService {
         }))
     }
 
-    pub async fn update_users_setting(
+    pub async fn update_settings(
         st: &AppState,
         user_id: i64,
         req: SettingsUpdateReq,
@@ -318,77 +318,25 @@ impl UserService {
             .await?
             .ok_or(AppError::NotFound)?;
 
-            if !current_user.user_state {
-                return Err(AppError::Forbidden);
-            }
-
-        if let Some(study_langs) = &req.study_languages {
-            if study_langs.len() > 8 {
-                return Err(AppError::BadRequest(
-                    "Too many study languages (max 8)".into(),
-                ));
-            }
-
-            let allowed_lang_codes: HashSet<&str> = ["en", "ko", "ne", "si", "id", "vi", "th"]
-                .iter()
-                .cloned()
-                .collect();
-
-            let mut seen_lang_codes = HashSet::new();
-            let mut primary_count = 0;
-
-            for item in study_langs {
-                if !allowed_lang_codes.contains(item.lang_code.as_str()) {
-                    return Err(AppError::BadRequest(format!(
-                        "Invalid lang_code: {}",
-                        item.lang_code
-                    )));
-                }
-                if !seen_lang_codes.insert(&item.lang_code) {
-                    return Err(AppError::BadRequest(format!(
-                        "Duplicate lang_code in study_languages: {}",
-                        item.lang_code
-                    )));
-                }
-                if item.is_primary {
-                    primary_count += 1;
-                }
-            }
-
-            if primary_count > 1 {
-                return Err(AppError::BadRequest(
-                    "Only one primary study language is allowed".into(),
-                ));
-            }
+        if !current_user.user_state {
+            return Err(AppError::Forbidden);
         }
 
-        if let Some(ui_lang) = &req.ui_language {
-            let allowed_lang_codes: HashSet<&str> = ["en", "ko", "ne", "si", "id", "vi", "th"]
-                .iter()
-                .cloned()
-                .collect();
-            if !allowed_lang_codes.contains(ui_lang.as_str()) {
+        if let Some(lang) = &req.user_set_language {
+            let allowed_lang_codes: HashSet<&str> = ["en", "ko"].iter().cloned().collect();
+            if !allowed_lang_codes.contains(lang.as_str()) {
                 return Err(AppError::BadRequest(format!(
-                    "Invalid ui_language: {}",
-                    ui_lang
+                    "Invalid user_set_language: {}",
+                    lang
                 )));
             }
         }
 
-        let update_users_setting = repo::update_users_setting(&st.db, user_id, &req).await;
+        let mut tx = st.db.begin().await?;
+        let settings = repo::upsert_settings_tx(&mut tx, user_id, &req).await?;
+        repo::insert_user_log_after_tx(&mut tx, Some(user_id), user_id, "update", true).await?;
+        tx.commit().await?;
 
-        match update_users_setting {
-            Ok(settings) => Ok(settings),
-            Err(e) => {
-                if let AppError::Sqlx(sqlx::Error::Database(db_err)) = &e {
-                    if db_err.code().as_deref() == Some(Self::PG_UNIQUE_VIOLATION) {
-                        return Err(AppError::BadRequest(
-                            "Duplicate lang_code in study_languages".into(),
-                        ));
-                    }
-                }
-                Err(e)
-            }
-        }
+        Ok(settings)
     }
 }

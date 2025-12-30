@@ -1,8 +1,5 @@
 use super::dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq};
-use crate::{
-    error::{AppError, AppResult},
-    types::UserGender,
-};
+use crate::{error::AppResult, types::UserGender};
 use chrono::{NaiveDate, Utc};
 use sqlx::{PgPool, Postgres, Transaction};
 
@@ -170,16 +167,13 @@ pub async fn find_users_setting(pool: &PgPool, user_id: i64) -> AppResult<Option
     Ok(user_setting)
 }
 
-// 환경설정 수정 repo
-pub async fn update_users_setting(
-    pool: &PgPool,
+// 환경설정 수정 repo (transaction)
+pub async fn upsert_settings_tx(
+    tx: &mut Transaction<'_, Postgres>,
     user_id: i64,
     req: &SettingsUpdateReq,
 ) -> AppResult<SettingsRes> {
-    let mut tx = pool.begin().await?;
-
-    // Update users_setting
-    sqlx::query(
+    let res = sqlx::query_as::<_, SettingsRes>(
         r#"
         INSERT INTO users_setting (
             user_id,
@@ -198,61 +192,29 @@ pub async fn update_users_setting(
             $6
         )
         ON CONFLICT (user_id) DO UPDATE SET
-            user_set_language = COALESCE($2::user_set_language_enum, users_setting.user_set_language),
-            user_set_timezone = COALESCE($3, users_setting.user_set_timezone),
-            user_set_note_email = COALESCE($4, users_setting.user_set_note_email),
-            user_set_note_push = COALESCE($5, users_setting.user_set_note_push),
-            user_set_updated_at = $6
+            user_set_language = COALESCE(EXCLUDED.user_set_language, users_setting.user_set_language),
+            user_set_timezone = COALESCE(EXCLUDED.user_set_timezone, users_setting.user_set_timezone),
+            user_set_note_email = COALESCE(EXCLUDED.user_set_note_email, users_setting.user_set_note_email),
+            user_set_note_push = COALESCE(EXCLUDED.user_set_note_push, users_setting.user_set_note_push),
+            user_set_updated_at = EXCLUDED.user_set_updated_at
+        RETURNING
+            user_set_language::TEXT as user_set_language,
+            COALESCE(user_set_timezone, 'UTC') as user_set_timezone,
+            user_set_note_email,
+            user_set_note_push,
+            user_set_updated_at as updated_at
         "#,
     )
     .bind(user_id)
-    .bind(req.ui_language.as_ref())
-    .bind(req.timezone.as_ref())
-    .bind(req.notifications_email)
-    .bind(req.notifications_push)
+    .bind(req.user_set_language.as_ref())
+    .bind(req.user_set_timezone.as_ref())
+    .bind(req.user_set_note_email)
+    .bind(req.user_set_note_push)
     .bind(Utc::now())
-    .execute(&mut *tx)
+    .fetch_one(&mut **tx)
     .await?;
 
-    // Update study_languages if provided
-    if let Some(study_langs) = &req.study_languages {
-        // Delete existing preferences
-        sqlx::query(
-            r#"
-            DELETE FROM users_language_pref
-            WHERE user_id = $1
-            "#,
-        )
-        .bind(user_id)
-        .execute(&mut *tx)
-        .await?;
-
-        // Insert new preferences with normalized priorities
-        let mut sorted_langs = study_langs.clone();
-        sorted_langs.sort_by_key(|item| item.priority);
-
-        for (idx, item) in sorted_langs.iter().enumerate() {
-            sqlx::query(
-                r#"
-                INSERT INTO users_language_pref (user_id, lang_code, priority, is_primary)
-                VALUES ($1, $2, $3, $4)
-                "#,
-            )
-            .bind(user_id)
-            .bind(&item.lang_code)
-            .bind((idx + 1) as i32) // Normalize priority
-            .bind(item.is_primary)
-            .execute(&mut *tx)
-            .await?;
-        }
-    }
-
-    tx.commit().await?;
-
-    // Fetch the latest settings after update
-    find_users_setting(pool, user_id)
-        .await?
-        .ok_or(AppError::NotFound)
+    Ok(res)
 }
 
 // 회원 관련 기록 log repo
