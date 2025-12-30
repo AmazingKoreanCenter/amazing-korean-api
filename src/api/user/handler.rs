@@ -216,15 +216,11 @@ pub async fn update_me(
     tag = "user",
     responses(
         (status = 200, description = "User settings", body = SettingsRes, example = json!({
-            "user_id": 1,
-            "ui_language": "ko",
-            "timezone": "Asia/Seoul",
-            "notifications_email": true,
-            "notifications_push": false,
-            "study_languages": [
-                {"lang_code":"en","priority":1,"is_primary":false},
-                {"lang_code":"ko","priority":2,"is_primary":true}
-            ]
+            "user_set_language": "ko",
+            "user_set_timezone": "UTC",
+            "user_set_note_email": false,
+            "user_set_note_push": false,
+            "updated_at": "2025-08-21T10:00:00Z"
         })),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
         (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
@@ -234,12 +230,9 @@ pub async fn update_me(
 )]
 pub async fn get_settings(
     State(st): State<AppState>,
-    headers: HeaderMap,
+    AuthUser(auth_user): AuthUser,
 ) -> AppResult<Json<SettingsRes>> {
-    let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token, &jwt_secret())
-        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
-    let settings = UserService::get_settings(&st, claims.sub).await?;
+    let settings = UserService::get_settings(&st, auth_user.sub).await?;
     Ok(Json(settings))
 }
 
@@ -250,15 +243,11 @@ pub async fn get_settings(
     request_body = SettingsUpdateReq,
     responses(
         (status = 200, description = "User settings updated", body = SettingsRes, example = json!({
-            "user_id": 1,
-            "ui_language": "ko",
-            "timezone": "Asia/Seoul",
-            "notifications_email": true,
-            "notifications_push": false,
-            "study_languages": [
-                {"lang_code":"en","priority":1,"is_primary":false},
-                {"lang_code":"ko","priority":2,"is_primary":true}
-            ]
+            "user_set_language": "ko",
+            "user_set_timezone": "UTC",
+            "user_set_note_email": false,
+            "user_set_note_push": false,
+            "updated_at": "2025-08-21T10:00:00Z"
         })),
         (status = 400, description = "Bad request", body = crate::error::ErrorBody),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),

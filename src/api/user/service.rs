@@ -290,11 +290,19 @@ impl UserService {
             .await?
             .ok_or(AppError::NotFound)?;
 
-            if !user.user_state {
-                return Err(AppError::Forbidden);
-            }
+        if !user.user_state {
+            return Err(AppError::Forbidden);
+        }
 
-        repo::find_users_setting(&st.db, user_id).await
+        let settings = repo::find_users_setting(&st.db, user_id).await?;
+
+        Ok(settings.unwrap_or_else(|| SettingsRes {
+            user_set_language: "ko".to_string(),
+            user_set_timezone: "UTC".to_string(),
+            user_set_note_email: false,
+            user_set_note_push: false,
+            updated_at: chrono::Utc::now(),
+        }))
     }
 
     pub async fn update_users_setting(
