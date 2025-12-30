@@ -135,6 +135,7 @@ impl AuthService {
         // (C) jwt.rs의 create_token을 실제로 사용하도록 service.rs에서 호출
         let access_token_res = jwt::create_token(
             user_info.user_id,
+            &session_id,
             st.cfg.jwt_access_ttl_min,
             &st.cfg.jwt_secret,
         )?;
@@ -294,8 +295,12 @@ impl AuthService {
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // 6) 새 액세스 토큰 생성
-        let access_token_res =
-            jwt::create_token(user_id, st.cfg.jwt_access_ttl_min, &st.cfg.jwt_secret)?;
+        let access_token_res = jwt::create_token(
+            user_id,
+            &session_id,
+            st.cfg.jwt_access_ttl_min,
+            &st.cfg.jwt_secret,
+        )?;
 
         // (A) refresh cookie 설정
         let mut refresh_cookie =
@@ -326,63 +331,51 @@ impl AuthService {
     // 로그아웃 서비스
     pub async fn logout(
         st: &AppState,
-        refresh_token: Option<&str>,
+        user_id: i64,
+        session_id: &str,
         login_ip: String,
         user_agent: Option<String>,
-    ) -> AppResult<LogoutRes> {
-        let Some(refresh_token) = refresh_token else {
-            return Ok(LogoutRes { ok: true }); // No refresh token, no-op
-        };
-
-        let refresh_hash = Self::hash_refresh_token(refresh_token)?;
-
+    ) -> AppResult<()> {
         let mut redis_conn = st
             .redis
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // 1) Redis에서 세션 ID 조회
-        let session_id: String = redis_conn
-            .get(format!("ak:refresh:{}", refresh_hash))
-            .await
-            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
-
-        // 2) Redis에서 사용자 ID 조회
-        let user_id: i64 = match redis_conn.get(format!("ak:session:{}", session_id)).await {
-            Ok(uid) => uid,
-            Err(_) => return Ok(LogoutRes { ok: true }), // Already logged out or invalid, no-op
-        };
-
-        // 3) DB 로그인 상태 업데이트 및 로그 기록 (트랜잭션)
+        // 1) DB 로그인 상태 업데이트 및 로그 기록 (트랜잭션)
         let mut tx = st.db.begin().await?;
-        AuthRepo::update_login_state_by_session_tx(&mut tx, &session_id, "logged_out").await?;
-        AuthRepo::insert_logout_log_tx(
-            &mut tx,
-            user_id,
-            &session_id,
-            &refresh_hash,
-            &login_ip,
-            user_agent.as_deref(),
-        )
-        .await?;
+        let login_record = AuthRepo::find_login_by_session_id_tx(&mut tx, session_id).await?;
+        if let Some(record) = &login_record {
+            AuthRepo::update_login_state_by_session_tx(&mut tx, session_id, "logged_out").await?;
+            AuthRepo::insert_logout_log_tx(
+                &mut tx,
+                user_id,
+                session_id,
+                &record.refresh_hash,
+                &login_ip,
+                user_agent.as_deref(),
+            )
+            .await?;
+        }
         tx.commit().await?;
 
-        // 4) Redis 키 삭제 (커밋 성공 후)
-        let _: () = redis_conn
-            .del(format!("ak:refresh:{}", refresh_hash))
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+        // 2) Redis 키 삭제 (커밋 성공 후)
+        if let Some(record) = login_record {
+            let _: () = redis_conn
+                .del(format!("ak:refresh:{}", record.refresh_hash))
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+        }
         let _: () = redis_conn
             .del(format!("ak:session:{}", session_id))
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
         let _: () = redis_conn
-            .srem(format!("ak:user_sessions:{}", user_id), &session_id)
+            .srem(format!("ak:user_sessions:{}", user_id), session_id)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        Ok(LogoutRes { ok: true })
+        Ok(())
     }
 
     // 모든 세션 로그아웃 서비스

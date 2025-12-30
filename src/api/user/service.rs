@@ -215,7 +215,12 @@ impl UserService {
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        let access = jwt::create_token(user.id, st.cfg.jwt_access_ttl_min, &st.cfg.jwt_secret)?;
+        let access = jwt::create_token(
+            user.id,
+            &session_id,
+            st.cfg.jwt_access_ttl_min,
+            &st.cfg.jwt_secret,
+        )?;
 
         let res = SignupRes {
             user_id: user.id,

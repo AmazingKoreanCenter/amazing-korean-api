@@ -5,6 +5,7 @@ use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use cookie::time::{Duration, OffsetDateTime}; // Explicitly import from cookie crate
 
 use crate::api::auth::dto::{AccessTokenRes, LoginReq, LoginRes, LogoutAllReq, LogoutRes};
+use crate::api::auth::extractor::AuthUser;
 use crate::api::auth::service::AuthService;
 use crate::error::AppError;
 use crate::state::AppState;
@@ -162,25 +163,20 @@ pub async fn refresh(
     path = "/auth/logout",
     tag = "auth",
     responses(
-        (status = 200, description = "Logout successful", body = LogoutRes, example = json!({
-            "ok": true
-        })),
+        (status = 204, description = "Logout successful"),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody)
     ),
     security(("bearerAuth" = []))
 )]
 pub async fn logout(
     State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
     jar: CookieJar,
-) -> Result<(CookieJar, Json<LogoutRes>), AppError> {
+) -> Result<(CookieJar, axum::http::StatusCode), AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
-    let rt = jar
-        .get(&st.cfg.refresh_cookie_name)
-        .map(|c| c.value().to_string());
-
-    let logout_res = AuthService::logout(&st, rt.as_deref(), ip, ua).await?;
+    AuthService::logout(&st, auth_user.sub, &auth_user.session_id, ip, ua).await?;
 
     let refresh_cookie = Cookie::build(Cookie::new(
         st.cfg.refresh_cookie_name.to_string(),
@@ -201,7 +197,7 @@ pub async fn logout(
 
     let jar = jar.add(refresh_cookie);
 
-    Ok((jar, Json(logout_res)))
+    Ok((jar, axum::http::StatusCode::NO_CONTENT))
 }
 
 #[utoipa::path(
