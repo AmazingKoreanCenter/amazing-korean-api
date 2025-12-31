@@ -7,8 +7,8 @@ use crate::error::AppResult;
 use crate::state::AppState;
 
 use super::dto::{
-    CaptionItem, HealthRes, IdParam, VideoDetail, VideoListItem, VideoProgressRes,
-    VideoProgressUpdateReq, VideosQuery,
+    CaptionItem, HealthRes, IdParam, VideoDetail, VideoListReq, VideoListRes, VideoProgressRes,
+    VideoProgressUpdateReq,
 };
 use super::service::VideoService;
 
@@ -28,30 +28,23 @@ pub async fn health() -> impl IntoResponse {
     get,
     path = "/videos",
     params(
-        ("q", Query, description = "Search query for title or subtitle"),
-        ("tag", Query, description = "Filter by tags (multiple values allowed)"),
-        ("lang", Query, description = "Filter by video language"),
-        ("access", Query, description = "Filter by access type (e.g., public, paid)"),
-        ("state", Query, description = "Filter by video state (e.g., open, ready)"),
-        ("limit", Query, description = "Number of items to return (default 20, max 100)"),
-        ("offset", Query, description = "Number of items to skip (default 0)"),
-        ("sort", Query, description = "Sort by field (created_at, popular, complete_rate - only created_at supported for now)"),
-        ("order", Query, description = "Sort order (asc or desc, default desc)"),
+        ("page", Query, description = "Page number (default 1)"),
+        ("per_page", Query, description = "Items per page (default 10, max 100)"),
+        ("sort", Query, description = "Sort by field (created_at_desc, created_at_asc)")
     ),
     responses(
-        (status = 200, description = "List of videos", body = Vec<VideoListItem>)
+        (status = 200, description = "List of videos", body = VideoListRes),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody)
     ),
     tag = "videos"
 )]
 pub async fn list_videos(
     State(state): State<AppState>,
-    Query(_q): Query<VideosQuery>,
-) -> AppResult<Json<Vec<VideoListItem>>> {
-    let _video_service = VideoService::new(VideoRepo::new(state.db.clone()));
-    // TODO: Implement list_videos in VideoService
-    // let videos = video_service.list_videos(&state, q).await?;
-    let videos = vec![]; // Placeholder
-    Ok(Json(videos))
+    Query(req): Query<VideoListReq>,
+) -> AppResult<Json<VideoListRes>> {
+    let video_service = VideoService::new(VideoRepo::new(state.db.clone()));
+    let res = video_service.list_videos(req).await?;
+    Ok(Json(res))
 }
 
 #[utoipa::path(

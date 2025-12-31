@@ -2,10 +2,44 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
+use validator::Validate;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct HealthRes {
     pub ok: bool,
+}
+
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct VideoListReq {
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub per_page: Option<u64>,
+    pub sort: Option<String>,
+}
+
+#[derive(Debug, Serialize, FromRow, ToSchema)]
+pub struct VideoInfo {
+    pub video_id: i64,
+    pub video_url_vimeo: String,
+    pub video_state: String,
+    pub video_access: String,
+    pub tags: Vec<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VideoListMeta {
+    pub total_count: i64,
+    pub total_pages: i64,
+    pub current_page: u64,
+    pub per_page: u64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VideoListRes {
+    pub meta: VideoListMeta,
+    pub data: Vec<VideoInfo>,
 }
 
 // 영상 목록/검색 API의 쿼리 파라미터 표준 묶음 개발시에 사용

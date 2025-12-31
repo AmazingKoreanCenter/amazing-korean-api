@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use sqlx::{postgres::PgRow, PgPool, Row};
 
-use crate::api::video::dto::VideoProgressRes;
+use crate::api::video::dto::{VideoInfo, VideoProgressRes};
 
 pub struct VideoRepo {
     pool: PgPool,
@@ -95,5 +95,69 @@ impl VideoRepo {
         .await?;
 
         Ok(row)
+    }
+
+    pub async fn count_open_videos(&self) -> Result<i64, sqlx::Error> {
+        let count = sqlx::query_scalar::<_, i64>(
+            r#"
+            SELECT COUNT(*)
+            FROM video
+            WHERE video_state = 'open'::video_state_enum
+            "#,
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(count)
+    }
+
+    pub async fn find_open_videos(
+        &self,
+        per_page: u64,
+        offset: u64,
+        sort: Option<&str>,
+    ) -> Result<Vec<VideoInfo>, sqlx::Error> {
+        let order_by = match sort {
+            Some("created_at_asc") => "video_created_at ASC",
+            Some("created_at_desc") | None => "video_created_at DESC",
+            _ => "video_created_at DESC",
+        };
+
+        let sql = format!(
+            r#"
+            SELECT
+                video.video_id::bigint as video_id,
+                video.video_url_vimeo,
+                video.video_state::text as video_state,
+                video.video_access::text as video_access,
+                COALESCE(
+                    array_agg(video_tag.video_tag_key ORDER BY video_tag.video_tag_key)
+                    FILTER (WHERE video_tag.video_tag_key IS NOT NULL),
+                    '{{}}'::varchar[]
+                ) as tags,
+                video.video_created_at as created_at
+            FROM video
+            LEFT JOIN video_tag_map
+                ON video_tag_map.video_id = video.video_id
+            LEFT JOIN video_tag
+                ON video_tag.video_tag_id = video_tag_map.video_tag_id
+            WHERE video.video_state = 'open'::video_state_enum
+            GROUP BY
+                video.video_id,
+                video.video_url_vimeo,
+                video.video_state,
+                video.video_access,
+                video.video_created_at
+            ORDER BY {order_by}
+            LIMIT $1 OFFSET $2
+            "#
+        );
+
+        let rows = sqlx::query_as::<_, VideoInfo>(&sql)
+            .bind(per_page as i64)
+            .bind(offset as i64)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(rows)
     }
 }
