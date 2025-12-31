@@ -4,11 +4,6 @@ use sqlx::{types::Json, FromRow};
 use utoipa::ToSchema;
 use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct HealthRes {
-    pub ok: bool,
-}
-
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct VideoListReq {
     #[validate(range(min = 1))]
@@ -103,16 +98,6 @@ pub struct VideoDetailRes {
     #[schema(value_type = Vec<VideoTagDetail>)]
     pub tags: Json<Vec<VideoTagDetail>>,
     pub created_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Serialize, FromRow, ToSchema)]
-pub struct CaptionItem {
-    pub caption_id: i64,
-    pub lang_code: Option<String>,
-    pub label: Option<String>,
-    pub kind: String,
-    pub is_default: bool,
-    pub is_active: bool,
 }
 
 #[derive(Debug, Serialize, FromRow, ToSchema)]
