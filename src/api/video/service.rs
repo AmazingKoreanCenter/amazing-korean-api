@@ -1,5 +1,6 @@
 use crate::api::video::dto::{
-    VideoListMeta, VideoListReq, VideoListRes, VideoProgressRes, VideoProgressUpdateReq,
+    VideoDetailRes, VideoListMeta, VideoListReq, VideoListRes, VideoProgressRes,
+    VideoProgressUpdateReq,
 };
 use crate::api::video::repo::VideoRepo;
 use crate::error::{AppError, AppResult};
@@ -121,6 +122,11 @@ impl VideoService {
             // DB 함수가 updated_at을 돌려준다고 가정
             last_watched_at: row.try_get("updated_at")?,
         })
+    }
+
+    pub async fn get_video_detail(&self, video_id: i64) -> AppResult<VideoDetailRes> {
+        let video = self.repo.find_video_by_id(video_id).await?;
+        video.ok_or(AppError::NotFound)
     }
 
     pub async fn list_videos(&self, req: VideoListReq) -> AppResult<VideoListRes> {

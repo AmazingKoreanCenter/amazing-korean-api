@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
+use sqlx::{types::Json, FromRow};
 use utoipa::ToSchema;
 use validator::Validate;
 
@@ -88,20 +88,20 @@ pub struct IdParam {
     pub id: i64,
 }
 
-#[derive(Debug, Serialize, FromRow, ToSchema)]
-pub struct VideoDetail {
-    pub video_id: i64,
-    pub video_idx: String,
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct VideoTagDetail {
+    pub key: Option<String>,
     pub title: Option<String>,
     pub subtitle: Option<String>,
-    pub state: String,
-    pub access: String,
-    pub duration_seconds: Option<i32>,
-    pub language: Option<String>,
-    pub thumbnail_url: Option<String>,
-    pub vimeo_video_id: Option<String>,
-    pub tags: Option<Vec<String>>,
-    pub has_captions: Option<bool>,
+}
+
+#[derive(Debug, Serialize, FromRow, ToSchema)]
+pub struct VideoDetailRes {
+    pub video_id: i64,
+    pub video_url_vimeo: String,
+    pub video_state: String,
+    #[schema(value_type = Vec<VideoTagDetail>)]
+    pub tags: Json<Vec<VideoTagDetail>>,
     pub created_at: DateTime<Utc>,
 }
 

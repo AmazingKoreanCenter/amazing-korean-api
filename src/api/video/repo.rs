@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use sqlx::{postgres::PgRow, PgPool, Row};
 
-use crate::api::video::dto::{VideoInfo, VideoProgressRes};
+use crate::api::video::dto::{VideoDetailRes, VideoInfo, VideoProgressRes};
 
 pub struct VideoRepo {
     pool: PgPool,
@@ -108,6 +108,47 @@ impl VideoRepo {
         .fetch_one(&self.pool)
         .await?;
         Ok(count)
+    }
+
+    pub async fn find_video_by_id(
+        &self,
+        video_id: i64,
+    ) -> Result<Option<VideoDetailRes>, sqlx::Error> {
+        let row = sqlx::query_as::<_, VideoDetailRes>(
+            r#"
+            SELECT
+                v.video_id::bigint as video_id,
+                v.video_url_vimeo,
+                v.video_state::text as video_state,
+                COALESCE(
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'key', vt.video_tag_key,
+                            'title', vt.video_tag_title,
+                            'subtitle', vt.video_tag_subtitle
+                        )
+                    ) FILTER (WHERE vt.video_tag_id IS NOT NULL),
+                    '[]'::jsonb
+                ) as tags,
+                v.video_created_at as created_at
+            FROM video v
+            LEFT JOIN video_tag_map vtm
+                ON vtm.video_id = v.video_id
+            LEFT JOIN video_tag vt
+                ON vt.video_tag_id = vtm.video_tag_id
+            WHERE v.video_id = $1
+            GROUP BY
+                v.video_id,
+                v.video_url_vimeo,
+                v.video_state,
+                v.video_created_at
+            "#,
+        )
+        .bind(video_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row)
     }
 
     pub async fn find_open_videos(

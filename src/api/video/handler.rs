@@ -7,8 +7,8 @@ use crate::error::AppResult;
 use crate::state::AppState;
 
 use super::dto::{
-    CaptionItem, HealthRes, IdParam, VideoDetail, VideoListReq, VideoListRes, VideoProgressRes,
-    VideoProgressUpdateReq,
+    CaptionItem, HealthRes, IdParam, VideoDetailRes, VideoListReq, VideoListRes,
+    VideoProgressRes, VideoProgressUpdateReq,
 };
 use super::service::VideoService;
 
@@ -54,7 +54,7 @@ pub async fn list_videos(
         ("id" = i64, Path, description = "Video ID")
     ),
     responses(
-        (status = 200, description = "OK", body = VideoDetail),
+        (status = 200, description = "OK", body = VideoDetailRes),
         (status = 403, description = "Forbidden"),
         (status = 404, description = "Not Found")
     ),
@@ -63,25 +63,9 @@ pub async fn list_videos(
 pub async fn get_video_detail(
     State(state): State<AppState>,
     Path(params): Path<IdParam>,
-) -> AppResult<Json<VideoDetail>> {
-    let _video_service = VideoService::new(VideoRepo::new(state.db.clone()));
-    // TODO: Implement get_video_detail in VideoService
-    // let video = video_service.get_video_detail(&state, params.id).await?;
-    let video = VideoDetail {
-        video_id: params.id,
-        video_idx: "".to_string(),
-        title: Some("".to_string()),
-        subtitle: None,
-        duration_seconds: Some(0),
-        language: Some("en".to_string()),
-        thumbnail_url: Some("".to_string()),
-        state: "open".to_string(),
-        access: "public".to_string(),
-        vimeo_video_id: Some("".to_string()),
-        tags: Some(vec![]),
-        has_captions: Some(false),
-        created_at: chrono::Utc::now(),
-    }; // Placeholder
+) -> AppResult<Json<VideoDetailRes>> {
+    let video_service = VideoService::new(VideoRepo::new(state.db.clone()));
+    let video = video_service.get_video_detail(params.id).await?;
     Ok(Json(video))
 }
 
