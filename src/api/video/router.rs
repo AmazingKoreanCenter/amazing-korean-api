@@ -12,6 +12,6 @@ pub fn router() -> Router<AppState> {
         .route("/{id}/captions", get(handler::list_video_captions))
         .route(
             "/{id}/progress",
-            get(handler::get_video_progress).put(handler::update_video_progress),
+            get(handler::get_video_progress).post(handler::update_video_progress),
         )
 }

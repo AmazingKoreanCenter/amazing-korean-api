@@ -121,7 +121,7 @@ pub async fn get_video_progress(
 }
 
 #[utoipa::path(
-    put,
+    post,
     path = "/videos/{id}/progress",
     params(
         ("id" = i64, Path, description = "Video ID")
@@ -145,7 +145,7 @@ pub async fn update_video_progress(
 ) -> AppResult<Json<VideoProgressRes>> {
     let video_service = VideoService::new(VideoRepo::new(state.db.clone()));
     let progress = video_service
-        .update_video_progress(&state, auth_user.sub, params.id, req)
+        .update_video_progress(auth_user.sub, params.id, req)
         .await?;
     Ok(Json(progress))
 }

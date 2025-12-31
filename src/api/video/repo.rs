@@ -1,4 +1,4 @@
-use sqlx::{postgres::PgRow, PgPool};
+use sqlx::PgPool;
 
 use crate::api::video::dto::{VideoDetailRes, VideoInfo, VideoProgressRes};
 
@@ -45,36 +45,40 @@ impl VideoRepo {
         Ok(row_opt)
     }
 
-    /// DB 함수 호출 기반 업서트: api_upsert_video_progress($user,$video,$progress,$completed,$last,$total)
-    /// 함수가 video_id를 반환하지 않는 경우가 있으므로, 상수 컬럼으로 주입한다.
-    pub async fn upsert_video_progress(
-        pool: &PgPool,
+    pub async fn upsert_progress_log(
+        &self,
         user_id: i64,
         video_id: i64,
-        progress: i32,
-        completed: bool,
-        last_position_seconds: i32,
-        total_duration_seconds: Option<i32>,
-    ) -> Result<PgRow, sqlx::Error> {
-        let row = sqlx::query(
+        progress_rate: i32,
+        is_completed: bool,
+    ) -> Result<VideoProgressRes, sqlx::Error> {
+        let row = sqlx::query_as::<_, VideoProgressRes>(
             r#"
-            SELECT
-              $2::bigint AS video_id,
-              vl.video_log_progress   AS progress,
-              vl.video_log_completed  AS completed,
-              vl.last_position_seconds,
-              vl.total_duration_seconds,
-              vl.updated_at
-            FROM api_upsert_video_progress($1,$2,$3,$4,$5,$6) AS vl
+            INSERT INTO video_log (
+                user_id,
+                video_id,
+                video_progress_log,
+                video_completed_log,
+                video_last_watched_at_log
+            )
+            VALUES ($1, $2, $3, $4, NOW())
+            ON CONFLICT (user_id, video_id) DO UPDATE
+            SET
+                video_progress_log = EXCLUDED.video_progress_log,
+                video_completed_log = EXCLUDED.video_completed_log,
+                video_last_watched_at_log = NOW()
+            RETURNING
+                video_id::bigint as video_id,
+                COALESCE(video_progress_log, 0) AS video_progress_log,
+                video_completed_log,
+                video_last_watched_at_log
             "#,
         )
         .bind(user_id)
         .bind(video_id)
-        .bind(progress)
-        .bind(completed)
-        .bind(last_position_seconds)
-        .bind(total_duration_seconds)
-        .fetch_one(pool)
+        .bind(progress_rate)
+        .bind(is_completed)
+        .fetch_one(&self.pool)
         .await?;
 
         Ok(row)
