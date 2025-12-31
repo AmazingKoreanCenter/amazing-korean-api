@@ -118,11 +118,11 @@ pub struct CaptionItem {
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct VideoProgressRes {
     pub video_id: i64,
-    pub user_id: i64,
-    pub last_position_seconds: Option<i32>,
-    pub total_duration_seconds: Option<i32>,
-    pub progress: Option<i32>,
-    pub completed: bool,
+    #[sqlx(rename = "video_progress_log")]
+    pub progress_rate: i32,
+    #[sqlx(rename = "video_completed_log")]
+    pub is_completed: bool,
+    #[sqlx(rename = "video_last_watched_at_log")]
     pub last_watched_at: Option<DateTime<Utc>>,
 }
 

@@ -5,9 +5,7 @@ use crate::api::video::dto::{
 use crate::api::video::repo::VideoRepo;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
-use chrono::Utc;
 use sqlx::Row;
-use tracing::warn;
 use validator::Validate;
 
 pub struct VideoService {
@@ -35,14 +33,9 @@ impl VideoService {
 
         Ok(progress.unwrap_or_else(|| VideoProgressRes {
             video_id,
-            user_id,
-            last_position_seconds: Some(0),
-            total_duration_seconds: None,
-            progress: Some(0),
-            completed: false,
-            // 기록 없음 GET 기본값은 updated_at/null이 자연스럽지만,
-            // 기존 코드 흐름 유지: 최초 PUT에서 갱신되므로 임시 now() 사용
-            last_watched_at: Some(Utc::now()),
+            progress_rate: 0,
+            is_completed: false,
+            last_watched_at: None,
         }))
     }
 
@@ -87,15 +80,7 @@ impl VideoService {
             req.progress = Some(100);
         }
 
-        // 10분 규칙 warn!
-        if let Some(prev) = self.repo.fetch_video_progress(user_id, video_id).await? {
-            if req.last_position_seconds >= prev.last_position_seconds.unwrap_or(0) + 600 {
-                warn!(
-                    "User {} watched video {} for more than 10 minutes. Previous position: {:?}, New position: {}",
-                    user_id, video_id, prev.last_position_seconds, req.last_position_seconds
-                );
-            }
-        }
+        // 10분 규칙 warn! (video_log에 last_position_seconds가 없으므로 생략)
 
         // 업서트 호출 (repo는 last_position_seconds: i32 수신)
         let progress_val = req.progress.unwrap_or(0);
@@ -112,13 +97,11 @@ impl VideoService {
         )
         .await?;
 
+        let progress_rate: Option<i32> = row.try_get("progress")?;
         Ok(VideoProgressRes {
             video_id: row.try_get("video_id")?,
-            user_id,
-            last_position_seconds: row.try_get("last_position_seconds")?,
-            total_duration_seconds: row.try_get("total_duration_seconds")?,
-            progress: row.try_get("progress")?,
-            completed: row.try_get("completed")?,
+            progress_rate: progress_rate.unwrap_or(0),
+            is_completed: row.try_get("completed")?,
             // DB 함수가 updated_at을 돌려준다고 가정
             last_watched_at: row.try_get("updated_at")?,
         })
