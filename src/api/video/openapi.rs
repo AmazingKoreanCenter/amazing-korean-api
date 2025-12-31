@@ -17,8 +17,10 @@ use super::dto;
     components(
         schemas(
             dto::HealthRes,
-            dto::VideosQuery,
-            dto::VideoListItem,
+            dto::VideoListReq,
+            dto::VideoInfo,
+            dto::VideoListMeta,
+            dto::VideoListRes,
             dto::VideoDetail,
             dto::CaptionItem,
             dto::VideoProgressRes,

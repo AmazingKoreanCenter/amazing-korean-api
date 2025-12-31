@@ -1,10 +1,13 @@
-use crate::api::video::dto::{VideoProgressRes, VideoProgressUpdateReq};
+use crate::api::video::dto::{
+    VideoListMeta, VideoListReq, VideoListRes, VideoProgressRes, VideoProgressUpdateReq,
+};
 use crate::api::video::repo::VideoRepo;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 use chrono::Utc;
 use sqlx::Row;
 use tracing::warn;
+use validator::Validate;
 
 pub struct VideoService {
     repo: VideoRepo,
@@ -117,6 +120,38 @@ impl VideoService {
             completed: row.try_get("completed")?,
             // DB 함수가 updated_at을 돌려준다고 가정
             last_watched_at: row.try_get("updated_at")?,
+        })
+    }
+
+    pub async fn list_videos(&self, req: VideoListReq) -> AppResult<VideoListRes> {
+        if let Err(e) = req.validate() {
+            return Err(AppError::Unprocessable(e.to_string()));
+        }
+
+        let page = req.page.unwrap_or(1);
+        let per_page = req.per_page.unwrap_or(10);
+        let total_count = self.repo.count_open_videos().await?;
+
+        let total_pages = if total_count == 0 {
+            0
+        } else {
+            (total_count + per_page as i64 - 1) / per_page as i64
+        };
+
+        let offset = (page - 1) * per_page;
+        let data = self
+            .repo
+            .find_open_videos(per_page, offset, req.sort.as_deref())
+            .await?;
+
+        Ok(VideoListRes {
+            meta: VideoListMeta {
+                total_count,
+                total_pages,
+                current_page: page,
+                per_page,
+            },
+            data,
         })
     }
 }
