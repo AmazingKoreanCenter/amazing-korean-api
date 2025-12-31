@@ -1,7 +1,6 @@
-use chrono::{DateTime, Utc};
-use sqlx::{postgres::PgRow, PgPool, Row};
+use sqlx::{postgres::PgRow, PgPool};
 
-use crate::api::video::dto::{VideoInfo, VideoProgressRes};
+use crate::api::video::dto::{VideoDetailRes, VideoInfo, VideoProgressRes};
 
 pub struct VideoRepo {
     pool: PgPool,
@@ -27,16 +26,13 @@ impl VideoRepo {
         user_id: i64,
         video_id: i64,
     ) -> Result<Option<VideoProgressRes>, sqlx::Error> {
-        let row_opt = sqlx::query(
+        let row_opt = sqlx::query_as::<_, VideoProgressRes>(
             r#"
             SELECT
-                video_id,
-                user_id,
-                last_position_seconds,
-                total_duration_seconds,
-                video_log_progress AS progress,
-                video_log_completed AS completed,
-                updated_at
+                video_id::bigint as video_id,
+                COALESCE(video_progress_log, 0) AS video_progress_log,
+                video_completed_log,
+                video_last_watched_at_log
             FROM video_log
             WHERE user_id = $1 AND video_id = $2
             "#,
@@ -46,20 +42,7 @@ impl VideoRepo {
         .fetch_optional(&self.pool)
         .await?;
 
-        if let Some(row) = row_opt {
-            let res = VideoProgressRes {
-                video_id: row.try_get::<i64, _>("video_id")?,
-                user_id: row.try_get::<i64, _>("user_id")?,
-                last_position_seconds: row.try_get::<Option<i32>, _>("last_position_seconds")?,
-                total_duration_seconds: row.try_get::<Option<i32>, _>("total_duration_seconds")?,
-                progress: row.try_get::<Option<i32>, _>("progress")?,
-                completed: row.try_get::<bool, _>("completed")?,
-                last_watched_at: row.try_get::<DateTime<Utc>, _>("updated_at").ok(),
-            };
-            Ok(Some(res))
-        } else {
-            Ok(None)
-        }
+        Ok(row_opt)
     }
 
     /// DB 함수 호출 기반 업서트: api_upsert_video_progress($user,$video,$progress,$completed,$last,$total)
@@ -108,6 +91,47 @@ impl VideoRepo {
         .fetch_one(&self.pool)
         .await?;
         Ok(count)
+    }
+
+    pub async fn find_video_by_id(
+        &self,
+        video_id: i64,
+    ) -> Result<Option<VideoDetailRes>, sqlx::Error> {
+        let row = sqlx::query_as::<_, VideoDetailRes>(
+            r#"
+            SELECT
+                v.video_id::bigint as video_id,
+                v.video_url_vimeo,
+                v.video_state::text as video_state,
+                COALESCE(
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'key', vt.video_tag_key,
+                            'title', vt.video_tag_title,
+                            'subtitle', vt.video_tag_subtitle
+                        )
+                    ) FILTER (WHERE vt.video_tag_id IS NOT NULL),
+                    '[]'::jsonb
+                ) as tags,
+                v.video_created_at as created_at
+            FROM video v
+            LEFT JOIN video_tag_map vtm
+                ON vtm.video_id = v.video_id
+            LEFT JOIN video_tag vt
+                ON vt.video_tag_id = vtm.video_tag_id
+            WHERE v.video_id = $1
+            GROUP BY
+                v.video_id,
+                v.video_url_vimeo,
+                v.video_state,
+                v.video_created_at
+            "#,
+        )
+        .bind(video_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row)
     }
 
     pub async fn find_open_videos(
