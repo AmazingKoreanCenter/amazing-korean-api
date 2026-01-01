@@ -53,6 +53,9 @@ impl Modify for SecurityAddon {
         crate::api::video::handler::get_video_progress,
         crate::api::video::handler::update_video_progress,
 
+        // study (user)
+        crate::api::study::handler::list_studies,
+
         // admin - users
         crate::api::admin::user::handler::admin_list_users,
         crate::api::admin::user::handler::admin_get_user,
