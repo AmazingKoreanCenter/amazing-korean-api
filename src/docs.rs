@@ -48,12 +48,13 @@ impl Modify for SecurityAddon {
         crate::api::user::handler::update_settings,
 
         // videos (user)
-        crate::api::video::handler::health,
         crate::api::video::handler::list_videos,
         crate::api::video::handler::get_video_detail,
-        crate::api::video::handler::list_video_captions,
         crate::api::video::handler::get_video_progress,
         crate::api::video::handler::update_video_progress,
+
+        // study (user)
+        crate::api::study::handler::list_studies,
 
         // admin - users
         crate::api::admin::user::handler::admin_list_users,
@@ -104,12 +105,10 @@ impl Modify for SecurityAddon {
             crate::api::user::dto::StudyLangItem,
 
             // videos dto (user)
-            crate::api::video::dto::HealthRes,
             crate::api::video::dto::VideosQuery,
             crate::api::video::dto::VideoListItem,
             crate::api::video::dto::VideoTagDetail,
             crate::api::video::dto::VideoDetailRes,
-            crate::api::video::dto::CaptionItem,
             crate::api::video::dto::VideoProgressRes,
             crate::api::video::dto::VideoProgressUpdateReq,
 

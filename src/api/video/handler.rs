@@ -1,5 +1,5 @@
 use axum::extract::{Path, Query, State};
-use axum::{response::IntoResponse, Json};
+use axum::{Json};
 
 use crate::api::auth::extractor::AuthUser;
 use crate::api::video::repo::VideoRepo;
@@ -7,22 +7,10 @@ use crate::error::AppResult;
 use crate::state::AppState;
 
 use super::dto::{
-    CaptionItem, HealthRes, IdParam, VideoDetailRes, VideoListReq, VideoListRes,
+    IdParam, VideoDetailRes, VideoListReq, VideoListRes,
     VideoProgressRes, VideoProgressUpdateReq,
 };
 use super::service::VideoService;
-
-#[utoipa::path(
-    get,
-    path = "/videos/health",
-    responses(
-        (status = 200, description = "Health check successful", body = HealthRes)
-    ),
-    tag = "videos"
-)]
-pub async fn health() -> impl IntoResponse {
-    Json(HealthRes { ok: true })
-}
 
 #[utoipa::path(
     get,
@@ -69,29 +57,7 @@ pub async fn get_video_detail(
     Ok(Json(video))
 }
 
-#[utoipa::path(
-    get,
-    path = "/videos/{id}/captions",
-    params(
-        ("id" = i64, Path, description = "Video ID")
-    ),
-    responses(
-        (status = 200, description = "OK", body = Vec<CaptionItem>),
-        (status = 403, description = "Forbidden"),
-        (status = 404, description = "Not Found")
-    ),
-    tag = "videos"
-)]
-pub async fn list_video_captions(
-    State(state): State<AppState>,
-    Path(_params): Path<IdParam>,
-) -> AppResult<Json<Vec<CaptionItem>>> {
-    let _video_service = VideoService::new(VideoRepo::new(state.db.clone()));
-    // TODO: Implement list_video_captions in VideoService
-    // let captions = video_service.list_video_captions(&state, params.id).await?;
-    let captions = vec![]; // Placeholder
-    Ok(Json(captions))
-}
+
 
 #[utoipa::path(
     get,
@@ -121,7 +87,7 @@ pub async fn get_video_progress(
 }
 
 #[utoipa::path(
-    put,
+    post,
     path = "/videos/{id}/progress",
     params(
         ("id" = i64, Path, description = "Video ID")
@@ -145,7 +111,7 @@ pub async fn update_video_progress(
 ) -> AppResult<Json<VideoProgressRes>> {
     let video_service = VideoService::new(VideoRepo::new(state.db.clone()));
     let progress = video_service
-        .update_video_progress(&state, auth_user.sub, params.id, req)
+        .update_video_progress(auth_user.sub, params.id, req)
         .await?;
     Ok(Json(progress))
 }

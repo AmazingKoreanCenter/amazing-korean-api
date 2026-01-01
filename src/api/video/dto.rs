@@ -4,11 +4,6 @@ use sqlx::{types::Json, FromRow};
 use utoipa::ToSchema;
 use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct HealthRes {
-    pub ok: bool,
-}
-
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct VideoListReq {
     #[validate(range(min = 1))]
@@ -106,16 +101,6 @@ pub struct VideoDetailRes {
 }
 
 #[derive(Debug, Serialize, FromRow, ToSchema)]
-pub struct CaptionItem {
-    pub caption_id: i64,
-    pub lang_code: Option<String>,
-    pub label: Option<String>,
-    pub kind: String,
-    pub is_default: bool,
-    pub is_active: bool,
-}
-
-#[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct VideoProgressRes {
     pub video_id: i64,
     #[sqlx(rename = "video_progress_log")]
@@ -126,10 +111,8 @@ pub struct VideoProgressRes {
     pub last_watched_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, Validate)]
 pub struct VideoProgressUpdateReq {
-    pub last_position_seconds: i32,
-    pub total_duration_seconds: Option<i32>,
-    pub progress: Option<i32>,
-    pub completed: Option<bool>,
+    #[validate(range(min = 0, max = 100))]
+    pub progress_rate: i32,
 }
