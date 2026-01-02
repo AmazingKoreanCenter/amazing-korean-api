@@ -53,6 +53,9 @@ impl Modify for SecurityAddon {
         crate::api::video::handler::get_video_progress,
         crate::api::video::handler::update_video_progress,
 
+        // lessons (user)
+        crate::api::lesson::handler::list_lessons,
+
         // study (user)
         crate::api::study::handler::list_studies,
         crate::api::study::handler::get_study_task,
@@ -110,6 +113,12 @@ impl Modify for SecurityAddon {
             crate::api::video::dto::VideoDetailRes,
             crate::api::video::dto::VideoProgressRes,
             crate::api::video::dto::VideoProgressUpdateReq,
+
+            // lessons dto
+            crate::api::lesson::dto::LessonListReq,
+            crate::api::lesson::dto::LessonRes,
+            crate::api::lesson::dto::LessonListMeta,
+            crate::api::lesson::dto::LessonListRes,
 
             // studies dto
             crate::api::study::dto::StudyListRes,
