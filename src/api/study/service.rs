@@ -3,7 +3,10 @@ use validator::Validate;
 use crate::error::{AppError, AppResult};
 use crate::types::StudyProgram;
 
-use super::dto::{StudyListMeta, StudyListReq, StudyListRes, StudyTaskDetailRes, SubmitAnswerReq, SubmitAnswerRes};
+use super::dto::{
+    StudyListMeta, StudyListReq, StudyListRes, StudyTaskDetailRes, SubmitAnswerReq,
+    SubmitAnswerRes, TaskStatusRes,
+};
 use super::repo::StudyRepo;
 use crate::types::StudyTaskKind;
 use uuid::Uuid;
@@ -142,6 +145,35 @@ impl StudyService {
             is_correct,
             score,
             correct_answer,
+        })
+    }
+
+    pub async fn get_task_status(&self, user_id: i64, task_id: i64) -> AppResult<TaskStatusRes> {
+        let exists = self.repo.exists_task(task_id).await?;
+        if !exists {
+            return Err(AppError::NotFound);
+        }
+
+        let stats = self.repo.find_task_status_stats(task_id, user_id).await?;
+        let last_attempt = self.repo.find_last_attempt(task_id, user_id).await?;
+
+        let attempts = stats.attempts;
+        let is_solved = stats.is_solved.unwrap_or(false);
+        let best_score = stats.best_score.unwrap_or(0);
+        let (last_score, last_attempt_at) = match last_attempt {
+            Some(last_attempt) => (last_attempt.last_score, Some(last_attempt.last_attempt_at)),
+            None => (0, None),
+        };
+        let progress = if is_solved { 100 } else { 0 };
+
+        Ok(TaskStatusRes {
+            task_id,
+            attempts,
+            is_solved,
+            best_score,
+            last_score,
+            progress,
+            last_attempt_at,
         })
     }
 

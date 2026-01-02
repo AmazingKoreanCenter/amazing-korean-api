@@ -12,4 +12,5 @@ pub fn router() -> Router<AppState> {
         .route("/", get(handler::list_studies))
         .route("/tasks/{id}", get(handler::get_study_task))
         .route("/tasks/{id}/answer", post(handler::submit_answer))
+        .route("/tasks/{id}/status", get(handler::get_task_status))
 }

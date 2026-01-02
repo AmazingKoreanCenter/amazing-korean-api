@@ -94,3 +94,14 @@ pub struct SubmitAnswerRes {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub correct_answer: Option<String>,
 }
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct TaskStatusRes {
+    pub task_id: i64,
+    pub attempts: i64,
+    pub is_solved: bool,
+    pub best_score: i32,
+    pub last_score: i32,
+    pub progress: i32,
+    pub last_attempt_at: Option<DateTime<Utc>>,
+}
