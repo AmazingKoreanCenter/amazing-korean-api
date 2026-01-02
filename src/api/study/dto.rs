@@ -77,3 +77,20 @@ pub struct TypingPayload {
 pub struct VoicePayload {
     pub image_url: Option<String>,
 }
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SubmitAnswerReq {
+    Choice { pick: i32 },
+    Typing { text: String },
+    Voice { audio_url: String },
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct SubmitAnswerRes {
+    pub task_id: i64,
+    pub is_correct: bool,
+    pub score: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub correct_answer: Option<String>,
+}

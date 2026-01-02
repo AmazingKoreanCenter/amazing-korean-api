@@ -1,9 +1,10 @@
-use sqlx::{PgPool, Postgres, QueryBuilder};
+use sqlx::{types::Json, PgPool, Postgres, QueryBuilder};
+use uuid::Uuid;
 
 use super::dto::{
     ChoicePayload, StudyListItem, StudyTaskDetailRes, TaskPayload, TypingPayload, VoicePayload,
 };
-use crate::types::{StudyProgram, StudyTaskKind};
+use crate::types::{StudyProgram, StudyTaskKind, StudyTaskLogAction};
 
 pub struct StudyRepo {
     pool: PgPool,
@@ -101,6 +102,120 @@ impl StudyRepo {
         let detail = row.into_detail()?;
         Ok(detail)
     }
+
+    pub async fn find_answer_key(
+        &self,
+        task_id: i64,
+    ) -> Result<Option<StudyTaskAnswerKey>, sqlx::Error> {
+        let row = sqlx::query_as::<_, StudyTaskAnswerKey>(
+            r#"
+            SELECT
+                st.study_task_id::bigint as task_id,
+                st.study_task_kind as kind,
+                c.study_task_choice_correct as choice_correct,
+                t.study_task_typing_answer as typing_answer,
+                v.study_task_voice_answer as voice_answer
+            FROM study_task st
+            LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
+            LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
+            LEFT JOIN study_task_voice v ON v.study_task_id = st.study_task_id
+            WHERE st.study_task_id = $1
+            "#,
+        )
+        .bind(task_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row)
+    }
+
+    pub async fn find_login_id_by_session(
+        &self,
+        session_id: Uuid,
+    ) -> Result<Option<i64>, sqlx::Error> {
+        let login_id = sqlx::query_scalar::<_, i64>(
+            r#"
+            SELECT login_id
+            FROM login
+            WHERE login_session_id = $1
+            "#,
+        )
+        .bind(session_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(login_id)
+    }
+
+    pub async fn record_submission_tx(
+        &self,
+        task_id: i64,
+        user_id: i64,
+        login_id: i64,
+        score: i32,
+        is_correct: bool,
+        payload: serde_json::Value,
+    ) -> Result<i32, sqlx::Error> {
+        let mut tx = self.pool.begin().await?;
+
+        let try_no = sqlx::query_scalar::<_, i32>(
+            r#"
+            INSERT INTO study_task_status (
+                study_task_id,
+                user_id,
+                study_task_status_try,
+                study_task_status_best,
+                study_task_status_completed,
+                study_task_status_last_answer
+            )
+            VALUES ($1, $2, 1, $3, true, NOW())
+            ON CONFLICT (study_task_id, user_id) DO UPDATE
+            SET
+                study_task_status_try = study_task_status.study_task_status_try + 1,
+                study_task_status_best = GREATEST(
+                    study_task_status.study_task_status_best,
+                    EXCLUDED.study_task_status_best
+                ),
+                study_task_status_completed = true,
+                study_task_status_last_answer = NOW()
+            RETURNING study_task_status_try
+            "#,
+        )
+        .bind(task_id)
+        .bind(user_id)
+        .bind(score)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        sqlx::query(
+            r#"
+            INSERT INTO study_task_log (
+                study_task_id,
+                user_id,
+                login_id,
+                study_task_action_log,
+                study_task_try_no_log,
+                study_task_score_log,
+                study_task_is_correct_log,
+                study_task_payload_log
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            "#,
+        )
+        .bind(task_id)
+        .bind(user_id)
+        .bind(login_id)
+        .bind(StudyTaskLogAction::Answer)
+        .bind(try_no)
+        .bind(score)
+        .bind(is_correct)
+        .bind(Json(payload))
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        Ok(try_no)
+    }
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -121,6 +236,16 @@ struct StudyTaskDetailRow {
     voice_question: Option<String>,
     voice_audio_url: Option<String>,
     voice_image_url: Option<String>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+#[allow(dead_code)]
+pub struct StudyTaskAnswerKey {
+    pub task_id: i64,
+    pub kind: StudyTaskKind,
+    pub choice_correct: Option<i32>,
+    pub typing_answer: Option<String>,
+    pub voice_answer: Option<String>,
 }
 
 impl StudyTaskDetailRow {
