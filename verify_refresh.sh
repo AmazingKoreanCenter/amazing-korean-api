@@ -3,7 +3,7 @@
 
 API="${API:-http://localhost:3000}"
 EMAIL="${EMAIL:-KKR@KKR.com}"
-PASS="${PASS:-rudfbs1234}"
+PASS="${PASS:-password123!}"
 REDIS_CONTAINER="${REDIS_CONTAINER:-amk-redis}"
 
 set -euo pipefail

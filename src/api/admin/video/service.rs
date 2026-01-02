@@ -31,7 +31,3 @@ pub async fn create_video(
 
     repo::create_video(&st.db, &req, &state_s, &access_s, actor_user_id).await
 }
-
-pub async fn delete_video(st: &AppState, video_id: i64, actor_user_id: i64) -> AppResult<()> {
-    repo::soft_delete_video(&st.db, video_id, actor_user_id).await
-}

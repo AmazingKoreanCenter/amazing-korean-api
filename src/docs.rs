@@ -68,16 +68,7 @@ impl Modify for SecurityAddon {
         // admin - videos
         crate::api::admin::video::handler::create_video_handler,   
         crate::api::admin::video::handler::admin_update_video,     
-        crate::api::admin::video::handler::admin_delete_video,     
 
-        // admin - video captions
-        crate::api::admin::video::caption::handler::admin_create_caption, 
-        crate::api::admin::video::caption::handler::admin_update_caption, 
-        crate::api::admin::video::caption::handler::admin_delete_caption,  
-
-        // admin - video tags
-        crate::api::admin::video::tag::handler::admin_add_tags,
-        crate::api::admin::video::tag::handler::admin_remove_tags,
 
         // admin - video stats
         crate::api::admin::video::stats::handler::admin_get_video_daily_stats,
@@ -141,16 +132,6 @@ impl Modify for SecurityAddon {
             crate::api::admin::video::dto::VideoRes,
             crate::api::admin::video::dto::VideoUpdateReq,
 
-            // admin - video captions dto
-            crate::api::admin::video::caption::dto::CaptionKind,
-            crate::api::admin::video::caption::dto::CaptionCreateReq,
-            crate::api::admin::video::caption::dto::CaptionUpdateReq,
-            crate::api::admin::video::caption::dto::CaptionRes,
-
-            // admin - video tags dto
-            crate::api::admin::video::tag::dto::TagsModifyReq,
-            crate::api::admin::video::tag::dto::TagItem,
-            crate::api::admin::video::tag::dto::VideoTagsRes,
 
             // admin - video stats dto
             crate::api::admin::video::stats::dto::DailyStatsQuery,
