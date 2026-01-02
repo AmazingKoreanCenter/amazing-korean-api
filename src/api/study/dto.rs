@@ -4,7 +4,7 @@ use sqlx::FromRow;
 use utoipa::ToSchema;
 use validator::Validate;
 
-use crate::types::StudyProgram;
+use crate::types::{StudyProgram, StudyTaskKind};
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct StudyListReq {
@@ -38,4 +38,42 @@ pub struct StudyListMeta {
 pub struct StudyListRes {
     pub data: Vec<StudyListItem>,
     pub meta: StudyListMeta,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct StudyTaskDetailRes {
+    pub task_id: i64,
+    pub study_id: i64,
+    pub kind: StudyTaskKind,
+    pub seq: i32,
+    pub question: Option<String>,
+    pub media_url: Option<String>,
+    pub payload: TaskPayload,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(untagged)]
+pub enum TaskPayload {
+    Choice(ChoicePayload),
+    Typing(TypingPayload),
+    Voice(VoicePayload),
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ChoicePayload {
+    pub choice_1: String,
+    pub choice_2: String,
+    pub choice_3: String,
+    pub choice_4: String,
+    pub image_url: Option<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct TypingPayload {
+    pub image_url: Option<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VoicePayload {
+    pub image_url: Option<String>,
 }

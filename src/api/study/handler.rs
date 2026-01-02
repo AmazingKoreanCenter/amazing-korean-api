@@ -1,11 +1,11 @@
-use axum::extract::{Query, State};
+use axum::extract::{Path, Query, State};
 use axum::Json;
 
 use crate::api::study::repo::StudyRepo;
 use crate::error::AppResult;
 use crate::state::AppState;
 
-use super::dto::{StudyListReq, StudyListRes};
+use super::dto::{StudyListReq, StudyListRes, StudyTaskDetailRes};
 use super::service::StudyService;
 
 #[utoipa::path(
@@ -30,5 +30,26 @@ pub async fn list_studies(
 ) -> AppResult<Json<StudyListRes>> {
     let service = StudyService::new(StudyRepo::new(state.db.clone()));
     let res = service.list_studies(req).await?;
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/studies/tasks/{id}",
+    params(
+        ("id" = i64, Path, description = "Study Task ID")
+    ),
+    responses(
+        (status = 200, description = "Study task detail", body = StudyTaskDetailRes),
+        (status = 404, description = "Not Found", body = crate::error::ErrorBody)
+    ),
+    tag = "study"
+)]
+pub async fn get_study_task(
+    State(state): State<AppState>,
+    Path(task_id): Path<i64>,
+) -> AppResult<Json<StudyTaskDetailRes>> {
+    let service = StudyService::new(StudyRepo::new(state.db.clone()));
+    let res = service.get_task_detail(task_id).await?;
     Ok(Json(res))
 }

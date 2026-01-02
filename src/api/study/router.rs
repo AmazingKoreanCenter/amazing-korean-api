@@ -5,5 +5,7 @@ use crate::state::AppState;
 use super::handler;
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/", get(handler::list_studies))
+    Router::new()
+        .route("/", get(handler::list_studies))
+        .route("/tasks/{id}", get(handler::get_study_task))
 }

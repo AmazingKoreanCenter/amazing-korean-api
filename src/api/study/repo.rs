@@ -1,7 +1,9 @@
 use sqlx::{PgPool, Postgres, QueryBuilder};
 
-use super::dto::StudyListItem;
-use crate::types::StudyProgram;
+use super::dto::{
+    ChoicePayload, StudyListItem, StudyTaskDetailRes, TaskPayload, TypingPayload, VoicePayload,
+};
+use crate::types::{StudyProgram, StudyTaskKind};
 
 pub struct StudyRepo {
     pool: PgPool,
@@ -56,5 +58,122 @@ impl StudyRepo {
             .fetch_all(&self.pool)
             .await?;
         Ok(rows)
+    }
+
+    pub async fn find_task_detail(
+        &self,
+        task_id: i64,
+    ) -> Result<Option<StudyTaskDetailRes>, sqlx::Error> {
+        let row = sqlx::query_as::<_, StudyTaskDetailRow>(
+            r#"
+            SELECT
+                st.study_task_id::bigint as task_id,
+                st.study_id::bigint as study_id,
+                st.study_task_kind as kind,
+                st.study_task_seq as seq,
+                c.study_task_choice_question as choice_question,
+                c.study_task_choice_1 as choice_1,
+                c.study_task_choice_2 as choice_2,
+                c.study_task_choice_3 as choice_3,
+                c.study_task_choice_4 as choice_4,
+                c.study_task_choice_audio_url as choice_audio_url,
+                c.study_task_choice_image_url as choice_image_url,
+                t.study_task_typing_question as typing_question,
+                t.study_task_typing_image_url as typing_image_url,
+                v.study_task_voice_question as voice_question,
+                v.study_task_voice_audio_url as voice_audio_url,
+                v.study_task_voice_image_url as voice_image_url
+            FROM study_task st
+            LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
+            LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
+            LEFT JOIN study_task_voice v ON v.study_task_id = st.study_task_id
+            WHERE st.study_task_id = $1
+            "#,
+        )
+        .bind(task_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let Some(row) = row else {
+            return Ok(None);
+        };
+
+        let detail = row.into_detail()?;
+        Ok(detail)
+    }
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct StudyTaskDetailRow {
+    task_id: i64,
+    study_id: i64,
+    kind: StudyTaskKind,
+    seq: i32,
+    choice_question: Option<String>,
+    choice_1: Option<String>,
+    choice_2: Option<String>,
+    choice_3: Option<String>,
+    choice_4: Option<String>,
+    choice_audio_url: Option<String>,
+    choice_image_url: Option<String>,
+    typing_question: Option<String>,
+    typing_image_url: Option<String>,
+    voice_question: Option<String>,
+    voice_audio_url: Option<String>,
+    voice_image_url: Option<String>,
+}
+
+impl StudyTaskDetailRow {
+    fn into_detail(self) -> Result<Option<StudyTaskDetailRes>, sqlx::Error> {
+        let (question, media_url, payload) = match self.kind {
+            StudyTaskKind::Choice => {
+                let Some(choice_1) = self.choice_1 else {
+                    return Ok(None);
+                };
+                let Some(choice_2) = self.choice_2 else {
+                    return Ok(None);
+                };
+                let Some(choice_3) = self.choice_3 else {
+                    return Ok(None);
+                };
+                let Some(choice_4) = self.choice_4 else {
+                    return Ok(None);
+                };
+
+                let payload = TaskPayload::Choice(ChoicePayload {
+                    choice_1,
+                    choice_2,
+                    choice_3,
+                    choice_4,
+                    image_url: self.choice_image_url,
+                });
+
+                (self.choice_question, self.choice_audio_url, payload)
+            }
+            StudyTaskKind::Typing => {
+                let payload = TaskPayload::Typing(TypingPayload {
+                    image_url: self.typing_image_url,
+                });
+
+                (self.typing_question, None, payload)
+            }
+            StudyTaskKind::Voice => {
+                let payload = TaskPayload::Voice(VoicePayload {
+                    image_url: self.voice_image_url,
+                });
+
+                (self.voice_question, self.voice_audio_url, payload)
+            }
+        };
+
+        Ok(Some(StudyTaskDetailRes {
+            task_id: self.task_id,
+            study_id: self.study_id,
+            kind: self.kind,
+            seq: self.seq,
+            question,
+            media_url,
+            payload,
+        }))
     }
 }
