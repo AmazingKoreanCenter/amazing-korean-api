@@ -5,8 +5,8 @@ use validator::Validate;
 
 #[derive(Serialize, Deserialize, Validate, ToSchema)]
 #[schema(example = json!({
-    "email": "test@example.com",
-    "password": "password123",
+    "email": "kkr@kkr",
+    "password": "password123!",
     "device": "web",
     "browser": "chrome",
     "os": "linux",

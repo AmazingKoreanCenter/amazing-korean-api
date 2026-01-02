@@ -57,6 +57,8 @@ impl Modify for SecurityAddon {
         crate::api::study::handler::list_studies,
         crate::api::study::handler::get_study_task,
         crate::api::study::handler::submit_answer,
+        crate::api::study::handler::get_task_status,
+        crate::api::study::handler::get_task_explanation,
 
         // admin - users
         crate::api::admin::user::handler::admin_list_users,
@@ -126,6 +128,8 @@ impl Modify for SecurityAddon {
             crate::api::study::dto::TaskPayload,
             crate::api::study::dto::SubmitAnswerReq,
             crate::api::study::dto::SubmitAnswerRes,
+            crate::api::study::dto::TaskStatusRes,
+            crate::api::study::dto::TaskExplainRes,
 
             // admin - users dto
             crate::api::admin::user::dto::AdminUserRes,

@@ -47,3 +47,37 @@
 ```bash
 # 구현한 기능을 검증할 수 있는 cURL 명령어
 ```
+
+## 🔄 AMK API Development Standard Operating Procedure (SOP)
+
+모든 Phase 작업 시 아래 5단계를 엄격하게 준수한다.
+
+### Step 1: Spec & Context Analysis (목표 및 스펙 확인)
+- **Source:** `docs/AMK_API_MASTER.md`의 해당 Phase 테이블 참조.
+- **Pre-check:** DB 스키마 및 데이터 상태 사전 검증 (SQL 조회 등).
+- **Goal:** 엔드포인트(URL, Method), 핵심 로직(Validation, Auth), 트랜잭션 필요 여부 파악.
+
+### Step 2: Generate Prompt Specification File (프롬프트 명세서 생성)
+- **Action:** 완결된 하나의 마크다운 파일(`.md`) 생성.
+- **Naming Convention:** `[Phase]-[Num].[Method]_[FeatureName].md` (예: `4-4.GET_study_task_status.md`).
+- **Required Sections (Strict):**
+  1. **ROLE & OBJECTIVE:** 역할 및 구현 목표.
+  2. **CONTEXT (SSOT):** 참조 문서 및 비즈니스 로직(Validation, Aggregation 등).
+  3. **CONTRACT:** Request/Response DTO 구조(JSON) 명세.
+  4. **IMPLEMENTATION STEPS:** 작업 순서 명시 (DTO → Repo → Service → Handler → Router → Docs).
+  5. **FILE PATCHES:** 수정 대상 파일 목록.
+  6. **cURL SMOKE TEST:** 구현 즉시 실행 가능한 테스트 명령어.
+
+### Step 3: Trigger Execution (실행 명령 전달)
+- **Action:** 채팅창에 중복 설명 없이, 파일을 참조(`@`)하여 실행만 지시.
+- **Prompt Format:**
+  > "Please implement the feature described in @[FILENAME]. Follow the implementation steps, business logic, and file structure defined in the specification strictly."
+
+### Step 4: Verification & Troubleshooting (검증 및 트러블슈팅)
+- **Action:** 작성된 코드를 `cURL`로 테스트 수행.
+- **Loop:** 컴파일 에러나 런타임 에러(500, 4xx) 발생 시 원인 분석 및 수정 반복.
+
+### Step 5: Retrospective & Issue Logging (회고 및 이슈 정리)
+- **Action:** 기능 구현 완료 후, 해당 Phase에서 발생한 주요 이슈와 해결책 정리.
+- **Format:** Markdown 형식으로 에러 메시지, 원인, 해결 방법을 기록.
+- **Goal:** 동일한 실수 반복 방지 및 컨텍스트 강화.
