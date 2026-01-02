@@ -3,8 +3,10 @@ use validator::Validate;
 use crate::error::{AppError, AppResult};
 use crate::types::StudyProgram;
 
-use super::dto::{StudyListMeta, StudyListReq, StudyListRes, StudyTaskDetailRes};
+use super::dto::{StudyListMeta, StudyListReq, StudyListRes, StudyTaskDetailRes, SubmitAnswerReq, SubmitAnswerRes};
 use super::repo::StudyRepo;
+use crate::types::StudyTaskKind;
+use uuid::Uuid;
 
 pub struct StudyService {
     repo: StudyRepo,
@@ -57,6 +59,94 @@ impl StudyService {
             .ok_or(AppError::NotFound)?;
 
         Ok(task)
+    }
+
+    pub async fn submit_answer(
+        &self,
+        user_id: i64,
+        session_id: &str,
+        task_id: i64,
+        req: SubmitAnswerReq,
+    ) -> AppResult<SubmitAnswerRes> {
+        let answer_key = self
+            .repo
+            .find_answer_key(task_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        let session_uuid = Uuid::parse_str(session_id)
+            .map_err(|_| AppError::Unauthorized("Invalid session".into()))?;
+        let login_id = self
+            .repo
+            .find_login_id_by_session(session_uuid)
+            .await?
+            .ok_or_else(|| AppError::Unauthorized("Invalid session".into()))?;
+
+        let (is_correct, score, correct_answer, payload) = match (answer_key.kind, req) {
+            (StudyTaskKind::Choice, SubmitAnswerReq::Choice { pick }) => {
+                if !(1..=4).contains(&pick) {
+                    return Err(AppError::Unprocessable(
+                        "choice pick must be between 1 and 4".into(),
+                    ));
+                }
+                let correct = answer_key
+                    .choice_correct
+                    .ok_or_else(|| AppError::Internal("choice answer missing".into()))?;
+                let is_correct = pick == correct;
+                let score = if is_correct { 100 } else { 0 };
+                let correct_answer = if is_correct {
+                    None
+                } else {
+                    Some(correct.to_string())
+                };
+                let payload = serde_json::json!({ "selected": pick });
+
+                (is_correct, score, correct_answer, payload)
+            }
+            (StudyTaskKind::Typing, SubmitAnswerReq::Typing { text }) => {
+                if text.trim().is_empty() {
+                    return Err(AppError::BadRequest("text is empty".into()));
+                }
+                let answer = answer_key
+                    .typing_answer
+                    .ok_or_else(|| AppError::Internal("typing answer missing".into()))?;
+                let normalized_input = Self::normalize_typing(&text);
+                let normalized_answer = Self::normalize_typing(&answer);
+                let is_correct = normalized_input == normalized_answer;
+                let score = if is_correct { 100 } else { 0 };
+                let correct_answer = if is_correct { None } else { Some(answer) };
+                let payload = serde_json::json!({ "typed": text });
+
+                (is_correct, score, correct_answer, payload)
+            }
+            (StudyTaskKind::Voice, SubmitAnswerReq::Voice { audio_url }) => {
+                if audio_url.trim().is_empty() {
+                    return Err(AppError::BadRequest("audio_url is empty".into()));
+                }
+                let payload = serde_json::json!({ "audio_url": audio_url });
+                (true, 100, None, payload)
+            }
+            _ => {
+                return Err(AppError::Unprocessable(
+                    "task kind does not match submission".into(),
+                ))
+            }
+        };
+
+        self.repo
+            .record_submission_tx(task_id, user_id, login_id, score, is_correct, payload)
+            .await?;
+
+        Ok(SubmitAnswerRes {
+            task_id,
+            is_correct,
+            score,
+            correct_answer,
+        })
+    }
+
+    fn normalize_typing(text: &str) -> String {
+        text.split_whitespace().collect::<String>()
     }
 
     fn parse_program(raw: Option<&str>) -> AppResult<Option<StudyProgram>> {

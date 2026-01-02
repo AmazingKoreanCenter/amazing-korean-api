@@ -56,6 +56,7 @@ impl Modify for SecurityAddon {
         // study (user)
         crate::api::study::handler::list_studies,
         crate::api::study::handler::get_study_task,
+        crate::api::study::handler::submit_answer,
 
         // admin - users
         crate::api::admin::user::handler::admin_list_users,
@@ -117,12 +118,14 @@ impl Modify for SecurityAddon {
             crate::api::video::dto::VideoProgressRes,
             crate::api::video::dto::VideoProgressUpdateReq,
 
-            // videos dto
+            // studies dto
             crate::api::study::dto::StudyListRes,
             crate::api::study::dto::StudyListMeta,
             crate::api::study::dto::StudyListItem,
             crate::api::study::dto::StudyTaskDetailRes,
             crate::api::study::dto::TaskPayload,
+            crate::api::study::dto::SubmitAnswerReq,
+            crate::api::study::dto::SubmitAnswerRes,
 
             // admin - users dto
             crate::api::admin::user::dto::AdminUserRes,
