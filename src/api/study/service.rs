@@ -3,7 +3,7 @@ use validator::Validate;
 use crate::error::{AppError, AppResult};
 use crate::types::StudyProgram;
 
-use super::dto::{StudyListMeta, StudyListReq, StudyListRes};
+use super::dto::{StudyListMeta, StudyListReq, StudyListRes, StudyTaskDetailRes};
 use super::repo::StudyRepo;
 
 pub struct StudyService {
@@ -47,6 +47,16 @@ impl StudyService {
                 total_pages,
             },
         })
+    }
+
+    pub async fn get_task_detail(&self, task_id: i64) -> AppResult<StudyTaskDetailRes> {
+        let task = self
+            .repo
+            .find_task_detail(task_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        Ok(task)
     }
 
     fn parse_program(raw: Option<&str>) -> AppResult<Option<StudyProgram>> {
