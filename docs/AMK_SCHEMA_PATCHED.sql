@@ -380,7 +380,7 @@ CREATE TABLE "STUDY_TASK_VOICE" (
   "study_task_voice_image_url" text
 );
 
-CREATE TABLE "STUDY_EXPLAIN" (
+CREATE TABLE "STUDY_TASK_EXPLAIN" (
   "study_task_id" int NOT NULL,
   "explain_lang" user_set_language_enum NOT NULL DEFAULT 'ko',
   "explain_title" varchar(120),

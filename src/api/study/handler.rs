@@ -8,7 +8,7 @@ use crate::state::AppState;
 
 use super::dto::{
     StudyListReq, StudyListRes, StudyTaskDetailRes, SubmitAnswerReq, SubmitAnswerRes,
-    TaskStatusRes,
+    TaskStatusRes, TaskExplainRes,
 };
 use super::service::StudyService;
 
@@ -109,5 +109,32 @@ pub async fn get_task_status(
 ) -> AppResult<Json<TaskStatusRes>> {
     let service = StudyService::new(StudyRepo::new(state.db.clone()));
     let res = service.get_task_status(auth_user.sub, task_id).await?;
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/studies/tasks/{id}/explain",
+    params(
+        ("id" = i64, Path, description = "Study Task ID")
+    ),
+    responses(
+        (status = 200, description = "Task explanation", body = TaskExplainRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 404, description = "Not Found", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = [])),
+    tag = "study"
+)]
+pub async fn get_task_explanation(
+    State(state): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(task_id): Path<i64>,
+) -> AppResult<Json<TaskExplainRes>> {
+    let service = StudyService::new(StudyRepo::new(state.db.clone()));
+    let res = service
+        .get_task_explanation(auth_user.sub, task_id)
+        .await?;
     Ok(Json(res))
 }

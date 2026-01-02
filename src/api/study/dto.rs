@@ -105,3 +105,10 @@ pub struct TaskStatusRes {
     pub progress: i32,
     pub last_attempt_at: Option<DateTime<Utc>>,
 }
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct TaskExplainRes {
+    pub task_id: i64,
+    pub explanation: Option<String>,
+    pub resources: Vec<String>,
+}

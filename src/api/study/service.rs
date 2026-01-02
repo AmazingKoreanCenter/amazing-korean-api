@@ -5,7 +5,7 @@ use crate::types::StudyProgram;
 
 use super::dto::{
     StudyListMeta, StudyListReq, StudyListRes, StudyTaskDetailRes, SubmitAnswerReq,
-    SubmitAnswerRes, TaskStatusRes,
+    SubmitAnswerRes, TaskStatusRes, TaskExplainRes,
 };
 use super::repo::StudyRepo;
 use crate::types::StudyTaskKind;
@@ -174,6 +174,35 @@ impl StudyService {
             last_score,
             progress,
             last_attempt_at,
+        })
+    }
+
+    pub async fn get_task_explanation(
+        &self,
+        user_id: i64,
+        task_id: i64,
+    ) -> AppResult<TaskExplainRes> {
+        let has_attempted = self.repo.has_attempted(task_id, user_id).await?;
+        if !has_attempted {
+            return Err(AppError::Forbidden);
+        }
+
+        let explanation = self
+            .repo
+            .find_task_explanation(task_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        let resources = explanation
+            .explain_media_url
+            .clone()
+            .map(|url| vec![url])
+            .unwrap_or_default();
+
+        Ok(TaskExplainRes {
+            task_id: explanation.task_id,
+            explanation: explanation.explain_text,
+            resources,
         })
     }
 

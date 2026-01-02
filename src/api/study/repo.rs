@@ -197,6 +197,52 @@ impl StudyRepo {
         Ok(attempt)
     }
 
+    pub async fn has_attempted(
+        &self,
+        task_id: i64,
+        user_id: i64,
+    ) -> Result<bool, sqlx::Error> {
+        let attempted = sqlx::query_scalar::<_, bool>(
+            r#"
+            SELECT EXISTS(
+                SELECT 1
+                FROM study_task_log
+                WHERE study_task_id = $1
+                  AND user_id = $2
+                  AND study_task_action_log = $3
+            )
+            "#,
+        )
+        .bind(task_id)
+        .bind(user_id)
+        .bind(StudyTaskLogAction::Answer)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(attempted)
+    }
+
+    pub async fn find_task_explanation(
+        &self,
+        task_id: i64,
+    ) -> Result<Option<TaskExplanationRow>, sqlx::Error> {
+        let row = sqlx::query_as::<_, TaskExplanationRow>(
+            r#"
+            SELECT
+                study_task_id::bigint as task_id,
+                explain_text,
+                explain_media_url
+            FROM study_task_explain
+            WHERE study_task_id = $1
+            "#,
+        )
+        .bind(task_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row)
+    }
+
     pub async fn find_login_id_by_session(
         &self,
         session_id: Uuid,
@@ -327,6 +373,13 @@ pub struct TaskStatusStats {
 pub struct TaskLastAttempt {
     pub last_score: i32,
     pub last_attempt_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+pub struct TaskExplanationRow {
+    pub task_id: i64,
+    pub explain_text: Option<String>,
+    pub explain_media_url: Option<String>,
 }
 
 impl StudyTaskDetailRow {
