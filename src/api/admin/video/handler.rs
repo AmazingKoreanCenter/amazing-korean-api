@@ -6,8 +6,6 @@ use axum::{
 #[allow(unused_imports)] // Used in admin_update_video
 use utoipa::ToSchema;
 
-#[allow(unused_imports)] // Used in admin_delete_video
-use super::service;
 use crate::api::admin::video::dto::{VideoCreateReq, VideoRes};
 #[allow(unused_imports)] // Used in return type
 use crate::error::{AppError, AppResult};
@@ -32,28 +30,6 @@ pub async fn create_video_handler(
     let actor_user_id = 0;
     let res = super::service::create_video(&st, req, actor_user_id).await?;
     Ok((StatusCode::CREATED, Json(res)))
-}
-
-/// 소프트 삭제
-#[utoipa::path(
-    delete,
-    path = "/admin/videos/{video_id}",
-    tag = "admin",
-    params(
-        ("video_id" = i64, Path, description = "Video ID")
-    ),
-    responses(
-        (status = 204, description = "Soft deleted (idempotent)"),
-        (status = 404, description = "Video not found")
-    )
-)]
-pub async fn admin_delete_video(
-    State(st): State<AppState>,
-    Path(video_id): Path<i64>,
-) -> Result<StatusCode, AppError> {
-    let actor_user_id = 0; // TODO: claims.sub
-    super::service::delete_video(&st, video_id, actor_user_id).await?;
-    Ok(StatusCode::NO_CONTENT)
 }
 
 // Placeholder for B2: admin_update_video
