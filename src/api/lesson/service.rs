@@ -2,7 +2,7 @@ use crate::error::{AppError, AppResult};
 
 use super::dto::{
     LessonDetailReq, LessonDetailRes, LessonItemsReq, LessonItemsRes, LessonListMeta, LessonListReq,
-    LessonListRes,
+    LessonListRes, LessonProgressRes,
 };
 use super::repo::LessonRepo;
 
@@ -142,5 +142,24 @@ impl LessonService {
                 per_page,
             },
         })
+    }
+
+    pub async fn get_lesson_progress(
+        &self,
+        user_id: i64,
+        lesson_id: i64,
+    ) -> AppResult<LessonProgressRes> {
+        let exists = self.repo.exists_lesson(lesson_id).await?;
+        if !exists {
+            return Err(AppError::NotFound);
+        }
+
+        let progress = self.repo.find_progress(lesson_id, user_id).await?;
+
+        Ok(progress.unwrap_or(LessonProgressRes {
+            percent: 0,
+            last_seq: None,
+            updated_at: None,
+        }))
     }
 }

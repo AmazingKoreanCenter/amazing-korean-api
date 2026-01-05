@@ -1,11 +1,13 @@
 use axum::extract::{Path, Query, State};
 use axum::Json;
 
+use crate::api::auth::extractor::AuthUser;
 use crate::error::AppResult;
 use crate::state::AppState;
 
 use super::dto::{
     LessonDetailReq, LessonDetailRes, LessonItemsReq, LessonItemsRes, LessonListReq, LessonListRes,
+    LessonProgressRes,
 };
 use super::repo::LessonRepo;
 use super::service::LessonService;
@@ -84,5 +86,31 @@ pub async fn get_lesson_items(
 ) -> AppResult<Json<LessonItemsRes>> {
     let service = LessonService::new(LessonRepo::new(state.db.clone()));
     let res = service.get_lesson_items(lesson_id, req).await?;
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/lessons/{id}/progress",
+    params(
+        ("id" = i64, Path, description = "Lesson ID")
+    ),
+    responses(
+        (status = 200, description = "Lesson progress", body = LessonProgressRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 404, description = "Not Found", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = [])),
+    tag = "lesson"
+)]
+pub async fn get_lesson_progress(
+    State(state): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(lesson_id): Path<i64>,
+) -> AppResult<Json<LessonProgressRes>> {
+    let service = LessonService::new(LessonRepo::new(state.db.clone()));
+    let res = service
+        .get_lesson_progress(auth_user.sub, lesson_id)
+        .await?;
     Ok(Json(res))
 }

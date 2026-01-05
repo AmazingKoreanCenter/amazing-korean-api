@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
@@ -72,4 +73,11 @@ pub struct LessonItemDetailRes {
 pub struct LessonItemsRes {
     pub items: Vec<LessonItemDetailRes>,
     pub meta: LessonListMeta,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]
+pub struct LessonProgressRes {
+    pub percent: i32,
+    pub last_seq: Option<i32>,
+    pub updated_at: Option<DateTime<Utc>>,
 }

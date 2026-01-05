@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-use super::dto::{LessonItemDetailRes, LessonItemRes, LessonRes};
+use super::dto::{LessonItemDetailRes, LessonItemRes, LessonProgressRes, LessonRes};
 
 pub struct LessonRepo {
     pool: PgPool,
@@ -156,6 +156,30 @@ impl LessonRepo {
         .await?;
 
         Ok(rows)
+    }
+
+    pub async fn find_progress(
+        &self,
+        lesson_id: i64,
+        user_id: i64,
+    ) -> Result<Option<LessonProgressRes>, sqlx::Error> {
+        let row = sqlx::query_as::<_, LessonProgressRes>(
+            r#"
+            SELECT
+                lesson_progress_percent as percent,
+                lesson_progress_last_item_seq as last_seq,
+                lesson_progress_last_progress_at as updated_at
+            FROM lesson_progress
+            WHERE lesson_id = $1
+              AND user_id = $2
+            "#,
+        )
+        .bind(lesson_id)
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row)
     }
 }
 
