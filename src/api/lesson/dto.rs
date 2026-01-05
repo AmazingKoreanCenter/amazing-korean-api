@@ -81,3 +81,9 @@ pub struct LessonProgressRes {
     pub last_seq: Option<i32>,
     pub updated_at: Option<DateTime<Utc>>,
 }
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct LessonProgressUpdateReq {
+    pub percent: i32,
+    pub last_seq: Option<i32>,
+}
