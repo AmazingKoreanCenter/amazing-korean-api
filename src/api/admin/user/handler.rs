@@ -1,44 +1,27 @@
 // FILE: src/api/admin/user/handler.rs
 use axum::{
     extract::{Path, Query, State},
-    http::{header::USER_AGENT, HeaderMap},
+    http::{header::LOCATION, header::USER_AGENT, HeaderMap, HeaderValue, StatusCode},
     Json,
 };
 use std::net::IpAddr;
 
 use crate::{
-    api::auth::{extractor::AuthUser, jwt},
+    api::auth::extractor::AuthUser,
     error::{AppError, AppResult},
     state::AppState,
 };
 
 use super::{
-    dto::{AdminUpdateUserReq, AdminUserListReq, AdminUserListRes, AdminUserRes},
+    dto::{
+        AdminCreateUserReq, AdminUpdateUserReq, AdminUserListReq, AdminUserListRes, AdminUserRes,
+    },
     service::AdminUserService,
 };
 
 // ← 어트리뷰트 내의 json! 매크로를 위해 필요
 #[allow(unused_imports)]
 use serde_json::json;
-
-fn jwt_secret() -> String {
-    std::env::var("JWT_SECRET").unwrap_or_else(|_| "dev_secret_change_me".to_string())
-}
-
-/// Authorization: Bearer <token> 헤더에서 토큰 추출
-fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
-    let auth = headers
-        .get(axum::http::header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok())
-        .ok_or_else(|| AppError::Unauthorized("missing Authorization header".into()))?;
-
-    let Some(rest) = auth.strip_prefix("Bearer ") else {
-        return Err(AppError::Unauthorized(
-            "invalid Authorization scheme".into(),
-        ));
-    };
-    Ok(rest.to_string())
-}
 
 fn extract_client_ip(headers: &HeaderMap) -> Option<IpAddr> {
     let forwarded = headers
@@ -108,10 +91,58 @@ pub async fn admin_list_users(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res =
-        AdminUserService::admin_list(&st, auth_user.sub, params, ip_address, user_agent).await?;
+    let res = AdminUserService::admin_list_users(
+        &st,
+        auth_user.sub,
+        params,
+        ip_address,
+        user_agent,
+    )
+    .await?;
 
     Ok(Json(res))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/users",
+    tag = "admin",
+    request_body = AdminCreateUserReq,
+    responses(
+        (status = 201, description = "User created", body = AdminUserRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 409, description = "Conflict", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_create_user(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<AdminCreateUserReq>,
+) -> AppResult<(StatusCode, HeaderMap, Json<AdminUserRes>)> {
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
+
+    let res = AdminUserService::admin_create_user(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let mut resp_headers = HeaderMap::new();
+    let location = format!("/admin/users/{}", res.id);
+    let location_val = HeaderValue::from_str(&location)
+        .map_err(|e| AppError::Internal(format!("Invalid Location header: {e}")))?;
+    resp_headers.insert(LOCATION, location_val);
+
+    Ok((StatusCode::CREATED, resp_headers, Json(res)))
 }
 
 #[utoipa::path(
@@ -150,14 +181,21 @@ pub async fn admin_list_users(
 )]
 pub async fn admin_get_user(
     State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
     Path(user_id): Path<i64>,
 ) -> AppResult<Json<AdminUserRes>> {
-    let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token, &jwt_secret())
-        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
 
-    let res = AdminUserService::admin_get(&st, claims.sub, user_id).await?;
+    let res = AdminUserService::admin_get_user(
+        &st,
+        auth_user.sub,
+        user_id,
+        ip_address,
+        user_agent,
+    )
+    .await?;
 
     Ok(Json(res))
 }
@@ -205,15 +243,23 @@ pub async fn admin_get_user(
 )]
 pub async fn admin_update_user(
     State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
     Path(user_id): Path<i64>,
     Json(req): Json<AdminUpdateUserReq>,
 ) -> AppResult<Json<AdminUserRes>> {
-    let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token, &jwt_secret())
-        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
 
-    let res = AdminUserService::admin_update(&st, claims.sub, user_id, req).await?;
+    let res = AdminUserService::admin_update_user(
+        &st,
+        auth_user.sub,
+        user_id,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
 
     Ok(Json(res))
 }

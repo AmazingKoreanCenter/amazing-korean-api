@@ -1,8 +1,10 @@
 use crate::error::AppResult;
+use chrono::NaiveDate;
 use serde_json::Value;
-use sqlx::{PgConnection, PgPool};
+use sqlx::{PgPool, Postgres, Transaction};
 use std::net::IpAddr;
 
+use crate::types::UserGender;
 use super::dto::{AdminUpdateUserReq, AdminUserRes, AdminUserSummary};
 
 pub async fn admin_list_users(
@@ -91,10 +93,18 @@ pub async fn admin_get_user(pool: &PgPool, user_id: i64) -> AppResult<Option<Adm
     let user = sqlx::query_as::<_, AdminUserRes>(
         r#"
         SELECT
-            user_id as id, user_email as email, user_name as name,
-            user_nickname as nickname, user_language as language, user_country as country,
-            user_birthday as birthday, user_gender as gender,
-            user_state, user_auth, user_created_at as created_at, user_quit_at as quit_at
+            user_id as id,
+            user_email as email,
+            user_name as name,
+            user_nickname as nickname,
+            user_language::TEXT as language,
+            user_country::TEXT as country,
+            user_birthday as birthday,
+            user_gender as gender,
+            user_state,
+            user_auth,
+            user_created_at as created_at,
+            user_quit_at as quit_at
         FROM users
         WHERE user_id = $1
         "#,
@@ -106,22 +116,128 @@ pub async fn admin_get_user(pool: &PgPool, user_id: i64) -> AppResult<Option<Adm
     Ok(user)
 }
 
+pub async fn admin_create_user(
+    pool: &PgPool,
+    email: &str,
+    password_hash: &str,
+    name: &str,
+    nickname: &str,
+    user_auth: &str,
+    language: &str,
+    country: &str,
+    birthday: NaiveDate,
+    gender: UserGender,
+    terms_service: bool,
+    terms_personal: bool,
+    actor_user_id: i64,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<&str>,
+) -> AppResult<AdminUserRes> {
+    let mut tx = pool.begin().await?;
+
+    let user = sqlx::query_as::<_, AdminUserRes>(
+        r#"
+        INSERT INTO users (
+            user_email,
+            user_password,
+            user_name,
+            user_nickname,
+            user_language,
+            user_country,
+            user_birthday,
+            user_gender,
+            user_terms_service,
+            user_terms_personal,
+            user_auth
+        )
+        VALUES (
+            $1, $2, $3, $4,
+            $5::user_language_enum,
+            $6, $7,
+            $8::user_gender_enum,
+            $9, $10,
+            $11::user_auth_enum
+        )
+        RETURNING
+            user_id as id,
+            user_email as email,
+            user_name as name,
+            user_nickname as nickname,
+            user_language::TEXT as language,
+            user_country::TEXT as country,
+            user_birthday as birthday,
+            user_gender as gender,
+            user_state,
+            user_auth,
+            user_created_at as created_at,
+            user_quit_at as quit_at
+        "#,
+    )
+    .bind(email)
+    .bind(password_hash)
+    .bind(name)
+    .bind(nickname)
+    .bind(language)
+    .bind(country)
+    .bind(birthday)
+    .bind(gender)
+    .bind(terms_service)
+    .bind(terms_personal)
+    .bind(user_auth)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    let after = serde_json::to_value(&user).unwrap_or_default();
+
+    create_history_log(&mut tx, actor_user_id, user.id, "create", None, Some(&after)).await?;
+
+    let details = serde_json::json!({
+        "created_user_id": user.id,
+        "email": user.email
+    });
+
+    create_audit_log_tx(
+        &mut tx,
+        actor_user_id,
+        "CREATE_USER",
+        Some("users"),
+        Some(user.id),
+        &details,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(user)
+}
+
 pub async fn admin_update_user(
     pool: &PgPool,
     actor_user_id: i64,
     user_id: i64,
     req: &AdminUpdateUserReq,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<&str>,
 ) -> AppResult<AdminUserRes> {
     let mut tx = pool.begin().await?;
 
-    // Fetch before snapshot for logging
-    let before_snap = sqlx::query_as::<_, AdminUserRes>(
+    let before = sqlx::query_as::<_, AdminUserRes>(
         r#"
         SELECT
-            user_id as id, user_email as email, user_name as name,
-            user_nickname as nickname, user_language as language, user_country as country,
-            user_birthday as birthday, user_gender as gender,
-            user_state, user_auth, user_created_at as created_at, user_quit_at as quit_at
+            user_id as id,
+            user_email as email,
+            user_name as name,
+            user_nickname as nickname,
+            user_language::TEXT as language,
+            user_country::TEXT as country,
+            user_birthday as birthday,
+            user_gender as gender,
+            user_state,
+            user_auth,
+            user_created_at as created_at,
+            user_quit_at as quit_at
         FROM users
         WHERE user_id = $1
         "#,
@@ -130,30 +246,38 @@ pub async fn admin_update_user(
     .fetch_one(&mut *tx)
     .await?;
 
-    let res = sqlx::query_as::<_, AdminUserRes>(
+    let updated = sqlx::query_as::<_, AdminUserRes>(
         r#"
         UPDATE users
         SET
             user_email = COALESCE($2, user_email),
             user_name = COALESCE($3, user_name),
             user_nickname = COALESCE($4, user_nickname),
-            user_language = COALESCE($5, user_language),
+            user_language = COALESCE($5::user_language_enum, user_language),
             user_country = COALESCE($6, user_country),
             user_birthday = COALESCE($7, user_birthday),
-            user_gender = COALESCE($8, user_gender),
+            user_gender = COALESCE($8::user_gender_enum, user_gender),
             user_state = COALESCE($9, user_state),
-            user_auth = COALESCE($10, user_auth),
+            user_auth = COALESCE($10::user_auth_enum, user_auth),
             user_quit_at = CASE
-                WHEN $9 = 'off' AND user_state = 'on' THEN NOW()
-                WHEN $9 = 'on' AND user_state = 'off' THEN NULL
+                WHEN $9 IS TRUE AND user_state = false THEN NULL
+                WHEN $9 IS FALSE AND user_state = true THEN NOW()
                 ELSE user_quit_at
             END
         WHERE user_id = $1
         RETURNING
-            user_id as id, user_email as email, user_name as name,
-            user_nickname as nickname, user_language as language, user_country as country,
-            user_birthday as birthday, user_gender as gender,
-            user_state, user_auth, user_created_at as created_at, user_quit_at as quit_at
+            user_id as id,
+            user_email as email,
+            user_name as name,
+            user_nickname as nickname,
+            user_language::TEXT as language,
+            user_country::TEXT as country,
+            user_birthday as birthday,
+            user_gender as gender,
+            user_state,
+            user_auth,
+            user_created_at as created_at,
+            user_quit_at as quit_at
         "#,
     )
     .bind(user_id)
@@ -163,56 +287,64 @@ pub async fn admin_update_user(
     .bind(req.language.as_ref())
     .bind(req.country.as_ref())
     .bind(req.birthday)
-    .bind(req.gender.as_ref())
-    .bind(req.user_state.map(|s| s.to_string()))
+    .bind(req.gender)
+    .bind(req.user_state)
     .bind(req.user_auth.map(|a| a.to_string()))
     .fetch_one(&mut *tx)
     .await?;
 
-    // Insert admin action log
-    insert_admin_action_log(
+    let before_val = serde_json::to_value(&before).unwrap_or_default();
+    let after_val = serde_json::to_value(&updated).unwrap_or_default();
+
+    create_history_log(
         &mut tx,
-        Some(actor_user_id), // actor_user_id will be set in service layer
-        user_id,
-        "admin_update",
-        &serde_json::to_value(&before_snap).unwrap_or_default(),
-        &serde_json::to_value(&res).unwrap_or_default(),
+        actor_user_id,
+        updated.id,
+        "update",
+        Some(&before_val),
+        Some(&after_val),
+    )
+    .await?;
+
+    let details = serde_json::json!({
+        "target_user_id": updated.id
+    });
+
+    create_audit_log_tx(
+        &mut tx,
+        actor_user_id,
+        "UPDATE_USER",
+        Some("users"),
+        Some(updated.id),
+        &details,
+        ip_address,
+        user_agent,
     )
     .await?;
 
     tx.commit().await?;
 
-    Ok(res)
+    Ok(updated)
 }
 
-pub async fn insert_admin_action_log(
-    conn: &mut PgConnection,
-    actor_user_id: Option<i64>,
-    target_user_id: i64,
-    action: &str,
-    before: &Value,
-    after: &Value,
-) -> AppResult<()> {
-    sqlx::query(
+pub async fn exists_email(pool: &PgPool, email: &str) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
         r#"
-        INSERT INTO admin_user_action_log (
-            actor_user_id, target_user_id, action, before, after
+        SELECT EXISTS(
+            SELECT 1
+            FROM users
+            WHERE user_email = $1
         )
-        VALUES ($1, $2, $3, $4, $5)
         "#,
     )
-    .bind(actor_user_id)
-    .bind(target_user_id)
-    .bind(action)
-    .bind(before)
-    .bind(after)
-    .execute(conn)
+    .bind(email)
+    .fetch_one(pool)
     .await?;
 
-    Ok(())
+    Ok(exists)
 }
 
-pub async fn log_admin_action(
+pub async fn create_audit_log(
     pool: &PgPool,
     admin_id: i64,
     action_type: &str,
@@ -236,9 +368,72 @@ pub async fn log_admin_action(
     .bind(target_table)
     .bind(target_id)
     .bind(details)
-    .bind(ip_address.map(|ip| ip.to_string())) // String으로 변환해서 전달
+    .bind(ip_address.map(|ip| ip.to_string()))
     .bind(user_agent)
     .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+async fn create_audit_log_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    admin_id: i64,
+    action_type: &str,
+    target_table: Option<&str>,
+    target_id: Option<i64>,
+    details: &Value,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<&str>,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO admin_action_log (
+            admin_id, action_type, target_table, target_id,
+            details, ip_address, user_agent
+        )
+        VALUES ($1, $2, $3, $4, $5, $6::inet, $7)
+        "#,
+    )
+    .bind(admin_id)
+    .bind(action_type)
+    .bind(target_table)
+    .bind(target_id)
+    .bind(details)
+    .bind(ip_address.map(|ip| ip.to_string()))
+    .bind(user_agent)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
+async fn create_history_log(
+    tx: &mut Transaction<'_, Postgres>,
+    admin_user_id: i64,
+    target_user_id: i64,
+    action: &str,
+    before: Option<&Value>,
+    after: Option<&Value>,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO admin_users_log (
+            admin_user_id,
+            admin_pick_user_id,
+            admin_user_action,
+            admin_user_before,
+            admin_user_after
+        )
+        VALUES ($1, $2, CAST($3 AS admin_action_enum), $4, $5)
+        "#,
+    )
+    .bind(admin_user_id)
+    .bind(target_user_id)
+    .bind(action)
+    .bind(before)
+    .bind(after)
+    .execute(&mut **tx)
     .await?;
 
     Ok(())
