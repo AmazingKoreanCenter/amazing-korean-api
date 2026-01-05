@@ -1,19 +1,19 @@
 // FILE: src/api/admin/user/handler.rs
 use axum::{
     extract::{Path, Query, State},
-    http::HeaderMap,
+    http::{header::USER_AGENT, HeaderMap},
     Json,
 };
-use serde::Deserialize;
+use std::net::IpAddr;
 
 use crate::{
-    api::auth::jwt,
+    api::auth::{extractor::AuthUser, jwt},
     error::{AppError, AppResult},
     state::AppState,
 };
 
 use super::{
-    dto::{AdminListUsersRes, AdminUpdateUserReq, AdminUserRes},
+    dto::{AdminUpdateUserReq, AdminUserListReq, AdminUserListRes, AdminUserRes},
     service::AdminUserService,
 };
 
@@ -40,12 +40,27 @@ fn bearer_from_headers(headers: &HeaderMap) -> AppResult<String> {
     Ok(rest.to_string())
 }
 
-#[derive(Debug, Deserialize)]
-pub struct AdminListUsersQueryParams {
-    pub query: Option<String>,
-    pub state: Option<bool>,
-    pub page: Option<i64>,
-    pub size: Option<i64>,
+fn extract_client_ip(headers: &HeaderMap) -> Option<IpAddr> {
+    let forwarded = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.split(',').next())
+        .map(|v| v.trim().to_string());
+
+    let direct = headers
+        .get("x-real-ip")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.trim().to_string());
+
+    let ip_str = forwarded.or(direct)?;
+    ip_str.parse().ok()
+}
+
+fn extract_user_agent(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get(USER_AGENT)
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.to_string())
 }
 
 #[utoipa::path(
@@ -53,61 +68,48 @@ pub struct AdminListUsersQueryParams {
     path = "/admin/users",
     tag = "admin",
     params(
-        ("query", Query, description = "Search query for email, name, or nickname", example = "test"),
-        ("state", Query, description = "User state (on or off)", example = "on"),
+        ("q", Query, description = "Search email or nickname", example = "test"),
+        ("sort", Query, description = "Sort field (created_at, email, nickname)", example = "created_at"),
+        ("order", Query, description = "Sort order (asc, desc)", example = "desc"),
         ("page", Query, description = "Page number, defaults to 1", example = 1),
         ("size", Query, description = "Page size, defaults to 20 (max 100)", example = 20)
     ),
     responses(
-        (status = 200, description = "List of users", body = AdminListUsersRes, example = json!({
-            "total": 1,
+        (status = 200, description = "List of users", body = AdminUserListRes, example = json!({
             "items": [
                 {
                     "id": 123,
                     "email": "admin_user@example.com",
-                    "name": "Admin User",
                     "nickname": "AdminNick",
-                    "language": "en",
-                    "country": "US",
-                    "birthday": "2000-01-01",
-                    "gender": "male",
-                    "user_state": "on",
-                    "user_auth": "user",
-                    "created_at": "2025-08-21T10:00:00Z",
-                    "quit_at": null
+                    "role": "learner",
+                    "created_at": "2025-08-21T10:00:00Z"
                 }
-            ]
+            ],
+            "meta": {
+                "total_count": 1,
+                "total_pages": 1,
+                "current_page": 1,
+                "per_page": 20
+            }
         })),
-        (status = 400, description = "Bad request", body = crate::error::ErrorBody, example = json!({
-            "error": "Invalid page or size parameter"
-        })),
-        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody, example = json!({
-            "error": "missing Authorization header"
-        })),
-        (status = 403, description = "Forbidden", body = crate::error::ErrorBody, example = json!({
-            "error": "forbidden"
-        }))
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody)
     ),
     security(("bearerAuth" = []))
 )]
 pub async fn admin_list_users(
     State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Query(params): Query<AdminListUsersQueryParams>,
-) -> AppResult<Json<AdminListUsersRes>> {
-    let token = bearer_from_headers(&headers)?;
-    let claims = jwt::decode_token(&token, &jwt_secret())
-        .map_err(|_| AppError::Unauthorized("invalid token".into()))?;
+    Query(params): Query<AdminUserListReq>,
+) -> AppResult<Json<AdminUserListRes>> {
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
 
-    let res = AdminUserService::admin_list(
-        &st,
-        claims.sub,
-        params.query,
-        params.state,
-        params.page,
-        params.size,
-    )
-    .await?;
+    let res =
+        AdminUserService::admin_list(&st, auth_user.sub, params, ip_address, user_agent).await?;
 
     Ok(Json(res))
 }

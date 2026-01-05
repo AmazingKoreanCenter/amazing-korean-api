@@ -145,7 +145,10 @@ impl Modify for SecurityAddon {
 
             // admin - users dto
             crate::api::admin::user::dto::AdminUserRes,
-            crate::api::admin::user::dto::AdminListUsersRes,
+            crate::api::admin::user::dto::AdminUserListReq,
+            crate::api::admin::user::dto::AdminUserSummary,
+            crate::api::admin::user::dto::AdminUserListMeta,
+            crate::api::admin::user::dto::AdminUserListRes,
             crate::api::admin::user::dto::AdminUpdateUserReq,
 
             // admin - videos dto
