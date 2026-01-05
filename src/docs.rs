@@ -55,6 +55,8 @@ impl Modify for SecurityAddon {
 
         // lessons (user)
         crate::api::lesson::handler::list_lessons,
+        crate::api::lesson::handler::get_lesson_detail,
+        crate::api::lesson::handler::get_lesson_items,
 
         // study (user)
         crate::api::study::handler::list_studies,
@@ -119,6 +121,12 @@ impl Modify for SecurityAddon {
             crate::api::lesson::dto::LessonRes,
             crate::api::lesson::dto::LessonListMeta,
             crate::api::lesson::dto::LessonListRes,
+            crate::api::lesson::dto::LessonDetailReq,
+            crate::api::lesson::dto::LessonItemRes,
+            crate::api::lesson::dto::LessonDetailRes,
+            crate::api::lesson::dto::LessonItemsReq,
+            crate::api::lesson::dto::LessonItemDetailRes,
+            crate::api::lesson::dto::LessonItemsRes,
 
             // studies dto
             crate::api::study::dto::StudyListRes,
