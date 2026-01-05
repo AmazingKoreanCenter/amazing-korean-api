@@ -72,7 +72,7 @@ pub struct AdminUserListRes {
     pub meta: AdminUserListMeta,
 }
 
-#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
 pub struct AdminCreateUserReq {
     #[validate(email)]
     pub email: String,
@@ -83,6 +83,42 @@ pub struct AdminCreateUserReq {
     #[validate(length(min = 1, max = 100))]
     pub name: String,
     pub user_auth: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct AdminBulkCreateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<AdminCreateUserReq>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct BulkSummary {
+    pub total: i64,
+    pub success: i64,
+    pub failure: i64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct BulkItemError {
+    pub code: String,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct BulkItemResult {
+    pub email: String,
+    pub status: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<AdminUserRes>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<BulkItemError>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminBulkCreateRes {
+    pub summary: BulkSummary,
+    pub results: Vec<BulkItemResult>,
 }
 
 /// 관리자용 사용자 수정 요청
@@ -102,6 +138,10 @@ pub struct AdminUpdateUserReq {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[validate(email)]
     pub email: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 8))]
+    pub password: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[validate(length(min = 1, max = 50))]

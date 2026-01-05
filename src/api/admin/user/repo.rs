@@ -132,6 +132,7 @@ pub async fn admin_create_user(
     actor_user_id: i64,
     ip_address: Option<IpAddr>,
     user_agent: Option<&str>,
+    audit: bool,
 ) -> AppResult<AdminUserRes> {
     let mut tx = pool.begin().await?;
 
@@ -196,17 +197,19 @@ pub async fn admin_create_user(
         "email": user.email
     });
 
-    create_audit_log_tx(
-        &mut tx,
-        actor_user_id,
-        "CREATE_USER",
-        Some("users"),
-        Some(user.id),
-        &details,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    if audit {
+        create_audit_log_tx(
+            &mut tx,
+            actor_user_id,
+            "CREATE_USER",
+            Some("users"),
+            Some(user.id),
+            &details,
+            ip_address,
+            user_agent,
+        )
+        .await?;
+    }
 
     tx.commit().await?;
 
@@ -214,54 +217,30 @@ pub async fn admin_create_user(
 }
 
 pub async fn admin_update_user(
-    pool: &PgPool,
-    actor_user_id: i64,
+    tx: &mut Transaction<'_, Postgres>,
     user_id: i64,
     req: &AdminUpdateUserReq,
-    ip_address: Option<IpAddr>,
-    user_agent: Option<&str>,
+    password_hash: Option<&str>,
 ) -> AppResult<AdminUserRes> {
-    let mut tx = pool.begin().await?;
-
-    let before = sqlx::query_as::<_, AdminUserRes>(
-        r#"
-        SELECT
-            user_id as id,
-            user_email as email,
-            user_name as name,
-            user_nickname as nickname,
-            user_language::TEXT as language,
-            user_country::TEXT as country,
-            user_birthday as birthday,
-            user_gender as gender,
-            user_state,
-            user_auth,
-            user_created_at as created_at,
-            user_quit_at as quit_at
-        FROM users
-        WHERE user_id = $1
-        "#,
-    )
-    .bind(user_id)
-    .fetch_one(&mut *tx)
-    .await?;
-
     let updated = sqlx::query_as::<_, AdminUserRes>(
         r#"
         UPDATE users
         SET
             user_email = COALESCE($2, user_email),
-            user_name = COALESCE($3, user_name),
-            user_nickname = COALESCE($4, user_nickname),
-            user_language = COALESCE($5::user_language_enum, user_language),
-            user_country = COALESCE($6, user_country),
-            user_birthday = COALESCE($7, user_birthday),
-            user_gender = COALESCE($8::user_gender_enum, user_gender),
-            user_state = COALESCE($9, user_state),
-            user_auth = COALESCE($10::user_auth_enum, user_auth),
+            user_password = COALESCE($3, user_password),
+            user_name = COALESCE($4, user_name),
+            user_nickname = COALESCE($5, user_nickname),
+            user_language = COALESCE($6::user_language_enum, user_language),
+            user_country = COALESCE($7, user_country),
+            user_birthday = COALESCE($8, user_birthday),
+            user_gender = COALESCE($9::user_gender_enum, user_gender),
+            user_state = COALESCE($10, user_state),
+            user_auth = COALESCE($11::user_auth_enum, user_auth),
             user_quit_at = CASE
-                WHEN $9 IS TRUE AND user_state = false THEN NULL
-                WHEN $9 IS FALSE AND user_state = true THEN NOW()
+                -- $10(입력)가 FALSE(정지)이고, 기존이 TRUE(활성)면 -> 탈퇴일 기록
+                WHEN $10 IS NOT NULL AND $10 IS FALSE AND user_state IS TRUE THEN NOW()
+                -- $10(입력)가 TRUE(활성)이고, 기존이 FALSE(정지)면 -> 탈퇴일 초기화
+                WHEN $10 IS NOT NULL AND $10 IS TRUE AND user_state IS FALSE THEN NULL
                 ELSE user_quit_at
             END
         WHERE user_id = $1
@@ -282,6 +261,7 @@ pub async fn admin_update_user(
     )
     .bind(user_id)
     .bind(req.email.as_ref().map(|e| e.to_lowercase()))
+    .bind(password_hash)
     .bind(req.name.as_ref())
     .bind(req.nickname.as_ref())
     .bind(req.language.as_ref())
@@ -290,39 +270,8 @@ pub async fn admin_update_user(
     .bind(req.gender)
     .bind(req.user_state)
     .bind(req.user_auth.map(|a| a.to_string()))
-    .fetch_one(&mut *tx)
+    .fetch_one(&mut **tx)
     .await?;
-
-    let before_val = serde_json::to_value(&before).unwrap_or_default();
-    let after_val = serde_json::to_value(&updated).unwrap_or_default();
-
-    create_history_log(
-        &mut tx,
-        actor_user_id,
-        updated.id,
-        "update",
-        Some(&before_val),
-        Some(&after_val),
-    )
-    .await?;
-
-    let details = serde_json::json!({
-        "target_user_id": updated.id
-    });
-
-    create_audit_log_tx(
-        &mut tx,
-        actor_user_id,
-        "UPDATE_USER",
-        Some("users"),
-        Some(updated.id),
-        &details,
-        ip_address,
-        user_agent,
-    )
-    .await?;
-
-    tx.commit().await?;
 
     Ok(updated)
 }
@@ -376,7 +325,7 @@ pub async fn create_audit_log(
     Ok(())
 }
 
-async fn create_audit_log_tx(
+pub async fn create_audit_log_tx(
     tx: &mut Transaction<'_, Postgres>,
     admin_id: i64,
     action_type: &str,
@@ -408,7 +357,7 @@ async fn create_audit_log_tx(
     Ok(())
 }
 
-async fn create_history_log(
+pub async fn create_history_log(
     tx: &mut Transaction<'_, Postgres>,
     admin_user_id: i64,
     target_user_id: i64,

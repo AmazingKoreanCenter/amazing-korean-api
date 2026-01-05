@@ -14,7 +14,8 @@ use crate::{
 
 use super::{
     dto::{
-        AdminCreateUserReq, AdminUpdateUserReq, AdminUserListReq, AdminUserListRes, AdminUserRes,
+        AdminBulkCreateReq, AdminBulkCreateRes, AdminCreateUserReq, AdminUpdateUserReq,
+        AdminUserListReq, AdminUserListRes, AdminUserRes,
     },
     service::AdminUserService,
 };
@@ -146,6 +147,47 @@ pub async fn admin_create_user(
 }
 
 #[utoipa::path(
+    post,
+    path = "/admin/users/bulk",
+    tag = "admin",
+    request_body = AdminBulkCreateReq,
+    responses(
+        (status = 201, description = "All users created", body = AdminBulkCreateRes),
+        (status = 207, description = "Partial success", body = AdminBulkCreateRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_create_users_bulk(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<AdminBulkCreateReq>,
+) -> AppResult<(StatusCode, Json<AdminBulkCreateRes>)> {
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = AdminUserService::admin_create_users_bulk(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::CREATED
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
+}
+
+#[utoipa::path(
     get,
     path = "/admin/users/{user_id}",
     tag = "admin",
@@ -201,7 +243,7 @@ pub async fn admin_get_user(
 }
 
 #[utoipa::path(
-    put,
+    patch,
     path = "/admin/users/{user_id}",
     tag = "admin",
     params(

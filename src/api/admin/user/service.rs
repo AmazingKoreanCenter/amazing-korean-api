@@ -12,8 +12,9 @@ use crate::{
 
 use super::{
     dto::{
-        AdminCreateUserReq, AdminUpdateUserReq, AdminUserListMeta, AdminUserListReq,
-        AdminUserListRes, AdminUserRes,
+        AdminBulkCreateReq, AdminBulkCreateRes, AdminCreateUserReq, AdminUpdateUserReq,
+        AdminUserListMeta, AdminUserListReq, AdminUserListRes, AdminUserRes, BulkItemError,
+        BulkItemResult, BulkSummary,
     },
     repo,
 };
@@ -74,7 +75,10 @@ impl AdminUserService {
         actor_auth: GlobalUserAuth,
         target_user_auth: GlobalUserAuth,
     ) -> AppResult<()> {
-        if actor_auth == GlobalUserAuth::Manager && target_user_auth == GlobalUserAuth::Hymn {
+        if actor_auth == GlobalUserAuth::Manager
+            && (target_user_auth == GlobalUserAuth::Admin
+                || target_user_auth == GlobalUserAuth::Hymn)
+        {
             return Err(AppError::Forbidden);
         }
         if actor_auth == GlobalUserAuth::Admin && target_user_auth == GlobalUserAuth::Hymn {
@@ -238,6 +242,7 @@ impl AdminUserService {
             actor_user_id,
             ip_address,
             user_agent.as_deref(),
+            true,
         )
         .await;
 
@@ -247,6 +252,187 @@ impl AdminUserService {
                 Err(AppError::Conflict("email already exists".into()))
             }
             Err(e) => Err(e),
+        }
+    }
+
+    pub async fn admin_create_users_bulk(
+        st: &AppState,
+        actor_user_id: i64,
+        req: AdminBulkCreateReq,
+        ip_address: Option<IpAddr>,
+        user_agent: Option<String>,
+    ) -> AppResult<(bool, AdminBulkCreateRes)> {
+        Self::check_admin_rbac(&st.db, actor_user_id).await?;
+
+        if let Err(e) = req.validate() {
+            return Err(AppError::BadRequest(e.to_string()));
+        }
+
+        let mut results = Vec::with_capacity(req.items.len());
+        let mut success = 0i64;
+        let mut failure = 0i64;
+
+        for item in req.items {
+            let email = item.email.trim().to_lowercase();
+            let mut item = item;
+            item.email = email.clone();
+
+            let outcome = Self::admin_create_user_single(
+                st,
+                actor_user_id,
+                item,
+                ip_address,
+                user_agent.as_deref(),
+            )
+            .await;
+
+            match outcome {
+                Ok(user) => {
+                    success += 1;
+                    results.push(BulkItemResult {
+                        email,
+                        status: 201,
+                        data: Some(user),
+                        error: None,
+                    });
+                }
+                Err((status, code, message)) => {
+                    failure += 1;
+                    results.push(BulkItemResult {
+                        email,
+                        status,
+                        data: None,
+                        error: Some(BulkItemError { code, message }),
+                    });
+                }
+            }
+        }
+
+        let summary = BulkSummary {
+            total: success + failure,
+            success,
+            failure,
+        };
+
+        let details = serde_json::json!({
+            "total": summary.total,
+            "success": summary.success,
+            "failure": summary.failure
+        });
+
+        repo::create_audit_log(
+            &st.db,
+            actor_user_id,
+            "BULK_CREATE_USERS",
+            Some("users"),
+            None,
+            &details,
+            ip_address,
+            user_agent.as_deref(),
+        )
+        .await?;
+
+        let all_success = failure == 0;
+
+        Ok((
+            all_success,
+            AdminBulkCreateRes {
+                summary,
+                results,
+            },
+        ))
+    }
+
+    async fn admin_create_user_single(
+        st: &AppState,
+        actor_user_id: i64,
+        mut req: AdminCreateUserReq,
+        ip_address: Option<IpAddr>,
+        user_agent: Option<&str>,
+    ) -> Result<AdminUserRes, (i32, String, String)> {
+        if let Err(e) = req.validate() {
+            return Err((400, "BAD_REQUEST".to_string(), e.to_string()));
+        }
+
+        req.email = req.email.trim().to_lowercase();
+
+        match repo::exists_email(&st.db, &req.email).await {
+            Ok(true) => {
+                return Err((
+                    409,
+                    "CONFLICT".to_string(),
+                    "email already exists".to_string(),
+                ));
+            }
+            Ok(false) => {}
+            Err(e) => {
+                return Err((
+                    500,
+                    "INTERNAL_SERVER_ERROR".to_string(),
+                    e.to_string(),
+                ));
+            }
+        }
+
+        if !Self::validate_password_policy(&req.password) {
+            return Err((
+                422,
+                "UNPROCESSABLE_ENTITY".to_string(),
+                "password policy violation".to_string(),
+            ));
+        }
+
+        let user_auth = match Self::parse_user_auth(req.user_auth.as_deref()) {
+            Ok(val) => val,
+            Err(_) => {
+                return Err((
+                    422,
+                    "UNPROCESSABLE_ENTITY".to_string(),
+                    "invalid user_auth".to_string(),
+                ))
+            }
+        };
+        let user_auth_str = user_auth.to_string();
+
+        let password_hash = match password::hash(&req.password) {
+            Ok(hash) => hash,
+            Err(e) => {
+                return Err((500, "INTERNAL_SERVER_ERROR".to_string(), e.to_string()));
+            }
+        };
+
+        let language = "ko";
+        let country = "KR";
+        let birthday = NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
+        let gender = UserGender::None;
+
+        match repo::admin_create_user(
+            &st.db,
+            &req.email,
+            &password_hash,
+            &req.name,
+            &req.nickname,
+            &user_auth_str,
+            language,
+            country,
+            birthday,
+            gender,
+            false,
+            false,
+            actor_user_id,
+            ip_address,
+            user_agent,
+            false,
+        )
+        .await
+        {
+            Ok(user) => Ok(user),
+            Err(e) if Self::is_unique_violation(&e) => Err((
+                409,
+                "CONFLICT".to_string(),
+                "email already exists".to_string(),
+            )),
+            Err(e) => Err((500, "INTERNAL_SERVER_ERROR".to_string(), e.to_string())),
         }
     }
 
@@ -268,43 +454,87 @@ impl AdminUserService {
 
         Self::check_target_user_rbac(actor_auth, target_user_auth).await?;
 
-        if let Some(email) = &mut req.email {
-            *email = email.trim().to_lowercase();
+        if let Err(e) = req.validate() {
+            return Err(AppError::BadRequest(e.to_string()));
         }
 
-        let res = repo::admin_update_user(
-            &st.db,
-            actor_user_id,
+        if let Some(email) = &mut req.email {
+            *email = email.trim().to_lowercase();
+            if email != &current_target_user.email.to_lowercase()
+                && repo::exists_email(&st.db, email).await?
+            {
+                return Err(AppError::Conflict("email already exists".into()));
+            }
+        }
+
+        let password_hash = if let Some(password) = req.password.as_deref() {
+            if !Self::validate_password_policy(password) {
+                return Err(AppError::Unprocessable(
+                    "password policy violation".into(),
+                ));
+            }
+            Some(password::hash(password)?)
+        } else {
+            None
+        };
+
+        let details = serde_json::json!({
+            "target_user_id": user_id
+        });
+
+        let mut tx = st.db.begin().await?;
+
+        let updated = repo::admin_update_user(
+            &mut tx,
             user_id,
             &req,
+            password_hash.as_deref(),
+        )
+        .await?;
+
+        let before_val = serde_json::to_value(&current_target_user).unwrap_or_default();
+        let after_val = serde_json::to_value(&updated).unwrap_or_default();
+
+        repo::create_history_log(
+            &mut tx,
+            actor_user_id,
+            updated.id,
+            "update",
+            Some(&before_val),
+            Some(&after_val),
+        )
+        .await?;
+
+        repo::create_audit_log_tx(
+            &mut tx,
+            actor_user_id,
+            "UPDATE_USER",
+            Some("users"),
+            Some(updated.id),
+            &details,
             ip_address,
             user_agent.as_deref(),
         )
-        .await;
+        .await?;
 
-        match res {
-            Ok(user) => {
-                if let Some(new_state) = &req.user_state {
-                    if new_state != &current_target_user.user_state {
-                        if let Err(le) = crate::api::user::repo::insert_user_log_after(
-                            &st.db,
-                            Some(actor_user_id),
-                            user.id,
-                            "update",
-                            true,
-                        )
-                        .await
-                        {
-                            warn!(error=?le, actor_user_id = actor_user_id, target_user_id = user_id, "public.users_log(admin_state_change) insert failed");
-                        }
-                    }
+        tx.commit().await?;
+
+        if let Some(new_state) = req.user_state {
+            if new_state != current_target_user.user_state {
+                if let Err(le) = crate::api::user::repo::insert_user_log_after(
+                    &st.db,
+                    Some(actor_user_id),
+                    updated.id,
+                    "update",
+                    true,
+                )
+                .await
+                {
+                    warn!(error=?le, actor_user_id = actor_user_id, target_user_id = user_id, "public.users_log(admin_state_change) insert failed");
                 }
-                Ok(user)
             }
-            Err(e) if Self::is_unique_violation(&e) => {
-                Err(AppError::BadRequest("Email already exists".into()))
-            }
-            Err(e) => Err(e),
         }
+
+        Ok(updated)
     }
 }
