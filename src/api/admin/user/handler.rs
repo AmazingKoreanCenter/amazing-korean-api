@@ -243,7 +243,7 @@ pub async fn admin_get_user(
 }
 
 #[utoipa::path(
-    put,
+    patch,
     path = "/admin/users/{user_id}",
     tag = "admin",
     params(

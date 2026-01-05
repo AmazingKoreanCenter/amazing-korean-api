@@ -75,7 +75,10 @@ impl AdminUserService {
         actor_auth: GlobalUserAuth,
         target_user_auth: GlobalUserAuth,
     ) -> AppResult<()> {
-        if actor_auth == GlobalUserAuth::Manager && target_user_auth == GlobalUserAuth::Hymn {
+        if actor_auth == GlobalUserAuth::Manager
+            && (target_user_auth == GlobalUserAuth::Admin
+                || target_user_auth == GlobalUserAuth::Hymn)
+        {
             return Err(AppError::Forbidden);
         }
         if actor_auth == GlobalUserAuth::Admin && target_user_auth == GlobalUserAuth::Hymn {
@@ -451,43 +454,87 @@ impl AdminUserService {
 
         Self::check_target_user_rbac(actor_auth, target_user_auth).await?;
 
-        if let Some(email) = &mut req.email {
-            *email = email.trim().to_lowercase();
+        if let Err(e) = req.validate() {
+            return Err(AppError::BadRequest(e.to_string()));
         }
 
-        let res = repo::admin_update_user(
-            &st.db,
-            actor_user_id,
+        if let Some(email) = &mut req.email {
+            *email = email.trim().to_lowercase();
+            if email != &current_target_user.email.to_lowercase()
+                && repo::exists_email(&st.db, email).await?
+            {
+                return Err(AppError::Conflict("email already exists".into()));
+            }
+        }
+
+        let password_hash = if let Some(password) = req.password.as_deref() {
+            if !Self::validate_password_policy(password) {
+                return Err(AppError::Unprocessable(
+                    "password policy violation".into(),
+                ));
+            }
+            Some(password::hash(password)?)
+        } else {
+            None
+        };
+
+        let details = serde_json::json!({
+            "target_user_id": user_id
+        });
+
+        let mut tx = st.db.begin().await?;
+
+        let updated = repo::admin_update_user(
+            &mut tx,
             user_id,
             &req,
+            password_hash.as_deref(),
+        )
+        .await?;
+
+        let before_val = serde_json::to_value(&current_target_user).unwrap_or_default();
+        let after_val = serde_json::to_value(&updated).unwrap_or_default();
+
+        repo::create_history_log(
+            &mut tx,
+            actor_user_id,
+            updated.id,
+            "update",
+            Some(&before_val),
+            Some(&after_val),
+        )
+        .await?;
+
+        repo::create_audit_log_tx(
+            &mut tx,
+            actor_user_id,
+            "UPDATE_USER",
+            Some("users"),
+            Some(updated.id),
+            &details,
             ip_address,
             user_agent.as_deref(),
         )
-        .await;
+        .await?;
 
-        match res {
-            Ok(user) => {
-                if let Some(new_state) = &req.user_state {
-                    if new_state != &current_target_user.user_state {
-                        if let Err(le) = crate::api::user::repo::insert_user_log_after(
-                            &st.db,
-                            Some(actor_user_id),
-                            user.id,
-                            "update",
-                            true,
-                        )
-                        .await
-                        {
-                            warn!(error=?le, actor_user_id = actor_user_id, target_user_id = user_id, "public.users_log(admin_state_change) insert failed");
-                        }
-                    }
+        tx.commit().await?;
+
+        if let Some(new_state) = req.user_state {
+            if new_state != current_target_user.user_state {
+                if let Err(le) = crate::api::user::repo::insert_user_log_after(
+                    &st.db,
+                    Some(actor_user_id),
+                    updated.id,
+                    "update",
+                    true,
+                )
+                .await
+                {
+                    warn!(error=?le, actor_user_id = actor_user_id, target_user_id = user_id, "public.users_log(admin_state_change) insert failed");
                 }
-                Ok(user)
             }
-            Err(e) if Self::is_unique_violation(&e) => {
-                Err(AppError::BadRequest("Email already exists".into()))
-            }
-            Err(e) => Err(e),
         }
+
+        Ok(updated)
     }
 }
