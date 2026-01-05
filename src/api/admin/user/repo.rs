@@ -132,6 +132,7 @@ pub async fn admin_create_user(
     actor_user_id: i64,
     ip_address: Option<IpAddr>,
     user_agent: Option<&str>,
+    audit: bool,
 ) -> AppResult<AdminUserRes> {
     let mut tx = pool.begin().await?;
 
@@ -196,17 +197,19 @@ pub async fn admin_create_user(
         "email": user.email
     });
 
-    create_audit_log_tx(
-        &mut tx,
-        actor_user_id,
-        "CREATE_USER",
-        Some("users"),
-        Some(user.id),
-        &details,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    if audit {
+        create_audit_log_tx(
+            &mut tx,
+            actor_user_id,
+            "CREATE_USER",
+            Some("users"),
+            Some(user.id),
+            &details,
+            ip_address,
+            user_agent,
+        )
+        .await?;
+    }
 
     tx.commit().await?;
 
