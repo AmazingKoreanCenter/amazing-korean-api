@@ -1,7 +1,8 @@
 use crate::error::{AppError, AppResult};
 
 use super::dto::{
-    LessonDetailReq, LessonDetailRes, LessonListMeta, LessonListReq, LessonListRes,
+    LessonDetailReq, LessonDetailRes, LessonItemsReq, LessonItemsRes, LessonListMeta, LessonListReq,
+    LessonListRes,
 };
 use super::repo::LessonRepo;
 
@@ -88,6 +89,51 @@ impl LessonService {
             lesson_id: lesson.lesson_id,
             title: lesson.title,
             description: lesson.description,
+            items,
+            meta: LessonListMeta {
+                total_count,
+                total_pages,
+                current_page: page,
+                per_page,
+            },
+        })
+    }
+
+    pub async fn get_lesson_items(
+        &self,
+        lesson_id: i64,
+        req: LessonItemsReq,
+    ) -> AppResult<LessonItemsRes> {
+        let exists = self.repo.exists_lesson(lesson_id).await?;
+        if !exists {
+            return Err(AppError::NotFound);
+        }
+
+        let page = req.page.unwrap_or(1);
+        let per_page = req.per_page.unwrap_or(20);
+
+        if page <= 0 || per_page <= 0 {
+            return Err(AppError::BadRequest("page/per_page must be positive".into()));
+        }
+
+        if per_page > 50 {
+            return Err(AppError::Unprocessable("per_page exceeds 50".into()));
+        }
+
+        let total_count = self.repo.count_items(lesson_id).await?;
+        let total_pages = if total_count == 0 {
+            0
+        } else {
+            (total_count + per_page - 1) / per_page
+        };
+
+        let offset = (page - 1) * per_page;
+        let items = self
+            .repo
+            .find_items_for_study_view(lesson_id, per_page, offset)
+            .await?;
+
+        Ok(LessonItemsRes {
             items,
             meta: LessonListMeta {
                 total_count,
