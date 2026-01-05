@@ -72,6 +72,19 @@ pub struct AdminUserListRes {
     pub meta: AdminUserListMeta,
 }
 
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct AdminCreateUserReq {
+    #[validate(email)]
+    pub email: String,
+    #[validate(length(min = 8))]
+    pub password: String,
+    #[validate(length(min = 1, max = 100))]
+    pub nickname: String,
+    #[validate(length(min = 1, max = 100))]
+    pub name: String,
+    pub user_auth: Option<String>,
+}
+
 /// 관리자용 사용자 수정 요청
 #[derive(Serialize, Deserialize, Validate, ToSchema, Clone, Debug, PartialEq)]
 #[schema(example = json!({

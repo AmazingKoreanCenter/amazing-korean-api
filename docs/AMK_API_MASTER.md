@@ -222,11 +222,21 @@ audience: server / database / backend / frontend / lead / LLM assistant
   - 그 외 보조 파일은 필요 시 **소문자 + snake_case**로 추가
     - 예: `token_utils.rs`, `validator.rs` 등
 
-- **함수/변수명**
-  - 함수/변수: **소문자 + snake_case**
-    - 예: `signup`, `login`, `get_me`, `update_me_settings`
-  - 타입(struct/enum/DTO): **PascalCase**
-    - 예: `SignupReq`, `SignupRes`, `UserMeRes`, `VideoProgressLog`
+- **함수/변수명 (Naming Convention)**
+  - **기본 규칙**: `snake_case` (소문자 + 언더스코어)
+  - **계층 간 통일 (Feature Parity)**:
+    - 하나의 기능(Feature)에 대해 Handler, Service, Repo 계층의 **메인 함수명은 반드시 통일**한다.
+    - 코드 추적성(Traceability) 향상을 위함.
+    - **패턴**: `[도메인]_[행위]_[대상]` (필요 시 도메인 생략 가능)
+    - **예시 (관리자 유저 생성)**:
+      - Handler: `admin_create_user(...)`
+      - Service: `admin_create_user(...)`
+      - Repo: `admin_create_user(...)`
+  - **Repo 보조 함수 (Helpers)**:
+    - 메인 로직 외의 단순 조회, 검증, 로그 기록 등은 기능에 맞는 이름 사용 가능.
+    - 예: `exists_email`, `create_audit_log`, `find_by_id`
+  - **타입(Struct/Enum/DTO)**: **PascalCase** (대문자 카멜 표기)
+    - 예: `SignupReq`, `AdminUserRes`, `VideoProgressLog`, `UserAuth`
 
 - **DTO/필드명**
   - DB/JSON과 매핑되는 필드 이름은 **snake_case**로 작성
@@ -1139,7 +1149,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 | 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 |
 |---|---|---|---|---|---|
 | 6-1 | `GET /admin/users` | `/admin/users?page=&size=&q=&sort=&order=` | 사용자 조회 | ***검색/정렬/페이지네이션, RBAC(admin)***<br>성공(데이터 있음/없음):<br> Auth pass / Page admin_users init→ready / Request admin_users pending→success /<br> Data admin_users present empty → **200**<br>실패(미인증): Auth stop → **401**<br>실패(RBAC): Auth forbid → **403**<br>실패(형식/누락): … → **400**<br>실패(도메인 제약): … → **422** | [✅] |
-| 6-2 | `POST /admin/users` | `/admin/users/new` | 사용자 단건 생성 | ***ADMIN_USERS_LOG 저장, RBAC***<br>성공:<br> Auth pass / Page admin_users_new init→ready / Form admin_users_new pristine→dirty→validating→submitting→success /<br> Request admin_users_new pending→success / Data admin_users_new present → **201**<br>실패(미인증): **401** / RBAC: **403** / 형식: **400** / 도메인: **422** / 중복: **409** | [ ] |
+| 6-2 | `POST /admin/users` | `/admin/users/new` | 사용자 단건 생성 | ***ADMIN_USERS_LOG 저장, RBAC***<br>성공:<br> Auth pass / Page admin_users_new init→ready / Form admin_users_new pristine→dirty→validating→submitting→success /<br> Request admin_users_new pending→success / Data admin_users_new present → **201**<br>실패(미인증): **401** / RBAC: **403** / 형식: **400** / 도메인: **422** / 중복: **409** | [✅] |
 | 6-3 | `POST /admin/users/bulk` | `/admin/users/bulk` | 사용자 다중 생성 | ***ADMIN_USERS_LOG 저장, 부분 성공 처리, RBAC***<br>성공(전량): … → **201**<br>성공(부분): … → **207**(멀티), 실패 항목 포함<br>실패(인증/권한/형식/도메인/중복): **401/403/400/422/409** | [ ] |
 | 6-4 | `PATCH /admin/users/{id}` | `/admin/users/{user_id}/edit` | 사용자 단건 수정 | ***ADMIN_USERS_LOG 저장, RBAC***<br>성공: … → **200**(또는 **204**)<br>실패(미인증/권한): **401/403**<br>실패(대상없음): **404**<br>실패(형식/도메인/충돌): **400/422/409** | [ ] |
 | 6-5 | `PATCH /admin/users/bulk` | `/admin/users/bulk` | 사용자 다중 수정 | ***ADMIN_USERS_LOG 저장, 부분 성공, RBAC***<br>성공(전량): **200**(또는 **204**)<br>성공(부분): **207**<br>실패(인증/권한/형식/도메인/충돌): **401/403/400/422/409** | [ ] |
