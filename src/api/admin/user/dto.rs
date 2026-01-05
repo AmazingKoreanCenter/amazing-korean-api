@@ -1,6 +1,6 @@
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use validator::Validate;
 
 use crate::types::{UserAuth, UserGender};
@@ -39,30 +39,37 @@ pub struct AdminUserRes {
     pub quit_at: Option<DateTime<Utc>>,
 }
 
-/// 관리자용 사용자 목록 응답
-#[derive(Serialize, ToSchema, Clone, Debug, PartialEq)]
-#[schema(example = json!({
-    "total": 1,
-    "items": [
-        {
-            "id": 123,
-            "email": "admin_user@example.com",
-            "name": "Admin User",
-            "nickname": "AdminNick",
-            "language": "en",
-            "country": "US",
-            "birthday": "2000-01-01",
-            "gender": "male",
-            "user_state": "on",
-            "user_auth": "learner",
-            "created_at": "2025-08-21T10:00:00Z",
-            "quit_at": null
-        }
-    ]
-}))]
-pub struct AdminListUsersRes {
-    pub total: i64,
-    pub items: Vec<AdminUserRes>,
+#[derive(Debug, Deserialize, IntoParams, ToSchema)]
+pub struct AdminUserListReq {
+    pub page: Option<i64>,
+    pub size: Option<i64>,
+    pub q: Option<String>,
+    pub sort: Option<String>,
+    pub order: Option<String>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]
+pub struct AdminUserSummary {
+    pub id: i64,
+    pub email: String,
+    pub nickname: Option<String>,
+    pub role: UserAuth,
+    #[schema(value_type = String, format = "date-time")]
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminUserListMeta {
+    pub total_count: i64,
+    pub total_pages: i64,
+    pub current_page: i64,
+    pub per_page: i64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminUserListRes {
+    pub items: Vec<AdminUserSummary>,
+    pub meta: AdminUserListMeta,
 }
 
 /// 관리자용 사용자 수정 요청

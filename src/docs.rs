@@ -57,6 +57,8 @@ impl Modify for SecurityAddon {
         crate::api::lesson::handler::list_lessons,
         crate::api::lesson::handler::get_lesson_detail,
         crate::api::lesson::handler::get_lesson_items,
+        crate::api::lesson::handler::get_lesson_progress,
+        crate::api::lesson::handler::update_lesson_progress,
 
         // study (user)
         crate::api::study::handler::list_studies,
@@ -127,6 +129,8 @@ impl Modify for SecurityAddon {
             crate::api::lesson::dto::LessonItemsReq,
             crate::api::lesson::dto::LessonItemDetailRes,
             crate::api::lesson::dto::LessonItemsRes,
+            crate::api::lesson::dto::LessonProgressRes,
+            crate::api::lesson::dto::LessonProgressUpdateReq,
 
             // studies dto
             crate::api::study::dto::StudyListRes,
@@ -141,7 +145,10 @@ impl Modify for SecurityAddon {
 
             // admin - users dto
             crate::api::admin::user::dto::AdminUserRes,
-            crate::api::admin::user::dto::AdminListUsersRes,
+            crate::api::admin::user::dto::AdminUserListReq,
+            crate::api::admin::user::dto::AdminUserSummary,
+            crate::api::admin::user::dto::AdminUserListMeta,
+            crate::api::admin::user::dto::AdminUserListRes,
             crate::api::admin::user::dto::AdminUpdateUserReq,
 
             // admin - videos dto

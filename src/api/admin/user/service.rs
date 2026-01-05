@@ -4,9 +4,12 @@ use crate::{
     types::{UserAuth as GlobalUserAuth},
 };
 use sqlx::PgPool;
+use std::net::IpAddr;
 
 use super::{
-    dto::{AdminListUsersRes, AdminUpdateUserReq, AdminUserRes},
+    dto::{
+        AdminUpdateUserReq, AdminUserListMeta, AdminUserListReq, AdminUserListRes, AdminUserRes,
+    },
     repo,
 };
 
@@ -62,20 +65,73 @@ impl AdminUserService {
     pub async fn admin_list(
         st: &AppState,
         actor_user_id: i64,
-        query: Option<String>,
-        state: Option<bool>,
-        page: Option<i64>,
-        size: Option<i64>,
-    ) -> AppResult<AdminListUsersRes> {
+        req: AdminUserListReq,
+        ip_address: Option<IpAddr>,
+        user_agent: Option<String>,
+    ) -> AppResult<AdminUserListRes> {
         Self::check_admin_rbac(&st.db, actor_user_id).await?;
 
-        let page = page.unwrap_or(1).max(1);
-        let size = size.unwrap_or(20).clamp(1, 100);
+        let page = req.page.unwrap_or(1);
+        if page < 1 {
+            return Err(AppError::BadRequest("page must be >= 1".into()));
+        }
 
-        let (total, items) =
-            repo::admin_list_users(&st.db, query.as_deref(), state, page, size).await?;
+        let size = req.size.unwrap_or(20);
+        if size < 1 {
+            return Err(AppError::BadRequest("size must be >= 1".into()));
+        }
+        if size > 100 {
+            return Err(AppError::Unprocessable("size exceeds 100".into()));
+        }
 
-        Ok(AdminListUsersRes { total, items })
+        let sort = req.sort.as_deref().unwrap_or("created_at");
+        if !matches!(sort, "created_at" | "email" | "nickname") {
+            return Err(AppError::Unprocessable("invalid sort".into()));
+        }
+
+        let order = req.order.as_deref().unwrap_or("desc");
+        if !matches!(order, "asc" | "desc") {
+            return Err(AppError::Unprocessable("invalid order".into()));
+        }
+
+        let details = serde_json::json!({
+            "q": req.q.as_deref(),
+            "page": page,
+            "size": size,
+            "sort": sort,
+            "order": order
+        });
+
+        repo::log_admin_action(
+            &st.db,
+            actor_user_id,
+            "LIST_USERS",
+            Some("users"),
+            None,
+            &details,
+            ip_address,
+            user_agent.as_deref(),
+        )
+        .await?;
+
+        let (total_count, items) =
+            repo::admin_list_users(&st.db, req.q.as_deref(), page, size, sort, order).await?;
+
+        let total_pages = if total_count == 0 {
+            0
+        } else {
+            (total_count + size - 1) / size
+        };
+
+        Ok(AdminUserListRes {
+            items,
+            meta: AdminUserListMeta {
+                total_count,
+                total_pages,
+                current_page: page,
+                per_page: size,
+            },
+        })
     }
 
     pub async fn admin_get(

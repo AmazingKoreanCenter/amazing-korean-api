@@ -2,7 +2,7 @@ use crate::error::{AppError, AppResult};
 
 use super::dto::{
     LessonDetailReq, LessonDetailRes, LessonItemsReq, LessonItemsRes, LessonListMeta, LessonListReq,
-    LessonListRes,
+    LessonListRes, LessonProgressRes, LessonProgressUpdateReq,
 };
 use super::repo::LessonRepo;
 
@@ -142,5 +142,55 @@ impl LessonService {
                 per_page,
             },
         })
+    }
+
+    pub async fn get_lesson_progress(
+        &self,
+        user_id: i64,
+        lesson_id: i64,
+    ) -> AppResult<LessonProgressRes> {
+        let exists = self.repo.exists_lesson(lesson_id).await?;
+        if !exists {
+            return Err(AppError::NotFound);
+        }
+
+        let progress = self.repo.find_progress(lesson_id, user_id).await?;
+
+        Ok(progress.unwrap_or(LessonProgressRes {
+            percent: 0,
+            last_seq: None,
+            updated_at: None,
+        }))
+    }
+
+    pub async fn update_lesson_progress(
+        &self,
+        user_id: i64,
+        lesson_id: i64,
+        req: LessonProgressUpdateReq,
+    ) -> AppResult<LessonProgressRes> {
+        let exists = self.repo.exists_lesson(lesson_id).await?;
+        if !exists {
+            return Err(AppError::NotFound);
+        }
+
+        if req.percent < 0 || req.percent > 100 {
+            return Err(AppError::Unprocessable(
+                "percent must be between 0 and 100".into(),
+            ));
+        }
+
+        if let Some(last_seq) = req.last_seq {
+            if last_seq <= 0 {
+                return Err(AppError::Unprocessable("last_seq must be positive".into()));
+            }
+        }
+
+        let progress = self
+            .repo
+            .upsert_progress(lesson_id, user_id, req.percent, req.last_seq)
+            .await?;
+
+        Ok(progress)
     }
 }

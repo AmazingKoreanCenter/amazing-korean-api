@@ -1,6 +1,8 @@
 use sqlx::PgPool;
 
-use super::dto::{LessonItemDetailRes, LessonItemRes, LessonRes};
+use super::dto::{
+    LessonItemDetailRes, LessonItemRes, LessonProgressRes, LessonRes,
+};
 
 pub struct LessonRepo {
     pool: PgPool,
@@ -156,6 +158,68 @@ impl LessonRepo {
         .await?;
 
         Ok(rows)
+    }
+
+    pub async fn find_progress(
+        &self,
+        lesson_id: i64,
+        user_id: i64,
+    ) -> Result<Option<LessonProgressRes>, sqlx::Error> {
+        let row = sqlx::query_as::<_, LessonProgressRes>(
+            r#"
+            SELECT
+                lesson_progress_percent as percent,
+                lesson_progress_last_item_seq as last_seq,
+                lesson_progress_last_progress_at as updated_at
+            FROM lesson_progress
+            WHERE lesson_id = $1
+              AND user_id = $2
+            "#,
+        )
+        .bind(lesson_id)
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row)
+    }
+
+    pub async fn upsert_progress(
+        &self,
+        lesson_id: i64,
+        user_id: i64,
+        percent: i32,
+        last_seq: Option<i32>,
+    ) -> Result<LessonProgressRes, sqlx::Error> {
+        let row = sqlx::query_as::<_, LessonProgressRes>(
+            r#"
+            INSERT INTO lesson_progress (
+                lesson_id,
+                user_id,
+                lesson_progress_percent,
+                lesson_progress_last_item_seq,
+                lesson_progress_last_progress_at
+            )
+            VALUES ($1, $2, $3, $4, NOW())
+            ON CONFLICT (lesson_id, user_id)
+            DO UPDATE SET
+                lesson_progress_percent = EXCLUDED.lesson_progress_percent,
+                lesson_progress_last_item_seq = EXCLUDED.lesson_progress_last_item_seq,
+                lesson_progress_last_progress_at = EXCLUDED.lesson_progress_last_progress_at
+            RETURNING
+                lesson_progress_percent as percent,
+                lesson_progress_last_item_seq as last_seq,
+                lesson_progress_last_progress_at as updated_at
+            "#,
+        )
+        .bind(lesson_id)
+        .bind(user_id)
+        .bind(percent)
+        .bind(last_seq)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(row)
     }
 }
 
