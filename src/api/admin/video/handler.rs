@@ -7,7 +7,8 @@ use axum::{
 use utoipa::ToSchema;
 
 use crate::api::admin::video::dto::{
-    AdminVideoListReq, AdminVideoListRes, AdminVideoRes, VideoCreateReq,
+    AdminVideoListReq, AdminVideoListRes, AdminVideoRes, VideoBulkCreateReq, VideoBulkCreateRes,
+    VideoCreateReq, VideoUpdateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 #[allow(unused_imports)] // Used in return type
@@ -119,24 +120,87 @@ pub async fn create_video_handler(
     Ok((StatusCode::CREATED, Json(res)))
 }
 
-// Placeholder for B2: admin_update_video
 #[utoipa::path(
-    put,
+    post,
+    path = "/admin/videos/bulk",
+    tag = "admin",
+    request_body = VideoBulkCreateReq,
+    responses(
+        (status = 201, description = "All created", body = VideoBulkCreateRes),
+        (status = 207, description = "Partial success", body = VideoBulkCreateRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 409, description = "Conflict", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_bulk_create_videos(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<VideoBulkCreateReq>,
+) -> AppResult<(StatusCode, Json<VideoBulkCreateRes>)> {
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = super::service::admin_bulk_create_videos(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::CREATED
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
+}
+
+#[utoipa::path(
+    patch,
     path = "/admin/videos/{video_id}",
     tag = "admin",
     params(
         ("video_id" = i64, Path, description = "Video ID")
     ),
+    request_body = VideoUpdateReq,
     responses(
-        (status = 200, description = "Video updated"),
-        (status = 404, description = "Video not found")
-    )
+        (status = 200, description = "Video updated", body = AdminVideoRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 404, description = "Video not found", body = crate::error::ErrorBody),
+        (status = 409, description = "Conflict", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
 )]
 pub async fn admin_update_video(
-    State(_st): State<AppState>,
-    Path(_video_id): Path<i64>,
-    Json(_body): Json<serde_json::Value>,
-) -> Result<StatusCode, AppError> {
-    // TODO: Implement actual update logic
-    Ok(StatusCode::OK)
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Path(video_id): Path<i64>,
+    Json(req): Json<VideoUpdateReq>,
+) -> AppResult<Json<AdminVideoRes>> {
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_update_video(
+        &st,
+        auth_user.sub,
+        video_id,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
 }
