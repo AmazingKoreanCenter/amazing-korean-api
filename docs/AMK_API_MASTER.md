@@ -1157,9 +1157,9 @@ audience: server / database / backend / frontend / lead / LLM assistant
 | 6-7 | `POST /admin/videos` | `/admin/videos/new` | 비디오 단건 생성 | ***ADMIN_VIDEO_LOG 저장, RBAC***<br>성공: … → **201**<br>실패(401/403/400/422/409) | [✅] |
 | 6-8 | `POST /admin/videos/bulk` | `/admin/videos/bulk` | 비디오 다중 생성 | ***ADMIN_VIDEO_LOG 저장, 부분 성공, RBAC***<br>성공(전량): **201** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
 | 6-9 | `PATCH /admin/videos/{id}` | `/admin/videos/{video_id}/edit` | 비디오 단건 수정 | ***ADMIN_VIDEO_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
-| 6-10 | `PATCH /admin/videos/bulk` | `/admin/videos/bulk` | 비디오 다중 수정 | ***ADMIN_VIDEO_LOG 저장, 부분 성공, RBAC***<br>성공: **200**(또는 **204**) / 부분: **207** / 실패: **401/403/400/422/409** | [ ] |
-| 6-11 | `PATCH /admin/videos/{id}/tags` | `/admin/videos/{video_id}/tags` | 비디오 태그 단건 수정 | ***태그 검증·중복 방지, ADMIN_VIDEO_LOG, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [ ] |
-| 6-12 | `PATCH /admin/videos/bulk/tags` | `/admin/videos/bulk/tags` | 비디오 태그 다중 수정 | ***부분 성공, ADMIN_VIDEO_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409** | [ ] |
+| 6-10 | `PATCH /admin/videos/bulk` | `/admin/videos/bulk` | 비디오 다중 수정 | ***ADMIN_VIDEO_LOG 저장, 부분 성공, RBAC***<br>성공: **200**(또는 **204**) / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
+| 6-11 | `PATCH /admin/videos/{id}/tags` | `/admin/videos/{video_id}/tags` | 비디오 태그 단건 수정 | ***태그 검증·중복 방지, ADMIN_VIDEO_LOG, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
+| 6-12 | `PATCH /admin/videos/bulk/tags` | `/admin/videos/bulk/tags` | 비디오 태그 다중 수정 | ***부분 성공, ADMIN_VIDEO_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
 | 6-13 | `GET /admin/videos/{id}/stats` | `/admin/videos/{video_id}/stats?from=&to=&granularity=daily` | 비디오 일별 통계 조회 **추후진행** | ***VIDEO_STAT_DAILY 조회, 기간/그라뉼러리티 검증, RBAC***<br>성공: **200**(없음도 **200**) / 실패: **401/403/404/400/422** | [❗❗❗❗❗] |
 | 6-14 | `GET /admin/studies` | `/admin/studies?page=&size=&q=&sort=&order=` | 학습 문제 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [ ] |
 | 6-15 | `POST /admin/studies` | `/admin/studies/new` | 학습 문제 단건 생성 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **201** / 실패: **401/403/400/422/409** | [ ] |

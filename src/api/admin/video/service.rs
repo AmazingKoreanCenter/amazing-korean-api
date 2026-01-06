@@ -2,7 +2,8 @@ use super::repo;
 use crate::api::admin::video::dto::{
     AdminVideoListReq, AdminVideoListRes, AdminVideoRes, Pagination, VideoBulkCreateReq,
     VideoBulkCreateRes, VideoBulkItemError, VideoBulkItemResult, VideoBulkSummary,
-    VideoCreateReq, VideoUpdateReq,
+    VideoBulkUpdateReq, VideoBulkUpdateRes, VideoBulkUpdateItemResult, VideoCreateReq,
+    VideoTagBulkUpdateReq, VideoTagUpdateReq, VideoUpdateReq,
 };
 use crate::error::{AppError, AppResult};
 use crate::types::UserAuth;
@@ -37,8 +38,8 @@ pub async fn admin_create_video(
     st: &AppState,
     actor_user_id: i64,
     req: VideoCreateReq,
-    ip_address: Option<IpAddr>,
-    user_agent: Option<String>,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
 ) -> AppResult<AdminVideoRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
@@ -72,22 +73,15 @@ pub async fn admin_create_video(
         Err(e) => return Err(e),
     };
 
-    // 로그 데이터도 컬럼명에 맞게 저장
-    let details = serde_json::json!({
-        "video_id": created.id,
-        "video_idx": video_idx,
-        "video_tag_key": tag_key
-    });
-
-    crate::api::admin::user::repo::create_audit_log_tx(
+    let after = serde_json::to_value(&created).unwrap_or_default();
+    repo::create_video_log_tx(
         &mut tx,
         actor_user_id,
-        "CREATE_VIDEO",
-        Some("video"),
+        "CREATE",
         Some(created.id),
-        &details,
-        ip_address,
-        user_agent.as_deref(),
+        None,
+        None,
+        Some(&after),
     )
     .await?;
 
@@ -100,8 +94,8 @@ pub async fn admin_bulk_create_videos(
     st: &AppState,
     actor_user_id: i64,
     req: VideoBulkCreateReq,
-    ip_address: Option<IpAddr>,
-    user_agent: Option<String>,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
 ) -> AppResult<(bool, VideoBulkCreateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
@@ -184,20 +178,20 @@ pub async fn admin_bulk_create_videos(
     };
 
     let details = serde_json::json!({
+        "action": "BULK_CREATE",
         "total": summary.total,
         "success": summary.success,
         "failure": summary.failure
     });
 
-    crate::api::admin::user::repo::create_audit_log(
+    repo::create_video_log(
         &st.db,
         actor_user_id,
-        "BULK_CREATE_VIDEO",
-        Some("video"),
+        "BULK_CREATE",
         None,
-        &details,
-        ip_address,
-        user_agent.as_deref(),
+        None,
+        None,
+        Some(&details),
     )
     .await?;
 
@@ -282,13 +276,387 @@ pub async fn admin_list_videos(
     })
 }
 
+pub async fn admin_bulk_update_videos(
+    st: &AppState,
+    actor_user_id: i64,
+    req: VideoBulkUpdateReq,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
+) -> AppResult<(bool, VideoBulkUpdateRes)> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let mut results = Vec::with_capacity(req.items.len());
+    let mut success = 0i64;
+    let mut failure = 0i64;
+
+    for item in req.items {
+        let outcome = async {
+            if let Err(e) = item.validate() {
+                return Err(AppError::BadRequest(e.to_string()));
+            }
+
+            let update_req = VideoUpdateReq {
+                video_tag_title: item.video_tag_title.clone(),
+                video_tag_subtitle: item.video_tag_subtitle.clone(),
+                video_tag_key: item.video_tag_key.clone(),
+                video_url_vimeo: item.video_url_vimeo.clone(),
+                video_access: item.video_access.clone(),
+                video_idx: item.video_idx.clone(),
+            };
+
+            let has_any = update_req.video_tag_title.is_some()
+                || update_req.video_tag_subtitle.is_some()
+                || update_req.video_tag_key.is_some()
+                || update_req.video_url_vimeo.is_some()
+                || update_req.video_access.is_some()
+                || update_req.video_idx.is_some();
+
+            if !has_any {
+                return Err(AppError::BadRequest("no fields to update".into()));
+            }
+
+            let mut tx = st.db.begin().await?;
+
+            let exists = sqlx::query_scalar::<_, bool>(
+                r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM video
+                    WHERE video_id = $1
+                )
+                "#,
+            )
+            .bind(item.id)
+            .fetch_one(&mut *tx)
+            .await?;
+
+            if !exists {
+                return Err(AppError::NotFound);
+            }
+
+            if let Some(video_idx) = update_req.video_idx.as_deref() {
+                if repo::exists_video_idx_for_update(&mut tx, item.id, video_idx.trim()).await? {
+                    return Err(AppError::Conflict("video_idx already exists".into()));
+                }
+            }
+
+            if let Some(tag_key) = update_req.video_tag_key.as_deref() {
+                if repo::exists_video_tag_key_for_update(&mut tx, item.id, tag_key.trim()).await? {
+                    return Err(AppError::Conflict("video_tag_key already exists".into()));
+                }
+            }
+
+            let updated = repo::admin_update_video(&mut tx, item.id, actor_user_id, &update_req)
+                .await;
+
+            let updated = match updated {
+                Ok(val) => val,
+                Err(e) if is_unique_violation(&e) => {
+                    return Err(AppError::Conflict("duplicate video data".into()));
+                }
+                Err(e) => return Err(e),
+            };
+
+            tx.commit().await?;
+
+            Ok(updated)
+        }
+        .await;
+
+        match outcome {
+            Ok(video) => {
+                success += 1;
+                results.push(VideoBulkUpdateItemResult {
+                    id: video.id,
+                    status: 200,
+                    data: Some(video),
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failure += 1;
+                let (status, msg) = match e {
+                    AppError::NotFound => (404, "Video not found".to_string()),
+                    AppError::BadRequest(m) => (400, m),
+                    AppError::Unprocessable(m) => (422, m),
+                    AppError::Conflict(m) => (409, m),
+                    AppError::Forbidden => (403, "Forbidden".to_string()),
+                    _ => (500, "Internal Server Error".to_string()),
+                };
+
+                results.push(VideoBulkUpdateItemResult {
+                    id: item.id,
+                    status,
+                    data: None,
+                    error: Some(VideoBulkItemError {
+                        code: "ERR".into(),
+                        message: msg,
+                    }),
+                });
+            }
+        }
+    }
+
+    let summary = VideoBulkSummary {
+        total: success + failure,
+        success,
+        failure,
+    };
+
+    let details = serde_json::json!({
+        "action": "BULK_UPDATE",
+        "total": summary.total,
+        "success": summary.success,
+        "failure": summary.failure
+    });
+
+    repo::create_video_log(
+        &st.db,
+        actor_user_id,
+        "BULK_UPDATE",
+        None,
+        None,
+        None,
+        Some(&details),
+    )
+    .await?;
+
+    let all_success = failure == 0;
+
+    Ok((all_success, VideoBulkUpdateRes { summary, results }))
+}
+
+pub async fn admin_bulk_update_video_tags(
+    st: &AppState,
+    actor_user_id: i64,
+    req: VideoTagBulkUpdateReq,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
+) -> AppResult<(bool, VideoBulkUpdateRes)> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let mut results = Vec::with_capacity(req.items.len());
+    let mut success = 0i64;
+    let mut failure = 0i64;
+
+    for item in req.items {
+        let outcome = async {
+            if let Err(e) = item.validate() {
+                return Err(AppError::BadRequest(e.to_string()));
+            }
+
+            let update_req = VideoUpdateReq {
+                video_tag_title: item.video_tag_title.clone(),
+                video_tag_subtitle: item.video_tag_subtitle.clone(),
+                video_tag_key: item.video_tag_key.clone(),
+                video_url_vimeo: None,
+                video_access: None,
+                video_idx: None,
+            };
+
+            let has_any = update_req.video_tag_title.is_some()
+                || update_req.video_tag_subtitle.is_some()
+                || update_req.video_tag_key.is_some();
+
+            if !has_any {
+                return Err(AppError::BadRequest("no fields to update".into()));
+            }
+
+            let mut tx = st.db.begin().await?;
+
+            let exists = sqlx::query_scalar::<_, bool>(
+                r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM video
+                    WHERE video_id = $1
+                )
+                "#,
+            )
+            .bind(item.id)
+            .fetch_one(&mut *tx)
+            .await?;
+
+            if !exists {
+                return Err(AppError::NotFound);
+            }
+
+            if let Some(tag_key) = update_req.video_tag_key.as_deref() {
+                if repo::exists_video_tag_key_for_update(&mut tx, item.id, tag_key.trim()).await? {
+                    return Err(AppError::Conflict("video_tag_key already exists".into()));
+                }
+            }
+
+            let updated = repo::admin_update_video(&mut tx, item.id, actor_user_id, &update_req)
+                .await;
+
+            let updated = match updated {
+                Ok(val) => val,
+                Err(e) if is_unique_violation(&e) => {
+                    return Err(AppError::Conflict("duplicate video data".into()));
+                }
+                Err(e) => return Err(e),
+            };
+
+            tx.commit().await?;
+
+            Ok(updated)
+        }
+        .await;
+
+        match outcome {
+            Ok(video) => {
+                success += 1;
+                results.push(VideoBulkUpdateItemResult {
+                    id: video.id,
+                    status: 200,
+                    data: Some(video),
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failure += 1;
+                let (status, msg) = match e {
+                    AppError::NotFound => (404, "Video not found".to_string()),
+                    AppError::BadRequest(m) => (400, m),
+                    AppError::Unprocessable(m) => (422, m),
+                    AppError::Conflict(m) => (409, m),
+                    AppError::Forbidden => (403, "Forbidden".to_string()),
+                    _ => (500, "Internal Server Error".to_string()),
+                };
+
+                results.push(VideoBulkUpdateItemResult {
+                    id: item.id,
+                    status,
+                    data: None,
+                    error: Some(VideoBulkItemError {
+                        code: "ERR".into(),
+                        message: msg,
+                    }),
+                });
+            }
+        }
+    }
+
+    let summary = VideoBulkSummary {
+        total: success + failure,
+        success,
+        failure,
+    };
+
+    let details = serde_json::json!({
+        "action": "BULK_UPDATE_TAG",
+        "total": summary.total,
+        "success": summary.success,
+        "failure": summary.failure
+    });
+
+    repo::create_video_log(
+        &st.db,
+        actor_user_id,
+        "BULK_UPDATE_TAG",
+        None,
+        None,
+        None,
+        Some(&details),
+    )
+    .await?;
+
+    let all_success = failure == 0;
+
+    Ok((all_success, VideoBulkUpdateRes { summary, results }))
+}
+
+pub async fn admin_update_video_tags(
+    st: &AppState,
+    actor_user_id: i64,
+    video_id: i64,
+    req: VideoTagUpdateReq,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
+) -> AppResult<AdminVideoRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let update_req: VideoUpdateReq = req.into();
+    let has_any = update_req.video_tag_title.is_some()
+        || update_req.video_tag_subtitle.is_some()
+        || update_req.video_tag_key.is_some();
+
+    if !has_any {
+        return Err(AppError::BadRequest("no fields to update".into()));
+    }
+
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM video
+            WHERE video_id = $1
+        )
+        "#,
+    )
+    .bind(video_id)
+    .fetch_one(&st.db)
+    .await?;
+
+    if !exists {
+        return Err(AppError::NotFound);
+    }
+
+    let mut tx = st.db.begin().await?;
+
+    if let Some(tag_key) = update_req.video_tag_key.as_deref() {
+        if repo::exists_video_tag_key_for_update(&mut tx, video_id, tag_key.trim()).await? {
+            return Err(AppError::Conflict("video_tag_key already exists".into()));
+        }
+    }
+
+    let updated = repo::admin_update_video(&mut tx, video_id, actor_user_id, &update_req).await;
+
+    let updated = match updated {
+        Ok(val) => val,
+        Err(e) if is_unique_violation(&e) => {
+            return Err(AppError::Conflict("duplicate video data".into()));
+        }
+        Err(e) => return Err(e),
+    };
+
+    let after = serde_json::to_value(&updated).unwrap_or_default();
+    repo::create_video_log_tx(
+        &mut tx,
+        actor_user_id,
+        "UPDATE_TAG",
+        Some(updated.id),
+        None,
+        None,
+        Some(&after),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(updated)
+}
+
 pub async fn admin_update_video(
     st: &AppState,
     actor_user_id: i64,
     video_id: i64,
     req: VideoUpdateReq,
-    ip_address: Option<IpAddr>,
-    user_agent: Option<String>,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
 ) -> AppResult<AdminVideoRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
@@ -348,19 +716,15 @@ pub async fn admin_update_video(
         Err(e) => return Err(e),
     };
 
-    let details = serde_json::json!({
-        "video_id": updated.id
-    });
-
-    crate::api::admin::user::repo::create_audit_log_tx(
+    let after = serde_json::to_value(&updated).unwrap_or_default();
+    repo::create_video_log_tx(
         &mut tx,
         actor_user_id,
-        "UPDATE_VIDEO",
-        Some("video"),
+        "UPDATE",
         Some(updated.id),
-        &details,
-        ip_address,
-        user_agent.as_deref(),
+        None,
+        None,
+        Some(&after),
     )
     .await?;
 

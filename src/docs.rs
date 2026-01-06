@@ -80,6 +80,9 @@ impl Modify for SecurityAddon {
         crate::api::admin::video::handler::create_video_handler,   
         crate::api::admin::video::handler::admin_bulk_create_videos,
         crate::api::admin::video::handler::admin_update_video,     
+        crate::api::admin::video::handler::admin_bulk_update_videos,
+        crate::api::admin::video::handler::admin_update_video_tags,
+        crate::api::admin::video::handler::admin_bulk_update_video_tags,
 
 
         // admin - video stats
@@ -176,8 +179,15 @@ impl Modify for SecurityAddon {
             crate::api::admin::video::dto::VideoBulkItemError,
             crate::api::admin::video::dto::VideoBulkItemResult,
             crate::api::admin::video::dto::VideoBulkSummary,
+            crate::api::admin::video::dto::VideoBulkUpdateItem,
+            crate::api::admin::video::dto::VideoBulkUpdateReq,
+            crate::api::admin::video::dto::VideoBulkUpdateItemResult,
+            crate::api::admin::video::dto::VideoBulkUpdateRes,
             crate::api::admin::video::dto::VideoCreateReq,
             crate::api::admin::video::dto::VideoRes,
+            crate::api::admin::video::dto::VideoTagBulkUpdateItem,
+            crate::api::admin::video::dto::VideoTagBulkUpdateReq,
+            crate::api::admin::video::dto::VideoTagUpdateReq,
             crate::api::admin::video::dto::VideoUpdateReq,
 
 
