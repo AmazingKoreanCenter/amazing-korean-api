@@ -242,3 +242,52 @@ pub struct VideoBulkCreateRes {
     pub summary: VideoBulkSummary,
     pub results: Vec<VideoBulkItemResult>,
 }
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct VideoBulkUpdateItem {
+    pub id: i64,
+
+    #[validate(
+        length(min = 1, max = 200),
+        custom(function = "validate_not_empty_string")
+    )]
+    pub video_tag_title: Option<String>,
+
+    #[validate(length(max = 500))]
+    pub video_tag_subtitle: Option<String>,
+
+    #[validate(length(min = 1, max = 30), custom(function = "validate_not_empty_string"))]
+    pub video_tag_key: Option<String>,
+
+    #[validate(url, length(max = 1024))]
+    pub video_url_vimeo: Option<String>,
+
+    #[validate(custom(function = "validate_access"))]
+    pub video_access: Option<String>,
+
+    #[validate(length(min = 1, max = 100), custom(function = "validate_not_empty_string"))]
+    pub video_idx: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate, Serialize, ToSchema)]
+pub struct VideoBulkUpdateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<VideoBulkUpdateItem>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VideoBulkUpdateItemResult {
+    pub id: i64,
+    pub status: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<AdminVideoRes>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<VideoBulkItemError>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VideoBulkUpdateRes {
+    pub summary: VideoBulkSummary,
+    pub results: Vec<VideoBulkUpdateItemResult>,
+}
