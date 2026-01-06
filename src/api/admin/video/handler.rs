@@ -7,7 +7,8 @@ use axum::{
 use utoipa::ToSchema;
 
 use crate::api::admin::video::dto::{
-    AdminVideoListReq, AdminVideoListRes, AdminVideoRes, VideoCreateReq,
+    AdminVideoListReq, AdminVideoListRes, AdminVideoRes, VideoBulkCreateReq, VideoBulkCreateRes,
+    VideoCreateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 #[allow(unused_imports)] // Used in return type
@@ -117,6 +118,49 @@ pub async fn create_video_handler(
     .await?;
 
     Ok((StatusCode::CREATED, Json(res)))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/videos/bulk",
+    tag = "admin",
+    request_body = VideoBulkCreateReq,
+    responses(
+        (status = 201, description = "All created", body = VideoBulkCreateRes),
+        (status = 207, description = "Partial success", body = VideoBulkCreateRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 409, description = "Conflict", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_bulk_create_videos(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<VideoBulkCreateReq>,
+) -> AppResult<(StatusCode, Json<VideoBulkCreateRes>)> {
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = super::service::admin_bulk_create_videos(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::CREATED
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
 }
 
 // Placeholder for B2: admin_update_video

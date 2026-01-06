@@ -82,7 +82,7 @@ impl FromStr for VideoAccess {
     }
 }
 
-#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
 pub struct VideoCreateReq {
     // 1. video_tag 테이블 컬럼
     #[validate(length(min = 1, max = 200))]
@@ -204,4 +204,41 @@ pub struct Pagination {
 pub struct AdminVideoListRes {
     pub items: Vec<AdminVideoRes>,
     pub pagination: Pagination,
+}
+
+#[derive(Debug, Deserialize, Validate, Serialize, ToSchema)]
+pub struct VideoBulkCreateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<VideoCreateReq>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VideoBulkItemError {
+    pub code: String,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VideoBulkItemResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<i64>,
+    pub status: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<AdminVideoRes>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<VideoBulkItemError>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VideoBulkSummary {
+    pub total: i64,
+    pub success: i64,
+    pub failure: i64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VideoBulkCreateRes {
+    pub summary: VideoBulkSummary,
+    pub results: Vec<VideoBulkItemResult>,
 }

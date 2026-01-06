@@ -1155,7 +1155,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 | 6-5 | `PATCH /admin/users/bulk` | `/admin/users/bulk` | 사용자 다중 수정 | ***ADMIN_USERS_LOG 저장, 부분 성공, RBAC***<br>성공(전량): **200**(또는 **204**)<br>성공(부분): **207**<br>실패(인증/권한/형식/도메인/충돌): **401/403/400/422/409** | [✅] |
 | 6-6 | `GET /admin/videos` | `/admin/videos?page=&size=&q=&sort=&order=` | 비디오 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공(있음/없음): … → **200** / 실패(401/403/400/422) | [✅] |
 | 6-7 | `POST /admin/videos` | `/admin/videos/new` | 비디오 단건 생성 | ***ADMIN_VIDEO_LOG 저장, RBAC***<br>성공: … → **201**<br>실패(401/403/400/422/409) | [✅] |
-| 6-8 | `POST /admin/videos/bulk` | `/admin/videos/bulk` | 비디오 다중 생성 | ***ADMIN_VIDEO_LOG 저장, 부분 성공, RBAC***<br>성공(전량): **201** / 부분: **207** / 실패: **401/403/400/422/409** | [ ] |
+| 6-8 | `POST /admin/videos/bulk` | `/admin/videos/bulk` | 비디오 다중 생성 | ***ADMIN_VIDEO_LOG 저장, 부분 성공, RBAC***<br>성공(전량): **201** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
 | 6-9 | `PATCH /admin/videos/{id}` | `/admin/videos/{video_id}/edit` | 비디오 단건 수정 | ***ADMIN_VIDEO_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [ ] |
 | 6-10 | `PATCH /admin/videos/bulk` | `/admin/videos/bulk` | 비디오 다중 수정 | ***ADMIN_VIDEO_LOG 저장, 부분 성공, RBAC***<br>성공: **200**(또는 **204**) / 부분: **207** / 실패: **401/403/400/422/409** | [ ] |
 | 6-11 | `PATCH /admin/videos/{id}/tags` | `/admin/videos/{video_id}/tags` | 비디오 태그 단건 수정 | ***태그 검증·중복 방지, ADMIN_VIDEO_LOG, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [ ] |
