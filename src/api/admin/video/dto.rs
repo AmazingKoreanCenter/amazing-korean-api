@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Type};
 use std::fmt;
 use std::str::FromStr;
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use validator::{Validate, ValidationError};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema, Clone, Copy, PartialEq, Eq, Type)]
@@ -151,4 +151,41 @@ pub struct VideoRes {
     pub updated_at: DateTime<Utc>,
     pub updated_by_user_id: i64,
     pub deleted_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Deserialize, Validate, IntoParams, ToSchema)]
+pub struct AdminVideoListReq {
+    #[validate(range(min = 1))]
+    pub page: Option<i64>,
+    #[validate(range(min = 1, max = 100))]
+    pub size: Option<i64>,
+    pub q: Option<String>,
+    pub sort: Option<String>,
+    pub order: Option<String>,
+}
+
+#[derive(Debug, Serialize, FromRow, ToSchema)]
+pub struct AdminVideoRes {
+    pub id: i64,
+    pub title: String,
+    pub url: Option<String>,
+    pub description: Option<String>,
+    pub views: i64,
+    pub is_public: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct Pagination {
+    pub total_count: i64,
+    pub total_pages: i64,
+    pub current_page: i64,
+    pub per_page: i64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminVideoListRes {
+    pub items: Vec<AdminVideoRes>,
+    pub pagination: Pagination,
 }
