@@ -119,28 +119,28 @@ fn validate_access(access: &str) -> Result<(), validator::ValidationError> {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct VideoUpdateReq {
     #[validate(
         length(min = 1, max = 200),
         custom(function = "validate_not_empty_string")
     )]
-    pub video_title: Option<String>,
+    pub video_tag_title: Option<String>,
+
     #[validate(length(max = 500))]
-    pub video_subtitle: Option<String>,
-    #[validate(length(min = 2, max = 10))]
-    pub video_language: Option<String>,
-    pub video_state: Option<VideoState>,
-    pub video_access: Option<VideoAccess>,
-    #[validate(length(max = 32))]
-    pub vimeo_video_id: Option<String>,
-    #[validate(range(min = 1))]
-    pub video_duration_seconds: Option<i32>,
+    pub video_tag_subtitle: Option<String>,
+
+    #[validate(length(min = 1, max = 30), custom(function = "validate_not_empty_string"))]
+    pub video_tag_key: Option<String>,
+
     #[validate(url, length(max = 1024))]
-    pub video_thumbnail_url: Option<String>,
-    #[validate(url, length(max = 1024))]
-    pub video_link: Option<String>,
+    pub video_url_vimeo: Option<String>,
+
+    #[validate(custom(function = "validate_access"))]
+    pub video_access: Option<String>,
+
+    #[validate(length(min = 1, max = 100), custom(function = "validate_not_empty_string"))]
+    pub video_idx: Option<String>,
 }
 
 fn validate_not_empty_string(s: &str) -> Result<(), ValidationError> {

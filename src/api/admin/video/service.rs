@@ -2,7 +2,7 @@ use super::repo;
 use crate::api::admin::video::dto::{
     AdminVideoListReq, AdminVideoListRes, AdminVideoRes, Pagination, VideoBulkCreateReq,
     VideoBulkCreateRes, VideoBulkItemError, VideoBulkItemResult, VideoBulkSummary,
-    VideoCreateReq,
+    VideoCreateReq, VideoUpdateReq,
 };
 use crate::error::{AppError, AppResult};
 use crate::types::UserAuth;
@@ -280,6 +280,93 @@ pub async fn admin_list_videos(
             per_page: size,
         },
     })
+}
+
+pub async fn admin_update_video(
+    st: &AppState,
+    actor_user_id: i64,
+    video_id: i64,
+    req: VideoUpdateReq,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<String>,
+) -> AppResult<AdminVideoRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let has_any = req.video_tag_title.is_some()
+        || req.video_tag_subtitle.is_some()
+        || req.video_tag_key.is_some()
+        || req.video_url_vimeo.is_some()
+        || req.video_access.is_some()
+        || req.video_idx.is_some();
+
+    if !has_any {
+        return Err(AppError::BadRequest("no fields to update".into()));
+    }
+
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM video
+            WHERE video_id = $1
+        )
+        "#,
+    )
+    .bind(video_id)
+    .fetch_one(&st.db)
+    .await?;
+
+    if !exists {
+        return Err(AppError::NotFound);
+    }
+
+    let mut tx = st.db.begin().await?;
+
+    if let Some(video_idx) = req.video_idx.as_deref() {
+        if repo::exists_video_idx_for_update(&mut tx, video_id, video_idx.trim()).await? {
+            return Err(AppError::Conflict("video_idx already exists".into()));
+        }
+    }
+
+    if let Some(tag_key) = req.video_tag_key.as_deref() {
+        if repo::exists_video_tag_key_for_update(&mut tx, video_id, tag_key.trim()).await? {
+            return Err(AppError::Conflict("video_tag_key already exists".into()));
+        }
+    }
+
+    let updated = repo::admin_update_video(&mut tx, video_id, actor_user_id, &req).await;
+
+    let updated = match updated {
+        Ok(val) => val,
+        Err(e) if is_unique_violation(&e) => {
+            return Err(AppError::Conflict("duplicate video data".into()));
+        }
+        Err(e) => return Err(e),
+    };
+
+    let details = serde_json::json!({
+        "video_id": updated.id
+    });
+
+    crate::api::admin::user::repo::create_audit_log_tx(
+        &mut tx,
+        actor_user_id,
+        "UPDATE_VIDEO",
+        Some("video"),
+        Some(updated.id),
+        &details,
+        ip_address,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(updated)
 }
 
 fn build_video_keys(req: &VideoCreateReq) -> (String, String) {
