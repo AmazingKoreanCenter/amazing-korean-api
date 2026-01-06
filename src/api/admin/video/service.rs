@@ -38,8 +38,8 @@ pub async fn admin_create_video(
     st: &AppState,
     actor_user_id: i64,
     req: VideoCreateReq,
-    ip_address: Option<IpAddr>,
-    user_agent: Option<String>,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
 ) -> AppResult<AdminVideoRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
@@ -73,22 +73,15 @@ pub async fn admin_create_video(
         Err(e) => return Err(e),
     };
 
-    // 로그 데이터도 컬럼명에 맞게 저장
-    let details = serde_json::json!({
-        "video_id": created.id,
-        "video_idx": video_idx,
-        "video_tag_key": tag_key
-    });
-
-    crate::api::admin::user::repo::create_audit_log_tx(
+    let after = serde_json::to_value(&created).unwrap_or_default();
+    repo::create_video_log_tx(
         &mut tx,
         actor_user_id,
-        "CREATE_VIDEO",
-        Some("video"),
+        "CREATE",
         Some(created.id),
-        &details,
-        ip_address,
-        user_agent.as_deref(),
+        None,
+        None,
+        Some(&after),
     )
     .await?;
 
@@ -101,8 +94,8 @@ pub async fn admin_bulk_create_videos(
     st: &AppState,
     actor_user_id: i64,
     req: VideoBulkCreateReq,
-    ip_address: Option<IpAddr>,
-    user_agent: Option<String>,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
 ) -> AppResult<(bool, VideoBulkCreateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
@@ -185,20 +178,20 @@ pub async fn admin_bulk_create_videos(
     };
 
     let details = serde_json::json!({
+        "action": "BULK_CREATE",
         "total": summary.total,
         "success": summary.success,
         "failure": summary.failure
     });
 
-    crate::api::admin::user::repo::create_audit_log(
+    repo::create_video_log(
         &st.db,
         actor_user_id,
-        "BULK_CREATE_VIDEO",
-        Some("video"),
+        "BULK_CREATE",
         None,
-        &details,
-        ip_address,
-        user_agent.as_deref(),
+        None,
+        None,
+        Some(&details),
     )
     .await?;
 
@@ -287,8 +280,8 @@ pub async fn admin_bulk_update_videos(
     st: &AppState,
     actor_user_id: i64,
     req: VideoBulkUpdateReq,
-    ip_address: Option<IpAddr>,
-    user_agent: Option<String>,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
 ) -> AppResult<(bool, VideoBulkUpdateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
@@ -415,20 +408,20 @@ pub async fn admin_bulk_update_videos(
     };
 
     let details = serde_json::json!({
+        "action": "BULK_UPDATE",
         "total": summary.total,
         "success": summary.success,
         "failure": summary.failure
     });
 
-    crate::api::admin::user::repo::create_audit_log(
+    repo::create_video_log(
         &st.db,
         actor_user_id,
-        "BULK_UPDATE_VIDEO",
-        Some("video"),
+        "BULK_UPDATE",
         None,
-        &details,
-        ip_address,
-        user_agent.as_deref(),
+        None,
+        None,
+        Some(&details),
     )
     .await?;
 
@@ -441,8 +434,8 @@ pub async fn admin_bulk_update_video_tags(
     st: &AppState,
     actor_user_id: i64,
     req: VideoTagBulkUpdateReq,
-    ip_address: Option<IpAddr>,
-    user_agent: Option<String>,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
 ) -> AppResult<(bool, VideoBulkUpdateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
@@ -560,20 +553,20 @@ pub async fn admin_bulk_update_video_tags(
     };
 
     let details = serde_json::json!({
+        "action": "BULK_UPDATE_TAG",
         "total": summary.total,
         "success": summary.success,
         "failure": summary.failure
     });
 
-    crate::api::admin::user::repo::create_audit_log(
+    repo::create_video_log(
         &st.db,
         actor_user_id,
-        "BULK_UPDATE_VIDEO_TAG",
-        Some("video"),
+        "BULK_UPDATE_TAG",
         None,
-        &details,
-        ip_address,
-        user_agent.as_deref(),
+        None,
+        None,
+        Some(&details),
     )
     .await?;
 
@@ -587,8 +580,8 @@ pub async fn admin_update_video_tags(
     actor_user_id: i64,
     video_id: i64,
     req: VideoTagUpdateReq,
-    ip_address: Option<IpAddr>,
-    user_agent: Option<String>,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
 ) -> AppResult<AdminVideoRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
@@ -640,19 +633,15 @@ pub async fn admin_update_video_tags(
         Err(e) => return Err(e),
     };
 
-    let details = serde_json::json!({
-        "video_id": updated.id
-    });
-
-    crate::api::admin::user::repo::create_audit_log_tx(
+    let after = serde_json::to_value(&updated).unwrap_or_default();
+    repo::create_video_log_tx(
         &mut tx,
         actor_user_id,
-        "UPDATE_VIDEO_TAG",
-        Some("video"),
+        "UPDATE_TAG",
         Some(updated.id),
-        &details,
-        ip_address,
-        user_agent.as_deref(),
+        None,
+        None,
+        Some(&after),
     )
     .await?;
 
@@ -666,8 +655,8 @@ pub async fn admin_update_video(
     actor_user_id: i64,
     video_id: i64,
     req: VideoUpdateReq,
-    ip_address: Option<IpAddr>,
-    user_agent: Option<String>,
+    _ip_address: Option<IpAddr>,
+    _user_agent: Option<String>,
 ) -> AppResult<AdminVideoRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
@@ -727,19 +716,15 @@ pub async fn admin_update_video(
         Err(e) => return Err(e),
     };
 
-    let details = serde_json::json!({
-        "video_id": updated.id
-    });
-
-    crate::api::admin::user::repo::create_audit_log_tx(
+    let after = serde_json::to_value(&updated).unwrap_or_default();
+    repo::create_video_log_tx(
         &mut tx,
         actor_user_id,
-        "UPDATE_VIDEO",
-        Some("video"),
+        "UPDATE",
         Some(updated.id),
-        &details,
-        ip_address,
-        user_agent.as_deref(),
+        None,
+        None,
+        Some(&after),
     )
     .await?;
 

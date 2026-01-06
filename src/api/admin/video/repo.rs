@@ -1,5 +1,6 @@
 use crate::api::admin::video::dto::{AdminVideoRes, VideoCreateReq, VideoUpdateReq};
 use crate::error::AppResult;
+use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction, Row}; // [수정] Row 추가
 
 pub async fn admin_list_videos(
@@ -387,4 +388,79 @@ pub async fn admin_update_video(
         created_at,
         updated_at,
     })
+}
+
+fn normalize_video_action(action: &str) -> &'static str {
+    match action {
+        "create" | "CREATE" | "bulk_create" | "BULK_CREATE" => "create",
+        _ => "update",
+    }
+}
+
+pub async fn create_video_log_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    admin_user_id: i64,
+    action: &str,
+    video_id: Option<i64>,
+    video_tag_id: Option<i64>,
+    before: Option<&Value>,
+    after: Option<&Value>,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO admin_video_log (
+            admin_user_id,
+            admin_pick_video_id,
+            admin_pick_video_tag_id,
+            admin_video_action,
+            admin_video_before,
+            admin_video_after
+        )
+        VALUES ($1, $2, $3, CAST($4 AS admin_action_enum), $5, $6)
+        "#,
+    )
+    .bind(admin_user_id)
+    .bind(video_id)
+    .bind(video_tag_id)
+    .bind(normalize_video_action(action))
+    .bind(before)
+    .bind(after)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn create_video_log(
+    pool: &PgPool,
+    admin_user_id: i64,
+    action: &str,
+    video_id: Option<i64>,
+    video_tag_id: Option<i64>,
+    before: Option<&Value>,
+    after: Option<&Value>,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO admin_video_log (
+            admin_user_id,
+            admin_pick_video_id,
+            admin_pick_video_tag_id,
+            admin_video_action,
+            admin_video_before,
+            admin_video_after
+        )
+        VALUES ($1, $2, $3, CAST($4 AS admin_action_enum), $5, $6)
+        "#,
+    )
+    .bind(admin_user_id)
+    .bind(video_id)
+    .bind(video_tag_id)
+    .bind(normalize_video_action(action))
+    .bind(before)
+    .bind(after)
+    .execute(pool)
+    .await?;
+
+    Ok(())
 }
