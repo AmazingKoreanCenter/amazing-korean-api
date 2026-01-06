@@ -171,6 +171,30 @@ impl From<VideoTagUpdateReq> for VideoUpdateReq {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct VideoTagBulkUpdateItem {
+    pub id: i64,
+
+    #[validate(
+        length(min = 1, max = 200),
+        custom(function = "validate_not_empty_string")
+    )]
+    pub video_tag_title: Option<String>,
+
+    #[validate(length(max = 500))]
+    pub video_tag_subtitle: Option<String>,
+
+    #[validate(length(min = 1, max = 30), custom(function = "validate_not_empty_string"))]
+    pub video_tag_key: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct VideoTagBulkUpdateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<VideoTagBulkUpdateItem>,
+}
+
 fn validate_not_empty_string(s: &str) -> Result<(), ValidationError> {
     if s.trim().is_empty() {
         return Err(ValidationError::new("empty_string"));
