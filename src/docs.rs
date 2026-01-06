@@ -76,6 +76,7 @@ impl Modify for SecurityAddon {
         crate::api::admin::user::handler::admin_update_users_bulk,
 
         // admin - videos
+        crate::api::admin::video::handler::admin_list_videos,
         crate::api::admin::video::handler::create_video_handler,   
         crate::api::admin::video::handler::admin_update_video,     
 
@@ -165,6 +166,10 @@ impl Modify for SecurityAddon {
             crate::api::admin::user::dto::AdminBulkUpdateRes,
 
             // admin - videos dto
+            crate::api::admin::video::dto::AdminVideoListReq,
+            crate::api::admin::video::dto::AdminVideoRes,
+            crate::api::admin::video::dto::AdminVideoListRes,
+            crate::api::admin::video::dto::Pagination,
             crate::api::admin::video::dto::VideoCreateReq,
             crate::api::admin::video::dto::VideoRes,
             crate::api::admin::video::dto::VideoUpdateReq,
