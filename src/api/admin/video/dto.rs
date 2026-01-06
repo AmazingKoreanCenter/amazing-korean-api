@@ -82,25 +82,41 @@ impl FromStr for VideoAccess {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct VideoCreateReq {
+    // 1. video_tag 테이블 컬럼
     #[validate(length(min = 1, max = 200))]
-    pub video_title: String,
+    #[schema(example = "Rust 비동기 프로그래밍 기초")]
+    pub video_tag_title: String, // title -> video_tag_title
+
     #[validate(length(max = 500))]
-    pub video_subtitle: Option<String>,
-    #[validate(length(min = 2, max = 10))]
-    pub video_language: Option<String>,
-    pub video_state: Option<VideoState>,
-    pub video_access: Option<VideoAccess>,
-    #[validate(length(max = 32))]
-    pub vimeo_video_id: Option<String>,
-    #[validate(range(min = 1))]
-    pub video_duration_seconds: Option<i32>,
+    #[schema(example = "Tokio와 Future에 대한 심층 강의입니다.")]
+    pub video_tag_subtitle: Option<String>, // description -> video_tag_subtitle
+
+    #[validate(length(min = 1, max = 30))]
+    #[schema(example = "tag_rust_basic")]
+    pub video_tag_key: Option<String>, // tag_key -> video_tag_key
+
+    // 2. video 테이블 컬럼
     #[validate(url, length(max = 1024))]
-    pub video_thumbnail_url: Option<String>,
-    #[validate(url, length(max = 1024))]
-    pub video_link: Option<String>,
+    #[schema(example = "https://vimeo.com/123456789")]
+    pub video_url_vimeo: String, // url -> video_url_vimeo
+
+    #[validate(custom(function = "validate_access"))] // "public" or "private" 검증 필요
+    #[schema(example = "public")]
+    pub video_access: String, // is_public -> video_access
+
+    #[validate(length(min = 1, max = 100))]
+    #[schema(example = "lesson_01_rust")]
+    pub video_idx: Option<String>,
+}
+
+// video_access 유효성 검증 함수
+fn validate_access(access: &str) -> Result<(), validator::ValidationError> {
+    match access {
+        "public" | "private" => Ok(()),
+        _ => Err(validator::ValidationError::new("invalid_video_access")),
+    }
 }
 
 #[allow(dead_code)]

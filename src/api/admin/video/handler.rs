@@ -7,7 +7,7 @@ use axum::{
 use utoipa::ToSchema;
 
 use crate::api::admin::video::dto::{
-    AdminVideoListReq, AdminVideoListRes, VideoCreateReq, VideoRes,
+    AdminVideoListReq, AdminVideoListRes, AdminVideoRes, VideoCreateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 #[allow(unused_imports)] // Used in return type
@@ -88,15 +88,34 @@ pub async fn admin_list_videos(
     path = "/admin/videos",
     tag = "admin",
     request_body = VideoCreateReq,
-    responses( (status = 201, body = VideoRes) )
+    responses(
+        (status = 201, description = "Video created", body = AdminVideoRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 409, description = "Conflict", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
 )]
 pub async fn create_video_handler(
     State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
     Json(req): Json<VideoCreateReq>,
-) -> Result<(StatusCode, Json<VideoRes>), AppError> {
-    // TODO: claims에서 sub 추출
-    let actor_user_id = 0;
-    let res = super::service::create_video(&st, req, actor_user_id).await?;
+) -> Result<(StatusCode, Json<AdminVideoRes>), AppError> {
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_create_video(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
     Ok((StatusCode::CREATED, Json(res)))
 }
 

@@ -1,40 +1,22 @@
 use super::repo;
 use crate::api::admin::video::dto::{
-    AdminVideoListReq, AdminVideoListRes, Pagination, VideoCreateReq, VideoRes,
+    AdminVideoListReq, AdminVideoListRes, AdminVideoRes, Pagination, VideoCreateReq,
 };
 use crate::error::{AppError, AppResult};
-use crate::AppState;
 use crate::types::UserAuth;
+use crate::AppState;
 use std::net::IpAddr;
+use uuid::Uuid;
 use validator::Validate;
 
-pub async fn create_video(
-    st: &AppState,
-    req: VideoCreateReq,
-    actor_user_id: i64,
-) -> AppResult<VideoRes> {
-    // 간단 검증(필요 시 실제 프로젝트 기준으로 추가 보완)
-    if req.video_title.trim().is_empty() || req.video_title.trim().len() > 200 {
-        return Err(AppError::BadRequest("video_title length 1..200".into()));
-    }
-    if let Some(d) = req.video_duration_seconds {
-        if d <= 0 {
-            return Err(AppError::BadRequest(
-                "video_duration_seconds must be > 0".into(),
-            ));
-        }
-    }
-    // 기본값
-    let state_s = req
-        .video_state
-        .map(|v| v.as_str().to_string())
-        .unwrap_or_else(|| "draft".to_string());
-    let access_s = req
-        .video_access
-        .map(|v| v.as_str().to_string())
-        .unwrap_or_else(|| "private".to_string());
+const PG_UNIQUE_VIOLATION: &str = "23505";
 
-    repo::create_video(&st.db, &req, &state_s, &access_s, actor_user_id).await
+fn is_unique_violation(err: &AppError) -> bool {
+    if let AppError::Sqlx(sqlx::Error::Database(db)) = err {
+        db.code().as_deref() == Some(PG_UNIQUE_VIOLATION)
+    } else {
+        false
+    }
 }
 
 async fn check_admin_rbac(pool: &sqlx::PgPool, actor_user_id: i64) -> AppResult<UserAuth> {
@@ -47,6 +29,88 @@ async fn check_admin_rbac(pool: &sqlx::PgPool, actor_user_id: i64) -> AppResult<
         UserAuth::Hymn | UserAuth::Admin | UserAuth::Manager => Ok(actor_auth),
         _ => Err(AppError::Forbidden),
     }
+}
+
+pub async fn admin_create_video(
+    st: &AppState,
+    actor_user_id: i64,
+    req: VideoCreateReq,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<String>,
+) -> AppResult<AdminVideoRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    // 1. video_idx 자동 생성 (변경 없음)
+    let video_idx = req
+        .video_idx
+        .as_deref()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| format!("video_{}", Uuid::new_v4()));
+
+    // 중복 체크
+    if repo::exists_video_idx(&st.db, &video_idx).await? {
+        return Err(AppError::Conflict("video_idx already exists".into()));
+    }
+
+    // 2. video_tag_key 자동 생성 & 길이 제한 (30자 이하로)
+    // tag_(4자) + UUID앞20자 = 24자 -> VARCHAR(30) 안전
+    let video_tag_key = req
+        .video_tag_key
+        .as_deref()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| {
+            let uuid = Uuid::new_v4().to_string();
+            format!("tag_{}", &uuid[..20])
+        });
+
+    let mut tx = st.db.begin().await?;
+
+    // Repo 호출 시 변경된 변수명 전달
+    let created = repo::admin_create_video(
+        &mut tx,
+        actor_user_id,
+        &req,
+        &video_idx,
+        &video_tag_key,
+    )
+    .await;
+
+    let created = match created {
+        Ok(val) => val,
+        Err(e) if is_unique_violation(&e) => {
+            return Err(AppError::Conflict("duplicate video data".into()));
+        }
+        Err(e) => return Err(e),
+    };
+
+    // 로그 데이터도 컬럼명에 맞게 저장
+    let details = serde_json::json!({
+        "video_id": created.id,
+        "video_idx": video_idx,
+        "video_tag_key": video_tag_key
+    });
+
+    crate::api::admin::user::repo::create_audit_log_tx(
+        &mut tx,
+        actor_user_id,
+        "CREATE_VIDEO",
+        Some("video"),
+        Some(created.id),
+        &details,
+        ip_address,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(created)
 }
 
 pub async fn admin_list_videos(
