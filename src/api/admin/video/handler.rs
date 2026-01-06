@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 
 use crate::api::admin::video::dto::{
     AdminVideoListReq, AdminVideoListRes, AdminVideoRes, VideoBulkCreateReq, VideoBulkCreateRes,
-    VideoBulkUpdateReq, VideoBulkUpdateRes, VideoCreateReq, VideoUpdateReq,
+    VideoBulkUpdateReq, VideoBulkUpdateRes, VideoCreateReq, VideoTagUpdateReq, VideoUpdateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 #[allow(unused_imports)] // Used in return type
@@ -236,6 +236,48 @@ pub async fn admin_update_video(
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_update_video(
+        &st,
+        auth_user.sub,
+        video_id,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/admin/videos/{video_id}/tags",
+    tag = "admin",
+    params(
+        ("video_id" = i64, Path, description = "Video ID")
+    ),
+    request_body = VideoTagUpdateReq,
+    responses(
+        (status = 200, description = "Video tags updated", body = AdminVideoRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 404, description = "Video not found", body = crate::error::ErrorBody),
+        (status = 409, description = "Conflict", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_update_video_tags(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Path(video_id): Path<i64>,
+    Json(req): Json<VideoTagUpdateReq>,
+) -> AppResult<Json<AdminVideoRes>> {
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_update_video_tags(
         &st,
         auth_user.sub,
         video_id,

@@ -143,6 +143,34 @@ pub struct VideoUpdateReq {
     pub video_idx: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct VideoTagUpdateReq {
+    #[validate(
+        length(min = 1, max = 200),
+        custom(function = "validate_not_empty_string")
+    )]
+    pub video_tag_title: Option<String>,
+
+    #[validate(length(max = 500))]
+    pub video_tag_subtitle: Option<String>,
+
+    #[validate(length(min = 1, max = 30), custom(function = "validate_not_empty_string"))]
+    pub video_tag_key: Option<String>,
+}
+
+impl From<VideoTagUpdateReq> for VideoUpdateReq {
+    fn from(req: VideoTagUpdateReq) -> Self {
+        Self {
+            video_tag_title: req.video_tag_title,
+            video_tag_subtitle: req.video_tag_subtitle,
+            video_tag_key: req.video_tag_key,
+            video_url_vimeo: None,
+            video_access: None,
+            video_idx: None,
+        }
+    }
+}
+
 fn validate_not_empty_string(s: &str) -> Result<(), ValidationError> {
     if s.trim().is_empty() {
         return Err(ValidationError::new("empty_string"));
