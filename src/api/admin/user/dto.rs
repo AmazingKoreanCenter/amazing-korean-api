@@ -85,7 +85,7 @@ pub struct AdminCreateUserReq {
     pub user_auth: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[derive(Debug, Deserialize, Validate, Serialize, ToSchema)]
 pub struct AdminBulkCreateReq {
     #[validate(length(min = 1, max = 100))]
     #[validate(nested)]
@@ -119,6 +119,71 @@ pub struct BulkItemResult {
 pub struct AdminBulkCreateRes {
     pub summary: BulkSummary,
     pub results: Vec<BulkItemResult>,
+}
+
+#[derive(Debug, Deserialize, Validate, Serialize, ToSchema)]
+pub struct AdminBulkUpdateItemReq {
+    pub id: i64,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(email)]
+    pub email: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 8))]
+    pub password: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 1, max = 50))]
+    pub name: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 1, max = 100))]
+    pub nickname: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 1, max = 50))]
+    pub language: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 1, max = 50))]
+    pub country: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = String, format = "date")]
+    pub birthday: Option<NaiveDate>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gender: Option<UserGender>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_state: Option<bool>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_auth: Option<UserAuth>,
+}
+
+#[derive(Debug, Deserialize, Validate, Serialize, ToSchema)]
+pub struct AdminBulkUpdateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<AdminBulkUpdateItemReq>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct BulkUpdateItemResult {
+    pub id: i64,
+    pub status: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<AdminUserRes>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<BulkItemError>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminBulkUpdateRes {
+    pub summary: BulkSummary,
+    pub results: Vec<BulkUpdateItemResult>,
 }
 
 /// 관리자용 사용자 수정 요청

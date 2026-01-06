@@ -12,9 +12,10 @@ use crate::{
 
 use super::{
     dto::{
-        AdminBulkCreateReq, AdminBulkCreateRes, AdminCreateUserReq, AdminUpdateUserReq,
-        AdminUserListMeta, AdminUserListReq, AdminUserListRes, AdminUserRes, BulkItemError,
-        BulkItemResult, BulkSummary,
+        AdminBulkCreateReq, AdminBulkCreateRes, AdminBulkUpdateReq,
+        AdminBulkUpdateRes, AdminCreateUserReq, AdminUpdateUserReq, AdminUserListMeta,
+        AdminUserListReq, AdminUserListRes, AdminUserRes, BulkItemError, BulkItemResult,
+        BulkSummary, BulkUpdateItemResult,
     },
     repo,
 };
@@ -536,5 +537,156 @@ impl AdminUserService {
         }
 
         Ok(updated)
+    }
+
+    pub async fn admin_update_users_bulk(
+        st: &AppState,
+        actor_user_id: i64,
+        req: AdminBulkUpdateReq,
+        ip_address: Option<IpAddr>,
+        user_agent: Option<String>,
+    ) -> AppResult<(bool, AdminBulkUpdateRes)> {
+        
+        // 1. 요청자(Actor) 권한 확인
+        let actor = super::repo::admin_get_user(&st.db, actor_user_id)
+            .await?
+            .ok_or(AppError::NotFound)?; 
+    
+        match actor.user_auth.to_string().as_str() {
+            "admin" | "hymn" | "manager" => {} 
+            _ => return Err(AppError::Forbidden), 
+        }
+    
+        let mut results = Vec::new();
+        let mut success_count = 0i64;
+        let mut failure_count = 0i64;
+    
+        // 2. 루프 시작
+        for item in req.items {
+            let process_result = async {
+                // 2-1. 읽기 작업: Pool(&st.db) 사용
+                // 트랜잭션 시작 전, 가벼운 조회는 Pool로 처리
+                let target_user = super::repo::admin_get_user(&st.db, item.id)
+                    .await?
+                    .ok_or(AppError::NotFound)?;
+    
+                // RBAC 체크
+                let actor_role = actor.user_auth.to_string();
+                let target_role = target_user.user_auth.to_string();
+                if actor_role == "manager" && (target_role == "admin" || target_role == "hymn") {
+                     return Err(AppError::Forbidden);
+                }
+    
+                // 이메일 중복 체크 (Pool 사용)
+                if let Some(new_email) = &item.email {
+                    let new_email = new_email.trim().to_lowercase();
+                    if new_email != target_user.email.to_lowercase() {
+                        let exists = super::repo::exists_email(&st.db, &new_email).await?;
+                        if exists {
+                            return Err(AppError::Conflict("Email exists".into()));
+                        }
+                    }
+                }
+    
+                // [수정] 2-2. 비밀번호 해싱
+                let password_hash = if let Some(pw) = &item.password {
+                    Some(crate::api::auth::password::hash(pw)?)
+                } else {
+                    None
+                };
+    
+                // 2-3. DTO 생성
+                // [수정] password는 None으로 설정 (해시값은 별도 인자로 전달하므로 중복 방지)
+                let update_req = AdminUpdateUserReq {
+                    email: item.email.clone(),
+                    password: None, // 여기엔 넣지 않습니다.
+                    nickname: item.nickname.clone(),
+                    name: item.name.clone(),
+                    language: item.language.clone(),
+                    country: item.country.clone(),
+                    birthday: item.birthday,
+                    gender: item.gender.clone(),
+                    user_state: item.user_state, 
+                    user_auth: item.user_auth.clone(),
+                };
+    
+                // 2-4. 쓰기 작업: Transaction 시작
+                let mut tx = st.db.begin().await?;
+    
+                // [핵심 수정] Repo 호출 시그니처 맞춤
+                // fn(tx, user_id, req, password_hash) -> 인자 4개
+                let updated_user = super::repo::admin_update_user(
+                    &mut tx,                 // 1. Transaction
+                    item.id,                 // 2. Target User ID (Actor ID 아님!)
+                    &update_req,             // 3. Request DTO
+                    password_hash.as_deref() // 4. Password Hash
+                ).await?;
+    
+                // 2-5. 커밋
+                tx.commit().await?;
+                
+                Ok(updated_user)
+            }.await;
+    
+            match process_result {
+                Ok(user) => {
+                    success_count += 1;
+                    results.push(BulkUpdateItemResult {
+                        id: user.id,
+                        status: 200,
+                        data: Some(user),
+                        error: None,
+                    });
+                }
+                Err(e) => {
+                    failure_count += 1;
+                    let (status, msg) = match e {
+                        AppError::NotFound => (404, "User not found".to_string()),
+                        AppError::Forbidden => (403, "Forbidden".to_string()),
+                        AppError::Conflict(m) => (409, m),
+                        AppError::BadRequest(m) => (400, m),
+                        _ => (500, "Internal Server Error".to_string()),
+                    };
+                    
+                    results.push(BulkUpdateItemResult {
+                        id: item.id,
+                        status,
+                        data: None,
+                        error: Some(BulkItemError { code: "ERR".into(), message: msg }),
+                    });
+                }
+            }
+        }
+    
+        // 4. Audit Log
+        let summary = BulkSummary {
+            total: (success_count + failure_count) as i64,
+            success: success_count,
+            failure: failure_count,
+        };
+        
+        let details = serde_json::json!({
+            "total": summary.total,
+            "success": summary.success,
+            "failure": summary.failure
+        });
+    
+        super::repo::create_audit_log(
+            &st.db,
+            actor_user_id,
+            "BULK_UPDATE_USERS",
+            Some("users"),
+            None,
+            &details,
+            ip_address,
+            user_agent.as_deref(),
+        ).await?;
+    
+        let all_success = failure_count == 0;
+    
+        Ok((all_success, AdminBulkUpdateRes {
+            summary,
+            results,
+        }))
     }
 }
