@@ -14,8 +14,8 @@ use crate::{
 
 use super::{
     dto::{
-        AdminBulkCreateReq, AdminBulkCreateRes, AdminCreateUserReq, AdminUpdateUserReq,
-        AdminUserListReq, AdminUserListRes, AdminUserRes,
+        AdminBulkCreateReq, AdminBulkCreateRes, AdminBulkUpdateReq, AdminBulkUpdateRes,
+        AdminCreateUserReq, AdminUpdateUserReq, AdminUserListReq, AdminUserListRes, AdminUserRes,
     },
     service::AdminUserService,
 };
@@ -304,4 +304,45 @@ pub async fn admin_update_user(
     .await?;
 
     Ok(Json(res))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/admin/users/bulk",
+    tag = "admin",
+    request_body = AdminBulkUpdateReq,
+    responses(
+        (status = 200, description = "All users updated", body = AdminBulkUpdateRes),
+        (status = 207, description = "Partial success", body = AdminBulkUpdateRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_update_users_bulk(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<AdminBulkUpdateReq>,
+) -> AppResult<(StatusCode, Json<AdminBulkUpdateRes>)> {
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = AdminUserService::admin_update_users_bulk(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::OK
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
 }
