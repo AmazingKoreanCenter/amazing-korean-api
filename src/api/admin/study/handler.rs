@@ -7,8 +7,9 @@ use std::net::IpAddr;
 
 use crate::api::admin::study::dto::{
     AdminStudyListRes, AdminStudyRes, StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkUpdateReq,
-    StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskCreateReq, StudyTaskListReq,
-    StudyTaskUpdateReq, StudyUpdateReq, AdminStudyTaskListRes, AdminStudyTaskDetailRes,
+    StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskBulkCreateReq,
+    StudyTaskBulkCreateRes, StudyTaskCreateReq, StudyTaskListReq, StudyTaskUpdateReq,
+    StudyUpdateReq, AdminStudyTaskListRes, AdminStudyTaskDetailRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -314,6 +315,49 @@ pub async fn admin_create_study_task(
     .await?;
 
     Ok((StatusCode::CREATED, Json(res)))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/studies/tasks/bulk",
+    tag = "admin_study",
+    request_body = StudyTaskBulkCreateReq,
+    responses(
+        (status = 201, description = "All created", body = StudyTaskBulkCreateRes),
+        (status = 207, description = "Partial success", body = StudyTaskBulkCreateRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_bulk_create_study_tasks(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<StudyTaskBulkCreateReq>,
+) -> AppResult<(StatusCode, Json<StudyTaskBulkCreateRes>)> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = super::service::admin_bulk_create_study_tasks(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::CREATED
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
 }
 
 #[utoipa::path(

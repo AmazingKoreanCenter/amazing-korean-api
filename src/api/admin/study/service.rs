@@ -10,7 +10,8 @@ use super::dto::{
     AdminStudyListRes, AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskListRes,
     StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkResult, StudyBulkUpdateReq,
     StudyBulkUpdateRes, StudyBulkUpdateResult, StudyCreateReq, StudyListReq, StudyTaskCreateReq,
-    StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq,
+    StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq, StudyTaskBulkCreateReq,
+    StudyTaskBulkCreateRes, StudyTaskBulkResult,
 };
 use super::repo;
 
@@ -575,6 +576,195 @@ pub async fn admin_create_study_task(
     tx.commit().await?;
 
     Ok(created)
+}
+
+pub async fn admin_bulk_create_study_tasks(
+    st: &AppState,
+    actor_user_id: i64,
+    req: StudyTaskBulkCreateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<(bool, StudyTaskBulkCreateRes)> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "total": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_CREATE_TASKS",
+        Some("study_task"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let mut results = Vec::with_capacity(req.items.len());
+    let mut success = 0i64;
+    let mut failure = 0i64;
+
+    for item in req.items {
+        let seq = item.study_task_seq.unwrap_or(1);
+        let kind = item.study_task_kind;
+        let outcome = async {
+            if let Err(e) = item.validate() {
+                return Err(AppError::BadRequest(e.to_string()));
+            }
+
+            let study_exists = repo::find_study_by_id(&st.db, item.study_id as i64)
+                .await?
+                .is_some();
+            if !study_exists {
+                return Err(AppError::NotFound);
+            }
+
+            let is_blank = |value: &Option<String>| {
+                value
+                    .as_deref()
+                    .map(|v| v.trim().is_empty())
+                    .unwrap_or(true)
+            };
+
+            match item.study_task_kind {
+                crate::types::StudyTaskKind::Choice => {
+                    if is_blank(&item.question)
+                        || is_blank(&item.choice_1)
+                        || is_blank(&item.choice_2)
+                        || is_blank(&item.choice_3)
+                        || is_blank(&item.choice_4)
+                    {
+                        return Err(AppError::BadRequest(
+                            "choice requires question and 4 choices".into(),
+                        ));
+                    }
+                    let correct = item.choice_correct.ok_or_else(|| {
+                        AppError::BadRequest("choice_correct is required".into())
+                    })?;
+                    if !(1..=4).contains(&correct) {
+                        return Err(AppError::BadRequest(
+                            "choice_correct must be between 1 and 4".into(),
+                        ));
+                    }
+                }
+                crate::types::StudyTaskKind::Typing => {
+                    if is_blank(&item.question) || is_blank(&item.answer) {
+                        return Err(AppError::BadRequest(
+                            "typing requires question and answer".into(),
+                        ));
+                    }
+                }
+                crate::types::StudyTaskKind::Voice => {
+                    if is_blank(&item.question) || is_blank(&item.answer) {
+                        return Err(AppError::BadRequest(
+                            "voice requires question and answer".into(),
+                        ));
+                    }
+                }
+            }
+
+            let mut tx = st.db.begin().await?;
+
+            let created_id = match repo::create_study_task(
+                &mut tx,
+                actor_user_id,
+                item.study_id,
+                item.study_task_kind,
+                seq,
+            )
+            .await
+            {
+                Ok(val) => val,
+                Err(e) if is_unique_violation(&e) => {
+                    return Err(AppError::Conflict("study_task_seq already exists".into()));
+                }
+                Err(e) => return Err(e),
+            };
+
+            match item.study_task_kind {
+                crate::types::StudyTaskKind::Choice => {
+                    repo::create_task_choice(&mut tx, created_id, &item).await?;
+                }
+                crate::types::StudyTaskKind::Typing => {
+                    repo::create_task_typing(&mut tx, created_id, &item).await?;
+                }
+                crate::types::StudyTaskKind::Voice => {
+                    repo::create_task_voice(&mut tx, created_id, &item).await?;
+                }
+            }
+
+            let created = repo::find_study_task_by_id_tx(&mut tx, created_id).await?;
+
+            let after = serde_json::to_value(&created).unwrap_or_default();
+            repo::create_study_log(
+                &mut tx,
+                actor_user_id,
+                "CREATE_TASK",
+                item.study_id as i64,
+                Some(created.study_task_id),
+                None,
+                Some(&after),
+            )
+            .await?;
+
+            tx.commit().await?;
+
+            Ok(created_id)
+        }
+        .await;
+
+        match outcome {
+            Ok(task_id) => {
+                success += 1;
+                results.push(StudyTaskBulkResult {
+                    task_id: Some(task_id),
+                    seq,
+                    kind,
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failure += 1;
+                let msg = match e {
+                    AppError::NotFound => "Study not found".to_string(),
+                    AppError::BadRequest(m) => m,
+                    AppError::Unprocessable(m) => m,
+                    AppError::Conflict(m) => m,
+                    AppError::Forbidden => "Forbidden".to_string(),
+                    _ => "Internal Server Error".to_string(),
+                };
+
+                results.push(StudyTaskBulkResult {
+                    task_id: None,
+                    seq,
+                    kind,
+                    error: Some(msg),
+                });
+            }
+        }
+    }
+
+    let all_success = failure == 0;
+
+    Ok((
+        all_success,
+        StudyTaskBulkCreateRes {
+            success_count: success,
+            failure_count: failure,
+            results,
+        },
+    ))
 }
 
 pub async fn admin_update_study_task(

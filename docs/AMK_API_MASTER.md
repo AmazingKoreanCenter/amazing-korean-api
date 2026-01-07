@@ -1169,7 +1169,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 | 6-18 | `PATCH /admin/studies/bulk` | `/admin/studies/bulk` | 학습 문제 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
 | 6-19 | `GET /admin/studies/tasks` | `/admin/studies/tasks?study_id={study_id}&page=&size=` | 학습 문제 세부 정보 조회 | ***study_id 필수 검증, 페이지네이션, RBAC***<br>성공: **200** / 실패: **401/403/400/422/404** | [✅] |
 | 6-20 | `POST /admin/studies/tasks` | `/admin/studies/tasks/new` | 학습 문제 세부 정보 단건 생성 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **201** / 실패: **401/403/400/422/404/409** | [✅] |
-| 6-21 | `POST /admin/studies/tasks/bulk` | `/admin/studies/tasks/bulk` | 학습 문제 세부 정보 다중 생성 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **201** / 부분: **207** / 실패: **401/403/400/422/404/409** | [ ] |
+| 6-21 | `POST /admin/studies/tasks/bulk` | `/admin/studies/tasks/bulk` | 학습 문제 세부 정보 다중 생성 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **201** / 부분: **207** / 실패: **401/403/400/422/404/409** | [✅] |
 | 6-22 | `PATCH /admin/studies/tasks/{id}` | `/admin/studies/tasks/{task_id}/edit` | 학습 문제 세부 정보 단건 수정 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [ ] |
 | 6-23 | `PATCH /admin/studies/tasks/bulk` | `/admin/studies/tasks/bulk` | 학습 문제 세부 정보 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409** | [ ] |
 | 6-24 | `GET /admin/studies/tasks/explain` | `/admin/studies/tasks/explain?task_id={task_id}&page=&size=` | 학습 문제 해설 조회 | ***task_id/페이지 검증, RBAC***<br>성공: **200** / 실패: **401/403/400/422/404** | [ ] |

@@ -176,6 +176,29 @@ pub struct StudyTaskCreateReq {
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct StudyTaskBulkCreateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<StudyTaskCreateReq>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct StudyTaskBulkResult {
+    pub task_id: Option<i64>,
+    pub seq: i32,
+    pub kind: StudyTaskKind,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct StudyTaskBulkCreateRes {
+    pub success_count: i64,
+    pub failure_count: i64,
+    pub results: Vec<StudyTaskBulkResult>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
 pub struct StudyTaskUpdateReq {
     pub study_task_seq: Option<i32>,
     pub question: Option<String>,
