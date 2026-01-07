@@ -84,6 +84,9 @@ impl Modify for SecurityAddon {
         crate::api::admin::video::handler::admin_update_video_tags,
         crate::api::admin::video::handler::admin_bulk_update_video_tags,
 
+        // admin - studies
+        crate::api::admin::study::handler::admin_list_studies,
+
 
         // admin - video stats
         crate::api::admin::video::stats::handler::admin_get_video_daily_stats,
@@ -189,6 +192,11 @@ impl Modify for SecurityAddon {
             crate::api::admin::video::dto::VideoTagBulkUpdateReq,
             crate::api::admin::video::dto::VideoTagUpdateReq,
             crate::api::admin::video::dto::VideoUpdateReq,
+
+            // admin - studies dto
+            crate::api::admin::study::dto::StudyListReq,
+            crate::api::admin::study::dto::AdminStudyRes,
+            crate::api::admin::study::dto::AdminStudyListRes,
 
 
             // admin - video stats dto

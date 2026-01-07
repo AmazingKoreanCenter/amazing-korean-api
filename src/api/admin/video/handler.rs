@@ -46,7 +46,7 @@ fn extract_user_agent(headers: &HeaderMap) -> Option<String> {
 #[utoipa::path(
     get,
     path = "/admin/videos",
-    tag = "admin",
+    tag = "admin_video",
     params(
         ("q", Query, description = "Search title or description", example = "korean"),
         ("sort", Query, description = "Sort field (created_at, views, title)", example = "created_at"),
@@ -88,7 +88,7 @@ pub async fn admin_list_videos(
 #[utoipa::path(
     post,
     path = "/admin/videos",
-    tag = "admin",
+    tag = "admin_video",
     request_body = VideoCreateReq,
     responses(
         (status = 201, description = "Video created", body = AdminVideoRes),
@@ -124,7 +124,7 @@ pub async fn create_video_handler(
 #[utoipa::path(
     post,
     path = "/admin/videos/bulk",
-    tag = "admin",
+    tag = "admin_video",
     request_body = VideoBulkCreateReq,
     responses(
         (status = 201, description = "All created", body = VideoBulkCreateRes),
@@ -167,7 +167,7 @@ pub async fn admin_bulk_create_videos(
 #[utoipa::path(
     patch,
     path = "/admin/videos/bulk",
-    tag = "admin",
+    tag = "admin_video",
     request_body = VideoBulkUpdateReq,
     responses(
         (status = 200, description = "All updated", body = VideoBulkUpdateRes),
@@ -210,7 +210,7 @@ pub async fn admin_bulk_update_videos(
 #[utoipa::path(
     patch,
     path = "/admin/videos/bulk/tags",
-    tag = "admin",
+    tag = "admin_video",
     request_body = VideoTagBulkUpdateReq,
     responses(
         (status = 200, description = "All updated", body = VideoBulkUpdateRes),
@@ -253,7 +253,7 @@ pub async fn admin_bulk_update_video_tags(
 #[utoipa::path(
     patch,
     path = "/admin/videos/{video_id}",
-    tag = "admin",
+    tag = "admin_video",
     params(
         ("video_id" = i64, Path, description = "Video ID")
     ),
@@ -295,7 +295,7 @@ pub async fn admin_update_video(
 #[utoipa::path(
     patch,
     path = "/admin/videos/{video_id}/tags",
-    tag = "admin",
+    tag = "admin_video",
     params(
         ("video_id" = i64, Path, description = "Video ID")
     ),
