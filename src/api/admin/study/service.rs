@@ -75,7 +75,7 @@ pub async fn admin_list_studies(
         &st.db,
         actor_user_id,
         "LIST_STUDIES",
-        None, // target_id
+        Some("STUDY"), // target_id
         None, // target_sub_id (5번째 인자)
         &details,
         ip_addr, // [수정] 위에서 변환한 ip_addr 변수 사용
@@ -440,8 +440,8 @@ pub async fn admin_list_study_tasks(
         &st.db,
         actor_user_id,
         "LIST_STUDY_TASKS",
-        Some("study_task"),
-        None,
+        Some("STUDY_TASK"),
+        Some(req.study_id as i64),
         &details,
         ip_addr,
         user_agent.as_deref(),
@@ -474,6 +474,19 @@ pub async fn admin_create_study_task(
     user_agent: Option<String>,
 ) -> AppResult<AdminStudyTaskDetailRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
+
+    // ✅ [추가 필요 1] API 요청 로그 (admin_action_log) 기록
+    // 이 부분이 빠져 있어서 ACTION LOG에 남지 않았던 것입니다.
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "CREATE_TASK",           // action_type
+        Some("STUDY_TASK"),      // target_table
+        Some(req.study_id as i64), // target_id (생성 전이라 부모 ID 기록)
+        &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null), // ✅ [수정 후] 변환 실패 시 Null을 사용하고, 참조(&)를 전달
+        ip_address.as_deref().and_then(|ip| std::net::IpAddr::from_str(ip).ok()),
+        user_agent.as_deref(),
+    ).await?;
 
     if let Err(e) = req.validate() {
         return Err(AppError::BadRequest(e.to_string()));
@@ -565,7 +578,7 @@ pub async fn admin_create_study_task(
     repo::create_study_log(
         &mut tx,
         actor_user_id,
-        "CREATE_TASK",
+        "create",
         req.study_id as i64,
         Some(created.study_task_id),
         None,
@@ -710,7 +723,7 @@ pub async fn admin_bulk_create_study_tasks(
             repo::create_study_log(
                 &mut tx,
                 actor_user_id,
-                "CREATE_TASK",
+                "create",
                 item.study_id as i64,
                 Some(created.study_task_id),
                 None,
