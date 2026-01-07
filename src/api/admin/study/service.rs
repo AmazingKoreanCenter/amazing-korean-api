@@ -6,7 +6,10 @@ use crate::error::{AppError, AppResult};
 use crate::types::{StudyProgram, StudyState, UserAuth};
 use crate::AppState;
 
-use super::dto::{AdminStudyListRes, AdminStudyRes, StudyCreateReq, StudyListReq};
+use super::dto::{
+    AdminStudyListRes, AdminStudyRes, StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkResult,
+    StudyCreateReq, StudyListReq,
+};
 use super::repo;
 
 const PG_UNIQUE_VIOLATION: &str = "23505";
@@ -176,4 +179,153 @@ pub async fn admin_create_study(
     tx.commit().await?;
 
     Ok(created)
+}
+
+pub async fn admin_bulk_create_studies(
+    st: &AppState,
+    actor_user_id: i64,
+    req: StudyBulkCreateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<(bool, StudyBulkCreateRes)> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "total": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_CREATE_STUDIES",
+        Some("study"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let mut results = Vec::with_capacity(req.items.len());
+    let mut success = 0i64;
+    let mut failure = 0i64;
+
+    for item in req.items {
+        let study_idx = item.study_idx.trim().to_string();
+        let outcome = async {
+            if let Err(e) = item.validate() {
+                return Err(AppError::BadRequest(e.to_string()));
+            }
+
+            if repo::exists_study_idx(&st.db, &study_idx).await? {
+                return Err(AppError::Conflict("study_idx already exists".into()));
+            }
+
+            let study_program = item.study_program.unwrap_or(StudyProgram::Tbc);
+            let study_state = item.study_state.unwrap_or(StudyState::Ready);
+
+            let study_title = item
+                .study_title
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty());
+            let study_subtitle = item
+                .study_subtitle
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty());
+            let study_description = item
+                .study_description
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty());
+
+            let mut tx = st.db.begin().await?;
+
+            let created = repo::admin_create_study(
+                &mut tx,
+                actor_user_id,
+                &study_idx,
+                study_title,
+                study_subtitle,
+                study_description,
+                study_program,
+                study_state,
+            )
+            .await;
+
+            let created = match created {
+                Ok(val) => val,
+                Err(e) if is_unique_violation(&e) => {
+                    return Err(AppError::Conflict("study_idx already exists".into()));
+                }
+                Err(e) => return Err(e),
+            };
+
+            let after = serde_json::to_value(&created).unwrap_or_default();
+            repo::create_study_log(
+                &mut tx,
+                actor_user_id,
+                "CREATE_STUDY",
+                created.study_id as i64,
+                None,
+                None,
+                Some(&after),
+            )
+            .await?;
+
+            tx.commit().await?;
+
+            Ok(created)
+        }
+        .await;
+
+        match outcome {
+            Ok(created) => {
+                success += 1;
+                results.push(StudyBulkResult {
+                    id: Some(created.study_id as i64),
+                    idx: created.study_idx,
+                    success: true,
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failure += 1;
+                let msg = match e {
+                    AppError::BadRequest(m) => m,
+                    AppError::Unprocessable(m) => m,
+                    AppError::Conflict(m) => m,
+                    AppError::Forbidden => "Forbidden".to_string(),
+                    _ => "Internal Server Error".to_string(),
+                };
+
+                results.push(StudyBulkResult {
+                    id: None,
+                    idx: study_idx,
+                    success: false,
+                    error: Some(msg),
+                });
+            }
+        }
+    }
+
+    let all_success = failure == 0;
+
+    Ok((
+        all_success,
+        StudyBulkCreateRes {
+            success_count: success,
+            failure_count: failure,
+            results,
+        },
+    ))
 }
