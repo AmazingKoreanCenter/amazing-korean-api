@@ -7,8 +7,8 @@ use std::net::IpAddr;
 
 use crate::api::admin::study::dto::{
     AdminStudyListRes, AdminStudyRes, StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkUpdateReq,
-    StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskListReq, StudyTaskUpdateReq,
-    StudyUpdateReq, AdminStudyTaskListRes, AdminStudyTaskDetailRes,
+    StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskCreateReq, StudyTaskListReq,
+    StudyTaskUpdateReq, StudyUpdateReq, AdminStudyTaskListRes, AdminStudyTaskDetailRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -278,6 +278,42 @@ pub async fn admin_list_study_tasks(
     .await?;
 
     Ok(Json(res))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/studies/tasks",
+    tag = "admin_study",
+    request_body = StudyTaskCreateReq,
+    responses(
+        (status = 201, description = "Study task created", body = AdminStudyTaskDetailRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_create_study_task(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<StudyTaskCreateReq>,
+) -> Result<(StatusCode, Json<AdminStudyTaskDetailRes>), AppError> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_create_study_task(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok((StatusCode::CREATED, Json(res)))
 }
 
 #[utoipa::path(

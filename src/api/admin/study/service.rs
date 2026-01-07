@@ -9,8 +9,8 @@ use crate::AppState;
 use super::dto::{
     AdminStudyListRes, AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskListRes,
     StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkResult, StudyBulkUpdateReq,
-    StudyBulkUpdateRes, StudyBulkUpdateResult, StudyCreateReq, StudyListReq, StudyTaskListReq,
-    StudyTaskUpdateReq, StudyUpdateReq,
+    StudyBulkUpdateRes, StudyBulkUpdateResult, StudyCreateReq, StudyListReq, StudyTaskCreateReq,
+    StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq,
 };
 use super::repo;
 
@@ -463,6 +463,118 @@ pub async fn admin_list_study_tasks(
         size,
         total_pages,
     })
+}
+
+pub async fn admin_create_study_task(
+    st: &AppState,
+    actor_user_id: i64,
+    req: StudyTaskCreateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminStudyTaskDetailRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let is_blank = |value: &Option<String>| {
+        value
+            .as_deref()
+            .map(|v| v.trim().is_empty())
+            .unwrap_or(true)
+    };
+
+    match req.study_task_kind {
+        crate::types::StudyTaskKind::Choice => {
+            if is_blank(&req.question)
+                || is_blank(&req.choice_1)
+                || is_blank(&req.choice_2)
+                || is_blank(&req.choice_3)
+                || is_blank(&req.choice_4)
+            {
+                return Err(AppError::BadRequest(
+                    "choice requires question and 4 choices".into(),
+                ));
+            }
+            let correct = req.choice_correct.ok_or_else(|| {
+                AppError::BadRequest("choice_correct is required".into())
+            })?;
+            if !(1..=4).contains(&correct) {
+                return Err(AppError::BadRequest(
+                    "choice_correct must be between 1 and 4".into(),
+                ));
+            }
+        }
+        crate::types::StudyTaskKind::Typing => {
+            if is_blank(&req.question) || is_blank(&req.answer) {
+                return Err(AppError::BadRequest(
+                    "typing requires question and answer".into(),
+                ));
+            }
+        }
+        crate::types::StudyTaskKind::Voice => {
+            if is_blank(&req.question) || is_blank(&req.answer) {
+                return Err(AppError::BadRequest(
+                    "voice requires question and answer".into(),
+                ));
+            }
+        }
+    }
+
+    let _ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+    let _user_agent = user_agent;
+
+    let mut tx = st.db.begin().await?;
+
+    let study_task_seq = req.study_task_seq.unwrap_or(1);
+    let created_id = match repo::create_study_task(
+        &mut tx,
+        actor_user_id,
+        req.study_id,
+        req.study_task_kind,
+        study_task_seq,
+    )
+    .await
+    {
+        Ok(val) => val,
+        Err(e) if is_unique_violation(&e) => {
+            return Err(AppError::Conflict("study_task_seq already exists".into()));
+        }
+        Err(e) => return Err(e),
+    };
+
+    match req.study_task_kind {
+        crate::types::StudyTaskKind::Choice => {
+            repo::create_task_choice(&mut tx, created_id, &req).await?;
+        }
+        crate::types::StudyTaskKind::Typing => {
+            repo::create_task_typing(&mut tx, created_id, &req).await?;
+        }
+        crate::types::StudyTaskKind::Voice => {
+            repo::create_task_voice(&mut tx, created_id, &req).await?;
+        }
+    }
+
+    let created = repo::find_study_task_by_id_tx(&mut tx, created_id).await?;
+
+    let after = serde_json::to_value(&created).unwrap_or_default();
+    repo::create_study_log(
+        &mut tx,
+        actor_user_id,
+        "CREATE_TASK",
+        req.study_id as i64,
+        Some(created.study_task_id),
+        None,
+        Some(&after),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(created)
 }
 
 pub async fn admin_update_study_task(

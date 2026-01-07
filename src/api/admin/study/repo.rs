@@ -1,7 +1,8 @@
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 use crate::api::admin::study::dto::{
-    AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes, StudyTaskUpdateReq, StudyUpdateReq,
+    AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes, StudyTaskCreateReq,
+    StudyTaskUpdateReq, StudyUpdateReq,
 };
 use crate::error::AppResult;
 use crate::types::{StudyProgram, StudyState};
@@ -218,6 +219,54 @@ pub async fn find_study_task_by_id(
     )
     .bind(study_task_id)
     .fetch_optional(pool)
+    .await?;
+
+    Ok(task)
+}
+
+pub async fn find_study_task_by_id_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i64,
+) -> AppResult<AdminStudyTaskDetailRes> {
+    let task = sqlx::query_as::<_, AdminStudyTaskDetailRes>(
+        r#"
+        SELECT
+            st.study_task_id::bigint AS study_task_id,
+            st.study_id::bigint AS study_id,
+            st.study_task_kind AS study_task_kind,
+            st.study_task_seq AS study_task_seq,
+            COALESCE(
+                c.study_task_choice_question,
+                t.study_task_typing_question,
+                v.study_task_voice_question
+            ) AS question,
+            COALESCE(
+                t.study_task_typing_answer,
+                v.study_task_voice_answer
+            ) AS answer,
+            COALESCE(
+                c.study_task_choice_image_url,
+                t.study_task_typing_image_url,
+                v.study_task_voice_image_url
+            ) AS image_url,
+            COALESCE(
+                c.study_task_choice_audio_url,
+                v.study_task_voice_audio_url
+            ) AS audio_url,
+            c.study_task_choice_1 AS choice_1,
+            c.study_task_choice_2 AS choice_2,
+            c.study_task_choice_3 AS choice_3,
+            c.study_task_choice_4 AS choice_4,
+            c.study_task_choice_correct AS choice_correct
+        FROM study_task st
+        LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
+        LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
+        LEFT JOIN study_task_voice v ON v.study_task_id = st.study_task_id
+        WHERE st.study_task_id = $1
+        "#,
+    )
+    .bind(study_task_id)
+    .fetch_one(&mut **tx)
     .await?;
 
     Ok(task)
@@ -616,6 +665,127 @@ pub async fn admin_update_study_task(
     .await?;
 
     Ok(updated)
+}
+
+pub async fn create_study_task(
+    tx: &mut Transaction<'_, Postgres>,
+    actor_user_id: i64,
+    study_id: i32,
+    study_task_kind: crate::types::StudyTaskKind,
+    study_task_seq: i32,
+) -> AppResult<i64> {
+    let row = sqlx::query(
+        r#"
+        INSERT INTO study_task (
+            study_id,
+            updated_by_user_id,
+            study_task_kind,
+            study_task_seq
+        )
+        VALUES ($1, $2, $3, $4)
+        RETURNING study_task_id::bigint AS study_task_id
+        "#,
+    )
+    .bind(study_id)
+    .bind(actor_user_id)
+    .bind(study_task_kind)
+    .bind(study_task_seq)
+    .fetch_one(&mut **tx)
+    .await?;
+
+    let study_task_id: i64 = row.try_get("study_task_id")?;
+
+    Ok(study_task_id)
+}
+
+pub async fn create_task_choice(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i64,
+    req: &StudyTaskCreateReq,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO study_task_choice (
+            study_task_id,
+            study_task_choice_question,
+            study_task_choice_1,
+            study_task_choice_2,
+            study_task_choice_3,
+            study_task_choice_4,
+            study_task_choice_correct,
+            study_task_choice_audio_url,
+            study_task_choice_image_url
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(req.question.as_deref())
+    .bind(req.choice_1.as_deref())
+    .bind(req.choice_2.as_deref())
+    .bind(req.choice_3.as_deref())
+    .bind(req.choice_4.as_deref())
+    .bind(req.choice_correct)
+    .bind(req.audio_url.as_deref())
+    .bind(req.image_url.as_deref())
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn create_task_typing(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i64,
+    req: &StudyTaskCreateReq,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO study_task_typing (
+            study_task_id,
+            study_task_typing_question,
+            study_task_typing_answer,
+            study_task_typing_image_url
+        )
+        VALUES ($1, $2, $3, $4)
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(req.question.as_deref())
+    .bind(req.answer.as_deref())
+    .bind(req.image_url.as_deref())
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn create_task_voice(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i64,
+    req: &StudyTaskCreateReq,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO study_task_voice (
+            study_task_id,
+            study_task_voice_question,
+            study_task_voice_answer,
+            study_task_voice_audio_url,
+            study_task_voice_image_url
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(req.question.as_deref())
+    .bind(req.answer.as_deref())
+    .bind(req.audio_url.as_deref())
+    .bind(req.image_url.as_deref())
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
 }
 
 fn normalize_study_action(action: &str) -> &'static str {

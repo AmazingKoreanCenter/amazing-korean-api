@@ -158,6 +158,24 @@ pub struct AdminStudyTaskListRes {
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct StudyTaskCreateReq {
+    #[validate(range(min = 1))]
+    pub study_id: i32,
+    pub study_task_kind: StudyTaskKind,
+    #[validate(range(min = 1))]
+    pub study_task_seq: Option<i32>,
+    pub question: Option<String>,
+    pub answer: Option<String>,
+    pub image_url: Option<String>,
+    pub audio_url: Option<String>,
+    pub choice_1: Option<String>,
+    pub choice_2: Option<String>,
+    pub choice_3: Option<String>,
+    pub choice_4: Option<String>,
+    pub choice_correct: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
 pub struct StudyTaskUpdateReq {
     pub study_task_seq: Option<i32>,
     pub question: Option<String>,
