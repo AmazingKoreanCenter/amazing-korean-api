@@ -130,7 +130,7 @@ pub struct StudyBulkUpdateRes {
     pub results: Vec<StudyBulkUpdateResult>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
 pub struct StudyTaskListReq {
     #[validate(range(min = 1))]
     pub study_id: i32,
@@ -140,7 +140,7 @@ pub struct StudyTaskListReq {
     pub size: Option<u64>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone, FromRow)]
 pub struct AdminStudyTaskRes {
     pub study_task_id: i64,
     pub study_task_kind: StudyTaskKind,
@@ -148,13 +148,44 @@ pub struct AdminStudyTaskRes {
     pub question: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
 pub struct AdminStudyTaskListRes {
     pub list: Vec<AdminStudyTaskRes>,
     pub total: i64,
     pub page: u64,
     pub size: u64,
     pub total_pages: i64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct StudyTaskUpdateReq {
+    pub study_task_seq: Option<i32>,
+    pub question: Option<String>,
+    pub answer: Option<String>,
+    pub image_url: Option<String>,
+    pub audio_url: Option<String>,
+    pub choice_1: Option<String>,
+    pub choice_2: Option<String>,
+    pub choice_3: Option<String>,
+    pub choice_4: Option<String>,
+    pub choice_correct: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone, FromRow)]
+pub struct AdminStudyTaskDetailRes {
+    pub study_task_id: i64,
+    pub study_id: i64,
+    pub study_task_kind: StudyTaskKind,
+    pub study_task_seq: i32,
+    pub question: Option<String>,
+    pub answer: Option<String>,
+    pub image_url: Option<String>,
+    pub audio_url: Option<String>,
+    pub choice_1: Option<String>,
+    pub choice_2: Option<String>,
+    pub choice_3: Option<String>,
+    pub choice_4: Option<String>,
+    pub choice_correct: Option<i32>,
 }
 
 fn validate_study_idx(value: &str) -> Result<(), validator::ValidationError> {

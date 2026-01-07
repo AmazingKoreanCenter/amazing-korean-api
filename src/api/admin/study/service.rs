@@ -7,9 +7,10 @@ use crate::types::{StudyProgram, StudyState, UserAuth};
 use crate::AppState;
 
 use super::dto::{
-    AdminStudyListRes, AdminStudyRes, AdminStudyTaskListRes, StudyBulkCreateReq,
-    StudyBulkCreateRes, StudyBulkResult, StudyBulkUpdateReq, StudyBulkUpdateRes,
-    StudyBulkUpdateResult, StudyCreateReq, StudyListReq, StudyTaskListReq, StudyUpdateReq,
+    AdminStudyListRes, AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskListRes,
+    StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkResult, StudyBulkUpdateReq,
+    StudyBulkUpdateRes, StudyBulkUpdateResult, StudyCreateReq, StudyListReq, StudyTaskListReq,
+    StudyTaskUpdateReq, StudyUpdateReq,
 };
 use super::repo;
 
@@ -462,6 +463,74 @@ pub async fn admin_list_study_tasks(
         size,
         total_pages,
     })
+}
+
+pub async fn admin_update_study_task(
+    st: &AppState,
+    actor_user_id: i64,
+    study_task_id: i64,
+    req: StudyTaskUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminStudyTaskDetailRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let has_any = req.study_task_seq.is_some()
+        || req.question.is_some()
+        || req.answer.is_some()
+        || req.image_url.is_some()
+        || req.audio_url.is_some()
+        || req.choice_1.is_some()
+        || req.choice_2.is_some()
+        || req.choice_3.is_some()
+        || req.choice_4.is_some()
+        || req.choice_correct.is_some();
+
+    if !has_any {
+        return Err(AppError::BadRequest("no fields to update".into()));
+    }
+
+    let before = repo::find_study_task_by_id(&st.db, study_task_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let _ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+    let _user_agent = user_agent;
+
+    let mut tx = st.db.begin().await?;
+
+    let updated = repo::admin_update_study_task(
+        &mut tx,
+        study_task_id,
+        actor_user_id,
+        before.study_task_kind,
+        &req,
+    )
+    .await?;
+
+    let before_val = serde_json::to_value(&before).unwrap_or_default();
+    let after_val = serde_json::to_value(&req).unwrap_or_default();
+
+    repo::create_study_log(
+        &mut tx,
+        actor_user_id,
+        "UPDATE_TASK",
+        before.study_id as i64,
+        Some(before.study_task_id),
+        Some(&before_val),
+        Some(&after_val),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(updated)
 }
 
 pub async fn admin_bulk_update_studies(

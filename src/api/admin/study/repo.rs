@@ -1,6 +1,8 @@
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
-use crate::api::admin::study::dto::{AdminStudyRes, AdminStudyTaskRes, StudyUpdateReq};
+use crate::api::admin::study::dto::{
+    AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes, StudyTaskUpdateReq, StudyUpdateReq,
+};
 use crate::error::AppResult;
 use crate::types::{StudyProgram, StudyState};
 
@@ -171,6 +173,54 @@ pub async fn admin_list_study_tasks(
         .await?;
 
     Ok((total_count, rows))
+}
+
+pub async fn find_study_task_by_id(
+    pool: &PgPool,
+    study_task_id: i64,
+) -> AppResult<Option<AdminStudyTaskDetailRes>> {
+    let task = sqlx::query_as::<_, AdminStudyTaskDetailRes>(
+        r#"
+        SELECT
+            st.study_task_id::bigint AS study_task_id,
+            st.study_id::bigint AS study_id,
+            st.study_task_kind AS study_task_kind,
+            st.study_task_seq AS study_task_seq,
+            COALESCE(
+                c.study_task_choice_question,
+                t.study_task_typing_question,
+                v.study_task_voice_question
+            ) AS question,
+            COALESCE(
+                t.study_task_typing_answer,
+                v.study_task_voice_answer
+            ) AS answer,
+            COALESCE(
+                c.study_task_choice_image_url,
+                t.study_task_typing_image_url,
+                v.study_task_voice_image_url
+            ) AS image_url,
+            COALESCE(
+                c.study_task_choice_audio_url,
+                v.study_task_voice_audio_url
+            ) AS audio_url,
+            c.study_task_choice_1 AS choice_1,
+            c.study_task_choice_2 AS choice_2,
+            c.study_task_choice_3 AS choice_3,
+            c.study_task_choice_4 AS choice_4,
+            c.study_task_choice_correct AS choice_correct
+        FROM study_task st
+        LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
+        LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
+        LEFT JOIN study_task_voice v ON v.study_task_id = st.study_task_id
+        WHERE st.study_task_id = $1
+        "#,
+    )
+    .bind(study_task_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(task)
 }
 
 pub async fn find_study_by_id(pool: &PgPool, study_id: i64) -> AppResult<Option<AdminStudyRes>> {
@@ -363,6 +413,207 @@ pub async fn admin_update_study(
         .build_query_as::<AdminStudyRes>()
         .fetch_one(&mut **tx)
         .await?;
+
+    Ok(updated)
+}
+
+pub async fn admin_update_study_task(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i64,
+    actor_user_id: i64,
+    kind: crate::types::StudyTaskKind,
+    req: &StudyTaskUpdateReq,
+) -> AppResult<AdminStudyTaskDetailRes> {
+    let mut builder = QueryBuilder::<Postgres>::new("UPDATE study_task SET ");
+    let mut is_first = true;
+
+    if let Some(seq) = req.study_task_seq {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("study_task_seq = ");
+        builder.push_bind(seq);
+        is_first = false;
+    }
+
+    if !is_first {
+        builder.push(", ");
+    }
+    builder.push("updated_by_user_id = ");
+    builder.push_bind(actor_user_id);
+    builder.push(", study_task_updated_at = now()");
+
+    builder.push(" WHERE study_task_id = ");
+    builder.push_bind(study_task_id);
+
+    builder.build().execute(&mut **tx).await?;
+
+    match kind {
+        crate::types::StudyTaskKind::Choice => {
+            let mut qb = QueryBuilder::<Postgres>::new("UPDATE study_task_choice SET ");
+            let mut has_any = false;
+
+            if let Some(ref question) = req.question {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_choice_question = ");
+                qb.push_bind(question);
+                has_any = true;
+            }
+            if let Some(ref choice) = req.choice_1 {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_choice_1 = ");
+                qb.push_bind(choice);
+                has_any = true;
+            }
+            if let Some(ref choice) = req.choice_2 {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_choice_2 = ");
+                qb.push_bind(choice);
+                has_any = true;
+            }
+            if let Some(ref choice) = req.choice_3 {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_choice_3 = ");
+                qb.push_bind(choice);
+                has_any = true;
+            }
+            if let Some(ref choice) = req.choice_4 {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_choice_4 = ");
+                qb.push_bind(choice);
+                has_any = true;
+            }
+            if let Some(correct) = req.choice_correct {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_choice_correct = ");
+                qb.push_bind(correct);
+                has_any = true;
+            }
+            if let Some(ref image) = req.image_url {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_choice_image_url = ");
+                qb.push_bind(image);
+                has_any = true;
+            }
+            if let Some(ref audio) = req.audio_url {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_choice_audio_url = ");
+                qb.push_bind(audio);
+                has_any = true;
+            }
+
+            if has_any {
+                qb.push(" WHERE study_task_id = ");
+                qb.push_bind(study_task_id);
+                qb.build().execute(&mut **tx).await?;
+            }
+        }
+        crate::types::StudyTaskKind::Typing => {
+            let mut qb = QueryBuilder::<Postgres>::new("UPDATE study_task_typing SET ");
+            let mut has_any = false;
+
+            if let Some(ref question) = req.question {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_typing_question = ");
+                qb.push_bind(question);
+                has_any = true;
+            }
+            if let Some(ref answer) = req.answer {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_typing_answer = ");
+                qb.push_bind(answer);
+                has_any = true;
+            }
+            if let Some(ref image) = req.image_url {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_typing_image_url = ");
+                qb.push_bind(image);
+                has_any = true;
+            }
+
+            if has_any {
+                qb.push(" WHERE study_task_id = ");
+                qb.push_bind(study_task_id);
+                qb.build().execute(&mut **tx).await?;
+            }
+        }
+        crate::types::StudyTaskKind::Voice => {
+            let mut qb = QueryBuilder::<Postgres>::new("UPDATE study_task_voice SET ");
+            let mut has_any = false;
+
+            if let Some(ref question) = req.question {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_voice_question = ");
+                qb.push_bind(question);
+                has_any = true;
+            }
+            if let Some(ref answer) = req.answer {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_voice_answer = ");
+                qb.push_bind(answer);
+                has_any = true;
+            }
+            if let Some(ref image) = req.image_url {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_voice_image_url = ");
+                qb.push_bind(image);
+                has_any = true;
+            }
+            if let Some(ref audio) = req.audio_url {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_voice_audio_url = ");
+                qb.push_bind(audio);
+                has_any = true;
+            }
+
+            if has_any {
+                qb.push(" WHERE study_task_id = ");
+                qb.push_bind(study_task_id);
+                qb.build().execute(&mut **tx).await?;
+            }
+        }
+    }
+
+    let updated = sqlx::query_as::<_, AdminStudyTaskDetailRes>(
+        r#"
+        SELECT
+            st.study_task_id::bigint AS study_task_id,
+            st.study_id::bigint AS study_id,
+            st.study_task_kind AS study_task_kind,
+            st.study_task_seq AS study_task_seq,
+            COALESCE(
+                c.study_task_choice_question,
+                t.study_task_typing_question,
+                v.study_task_voice_question
+            ) AS question,
+            COALESCE(
+                t.study_task_typing_answer,
+                v.study_task_voice_answer
+            ) AS answer,
+            COALESCE(
+                c.study_task_choice_image_url,
+                t.study_task_typing_image_url,
+                v.study_task_voice_image_url
+            ) AS image_url,
+            COALESCE(
+                c.study_task_choice_audio_url,
+                v.study_task_voice_audio_url
+            ) AS audio_url,
+            c.study_task_choice_1 AS choice_1,
+            c.study_task_choice_2 AS choice_2,
+            c.study_task_choice_3 AS choice_3,
+            c.study_task_choice_4 AS choice_4,
+            c.study_task_choice_correct AS choice_correct
+        FROM study_task st
+        LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
+        LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
+        LEFT JOIN study_task_voice v ON v.study_task_id = st.study_task_id
+        WHERE st.study_task_id = $1
+        "#,
+    )
+    .bind(study_task_id)
+    .fetch_one(&mut **tx)
+    .await?;
 
     Ok(updated)
 }
