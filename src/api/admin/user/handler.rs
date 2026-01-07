@@ -50,7 +50,7 @@ fn extract_user_agent(headers: &HeaderMap) -> Option<String> {
 #[utoipa::path(
     get,
     path = "/admin/users",
-    tag = "admin",
+    tag = "admin_users",
     params(
         ("q", Query, description = "Search email or nickname", example = "test"),
         ("sort", Query, description = "Sort field (created_at, email, nickname)", example = "created_at"),
@@ -107,7 +107,7 @@ pub async fn admin_list_users(
 #[utoipa::path(
     post,
     path = "/admin/users",
-    tag = "admin",
+    tag = "admin_users",
     request_body = AdminCreateUserReq,
     responses(
         (status = 201, description = "User created", body = AdminUserRes),
@@ -149,7 +149,7 @@ pub async fn admin_create_user(
 #[utoipa::path(
     post,
     path = "/admin/users/bulk",
-    tag = "admin",
+    tag = "admin_users",
     request_body = AdminBulkCreateReq,
     responses(
         (status = 201, description = "All users created", body = AdminBulkCreateRes),
@@ -190,7 +190,7 @@ pub async fn admin_create_users_bulk(
 #[utoipa::path(
     get,
     path = "/admin/users/{user_id}",
-    tag = "admin",
+    tag = "admin_users",
     params(
         ("user_id", Path, description = "ID of the user to retrieve", example = 123)
     ),
@@ -245,7 +245,7 @@ pub async fn admin_get_user(
 #[utoipa::path(
     patch,
     path = "/admin/users/{user_id}",
-    tag = "admin",
+    tag = "admin_users",
     params(
         ("user_id", Path, description = "ID of the user to update", example = 123)
     ),
@@ -309,7 +309,7 @@ pub async fn admin_update_user(
 #[utoipa::path(
     patch,
     path = "/admin/users/bulk",
-    tag = "admin",
+    tag = "admin_users",
     request_body = AdminBulkUpdateReq,
     responses(
         (status = 200, description = "All users updated", body = AdminBulkUpdateRes),
