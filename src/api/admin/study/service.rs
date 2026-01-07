@@ -7,8 +7,9 @@ use crate::types::{StudyProgram, StudyState, UserAuth};
 use crate::AppState;
 
 use super::dto::{
-    AdminStudyListRes, AdminStudyRes, StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkResult,
-    StudyCreateReq, StudyListReq,
+    AdminStudyListRes, AdminStudyRes, AdminStudyTaskListRes, StudyBulkCreateReq,
+    StudyBulkCreateRes, StudyBulkResult, StudyBulkUpdateReq, StudyBulkUpdateRes,
+    StudyBulkUpdateResult, StudyCreateReq, StudyListReq, StudyTaskListReq, StudyUpdateReq,
 };
 use super::repo;
 
@@ -323,6 +324,285 @@ pub async fn admin_bulk_create_studies(
     Ok((
         all_success,
         StudyBulkCreateRes {
+            success_count: success,
+            failure_count: failure,
+            results,
+        },
+    ))
+}
+
+pub async fn admin_update_study(
+    st: &AppState,
+    actor_user_id: i64,
+    study_id: i64,
+    mut req: StudyUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminStudyRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    if let Some(idx) = req.study_idx.as_mut() {
+        *idx = idx.trim().to_string();
+    }
+
+    let has_any = req.study_idx.is_some()
+        || req.study_state.is_some()
+        || req.study_program.is_some()
+        || req.study_title.is_some()
+        || req.study_subtitle.is_some()
+        || req.study_description.is_some();
+
+    if !has_any {
+        return Err(AppError::BadRequest("no fields to update".into()));
+    }
+
+    let before = repo::find_study_by_id(&st.db, study_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    if let Some(idx) = req.study_idx.as_deref() {
+        if idx != before.study_idx
+            && repo::exists_study_idx_for_update(&st.db, study_id, idx).await?
+        {
+            return Err(AppError::Conflict("study_idx already exists".into()));
+        }
+    }
+
+    let _ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+    let _user_agent = user_agent;
+
+    let mut tx = st.db.begin().await?;
+
+    let updated = repo::admin_update_study(&mut tx, study_id, actor_user_id, &req).await?;
+
+    let before_val = serde_json::to_value(&before).unwrap_or_default();
+    let after_val = serde_json::to_value(&req).unwrap_or_default();
+
+    repo::create_study_log(
+        &mut tx,
+        actor_user_id,
+        "UPDATE_STUDY",
+        updated.study_id as i64,
+        None,
+        Some(&before_val),
+        Some(&after_val),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(updated)
+}
+
+pub async fn admin_list_study_tasks(
+    st: &AppState,
+    actor_user_id: i64,
+    req: StudyTaskListReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminStudyTaskListRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let page = req.page.unwrap_or(1);
+    if page < 1 {
+        return Err(AppError::BadRequest("page must be >= 1".into()));
+    }
+
+    let size = req.size.unwrap_or(20);
+    if size < 1 {
+        return Err(AppError::BadRequest("size must be >= 1".into()));
+    }
+    if size > 100 {
+        return Err(AppError::Unprocessable("size exceeds 100".into()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "study_id": req.study_id
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "LIST_STUDY_TASKS",
+        Some("study_task"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let (total, list) =
+        repo::admin_list_study_tasks(&st.db, req.study_id, page, size).await?;
+
+    let total_pages = if total == 0 {
+        0
+    } else {
+        (total + size as i64 - 1) / size as i64
+    };
+
+    Ok(AdminStudyTaskListRes {
+        list,
+        total,
+        page,
+        size,
+        total_pages,
+    })
+}
+
+pub async fn admin_bulk_update_studies(
+    st: &AppState,
+    actor_user_id: i64,
+    req: StudyBulkUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<(bool, StudyBulkUpdateRes)> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "total": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_UPDATE_STUDIES",
+        Some("study"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let mut results = Vec::with_capacity(req.items.len());
+    let mut success = 0i64;
+    let mut failure = 0i64;
+
+    for item in req.items {
+        let item_id = item.id;
+        let outcome = async {
+            if let Err(e) = item.validate() {
+                return Err(AppError::BadRequest(e.to_string()));
+            }
+
+            let mut update_req = StudyUpdateReq {
+                study_idx: item.study_idx.clone(),
+                study_title: item.study_title.clone(),
+                study_subtitle: item.study_subtitle.clone(),
+                study_description: item.study_description.clone(),
+                study_program: item.study_program,
+                study_state: item.study_state,
+            };
+
+            if let Some(idx) = update_req.study_idx.as_mut() {
+                *idx = idx.trim().to_string();
+            }
+
+            let has_any = update_req.study_idx.is_some()
+                || update_req.study_state.is_some()
+                || update_req.study_program.is_some()
+                || update_req.study_title.is_some()
+                || update_req.study_subtitle.is_some()
+                || update_req.study_description.is_some();
+
+            if !has_any {
+                return Err(AppError::BadRequest("no fields to update".into()));
+            }
+
+            let before = repo::find_study_by_id(&st.db, item_id)
+                .await?
+                .ok_or(AppError::NotFound)?;
+
+            if let Some(idx) = update_req.study_idx.as_deref() {
+                if idx != before.study_idx
+                    && repo::exists_study_idx_for_update(&st.db, item_id, idx).await?
+                {
+                    return Err(AppError::Conflict("study_idx already exists".into()));
+                }
+            }
+
+            let mut tx = st.db.begin().await?;
+
+            let updated = repo::admin_update_study(&mut tx, item_id, actor_user_id, &update_req)
+                .await?;
+
+            let before_val = serde_json::to_value(&before).unwrap_or_default();
+            let after_val = serde_json::to_value(&update_req).unwrap_or_default();
+
+            repo::create_study_log(
+                &mut tx,
+                actor_user_id,
+                "UPDATE_STUDY",
+                updated.study_id as i64,
+                None,
+                Some(&before_val),
+                Some(&after_val),
+            )
+            .await?;
+
+            tx.commit().await?;
+
+            Ok(updated)
+        }
+        .await;
+
+        match outcome {
+            Ok(_) => {
+                success += 1;
+                results.push(StudyBulkUpdateResult {
+                    id: item_id,
+                    success: true,
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failure += 1;
+                let msg = match e {
+                    AppError::NotFound => "Study not found".to_string(),
+                    AppError::BadRequest(m) => m,
+                    AppError::Unprocessable(m) => m,
+                    AppError::Conflict(m) => m,
+                    AppError::Forbidden => "Forbidden".to_string(),
+                    _ => "Internal Server Error".to_string(),
+                };
+
+                results.push(StudyBulkUpdateResult {
+                    id: item_id,
+                    success: false,
+                    error: Some(msg),
+                });
+            }
+        }
+    }
+
+    let all_success = failure == 0;
+
+    Ok((
+        all_success,
+        StudyBulkUpdateRes {
             success_count: success,
             failure_count: failure,
             results,

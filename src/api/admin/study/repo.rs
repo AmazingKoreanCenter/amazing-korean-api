@@ -1,6 +1,6 @@
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
-use crate::api::admin::study::dto::AdminStudyRes;
+use crate::api::admin::study::dto::{AdminStudyRes, AdminStudyTaskRes, StudyUpdateReq};
 use crate::error::AppResult;
 use crate::types::{StudyProgram, StudyState};
 
@@ -124,6 +124,78 @@ pub async fn admin_list_studies(
     Ok((total_count, rows))
 }
 
+pub async fn admin_list_study_tasks(
+    pool: &PgPool,
+    study_id: i32,
+    page: u64,
+    size: u64,
+) -> AppResult<(i64, Vec<AdminStudyTaskRes>)> {
+    let mut count_builder = QueryBuilder::new(
+        "SELECT COUNT(*) FROM study_task st WHERE st.study_id = ",
+    );
+    count_builder.push_bind(study_id);
+
+    let total_count = count_builder
+        .build_query_scalar::<i64>()
+        .fetch_one(pool)
+        .await?;
+
+    let mut list_builder = QueryBuilder::new(
+        r#"
+        SELECT
+            st.study_task_id::bigint AS study_task_id,
+            st.study_task_kind AS study_task_kind,
+            st.study_task_seq AS study_task_seq,
+            COALESCE(
+                c.study_task_choice_question,
+                t.study_task_typing_question,
+                v.study_task_voice_question
+            ) AS question
+        FROM study_task st
+        LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
+        LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
+        LEFT JOIN study_task_voice v ON v.study_task_id = st.study_task_id
+        WHERE st.study_id = 
+        "#,
+    );
+    list_builder.push_bind(study_id);
+    list_builder.push(" ORDER BY st.study_task_seq ASC");
+    list_builder.push(" LIMIT ");
+    list_builder.push_bind(size as i64);
+    list_builder.push(" OFFSET ");
+    list_builder.push_bind(((page - 1) * size) as i64);
+
+    let rows = list_builder
+        .build_query_as::<AdminStudyTaskRes>()
+        .fetch_all(pool)
+        .await?;
+
+    Ok((total_count, rows))
+}
+
+pub async fn find_study_by_id(pool: &PgPool, study_id: i64) -> AppResult<Option<AdminStudyRes>> {
+    let study = sqlx::query_as::<_, AdminStudyRes>(
+        r#"
+        SELECT
+            study_id,
+            study_idx,
+            study_title,
+            study_subtitle,
+            study_program,
+            study_state,
+            study_created_at,
+            study_updated_at
+        FROM study
+        WHERE study_id = $1
+        "#,
+    )
+    .bind(study_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(study)
+}
+
 pub async fn exists_study_idx(pool: &PgPool, study_idx: &str) -> AppResult<bool> {
     let exists = sqlx::query_scalar::<_, bool>(
         r#"
@@ -135,6 +207,29 @@ pub async fn exists_study_idx(pool: &PgPool, study_idx: &str) -> AppResult<bool>
         "#,
     )
     .bind(study_idx)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(exists)
+}
+
+pub async fn exists_study_idx_for_update(
+    pool: &PgPool,
+    study_id: i64,
+    study_idx: &str,
+) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM study
+            WHERE study_idx = $1
+              AND study_id <> $2
+        )
+        "#,
+    )
+    .bind(study_idx)
+    .bind(study_id)
     .fetch_one(pool)
     .await?;
 
@@ -185,6 +280,91 @@ pub async fn admin_create_study(
     .await?;
 
     Ok(row)
+}
+
+pub async fn admin_update_study(
+    tx: &mut Transaction<'_, Postgres>,
+    study_id: i64,
+    actor_user_id: i64,
+    req: &StudyUpdateReq,
+) -> AppResult<AdminStudyRes> {
+    let mut builder = QueryBuilder::<Postgres>::new("UPDATE study SET ");
+    let mut is_first = true;
+
+    if let Some(ref idx) = req.study_idx {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("study_idx = ");
+        builder.push_bind(idx);
+        is_first = false;
+    }
+
+    if let Some(state) = req.study_state {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("study_state = ");
+        builder.push_bind(state);
+        is_first = false;
+    }
+
+    if let Some(program) = req.study_program {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("study_program = ");
+        builder.push_bind(program);
+        is_first = false;
+    }
+
+    if let Some(ref title) = req.study_title {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("study_title = ");
+        builder.push_bind(title);
+        is_first = false;
+    }
+
+    if let Some(ref subtitle) = req.study_subtitle {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("study_subtitle = ");
+        builder.push_bind(subtitle);
+        is_first = false;
+    }
+
+    if let Some(ref description) = req.study_description {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("study_description = ");
+        builder.push_bind(description);
+        is_first = false;
+    }
+
+    if !is_first {
+        builder.push(", ");
+    }
+    builder.push("updated_by_user_id = ");
+    builder.push_bind(actor_user_id);
+    builder.push(", study_updated_at = now()");
+
+    builder.push(" WHERE study_id = ");
+    builder.push_bind(study_id);
+    builder.push(
+        " RETURNING study_id, study_idx, study_title, study_subtitle, \
+         study_program, study_state, study_created_at, study_updated_at",
+    );
+
+    let updated = builder
+        .build_query_as::<AdminStudyRes>()
+        .fetch_one(&mut **tx)
+        .await?;
+
+    Ok(updated)
 }
 
 fn normalize_study_action(action: &str) -> &'static str {
