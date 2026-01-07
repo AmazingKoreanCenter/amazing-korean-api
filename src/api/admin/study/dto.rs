@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
-use validator::Validate;
+use validator::{Validate, ValidationError};
 use crate::types::{StudyProgram, StudyState};
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
@@ -31,6 +31,24 @@ pub struct StudyCreateReq {
     pub study_description: Option<String>,
     pub study_program: Option<StudyProgram>,
     pub study_state: Option<StudyState>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct StudyUpdateReq {
+    // [수정] Option 내부의 String을 검증하므로 함수 시그니처 수정 필요
+    #[validate(custom(function = "validate_optional_study_idx"))]
+    pub study_idx: Option<String>,
+
+    pub study_state: Option<StudyState>,
+    pub study_program: Option<StudyProgram>,
+
+    #[validate(length(min = 1, max = 80))]
+    pub study_title: Option<String>,
+    
+    #[validate(length(max = 120))]
+    pub study_subtitle: Option<String>,
+    
+    pub study_description: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Validate, Serialize, ToSchema)]
@@ -82,5 +100,15 @@ fn validate_study_idx(value: &str) -> Result<(), validator::ValidationError> {
     if trimmed.len() < 2 {
         return Err(validator::ValidationError::new("invalid_study_idx"));
     }
+    Ok(())
+}
+
+// [수정] 인자 타입을 &Option<String> -> &String으로 변경
+// validator는 값이 Some일 때만 이 함수를 호출하며, 내부 값을 전달합니다.
+fn validate_optional_study_idx(value: &String) -> Result<(), ValidationError> {
+    if value.len() < 2 {
+        return Err(ValidationError::new("length_too_short"));
+    }
+    // 필요한 추가 검증 로직(예: 공백 체크 등)이 있다면 여기에 작성
     Ok(())
 }

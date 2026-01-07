@@ -8,7 +8,7 @@ use crate::AppState;
 
 use super::dto::{
     AdminStudyListRes, AdminStudyRes, StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkResult,
-    StudyCreateReq, StudyListReq,
+    StudyCreateReq, StudyListReq, StudyUpdateReq,
 };
 use super::repo;
 
@@ -328,4 +328,73 @@ pub async fn admin_bulk_create_studies(
             results,
         },
     ))
+}
+
+pub async fn admin_update_study(
+    st: &AppState,
+    actor_user_id: i64,
+    study_id: i64,
+    mut req: StudyUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminStudyRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    if let Some(idx) = req.study_idx.as_mut() {
+        *idx = idx.trim().to_string();
+    }
+
+    let has_any = req.study_idx.is_some()
+        || req.study_state.is_some()
+        || req.study_program.is_some()
+        || req.study_title.is_some()
+        || req.study_subtitle.is_some()
+        || req.study_description.is_some();
+
+    if !has_any {
+        return Err(AppError::BadRequest("no fields to update".into()));
+    }
+
+    let before = repo::find_study_by_id(&st.db, study_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    if let Some(idx) = req.study_idx.as_deref() {
+        if idx != before.study_idx
+            && repo::exists_study_idx_for_update(&st.db, study_id, idx).await?
+        {
+            return Err(AppError::Conflict("study_idx already exists".into()));
+        }
+    }
+
+    let _ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+    let _user_agent = user_agent;
+
+    let mut tx = st.db.begin().await?;
+
+    let updated = repo::admin_update_study(&mut tx, study_id, actor_user_id, &req).await?;
+
+    let before_val = serde_json::to_value(&before).unwrap_or_default();
+    let after_val = serde_json::to_value(&req).unwrap_or_default();
+
+    repo::create_study_log(
+        &mut tx,
+        actor_user_id,
+        "UPDATE_STUDY",
+        updated.study_id as i64,
+        None,
+        Some(&before_val),
+        Some(&after_val),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(updated)
 }

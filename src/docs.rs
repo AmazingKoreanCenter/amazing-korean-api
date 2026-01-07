@@ -88,6 +88,7 @@ impl Modify for SecurityAddon {
         crate::api::admin::study::handler::admin_list_studies,
         crate::api::admin::study::handler::admin_create_study,
         crate::api::admin::study::handler::admin_bulk_create_studies,
+        crate::api::admin::study::handler::admin_update_study,
 
 
         // admin - video stats
@@ -203,6 +204,7 @@ impl Modify for SecurityAddon {
             crate::api::admin::study::dto::StudyBulkCreateReq,
             crate::api::admin::study::dto::StudyBulkCreateRes,
             crate::api::admin::study::dto::StudyBulkResult,
+            crate::api::admin::study::dto::StudyUpdateReq,
 
 
             // admin - video stats dto

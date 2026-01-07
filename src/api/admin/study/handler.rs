@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Query, State},
+    extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     Json,
 };
@@ -7,7 +7,7 @@ use std::net::IpAddr;
 
 use crate::api::admin::study::dto::{
     AdminStudyListRes, AdminStudyRes, StudyBulkCreateReq, StudyBulkCreateRes, StudyCreateReq,
-    StudyListReq,
+    StudyListReq, StudyUpdateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -153,4 +153,46 @@ pub async fn admin_bulk_create_studies(
     };
 
     Ok((status, Json(res)))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/admin/studies/{study_id}",
+    tag = "admin_study",
+    request_body = StudyUpdateReq,
+    params(
+        ("study_id" = i64, Path, description = "Study ID")
+    ),
+    responses(
+        (status = 200, description = "Study updated", body = AdminStudyRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_update_study(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(study_id): Path<i64>,
+    headers: HeaderMap,
+    Json(req): Json<StudyUpdateReq>,
+) -> AppResult<Json<AdminStudyRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_update_study(
+        &st,
+        auth_user.sub,
+        study_id,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
 }
