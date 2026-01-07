@@ -58,6 +58,26 @@ pub struct StudyBulkCreateReq {
     pub items: Vec<StudyCreateReq>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct StudyBulkUpdateItem {
+    #[validate(range(min = 1))]
+    pub id: i64,
+    #[validate(custom(function = "validate_optional_study_idx"))]
+    pub study_idx: Option<String>,
+    pub study_title: Option<String>,
+    pub study_subtitle: Option<String>,
+    pub study_description: Option<String>,
+    pub study_program: Option<StudyProgram>,
+    pub study_state: Option<StudyState>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct StudyBulkUpdateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<StudyBulkUpdateItem>,
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct AdminStudyListRes {
     pub list: Vec<AdminStudyRes>,
@@ -93,6 +113,21 @@ pub struct StudyBulkCreateRes {
     pub success_count: i64,
     pub failure_count: i64,
     pub results: Vec<StudyBulkResult>,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct StudyBulkUpdateResult {
+    pub id: i64,
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct StudyBulkUpdateRes {
+    pub success_count: i64,
+    pub failure_count: i64,
+    pub results: Vec<StudyBulkUpdateResult>,
 }
 
 fn validate_study_idx(value: &str) -> Result<(), validator::ValidationError> {
