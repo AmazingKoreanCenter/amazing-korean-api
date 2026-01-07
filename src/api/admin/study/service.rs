@@ -3,11 +3,13 @@ use std::str::FromStr; // [필수] String -> IpAddr 변환용 trait
 use validator::Validate;
 
 use crate::error::{AppError, AppResult};
-use crate::types::UserAuth;
+use crate::types::{StudyProgram, StudyState, UserAuth};
 use crate::AppState;
 
-use super::dto::{AdminStudyListRes, StudyListReq};
+use super::dto::{AdminStudyListRes, AdminStudyRes, StudyCreateReq, StudyListReq};
 use super::repo;
+
+const PG_UNIQUE_VIOLATION: &str = "23505";
 
 async fn check_admin_rbac(pool: &sqlx::PgPool, actor_user_id: i64) -> AppResult<UserAuth> {
     let actor = crate::api::user::repo::find_user(pool, actor_user_id)
@@ -17,6 +19,14 @@ async fn check_admin_rbac(pool: &sqlx::PgPool, actor_user_id: i64) -> AppResult<
     match actor.user_auth {
         UserAuth::Hymn | UserAuth::Admin | UserAuth::Manager => Ok(actor.user_auth),
         _ => Err(AppError::Forbidden),
+    }
+}
+
+fn is_unique_violation(err: &AppError) -> bool {
+    if let AppError::Sqlx(sqlx::Error::Database(db)) = err {
+        db.code().as_deref() == Some(PG_UNIQUE_VIOLATION)
+    } else {
+        false
     }
 }
 
@@ -37,6 +47,7 @@ pub async fn admin_list_studies(
     let size = req.size.unwrap_or(20);
     let sort = req.sort.as_deref().unwrap_or("created_at");
     let order = req.order.as_deref().unwrap_or("desc");
+    let q = req.q.clone();
 
     // [수정] String IP를 IpAddr 타입으로 변환 (변수 선언 추가)
     let ip_addr: Option<IpAddr> = ip_address
@@ -45,7 +56,7 @@ pub async fn admin_list_studies(
 
     // 3. Audit Log
     let details = serde_json::json!({
-        "q": req.q,
+        "q": q.as_deref(),
         "page": page,
         "size": size,
         "program": req.study_program,
@@ -69,7 +80,7 @@ pub async fn admin_list_studies(
     // 4. Repo Call
     let (total, list) = repo::admin_list_studies(
         &st.db,
-        req.q,
+        q,
         page,
         size,
         sort,
@@ -86,4 +97,83 @@ pub async fn admin_list_studies(
         size,
         total_pages: (total as f64 / size as f64).ceil() as i64,
     })
+}
+
+pub async fn admin_create_study(
+    st: &AppState,
+    actor_user_id: i64,
+    req: StudyCreateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminStudyRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    req.validate()?;
+
+    let study_idx = req.study_idx.trim();
+    if repo::exists_study_idx(&st.db, study_idx).await? {
+        return Err(AppError::Conflict("study_idx already exists".into()));
+    }
+
+    let study_program = req.study_program.unwrap_or(StudyProgram::Tbc);
+    let study_state = req.study_state.unwrap_or(StudyState::Ready);
+
+    let study_title = req
+        .study_title
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty());
+    let study_subtitle = req
+        .study_subtitle
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty());
+    let study_description = req
+        .study_description
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty());
+
+    let _ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+    let _user_agent = user_agent;
+
+    let mut tx = st.db.begin().await?;
+
+    let created = repo::admin_create_study(
+        &mut tx,
+        actor_user_id,
+        study_idx,
+        study_title,
+        study_subtitle,
+        study_description,
+        study_program,
+        study_state,
+    )
+    .await;
+
+    let created = match created {
+        Ok(val) => val,
+        Err(e) if is_unique_violation(&e) => {
+            return Err(AppError::Conflict("study_idx already exists".into()));
+        }
+        Err(e) => return Err(e),
+    };
+
+    let after = serde_json::to_value(&created).unwrap_or_default();
+    repo::create_study_log(
+        &mut tx,
+        actor_user_id,
+        "CREATE_STUDY",
+        created.study_id as i64,
+        None,
+        None,
+        Some(&after),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(created)
 }

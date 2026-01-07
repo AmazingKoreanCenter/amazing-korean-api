@@ -86,6 +86,7 @@ impl Modify for SecurityAddon {
 
         // admin - studies
         crate::api::admin::study::handler::admin_list_studies,
+        crate::api::admin::study::handler::admin_create_study,
 
 
         // admin - video stats
@@ -197,6 +198,7 @@ impl Modify for SecurityAddon {
             crate::api::admin::study::dto::StudyListReq,
             crate::api::admin::study::dto::AdminStudyRes,
             crate::api::admin::study::dto::AdminStudyListRes,
+            crate::api::admin::study::dto::StudyCreateReq,
 
 
             // admin - video stats dto

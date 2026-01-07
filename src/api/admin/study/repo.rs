@@ -1,4 +1,5 @@
-use sqlx::{PgPool, Postgres, QueryBuilder, Row};
+use serde_json::Value;
+use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 use crate::api::admin::study::dto::AdminStudyRes;
 use crate::error::AppResult;
 use crate::types::{StudyProgram, StudyState};
@@ -121,4 +122,113 @@ pub async fn admin_list_studies(
         .await?;
 
     Ok((total_count, rows))
+}
+
+pub async fn exists_study_idx(pool: &PgPool, study_idx: &str) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM study
+            WHERE study_idx = $1
+        )
+        "#,
+    )
+    .bind(study_idx)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(exists)
+}
+
+pub async fn admin_create_study(
+    tx: &mut Transaction<'_, Postgres>,
+    actor_user_id: i64,
+    study_idx: &str,
+    study_title: Option<&str>,
+    study_subtitle: Option<&str>,
+    study_description: Option<&str>,
+    study_program: StudyProgram,
+    study_state: StudyState,
+) -> AppResult<AdminStudyRes> {
+    let row = sqlx::query_as::<_, AdminStudyRes>(
+        r#"
+        INSERT INTO study (
+            updated_by_user_id,
+            study_idx,
+            study_state,
+            study_program,
+            study_title,
+            study_subtitle,
+            study_description
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING
+            study_id,
+            study_idx,
+            study_title,
+            study_subtitle,
+            study_program,
+            study_state,
+            study_created_at,
+            study_updated_at
+        "#,
+    )
+    .bind(actor_user_id)
+    .bind(study_idx)
+    .bind(study_state)
+    .bind(study_program)
+    .bind(study_title)
+    .bind(study_subtitle)
+    .bind(study_description)
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(row)
+}
+
+fn normalize_study_action(action: &str) -> &'static str {
+    match action {
+        "create" | "CREATE" | "create_study" | "CREATE_STUDY" => "create",
+        "update" | "UPDATE" => "update",
+        "banned" | "BANNED" => "banned",
+        "reorder" | "REORDER" => "reorder",
+        "publish" | "PUBLISH" => "publish",
+        "unpublish" | "UNPUBLISH" => "unpublish",
+        _ => "update",
+    }
+}
+
+pub async fn create_study_log(
+    tx: &mut Transaction<'_, Postgres>,
+    admin_user_id: i64,
+    action: &str,
+    target_study_id: i64,
+    target_task_id: Option<i64>,
+    before: Option<&Value>,
+    after: Option<&Value>,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO admin_study_log (
+            admin_user_id,
+            admin_pick_study_id,
+            admin_pick_task_id,
+            admin_study_action,
+            admin_study_before,
+            admin_study_after
+        )
+        VALUES ($1, $2, $3, CAST($4 AS admin_action_enum), $5, $6)
+        "#,
+    )
+    .bind(admin_user_id)
+    .bind(target_study_id)
+    .bind(target_task_id)
+    .bind(normalize_study_action(action))
+    .bind(before)
+    .bind(after)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
 }

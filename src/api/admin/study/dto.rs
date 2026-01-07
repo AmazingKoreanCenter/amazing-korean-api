@@ -22,6 +22,17 @@ pub struct StudyListReq {
     pub study_program: Option<StudyProgram>, 
 }
 
+#[derive(Deserialize, Validate, ToSchema)]
+pub struct StudyCreateReq {
+    #[validate(custom(function = "validate_study_idx"))]
+    pub study_idx: String,
+    pub study_title: Option<String>,
+    pub study_subtitle: Option<String>,
+    pub study_description: Option<String>,
+    pub study_program: Option<StudyProgram>,
+    pub study_state: Option<StudyState>,
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct AdminStudyListRes {
     pub list: Vec<AdminStudyRes>,
@@ -41,4 +52,12 @@ pub struct AdminStudyRes {
     pub study_state: StudyState,
     pub study_created_at: DateTime<Utc>,
     pub study_updated_at: DateTime<Utc>,
+}
+
+fn validate_study_idx(value: &str) -> Result<(), validator::ValidationError> {
+    let trimmed = value.trim();
+    if trimmed.len() < 2 {
+        return Err(validator::ValidationError::new("invalid_study_idx"));
+    }
+    Ok(())
 }
