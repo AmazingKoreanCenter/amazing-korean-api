@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use validator::{Validate, ValidationError};
-use crate::types::{StudyProgram, StudyState};
+use crate::types::{StudyProgram, StudyState, StudyTaskKind};
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
@@ -128,6 +128,33 @@ pub struct StudyBulkUpdateRes {
     pub success_count: i64,
     pub failure_count: i64,
     pub results: Vec<StudyBulkUpdateResult>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct StudyTaskListReq {
+    #[validate(range(min = 1))]
+    pub study_id: i32,
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
+pub struct AdminStudyTaskRes {
+    pub study_task_id: i64,
+    pub study_task_kind: StudyTaskKind,
+    pub study_task_seq: i32,
+    pub question: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct AdminStudyTaskListRes {
+    pub list: Vec<AdminStudyTaskRes>,
+    pub total: i64,
+    pub page: u64,
+    pub size: u64,
+    pub total_pages: i64,
 }
 
 fn validate_study_idx(value: &str) -> Result<(), validator::ValidationError> {

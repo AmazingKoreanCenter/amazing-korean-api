@@ -1,6 +1,6 @@
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
-use crate::api::admin::study::dto::{AdminStudyRes, StudyUpdateReq};
+use crate::api::admin::study::dto::{AdminStudyRes, AdminStudyTaskRes, StudyUpdateReq};
 use crate::error::AppResult;
 use crate::types::{StudyProgram, StudyState};
 
@@ -118,6 +118,55 @@ pub async fn admin_list_studies(
 
     let rows = builder
         .build_query_as::<AdminStudyRes>()
+        .fetch_all(pool)
+        .await?;
+
+    Ok((total_count, rows))
+}
+
+pub async fn admin_list_study_tasks(
+    pool: &PgPool,
+    study_id: i32,
+    page: u64,
+    size: u64,
+) -> AppResult<(i64, Vec<AdminStudyTaskRes>)> {
+    let mut count_builder = QueryBuilder::new(
+        "SELECT COUNT(*) FROM study_task st WHERE st.study_id = ",
+    );
+    count_builder.push_bind(study_id);
+
+    let total_count = count_builder
+        .build_query_scalar::<i64>()
+        .fetch_one(pool)
+        .await?;
+
+    let mut list_builder = QueryBuilder::new(
+        r#"
+        SELECT
+            st.study_task_id::bigint AS study_task_id,
+            st.study_task_kind AS study_task_kind,
+            st.study_task_seq AS study_task_seq,
+            COALESCE(
+                c.study_task_choice_question,
+                t.study_task_typing_question,
+                v.study_task_voice_question
+            ) AS question
+        FROM study_task st
+        LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
+        LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
+        LEFT JOIN study_task_voice v ON v.study_task_id = st.study_task_id
+        WHERE st.study_id = 
+        "#,
+    );
+    list_builder.push_bind(study_id);
+    list_builder.push(" ORDER BY st.study_task_seq ASC");
+    list_builder.push(" LIMIT ");
+    list_builder.push_bind(size as i64);
+    list_builder.push(" OFFSET ");
+    list_builder.push_bind(((page - 1) * size) as i64);
+
+    let rows = list_builder
+        .build_query_as::<AdminStudyTaskRes>()
         .fetch_all(pool)
         .await?;
 

@@ -7,9 +7,9 @@ use crate::types::{StudyProgram, StudyState, UserAuth};
 use crate::AppState;
 
 use super::dto::{
-    AdminStudyListRes, AdminStudyRes, StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkResult,
-    StudyBulkUpdateReq, StudyBulkUpdateRes, StudyBulkUpdateResult, StudyCreateReq, StudyListReq,
-    StudyUpdateReq,
+    AdminStudyListRes, AdminStudyRes, AdminStudyTaskListRes, StudyBulkCreateReq,
+    StudyBulkCreateRes, StudyBulkResult, StudyBulkUpdateReq, StudyBulkUpdateRes,
+    StudyBulkUpdateResult, StudyCreateReq, StudyListReq, StudyTaskListReq, StudyUpdateReq,
 };
 use super::repo;
 
@@ -398,6 +398,70 @@ pub async fn admin_update_study(
     tx.commit().await?;
 
     Ok(updated)
+}
+
+pub async fn admin_list_study_tasks(
+    st: &AppState,
+    actor_user_id: i64,
+    req: StudyTaskListReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminStudyTaskListRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let page = req.page.unwrap_or(1);
+    if page < 1 {
+        return Err(AppError::BadRequest("page must be >= 1".into()));
+    }
+
+    let size = req.size.unwrap_or(20);
+    if size < 1 {
+        return Err(AppError::BadRequest("size must be >= 1".into()));
+    }
+    if size > 100 {
+        return Err(AppError::Unprocessable("size exceeds 100".into()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "study_id": req.study_id
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "LIST_STUDY_TASKS",
+        Some("study_task"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let (total, list) =
+        repo::admin_list_study_tasks(&st.db, req.study_id, page, size).await?;
+
+    let total_pages = if total == 0 {
+        0
+    } else {
+        (total + size as i64 - 1) / size as i64
+    };
+
+    Ok(AdminStudyTaskListRes {
+        list,
+        total,
+        page,
+        size,
+        total_pages,
+    })
 }
 
 pub async fn admin_bulk_update_studies(
