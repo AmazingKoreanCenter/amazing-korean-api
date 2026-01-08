@@ -939,6 +939,19 @@ pub async fn admin_update_study_task(
 ) -> AppResult<AdminStudyTaskDetailRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
+    // ✅ [추가] API 요청 로그 (admin_action_log) 기록
+    // 이 부분이 없어서 API 호출 기록이 안 남았던 것입니다.
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "UPDATE_TASK",           // action_type (API 로그는 보통 대문자 사용)
+        Some("STUDY_TASK"),      // target_table
+        Some(study_task_id as i64),    // target_id
+        &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null), // details
+        ip_address.as_deref().and_then(|ip| std::net::IpAddr::from_str(ip).ok()),
+        user_agent.as_deref(),
+    ).await?;
+
     if let Err(e) = req.validate() {
         return Err(AppError::BadRequest(e.to_string()));
     }
