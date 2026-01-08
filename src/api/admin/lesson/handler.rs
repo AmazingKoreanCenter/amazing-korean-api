@@ -5,7 +5,10 @@ use axum::{
 };
 use std::net::IpAddr;
 
-use crate::api::admin::lesson::dto::{AdminLessonListRes, AdminLessonRes, LessonCreateReq, LessonListReq};
+use crate::api::admin::lesson::dto::{
+    AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
+    LessonBulkUpdateReq, LessonBulkUpdateRes, LessonCreateReq, LessonListReq,
+};
 use crate::api::auth::extractor::AuthUser;
 use crate::error::AppResult;
 use crate::AppState;
@@ -106,4 +109,91 @@ pub async fn admin_create_lesson(
     .await?;
 
     Ok((StatusCode::CREATED, Json(res)))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/lessons/bulk",
+    tag = "admin_lesson",
+    request_body = LessonBulkCreateReq,
+    responses(
+        (status = 201, description = "All created", body = LessonBulkCreateRes),
+        (status = 207, description = "Partial success", body = LessonBulkCreateRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_bulk_create_lessons(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<LessonBulkCreateReq>,
+) -> AppResult<(StatusCode, Json<LessonBulkCreateRes>)> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = super::service::admin_bulk_create_lessons(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::CREATED
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/admin/lessons/bulk",
+    tag = "admin_lesson",
+    request_body = LessonBulkUpdateReq,
+    responses(
+        (status = 200, description = "All updated", body = LessonBulkUpdateRes),
+        (status = 207, description = "Partial success", body = LessonBulkUpdateRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_bulk_update_lessons(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<LessonBulkUpdateReq>,
+) -> AppResult<(StatusCode, Json<LessonBulkUpdateRes>)> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = super::service::admin_bulk_update_lessons(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::OK
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
 }

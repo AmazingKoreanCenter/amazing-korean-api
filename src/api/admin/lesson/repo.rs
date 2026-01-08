@@ -1,7 +1,7 @@
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 
-use crate::api::admin::lesson::dto::AdminLessonRes;
+use crate::api::admin::lesson::dto::{AdminLessonRes, LessonUpdateItem};
 use crate::error::AppResult;
 
 fn apply_lesson_filters<'a>(builder: &mut QueryBuilder<'a, Postgres>, search: Option<&'a String>) {
@@ -106,6 +106,26 @@ pub async fn exists_lesson_idx(pool: &PgPool, lesson_idx: &str) -> AppResult<boo
     Ok(exists)
 }
 
+pub async fn exists_lesson_idx_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_idx: &str,
+) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM lesson
+            WHERE lesson_idx = $1
+        )
+        "#,
+    )
+    .bind(lesson_idx)
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(exists)
+}
+
 pub async fn create_lesson(
     tx: &mut Transaction<'_, Postgres>,
     actor_user_id: i64,
@@ -144,6 +164,25 @@ pub async fn create_lesson(
     .await?;
 
     Ok(created)
+}
+
+pub async fn create_lesson_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    actor_user_id: i64,
+    lesson_idx: &str,
+    lesson_title: &str,
+    lesson_subtitle: Option<&str>,
+    lesson_description: Option<&str>,
+) -> AppResult<AdminLessonRes> {
+    create_lesson(
+        tx,
+        actor_user_id,
+        lesson_idx,
+        lesson_title,
+        lesson_subtitle,
+        lesson_description,
+    )
+    .await
 }
 
 fn normalize_lesson_action(action: &str) -> &'static str {
@@ -190,6 +229,140 @@ pub async fn create_lesson_log(
     .bind(after)
     .execute(&mut **tx)
     .await?;
+
+    Ok(())
+}
+
+pub async fn create_lesson_log_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    admin_user_id: i64,
+    action: &str,
+    lesson_id: i32,
+    lesson_item_seq: Option<i32>,
+    video_id: Option<i32>,
+    task_id: Option<i32>,
+    before: Option<&Value>,
+    after: Option<&Value>,
+) -> AppResult<()> {
+    create_lesson_log(
+        tx,
+        admin_user_id,
+        action,
+        lesson_id,
+        lesson_item_seq,
+        video_id,
+        task_id,
+        before,
+        after,
+    )
+    .await
+}
+
+pub async fn find_lesson_by_id_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+) -> AppResult<Option<AdminLessonRes>> {
+    let row = sqlx::query_as::<_, AdminLessonRes>(
+        r#"
+        SELECT
+            lesson_id,
+            updated_by_user_id,
+            lesson_idx,
+            lesson_title,
+            lesson_subtitle,
+            lesson_description,
+            lesson_created_at,
+            lesson_updated_at
+        FROM lesson
+        WHERE lesson_id = $1
+        "#,
+    )
+    .bind(lesson_id)
+    .fetch_optional(&mut **tx)
+    .await?;
+
+    Ok(row)
+}
+
+pub async fn exists_lesson_idx_excluding_id_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_idx: &str,
+    lesson_id: i32,
+) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM lesson
+            WHERE lesson_idx = $1
+              AND lesson_id != $2
+        )
+        "#,
+    )
+    .bind(lesson_idx)
+    .bind(lesson_id)
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(exists)
+}
+
+pub async fn update_lesson_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    actor_user_id: i64,
+    lesson_id: i32,
+    req: &LessonUpdateItem,
+) -> AppResult<()> {
+    let mut builder = QueryBuilder::<Postgres>::new("UPDATE lesson SET ");
+    let mut is_first = true;
+
+    if let Some(ref lesson_idx) = req.lesson_idx {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("lesson_idx = ");
+        builder.push_bind(lesson_idx);
+        is_first = false;
+    }
+
+    if let Some(ref lesson_title) = req.lesson_title {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("lesson_title = ");
+        builder.push_bind(lesson_title);
+        is_first = false;
+    }
+
+    if let Some(ref lesson_subtitle) = req.lesson_subtitle {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("lesson_subtitle = ");
+        builder.push_bind(lesson_subtitle);
+        is_first = false;
+    }
+
+    if let Some(ref lesson_description) = req.lesson_description {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("lesson_description = ");
+        builder.push_bind(lesson_description);
+        is_first = false;
+    }
+
+    if !is_first {
+        builder.push(", ");
+    }
+    builder.push("updated_by_user_id = ");
+    builder.push_bind(actor_user_id);
+    builder.push(", lesson_updated_at = now()");
+
+    builder.push(" WHERE lesson_id = ");
+    builder.push_bind(lesson_id);
+
+    builder.build().execute(&mut **tx).await?;
 
     Ok(())
 }

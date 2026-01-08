@@ -26,6 +26,71 @@ pub struct LessonCreateReq {
     pub lesson_description: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonCreateItem {
+    #[validate(length(min = 1))]
+    pub lesson_idx: String,
+    #[validate(length(min = 1))]
+    pub lesson_title: String,
+    pub lesson_subtitle: Option<String>,
+    pub lesson_description: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonBulkCreateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<LessonCreateItem>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonBulkResult {
+    pub lesson_id: Option<i32>,
+    pub lesson_idx: String,
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonBulkCreateRes {
+    pub success_count: i64,
+    pub failure_count: i64,
+    pub results: Vec<LessonBulkResult>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonUpdateItem {
+    #[validate(range(min = 1))]
+    pub lesson_id: i32,
+    pub lesson_idx: Option<String>,
+    pub lesson_title: Option<String>,
+    pub lesson_subtitle: Option<String>,
+    pub lesson_description: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonBulkUpdateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<LessonUpdateItem>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonBulkUpdateResult {
+    pub lesson_id: i32,
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonBulkUpdateRes {
+    pub success_count: i64,
+    pub failure_count: i64,
+    pub results: Vec<LessonBulkUpdateResult>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
 pub struct AdminLessonRes {
     pub lesson_id: i32,
