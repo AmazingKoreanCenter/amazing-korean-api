@@ -99,6 +99,37 @@ pub struct LessonUpdateReq {
     pub lesson_description: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, IntoParams)]
+pub struct LessonItemListReq {
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub size: Option<u64>,
+    pub sort: Option<String>,
+    pub order: Option<String>,
+    #[validate(range(min = 1))]
+    pub lesson_id: Option<i32>,
+    pub lesson_item_kind: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
+pub struct AdminLessonItemRes {
+    pub lesson_id: i32,
+    pub lesson_item_seq: i32,
+    pub lesson_item_kind: String,
+    pub video_id: Option<i32>,
+    pub study_task_id: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct AdminLessonItemListRes {
+    pub list: Vec<AdminLessonItemRes>,
+    pub total: i64,
+    pub page: u64,
+    pub size: u64,
+    pub total_pages: i64,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
 pub struct AdminLessonRes {
     pub lesson_id: i32,

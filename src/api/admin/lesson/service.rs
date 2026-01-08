@@ -10,7 +10,8 @@ use crate::AppState;
 use super::dto::{
     AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
     LessonBulkResult, LessonBulkUpdateReq, LessonBulkUpdateRes, LessonBulkUpdateResult,
-    LessonCreateReq, LessonListReq, LessonUpdateItem, LessonUpdateReq,
+    AdminLessonItemListRes, LessonCreateReq, LessonItemListReq, LessonListReq, LessonUpdateItem,
+    LessonUpdateReq,
 };
 use super::repo;
 
@@ -79,6 +80,73 @@ pub async fn admin_list_lessons(
     let (total, list) = repo::admin_list_lessons(&st.db, q, page, size, sort, order).await?;
 
     Ok(AdminLessonListRes {
+        list,
+        total,
+        page,
+        size,
+        total_pages: (total as f64 / size as f64).ceil() as i64,
+    })
+}
+
+pub async fn admin_list_lesson_items(
+    st: &AppState,
+    actor_user_id: i64,
+    req: LessonItemListReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminLessonItemListRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    req.validate()?;
+
+    let page = req.page.unwrap_or(1);
+    let size = req.size.unwrap_or(20);
+    let sort = req.sort.as_deref().unwrap_or("lesson_id");
+    let order = req.order.as_deref().unwrap_or("asc");
+
+    let lesson_item_kind = req
+        .lesson_item_kind
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty());
+
+    let normalized_kind = lesson_item_kind.map(|kind| kind.to_lowercase());
+    if let Some(ref kind) = normalized_kind {
+        if kind != "video" && kind != "task" {
+            return Err(AppError::BadRequest("invalid lesson_item_kind".into()));
+        }
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::to_value(&req).unwrap_or(serde_json::Value::Null);
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "LIST_LESSON_ITEMS",
+        Some("LESSON_ITEM"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let (total, list) = repo::admin_list_lesson_items(
+        &st.db,
+        req.lesson_id,
+        normalized_kind.as_deref(),
+        page,
+        size,
+        sort,
+        order,
+    )
+    .await?;
+
+    Ok(AdminLessonItemListRes {
         list,
         total,
         page,

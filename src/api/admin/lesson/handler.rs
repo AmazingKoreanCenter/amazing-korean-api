@@ -6,8 +6,9 @@ use axum::{
 use std::net::IpAddr;
 
 use crate::api::admin::lesson::dto::{
-    AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
-    LessonBulkUpdateReq, LessonBulkUpdateRes, LessonCreateReq, LessonListReq, LessonUpdateReq,
+    AdminLessonItemListRes, AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq,
+    LessonBulkCreateRes, LessonBulkUpdateReq, LessonBulkUpdateRes, LessonCreateReq,
+    LessonItemListReq, LessonListReq, LessonUpdateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::AppResult;
@@ -64,6 +65,41 @@ pub async fn admin_list_lessons(
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_list_lessons(
+        &st,
+        auth_user.sub,
+        params,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/lessons/items",
+    tag = "admin_lesson",
+    params(LessonItemListReq),
+    responses(
+        (status = 200, description = "List of lesson items", body = AdminLessonItemListRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_list_lesson_items(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Query(params): Query<LessonItemListReq>,
+) -> AppResult<Json<AdminLessonItemListRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_list_lesson_items(
         &st,
         auth_user.sub,
         params,
