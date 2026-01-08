@@ -84,6 +84,9 @@ impl Modify for SecurityAddon {
         crate::api::admin::video::handler::admin_update_video_tags,
         crate::api::admin::video::handler::admin_bulk_update_video_tags,
 
+        // admin - lessons
+        crate::api::admin::lesson::handler::admin_list_lessons,
+
         // admin - studies
         crate::api::admin::study::handler::admin_list_studies,
         crate::api::admin::study::handler::admin_create_study,
@@ -210,6 +213,11 @@ impl Modify for SecurityAddon {
             crate::api::admin::video::dto::VideoTagBulkUpdateReq,
             crate::api::admin::video::dto::VideoTagUpdateReq,
             crate::api::admin::video::dto::VideoUpdateReq,
+
+            // admin - lessons dto
+            crate::api::admin::lesson::dto::LessonListReq,
+            crate::api::admin::lesson::dto::AdminLessonRes,
+            crate::api::admin::lesson::dto::AdminLessonListRes,
 
             // admin - studies dto
             crate::api::admin::study::dto::StudyListReq,
