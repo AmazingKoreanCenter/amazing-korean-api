@@ -13,7 +13,7 @@ use crate::api::admin::study::dto::{
     AdminStudyTaskListRes, AdminStudyTaskDetailRes, TaskExplainBulkCreateReq,
     TaskExplainBulkCreateRes, TaskExplainBulkUpdateReq, TaskExplainBulkUpdateRes,
     TaskExplainCreateReq, TaskExplainListReq, TaskExplainUpdateReq,
-    AdminTaskExplainListRes, AdminTaskExplainRes,
+    TaskStatusListReq, AdminTaskStatusListRes, AdminTaskExplainListRes, AdminTaskExplainRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -313,6 +313,46 @@ pub async fn admin_list_task_explains(
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_list_task_explains(
+        &st,
+        auth_user.sub,
+        params,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/studies/tasks/status",
+    tag = "admin_study_task_status",
+    params(
+        ("task_id" = i32, Query, description = "Study Task ID"),
+        ("user_id" = i64, Query, description = "User ID"),
+        ("page" = u64, Query, description = "Page number, defaults to 1", example = 1),
+        ("size" = u64, Query, description = "Page size, defaults to 20 (max 100)", example = 20)
+    ),
+    responses(
+        (status = 200, description = "List of task status", body = AdminTaskStatusListRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_list_task_status(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Query(params): Query<TaskStatusListReq>,
+) -> AppResult<Json<AdminTaskStatusListRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_list_task_status(
         &st,
         auth_user.sub,
         params,

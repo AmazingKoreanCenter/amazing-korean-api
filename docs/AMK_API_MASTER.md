@@ -1177,7 +1177,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 | 6-26 | `POST /admin/studies/tasks/bulk/explain` | `/admin/studies/tasks/bulk/explain` | 학습 문제 해설 다중 생성 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **201** / 부분: **207** / 실패: **401/403/400/422/404/409** | [✅] |
 | 6-25 | `PATCH /admin/studies/tasks/{id}/explain` | `/admin/studies/tasks/{task_id}/explain/edit` | 학습 문제 해설 단건 수정 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
 | 6-27 | `PATCH /admin/studies/tasks/bulk/explain` | `/admin/studies/tasks/bulk/explain` | 학습 문제 해설 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409/404** | [✅] |
-| 6-28 | `GET /admin/studies/tasks/status` | `/admin/studies/tasks/status?task_id={task_id}&page=&size=` | 학습 문제 상태 조회 | ***task_id/페이지 검증, RBAC***<br>성공: **200** / 실패: **401/403/400/422/404** | [ ] |
+| 6-28 | `GET /admin/studies/tasks/status` | `/admin/studies/tasks/status?task_id={task_id}&page=&size=` | 학습 문제 상태 조회 | ***task_id/페이지 검증, RBAC***<br>성공: **200** / 실패: **401/403/400/422/404** | [✅] |
 | 6-29 | `PATCH /admin/studies/tasks/{id}/status` | `/admin/studies/tasks/{task_id}/status/edit` | 학습 문제 상태 단건 수정 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [ ] |
 | 6-30 | `PATCH /admin/studies/tasks/bulk/status` | `/admin/studies/tasks/bulk/status` | 학습 문제 상태 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409/404** | [ ] |
 | 6-31 | `GET /admin/lessons` | `/admin/lessons?page=&size=&q=&sort=&order=` | 수업 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [ ] |

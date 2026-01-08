@@ -252,6 +252,37 @@ pub struct AdminTaskExplainListRes {
     pub total_pages: i64,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct TaskStatusListReq {
+    #[validate(range(min = 1))]
+    pub task_id: Option<i32>,
+    #[validate(range(min = 1))]
+    pub user_id: Option<i64>,
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
+pub struct AdminTaskStatusRes {
+    pub study_task_id: i64,
+    pub user_id: i64,
+    pub study_task_status_try: i32,
+    pub study_task_status_best: i32,
+    pub study_task_status_completed: bool,
+    pub study_task_status_last_answer: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct AdminTaskStatusListRes {
+    pub list: Vec<AdminTaskStatusRes>,
+    pub total: i64,
+    pub page: u64,
+    pub size: u64,
+    pub total_pages: i64,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone, FromRow)]
 pub struct AdminStudyTaskRes {
     pub study_task_id: i64,

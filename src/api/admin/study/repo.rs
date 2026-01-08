@@ -2,8 +2,8 @@ use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 use crate::api::admin::study::dto::{
     AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes, AdminTaskExplainRes,
-    StudyTaskCreateReq, StudyTaskUpdateReq, StudyUpdateReq, TaskExplainCreateReq,
-    TaskExplainUpdateReq,
+    AdminTaskStatusRes, StudyTaskCreateReq, StudyTaskUpdateReq, StudyUpdateReq,
+    TaskExplainCreateReq, TaskExplainUpdateReq,
 };
 use crate::error::AppResult;
 use crate::types::{StudyProgram, StudyState, UserSetLanguage};
@@ -53,6 +53,35 @@ fn apply_filters<'a>(
         push_cond(builder);
         builder.push("study_program = ");
         builder.push_bind(program);
+    }
+}
+
+fn apply_task_status_filters<'a>(
+    builder: &mut QueryBuilder<'a, Postgres>,
+    task_id: Option<i32>,
+    user_id: Option<i64>,
+) {
+    let mut has_where = false;
+
+    let mut push_cond = |builder: &mut QueryBuilder<'a, Postgres>| {
+        if !has_where {
+            builder.push(" WHERE ");
+            has_where = true;
+        } else {
+            builder.push(" AND ");
+        }
+    };
+
+    if let Some(task_id) = task_id {
+        push_cond(builder);
+        builder.push("study_task_id = ");
+        builder.push_bind(task_id);
+    }
+
+    if let Some(user_id) = user_id {
+        push_cond(builder);
+        builder.push("user_id = ");
+        builder.push_bind(user_id);
     }
 }
 
@@ -215,6 +244,48 @@ pub async fn admin_list_task_explains(
     .bind(((page - 1) * size) as i64)
     .fetch_all(pool)
     .await?;
+
+    Ok((total_count, rows))
+}
+
+pub async fn admin_list_task_status(
+    pool: &PgPool,
+    task_id: Option<i32>,
+    user_id: Option<i64>,
+    page: u64,
+    size: u64,
+) -> AppResult<(i64, Vec<AdminTaskStatusRes>)> {
+    let mut count_builder = QueryBuilder::new("SELECT COUNT(*) FROM study_task_status");
+    apply_task_status_filters(&mut count_builder, task_id, user_id);
+
+    let total_count: i64 = count_builder
+        .build_query_scalar()
+        .fetch_one(pool)
+        .await?;
+
+    let mut list_builder = QueryBuilder::new(
+        r#"
+        SELECT
+            study_task_id::bigint AS study_task_id,
+            user_id::bigint AS user_id,
+            study_task_status_try,
+            study_task_status_best,
+            study_task_status_completed,
+            study_task_status_last_answer
+        FROM study_task_status
+        "#,
+    );
+    apply_task_status_filters(&mut list_builder, task_id, user_id);
+    list_builder.push(" ORDER BY study_task_status_last_answer DESC");
+    list_builder.push(" LIMIT ");
+    list_builder.push_bind(size as i64);
+    list_builder.push(" OFFSET ");
+    list_builder.push_bind(((page - 1) * size) as i64);
+
+    let rows = list_builder
+        .build_query_as::<AdminTaskStatusRes>()
+        .fetch_all(pool)
+        .await?;
 
     Ok((total_count, rows))
 }
