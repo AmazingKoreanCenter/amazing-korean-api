@@ -10,8 +10,9 @@ use crate::api::admin::study::dto::{
     StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskBulkCreateReq,
     StudyTaskBulkCreateRes, StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes,
     StudyTaskCreateReq, StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq,
-    AdminStudyTaskListRes, AdminStudyTaskDetailRes, TaskExplainCreateReq,
-    TaskExplainListReq, AdminTaskExplainListRes, AdminTaskExplainRes,
+    AdminStudyTaskListRes, AdminStudyTaskDetailRes, TaskExplainBulkCreateReq,
+    TaskExplainBulkCreateRes, TaskExplainCreateReq, TaskExplainListReq,
+    AdminTaskExplainListRes, AdminTaskExplainRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -362,6 +363,50 @@ pub async fn admin_create_task_explain(
     .await?;
 
     Ok((StatusCode::CREATED, Json(res)))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/studies/tasks/bulk/explain",
+    tag = "admin_study_task_explain",
+    request_body = TaskExplainBulkCreateReq,
+    responses(
+        (status = 201, description = "All created", body = TaskExplainBulkCreateRes),
+        (status = 207, description = "Partial success", body = TaskExplainBulkCreateRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_bulk_create_task_explains(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<TaskExplainBulkCreateReq>,
+) -> AppResult<(StatusCode, Json<TaskExplainBulkCreateRes>)> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = super::service::admin_bulk_create_task_explains(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::CREATED
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
 }
 
 #[utoipa::path(
