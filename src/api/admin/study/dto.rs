@@ -212,6 +212,45 @@ pub struct StudyTaskUpdateReq {
     pub choice_correct: Option<i32>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct StudyTaskUpdateItem {
+    #[validate(range(min = 1))]
+    pub study_task_id: i32,
+    #[validate(range(min = 1))]
+    pub study_task_seq: Option<i32>,
+    pub question: Option<String>,
+    pub answer: Option<String>,
+    pub image_url: Option<String>,
+    pub audio_url: Option<String>,
+    pub choice_1: Option<String>,
+    pub choice_2: Option<String>,
+    pub choice_3: Option<String>,
+    pub choice_4: Option<String>,
+    pub choice_correct: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct StudyTaskBulkUpdateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<StudyTaskUpdateItem>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct StudyTaskBulkUpdateResult {
+    pub task_id: i64,
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct StudyTaskBulkUpdateRes {
+    pub success_count: i64,
+    pub failure_count: i64,
+    pub results: Vec<StudyTaskBulkUpdateResult>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone, FromRow)]
 pub struct AdminStudyTaskDetailRes {
     pub study_task_id: i64,
