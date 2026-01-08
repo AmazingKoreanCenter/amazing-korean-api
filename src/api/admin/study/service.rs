@@ -11,7 +11,8 @@ use super::dto::{
     StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkResult, StudyBulkUpdateReq,
     StudyBulkUpdateRes, StudyBulkUpdateResult, StudyCreateReq, StudyListReq, StudyTaskCreateReq,
     StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq, StudyTaskBulkCreateReq,
-    StudyTaskBulkCreateRes, StudyTaskBulkResult,
+    StudyTaskBulkCreateRes, StudyTaskBulkResult, StudyTaskBulkUpdateReq,
+    StudyTaskBulkUpdateRes, StudyTaskBulkUpdateResult,
 };
 use super::repo;
 
@@ -773,6 +774,154 @@ pub async fn admin_bulk_create_study_tasks(
     Ok((
         all_success,
         StudyTaskBulkCreateRes {
+            success_count: success,
+            failure_count: failure,
+            results,
+        },
+    ))
+}
+
+pub async fn admin_bulk_update_study_tasks(
+    st: &AppState,
+    actor_user_id: i64,
+    req: StudyTaskBulkUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<(bool, StudyTaskBulkUpdateRes)> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "count": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_UPDATE_TASKS",
+        Some("STUDY_TASK"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let mut results = Vec::with_capacity(req.items.len());
+    let mut success = 0i64;
+    let mut failure = 0i64;
+
+    for item in req.items {
+        let task_id = item.study_task_id as i64;
+        let outcome = async {
+            if let Err(e) = item.validate() {
+                return Err(AppError::BadRequest(e.to_string()));
+            }
+
+            let update_req = StudyTaskUpdateReq {
+                study_task_seq: item.study_task_seq,
+                question: item.question.clone(),
+                answer: item.answer.clone(),
+                image_url: item.image_url.clone(),
+                audio_url: item.audio_url.clone(),
+                choice_1: item.choice_1.clone(),
+                choice_2: item.choice_2.clone(),
+                choice_3: item.choice_3.clone(),
+                choice_4: item.choice_4.clone(),
+                choice_correct: item.choice_correct,
+            };
+
+            let has_any = update_req.study_task_seq.is_some()
+                || update_req.question.is_some()
+                || update_req.answer.is_some()
+                || update_req.image_url.is_some()
+                || update_req.audio_url.is_some()
+                || update_req.choice_1.is_some()
+                || update_req.choice_2.is_some()
+                || update_req.choice_3.is_some()
+                || update_req.choice_4.is_some()
+                || update_req.choice_correct.is_some();
+
+            if !has_any {
+                return Err(AppError::BadRequest("no fields to update".into()));
+            }
+
+            let before = repo::find_study_task_by_id(&st.db, task_id)
+                .await?
+                .ok_or(AppError::NotFound)?;
+
+            let mut tx = st.db.begin().await?;
+
+            let updated = repo::admin_update_study_task(
+                &mut tx,
+                task_id,
+                actor_user_id,
+                before.study_task_kind,
+                &update_req,
+            )
+            .await?;
+
+            let before_val = serde_json::to_value(&before).unwrap_or_default();
+            let after_val = serde_json::to_value(&update_req).unwrap_or_default();
+
+            repo::create_study_log(
+                &mut tx,
+                actor_user_id,
+                "update",
+                before.study_id as i64,
+                Some(before.study_task_id),
+                Some(&before_val),
+                Some(&after_val),
+            )
+            .await?;
+
+            tx.commit().await?;
+
+            Ok(updated)
+        }
+        .await;
+
+        match outcome {
+            Ok(_) => {
+                success += 1;
+                results.push(StudyTaskBulkUpdateResult {
+                    task_id,
+                    success: true,
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failure += 1;
+                let msg = match e {
+                    AppError::NotFound => "Study task not found".to_string(),
+                    AppError::BadRequest(m) => m,
+                    AppError::Unprocessable(m) => m,
+                    AppError::Conflict(m) => m,
+                    AppError::Forbidden => "Forbidden".to_string(),
+                    _ => "Internal Server Error".to_string(),
+                };
+
+                results.push(StudyTaskBulkUpdateResult {
+                    task_id,
+                    success: false,
+                    error: Some(msg),
+                });
+            }
+        }
+    }
+
+    let all_success = failure == 0;
+
+    Ok((
+        all_success,
+        StudyTaskBulkUpdateRes {
             success_count: success,
             failure_count: failure,
             results,
