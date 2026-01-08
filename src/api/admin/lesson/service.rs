@@ -10,7 +10,7 @@ use crate::AppState;
 use super::dto::{
     AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
     LessonBulkResult, LessonBulkUpdateReq, LessonBulkUpdateRes, LessonBulkUpdateResult,
-    LessonCreateReq, LessonListReq, LessonUpdateItem,
+    LessonCreateReq, LessonListReq, LessonUpdateItem, LessonUpdateReq,
 };
 use super::repo;
 
@@ -494,4 +494,113 @@ pub async fn admin_bulk_update_lessons(
             results,
         },
     ))
+}
+
+pub async fn admin_update_lesson(
+    st: &AppState,
+    actor_user_id: i64,
+    lesson_id: i32,
+    req: LessonUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminLessonRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "UPDATE_LESSON",
+        Some("LESSON"),
+        Some(lesson_id as i64),
+        &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
+        ip_address
+            .as_deref()
+            .and_then(|ip| IpAddr::from_str(ip).ok()),
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let has_any = req.lesson_idx.is_some()
+        || req.lesson_title.is_some()
+        || req.lesson_subtitle.is_some()
+        || req.lesson_description.is_some();
+
+    if !has_any {
+        return Err(AppError::BadRequest("no fields to update".into()));
+    }
+
+    let mut tx = st.db.begin().await?;
+
+    let before = repo::find_lesson_by_id_tx(&mut tx, lesson_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    if let Some(ref idx) = req.lesson_idx {
+        let trimmed = idx.trim();
+        if trimmed.is_empty() {
+            return Err(AppError::BadRequest("lesson_idx is required".into()));
+        }
+        if trimmed != before.lesson_idx
+            && repo::exists_lesson_idx_excluding_id_tx(&mut tx, trimmed, lesson_id).await?
+        {
+            return Err(AppError::Conflict("Lesson Index already exists".into()));
+        }
+    }
+
+    if let Some(ref title) = req.lesson_title {
+        if title.trim().is_empty() {
+            return Err(AppError::BadRequest("lesson_title is required".into()));
+        }
+    }
+
+    let lesson_idx = req.lesson_idx.as_ref().map(|v| v.trim().to_string());
+    let lesson_title = req.lesson_title.as_ref().map(|v| v.trim().to_string());
+    let lesson_subtitle = req
+        .lesson_subtitle
+        .as_ref()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty());
+    let lesson_description = req
+        .lesson_description
+        .as_ref()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty());
+
+    let update_req = LessonUpdateItem {
+        lesson_id,
+        lesson_idx,
+        lesson_title,
+        lesson_subtitle,
+        lesson_description,
+    };
+
+    repo::update_lesson_tx(&mut tx, actor_user_id, lesson_id, &update_req).await?;
+
+    let after = repo::find_lesson_by_id_tx(&mut tx, lesson_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let before_val = serde_json::to_value(&before).unwrap_or_default();
+    let after_val = serde_json::to_value(&after).unwrap_or_default();
+
+    repo::create_lesson_log_tx(
+        &mut tx,
+        actor_user_id,
+        "update",
+        lesson_id,
+        None,
+        None,
+        None,
+        Some(&before_val),
+        Some(&after_val),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(after)
 }

@@ -91,6 +91,14 @@ pub struct LessonBulkUpdateRes {
     pub results: Vec<LessonBulkUpdateResult>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonUpdateReq {
+    pub lesson_idx: Option<String>,
+    pub lesson_title: Option<String>,
+    pub lesson_subtitle: Option<String>,
+    pub lesson_description: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
 pub struct AdminLessonRes {
     pub lesson_id: i32,
