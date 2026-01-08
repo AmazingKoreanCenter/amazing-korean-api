@@ -293,6 +293,53 @@ pub struct TaskStatusUpdateReq {
     pub study_task_status_last_answer: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskStatusUpdateItem {
+    #[validate(range(min = 1))]
+    pub study_task_id: i32,
+    #[validate(range(min = 1))]
+    pub user_id: i64,
+    pub study_task_status_try: Option<i32>,
+    pub study_task_status_best: Option<i32>,
+    pub study_task_status_completed: Option<bool>,
+    pub study_task_status_last_answer: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskStatusBulkUpdateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<TaskStatusUpdateItem>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskStatusBulkUpdateResult {
+    pub study_task_id: i32,
+    pub user_id: i64,
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskStatusBulkUpdateRes {
+    pub success_count: i64,
+    pub failure_count: i64,
+    pub results: Vec<TaskStatusBulkUpdateResult>,
+}
+
+impl From<TaskStatusUpdateItem> for TaskStatusUpdateReq {
+    fn from(item: TaskStatusUpdateItem) -> Self {
+        Self {
+            user_id: item.user_id,
+            study_task_status_try: item.study_task_status_try,
+            study_task_status_best: item.study_task_status_best,
+            study_task_status_completed: item.study_task_status_completed,
+            study_task_status_last_answer: item.study_task_status_last_answer,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone, FromRow)]
 pub struct AdminStudyTaskRes {
     pub study_task_id: i64,
