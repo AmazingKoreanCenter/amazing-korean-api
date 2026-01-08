@@ -567,6 +567,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 > 이 섹션은 **기존 `AMK_Feature_Roadmap.md`의 내용을 기준으로 한다.**
 > 아래 표들은 _Phase / 엔드포인트 / 화면 경로 / 기능 명칭 / 점검사항 / UX 규칙 / 기능 완료_ 를 나타내며,
 > 마지막 열의 체크박스(`[ ]`/`[x]`)는 구현 완료 여부를 의미한다.
+> **추후 업데이트 사항** : URL 구성 순서 수정 필요 -> 각각의 함수명도 수정필요
 
 | 축 | 상태 값 | 상태 설명 |
 |---|---|---|
@@ -1184,9 +1185,12 @@ audience: server / database / backend / frontend / lead / LLM assistant
 | 6-32 | `POST /admin/lessons` | `/admin/lessons/new` | 수업 단건 생성 | ***ADMIN_LESSON_LOG 저장, RBAC***<br>성공: **201** / 실패: **401/403/400/422/409** | [✅] |
 | 6-33 | `POST /admin/lessons/bulk` | `/admin/lessons/bulk` | 수업 다중 생성 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **201** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
 | 6-34 | `PATCH /admin/lessons/{id}` | `/admin/lessons/{lesson_id}/edit` | 수업 단건 수정 | ***ADMIN_LESSON_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [ ] |
-| 6-35 | `PATCH /admin/lessons/bulk` | `/admin/lessons/bulk` | 수업 다중 수정 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409** | [ ] |
-| 6-36 | `PATCH /admin/lessons/{id}/items` | `/admin/lessons/{lesson_id}/items` | 수업 순서 단건 수정 | ***순서 규칙 검증, ADMIN_LESSON_LOG, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [ ] |
-| 6-37 | `PATCH /admin/lessons/bulk/items` | `/admin/lessons/bulk/items` | 수업 순서 다중 수정 | ***부분 성공, 순서 규칙 검증, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409/404** | [ ] |
+| 6-35 | `PATCH /admin/lessons/bulk` | `/admin/lessons/bulk` | 수업 다중 수정 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
+| 6-36 | `GET /admin/lessons/items` | `/admin/lessons/items?page=&size=&q=&sort=&order=` | 수업 순서 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [] |
+| 6-37 | `POST /admin/lessons/items/{id}` | `/admin/lessons/new` | 수업 단건 생성 | ***ADMIN_LESSON_LOG 저장, RBAC***<br>성공: **201** / 실패: **401/403/400/422/409** | [] |
+| 6-38 | `POST /admin/lessons/bulk/items` | `/admin/lessons/bulk` | 수업 다중 생성 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **201** / 부분: **207** / 실패: **401/403/400/422/409** | [] |
+| 6-39 | `PATCH /admin/lessons/{id}/items` | `/admin/lessons/{lesson_id}/items` | 수업 순서 단건 수정 | ***순서 규칙 검증, ADMIN_LESSON_LOG, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [ ] |
+| 6-40 | `PATCH /admin/lessons/bulk/items` | `/admin/lessons/bulk/items` | 수업 순서 다중 수정 | ***부분 성공, 순서 규칙 검증, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409/404** | [ ] |
 
 ---
 
