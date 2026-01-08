@@ -10,8 +10,8 @@ use crate::api::admin::study::dto::{
     StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskBulkCreateReq,
     StudyTaskBulkCreateRes, StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes,
     StudyTaskCreateReq, StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq,
-    AdminStudyTaskListRes, AdminStudyTaskDetailRes, TaskExplainListReq,
-    AdminTaskExplainListRes,
+    AdminStudyTaskListRes, AdminStudyTaskDetailRes, TaskExplainCreateReq,
+    TaskExplainListReq, AdminTaskExplainListRes, AdminTaskExplainRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -286,7 +286,7 @@ pub async fn admin_list_study_tasks(
 #[utoipa::path(
     get,
     path = "/admin/studies/tasks/explain",
-    tag = "admin_study_task",
+    tag = "admin_study_task_explain",
     params(
         ("task_id" = i32, Query, description = "Study Task ID"),
         ("page" = u64, Query, description = "Page number, defaults to 1", example = 1),
@@ -320,6 +320,48 @@ pub async fn admin_list_task_explains(
     .await?;
 
     Ok(Json(res))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/studies/tasks/{task_id}/explain",
+    tag = "admin_study_task_explain",
+    request_body = TaskExplainCreateReq,
+    params(
+        ("task_id" = i64, Path, description = "Study Task ID")
+    ),
+    responses(
+        (status = 201, description = "Task explain created", body = AdminTaskExplainRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_create_task_explain(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(task_id): Path<i64>,
+    headers: HeaderMap,
+    Json(req): Json<TaskExplainCreateReq>,
+) -> Result<(StatusCode, Json<AdminTaskExplainRes>), AppError> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_create_task_explain(
+        &st,
+        auth_user.sub,
+        task_id,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok((StatusCode::CREATED, Json(res)))
 }
 
 #[utoipa::path(

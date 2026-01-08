@@ -2,10 +2,10 @@ use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 use crate::api::admin::study::dto::{
     AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes, AdminTaskExplainRes,
-    StudyTaskCreateReq, StudyTaskUpdateReq, StudyUpdateReq,
+    StudyTaskCreateReq, StudyTaskUpdateReq, StudyUpdateReq, TaskExplainCreateReq,
 };
 use crate::error::AppResult;
-use crate::types::{StudyProgram, StudyState};
+use crate::types::{StudyProgram, StudyState, UserSetLanguage};
 
 /// 동적 필터링 적용 헬퍼 함수
 /// 라이프타임 'a를 추가하여 builder와 바인딩 데이터(search)의 수명을 일치시킵니다.
@@ -216,6 +216,65 @@ pub async fn admin_list_task_explains(
     .await?;
 
     Ok((total_count, rows))
+}
+
+pub async fn exists_task_explain(
+    pool: &PgPool,
+    study_task_id: i32,
+    explain_lang: UserSetLanguage,
+) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM study_task_explain
+            WHERE study_task_id = $1
+              AND explain_lang = $2
+        )
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(explain_lang)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(exists)
+}
+
+pub async fn create_task_explain(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i32,
+    req: &TaskExplainCreateReq,
+) -> AppResult<AdminTaskExplainRes> {
+    let created = sqlx::query_as::<_, AdminTaskExplainRes>(
+        r#"
+        INSERT INTO study_task_explain (
+            study_task_id,
+            explain_lang,
+            explain_title,
+            explain_text,
+            explain_media_url
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING
+            study_task_id::bigint AS study_task_id,
+            explain_lang,
+            explain_title,
+            explain_text,
+            explain_media_url,
+            explain_created_at,
+            explain_updated_at
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(req.explain_lang)
+    .bind(req.explain_title.as_deref())
+    .bind(req.explain_text.as_deref())
+    .bind(req.explain_media_url.as_deref())
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(created)
 }
 
 pub async fn find_study_task_by_id(

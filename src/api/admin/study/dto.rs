@@ -150,6 +150,14 @@ pub struct TaskExplainListReq {
     pub size: Option<u64>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainCreateReq {
+    pub explain_lang: UserSetLanguage,
+    pub explain_title: Option<String>,
+    pub explain_text: Option<String>,
+    pub explain_media_url: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
 pub struct AdminTaskExplainRes {
     pub study_task_id: i64,
