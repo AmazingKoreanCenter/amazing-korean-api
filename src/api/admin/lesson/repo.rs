@@ -1,0 +1,195 @@
+use serde_json::Value;
+use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
+
+use crate::api::admin::lesson::dto::AdminLessonRes;
+use crate::error::AppResult;
+
+fn apply_lesson_filters<'a>(builder: &mut QueryBuilder<'a, Postgres>, search: Option<&'a String>) {
+    let mut has_where = false;
+
+    let mut push_cond = |builder: &mut QueryBuilder<'a, Postgres>| {
+        if !has_where {
+            builder.push(" WHERE ");
+            has_where = true;
+        } else {
+            builder.push(" AND ");
+        }
+    };
+
+    if let Some(search) = search {
+        push_cond(builder);
+        builder.push("(");
+        builder.push("lesson_title ILIKE ");
+        builder.push_bind(search);
+        builder.push(" OR lesson_subtitle ILIKE ");
+        builder.push_bind(search);
+        builder.push(" OR lesson_idx ILIKE ");
+        builder.push_bind(search);
+        builder.push(")");
+    }
+}
+
+pub async fn admin_list_lessons(
+    pool: &PgPool,
+    q: Option<String>,
+    page: u64,
+    size: u64,
+    sort: &str,
+    order: &str,
+) -> AppResult<(i64, Vec<AdminLessonRes>)> {
+    let search = q.map(|s| format!("%{}%", s));
+
+    let mut count_builder = QueryBuilder::new("SELECT count(*) FROM lesson");
+    apply_lesson_filters(&mut count_builder, search.as_ref());
+
+    let total_count: i64 = count_builder
+        .build()
+        .fetch_one(pool)
+        .await?
+        .try_get(0)?;
+
+    let mut builder = QueryBuilder::new(
+        r#"
+        SELECT
+            lesson_id,
+            updated_by_user_id,
+            lesson_idx,
+            lesson_title,
+            lesson_subtitle,
+            lesson_description,
+            lesson_created_at,
+            lesson_updated_at
+        FROM lesson
+        "#,
+    );
+
+    apply_lesson_filters(&mut builder, search.as_ref());
+
+    builder.push(" ORDER BY ");
+    let sort_col = match sort {
+        "lesson_idx" | "idx" => "lesson_idx",
+        "lesson_title" | "title" => "lesson_title",
+        "lesson_updated_at" | "updated_at" => "lesson_updated_at",
+        "lesson_created_at" | "created_at" => "lesson_created_at",
+        _ => "lesson_created_at",
+    };
+    builder.push(sort_col);
+    builder.push(if order == "asc" { " ASC" } else { " DESC" });
+
+    builder.push(" LIMIT ");
+    builder.push_bind(size as i64);
+    builder.push(" OFFSET ");
+    builder.push_bind(((page - 1) * size) as i64);
+
+    let rows = builder
+        .build_query_as::<AdminLessonRes>()
+        .fetch_all(pool)
+        .await?;
+
+    Ok((total_count, rows))
+}
+
+pub async fn exists_lesson_idx(pool: &PgPool, lesson_idx: &str) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM lesson
+            WHERE lesson_idx = $1
+        )
+        "#,
+    )
+    .bind(lesson_idx)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(exists)
+}
+
+pub async fn create_lesson(
+    tx: &mut Transaction<'_, Postgres>,
+    actor_user_id: i64,
+    lesson_idx: &str,
+    lesson_title: &str,
+    lesson_subtitle: Option<&str>,
+    lesson_description: Option<&str>,
+) -> AppResult<AdminLessonRes> {
+    let created = sqlx::query_as::<_, AdminLessonRes>(
+        r#"
+        INSERT INTO lesson (
+            updated_by_user_id,
+            lesson_idx,
+            lesson_title,
+            lesson_subtitle,
+            lesson_description
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING
+            lesson_id,
+            updated_by_user_id,
+            lesson_idx,
+            lesson_title,
+            lesson_subtitle,
+            lesson_description,
+            lesson_created_at,
+            lesson_updated_at
+        "#,
+    )
+    .bind(actor_user_id)
+    .bind(lesson_idx)
+    .bind(lesson_title)
+    .bind(lesson_subtitle)
+    .bind(lesson_description)
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(created)
+}
+
+fn normalize_lesson_action(action: &str) -> &'static str {
+    match action {
+        "create" | "CREATE" | "create_lesson" | "CREATE_LESSON" => "create",
+        "update" | "UPDATE" | "update_lesson" | "UPDATE_LESSON" => "update",
+        _ => "update",
+    }
+}
+
+pub async fn create_lesson_log(
+    tx: &mut Transaction<'_, Postgres>,
+    admin_user_id: i64,
+    action: &str,
+    lesson_id: i32,
+    lesson_item_seq: Option<i32>,
+    video_id: Option<i32>,
+    task_id: Option<i32>,
+    before: Option<&Value>,
+    after: Option<&Value>,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO admin_lesson_log (
+            admin_user_id,
+            admin_pick_lesson_id,
+            admin_pick_item_seq,
+            admin_pick_video_id,
+            admin_pick_task_id,
+            admin_lesson_action,
+            admin_lesson_before,
+            admin_lesson_after
+        )
+        VALUES ($1, $2, $3, $4, $5, CAST($6 AS admin_action_enum), $7, $8)
+        "#,
+    )
+    .bind(admin_user_id)
+    .bind(lesson_id)
+    .bind(lesson_item_seq)
+    .bind(video_id)
+    .bind(task_id)
+    .bind(normalize_lesson_action(action))
+    .bind(before)
+    .bind(after)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
