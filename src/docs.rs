@@ -87,6 +87,7 @@ impl Modify for SecurityAddon {
         // admin - lessons
         crate::api::admin::lesson::handler::admin_list_lessons,
         crate::api::admin::lesson::handler::admin_list_lesson_items,
+        crate::api::admin::lesson::handler::admin_create_lesson_item,
         crate::api::admin::lesson::handler::admin_create_lesson,
         crate::api::admin::lesson::handler::admin_bulk_create_lessons,
         crate::api::admin::lesson::handler::admin_bulk_update_lessons,
@@ -232,6 +233,7 @@ impl Modify for SecurityAddon {
             crate::api::admin::lesson::dto::LessonBulkUpdateResult,
             crate::api::admin::lesson::dto::LessonUpdateReq,
             crate::api::admin::lesson::dto::LessonItemListReq,
+            crate::api::admin::lesson::dto::LessonItemCreateReq,
             crate::api::admin::lesson::dto::AdminLessonItemRes,
             crate::api::admin::lesson::dto::AdminLessonItemListRes,
             crate::api::admin::lesson::dto::AdminLessonRes,

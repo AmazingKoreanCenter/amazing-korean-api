@@ -6,9 +6,9 @@ use axum::{
 use std::net::IpAddr;
 
 use crate::api::admin::lesson::dto::{
-    AdminLessonItemListRes, AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq,
-    LessonBulkCreateRes, LessonBulkUpdateReq, LessonBulkUpdateRes, LessonCreateReq,
-    LessonItemListReq, LessonListReq, LessonUpdateReq,
+    AdminLessonItemListRes, AdminLessonItemRes, AdminLessonListRes, AdminLessonRes,
+    LessonBulkCreateReq, LessonBulkCreateRes, LessonBulkUpdateReq, LessonBulkUpdateRes,
+    LessonCreateReq, LessonItemCreateReq, LessonItemListReq, LessonListReq, LessonUpdateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::AppResult;
@@ -109,6 +109,48 @@ pub async fn admin_list_lesson_items(
     .await?;
 
     Ok(Json(res))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/lessons/{lesson_id}/items",
+    tag = "admin_lesson",
+    request_body = LessonItemCreateReq,
+    params(
+        ("lesson_id" = i32, Path, description = "Lesson ID")
+    ),
+    responses(
+        (status = 201, description = "Lesson item created", body = AdminLessonItemRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_create_lesson_item(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(lesson_id): Path<i32>,
+    headers: HeaderMap,
+    Json(req): Json<LessonItemCreateReq>,
+) -> AppResult<(StatusCode, Json<AdminLessonItemRes>)> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_create_lesson_item(
+        &st,
+        auth_user.sub,
+        lesson_id,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok((StatusCode::CREATED, Json(res)))
 }
 
 #[utoipa::path(

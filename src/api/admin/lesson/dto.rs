@@ -112,6 +112,18 @@ pub struct LessonItemListReq {
     pub lesson_item_kind: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonItemCreateReq {
+    #[validate(range(min = 1))]
+    pub lesson_item_seq: i32,
+    #[validate(length(min = 1))]
+    pub lesson_item_kind: String,
+    #[validate(range(min = 1))]
+    pub video_id: Option<i32>,
+    #[validate(range(min = 1))]
+    pub study_task_id: Option<i32>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
 pub struct AdminLessonItemRes {
     pub lesson_id: i32,

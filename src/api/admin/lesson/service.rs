@@ -10,8 +10,8 @@ use crate::AppState;
 use super::dto::{
     AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
     LessonBulkResult, LessonBulkUpdateReq, LessonBulkUpdateRes, LessonBulkUpdateResult,
-    AdminLessonItemListRes, LessonCreateReq, LessonItemListReq, LessonListReq, LessonUpdateItem,
-    LessonUpdateReq,
+    AdminLessonItemListRes, AdminLessonItemRes, LessonCreateReq, LessonItemCreateReq,
+    LessonItemListReq, LessonListReq, LessonUpdateItem, LessonUpdateReq,
 };
 use super::repo;
 
@@ -110,12 +110,18 @@ pub async fn admin_list_lesson_items(
         .map(str::trim)
         .filter(|v| !v.is_empty());
 
-    let normalized_kind = lesson_item_kind.map(|kind| kind.to_lowercase());
-    if let Some(ref kind) = normalized_kind {
-        if kind != "video" && kind != "task" {
-            return Err(AppError::BadRequest("invalid lesson_item_kind".into()));
+    let normalized_kind = match lesson_item_kind {
+        Some(kind) => {
+            let kind = kind.to_lowercase();
+            match kind.as_str() {
+                "video" => Some("video"),
+                "task" => Some("task"),
+                "study_task" => Some("task"),
+                _ => return Err(AppError::BadRequest("invalid lesson_item_kind".into())),
+            }
         }
-    }
+        None => None,
+    };
 
     let ip_addr: Option<IpAddr> = ip_address
         .as_deref()
@@ -138,7 +144,7 @@ pub async fn admin_list_lesson_items(
     let (total, list) = repo::admin_list_lesson_items(
         &st.db,
         req.lesson_id,
-        normalized_kind.as_deref(),
+        normalized_kind,
         page,
         size,
         sort,
@@ -153,6 +159,103 @@ pub async fn admin_list_lesson_items(
         size,
         total_pages: (total as f64 / size as f64).ceil() as i64,
     })
+}
+
+pub async fn admin_create_lesson_item(
+    st: &AppState,
+    actor_user_id: i64,
+    lesson_id: i32,
+    req: LessonItemCreateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminLessonItemRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    req.validate()?;
+
+    let kind = req.lesson_item_kind.trim().to_lowercase();
+    let (normalized_kind, video_id, study_task_id) = match kind.as_str() {
+        "video" => {
+            let video_id = req
+                .video_id
+                .ok_or_else(|| AppError::BadRequest("video_id is required".into()))?;
+            ("video", Some(video_id), None)
+        }
+        "task" | "study_task" => {
+            let task_id = req
+                .study_task_id
+                .ok_or_else(|| AppError::BadRequest("study_task_id is required".into()))?;
+            ("task", None, Some(task_id))
+        }
+        _ => return Err(AppError::BadRequest("invalid lesson_item_kind".into())),
+    };
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "lesson_id": lesson_id,
+        "payload": &req
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "CREATE_LESSON_ITEM",
+        Some("LESSON_ITEM"),
+        Some(lesson_id as i64),
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    if !repo::exists_lesson(&st.db, lesson_id).await? {
+        return Err(AppError::NotFound);
+    }
+
+    if repo::exists_lesson_item(&st.db, lesson_id, req.lesson_item_seq).await? {
+        return Err(AppError::Conflict("lesson_item_seq already exists".into()));
+    }
+
+    let mut tx = st.db.begin().await?;
+
+    let created = repo::create_lesson_item(
+        &mut tx,
+        lesson_id,
+        normalized_kind,
+        video_id,
+        study_task_id,
+        &req,
+    )
+    .await;
+
+    let created = match created {
+        Ok(val) => val,
+        Err(e) if is_unique_violation(&e) => {
+            return Err(AppError::Conflict("lesson_item_seq already exists".into()));
+        }
+        Err(e) => return Err(e),
+    };
+
+    let after = serde_json::to_value(&created).unwrap_or_default();
+    repo::create_lesson_log_tx(
+        &mut tx,
+        actor_user_id,
+        "create",
+        lesson_id,
+        Some(req.lesson_item_seq),
+        video_id,
+        study_task_id,
+        None,
+        Some(&after),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(created)
 }
 
 pub async fn admin_create_lesson(
