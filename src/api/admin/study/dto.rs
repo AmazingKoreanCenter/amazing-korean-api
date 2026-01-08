@@ -283,6 +283,16 @@ pub struct AdminTaskStatusListRes {
     pub total_pages: i64,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskStatusUpdateReq {
+    #[validate(range(min = 1))]
+    pub user_id: i64,
+    pub study_task_status_try: Option<i32>,
+    pub study_task_status_best: Option<i32>,
+    pub study_task_status_completed: Option<bool>,
+    pub study_task_status_last_answer: Option<DateTime<Utc>>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone, FromRow)]
 pub struct AdminStudyTaskRes {
     pub study_task_id: i64,
