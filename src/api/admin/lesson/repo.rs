@@ -1,4 +1,5 @@
-use sqlx::{PgPool, Postgres, QueryBuilder, Row};
+use serde_json::Value;
+use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 
 use crate::api::admin::lesson::dto::AdminLessonRes;
 use crate::error::AppResult;
@@ -86,4 +87,109 @@ pub async fn admin_list_lessons(
         .await?;
 
     Ok((total_count, rows))
+}
+
+pub async fn exists_lesson_idx(pool: &PgPool, lesson_idx: &str) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM lesson
+            WHERE lesson_idx = $1
+        )
+        "#,
+    )
+    .bind(lesson_idx)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(exists)
+}
+
+pub async fn create_lesson(
+    tx: &mut Transaction<'_, Postgres>,
+    actor_user_id: i64,
+    lesson_idx: &str,
+    lesson_title: &str,
+    lesson_subtitle: Option<&str>,
+    lesson_description: Option<&str>,
+) -> AppResult<AdminLessonRes> {
+    let created = sqlx::query_as::<_, AdminLessonRes>(
+        r#"
+        INSERT INTO lesson (
+            updated_by_user_id,
+            lesson_idx,
+            lesson_title,
+            lesson_subtitle,
+            lesson_description
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING
+            lesson_id,
+            updated_by_user_id,
+            lesson_idx,
+            lesson_title,
+            lesson_subtitle,
+            lesson_description,
+            lesson_created_at,
+            lesson_updated_at
+        "#,
+    )
+    .bind(actor_user_id)
+    .bind(lesson_idx)
+    .bind(lesson_title)
+    .bind(lesson_subtitle)
+    .bind(lesson_description)
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(created)
+}
+
+fn normalize_lesson_action(action: &str) -> &'static str {
+    match action {
+        "create" | "CREATE" | "create_lesson" | "CREATE_LESSON" => "create",
+        "update" | "UPDATE" | "update_lesson" | "UPDATE_LESSON" => "update",
+        _ => "update",
+    }
+}
+
+pub async fn create_lesson_log(
+    tx: &mut Transaction<'_, Postgres>,
+    admin_user_id: i64,
+    action: &str,
+    lesson_id: i32,
+    lesson_item_seq: Option<i32>,
+    video_id: Option<i32>,
+    task_id: Option<i32>,
+    before: Option<&Value>,
+    after: Option<&Value>,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO admin_lesson_log (
+            admin_user_id,
+            admin_pick_lesson_id,
+            admin_pick_item_seq,
+            admin_pick_video_id,
+            admin_pick_task_id,
+            admin_lesson_action,
+            admin_lesson_before,
+            admin_lesson_after
+        )
+        VALUES ($1, $2, $3, $4, $5, CAST($6 AS admin_action_enum), $7, $8)
+        "#,
+    )
+    .bind(admin_user_id)
+    .bind(lesson_id)
+    .bind(lesson_item_seq)
+    .bind(video_id)
+    .bind(task_id)
+    .bind(normalize_lesson_action(action))
+    .bind(before)
+    .bind(after)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
 }

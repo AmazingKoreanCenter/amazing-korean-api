@@ -16,6 +16,16 @@ pub struct LessonListReq {
     pub order: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct LessonCreateReq {
+    #[validate(length(min = 1))]
+    pub lesson_idx: String,
+    #[validate(length(min = 1))]
+    pub lesson_title: String,
+    pub lesson_subtitle: Option<String>,
+    pub lesson_description: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
 pub struct AdminLessonRes {
     pub lesson_id: i32,

@@ -1,11 +1,11 @@
 use axum::{
     extract::{Query, State},
-    http::HeaderMap,
+    http::{HeaderMap, StatusCode},
     Json,
 };
 use std::net::IpAddr;
 
-use crate::api::admin::lesson::dto::{AdminLessonListRes, LessonListReq};
+use crate::api::admin::lesson::dto::{AdminLessonListRes, AdminLessonRes, LessonCreateReq, LessonListReq};
 use crate::api::auth::extractor::AuthUser;
 use crate::error::AppResult;
 use crate::AppState;
@@ -70,4 +70,40 @@ pub async fn admin_list_lessons(
     .await?;
 
     Ok(Json(res))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/lessons",
+    tag = "admin_lesson",
+    request_body = LessonCreateReq,
+    responses(
+        (status = 201, description = "Lesson created", body = AdminLessonRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_create_lesson(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<LessonCreateReq>,
+) -> AppResult<(StatusCode, Json<AdminLessonRes>)> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_create_lesson(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok((StatusCode::CREATED, Json(res)))
 }
