@@ -1,7 +1,9 @@
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 
-use crate::api::admin::lesson::dto::{AdminLessonRes, LessonUpdateItem};
+use crate::api::admin::lesson::dto::{
+    AdminLessonItemRes, AdminLessonRes, LessonItemCreateReq, LessonUpdateItem,
+};
 use crate::error::AppResult;
 
 fn apply_lesson_filters<'a>(builder: &mut QueryBuilder<'a, Postgres>, search: Option<&'a String>) {
@@ -26,6 +28,36 @@ fn apply_lesson_filters<'a>(builder: &mut QueryBuilder<'a, Postgres>, search: Op
         builder.push(" OR lesson_idx ILIKE ");
         builder.push_bind(search);
         builder.push(")");
+    }
+}
+
+fn apply_lesson_item_filters<'a>(
+    builder: &mut QueryBuilder<'a, Postgres>,
+    lesson_id: Option<i32>,
+    lesson_item_kind: Option<&'a str>,
+) {
+    let mut has_where = false;
+
+    let mut push_cond = |builder: &mut QueryBuilder<'a, Postgres>| {
+        if !has_where {
+            builder.push(" WHERE ");
+            has_where = true;
+        } else {
+            builder.push(" AND ");
+        }
+    };
+
+    if let Some(lesson_id) = lesson_id {
+        push_cond(builder);
+        builder.push("lesson_id = ");
+        builder.push_bind(lesson_id);
+    }
+
+    if let Some(lesson_item_kind) = lesson_item_kind {
+        push_cond(builder);
+        builder.push("lesson_item_kind = ");
+        builder.push_bind(lesson_item_kind);
+        builder.push("::lesson_item_kind_enum");
     }
 }
 
@@ -87,6 +119,200 @@ pub async fn admin_list_lessons(
         .await?;
 
     Ok((total_count, rows))
+}
+
+pub async fn admin_list_lesson_items(
+    pool: &PgPool,
+    lesson_id: Option<i32>,
+    lesson_item_kind: Option<&str>,
+    page: u64,
+    size: u64,
+    sort: &str,
+    order: &str,
+) -> AppResult<(i64, Vec<AdminLessonItemRes>)> {
+    let mut count_builder = QueryBuilder::new("SELECT COUNT(*) FROM lesson_item");
+    apply_lesson_item_filters(&mut count_builder, lesson_id, lesson_item_kind);
+
+    let total_count: i64 = count_builder
+        .build_query_scalar()
+        .fetch_one(pool)
+        .await?;
+
+    let mut builder = QueryBuilder::new(
+        r#"
+        SELECT
+            lesson_id,
+            lesson_item_seq,
+            lesson_item_kind::text AS lesson_item_kind,
+            video_id,
+            study_task_id
+        FROM lesson_item
+        "#,
+    );
+    apply_lesson_item_filters(&mut builder, lesson_id, lesson_item_kind);
+
+    builder.push(" ORDER BY ");
+    let sort_col = match sort {
+        "lesson_id" => "lesson_id",
+        "lesson_item_seq" => "lesson_item_seq",
+        "lesson_item_kind" => "lesson_item_kind",
+        "video_id" => "video_id",
+        "study_task_id" => "study_task_id",
+        _ => "lesson_id",
+    };
+    builder.push(sort_col);
+    builder.push(if order == "desc" { " DESC" } else { " ASC" });
+
+    builder.push(" LIMIT ");
+    builder.push_bind(size as i64);
+    builder.push(" OFFSET ");
+    builder.push_bind(((page - 1) * size) as i64);
+
+    let rows = builder
+        .build_query_as::<AdminLessonItemRes>()
+        .fetch_all(pool)
+        .await?;
+
+    Ok((total_count, rows))
+}
+
+pub async fn exists_lesson(pool: &PgPool, lesson_id: i32) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM lesson
+            WHERE lesson_id = $1
+        )
+        "#,
+    )
+    .bind(lesson_id)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(exists)
+}
+
+pub async fn exists_lesson_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM lesson
+            WHERE lesson_id = $1
+        )
+        "#,
+    )
+    .bind(lesson_id)
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(exists)
+}
+
+pub async fn exists_lesson_item(
+    pool: &PgPool,
+    lesson_id: i32,
+    lesson_item_seq: i32,
+) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM lesson_item
+            WHERE lesson_id = $1
+              AND lesson_item_seq = $2
+        )
+        "#,
+    )
+    .bind(lesson_id)
+    .bind(lesson_item_seq)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(exists)
+}
+
+pub async fn exists_lesson_item_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+    lesson_item_seq: i32,
+) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM lesson_item
+            WHERE lesson_id = $1
+              AND lesson_item_seq = $2
+        )
+        "#,
+    )
+    .bind(lesson_id)
+    .bind(lesson_item_seq)
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(exists)
+}
+
+pub async fn create_lesson_item(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+    kind: &str,
+    video_id: Option<i32>,
+    study_task_id: Option<i32>,
+    req: &LessonItemCreateReq,
+) -> AppResult<AdminLessonItemRes> {
+    create_lesson_item_tx(
+        tx,
+        lesson_id,
+        req.lesson_item_seq,
+        kind,
+        video_id,
+        study_task_id,
+    )
+    .await
+}
+
+pub async fn create_lesson_item_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+    lesson_item_seq: i32,
+    kind: &str,
+    video_id: Option<i32>,
+    study_task_id: Option<i32>,
+) -> AppResult<AdminLessonItemRes> {
+    let created = sqlx::query_as::<_, AdminLessonItemRes>(
+        r#"
+        INSERT INTO lesson_item (
+            lesson_id,
+            lesson_item_seq,
+            lesson_item_kind,
+            video_id,
+            study_task_id
+        )
+        VALUES ($1, $2, $3::lesson_item_kind_enum, $4, $5)
+        RETURNING
+            lesson_id,
+            lesson_item_seq,
+            lesson_item_kind::text AS lesson_item_kind,
+            video_id,
+            study_task_id
+        "#,
+    )
+    .bind(lesson_id)
+    .bind(lesson_item_seq)
+    .bind(kind)
+    .bind(video_id)
+    .bind(study_task_id)
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(created)
 }
 
 pub async fn exists_lesson_idx(pool: &PgPool, lesson_idx: &str) -> AppResult<bool> {
