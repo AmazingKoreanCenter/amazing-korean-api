@@ -1,8 +1,8 @@
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 use crate::api::admin::study::dto::{
-    AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes, StudyTaskCreateReq,
-    StudyTaskUpdateReq, StudyUpdateReq,
+    AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes, AdminTaskExplainRes,
+    StudyTaskCreateReq, StudyTaskUpdateReq, StudyUpdateReq,
 };
 use crate::error::AppResult;
 use crate::types::{StudyProgram, StudyState};
@@ -172,6 +172,48 @@ pub async fn admin_list_study_tasks(
         .build_query_as::<AdminStudyTaskRes>()
         .fetch_all(pool)
         .await?;
+
+    Ok((total_count, rows))
+}
+
+pub async fn admin_list_task_explains(
+    pool: &PgPool,
+    task_id: i32,
+    page: u64,
+    size: u64,
+) -> AppResult<(i64, Vec<AdminTaskExplainRes>)> {
+    let total_count = sqlx::query_scalar::<_, i64>(
+        r#"
+        SELECT COUNT(*)
+        FROM study_task_explain
+        WHERE study_task_id = $1
+        "#,
+    )
+    .bind(task_id)
+    .fetch_one(pool)
+    .await?;
+
+    let rows = sqlx::query_as::<_, AdminTaskExplainRes>(
+        r#"
+        SELECT
+            study_task_id::bigint AS study_task_id,
+            explain_lang,
+            explain_title,
+            explain_text,
+            explain_media_url,
+            explain_created_at,
+            explain_updated_at
+        FROM study_task_explain
+        WHERE study_task_id = $1
+        ORDER BY explain_lang ASC
+        LIMIT $2 OFFSET $3
+        "#,
+    )
+    .bind(task_id)
+    .bind(size as i64)
+    .bind(((page - 1) * size) as i64)
+    .fetch_all(pool)
+    .await?;
 
     Ok((total_count, rows))
 }

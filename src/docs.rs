@@ -91,6 +91,7 @@ impl Modify for SecurityAddon {
         crate::api::admin::study::handler::admin_update_study,
         crate::api::admin::study::handler::admin_bulk_update_studies,
         crate::api::admin::study::handler::admin_list_study_tasks,
+        crate::api::admin::study::handler::admin_list_task_explains,
         crate::api::admin::study::handler::admin_update_study_task,
         crate::api::admin::study::handler::admin_create_study_task,
         crate::api::admin::study::handler::admin_bulk_create_study_tasks,
@@ -105,6 +106,7 @@ impl Modify for SecurityAddon {
             // base types
             crate::types::UserGender,
             crate::types::UserAuth,
+            crate::types::UserSetLanguage,
             crate::error::ErrorBody,
             crate::types::LoginDevice,
 
@@ -216,6 +218,7 @@ impl Modify for SecurityAddon {
             crate::api::admin::study::dto::StudyBulkUpdateRes,
             crate::api::admin::study::dto::StudyBulkUpdateResult,
             crate::api::admin::study::dto::StudyTaskListReq,
+            crate::api::admin::study::dto::TaskExplainListReq,
             crate::api::admin::study::dto::AdminStudyTaskRes,
             crate::api::admin::study::dto::AdminStudyTaskListRes,
             crate::api::admin::study::dto::StudyTaskUpdateReq,
@@ -224,6 +227,8 @@ impl Modify for SecurityAddon {
             crate::api::admin::study::dto::StudyTaskBulkCreateReq,
             crate::api::admin::study::dto::StudyTaskBulkCreateRes,
             crate::api::admin::study::dto::StudyTaskBulkResult,
+            crate::api::admin::study::dto::AdminTaskExplainRes,
+            crate::api::admin::study::dto::AdminTaskExplainListRes,
             crate::api::admin::study::dto::StudyTaskUpdateItem,
             crate::api::admin::study::dto::StudyTaskBulkUpdateReq,
             crate::api::admin::study::dto::StudyTaskBulkUpdateRes,

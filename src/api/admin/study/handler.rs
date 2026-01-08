@@ -10,7 +10,8 @@ use crate::api::admin::study::dto::{
     StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskBulkCreateReq,
     StudyTaskBulkCreateRes, StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes,
     StudyTaskCreateReq, StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq,
-    AdminStudyTaskListRes, AdminStudyTaskDetailRes,
+    AdminStudyTaskListRes, AdminStudyTaskDetailRes, TaskExplainListReq,
+    AdminTaskExplainListRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -271,6 +272,45 @@ pub async fn admin_list_study_tasks(
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_list_study_tasks(
+        &st,
+        auth_user.sub,
+        params,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/studies/tasks/explain",
+    tag = "admin_study_task",
+    params(
+        ("task_id" = i32, Query, description = "Study Task ID"),
+        ("page" = u64, Query, description = "Page number, defaults to 1", example = 1),
+        ("size" = u64, Query, description = "Page size, defaults to 20 (max 100)", example = 20)
+    ),
+    responses(
+        (status = 200, description = "List of task explains", body = AdminTaskExplainListRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_list_task_explains(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Query(params): Query<TaskExplainListReq>,
+) -> AppResult<Json<AdminTaskExplainListRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_list_task_explains(
         &st,
         auth_user.sub,
         params,

@@ -8,11 +8,12 @@ use crate::AppState;
 
 use super::dto::{
     AdminStudyListRes, AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskListRes,
-    StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkResult, StudyBulkUpdateReq,
-    StudyBulkUpdateRes, StudyBulkUpdateResult, StudyCreateReq, StudyListReq, StudyTaskCreateReq,
-    StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq, StudyTaskBulkCreateReq,
-    StudyTaskBulkCreateRes, StudyTaskBulkResult, StudyTaskBulkUpdateReq,
-    StudyTaskBulkUpdateRes, StudyTaskBulkUpdateResult,
+    AdminTaskExplainListRes, StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkResult,
+    StudyBulkUpdateReq, StudyBulkUpdateRes, StudyBulkUpdateResult, StudyCreateReq, StudyListReq,
+    StudyTaskCreateReq, StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq,
+    StudyTaskBulkCreateReq, StudyTaskBulkCreateRes, StudyTaskBulkResult,
+    StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes, StudyTaskBulkUpdateResult,
+    TaskExplainListReq,
 };
 use super::repo;
 
@@ -459,6 +460,71 @@ pub async fn admin_list_study_tasks(
     };
 
     Ok(AdminStudyTaskListRes {
+        list,
+        total,
+        page,
+        size,
+        total_pages,
+    })
+}
+
+pub async fn admin_list_task_explains(
+    st: &AppState,
+    actor_user_id: i64,
+    req: TaskExplainListReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminTaskExplainListRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let page = req.page.unwrap_or(1);
+    if page < 1 {
+        return Err(AppError::BadRequest("page must be >= 1".into()));
+    }
+
+    let size = req.size.unwrap_or(20);
+    if size < 1 {
+        return Err(AppError::BadRequest("size must be >= 1".into()));
+    }
+    if size > 100 {
+        return Err(AppError::Unprocessable("size exceeds 100".into()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "page": page,
+        "size": size
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "LIST_TASK_EXPLAINS",
+        Some("STUDY_TASK_EXPLAIN"),
+        Some(req.task_id as i64),
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let (total, list) =
+        repo::admin_list_task_explains(&st.db, req.task_id, page, size).await?;
+
+    let total_pages = if total == 0 {
+        0
+    } else {
+        (total + size as i64 - 1) / size as i64
+    };
+
+    Ok(AdminTaskExplainListRes {
         list,
         total,
         page,
