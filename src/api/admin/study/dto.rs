@@ -199,6 +199,39 @@ pub struct TaskExplainBulkCreateRes {
     pub results: Vec<TaskExplainBulkResult>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainUpdateItem {
+    #[validate(range(min = 1))]
+    pub study_task_id: i32,
+    pub explain_lang: UserSetLanguage,
+    pub explain_title: Option<String>,
+    pub explain_text: Option<String>,
+    pub explain_media_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainBulkUpdateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<TaskExplainUpdateItem>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainBulkUpdateResult {
+    pub study_task_id: i32,
+    pub explain_lang: UserSetLanguage,
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainBulkUpdateRes {
+    pub success_count: i64,
+    pub failure_count: i64,
+    pub results: Vec<TaskExplainBulkUpdateResult>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
 pub struct AdminTaskExplainRes {
     pub study_task_id: i64,
@@ -217,6 +250,47 @@ pub struct AdminTaskExplainListRes {
     pub page: u64,
     pub size: u64,
     pub total_pages: i64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct TaskStatusListReq {
+    #[validate(range(min = 1))]
+    pub task_id: Option<i32>,
+    #[validate(range(min = 1))]
+    pub user_id: Option<i64>,
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
+pub struct AdminTaskStatusRes {
+    pub study_task_id: i64,
+    pub user_id: i64,
+    pub study_task_status_try: i32,
+    pub study_task_status_best: i32,
+    pub study_task_status_completed: bool,
+    pub study_task_status_last_answer: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct AdminTaskStatusListRes {
+    pub list: Vec<AdminTaskStatusRes>,
+    pub total: i64,
+    pub page: u64,
+    pub size: u64,
+    pub total_pages: i64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskStatusUpdateReq {
+    #[validate(range(min = 1))]
+    pub user_id: i64,
+    pub study_task_status_try: Option<i32>,
+    pub study_task_status_best: Option<i32>,
+    pub study_task_status_completed: Option<bool>,
+    pub study_task_status_last_answer: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone, FromRow)]

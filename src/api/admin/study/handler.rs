@@ -11,8 +11,10 @@ use crate::api::admin::study::dto::{
     StudyTaskBulkCreateRes, StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes,
     StudyTaskCreateReq, StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq,
     AdminStudyTaskListRes, AdminStudyTaskDetailRes, TaskExplainBulkCreateReq,
-    TaskExplainBulkCreateRes, TaskExplainCreateReq, TaskExplainListReq,
-    TaskExplainUpdateReq, AdminTaskExplainListRes, AdminTaskExplainRes,
+    TaskExplainBulkCreateRes, TaskExplainBulkUpdateReq, TaskExplainBulkUpdateRes,
+    TaskExplainCreateReq, TaskExplainListReq, TaskExplainUpdateReq,
+    TaskStatusListReq, TaskStatusUpdateReq, AdminTaskStatusListRes, AdminTaskStatusRes,
+    AdminTaskExplainListRes, AdminTaskExplainRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -324,6 +326,87 @@ pub async fn admin_list_task_explains(
 }
 
 #[utoipa::path(
+    get,
+    path = "/admin/studies/tasks/status",
+    tag = "admin_study_task_status",
+    params(
+        ("task_id" = i32, Query, description = "Study Task ID"),
+        ("user_id" = i64, Query, description = "User ID"),
+        ("page" = u64, Query, description = "Page number, defaults to 1", example = 1),
+        ("size" = u64, Query, description = "Page size, defaults to 20 (max 100)", example = 20)
+    ),
+    responses(
+        (status = 200, description = "List of task status", body = AdminTaskStatusListRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_list_task_status(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Query(params): Query<TaskStatusListReq>,
+) -> AppResult<Json<AdminTaskStatusListRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_list_task_status(
+        &st,
+        auth_user.sub,
+        params,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/admin/studies/tasks/{task_id}/status",
+    tag = "admin_study_task_status",
+    request_body = TaskStatusUpdateReq,
+    params(
+        ("task_id" = i64, Path, description = "Study Task ID")
+    ),
+    responses(
+        (status = 200, description = "Task status updated", body = AdminTaskStatusRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_update_task_status(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(task_id): Path<i64>,
+    headers: HeaderMap,
+    Json(req): Json<TaskStatusUpdateReq>,
+) -> AppResult<Json<AdminTaskStatusRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_update_task_status(
+        &st,
+        auth_user.sub,
+        task_id,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
     post,
     path = "/admin/studies/tasks/{task_id}/explain",
     tag = "admin_study_task_explain",
@@ -443,6 +526,50 @@ pub async fn admin_bulk_create_task_explains(
 
     let status = if all_success {
         StatusCode::CREATED
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/admin/studies/tasks/bulk/explain",
+    tag = "admin_study_task_explain",
+    request_body = TaskExplainBulkUpdateReq,
+    responses(
+        (status = 200, description = "All updated", body = TaskExplainBulkUpdateRes),
+        (status = 207, description = "Partial success", body = TaskExplainBulkUpdateRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_bulk_update_task_explains(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<TaskExplainBulkUpdateReq>,
+) -> AppResult<(StatusCode, Json<TaskExplainBulkUpdateRes>)> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = super::service::admin_bulk_update_task_explains(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::OK
     } else {
         StatusCode::MULTI_STATUS
     };

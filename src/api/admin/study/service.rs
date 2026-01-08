@@ -14,7 +14,9 @@ use super::dto::{
     StudyUpdateReq, StudyTaskBulkCreateReq, StudyTaskBulkCreateRes, StudyTaskBulkResult,
     StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes, StudyTaskBulkUpdateResult,
     TaskExplainBulkCreateReq, TaskExplainBulkCreateRes, TaskExplainBulkResult,
-    TaskExplainCreateReq, TaskExplainListReq, TaskExplainUpdateReq,
+    TaskExplainBulkUpdateReq, TaskExplainBulkUpdateRes, TaskExplainBulkUpdateResult,
+    TaskExplainCreateReq, TaskExplainListReq, TaskExplainUpdateReq, TaskStatusListReq,
+    TaskStatusUpdateReq, AdminTaskStatusListRes, AdminTaskStatusRes,
 };
 use super::repo;
 
@@ -534,6 +536,144 @@ pub async fn admin_list_task_explains(
     })
 }
 
+pub async fn admin_list_task_status(
+    st: &AppState,
+    actor_user_id: i64,
+    req: TaskStatusListReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminTaskStatusListRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let page = req.page.unwrap_or(1);
+    if page < 1 {
+        return Err(AppError::BadRequest("page must be >= 1".into()));
+    }
+
+    let size = req.size.unwrap_or(20);
+    if size < 1 {
+        return Err(AppError::BadRequest("size must be >= 1".into()));
+    }
+    if size > 100 {
+        return Err(AppError::Unprocessable("size exceeds 100".into()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "task_id": req.task_id,
+        "user_id": req.user_id
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "LIST_TASK_STATUS",
+        Some("STUDY_TASK_STATUS"),
+        req.task_id.map(|id| id as i64),
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let (total, list) =
+        repo::admin_list_task_status(&st.db, req.task_id, req.user_id, page, size).await?;
+
+    let total_pages = if total == 0 {
+        0
+    } else {
+        (total + size as i64 - 1) / size as i64
+    };
+
+    Ok(AdminTaskStatusListRes {
+        list,
+        total,
+        page,
+        size,
+        total_pages,
+    })
+}
+
+pub async fn admin_update_task_status(
+    st: &AppState,
+    actor_user_id: i64,
+    task_id: i64,
+    req: TaskStatusUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminTaskStatusRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "UPDATE_TASK_STATUS",
+        Some("STUDY_TASK_STATUS"),
+        Some(task_id),
+        &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
+        ip_address.as_deref().and_then(|ip| IpAddr::from_str(ip).ok()),
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let has_any = req.study_task_status_try.is_some()
+        || req.study_task_status_best.is_some()
+        || req.study_task_status_completed.is_some()
+        || req.study_task_status_last_answer.is_some();
+
+    if !has_any {
+        return Err(AppError::BadRequest("no fields to update".into()));
+    }
+
+    let task_id_i32 = i32::try_from(task_id)
+        .map_err(|_| AppError::BadRequest("task_id out of range".into()))?;
+
+    let before = repo::find_task_status(&st.db, task_id_i32, req.user_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let task = repo::find_study_task_by_id(&st.db, task_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let mut tx = st.db.begin().await?;
+
+    repo::update_task_status(&mut tx, task_id_i32, &req).await?;
+
+    let after = repo::find_task_status_tx(&mut tx, task_id_i32, req.user_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let before_val = serde_json::to_value(&before).unwrap_or_default();
+    let after_val = serde_json::to_value(&after).unwrap_or_default();
+
+    repo::create_study_log(
+        &mut tx,
+        actor_user_id,
+        "update",
+        task.study_id as i64,
+        Some(task.study_task_id),
+        Some(&before_val),
+        Some(&after_val),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(after)
+}
+
 pub async fn admin_create_task_explain(
     st: &AppState,
     actor_user_id: i64,
@@ -796,6 +936,145 @@ pub async fn admin_bulk_create_task_explains(
     Ok((
         all_success,
         TaskExplainBulkCreateRes {
+            success_count: success,
+            failure_count: failure,
+            results,
+        },
+    ))
+}
+
+pub async fn admin_bulk_update_task_explains(
+    st: &AppState,
+    actor_user_id: i64,
+    req: TaskExplainBulkUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<(bool, TaskExplainBulkUpdateRes)> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "count": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_UPDATE_TASK_EXPLAINS",
+        Some("STUDY_TASK_EXPLAIN"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let mut results = Vec::with_capacity(req.items.len());
+    let mut success = 0i64;
+    let mut failure = 0i64;
+
+    for item in req.items {
+        let task_id = item.study_task_id;
+        let lang = item.explain_lang;
+        let outcome = async {
+            if let Err(e) = item.validate() {
+                return Err(AppError::BadRequest(e.to_string()));
+            }
+
+            let has_any = item.explain_title.is_some()
+                || item.explain_text.is_some()
+                || item.explain_media_url.is_some();
+
+            if !has_any {
+                return Err(AppError::BadRequest("no fields to update".into()));
+            }
+
+            let before = repo::find_task_explain(&st.db, task_id, lang)
+                .await?
+                .ok_or(AppError::NotFound)?;
+
+            let task = repo::find_study_task_by_id(&st.db, task_id as i64)
+                .await?
+                .ok_or(AppError::NotFound)?;
+
+            let update_req = TaskExplainUpdateReq {
+                explain_lang: lang,
+                explain_title: item.explain_title.clone(),
+                explain_text: item.explain_text.clone(),
+                explain_media_url: item.explain_media_url.clone(),
+            };
+
+            let mut tx = st.db.begin().await?;
+
+            repo::update_task_explain(&mut tx, task_id, &update_req).await?;
+
+            let after = repo::find_task_explain_tx(&mut tx, task_id, lang)
+                .await?
+                .ok_or(AppError::NotFound)?;
+
+            let before_val = serde_json::to_value(&before).unwrap_or_default();
+            let after_val = serde_json::to_value(&after).unwrap_or_default();
+
+            repo::create_study_log(
+                &mut tx,
+                actor_user_id,
+                "update",
+                task.study_id as i64,
+                Some(task.study_task_id),
+                Some(&before_val),
+                Some(&after_val),
+            )
+            .await?;
+
+            tx.commit().await?;
+
+            Ok(after)
+        }
+        .await;
+
+        match outcome {
+            Ok(_) => {
+                success += 1;
+                results.push(TaskExplainBulkUpdateResult {
+                    study_task_id: task_id,
+                    explain_lang: lang,
+                    success: true,
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failure += 1;
+                let msg = match e {
+                    AppError::NotFound => "Task explain not found".to_string(),
+                    AppError::BadRequest(m) => m,
+                    AppError::Unprocessable(m) => m,
+                    AppError::Conflict(m) => m,
+                    AppError::Forbidden => "Forbidden".to_string(),
+                    _ => "Internal Server Error".to_string(),
+                };
+
+                results.push(TaskExplainBulkUpdateResult {
+                    study_task_id: task_id,
+                    explain_lang: lang,
+                    success: false,
+                    error: Some(msg),
+                });
+            }
+        }
+    }
+
+    let all_success = failure == 0;
+
+    Ok((
+        all_success,
+        TaskExplainBulkUpdateRes {
             success_count: success,
             failure_count: failure,
             results,
