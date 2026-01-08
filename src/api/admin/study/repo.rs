@@ -1,11 +1,12 @@
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 use crate::api::admin::study::dto::{
-    AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes, StudyTaskCreateReq,
-    StudyTaskUpdateReq, StudyUpdateReq,
+    AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes, AdminTaskExplainRes,
+    StudyTaskCreateReq, StudyTaskUpdateReq, StudyUpdateReq, TaskExplainCreateReq,
+    TaskExplainUpdateReq,
 };
 use crate::error::AppResult;
-use crate::types::{StudyProgram, StudyState};
+use crate::types::{StudyProgram, StudyState, UserSetLanguage};
 
 /// 동적 필터링 적용 헬퍼 함수
 /// 라이프타임 'a를 추가하여 builder와 바인딩 데이터(search)의 수명을 일치시킵니다.
@@ -174,6 +175,213 @@ pub async fn admin_list_study_tasks(
         .await?;
 
     Ok((total_count, rows))
+}
+
+pub async fn admin_list_task_explains(
+    pool: &PgPool,
+    task_id: i32,
+    page: u64,
+    size: u64,
+) -> AppResult<(i64, Vec<AdminTaskExplainRes>)> {
+    let total_count = sqlx::query_scalar::<_, i64>(
+        r#"
+        SELECT COUNT(*)
+        FROM study_task_explain
+        WHERE study_task_id = $1
+        "#,
+    )
+    .bind(task_id)
+    .fetch_one(pool)
+    .await?;
+
+    let rows = sqlx::query_as::<_, AdminTaskExplainRes>(
+        r#"
+        SELECT
+            study_task_id::bigint AS study_task_id,
+            explain_lang,
+            explain_title,
+            explain_text,
+            explain_media_url,
+            explain_created_at,
+            explain_updated_at
+        FROM study_task_explain
+        WHERE study_task_id = $1
+        ORDER BY explain_lang ASC
+        LIMIT $2 OFFSET $3
+        "#,
+    )
+    .bind(task_id)
+    .bind(size as i64)
+    .bind(((page - 1) * size) as i64)
+    .fetch_all(pool)
+    .await?;
+
+    Ok((total_count, rows))
+}
+
+pub async fn exists_task_explain(
+    pool: &PgPool,
+    study_task_id: i32,
+    explain_lang: UserSetLanguage,
+) -> AppResult<bool> {
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM study_task_explain
+            WHERE study_task_id = $1
+              AND explain_lang = $2
+        )
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(explain_lang)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(exists)
+}
+
+pub async fn create_task_explain(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i32,
+    req: &TaskExplainCreateReq,
+) -> AppResult<AdminTaskExplainRes> {
+    let created = sqlx::query_as::<_, AdminTaskExplainRes>(
+        r#"
+        INSERT INTO study_task_explain (
+            study_task_id,
+            explain_lang,
+            explain_title,
+            explain_text,
+            explain_media_url
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING
+            study_task_id::bigint AS study_task_id,
+            explain_lang,
+            explain_title,
+            explain_text,
+            explain_media_url,
+            explain_created_at,
+            explain_updated_at
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(req.explain_lang)
+    .bind(req.explain_title.as_deref())
+    .bind(req.explain_text.as_deref())
+    .bind(req.explain_media_url.as_deref())
+    .fetch_one(&mut **tx)
+    .await?;
+
+    Ok(created)
+}
+
+pub async fn find_task_explain(
+    pool: &PgPool,
+    study_task_id: i32,
+    explain_lang: UserSetLanguage,
+) -> AppResult<Option<AdminTaskExplainRes>> {
+    let row = sqlx::query_as::<_, AdminTaskExplainRes>(
+        r#"
+        SELECT
+            study_task_id::bigint AS study_task_id,
+            explain_lang,
+            explain_title,
+            explain_text,
+            explain_media_url,
+            explain_created_at,
+            explain_updated_at
+        FROM study_task_explain
+        WHERE study_task_id = $1
+          AND explain_lang = $2
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(explain_lang)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row)
+}
+
+pub async fn find_task_explain_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i32,
+    explain_lang: UserSetLanguage,
+) -> AppResult<Option<AdminTaskExplainRes>> {
+    let row = sqlx::query_as::<_, AdminTaskExplainRes>(
+        r#"
+        SELECT
+            study_task_id::bigint AS study_task_id,
+            explain_lang,
+            explain_title,
+            explain_text,
+            explain_media_url,
+            explain_created_at,
+            explain_updated_at
+        FROM study_task_explain
+        WHERE study_task_id = $1
+          AND explain_lang = $2
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(explain_lang)
+    .fetch_optional(&mut **tx)
+    .await?;
+
+    Ok(row)
+}
+
+pub async fn update_task_explain(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i32,
+    req: &TaskExplainUpdateReq,
+) -> AppResult<()> {
+    let mut builder = QueryBuilder::<Postgres>::new("UPDATE study_task_explain SET ");
+    let mut is_first = true;
+
+    if let Some(ref title) = req.explain_title {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("explain_title = ");
+        builder.push_bind(title);
+        is_first = false;
+    }
+
+    if let Some(ref text) = req.explain_text {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("explain_text = ");
+        builder.push_bind(text);
+        is_first = false;
+    }
+
+    if let Some(ref media_url) = req.explain_media_url {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("explain_media_url = ");
+        builder.push_bind(media_url);
+        is_first = false;
+    }
+
+    if !is_first {
+        builder.push(", ");
+    }
+    builder.push("explain_updated_at = now()");
+
+    builder.push(" WHERE study_task_id = ");
+    builder.push_bind(study_task_id);
+    builder.push(" AND explain_lang = ");
+    builder.push_bind(req.explain_lang);
+
+    builder.build().execute(&mut **tx).await?;
+
+    Ok(())
 }
 
 pub async fn find_study_task_by_id(

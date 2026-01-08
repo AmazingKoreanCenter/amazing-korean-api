@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use validator::{Validate, ValidationError};
-use crate::types::{StudyProgram, StudyState, StudyTaskKind};
+use crate::types::{StudyProgram, StudyState, StudyTaskKind, UserSetLanguage};
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
@@ -138,6 +138,85 @@ pub struct StudyTaskListReq {
     pub page: Option<u64>,
     #[validate(range(min = 1, max = 100))]
     pub size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct TaskExplainListReq {
+    #[validate(range(min = 1))]
+    pub task_id: i32,
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainCreateReq {
+    pub explain_lang: UserSetLanguage,
+    pub explain_title: Option<String>,
+    pub explain_text: Option<String>,
+    pub explain_media_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainUpdateReq {
+    pub explain_lang: UserSetLanguage,
+    pub explain_title: Option<String>,
+    pub explain_text: Option<String>,
+    pub explain_media_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainCreateItem {
+    #[validate(range(min = 1))]
+    pub study_task_id: i32,
+    pub explain_lang: UserSetLanguage,
+    pub explain_title: Option<String>,
+    pub explain_text: Option<String>,
+    pub explain_media_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainBulkCreateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<TaskExplainCreateItem>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainBulkResult {
+    pub study_task_id: i32,
+    pub explain_lang: UserSetLanguage,
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainBulkCreateRes {
+    pub success_count: i64,
+    pub failure_count: i64,
+    pub results: Vec<TaskExplainBulkResult>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
+pub struct AdminTaskExplainRes {
+    pub study_task_id: i64,
+    pub explain_lang: UserSetLanguage,
+    pub explain_title: Option<String>,
+    pub explain_text: Option<String>,
+    pub explain_media_url: Option<String>,
+    pub explain_created_at: DateTime<Utc>,
+    pub explain_updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct AdminTaskExplainListRes {
+    pub list: Vec<AdminTaskExplainRes>,
+    pub total: i64,
+    pub page: u64,
+    pub size: u64,
+    pub total_pages: i64,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone, FromRow)]

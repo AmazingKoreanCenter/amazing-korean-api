@@ -10,7 +10,9 @@ use crate::api::admin::study::dto::{
     StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskBulkCreateReq,
     StudyTaskBulkCreateRes, StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes,
     StudyTaskCreateReq, StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq,
-    AdminStudyTaskListRes, AdminStudyTaskDetailRes,
+    AdminStudyTaskListRes, AdminStudyTaskDetailRes, TaskExplainBulkCreateReq,
+    TaskExplainBulkCreateRes, TaskExplainCreateReq, TaskExplainListReq,
+    TaskExplainUpdateReq, AdminTaskExplainListRes, AdminTaskExplainRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -280,6 +282,172 @@ pub async fn admin_list_study_tasks(
     .await?;
 
     Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/studies/tasks/explain",
+    tag = "admin_study_task_explain",
+    params(
+        ("task_id" = i32, Query, description = "Study Task ID"),
+        ("page" = u64, Query, description = "Page number, defaults to 1", example = 1),
+        ("size" = u64, Query, description = "Page size, defaults to 20 (max 100)", example = 20)
+    ),
+    responses(
+        (status = 200, description = "List of task explains", body = AdminTaskExplainListRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_list_task_explains(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Query(params): Query<TaskExplainListReq>,
+) -> AppResult<Json<AdminTaskExplainListRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_list_task_explains(
+        &st,
+        auth_user.sub,
+        params,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/studies/tasks/{task_id}/explain",
+    tag = "admin_study_task_explain",
+    request_body = TaskExplainCreateReq,
+    params(
+        ("task_id" = i64, Path, description = "Study Task ID")
+    ),
+    responses(
+        (status = 201, description = "Task explain created", body = AdminTaskExplainRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_create_task_explain(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(task_id): Path<i64>,
+    headers: HeaderMap,
+    Json(req): Json<TaskExplainCreateReq>,
+) -> Result<(StatusCode, Json<AdminTaskExplainRes>), AppError> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_create_task_explain(
+        &st,
+        auth_user.sub,
+        task_id,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok((StatusCode::CREATED, Json(res)))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/admin/studies/tasks/{task_id}/explain",
+    tag = "admin_study_task_explain",
+    request_body = TaskExplainUpdateReq,
+    params(
+        ("task_id" = i64, Path, description = "Study Task ID")
+    ),
+    responses(
+        (status = 200, description = "Task explain updated", body = AdminTaskExplainRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_update_task_explain(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(task_id): Path<i64>,
+    headers: HeaderMap,
+    Json(req): Json<TaskExplainUpdateReq>,
+) -> AppResult<Json<AdminTaskExplainRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_update_task_explain(
+        &st,
+        auth_user.sub,
+        task_id,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/studies/tasks/bulk/explain",
+    tag = "admin_study_task_explain",
+    request_body = TaskExplainBulkCreateReq,
+    responses(
+        (status = 201, description = "All created", body = TaskExplainBulkCreateRes),
+        (status = 207, description = "Partial success", body = TaskExplainBulkCreateRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_bulk_create_task_explains(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<TaskExplainBulkCreateReq>,
+) -> AppResult<(StatusCode, Json<TaskExplainBulkCreateRes>)> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = super::service::admin_bulk_create_task_explains(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::CREATED
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
 }
 
 #[utoipa::path(
