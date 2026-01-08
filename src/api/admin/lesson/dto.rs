@@ -124,6 +124,43 @@ pub struct LessonItemCreateReq {
     pub study_task_id: Option<i32>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonItemCreateItem {
+    #[validate(range(min = 1))]
+    pub lesson_id: i32,
+    #[validate(range(min = 1))]
+    pub lesson_item_seq: i32,
+    #[validate(length(min = 1))]
+    pub lesson_item_kind: String,
+    #[validate(range(min = 1))]
+    pub video_id: Option<i32>,
+    #[validate(range(min = 1))]
+    pub study_task_id: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonItemBulkCreateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<LessonItemCreateItem>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonItemBulkCreateResult {
+    pub lesson_id: i32,
+    pub lesson_item_seq: i32,
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonItemBulkCreateRes {
+    pub success_count: i64,
+    pub failure_count: i64,
+    pub results: Vec<LessonItemBulkCreateResult>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
 pub struct AdminLessonItemRes {
     pub lesson_id: i32,

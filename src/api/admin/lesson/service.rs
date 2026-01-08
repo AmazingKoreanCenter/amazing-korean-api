@@ -10,7 +10,8 @@ use crate::AppState;
 use super::dto::{
     AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
     LessonBulkResult, LessonBulkUpdateReq, LessonBulkUpdateRes, LessonBulkUpdateResult,
-    AdminLessonItemListRes, AdminLessonItemRes, LessonCreateReq, LessonItemCreateReq,
+    AdminLessonItemListRes, AdminLessonItemRes, LessonCreateReq, LessonItemBulkCreateReq,
+    LessonItemBulkCreateRes, LessonItemBulkCreateResult, LessonItemCreateReq,
     LessonItemListReq, LessonListReq, LessonUpdateItem, LessonUpdateReq,
 };
 use super::repo;
@@ -256,6 +257,160 @@ pub async fn admin_create_lesson_item(
     tx.commit().await?;
 
     Ok(created)
+}
+
+pub async fn admin_bulk_create_lesson_items(
+    st: &AppState,
+    actor_user_id: i64,
+    req: LessonItemBulkCreateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<(bool, LessonItemBulkCreateRes)> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "count": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_CREATE_LESSON_ITEMS",
+        Some("LESSON_ITEM"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let mut results = Vec::with_capacity(req.items.len());
+    let mut success = 0i64;
+    let mut failure = 0i64;
+
+    for item in req.items {
+        let lesson_id = item.lesson_id;
+        let lesson_item_seq = item.lesson_item_seq;
+
+        let outcome = async {
+            if let Err(e) = item.validate() {
+                return Err(AppError::BadRequest(e.to_string()));
+            }
+
+            let mut tx = st.db.begin().await?;
+
+            if !repo::exists_lesson_tx(&mut tx, lesson_id).await? {
+                return Err(AppError::NotFound);
+            }
+
+            let kind = item.lesson_item_kind.trim().to_lowercase();
+            let (normalized_kind, video_id, study_task_id) = match kind.as_str() {
+                "video" => {
+                    let video_id = item
+                        .video_id
+                        .ok_or_else(|| AppError::BadRequest("video_id is required".into()))?;
+                    ("video", Some(video_id), None)
+                }
+                "task" | "study_task" => {
+                    let task_id = item
+                        .study_task_id
+                        .ok_or_else(|| AppError::BadRequest("study_task_id is required".into()))?;
+                    ("task", None, Some(task_id))
+                }
+                _ => return Err(AppError::BadRequest("invalid lesson_item_kind".into())),
+            };
+
+            if repo::exists_lesson_item_tx(&mut tx, lesson_id, lesson_item_seq).await? {
+                return Err(AppError::Conflict("lesson_item_seq already exists".into()));
+            }
+
+            let created = repo::create_lesson_item_tx(
+                &mut tx,
+                lesson_id,
+                lesson_item_seq,
+                normalized_kind,
+                video_id,
+                study_task_id,
+            )
+            .await;
+
+            let created = match created {
+                Ok(val) => val,
+                Err(e) if is_unique_violation(&e) => {
+                    return Err(AppError::Conflict("lesson_item_seq already exists".into()));
+                }
+                Err(e) => return Err(e),
+            };
+
+            let after = serde_json::to_value(&created).unwrap_or_default();
+            repo::create_lesson_log_tx(
+                &mut tx,
+                actor_user_id,
+                "create",
+                lesson_id,
+                Some(lesson_item_seq),
+                video_id,
+                study_task_id,
+                None,
+                Some(&after),
+            )
+            .await?;
+
+            tx.commit().await?;
+
+            Ok(created)
+        }
+        .await;
+
+        match outcome {
+            Ok(_) => {
+                success += 1;
+                results.push(LessonItemBulkCreateResult {
+                    lesson_id,
+                    lesson_item_seq,
+                    success: true,
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failure += 1;
+                let msg = match e {
+                    AppError::NotFound => "Lesson not found".to_string(),
+                    AppError::BadRequest(m) => m,
+                    AppError::Unprocessable(m) => m,
+                    AppError::Conflict(m) => m,
+                    AppError::Forbidden => "Forbidden".to_string(),
+                    _ => "Internal Server Error".to_string(),
+                };
+
+                results.push(LessonItemBulkCreateResult {
+                    lesson_id,
+                    lesson_item_seq,
+                    success: false,
+                    error: Some(msg),
+                });
+            }
+        }
+    }
+
+    let all_success = failure == 0;
+
+    Ok((
+        all_success,
+        LessonItemBulkCreateRes {
+            success_count: success,
+            failure_count: failure,
+            results,
+        },
+    ))
 }
 
 pub async fn admin_create_lesson(
