@@ -9,7 +9,7 @@ use crate::api::admin::lesson::dto::{
     AdminLessonItemListRes, AdminLessonItemRes, AdminLessonListRes, AdminLessonRes,
     LessonBulkCreateReq, LessonBulkCreateRes, LessonBulkUpdateReq, LessonBulkUpdateRes,
     LessonCreateReq, LessonItemBulkCreateReq, LessonItemBulkCreateRes, LessonItemCreateReq,
-    LessonItemListReq, LessonListReq, LessonUpdateReq,
+    LessonItemListReq, LessonItemUpdateReq, LessonListReq, LessonUpdateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::AppResult;
@@ -196,6 +196,50 @@ pub async fn admin_bulk_create_lesson_items(
     };
 
     Ok((status, Json(res)))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/admin/lessons/{lesson_id}/items/{seq}",
+    tag = "admin_lesson",
+    request_body = LessonItemUpdateReq,
+    params(
+        ("lesson_id" = i32, Path, description = "Lesson ID"),
+        ("seq" = i32, Path, description = "Current lesson item sequence")
+    ),
+    responses(
+        (status = 200, description = "Lesson item updated", body = AdminLessonItemRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 409, description = "Conflict"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_update_lesson_item(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path((lesson_id, seq)): Path<(i32, i32)>,
+    headers: HeaderMap,
+    Json(req): Json<LessonItemUpdateReq>,
+) -> AppResult<Json<AdminLessonItemRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_update_lesson_item(
+        &st,
+        auth_user.sub,
+        lesson_id,
+        seq,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
 }
 
 #[utoipa::path(

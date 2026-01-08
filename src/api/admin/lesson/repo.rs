@@ -259,6 +259,32 @@ pub async fn exists_lesson_item_tx(
     Ok(exists)
 }
 
+pub async fn find_lesson_item_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+    lesson_item_seq: i32,
+) -> AppResult<Option<AdminLessonItemRes>> {
+    let row = sqlx::query_as::<_, AdminLessonItemRes>(
+        r#"
+        SELECT
+            lesson_id,
+            lesson_item_seq,
+            lesson_item_kind::text AS lesson_item_kind,
+            video_id,
+            study_task_id
+        FROM lesson_item
+        WHERE lesson_id = $1
+          AND lesson_item_seq = $2
+        "#,
+    )
+    .bind(lesson_id)
+    .bind(lesson_item_seq)
+    .fetch_optional(&mut **tx)
+    .await?;
+
+    Ok(row)
+}
+
 pub async fn create_lesson_item(
     tx: &mut Transaction<'_, Postgres>,
     lesson_id: i32,
@@ -313,6 +339,77 @@ pub async fn create_lesson_item_tx(
     .await?;
 
     Ok(created)
+}
+
+pub async fn update_lesson_item_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+    current_seq: i32,
+    new_seq: Option<i32>,
+    lesson_item_kind: Option<&str>,
+    video_id: Option<Option<i32>>,
+    study_task_id: Option<Option<i32>>,
+) -> AppResult<()> {
+    let mut builder = QueryBuilder::<Postgres>::new("UPDATE lesson_item SET ");
+    let mut is_first = true;
+
+    if let Some(new_seq) = new_seq {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("lesson_item_seq = ");
+        builder.push_bind(new_seq);
+        is_first = false;
+    }
+
+    if let Some(kind) = lesson_item_kind {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("lesson_item_kind = ");
+        builder.push_bind(kind);
+        builder.push("::lesson_item_kind_enum");
+        is_first = false;
+    }
+
+    if let Some(video_id) = video_id {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("video_id = ");
+        if let Some(video_id) = video_id {
+            builder.push_bind(video_id);
+        } else {
+            builder.push("NULL");
+        }
+        is_first = false;
+    }
+
+    if let Some(study_task_id) = study_task_id {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("study_task_id = ");
+        if let Some(study_task_id) = study_task_id {
+            builder.push_bind(study_task_id);
+        } else {
+            builder.push("NULL");
+        }
+        is_first = false;
+    }
+
+    if is_first {
+        return Ok(());
+    }
+
+    builder.push(" WHERE lesson_id = ");
+    builder.push_bind(lesson_id);
+    builder.push(" AND lesson_item_seq = ");
+    builder.push_bind(current_seq);
+
+    builder.build().execute(&mut **tx).await?;
+
+    Ok(())
 }
 
 pub async fn exists_lesson_idx(pool: &PgPool, lesson_idx: &str) -> AppResult<bool> {
