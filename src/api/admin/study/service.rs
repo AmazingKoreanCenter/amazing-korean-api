@@ -14,7 +14,7 @@ use super::dto::{
     StudyUpdateReq, StudyTaskBulkCreateReq, StudyTaskBulkCreateRes, StudyTaskBulkResult,
     StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes, StudyTaskBulkUpdateResult,
     TaskExplainBulkCreateReq, TaskExplainBulkCreateRes, TaskExplainBulkResult,
-    TaskExplainCreateReq, TaskExplainListReq,
+    TaskExplainCreateReq, TaskExplainListReq, TaskExplainUpdateReq,
 };
 use super::repo;
 
@@ -597,6 +597,78 @@ pub async fn admin_create_task_explain(
     tx.commit().await?;
 
     Ok(created)
+}
+
+pub async fn admin_update_task_explain(
+    st: &AppState,
+    actor_user_id: i64,
+    task_id: i64,
+    req: TaskExplainUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminTaskExplainRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "UPDATE_TASK_EXPLAIN",
+        Some("STUDY_TASK_EXPLAIN"),
+        Some(task_id),
+        &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
+        ip_address.as_deref().and_then(|ip| IpAddr::from_str(ip).ok()),
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let has_any = req.explain_title.is_some()
+        || req.explain_text.is_some()
+        || req.explain_media_url.is_some();
+
+    if !has_any {
+        return Err(AppError::BadRequest("no fields to update".into()));
+    }
+
+    let task_id_i32 = i32::try_from(task_id)
+        .map_err(|_| AppError::BadRequest("task_id out of range".into()))?;
+
+    let before = repo::find_task_explain(&st.db, task_id_i32, req.explain_lang)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let task = repo::find_study_task_by_id(&st.db, task_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let mut tx = st.db.begin().await?;
+
+    repo::update_task_explain(&mut tx, task_id_i32, &req).await?;
+
+    let after = repo::find_task_explain_tx(&mut tx, task_id_i32, req.explain_lang)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let before_val = serde_json::to_value(&before).unwrap_or_default();
+    let after_val = serde_json::to_value(&after).unwrap_or_default();
+
+    repo::create_study_log(
+        &mut tx,
+        actor_user_id,
+        "update",
+        task.study_id as i64,
+        Some(task.study_task_id),
+        Some(&before_val),
+        Some(&after_val),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(after)
 }
 
 pub async fn admin_bulk_create_task_explains(

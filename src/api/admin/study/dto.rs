@@ -159,6 +159,14 @@ pub struct TaskExplainCreateReq {
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct TaskExplainUpdateReq {
+    pub explain_lang: UserSetLanguage,
+    pub explain_title: Option<String>,
+    pub explain_text: Option<String>,
+    pub explain_media_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
 pub struct TaskExplainCreateItem {
     #[validate(range(min = 1))]
     pub study_task_id: i32,

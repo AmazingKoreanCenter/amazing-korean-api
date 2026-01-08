@@ -3,6 +3,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 use crate::api::admin::study::dto::{
     AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes, AdminTaskExplainRes,
     StudyTaskCreateReq, StudyTaskUpdateReq, StudyUpdateReq, TaskExplainCreateReq,
+    TaskExplainUpdateReq,
 };
 use crate::error::AppResult;
 use crate::types::{StudyProgram, StudyState, UserSetLanguage};
@@ -275,6 +276,112 @@ pub async fn create_task_explain(
     .await?;
 
     Ok(created)
+}
+
+pub async fn find_task_explain(
+    pool: &PgPool,
+    study_task_id: i32,
+    explain_lang: UserSetLanguage,
+) -> AppResult<Option<AdminTaskExplainRes>> {
+    let row = sqlx::query_as::<_, AdminTaskExplainRes>(
+        r#"
+        SELECT
+            study_task_id::bigint AS study_task_id,
+            explain_lang,
+            explain_title,
+            explain_text,
+            explain_media_url,
+            explain_created_at,
+            explain_updated_at
+        FROM study_task_explain
+        WHERE study_task_id = $1
+          AND explain_lang = $2
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(explain_lang)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row)
+}
+
+pub async fn find_task_explain_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i32,
+    explain_lang: UserSetLanguage,
+) -> AppResult<Option<AdminTaskExplainRes>> {
+    let row = sqlx::query_as::<_, AdminTaskExplainRes>(
+        r#"
+        SELECT
+            study_task_id::bigint AS study_task_id,
+            explain_lang,
+            explain_title,
+            explain_text,
+            explain_media_url,
+            explain_created_at,
+            explain_updated_at
+        FROM study_task_explain
+        WHERE study_task_id = $1
+          AND explain_lang = $2
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(explain_lang)
+    .fetch_optional(&mut **tx)
+    .await?;
+
+    Ok(row)
+}
+
+pub async fn update_task_explain(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i32,
+    req: &TaskExplainUpdateReq,
+) -> AppResult<()> {
+    let mut builder = QueryBuilder::<Postgres>::new("UPDATE study_task_explain SET ");
+    let mut is_first = true;
+
+    if let Some(ref title) = req.explain_title {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("explain_title = ");
+        builder.push_bind(title);
+        is_first = false;
+    }
+
+    if let Some(ref text) = req.explain_text {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("explain_text = ");
+        builder.push_bind(text);
+        is_first = false;
+    }
+
+    if let Some(ref media_url) = req.explain_media_url {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("explain_media_url = ");
+        builder.push_bind(media_url);
+        is_first = false;
+    }
+
+    if !is_first {
+        builder.push(", ");
+    }
+    builder.push("explain_updated_at = now()");
+
+    builder.push(" WHERE study_task_id = ");
+    builder.push_bind(study_task_id);
+    builder.push(" AND explain_lang = ");
+    builder.push_bind(req.explain_lang);
+
+    builder.build().execute(&mut **tx).await?;
+
+    Ok(())
 }
 
 pub async fn find_study_task_by_id(

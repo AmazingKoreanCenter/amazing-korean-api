@@ -6,7 +6,7 @@ use super::handler::{
     admin_bulk_create_study_tasks, admin_bulk_create_task_explains, admin_bulk_update_study_tasks,
     admin_create_study_task, admin_create_task_explain, admin_list_studies,
     admin_list_study_tasks, admin_list_task_explains, admin_update_study,
-    admin_update_study_task,
+    admin_update_study_task, admin_update_task_explain,
 };
 
 pub fn admin_study_router() -> Router<AppState> {
@@ -16,7 +16,10 @@ pub fn admin_study_router() -> Router<AppState> {
         .route("/tasks", get(admin_list_study_tasks).post(admin_create_study_task))
         .route("/tasks/explain", get(admin_list_task_explains))
         .route("/tasks/bulk/explain", post(admin_bulk_create_task_explains))
-        .route("/tasks/{task_id}/explain", post(admin_create_task_explain))
+        .route(
+            "/tasks/{task_id}/explain",
+            post(admin_create_task_explain).patch(admin_update_task_explain),
+        )
         .route(
             "/tasks/bulk",
             post(admin_bulk_create_study_tasks).patch(admin_bulk_update_study_tasks),
