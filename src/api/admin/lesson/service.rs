@@ -11,8 +11,9 @@ use super::dto::{
     AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
     LessonBulkResult, LessonBulkUpdateReq, LessonBulkUpdateRes, LessonBulkUpdateResult,
     AdminLessonItemListRes, AdminLessonItemRes, LessonCreateReq, LessonItemBulkCreateReq,
-    LessonItemBulkCreateRes, LessonItemBulkCreateResult, LessonItemCreateReq,
-    LessonItemListReq, LessonListReq, LessonUpdateItem, LessonUpdateReq,
+    LessonItemBulkCreateRes, LessonItemBulkCreateResult, LessonItemBulkUpdateReq,
+    LessonItemBulkUpdateRes, LessonItemBulkUpdateResult, LessonItemCreateReq, LessonItemListReq,
+    LessonItemUpdateReq, LessonListReq, LessonUpdateItem, LessonUpdateReq,
 };
 use super::repo;
 
@@ -406,6 +407,397 @@ pub async fn admin_bulk_create_lesson_items(
     Ok((
         all_success,
         LessonItemBulkCreateRes {
+            success_count: success,
+            failure_count: failure,
+            results,
+        },
+    ))
+}
+
+pub async fn admin_update_lesson_item(
+    st: &AppState,
+    actor_user_id: i64,
+    lesson_id: i32,
+    current_seq: i32,
+    req: LessonItemUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminLessonItemRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "UPDATE_LESSON_ITEM",
+        Some("LESSON_ITEM"),
+        Some(lesson_id as i64),
+        &serde_json::json!({
+            "lesson_id": lesson_id,
+            "lesson_item_seq": current_seq,
+            "payload": &req
+        }),
+        ip_address
+            .as_deref()
+            .and_then(|ip| IpAddr::from_str(ip).ok()),
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let has_any = req.lesson_item_seq.is_some()
+        || req.lesson_item_kind.is_some()
+        || req.video_id.is_some()
+        || req.study_task_id.is_some();
+
+    if !has_any {
+        return Err(AppError::BadRequest("no fields to update".into()));
+    }
+
+    let mut tx = st.db.begin().await?;
+
+    let before = repo::find_lesson_item_tx(&mut tx, lesson_id, current_seq)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let before_kind = before.lesson_item_kind.as_str();
+
+    let normalized_kind = if let Some(kind_raw) = req.lesson_item_kind.as_deref() {
+        let kind = kind_raw.trim().to_lowercase();
+        let normalized = match kind.as_str() {
+            "video" => "video",
+            "task" | "study_task" => "task",
+            _ => return Err(AppError::BadRequest("invalid lesson_item_kind".into())),
+        };
+        Some(normalized.to_string())
+    } else {
+        None
+    };
+
+    let kind_update = normalized_kind
+        .as_deref()
+        .filter(|kind| *kind != before_kind)
+        .map(|kind| kind.to_string());
+
+    let target_kind = normalized_kind
+        .as_deref()
+        .unwrap_or(before_kind);
+
+    let new_seq = req
+        .lesson_item_seq
+        .filter(|seq| *seq != before.lesson_item_seq);
+
+    if let Some(new_seq) = new_seq {
+        if repo::exists_lesson_item_tx(&mut tx, lesson_id, new_seq).await? {
+            return Err(AppError::Conflict("lesson_item_seq already exists".into()));
+        }
+    }
+
+    let kind_changed = kind_update.is_some();
+    let mut video_update: Option<Option<i32>> = None;
+    let mut task_update: Option<Option<i32>> = None;
+
+    match target_kind {
+        "video" => {
+            if req.study_task_id.is_some() {
+                return Err(AppError::BadRequest(
+                    "study_task_id is not allowed for video".into(),
+                ));
+            }
+            if kind_changed {
+                let video_id = req
+                    .video_id
+                    .ok_or_else(|| AppError::BadRequest("video_id is required".into()))?;
+                video_update = Some(Some(video_id));
+                task_update = Some(None);
+            } else if let Some(video_id) = req.video_id {
+                video_update = Some(Some(video_id));
+            }
+        }
+        "task" => {
+            if req.video_id.is_some() {
+                return Err(AppError::BadRequest(
+                    "video_id is not allowed for task".into(),
+                ));
+            }
+            if kind_changed {
+                let task_id = req
+                    .study_task_id
+                    .ok_or_else(|| AppError::BadRequest("study_task_id is required".into()))?;
+                task_update = Some(Some(task_id));
+                video_update = Some(None);
+            } else if let Some(task_id) = req.study_task_id {
+                task_update = Some(Some(task_id));
+            }
+        }
+        _ => return Err(AppError::BadRequest("invalid lesson_item_kind".into())),
+    }
+
+    let has_update = new_seq.is_some()
+        || kind_update.is_some()
+        || video_update.is_some()
+        || task_update.is_some();
+
+    if !has_update {
+        return Err(AppError::BadRequest("no fields to update".into()));
+    }
+
+    repo::update_lesson_item_tx(
+        &mut tx,
+        lesson_id,
+        current_seq,
+        new_seq,
+        kind_update.as_deref(),
+        video_update,
+        task_update,
+    )
+    .await?;
+
+    let final_seq = new_seq.unwrap_or(before.lesson_item_seq);
+    let after = repo::find_lesson_item_tx(&mut tx, lesson_id, final_seq)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let before_val = serde_json::to_value(&before).unwrap_or_default();
+    let after_val = serde_json::to_value(&after).unwrap_or_default();
+
+    repo::create_lesson_log_tx(
+        &mut tx,
+        actor_user_id,
+        "update",
+        lesson_id,
+        Some(after.lesson_item_seq),
+        after.video_id,
+        after.study_task_id,
+        Some(&before_val),
+        Some(&after_val),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(after)
+}
+
+pub async fn admin_bulk_update_lesson_items(
+    st: &AppState,
+    actor_user_id: i64,
+    req: LessonItemBulkUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<(bool, LessonItemBulkUpdateRes)> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "count": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_UPDATE_LESSON_ITEMS",
+        Some("LESSON_ITEM"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let mut results = Vec::with_capacity(req.items.len());
+    let mut success = 0i64;
+    let mut failure = 0i64;
+
+    for item in req.items {
+        let lesson_id = item.lesson_id;
+        let current_seq = item.current_lesson_item_seq;
+
+        let outcome = async {
+            if let Err(e) = item.validate() {
+                return Err(AppError::BadRequest(e.to_string()));
+            }
+
+            let has_any = item.new_lesson_item_seq.is_some()
+                || item.lesson_item_kind.is_some()
+                || item.video_id.is_some()
+                || item.study_task_id.is_some();
+
+            if !has_any {
+                return Err(AppError::BadRequest("no fields to update".into()));
+            }
+
+            let mut tx = st.db.begin().await?;
+
+            let before = repo::find_lesson_item_tx(&mut tx, lesson_id, current_seq)
+                .await?
+                .ok_or(AppError::NotFound)?;
+
+            let before_kind = before.lesson_item_kind.as_str();
+
+            let normalized_kind = if let Some(kind_raw) = item.lesson_item_kind.as_deref() {
+                let kind = kind_raw.trim().to_lowercase();
+                let normalized = match kind.as_str() {
+                    "video" => "video",
+                    "task" | "study_task" => "task",
+                    _ => return Err(AppError::BadRequest("invalid lesson_item_kind".into())),
+                };
+                Some(normalized.to_string())
+            } else {
+                None
+            };
+
+            let kind_update = normalized_kind
+                .as_deref()
+                .filter(|kind| *kind != before_kind)
+                .map(|kind| kind.to_string());
+
+            let target_kind = normalized_kind
+                .as_deref()
+                .unwrap_or(before_kind);
+
+            let new_seq = item
+                .new_lesson_item_seq
+                .filter(|seq| *seq != before.lesson_item_seq);
+
+            if let Some(new_seq) = new_seq {
+                if repo::exists_lesson_item_tx(&mut tx, lesson_id, new_seq).await? {
+                    return Err(AppError::Conflict("lesson_item_seq already exists".into()));
+                }
+            }
+
+            let kind_changed = kind_update.is_some();
+            let mut video_update: Option<Option<i32>> = None;
+            let mut task_update: Option<Option<i32>> = None;
+
+            match target_kind {
+                "video" => {
+                    if item.study_task_id.is_some() {
+                        return Err(AppError::BadRequest(
+                            "study_task_id is not allowed for video".into(),
+                        ));
+                    }
+                    if kind_changed {
+                        let video_id = item
+                            .video_id
+                            .ok_or_else(|| AppError::BadRequest("video_id is required".into()))?;
+                        video_update = Some(Some(video_id));
+                        task_update = Some(None);
+                    } else if let Some(video_id) = item.video_id {
+                        video_update = Some(Some(video_id));
+                    }
+                }
+                "task" => {
+                    if item.video_id.is_some() {
+                        return Err(AppError::BadRequest(
+                            "video_id is not allowed for task".into(),
+                        ));
+                    }
+                    if kind_changed {
+                        let task_id = item
+                            .study_task_id
+                            .ok_or_else(|| AppError::BadRequest("study_task_id is required".into()))?;
+                        task_update = Some(Some(task_id));
+                        video_update = Some(None);
+                    } else if let Some(task_id) = item.study_task_id {
+                        task_update = Some(Some(task_id));
+                    }
+                }
+                _ => return Err(AppError::BadRequest("invalid lesson_item_kind".into())),
+            }
+
+            let has_update = new_seq.is_some()
+                || kind_update.is_some()
+                || video_update.is_some()
+                || task_update.is_some();
+
+            if !has_update {
+                return Err(AppError::BadRequest("no fields to update".into()));
+            }
+
+            repo::update_lesson_item_tx(
+                &mut tx,
+                lesson_id,
+                current_seq,
+                new_seq,
+                kind_update.as_deref(),
+                video_update,
+                task_update,
+            )
+            .await?;
+
+            let final_seq = new_seq.unwrap_or(before.lesson_item_seq);
+            let after = repo::find_lesson_item_tx(&mut tx, lesson_id, final_seq)
+                .await?
+                .ok_or(AppError::NotFound)?;
+
+            let before_val = serde_json::to_value(&before).unwrap_or_default();
+            let after_val = serde_json::to_value(&after).unwrap_or_default();
+
+            repo::create_lesson_log_tx(
+                &mut tx,
+                actor_user_id,
+                "update",
+                lesson_id,
+                Some(after.lesson_item_seq),
+                after.video_id,
+                after.study_task_id,
+                Some(&before_val),
+                Some(&after_val),
+            )
+            .await?;
+
+            tx.commit().await?;
+
+            Ok(final_seq)
+        }
+        .await;
+
+        match outcome {
+            Ok(final_seq) => {
+                success += 1;
+                results.push(LessonItemBulkUpdateResult {
+                    lesson_id,
+                    lesson_item_seq: final_seq,
+                    success: true,
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failure += 1;
+                let msg = match e {
+                    AppError::NotFound => "Lesson item not found".to_string(),
+                    AppError::BadRequest(m) => m,
+                    AppError::Unprocessable(m) => m,
+                    AppError::Conflict(m) => m,
+                    AppError::Forbidden => "Forbidden".to_string(),
+                    _ => "Internal Server Error".to_string(),
+                };
+
+                results.push(LessonItemBulkUpdateResult {
+                    lesson_id,
+                    lesson_item_seq: current_seq,
+                    success: false,
+                    error: Some(msg),
+                });
+            }
+        }
+    }
+
+    let all_success = failure == 0;
+
+    Ok((
+        all_success,
+        LessonItemBulkUpdateRes {
             success_count: success,
             failure_count: failure,
             results,
