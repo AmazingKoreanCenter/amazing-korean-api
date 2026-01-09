@@ -3,9 +3,10 @@ use axum::{routing::get, routing::post, routing::patch, Router};
 
 use super::handler::{
     admin_bulk_create_lesson_items, admin_bulk_create_lessons, admin_bulk_update_lesson_items,
-    admin_bulk_update_lessons, admin_create_lesson, admin_create_lesson_item,
-    admin_list_lesson_items, admin_list_lesson_progress, admin_list_lessons,
-    admin_update_lesson, admin_update_lesson_item, admin_update_lesson_progress,
+    admin_bulk_update_lesson_progress, admin_bulk_update_lessons, admin_create_lesson,
+    admin_create_lesson_item, admin_list_lesson_items, admin_list_lesson_progress,
+    admin_list_lessons, admin_update_lesson, admin_update_lesson_item,
+    admin_update_lesson_progress,
 };
 
 pub fn admin_lesson_router() -> Router<AppState> {
@@ -17,6 +18,7 @@ pub fn admin_lesson_router() -> Router<AppState> {
             "/bulk/items",
             post(admin_bulk_create_lesson_items).patch(admin_bulk_update_lesson_items),
         )
+        .route("/bulk/progress", patch(admin_bulk_update_lesson_progress))
         .route(
             "/bulk",
             post(admin_bulk_create_lessons).patch(admin_bulk_update_lessons),

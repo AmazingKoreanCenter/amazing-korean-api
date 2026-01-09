@@ -155,6 +155,41 @@ pub struct LessonProgressUpdateReq {
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonProgressUpdateItem {
+    #[validate(range(min = 1))]
+    pub lesson_id: i32,
+    #[validate(range(min = 1))]
+    pub user_id: i64,
+    #[validate(range(min = 0, max = 100))]
+    pub lesson_progress_percent: Option<i32>,
+    #[validate(range(min = 1))]
+    pub lesson_progress_last_item_seq: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonProgressBulkUpdateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<LessonProgressUpdateItem>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonProgressBulkUpdateResult {
+    pub lesson_id: i32,
+    pub user_id: i64,
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonProgressBulkUpdateRes {
+    pub success_count: i64,
+    pub failure_count: i64,
+    pub results: Vec<LessonProgressBulkUpdateResult>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
 pub struct LessonItemCreateReq {
     #[validate(range(min = 1))]
     pub lesson_item_seq: i32,

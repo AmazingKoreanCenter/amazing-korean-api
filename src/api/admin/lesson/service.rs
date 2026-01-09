@@ -14,8 +14,9 @@ use super::dto::{
     AdminLessonProgressRes, LessonCreateReq, LessonItemBulkCreateReq, LessonItemBulkCreateRes,
     LessonItemBulkCreateResult, LessonItemBulkUpdateReq, LessonItemBulkUpdateRes,
     LessonItemBulkUpdateResult, LessonItemCreateReq, LessonItemListReq, LessonItemUpdateReq,
-    LessonListReq, LessonProgressListReq, LessonProgressUpdateReq, LessonUpdateItem,
-    LessonUpdateReq,
+    LessonListReq, LessonProgressBulkUpdateReq, LessonProgressBulkUpdateRes,
+    LessonProgressBulkUpdateResult, LessonProgressListReq, LessonProgressUpdateReq,
+    LessonUpdateItem, LessonUpdateReq,
 };
 use super::repo;
 
@@ -310,6 +311,143 @@ pub async fn admin_update_lesson_progress(
     tx.commit().await?;
 
     Ok(after)
+}
+
+pub async fn admin_bulk_update_lesson_progress(
+    st: &AppState,
+    actor_user_id: i64,
+    req: LessonProgressBulkUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<(bool, LessonProgressBulkUpdateRes)> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "count": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_UPDATE_LESSON_PROGRESS",
+        Some("LESSON_PROGRESS"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let mut results = Vec::with_capacity(req.items.len());
+    let mut success = 0i64;
+    let mut failure = 0i64;
+
+    for item in req.items {
+        let lesson_id = item.lesson_id;
+        let user_id = item.user_id;
+
+        let outcome = async {
+            if let Err(e) = item.validate() {
+                return Err(AppError::BadRequest(e.to_string()));
+            }
+
+            let has_any = item.lesson_progress_percent.is_some()
+                || item.lesson_progress_last_item_seq.is_some();
+
+            if !has_any {
+                return Err(AppError::BadRequest("no fields to update".into()));
+            }
+
+            let mut tx = st.db.begin().await?;
+
+            let before = repo::find_lesson_progress_tx(&mut tx, lesson_id, user_id)
+                .await?
+                .ok_or(AppError::NotFound)?;
+
+            repo::update_lesson_progress_tx(
+                &mut tx,
+                lesson_id,
+                user_id,
+                item.lesson_progress_percent,
+                item.lesson_progress_last_item_seq,
+            )
+            .await?;
+
+            let after = repo::find_lesson_progress_tx(&mut tx, lesson_id, user_id)
+                .await?
+                .ok_or(AppError::NotFound)?;
+
+            let before_val = serde_json::to_value(&before).unwrap_or_default();
+            let after_val = serde_json::to_value(&after).unwrap_or_default();
+
+            repo::create_lesson_log_tx(
+                &mut tx,
+                actor_user_id,
+                "update",
+                lesson_id,
+                after.lesson_progress_last_item_seq,
+                None,
+                None,
+                Some(&before_val),
+                Some(&after_val),
+            )
+            .await?;
+
+            tx.commit().await?;
+
+            Ok(())
+        }
+        .await;
+
+        match outcome {
+            Ok(_) => {
+                success += 1;
+                results.push(LessonProgressBulkUpdateResult {
+                    lesson_id,
+                    user_id,
+                    success: true,
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failure += 1;
+                let msg = match e {
+                    AppError::NotFound => "Lesson progress not found".to_string(),
+                    AppError::BadRequest(m) => m,
+                    AppError::Unprocessable(m) => m,
+                    AppError::Conflict(m) => m,
+                    AppError::Forbidden => "Forbidden".to_string(),
+                    _ => "Internal Server Error".to_string(),
+                };
+
+                results.push(LessonProgressBulkUpdateResult {
+                    lesson_id,
+                    user_id,
+                    success: false,
+                    error: Some(msg),
+                });
+            }
+        }
+    }
+
+    let all_success = failure == 0;
+
+    Ok((
+        all_success,
+        LessonProgressBulkUpdateRes {
+            success_count: success,
+            failure_count: failure,
+            results,
+        },
+    ))
 }
 
 pub async fn admin_create_lesson_item(
