@@ -10,10 +10,11 @@ use crate::AppState;
 use super::dto::{
     AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
     LessonBulkResult, LessonBulkUpdateReq, LessonBulkUpdateRes, LessonBulkUpdateResult,
-    AdminLessonItemListRes, AdminLessonItemRes, LessonCreateReq, LessonItemBulkCreateReq,
-    LessonItemBulkCreateRes, LessonItemBulkCreateResult, LessonItemBulkUpdateReq,
-    LessonItemBulkUpdateRes, LessonItemBulkUpdateResult, LessonItemCreateReq, LessonItemListReq,
-    LessonItemUpdateReq, LessonListReq, LessonUpdateItem, LessonUpdateReq,
+    AdminLessonItemListRes, AdminLessonItemRes, AdminLessonProgressListRes, LessonCreateReq,
+    LessonItemBulkCreateReq, LessonItemBulkCreateRes, LessonItemBulkCreateResult,
+    LessonItemBulkUpdateReq, LessonItemBulkUpdateRes, LessonItemBulkUpdateResult,
+    LessonItemCreateReq, LessonItemListReq, LessonItemUpdateReq, LessonListReq,
+    LessonProgressListReq, LessonUpdateItem, LessonUpdateReq,
 };
 use super::repo;
 
@@ -155,6 +156,70 @@ pub async fn admin_list_lesson_items(
     .await?;
 
     Ok(AdminLessonItemListRes {
+        list,
+        total,
+        page,
+        size,
+        total_pages: (total as f64 / size as f64).ceil() as i64,
+    })
+}
+
+pub async fn admin_list_lesson_progress(
+    st: &AppState,
+    actor_user_id: i64,
+    req: LessonProgressListReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminLessonProgressListRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    req.validate()?;
+
+    let page = req.page.unwrap_or(1);
+    let size = req.size.unwrap_or(20);
+    let sort = req
+        .sort
+        .as_deref()
+        .unwrap_or("lesson_progress_last_progress_at");
+    let order = req.order.as_deref().unwrap_or("desc");
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "page": page,
+        "size": size,
+        "sort": sort,
+        "order": order,
+        "lesson_id": req.lesson_id,
+        "user_id": req.user_id
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "LIST_LESSON_PROGRESS",
+        Some("LESSON_PROGRESS"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let (total, list) = repo::admin_list_lesson_progress(
+        &st.db,
+        req.lesson_id,
+        req.user_id,
+        page,
+        size,
+        sort,
+        order,
+    )
+    .await?;
+
+    Ok(AdminLessonProgressListRes {
         list,
         total,
         page,

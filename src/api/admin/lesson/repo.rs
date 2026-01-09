@@ -2,7 +2,8 @@ use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 
 use crate::api::admin::lesson::dto::{
-    AdminLessonItemRes, AdminLessonRes, LessonItemCreateReq, LessonUpdateItem,
+    AdminLessonItemRes, AdminLessonProgressRes, AdminLessonRes, LessonItemCreateReq,
+    LessonUpdateItem,
 };
 use crate::error::AppResult;
 
@@ -58,6 +59,35 @@ fn apply_lesson_item_filters<'a>(
         builder.push("lesson_item_kind = ");
         builder.push_bind(lesson_item_kind);
         builder.push("::lesson_item_kind_enum");
+    }
+}
+
+fn apply_lesson_progress_filters<'a>(
+    builder: &mut QueryBuilder<'a, Postgres>,
+    lesson_id: Option<i32>,
+    user_id: Option<i64>,
+) {
+    let mut has_where = false;
+
+    let mut push_cond = |builder: &mut QueryBuilder<'a, Postgres>| {
+        if !has_where {
+            builder.push(" WHERE ");
+            has_where = true;
+        } else {
+            builder.push(" AND ");
+        }
+    };
+
+    if let Some(lesson_id) = lesson_id {
+        push_cond(builder);
+        builder.push("lesson_id = ");
+        builder.push_bind(lesson_id);
+    }
+
+    if let Some(user_id) = user_id {
+        push_cond(builder);
+        builder.push("user_id = ");
+        builder.push_bind(user_id);
     }
 }
 
@@ -170,6 +200,64 @@ pub async fn admin_list_lesson_items(
 
     let rows = builder
         .build_query_as::<AdminLessonItemRes>()
+        .fetch_all(pool)
+        .await?;
+
+    Ok((total_count, rows))
+}
+
+pub async fn admin_list_lesson_progress(
+    pool: &PgPool,
+    lesson_id: Option<i32>,
+    user_id: Option<i64>,
+    page: u64,
+    size: u64,
+    sort: &str,
+    order: &str,
+) -> AppResult<(i64, Vec<AdminLessonProgressRes>)> {
+    let mut count_builder = QueryBuilder::new("SELECT COUNT(*) FROM lesson_progress");
+    apply_lesson_progress_filters(&mut count_builder, lesson_id, user_id);
+
+    let total_count: i64 = count_builder
+        .build_query_scalar()
+        .fetch_one(pool)
+        .await?;
+
+    let mut builder = QueryBuilder::new(
+        r#"
+        SELECT
+            lesson_id,
+            user_id::bigint AS user_id,
+            lesson_progress_percent,
+            lesson_progress_last_item_seq,
+            lesson_progress_last_progress_at
+        FROM lesson_progress
+        "#,
+    );
+
+    apply_lesson_progress_filters(&mut builder, lesson_id, user_id);
+
+    builder.push(" ORDER BY ");
+    let sort_col = match sort {
+        "lesson_id" => "lesson_id",
+        "user_id" => "user_id",
+        "lesson_progress_percent" | "percent" => "lesson_progress_percent",
+        "lesson_progress_last_item_seq" | "last_item_seq" => "lesson_progress_last_item_seq",
+        "lesson_progress_last_progress_at" | "last_progress_at" | "updated_at" => {
+            "lesson_progress_last_progress_at"
+        }
+        _ => "lesson_progress_last_progress_at",
+    };
+    builder.push(sort_col);
+    builder.push(if order == "asc" { " ASC" } else { " DESC" });
+
+    builder.push(" LIMIT ");
+    builder.push_bind(size as i64);
+    builder.push(" OFFSET ");
+    builder.push_bind(((page - 1) * size) as i64);
+
+    let rows = builder
+        .build_query_as::<AdminLessonProgressRes>()
         .fetch_all(pool)
         .await?;
 
