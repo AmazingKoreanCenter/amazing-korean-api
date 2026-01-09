@@ -10,11 +10,12 @@ use crate::AppState;
 use super::dto::{
     AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
     LessonBulkResult, LessonBulkUpdateReq, LessonBulkUpdateRes, LessonBulkUpdateResult,
-    AdminLessonItemListRes, AdminLessonItemRes, AdminLessonProgressListRes, LessonCreateReq,
-    LessonItemBulkCreateReq, LessonItemBulkCreateRes, LessonItemBulkCreateResult,
-    LessonItemBulkUpdateReq, LessonItemBulkUpdateRes, LessonItemBulkUpdateResult,
-    LessonItemCreateReq, LessonItemListReq, LessonItemUpdateReq, LessonListReq,
-    LessonProgressListReq, LessonUpdateItem, LessonUpdateReq,
+    AdminLessonItemListRes, AdminLessonItemRes, AdminLessonProgressListRes,
+    AdminLessonProgressRes, LessonCreateReq, LessonItemBulkCreateReq, LessonItemBulkCreateRes,
+    LessonItemBulkCreateResult, LessonItemBulkUpdateReq, LessonItemBulkUpdateRes,
+    LessonItemBulkUpdateResult, LessonItemCreateReq, LessonItemListReq, LessonItemUpdateReq,
+    LessonListReq, LessonProgressListReq, LessonProgressUpdateReq, LessonUpdateItem,
+    LessonUpdateReq,
 };
 use super::repo;
 
@@ -226,6 +227,89 @@ pub async fn admin_list_lesson_progress(
         size,
         total_pages: (total as f64 / size as f64).ceil() as i64,
     })
+}
+
+pub async fn admin_update_lesson_progress(
+    st: &AppState,
+    actor_user_id: i64,
+    lesson_id: i32,
+    req: LessonProgressUpdateReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminLessonProgressRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let has_any =
+        req.lesson_progress_percent.is_some() || req.lesson_progress_last_item_seq.is_some();
+
+    if !has_any {
+        return Err(AppError::BadRequest("no fields to update".into()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "lesson_id": lesson_id,
+        "user_id": req.user_id,
+        "payload": &req
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "UPDATE_LESSON_PROGRESS",
+        Some("LESSON_PROGRESS"),
+        Some(lesson_id as i64),
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let mut tx = st.db.begin().await?;
+
+    let before = repo::find_lesson_progress_tx(&mut tx, lesson_id, req.user_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    repo::update_lesson_progress_tx(
+        &mut tx,
+        lesson_id,
+        req.user_id,
+        req.lesson_progress_percent,
+        req.lesson_progress_last_item_seq,
+    )
+    .await?;
+
+    let after = repo::find_lesson_progress_tx(&mut tx, lesson_id, req.user_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let before_val = serde_json::to_value(&before).unwrap_or_default();
+    let after_val = serde_json::to_value(&after).unwrap_or_default();
+
+    repo::create_lesson_log_tx(
+        &mut tx,
+        actor_user_id,
+        "update",
+        lesson_id,
+        after.lesson_progress_last_item_seq,
+        None,
+        None,
+        Some(&before_val),
+        Some(&after_val),
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(after)
 }
 
 pub async fn admin_create_lesson_item(

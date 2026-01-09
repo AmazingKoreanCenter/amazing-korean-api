@@ -264,6 +264,75 @@ pub async fn admin_list_lesson_progress(
     Ok((total_count, rows))
 }
 
+pub async fn find_lesson_progress_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+    user_id: i64,
+) -> AppResult<Option<AdminLessonProgressRes>> {
+    let row = sqlx::query_as::<_, AdminLessonProgressRes>(
+        r#"
+        SELECT
+            lesson_id,
+            user_id::bigint AS user_id,
+            lesson_progress_percent,
+            lesson_progress_last_item_seq,
+            lesson_progress_last_progress_at
+        FROM lesson_progress
+        WHERE lesson_id = $1
+          AND user_id = $2
+        "#,
+    )
+    .bind(lesson_id)
+    .bind(user_id)
+    .fetch_optional(&mut **tx)
+    .await?;
+
+    Ok(row)
+}
+
+pub async fn update_lesson_progress_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+    user_id: i64,
+    lesson_progress_percent: Option<i32>,
+    lesson_progress_last_item_seq: Option<i32>,
+) -> AppResult<()> {
+    let mut builder = QueryBuilder::<Postgres>::new("UPDATE lesson_progress SET ");
+    let mut is_first = true;
+
+    if let Some(percent) = lesson_progress_percent {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("lesson_progress_percent = ");
+        builder.push_bind(percent);
+        is_first = false;
+    }
+
+    if let Some(last_item_seq) = lesson_progress_last_item_seq {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("lesson_progress_last_item_seq = ");
+        builder.push_bind(last_item_seq);
+        is_first = false;
+    }
+
+    if is_first {
+        return Ok(());
+    }
+
+    builder.push(", lesson_progress_last_progress_at = now()");
+    builder.push(" WHERE lesson_id = ");
+    builder.push_bind(lesson_id);
+    builder.push(" AND user_id = ");
+    builder.push_bind(user_id);
+
+    builder.build().execute(&mut **tx).await?;
+
+    Ok(())
+}
+
 pub async fn exists_lesson(pool: &PgPool, lesson_id: i32) -> AppResult<bool> {
     let exists = sqlx::query_scalar::<_, bool>(
         r#"

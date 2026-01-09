@@ -145,6 +145,16 @@ pub struct AdminLessonProgressListRes {
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonProgressUpdateReq {
+    #[validate(range(min = 1))]
+    pub user_id: i64,
+    #[validate(range(min = 0, max = 100))]
+    pub lesson_progress_percent: Option<i32>,
+    #[validate(range(min = 1))]
+    pub lesson_progress_last_item_seq: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
 pub struct LessonItemCreateReq {
     #[validate(range(min = 1))]
     pub lesson_item_seq: i32,
