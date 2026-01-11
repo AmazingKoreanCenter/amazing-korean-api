@@ -6,11 +6,13 @@ use axum::{
 use std::net::IpAddr;
 
 use crate::api::admin::lesson::dto::{
-    AdminLessonItemListRes, AdminLessonItemRes, AdminLessonListRes, AdminLessonRes,
-    LessonBulkCreateReq, LessonBulkCreateRes, LessonBulkUpdateReq, LessonBulkUpdateRes,
-    LessonCreateReq, LessonItemBulkCreateReq, LessonItemBulkCreateRes, LessonItemBulkUpdateReq,
-    LessonItemBulkUpdateRes, LessonItemCreateReq, LessonItemListReq, LessonItemUpdateReq,
-    LessonListReq, LessonUpdateReq,
+    AdminLessonItemListRes, AdminLessonItemRes, AdminLessonListRes, AdminLessonProgressListRes,
+    AdminLessonProgressRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
+    LessonBulkUpdateReq, LessonBulkUpdateRes, LessonCreateReq, LessonItemBulkCreateReq,
+    LessonItemBulkCreateRes, LessonItemBulkUpdateReq, LessonItemBulkUpdateRes,
+    LessonItemCreateReq, LessonItemListReq, LessonItemUpdateReq, LessonListReq,
+    LessonProgressBulkUpdateReq, LessonProgressBulkUpdateRes, LessonProgressListReq,
+    LessonProgressUpdateReq, LessonUpdateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::AppResult;
@@ -111,6 +113,125 @@ pub async fn admin_list_lesson_items(
     .await?;
 
     Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/lessons/progress",
+    tag = "admin_lesson",
+    params(LessonProgressListReq),
+    responses(
+        (status = 200, description = "List of lesson progress", body = AdminLessonProgressListRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_list_lesson_progress(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Query(params): Query<LessonProgressListReq>,
+) -> AppResult<Json<AdminLessonProgressListRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_list_lesson_progress(
+        &st,
+        auth_user.sub,
+        params,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/admin/lessons/{lesson_id}/progress",
+    tag = "admin_lesson",
+    request_body = LessonProgressUpdateReq,
+    params(
+        ("lesson_id" = i32, Path, description = "Lesson ID")
+    ),
+    responses(
+        (status = 200, description = "Lesson progress updated", body = AdminLessonProgressRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_update_lesson_progress(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(lesson_id): Path<i32>,
+    headers: HeaderMap,
+    Json(req): Json<LessonProgressUpdateReq>,
+) -> AppResult<Json<AdminLessonProgressRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_update_lesson_progress(
+        &st,
+        auth_user.sub,
+        lesson_id,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/admin/lessons/bulk/progress",
+    tag = "admin_lesson",
+    request_body = LessonProgressBulkUpdateReq,
+    responses(
+        (status = 200, description = "All updated", body = LessonProgressBulkUpdateRes),
+        (status = 207, description = "Partial success", body = LessonProgressBulkUpdateRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+        (status = 422, description = "Unprocessable Entity"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_bulk_update_lesson_progress(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<LessonProgressBulkUpdateReq>,
+) -> AppResult<(StatusCode, Json<LessonProgressBulkUpdateRes>)> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = super::service::admin_bulk_update_lesson_progress(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::OK
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
 }
 
 #[utoipa::path(

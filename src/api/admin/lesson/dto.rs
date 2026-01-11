@@ -112,6 +112,83 @@ pub struct LessonItemListReq {
     pub lesson_item_kind: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, IntoParams)]
+pub struct LessonProgressListReq {
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub size: Option<u64>,
+    pub sort: Option<String>,
+    pub order: Option<String>,
+    #[validate(range(min = 1))]
+    pub lesson_id: Option<i32>,
+    #[validate(range(min = 1))]
+    pub user_id: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
+pub struct AdminLessonProgressRes {
+    pub lesson_id: i32,
+    pub user_id: i64,
+    pub lesson_progress_percent: i32,
+    pub lesson_progress_last_item_seq: Option<i32>,
+    pub lesson_progress_last_progress_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
+pub struct AdminLessonProgressListRes {
+    pub list: Vec<AdminLessonProgressRes>,
+    pub total: i64,
+    pub page: u64,
+    pub size: u64,
+    pub total_pages: i64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonProgressUpdateReq {
+    #[validate(range(min = 1))]
+    pub user_id: i64,
+    #[validate(range(min = 0, max = 100))]
+    pub lesson_progress_percent: Option<i32>,
+    #[validate(range(min = 1))]
+    pub lesson_progress_last_item_seq: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonProgressUpdateItem {
+    #[validate(range(min = 1))]
+    pub lesson_id: i32,
+    #[validate(range(min = 1))]
+    pub user_id: i64,
+    #[validate(range(min = 0, max = 100))]
+    pub lesson_progress_percent: Option<i32>,
+    #[validate(range(min = 1))]
+    pub lesson_progress_last_item_seq: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonProgressBulkUpdateReq {
+    #[validate(length(min = 1, max = 100))]
+    #[validate(nested)]
+    pub items: Vec<LessonProgressUpdateItem>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonProgressBulkUpdateResult {
+    pub lesson_id: i32,
+    pub user_id: i64,
+    pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
+pub struct LessonProgressBulkUpdateRes {
+    pub success_count: i64,
+    pub failure_count: i64,
+    pub results: Vec<LessonProgressBulkUpdateResult>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
 pub struct LessonItemCreateReq {
     #[validate(range(min = 1))]
