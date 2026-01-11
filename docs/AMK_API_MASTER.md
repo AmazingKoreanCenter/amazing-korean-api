@@ -1,6 +1,6 @@
 ---
 title: AMK_API_MASTER — Amazing Korean API  Master Spec
-updated: 2025-11-24
+updated: 2026-01-11
 owner: HYMN Co., Ltd. (Amazing Korean)
 audience: server / database / backend / frontend / lead / LLM assistant
 ---
@@ -1288,241 +1288,223 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ### 6.1 프론트엔드 스택 & 기본 원칙
 
-> 목적: AMK 백엔드(API)와 일관되게 동작하는 **Vite + React + Tailwind** 기반 프론트엔드의 공통 규칙을 정의한다.  
-> 이 섹션은 **웹(반응형, 앱까지 고려)** 을 기준으로 한다.
+> 목적: AMK 백엔드(API)와 일관되게 동작하며, **한국어 학습자 환경(저사양/데이터 절약)**에 최적화된 **"Lightweight React"** 아키텍처를 정의한다.
 
-- **기술 스택**
-  - 번들러/개발 서버: **Vite**
-  - UI 라이브러리: **React**
-  - 스타일링: **Tailwind CSS**
-  - 라우터: **React Router (v6 기준)**
-  - HTTP 통신: `fetch` 기반 공용 클라이언트 (에러/토큰 처리 일원화)
+- **기술 스택 (Strict)**
+  - **Core**: Vite + React + TypeScript
+    - *Create React App(CRA) 및 Next.js 사용 금지 (SPA 모드 유지)*
+  - **Styling**: Tailwind CSS
+  - **UI Library**: **shadcn/ui** (Radix UI 기반 Headless)
+    - *MUI, AntD 등 번들 사이즈가 큰 UI 프레임워크 반입 금지*
+  - **State Management**:
+    - **Server State**: **TanStack Query (React Query)** (API 캐싱 및 로딩 상태 관리)
+    - **Global Client State**: **Zustand** (로그인 세션 등 최소한의 전역 상태)
+    - **Form**: **React Hook Form** + **Zod** (렌더링 최적화 및 스키마 검증)
+  - **Routing**: React Router (v6)
+  - **HTTP**: `fetch` API 래퍼 (Axios 사용 지양, `src/api/client.ts`로 통일)
 
 - **설계 기본 원칙**
-  - **단일 소스 오브 트루스(SSOT)**
-    - 백엔드 스펙/엔드포인트/상태코드/에러 정책은 **항상 AMK_API_MASTER.md** 를 기준으로 한다.
-    - **5. 기능 & API 로드맵의 “엔드포인트 / 화면 경로 / 점검사항”**을 프론트 설계·구현의 출발점으로 삼는다.
-  - **도메인(category) 기준 구조**
-    - `auth / user / video / study / lesson / admin` 등 **백엔드 도메인과 동일한 축**으로 프론트 코드를 구성한다.
-  - **재사용 우선**
-    - 페이지 안에서 “즉석 컴포넌트”를 새로 정의하지 않고,
-    - 항상 `category/**/component` 또는 `common/ui` 의 컴포넌트를 재사용/추출하는 방향으로 설계한다.
-  - **관심사 분리**
-    - 라우팅/URL 담당: `app/`
-    - 도메인별 화면/로직: `category/**`
-    - 공용 UI/레이아웃: `common/**`
-    - 전역 훅/유틸: `global_hook/`, `lib/`
-  - **반응형 우선**
-    - 모바일 ~ 데스크톱까지 Tailwind의 breakpoints(`sm / md / lg / xl` 등)을 사용해 반응형으로 설계한다.
-    - “앱 전용” UI가 필요해지면, 우선 웹 반응형 구조를 재사용하는 것을 기본 원칙으로 한다.
+  1. **단일 소스 오브 트루스 (SSOT)**
+     - 백엔드 스펙/엔드포인트/상태코드/에러 정책은 **항상 AMK_API_MASTER.md** 를 기준으로 한다.
+  
+  2. **성능 및 데이터 최적화 (Data Saver First)**
+     - **목표**: 인터넷 환경이 좋지 않은 국가의 학습자를 위해 초기 로딩 속도와 데이터 소모를 최소화한다.
+     - **Code Splitting**: 모든 페이지 라우트는 `React.lazy`와 `Suspense`를 통해 동적으로 로딩한다.
+     - **Asset Lazy Loading**: 이미지와 비디오(Vimeo Player SDK 포함)는 뷰포트에 들어오거나 사용자가 상호작용(클릭)하기 전까지 절대 미리 로드하지 않는다.
+     - **No Heavy Libs**: Gzip 기준 **10kb**를 초과하는 외부 라이브러리 추가 시, 반드시 대체재(직접 구현 또는 경량 라이브러리)를 검토한다.
+
+  3. **모바일 퍼스트 & 앱 확장성 (Mobile First Architecture)**
+     - **반응형**: 모든 UI는 모바일(`sm`) 기준으로 먼저 설계하고, 태블릿(`md`) 및 데스크톱(`lg`)으로 확장한다.
+     - **로직 분리 (Hook Separation)**:
+       - 향후 **React Native 모바일 앱** 확장을 고려하여, 비즈니스 로직은 컴포넌트(UI) 내부에 작성하지 않는다.
+       - 반드시 **Custom Hook** (`useAuth`, `useVideoPlayer` 등)으로 추출하여 UI와 로직을 100% 분리한다.
+
+  4. **도메인(Category) 주도 구조**
+     - 백엔드와 동일하게 `auth / user / video / study / lesson / admin` 도메인 기준으로 폴더와 로직을 격리한다.
+     - 페이지 안에서 "즉석 컴포넌트"를 만들지 않고, `common/ui`의 디자인 시스템을 조립하여 사용한다.
 
 ---
 
 ### 6.2 프론트 디렉터리 구조 & 컴포넌트 계층
 
-> 목적: 프론트엔드 코드를 **도메인 기준 + 계층 구조**로 정리해서, 중복 컴포넌트 생성을 줄이고 유지보수를 쉽게 만든다.
+> 목적: **도메인 주도(Domain-Driven)** 구조를 기반으로, shadcn/ui 표준과 React Hook 패턴을 결합하여 유지보수성과 확장성을 극대화한다.
 
-#### 6.2.1 디렉터리 구조(초안)
+#### 6.2.1 디렉터리 구조 (Strict)
 
-- 기준 경로: `frontend/src/` (실제 레포 구조에 맞게 조정)
+- 기준 경로: `frontend/src/`
 
 ```text
 src/
   app/
-    router.tsx           # 라우트 정의
-    layout_root.tsx      # 최상위 레이아웃(AppShell)
-    providers.tsx        # 전역 Provider (Auth, Query 등)
+    router.tsx           # 라우트 정의 (React Router v6)
+    layout_root.tsx      # 최상위 레이아웃 (AppShell)
+    providers.tsx        # 전역 Provider 모음 (QueryClient, AuthProvider 등)
+  
   api/
-    client.ts            # fetch 래퍼, 에러/토큰 공통 처리
-    auth.ts              # /auth 계열 호출 래퍼
-    user.ts              # /users 계열 호출 래퍼
-    video.ts             # /videos 계열 호출 래퍼
-    study.ts             # /studies 계열 호출 래퍼
-    lesson.ts            # /lessons 계열 호출 래퍼
-    admin.ts             # /admin 계열 호출 래퍼
-  category/
+    client.ts            # fetch 래퍼 (Axios 지양), Interceptor (토큰/에러)
+    # 도메인별 API 호출 함수 (fetcher)
+    auth.ts
+    user.ts
+    video.ts
+    study.ts
+    lesson.ts
+    admin.ts
+
+  category/              # ★ 핵심: 도메인별 기능 격리 (Vertical Slicing)
     auth/
-      page/              # 인증 관련 화면 단위 컴포넌트
-      component/         # 인증 관련 전용 섹션/폼 컴포넌트
-      hook/              # auth 전용 훅 (예: useLoginForm)
-      api/               # auth 도메인 전용 API 헬퍼(필요시)
+      page/              # 페이지 컴포넌트 (Route와 1:1 매핑)
+      component/         # 해당 도메인 전용 UI 조각
+      hook/              # 비즈니스 로직 & Custom Hook (UI 분리 원칙)
+      types.ts           # 해당 도메인 전용 Request/Response DTO 타입
     user/
-      page/              # 사용자 관련 화면 단위 컴포넌트
-      component/         # 사용자 관련 전용 섹션/폼 컴포넌트
-      hook/              # user 전용 훅 (예: useSignupForm)
-      api/               # user 도메인 전용 API 헬퍼(필요시)
+      page/
+      component/
+      hook/
+      types.ts
     video/
-      page/              # 비디오 관련 화면 단위 컴포넌트
-      component/         # 비디오 관련 섹션/폼 컴포넌트
-      hook/              # video 전용 훅 (예: useVideoList)
-      api/               # video 도메인 전용 API 헬퍼(필요시)
+      # ... (동일 구조)
     study/
-      page/              # 학습 관련 화면 단위 컴포넌트
-      component/         # 학습 관련 전용 섹션/폼 컴포넌트
-      hook/              # study 전용 훅 (예: useStudyTask)
-      api/               # study 도메인 전용 API 헬퍼(필요시)
+      # ... (동일 구조)
     lesson/
-      page/              # 수업 관련 화면 단위 컴포넌트
-      component/         # 수업 관련 전용 섹션/폼 컴포넌트
-      hook/              # lesson 전용 훅 (예: useLessonDetail)
-      api/               # lesson 도메인 전용 API 헬퍼(필요시)
+      # ... (동일 구조)
     admin/
-      page/              # 관리자 관련 화면 단위 컴포넌트
-      component/         # 관리자 관련 전용 섹션/폼 컴포넌트
-      hook/              # admin 전용 훅 (예: useAdminUserChange)
-      api/               # admin 도메인 전용 API 헬퍼(필요시)
-  common/
-    ui/                  # 버튼, 인풋, 모달 등 순수 프리젠테이션 컴포넌트
-    layout/              # 공용 레이아웃(헤더/푸터/그리드 등)
-  global_hook/           # 도메인에 중립적인 전역 훅 (예: useAuth, useToast)
-  lib/                   # 유틸 함수, 포맷터, 상수 등의 공용 모듈
+      # ... (동일 구조)
+
+  components/            # 공용 컴포넌트 (Horizontal Slicing)
+    ui/                  # ★ shadcn/ui 설치 경로 (Button, Dialog 등)
+    layout/              # Header, Footer, Sidebar 등 레이아웃 조각
+    shared/              # 도메인에 종속되지 않는 재사용 컴포넌트 (LoadingSpinner 등)
+
+  hooks/                 # 전역 Custom Hook
+    use_auth.ts          # 인증 상태 관리 (Zustand + Logic)
+    use_toast.ts         # 알림 UI 제어
+    use_mobile.ts        # 모바일 감지 및 반응형 처리
+
+  lib/
+    utils.ts             # cn() 등 shadcn/ui 필수 유틸
+    constants.ts         # 전역 상수
+    format.ts            # 날짜/시간/통화 포맷터
 ```
 
-> **네이밍 규칙 요약**  
-> - 상세 규칙은 **3.2.4 프론트엔드 네이밍**을 단일 기준으로 따른다.  
-> - 요약:
->   - React 컴포넌트 파일/이름/JSX 태그: **PascalCase** (`LoginPage.tsx`, `<LoginPage />`)
->   - 그 외 TS 파일(hook/api/lib 등) 파일명: **snake_case** (`video_api.ts`, `use_auth.ts`)
->   - 함수/변수명: TS 관례대로 **camelCase** (`fetchVideos`, `loginUser`)
->   - API DTO 필드: 백엔드/DB와 동일하게 **snake_case** (`user_id`, `video_title`)
+> **네이밍 규칙 (Strict)**
+> - **Files**:
+>   - React 컴포넌트 (`.tsx`): **PascalCase** (예: `LoginPage.tsx`, `VideoCard.tsx`)
+>   - 그 외 TS 파일 (`.ts`): **snake_case** (예: `video_api.ts`, `use_auth.ts`, `utils.ts`)
+> - **Code**:
+>   - 컴포넌트/인터페이스/타입명: **PascalCase**
+>   - 변수/함수명: **camelCase**
+>   - **API DTO 필드명**: 백엔드 DB 컬럼명과 100% 일치하는 **snake_case** (예: `video_id`, `is_completed`)
+>     - *프론트엔드에서 camelCase로 변환하지 않고 그대로 사용한다.*
 
 #### 6.2.2 컴포넌트 3단계 계층
 
-- 1) **Page 컴포넌트 (`category/*/page/`)**
-  - 라우터와 1:1로 연결되는 화면 단위 컴포넌트.
-  - 역할:
-    - URL 파라미터/쿼리(`useParams`, `useSearchParams`) 해석
-    - 전역 상태/스토어(Auth, Course 상태 등)와 연결
-    - 도메인 서비스 훅 호출 (예: `useVideoList`, `useLessonDetail`)
-    - 레이아웃에 페이지를 꽂는 역할 (헤더/푸터 포함)
-  - 원칙:
-    - **재사용하지 않고**, 해당 라우트에만 사용되는 것을 기본으로 한다.
+1. **Page 컴포넌트 (`category/*/page/`)**
+   - **역할**: 라우팅의 종착점. 데이터 페칭(`useQuery`)과 레이아웃 조립만 담당.
+   - **규칙**:
+     - `useEffect` 등 복잡한 로직을 직접 포함하지 않는다. (Hook으로 위임)
+     - 스타일링(Tailwind)을 최소화하고, `component`들을 배치하는 데 집중한다.
+     - 파일명 예시: `VideoListPage.tsx`, `SignupPage.tsx`
 
-- 2) **도메인 컴포넌트 (`category/*/component/`)**
-  - 개별 페이지에서 공통으로 사용하는 “섹션” 단위 컴포넌트.
-  - 예:
-    - `category/video/component/video_card.tsx`
-    - `category/study/component/study_task_panel.tsx`
-    - `category/auth/component/login_form.tsx`
-  - 역할:
-    - 특정 도메인 로직(버튼 핸들러, 폼 상태 등)을 포함해도 되지만,
-    - 다른 페이지에서도 재사용할 수 있도록 설계한다.
+2. **도메인 컴포넌트 (`category/*/component/`)**
+   - **역할**: 특정 도메인 기능(비디오 플레이어, 문제 풀이 폼)을 수행하는 UI 블록.
+   - **규칙**:
+     - 해당 도메인(`category`) 내에서만 사용된다.
+     - 비즈니스 로직이 필요한 경우, 상위 Page에서 Props로 받거나 전용 Hook을 사용한다.
+     - 파일명 예시: `VideoPlayer.tsx`, `AnswerForm.tsx`
 
-- 3) **공용 UI 컴포넌트 (`common/ui/`)**
-  - 버튼, 인풋, 모달, 카드 등 **디자인 시스템** 수준의 컴포넌트.
-  - 도메인 지식이 없는 “순수 뷰”에 가깝게 유지한다.
-  - 예:
-    - `common/ui/button.tsx`
-    - `common/ui/text_field.tsx`
-    - `common/ui/dialog.tsx`
+3. **공용 UI 컴포넌트 (`components/ui/`)**
+   - **역할**: 디자인 시스템의 원자(Atom). (`shadcn/ui` 컴포넌트들)
+   - **규칙**:
+     - **도메인 로직(비즈니스)을 절대 포함하지 않는다.**
+     - `className` prop을 통해 외부에서 스타일 확장이 가능해야 한다.
+     - 파일명 예시: `Button.tsx`, `Dialog.tsx`
 
-- 추가: **레이아웃/컨테이너 (`common/layout/`)**
-  - 헤더/푸터, 2컬럼/3컬럼 레이아웃, 모바일/데스크톱 반응형 래퍼 등
-  - 예:
-    - `common/layout/app_shell.tsx`
-    - `common/layout/page_container.tsx`
+#### 6.2.3 훅(Hook) & API 레이어 설계
 
-#### 6.2.3 훅 & API 레이어
+- **API Layer (`src/api/*.ts`)**
+  - 순수 함수(Pure Function)로 구성된 `fetch` 호출부.
+  - React 의존성(State, Hook)이 전혀 없어야 한다.
+  - `client.ts`를 import하여 사용한다.
 
-- `global_hook/`
-  - 전역 컨텍스트/스토어 기반 훅
-  - 예:
-    - `useAuth()` : 현재 사용자, Auth 상태축(`Auth pass/stop/forbid`) 관리
-    - `useCourseAccess()` : 현재 코스의 `Course buy/taster/buy-not/checking` 상태 계산
-    - `useRequestStatus()` : Request 상태축(`pending/success/error/retryable`) 공통 처리
+- **Query Hook (`category/*/hook/`)**
+  - **TanStack Query**를 래핑하여 데이터 상태(`isLoading`, `data`, `error`)를 제공하는 훅.
+  - 예: `useVideoListQuery`, `useVideoProgressMutation`
+  - 이 계층에서 **API 응답 타입(DTO)**과 **프론트엔드 뷰 모델** 간의 변환이 필요하다면 수행한다. (단, 기본적으로는 DTO 구조를 그대로 사용하는 것을 권장)
 
-- `category/*/hook/`
-  - 도메인 전용 훅
-  - 예:
-    - `useVideoList(params)` : `/videos` 목록 조회 + 페이지네이션 상태
-    - `useStudyTask(id)` : `/studies/tasks/{id}` + `/status` 묶음 조회
-    - `useLessonProgress(id)` : 레슨 진도 조회/업데이트 래핑
-
-- `api/` + `category/*/api/`
-  - `api/client.ts` : base URL, 헤더, 에러 핸들링, 토큰 첨부 등 공통 처리
-  - 도메인별 API 래퍼:
-    - `api/video.ts` : `getVideos`, `getVideo`, `getVideoProgress`, `postVideoProgress` 등
-    - `api/study.ts`, `api/lesson.ts`, `api/admin.ts` ...
-  - 필요 시 도메인 내부에서만 쓰는 보조 API 헬퍼는 `category/*/api/`에 둘 수 있다.
+- **Logic Hook (`category/*/hook/`)**
+  - UI 상태(Form, Modal open/close)와 사용자 인터랙션 핸들러를 캡슐화.
+  - Page 컴포넌트가 "Controller" 역할을 하지 않도록 로직을 분리해내는 핵심 계층.
+  - 예: `useSignupForm`, `useVideoPlayerController`
 
 ---
 
 ### 6.3 라우팅 & 접근 제어
 
-> 목적: 5. 기능 & API 로드맵의 “화면 경로”를 기준으로,  
-> **React Router 라우트 트리 + 접근 제어 패턴**을 정리한다.
+> 목적: 5. 기능 & API 로드맵의 “화면 경로”를 기준으로, **Code Splitting이 적용된 React Router 트리**와 **엄격한 접근 제어(Auth/Admin Guard)**를 정의한다.
 
-#### 6.3.1 라우트 매핑 원칙
+#### 6.3.1 라우트 매핑 원칙 (Lazy Loading 필수)
 
 - **라우트 정의 위치**
   - `src/app/router.tsx` 에서 **전체 라우트 트리**를 정의한다.
-  - Phase/도메인 기준으로 묶어서 그룹핑:
-    - `/signup`, `/login`, `/find-id`, `/reset-password` → `category/auth/page/`
-    - `/me`, `/settings` → `category/user/page/`
-    - `/videos`, `/videos/:video_id` → `category/video/page/`
-    - `/studies`, `/studies/tasks/:task_id` → `category/study/page/`
-    - `/lessons`, `/lessons/:lesson_id` → `category/lesson/page/`
-    - `/admin/**` → `category/admin/page/`
+  - **성능 원칙**: 모든 페이지 컴포넌트는 `React.lazy`로 import하여, 초기 번들 사이즈를 최소화해야 한다.
 
 - **파일명 패턴 (예시)**
-  - `/login` → `category/auth/page/login_page.tsx` (`LoginPage`)
-  - `/signup` → `signup_page.tsx`
-  - `/videos` → `video_list_page.tsx`
-  - `/videos/:video_id` → `video_detail_page.tsx`
-  - `/lessons/:lesson_id` → `lesson_detail_page.tsx`
-  - `/admin/videos` → `admin_video_list_page.tsx`
-  - `/admin/users` → `admin_user_list_page.tsx`
+  - `/login` → `category/auth/page/LoginPage.tsx`
+  - `/videos/:video_id` → `category/video/page/VideoDetailPage.tsx`
+  - `/admin/users` → `category/admin/page/AdminUserListPage.tsx`
+  - *파일명은 PascalCase를 따른다.*
 
-- **라우트 구성 예시(개념)**
+- **라우트 구성 예시 (Strict Code Splitting)**
 
 ```tsx
-    // app/router.tsx (개념 예시)
-    import { BrowserRouter, Routes, Route } from "react-router-dom";
-    import { AppShell } from "@/common/layout/app_shell";
-    import { LoginPage } from "@/category/auth/page/login_page";
-    import { SignupPage } from "@/category/auth/page/signup_page";
-    import { VideoListPage } from "@/category/video/page/video_list_page";
-    import { VideoDetailPage } from "@/category/video/page/video_detail_page";
-    import { MePage } from "@/category/user/page/me_page";
-    import { SettingsPage } from "@/category/user/page/settings_page";
-    import { AdminUserListPage } from "@/category/admin/page/admin_user_list_page";
-    import { AdminVideoListPage } from "@/category/admin/page/admin_video_list_page";
-    import { RequireAuth } from "./route_guard_auth";
-    import { RequireAdmin } from "./route_guard_admin";
+// app/router.tsx
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import { AppShell } from "@/components/layout/AppShell"; // layout 경로 수정됨
+import { RequireAuth } from "./route_guard_auth";
+import { RequireAdmin } from "./route_guard_admin";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
-    export function AppRouter() {
-      return (
-        <BrowserRouter>
-          <AppShell>
-            <Routes>
-              {/* Phase 0: health/docs는 Swagger/백엔드 기준이라,
-                  프론트에서는 별도 화면이 아니라고 가정 */}
+// ★ 핵심: 모든 페이지는 Lazy Load 처리
+const LoginPage = lazy(() => import("@/category/auth/page/LoginPage"));
+const SignupPage = lazy(() => import("@/category/auth/page/SignupPage"));
+const VideoListPage = lazy(() => import("@/category/video/page/VideoListPage"));
+const VideoDetailPage = lazy(() => import("@/category/video/page/VideoDetailPage"));
+const MePage = lazy(() => import("@/category/user/page/MePage"));
+const AdminUserListPage = lazy(() => import("@/category/admin/page/AdminUserListPage"));
 
-              {/* Phase 1-2: auth/user */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              {/* ... find-id, reset-password 등 */}
+export function AppRouter() {
+  return (
+    <BrowserRouter>
+      {/* Suspense: Lazy Loading 중 보여줄 Fallback UI */}
+      <Suspense fallback={<LoadingSpinner fullScreen />}>
+        <AppShell>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
 
-              {/* 보호된 사용자 영역 */}
-              <Route element={<RequireAuth />}>
-                <Route path="/me" element={<MePage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/videos" element={<VideoListPage />} />
-                <Route path="/videos/:video_id" element={<VideoDetailPage />} />
-                {/* ... study/lesson 등 */}
-              </Route>
+            {/* Protected Routes (Member) */}
+            <Route element={<RequireAuth />}>
+              <Route path="/me" element={<MePage />} />
+              <Route path="/videos" element={<VideoListPage />} />
+              <Route path="/videos/:video_id" element={<VideoDetailPage />} />
+            </Route>
 
-              {/* 관리자 영역 */}
-              <Route element={<RequireAdmin />}>
-                <Route path="/admin/users" element={<AdminUserListPage />} />
-                <Route path="/admin/videos" element={<AdminVideoListPage />} />
-                {/* ... 나머지 admin 라우트 */}
-              </Route>
-            </Routes>
-          </AppShell>
-        </BrowserRouter>
-      );
-    }
+            {/* Admin Routes (RBAC) */}
+            <Route element={<RequireAdmin />}>
+              <Route path="/admin/users" element={<AdminUserListPage />} />
+              {/* ... other admin routes */}
+            </Route>
+            
+            {/* 404 Handling */}
+            <Route path="*" element={<div>Page Not Found</div>} />
+          </Routes>
+        </AppShell>
+      </Suspense>
+    </BrowserRouter>
+  );
+}
 ```
 
 > 실제 구현 시 파일명/컴포넌트명은 이 문서의 **네이밍 규칙(3.2.4 프론트엔드 네이밍)** 을 따른다.
@@ -1530,301 +1512,259 @@ src/
 #### 6.3.2 접근 제어 패턴 (Auth / Admin 가드)
 
 - **공통 개념**
-  - 백엔드의 상태축을 프론트에서 다음처럼 해석/반영한다:
-    - Auth 축: `pass / stop / forbid`
-  - 프론트에서는 `useAuth()` 등의 훅을 통해 아래 정보를 얻는다:
-    - `authStatus` (`"pass" | "stop" | "forbid"`)
-    - `user` (user_id, user_auth_enum, user_state 등)
-    - `isAdmin` (`HYMN | admin | manager` 여부)
+  - 백엔드의 상태축을 프론트에서 `useAuth()` 훅을 통해 `pass / stop / forbid` 상태로 해석한다.
+  - **권한 확인 로직은 `hooks/use_auth.ts`에 중앙화한다.**
 
 - **`RequireAuth` (사용자 로그인 필수)**
-  - 조건:
-    - `authStatus === "pass"` 이고, `user_state == "on"` 인 경우에만 자식 라우트 렌더링
-  - 실패 시:
-    - `authStatus === "stop"` 이면 `/login` 으로 리다이렉트
-    - `user_state !== "on"` 이면 “계정 비활성 안내” 페이지/모달로 이동(또는 403 페이지)
+  - **로직**:
+    - `authStatus === "pass"` (토큰 유효) AND `user_state === "on"` (계정 활성)
+  - **실패 시 처리**:
+    - `authStatus === "stop"` (미로그인/토큰만료) → 로그인 페이지로 이동 (`state: { from: location }` 전달)
+    - `user_state !== "on"` (정지/탈퇴) → "계정 비활성화" 안내 페이지로 이동.
 
 - **`RequireAdmin` (관리자 RBAC)**
-  - 조건:
-    - `authStatus === "pass"` 이고, `user_auth_enum` 이 `HYMN | admin | manager` 중 하나
-  - 실패 시:
-    - 미인증 → `/login` 또는 401 처리
-    - 인증되었지만 롤 부족 → “권한 없음” 페이지(403)로 이동
+  - **로직**:
+    - `RequireAuth` 통과 AND `user_auth_enum` IN `['HYMN', 'admin', 'manager']`
+  - **실패 시 처리**:
+    - 인증은 되었으나 권한 부족 → **403 Forbidden** 페이지 (커스텀 에러 페이지) 렌더링.
+    - *절대 로그인 페이지로 튕겨내지 않는다 (무한 루프 방지).*
 
-- **공개 라우트**
-  - `/login`, `/signup`, `/find-id`, `/reset-password`, 일부 공개 `/videos`(프로모션용 목록) 등은 **로그인 없이 접근 가능**.
-  - 로그인 상태인 사용자가 `/login` 으로 들어오면 `/videos` 또는 `/me` 등으로 리다이렉트하는 정책을 둘 수 있다.
-
-> 상세한 **상태 관리(useAuth 등)** 및 **API 연동 패턴(client.ts, 도메인별 훅)** 은 6.4를 참조한다.
+- **Redirect 정책 (Guest Guard)**
+  - 로그인 상태(`pass`)인 사용자가 `/login` 또는 `/signup` 접근 시:
+    - 일반 사용자 → `/videos` (메인)으로 리다이렉트
+    - 관리자 → `/admin/dashboard` 등으로 리다이렉트 (선택 사항)
 
 ---
 
 ### 6.4 상태 관리 & API 연동 패턴
 
-> 목적: 인증 상태, 공통 API 클라이언트, 도메인별 훅 구조를 정의해서  
-> 백엔드(AppError, JWT, 상태축)와 프론트 상태/화면을 일관되게 연결한다.
+> 목적: **TanStack Query(Server State)**와 **Zustand(Client State)**를 중심으로, 백엔드 API와 프론트엔드 UI를 **선언적(Declarative)**으로 연결한다.
 
-#### 6.4.1 인증 상태 관리 (AuthProvider / useAuth)
+#### 6.4.1 인증 상태 관리 (Zustand + AuthProvider)
 
-- **토큰/세션 보관 전략**
-  - 백엔드 설계에 맞춰:
-    - (예시) 액세스 토큰: 메모리/React Query 캐시
-    - 리프레시 토큰: httpOnly 쿠키 (JS에서 직접 접근하지 않음)
-  - 이 문서에서는 **정책 방향만 기록**하고, 구체 구현은 추후 확정 시 업데이트.
+- **토큰/세션 보관 전략 (Strict)**
+  - **Access Token**: 메모리(Zustand Store) 또는 React Query 캐시에만 보관. (LocalStorage 저장 금지 - XSS 취약)
+  - **Refresh Token**: `httpOnly` 쿠키로 백엔드가 설정. (JS 접근 불가)
 
-- **Auth 컨텍스트 구조**
-  - `AuthProvider` (예: `src/app/providers.tsx` 또는 `src/global_hook/use_auth.tsx` 연계)
-    - 현재 사용자 정보 (`user`)
-    - 인증 상태 (`authStatus: "pass" | "stop" | "forbid"`)
-    - 관리자 여부 (`isAdmin`)
-    - 로그인/로그아웃/토큰갱신 함수 (`login`, `logout`, `refresh` 등)
-  - `useAuth()` 훅
-    - 위 컨텍스트 값을 읽어서
-      - 라우팅 가드(6.3.2)
-      - 헤더/메뉴 UI
-      - 버튼 활성/비활성  
-      등에 활용.
+- **Auth Store 구조 (`hooks/use_auth.ts`)**
+  - `Zustand`를 사용하여 전역 인증 상태를 관리한다.
+  - **State**:
+    - `user`: User DTO | null
+    - `authStatus`: `"pass"`(인증됨) | `"stop"`(미인증/만료) | `"forbid"`(권한부족)
+    - `isAdmin`: boolean (Helper Getter)
+  - **Actions**:
+    - `login(token, user)`: 상태 업데이트 및 토큰 메모리 저장
+    - `logout()`: 상태 초기화 및 `/auth/logout` API 호출
+    - `refresh()`: 앱 초기 진입 시 `/auth/refresh` 호출하여 세션 복구
 
 #### 6.4.2 공통 API 클라이언트 (`src/api/client.ts`)
 
 - **역할**
-  - 백엔드 API 호출 공통 래퍼:
-    - base URL 설정
-    - JSON 직렬화/역직렬화
-    - 인증 헤더/쿠키 포함
-    - 에러 응답(`AppError` 포맷)을 프론트용 에러로 변환
+  - `fetch` API 기반의 Singleton 인스턴스.
+  - **Interceptor**: 요청 시 헤더에 `Authorization: Bearer {token}` 자동 주입.
+  - **Error Handling**: HTTP 에러를 `AppError` 객체로 변환하여 throw.
 
-- **기본 패턴 (개념)**
-  - (예시 개념, 실제 구현 시 세부 사항은 코드에서 정의)
-    - `request<T>(config): Promise<T>`
-    - 성공 시: `T` 리턴
-    - 실패 시:
-      - HTTP 4xx/5xx + `AppError` 바디를 파싱해서
-        - 폼 에러, 토스트 메시지, 리다이렉트용 정보로 매핑
-      - 401/403:
-        - `authStatus` 갱신 (`"stop"` / `"forbid"`)
-        - `/login` 또는 권한 없음 페이지로 라우트
+- **네이밍 규칙 (Strict)**
+  - **Request/Response DTO는 백엔드와 동일하게 `snake_case`를 사용한다.**
+  - 프론트엔드에서 `camelCase`로 변환하지 않는다. (불필요한 연산 및 매핑 오버헤드 제거)
 
-- **에러 매핑 규칙(개념)**
-  - 400 `invalid_argument` → 필드별 에러 표시
-  - 401 `unauthenticated` → 로그인 페이지 유도
-  - 403 `forbidden` → “권한 없음” UI
-  - 409 `conflict` → 중복/상태 충돌 안내
-  - 500/503 → “잠시 후 다시 시도해주세요” 공통 에러
+- **에러 매핑 규칙 (Global Error Boundary)**
+  - `401 Unauthorized` → `authStatus`를 `"stop"`으로 변경하고 로그인 모달/페이지 유도.
+  - `403 Forbidden` → `authStatus`를 `"forbid"`로 변경.
+  - `5xx Server Error` → Toast 메시지로 "잠시 후 다시 시도해주세요" 출력.
 
-#### 6.4.3 도메인별 API 래퍼 & 훅
+#### 6.4.3 도메인별 훅 패턴 (React Query & Custom Hooks)
 
-- **API 래퍼 위치**
-  - `src/api/`:
-    - `auth.ts` → `/auth/login`, `/auth/refresh` 등
-    - `user.ts` → `/users`, `/users/me`, `/users/me/settings` 등
-    - `video.ts` → `/videos`, `/videos/{id}`, `/videos/{id}/progress` 등
-    - `study.ts` → `/studies`, `/studies/tasks/{id}`, `/studies/tasks/{id}/answer` 등
-    - `lesson.ts` → `/lessons`, `/lessons/{id}`, `/lessons/{id}/items` 등
-    - `admin.ts` → `/admin/users`, `/admin/videos` 등
-  - 각 파일은 `client.ts`를 사용해서 도메인별 API 함수를 제공:
-    - 예: `fetchVideos`, `fetchVideoDetail`, `updateVideoProgress` 등
+> **원칙**: UI 컴포넌트는 `useEffect`를 사용하지 않고, 아래 훅을 통해 데이터를 구독한다.
 
-- **도메인별 훅 패턴**
-  - `category/**/hook/` 디렉터리에서 화면 단위 훅을 제공:
-    - 예:
-      - `useLoginForm` → 로그인 폼 상태 + `/auth/login` 호출
-      - `useSignupForm` → 회원가입 폼 상태 + `/users` 호출
-      - `useVideosList` → `/videos` 목록 조회 + 로딩/에러 관리
-      - `useVideoDetail(videoId)` → `/videos/{id}` + `/videos/{id}/progress`
-      - `useStudyTask(taskId)` → `/studies/tasks/{id}` 및 정답 제출
-  - 5. 기능 & API 로드맵의 “엔드포인트/화면 경로/기능 명칭”과 1:1로 연결되도록 훅 이름을 설계한다.
+- **Query Hook (Data Fetching)**
+  - **TanStack Query**를 사용하여 서버 상태를 관리한다.
+  - 파일 위치: `category/*/hook/use[Domain]Query.ts`
+  - 예시:
+    ```typescript
+    // useVideoListQuery.ts
+    export const useVideoListQuery = (params) => {
+      return useQuery({
+        queryKey: ["videos", params],
+        queryFn: () => fetchVideos(params), // api/video.ts 호출
+        staleTime: 1000 * 60 * 5, // 5분간 캐시 유지 (데이터 절약)
+      });
+    };
+    ```
 
-- **React Query / TanStack Query 도입 (선택)**
-  - 나중에 도입 시:
-    - `/videos` 목록, `/videos/{id}` 상세 등 **데이터 캐시가 이득인 곳**에 우선 적용
-    - 쿼리 키 규칙:
-      - 예: `["videos"]`, `["videos", video_id]`, `["me"]`
-    - Mutation:
-      - 예: 진도 업데이트, 폼 제출, 관리자 수정 등
+- **Mutation Hook (Data Update)**
+  - 데이터 변경(POST/PUT/DELETE)을 담당한다.
+  - 예시:
+    ```typescript
+    // useVideoProgressMutation.ts
+    export const useVideoProgressMutation = () => {
+      const queryClient = useQueryClient();
+      return useMutation({
+        mutationFn: updateVideoProgress,
+        onSuccess: () => {
+          queryClient.invalidateQueries(["videos"]); // 목록 갱신
+        }
+      });
+    };
+    ```
+
+- **Controller Hook (UI Logic)**
+  - 폼 핸들링, 모달 제어 등 순수 클라이언트 로직.
+  - `useForm`(React Hook Form)과 `zod` 스키마를 결합하여 사용한다.
+  - 예: `useSignupForm`, `useVideoPlayerController`
 
 #### 6.4.4 상태축과 UI 상태 매핑
 
-> 이 문서 5. 기능 & API 로드맵에서 정의한 상태축을 프론트 상태와 연결한다.
+> **5. 기능 & API 로드맵**의 상태축을 프론트엔드 변수로 변환하는 규칙이다.
 
-- **Page / Request / Form 상태**
-  - Page:
-    - 페이지 로딩 여부 (`init` → `ready`)
-    - 예: 첫 진입 시 스피너 → 데이터 로딩 완료 후 콘텐츠 렌더링
-  - Request:
-    - 네트워크 요청 상태
-      - `idle / pending / success / error / retryable`
-    - 버튼 비활성화, 스피너 표시, 에러 토스트와 직접 연결
-  - Form:
-    - 폼 라이프사이클
-      - `pristine / dirty / validating / submitting / success / error.*`
-    - 예: 회원가입 폼, 로그인 폼, 설정 변경 폼 등
+- **Request 상태 (React Query 상태 매핑)**
+  - `pending` → `isLoading` (스피너 표시)
+  - `error` → `isError` (에러 메시지/재시도 버튼 표시)
+  - `success` → `data` (콘텐츠 렌더링)
+  - `retryable` → React Query의 `retry` 옵션으로 자동 처리
 
-- **구현 방식(예시)**
-  - 간단한 화면:
-    - `useState` / `useReducer` 로 페이지 내부에서만 관리
-  - 복잡한 목록/상세:
-    - `react-query`/`zustand` 등으로 분리 관리 (도입 시점에 규칙 확정)
-  - 모든 상태 이름/의미는 **5. 기능 & API 로드맵의 상태 정의와 용어를 맞춘다.**
+- **Course 상태 (접근 권한 계산)**
+  - `/videos/{id}` 등 유료 콘텐츠 접근 시 `Course` 축(`buy/taster/buy-not`)을 계산하는 로직은 **Selector** 또는 **Helper Hook**으로 분리한다.
+  - 예: `useCourseAccess(videoId)`
+    - Return: `{ canPlay: boolean, showPaywall: boolean }`
+    - 로직: 내 수강권 목록과 해당 비디오의 `is_free` 여부를 대조.
 
-- **Course 상태 (구매/체험/미구매)**  
-  - `/videos/{id}`, `/lessons/{id}/items` 같은 화면에서:
-    - `Course` 축 (`buy / taster / buy-not / checking`)을 계산:
-      - `buy` / `taster` : 전체 콘텐츠 접근 허용
-      - `buy-not` : 체험판/잠금 UI 표시, 결제 유도
-      - `checking` : 스피너/로딩 표시
-  - 이 로직은 `useCourseAccess()` 같은 전역/도메인 훅으로 캡슐화한다:
-    - 입력: 현재 사용자, 해당 강의/수업 ID, 결제/수강권 정보
-    - 출력: `courseStatus`, `canPlayVideo`, `canStartStudy`, `showPaywall` 등
+- **Form 상태**
+  - React Hook Form의 `formState`를 그대로 활용한다.
+  - `isSubmitting` (전송 중), `isValid` (유효성 검증 통과), `errors` (필드별 에러)
 
-> 정리:  
-> - 6.3은 **URL → 화면 + 권한**(라우팅/가드)에 집중하고,  
-> - 6.4는 **인증 상태 관리 + 공통 API 클라이언트 + 도메인별 훅 + 상태축 매핑**을 담당한다.
+### 6.5 UI/UX & Tailwind 규칙 (shadcn/ui System)
 
-### 6.5 UI/UX & Tailwind 규칙 (초안)
+> 목적: **shadcn/ui** 디자인 시스템을 기반으로, 모바일 퍼스트 및 의미론적(Semantic) 스타일링 규칙을 정의하여 일관성과 생산성을 확보한다.
 
-> 목적: Vite + React + Tailwind 기반으로,  
-> **일관된 학습 경험(UX)** 과 **재사용 가능한 UI 컴포넌트**를 설계하기 위한 최소 가이드.
+#### 6.5.1 디자인 시스템 철학 (Shadcn First)
 
-#### 6.5.1 기본 철학
-
-- 모바일 퍼스트 + 반응형
-  - 기본 레이아웃은 **모바일 화면(sm 기준)** 에서 먼저 설계하고,  
-    `md`, `lg` 이상에서 점진적으로 확장한다.
-- 학습 흐름 우선
-  - “보기 예쁜 UI”보다 **학습 흐름이 끊기지 않는 UX** 를 우선:
-    - 정답/오답 피드백 타이밍
-    - 진행률/완료 상태 노출
-    - 재시도/복습 동선
-- 공통 컴포넌트 우선
-  - 페이지 파일에서 Tailwind 유틸리티 클래스를 남발하지 않고,
-  - **`common/ui`의 공통 컴포넌트를 재사용**하는 것을 기본 원칙으로 한다.
+- **Mobile First**: 모든 레이아웃은 모바일(`sm`)에서 시작하여 태블릿(`md`), 데스크톱(`lg`)으로 확장한다.
+- **Semantic Styling**: 색상 코드를 직접 사용하지 않고, 역할에 따른 변수를 사용한다.
+  - ❌ Bad: `bg-blue-600`, `text-gray-500`
+  - ⭕ Good: `bg-primary`, `text-muted-foreground`
+- **Atomic Components**:
+  - 버튼, 인풋 등을 처음부터 만들지 않는다.
+  - `components/ui/`에 설치된 **shadcn 컴포넌트**(`<Button>`, `<Input>`, `<Card>`)를 조립하여 화면을 구성한다.
 
 #### 6.5.2 레이아웃 & 그리드
 
-- 상위 레이아웃
-  - `AppShell` (예: `src/common/layout/app_shell.tsx`) 에서:
-    - 헤더(로고, 메뉴, 사용자 상태)
-    - 메인 콘텐츠 컨테이너
-    - (필요 시) 푸터
-  - 각 페이지는 `AppShell` 안에서 렌더링되는 단위로 설계한다.
-- 반응형 레이아웃
-  - 모바일(sm) 기준: 단일 컬럼, 상하 스크롤 중심
-  - 태블릿(md): 2컬럼(목록 + 상세, 사이드바 등) 시도
-  - 데스크톱(lg 이상): 여백을 활용한 카드형, 3컬럼 레이아웃 등 확장
+- **AppShell (`components/layout/AppShell.tsx`)**
+  - 앱의 최상위 껍데기.
+  - 구성:
+    - **Header**: 로고 + 햄버거 메뉴(모바일) / 네비게이션(데스크톱) + 유저 프로필
+    - **Main**: `max-w-screen-xl mx-auto px-4` (콘텐츠 중앙 정렬 및 가로 여백 확보)
+    - **Footer**: (선택적) 법적 고지 등
 
-#### 6.5.3 Tailwind 사용 원칙
+- **반응형 전략**
+  - **Grid**: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6` 패턴을 기본으로 한다.
+  - **Spacing**: 모바일에서는 `gap-4`, 데스크톱에서는 `gap-6` 이상을 사용하여 시원한 느낌을 준다.
 
-- 기본 원칙
-  - Tailwind는 **“토큰 + 레이아웃 유틸”** 용도로 사용:
-    - 여백: `p-4`, `mt-6`, `gap-4` 등
-    - 폰트: `text-sm`, `text-base`, `font-semibold` 등
-    - 컬러: `text-gray-700`, `bg-slate-900`, `bg-primary` 등
-    - 그리드/플렉스: `flex`, `grid`, `items-center`, `justify-between` 등
-  - 복잡한 조합(10개 이상 클래스)이 필요하면:
-    - `common/ui`에 **전용 컴포넌트**로 분리 (`PrimaryButton`, `Card`, `FormField` 등).
-- 색/타이포(초안)
-  - 기본 텍스트: `text-gray-800` / `text-gray-700`
-  - 서브 텍스트/설명: `text-gray-500`
-  - 주요 액션 버튼: `bg-blue-600 text-white hover:bg-blue-700`
-  - 경고/오류: `text-red-600`, `border-red-500`, `bg-red-50`
-  - 제목 계층:
-    - 페이지 타이틀: `text-xl md:text-2xl font-bold`
-    - 섹션 타이틀: `text-lg font-semibold`
-    - 본문: `text-sm md:text-base`
-- 간단한 컴포넌트 예시(컨셉)
-  - `PrimaryButton`: Tailwind 클래스를 래핑한 공통 버튼
-  - `Card`: 패널/박스를 통일된 스타일로 표현
-  - `FormField`: 라벨 + 인풋 + 에러 메시지를 묶어서 반복 제거
+#### 6.5.3 Tailwind & Color System (Theme)
 
-#### 6.5.4 페이지 패턴 (예: 로그인 / 비디오 목록)
+- **색상 토큰 (globals.css 기반)**
+  - `primary`: 브랜드 메인 컬러 (Amazing Korean Blue) → 주요 액션 버튼
+  - `secondary`: 보조 컬러 → 취소/서브 버튼
+  - `destructive`: 위험/삭제 → `bg-red-600` 계열
+  - `muted`: 비활성/배경 → `bg-gray-100` 계열
+  - `accent`: 강조 포인트 → 학습 완료 체크 등
 
-- 로그인/회원가입 페이지
-  - 중앙 정렬된 카드 레이아웃:
-    - 모바일: 화면 전체 폭의 100% 중 적절한 여백
-    - 데스크톱: `max-w-md` 카드 중앙 정렬
-  - 필수 요소:
-    - 페이지 타이틀 + 서브텍스트
-    - 폼(이메일/비밀번호)
-    - 에러 메시지(상단/필드 아래)
-    - “계정이 없으신가요? → 회원가입” 링크
-- 비디오 목록 페이지
-  - 상단:
-    - 페이지 제목, 설명 텍스트
-  - 본문:
-    - 비디오 카드 목록 (썸네일 + 제목 + 진행률)
-    - 모바일: 세로 리스트
-    - 데스크톱: 2~3컬럼 그리드
-  - 각 카드에서:
-    - 진행률/락 상태 등 **Course 상태(buy/taster/buy-not)** 를 시각적으로 표현
+- **타이포그래피**
+  - `h1` (Page Title): `text-2xl font-bold tracking-tight md:text-3xl`
+  - `h2` (Section): `text-xl font-semibold tracking-tight`
+  - `p` (Body): `leading-7 [&:not(:first-child)]:mt-6`
+  - `small` (Caption): `text-sm font-medium leading-none`
+  - `muted` (Subtext): `text-sm text-muted-foreground`
 
-> 현재 6.5는 **초안**이며, 실제 로그인/비디오/학습 화면 구현 이후  
-> 공통 컴포넌트 목록, 색상/타이포 토큰, 예시 스크린샷을 기반으로 **구체 규칙을 보완**한다.
+- **유틸리티 함수 (`cn`)**
+  - Tailwind 클래스 병합을 위해 `lib/utils.ts`의 `cn()` 함수를 적극 활용한다.
+  - 예: `<div className={cn("flex items-center", isMobile && "flex-col")}>`
+
+#### 6.5.4 주요 UI 패턴 가이드
+
+- **Card Pattern (목록 아이템)**
+  - `Card`, `CardHeader`, `CardContent`, `CardFooter` 컴포넌트 조합 사용.
+  - 썸네일(이미지/비디오)은 **`aspect-video` (16:9 비율)** 클래스를 사용하여 레이아웃 이동(CLS)을 방지한다.
+
+- **Form Pattern (로그인/입력)**
+  - **React Hook Form** + **zod** + **shadcn Form** 조합 필수.
+  - `<Form>` 감싸기 → `<FormField>` → `<FormItem>` → `<FormControl>` 구조 준수.
+  - 에러 메시지는 `<FormMessage />` 컴포넌트로 자동 노출.
+
+- **Feedback (Toast)**
+  - 사용자 액션 결과는 `alert()` 대신 **Toast** (`hooks/use-toast.ts`)를 사용한다.
+  - 성공: `toast({ title: "저장되었습니다.", variant: "default" })`
+  - 에러: `toast({ title: "오류 발생", variant: "destructive" })`
+
+#### 6.5.5 미디어 & 데이터 최적화 (UX)
+
+- **이미지 (Image)**
+  - 포맷: `WebP` 사용 권장.
+  - 로딩: `loading="lazy"` 속성 필수.
+  - 플레이스홀더: 이미지가 로드되기 전 `bg-muted` 영역을 미리 잡아준다.
+
+- **비디오 (Video)**
+  - 목록 화면에서는 무거운 `Vimeo Player` 대신 **가벼운 썸네일 이미지**만 보여준다.
+  - 사용자가 "재생" 버튼을 클릭했을 때만 플레이어 SDK를 로드한다 (Lazy Interaction).
 
 ---
 
 ### 6.6 프론트 테스트 & 빌드/배포 (요약)
 
-> 목적: 프론트엔드(Vite + React)가 **일관된 방법으로 개발/빌드/배포** 되도록  
-> 최소한의 플로우와 향후 확장 방향을 정리한다.
+> 목적: Vite + React 환경에서 **Type Safety**를 보장하며, 빌드된 정적 자원(`dist/`)을 운영 환경에 일관되게 배포하는 파이프라인을 정의한다.
 
 #### 6.6.1 로컬 개발 플로우
 
-- 기본 커맨드(가정)
-  - 패키지 설치: `npm install` 또는 `pnpm install`
-  - 개발 서버: `npm run dev`
-    - 기본 포트(예: 5173) 사용, `.env` 또는 `.env.local` 에서 설정
-- API 연동
-  - 백엔드 API base URL은 `.env` 에서 관리:
-    - 예: `VITE_API_BASE_URL=https://api.amazingkorean.net`
-  - `src/api/client.ts` 에서 `import.meta.env.VITE_API_BASE_URL` 을 사용하여  
-    모든 API 요청의 base URL을 통일 관리한다.
+- **패키지 관리**
+  - `npm`을 표준 패키지 매니저로 사용한다. (`package-lock.json` 공유)
+  - 설치: `npm install`
+  - shadcn 컴포넌트 추가: `npx shadcn@latest add [component-name]`
 
-#### 6.6.2 빌드 & 정적 파일
+- **환경 변수 (.env)**
+  - `.env.local` (로컬 전용, gitignore 대상)
+  - `.env.production` (운영 전용)
+  - 필수 변수:
+    - `VITE_API_BASE_URL`: 백엔드 API 주소 (예: `http://localhost:8080` 또는 `https://api.amazingkorean.net`)
+    - *Client 코드에서는 `import.meta.env.VITE_API_BASE_URL`로 접근.*
 
-- 빌드 커맨드
-  - `npm run build` → Vite 프로덕션 빌드
-  - 출력 디렉터리: `dist/`
-- 운영 연동(현재 기준 요약)
-  - 빌드 결과 `dist/` 를 백엔드 서버(Express/Nginx) 쪽에 배포:
-    - 예: EC2 서버에 `dist/` 복사 후
-    - Express 정적 서빙 또는 Nginx를 통한 정적 파일 서빙
-  - 백엔드의 `/` 또는 `/app` 라우트에서 프론트 index.html 제공
+- **개발 서버 실행**
+  - `npm run dev` (기본 포트: 5173)
 
-#### 6.6.3 최소 테스트 & 스모크 체크
+#### 6.6.2 빌드 & 배포 전략
 
-- 정적 검사(도입 시)
-  - `npm run lint` : ESLint 기준 코드 스타일/오류 검사
-  - `npm run typecheck` : TypeScript 타입 검사(사용 시)
-- 수동 스모크 테스트(최소 시나리오)
-  - 신규 빌드 후, 브라우저에서 다음 흐름을 **수동으로 1회 확인**:
-    - 1) 접속 → 홈/인트로 페이지 로딩
-    - 2) 회원가입/로그인 플로우
-    - 3) 비디오 목록 조회 → 비디오 상세 진입 → 재생 UI 확인
-    - 4) (구현 시) 학습 문제 진입 → 풀이/결과 화면 확인
-    - 5) 로그아웃
-  - 위 흐름은 5. 기능 & API 로드맵의 Phase 구성에 맞춰  
-    **“프론트 스모크 체크 리스트”** 로 재사용한다.
+- **빌드 커맨드 (Strict)**
+  - `npm run build` 실행 시:
+    1.  `tsc -b` (TypeScript 컴파일 검사)가 먼저 실행되어야 한다. **타입 에러 발생 시 빌드는 실패해야 한다.**
+    2.  Vite가 프로덕션용 최적화(Minify, Tree Shaking)를 수행하고 `dist/` 폴더를 생성한다.
 
-#### 6.6.4 향후 확장 계획 (TODO)
+- **SPA 서빙 전략 (SPA Fallback)**
+  - 프론트엔드는 **Single Page Application**이므로, **모든 404 요청을 `index.html`로 리다이렉트**해야 한다.
+  - **Nginx 배포 시**: `try_files $uri $uri/ /index.html;` 설정 필수.
+  - **Rust(Axum) 통합 배포 시**: 정적 파일 서빙 핸들러에서 Fallback 경로 설정 필요.
 
-- 자동화 테스트
-  - 단위/훅 테스트:
-    - Vitest + React Testing Library 도입 검토
-    - 예: `useLoginForm`, `useVideosList`, `useStudyTask` 등 핵심 훅 테스트
-  - E2E 테스트:
-    - Playwright 또는 Cypress 기반 E2E 시나리오 작성
-    - 주요 플로우(회원가입/로그인/비디오 시청/학습 완료) 자동화
-- CI 연동
-  - GitHub Actions 등에서:
-    - `npm run lint`
-    - `npm run test` (도입 시)
-    - `npm run build`
-  - 을 기본 파이프라인으로 설정하고, 실패 시 배포 차단
+#### 6.6.3 품질 보증 (QA) & 스모크 체크
 
-> 현재 6.6은 **“최소 운영 기준 + 앞으로의 궤적”** 정도만 정의한 상태이며,  
-> 실제 프론트엔드 프로젝트가 생성되고 기본 화면/테스트가 구현되면  
-> 사용 중인 스크립트/CI 설정을 기준으로 **구체 커맨드와 체크리스트를 업데이트**한다.
+- **정적 분석 (CI Gate)**
+  - `npm run lint`: ESLint (코드 스타일 및 잠재적 버그 검사)
+  - `npm run typecheck`: TypeScript 타입 정합성 검사 (필수)
+
+- **수동 스모크 테스트 (Release Checklist)**
+  - 배포 전 아래 시나리오를 **반드시 1회 수동 확인**한다.
+    1.  **진입**: 랜딩 페이지 로딩 및 폰트/이미지 깨짐 확인.
+    2.  **인증**: 로그인(토큰 발급) → 새로고침 시 로그인 유지 확인.
+    3.  **영상**: 비디오 목록 로딩 → 상세 페이지 진입 → 플레이어 재생 확인.
+    4.  **라우팅**: 잘못된 URL 입력 시 404 페이지(또는 리다이렉트) 동작 확인.
+
+#### 6.6.4 향후 확장 계획 (Roadmap)
+
+- **자동화 테스트 도입 (Phase 3 이후)**
+  - **Unit Test**: `Vitest` 도입. (유틸 함수 및 복잡한 Hook 로직 검증)
+  - **E2E Test**: `Playwright` 도입. (핵심 비즈니스 플로우 자동화)
+
+- **CI/CD 파이프라인**
+  - GitHub Actions 연동:
+    - Push 시: `Lint` + `Typecheck` 자동 실행.
+    - Tag/Merge 시: `Build` 수행 후 Docker Image 생성 또는 S3 업로드.
 
 ## 7. 작업 방식 / 엔지니어링 가이드 (요약)
 
@@ -2270,14 +2210,11 @@ src/
 
 ---
 
-## 9. MCP(Model Context Protocol) 가이드라인
-
----
-## 10. Open Questions & 설계 TODO
+## 9. Open Questions & 설계 TODO
 
 > 기존 `AMK_PROJECT_JOURNAL.md`의 Open Questions + Engineering Guide의 “다음 단계 로드맵”에서 정책 수준만 정리.
 
-### 10.1 RBAC / 관리자 권한
+### 9.1 RBAC / 관리자 권한
 
 - 임시 가드(모든 요청 허용)를 실제 RBAC로 교체해야 함.
 - 롤 후보:
@@ -2286,14 +2223,14 @@ src/
   - 각 롤별 허용 엔드포인트/액션 정의
   - RBAC 미스매치 시 403 정책 정리
 
-### 10.2 Admin action log actor 연결
+### 9.2 Admin action log actor 연결
 
 - `ADMIN_USERS_LOG` 및 비디오/스터디/레슨 admin 로그에:
   - **actor user id**를 전 경로에서 일관되게 채워야 함.
 - TODO:
   - 인증 추출기 → handler/service/repo까지 actor id 전달 체계 확립
 
-### 10.3 페이징 고도화 (Keyset vs Page)
+### 9.3 페이징 고도화 (Keyset vs Page)
 
 - 현재 표준은 page/size 기반.
 - 비디오/학습 문제와 같이 데이터가 커질 도메인에서는 **Keyset pagination** 검토 필요.
@@ -2301,7 +2238,7 @@ src/
   - 어떤 리스트에 keyset을 우선 적용할지 정의
   - 기존 API와의 호환성 (기존 page/size와 병행할지 여부)
 
-### 10.4 테스트 전략
+### 9.4 테스트 전략
 
 - E2E/K6 부하 테스트:
   - 목표 RPS, 허용 응답시간, peak 시나리오 정의 필요
@@ -2309,7 +2246,7 @@ src/
   - 대표 시나리오 정리 (회원가입+로그인+비디오 시청+진도 저장 등)
   - k6 스크립트 기본 골격 설계
 
-### 10.5 보안/운영 (후순위 계획)
+### 9.5 보안/운영 (후순위 계획)
 
 - 관리자 MFA 도입(특히 HYMN/admin 계정)
 - 세션/리프레시 토큰 정책 강화(관리자 TTL/동시 세션 수 제한/재사용 탐지)
@@ -2317,7 +2254,7 @@ src/
 
 ---
 
-## 11. 변경 이력 (요약)
+## 10. 변경 이력 (요약)
 
 - **2025-11-18**
   - `AMK_Feature_Roadmap.md`, `AMK_PROJECT_JOURNAL.md`, `AMK_ENGINEERING_GUIDE.md`, `AMK_API_OVERVIEW_FULL.md`, `README_for_assistant.md`의 핵심 내용을 통합.
