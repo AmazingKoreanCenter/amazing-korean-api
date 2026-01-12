@@ -1,98 +1,53 @@
-// FILE: src/api/auth/dto.rs
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
 
-#[derive(Serialize, Deserialize, Validate, ToSchema)]
+// =====================================================================
+// Request DTOs (요청)
+// =====================================================================
+
+#[derive(Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
 #[schema(example = json!({
-    "email": "kkr@kkr",
+    "email": "test@example.com",
     "password": "password123!",
     "device": "web",
     "browser": "chrome",
     "os": "linux",
-    "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "user_agent": "Mozilla/5.0..."
 }))]
 pub struct LoginReq {
     #[validate(email)]
     pub email: String,
+
     #[validate(length(min = 6, max = 72))]
     pub password: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+
+    // 아래 정보는 보통 User-Agent 헤더로 분석하지만, 
+    // 클라이언트가 명시적으로 보낼 경우를 위해 유지 (Option)
+    #[serde(default)]
     pub device: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub browser: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub os: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub user_agent: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[schema(example = json!({
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expires_in": 3600
-}))]
-#[serde(rename_all = "snake_case")]
-pub struct AccessTokenRes {
-    pub access_token: String,
-    pub expires_in: i64,
-}
-
-#[derive(Serialize, ToSchema)]
-#[schema(example = json!({
-    "user_id": 123,
-    "access": {
-        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        "expires_in": 3600
-    },
-    "session_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
-}))]
-pub struct LoginRes {
-    pub user_id: i64,
-    pub access: AccessTokenRes,
-    pub session_id: String,
-}
-
-#[derive(Serialize, ToSchema)]
-#[schema(example = json!({
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expires_in": 3600
-}))]
-pub struct RefreshRes {
-    pub access_token: String,
-    pub expires_in: i64,
+    /*#[serde(default)]
+    pub user_agent: Option<String>,*/
 }
 
 #[derive(Serialize, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
 #[schema(example = json!({
     "refresh_token": "c2Vzc2lvbl9pZDp5Yy1yYW5kb20tdXVpZA"
 }))]
 pub struct RefreshReq {
+    // 쿠키를 사용할 수 없는 환경(앱 등)을 위해 바디로도 받을 수 있게 유지
     #[validate(length(min = 1))]
     pub refresh_token: String,
 }
 
 #[derive(Serialize, Deserialize, Validate, ToSchema)]
-#[schema(example = json!({
-    "reset_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "new_password": "newStrongPassword123!"
-}))]
-pub struct ResetPwReq {
-    #[validate(length(min = 1))]
-    pub reset_token: String,
-    #[validate(length(min = 1))]
-    pub new_password: String,
-}
-
-#[derive(Serialize, ToSchema)]
-#[schema(example = json!({
-    "message": "Password has been reset. All active sessions are invalidated."
-}))]
-pub struct ResetPwRes {
-    pub message: String,
-}
-
-#[derive(Serialize, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
 #[schema(example = json!({
     "name": "홍길동",
     "email": "test@example.com"
@@ -104,21 +59,21 @@ pub struct FindIdReq {
     pub email: String,
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
 #[schema(example = json!({
-    "message": "If the account exists, the ID has been sent to your email."
+    "reset_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "new_password": "newStrongPassword123!"
 }))]
-pub struct FindIdRes {
-    pub message: String,
-}
-
-#[derive(Serialize, ToSchema)]
-#[schema(example = json!({ "ok": true }))]
-pub struct LogoutRes {
-    pub ok: bool,
+pub struct ResetPwReq {
+    #[validate(length(min = 1))]
+    pub reset_token: String,
+    #[validate(length(min = 1))]
+    pub new_password: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
 #[schema(example = json!({ "everywhere": true }))]
 pub struct LogoutAllReq {
     #[serde(default = "default_true")]
@@ -127,4 +82,83 @@ pub struct LogoutAllReq {
 
 fn default_true() -> bool {
     true
+}
+
+// =====================================================================
+// Response DTOs (응답)
+// =====================================================================
+
+/// 액세스 토큰 공통 규격
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "Bearer",
+    "expires_in": 3600,
+    "expires_at": "2025-01-01T12:00:00Z"
+}))]
+pub struct AccessTokenRes {
+    pub access_token: String,
+    pub token_type: String, // "Bearer" 고정
+    pub expires_in: i64,    // 초 단위
+    pub expires_at: String, // 프론트엔드 편의용 ISO String
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "user_id": 123,
+    "access": {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "token_type": "Bearer",
+        "expires_in": 3600,
+        "expires_at": "2025-01-01T12:00:00Z"
+    },
+    "session_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+}))]
+pub struct LoginRes {
+    pub user_id: i64,
+    pub access: AccessTokenRes,
+    pub session_id: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "Bearer",
+    "expires_in": 3600,
+    "expires_at": "2025-01-01T12:00:00Z"
+}))]
+pub struct RefreshRes {
+    // AccessTokenRes와 구조가 같지만 명시적 분리
+    pub access_token: String,
+    pub token_type: String,
+    pub expires_in: i64,
+    pub expires_at: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "message": "If the account exists, the ID has been sent to your email."
+}))]
+pub struct FindIdRes {
+    pub message: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "message": "Password has been reset. All active sessions are invalidated."
+}))]
+pub struct ResetPwRes {
+    pub message: String,
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({ "ok": true }))]
+pub struct LogoutRes {
+    pub ok: bool,
 }

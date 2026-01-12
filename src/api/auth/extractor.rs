@@ -1,8 +1,7 @@
 use axum::extract::{FromRef, FromRequestParts};
 use axum::http::{header::AUTHORIZATION, request::Parts};
-use jsonwebtoken::{decode, DecodingKey, Validation};
 
-use crate::api::auth::jwt::Claims;
+use crate::api::auth::jwt::{self, Claims};
 use crate::error::AppError;
 use crate::state::AppState;
 
@@ -29,7 +28,7 @@ where
         let auth_header = parts.headers.get(AUTHORIZATION).cloned();
 
         async move {
-            // Authorization: Bearer <token>
+            // Authorization: Bearer <token> 파싱
             let token = auth_header
                 .and_then(|h| h.to_str().ok().map(|s| s.to_string()))
                 .and_then(|s| s.strip_prefix("Bearer ").map(|t| t.to_string()))
@@ -37,13 +36,9 @@ where
                     AppError::Unauthorized("Missing or invalid Authorization header".into())
                 })?;
 
-            let claims = decode(
-                &token,
-                &DecodingKey::from_secret(secret.as_bytes()),
-                &Validation::default(),
-            )
-            .map_err(|_| AppError::Unauthorized("Invalid token".into()))?
-            .claims;
+            // jwt.rs에 정의된 중앙 검증 로직 사용
+            let claims = jwt::decode_token(&token, &secret)
+                .map_err(|_| AppError::Unauthorized("Invalid token".into()))?;
 
             Ok(AuthUser(claims))
         }
