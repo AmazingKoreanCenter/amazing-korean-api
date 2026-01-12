@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { HealthPage } from "@/category/health/page/health_page";
+import { SignupPage } from "@/category/auth/page/signup_page";
 
 function HomePage() {
   return (
@@ -25,6 +26,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/signup" element={<SignupPage />} />
       <Route path="/health" element={<HealthPage />} />
     </Routes>
   );
