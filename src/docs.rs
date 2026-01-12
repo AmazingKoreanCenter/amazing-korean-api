@@ -152,7 +152,7 @@ impl Modify for SecurityAddon {
             crate::api::user::dto::ProfileUpdateReq,
             crate::api::user::dto::SettingsRes,
             crate::api::user::dto::SettingsUpdateReq,
-            crate::api::user::dto::StudyLangItem,
+            /*crate::api::user::dto::StudyLangItem, // 향후 추가할 내용*/
 
             // videos dto
             crate::api::video::dto::VideosQuery,
