@@ -656,6 +656,15 @@ audience: server / database / backend / frontend / lead / LLM assistant
 <details>
   <summary>5.1 Phase 1 — user 시나리오</summary>
 
+#### 공통 정책(1-1 ~ 1-5)
+- **응답 에러 스키마(고정)**  
+  `{ "error": { "http_status": 400|401|404|409|422|429|500, "code": "...", "message": "...", "details": { }, "trace_id": "..." } }`
+- **로그 정책**: **성공/실패 모두 USERS_LOG 기록**(민감정보 제외, 실패 시 에러코드/사유 포함)
+- **검증 기준**: **400**=형식/누락/파싱, **422**=도메인 제약 위반
+- **중복 제출 방지**: Form=`submitting` 동안 UI 차단 + 서버 시간/조건 기반 방지
+- **레이트리밋(우선 대상: 1-1)**: 과도 시 **429** + `Retry-After`
+- **성공 후 페이지 전환**: 성공 시 다음 화면으로 이동하여 **Form 수명주기 종료**
+
 #### 5.1-1 : `POST /users` (회원가입)
 - **성공 → 201 Created**
   - When: `/signup` 폼 입력 후 제출이 서버 검증을 통과한다
@@ -753,17 +762,6 @@ audience: server / database / backend / frontend / lead / LLM assistant
   - When: 토큰 없음/만료
   - Then: **401**
   - 상태축: **Auth=stop** / Page=`settings` init→ready / Request=`settings` pending→error / **Data=`settings` error**
-
----
-
-#### 공통 정책(1-1 ~ 1-5)
-- **응답 에러 스키마(고정)**  
-  `{ "error": { "http_status": 400|401|404|409|422|429|500, "code": "...", "message": "...", "details": { }, "trace_id": "..." } }`
-- **로그 정책**: **성공/실패 모두 USERS_LOG 기록**(민감정보 제외, 실패 시 에러코드/사유 포함)
-- **검증 기준**: **400**=형식/누락/파싱, **422**=도메인 제약 위반
-- **중복 제출 방지**: Form=`submitting` 동안 UI 차단 + 서버 시간/조건 기반 방지
-- **레이트리밋(우선 대상: 1-1)**: 과도 시 **429** + `Retry-After`
-- **성공 후 페이지 전환**: 성공 시 다음 화면으로 이동하여 **Form 수명주기 종료**
 </details>
 
 ---
