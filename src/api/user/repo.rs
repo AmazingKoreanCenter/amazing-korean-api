@@ -3,6 +3,11 @@ use crate::{error::AppResult, types::UserGender};
 use chrono::{NaiveDate, Utc};
 use sqlx::{PgPool, Postgres, Transaction};
 
+// =========================================================================
+// User Core (Signup & Find)
+// =========================================================================
+
+/// 회원가입 처리 (Transaction)
 #[allow(clippy::too_many_arguments)]
 pub async fn signup_tx(
     tx: &mut Transaction<'_, Postgres>,
@@ -17,18 +22,17 @@ pub async fn signup_tx(
     terms_service: bool,
     terms_personal: bool,
 ) -> AppResult<ProfileRes> {
-    let res = sqlx::query_as::<_, ProfileRes>(
-        r#"
+    let res = sqlx::query_as::<_, ProfileRes>(r#"
         INSERT INTO users (
             user_email, user_password, user_name,
-            user_nickname, user_language, user_country, user_birthday, user_gender,
+            user_nickname, user_language, user_country, 
+            user_birthday, user_gender,
             user_terms_service, user_terms_personal
         )
         VALUES (
-            $1, $2, $3, $4, 
-            $5::user_language_enum,  -- 입력 시 Enum 캐스팅 필요
-            $6, $7, 
-            $8::user_gender_enum,    -- 입력 시 Enum 캐스팅 필요
+            $1, $2, $3, 
+            $4, $5::user_language_enum, $6, 
+            $7, $8::user_gender_enum, 
             $9, $10
         )
         RETURNING
@@ -36,15 +40,14 @@ pub async fn signup_tx(
             user_email as email, 
             user_name as name,
             user_nickname as nickname, 
-            user_language::TEXT as language, -- DTO가 String이므로 TEXT 변환
+            user_language::TEXT as language, -- DB Enum -> Rust String
             user_country as country,
             user_birthday as birthday, 
-            user_gender as gender,           -- Enum <-> Enum (자동 매핑)
-            user_state,                      -- bool <-> bool (자동 매핑)
-            user_auth,                       -- [중요] ::TEXT 제거! (Enum <-> Enum 자동 매핑)
+            user_gender as gender,           -- DB Enum -> Rust Enum (sqlx::Type)
+            user_state,
+            user_auth,
             user_created_at as created_at
-        "#,
-    )
+    "#)
     .bind(email)
     .bind(password_hash)
     .bind(name)
@@ -57,84 +60,85 @@ pub async fn signup_tx(
     .bind(terms_personal)
     .fetch_one(&mut **tx)
     .await?;
+    
     Ok(res)
 }
 
+/// 이메일 중복 확인용 (ID 조회)
 pub async fn find_user_id_by_email(pool: &PgPool, email: &str) -> AppResult<Option<i64>> {
-    let row = sqlx::query_scalar::<_, i64>(
-        r#"
-        SELECT user_id
-        FROM users
-        WHERE user_email = $1
-        "#,
-    )
+    let row = sqlx::query_scalar::<_, i64>(r#"
+        SELECT user_id FROM users WHERE user_email = $1
+    "#)
     .bind(email)
     .fetch_optional(pool)
     .await?;
+    
     Ok(row)
 }
 
-// 프로필 조회 repo
+/// 사용자 정보 공통 조회 쿼리
 pub async fn find_user(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileRes>> {
-    let row = sqlx::query_as::<_, ProfileRes>(
-        r#"
+    let row = sqlx::query_as::<_, ProfileRes>(r#"
         SELECT
-            user_id as id, user_email as email, user_name as name,
-            user_nickname as nickname, user_language::TEXT as language, user_country as country,
-            user_birthday as birthday, user_gender as gender,
-            user_state, user_auth, user_created_at as created_at
+            user_id as id, 
+            user_email as email, 
+            user_name as name,
+            user_nickname as nickname, 
+            user_language::TEXT as language, 
+            user_country as country,
+            user_birthday as birthday, 
+            user_gender as gender,
+            user_state, 
+            user_auth, 
+            user_created_at as created_at
         FROM users
         WHERE user_id = $1
-    "#,
-    )
+    "#)
     .bind(user_id)
     .fetch_optional(pool)
     .await?;
+    
     Ok(row)
 }
 
-// 내 정보 조회 repo
+// =========================================================================
+// Profile (My Page)
+// =========================================================================
+
+/// 내 프로필 상세 조회
 pub async fn find_profile_by_id(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileRes>> {
-    let row = sqlx::query_as::<_, ProfileRes>(
-        r#"
-        SELECT
-            user_id as id, user_email as email, user_name as name,
-            user_nickname as nickname, user_language::TEXT as language, user_country as country,
-            user_birthday as birthday, user_gender as gender,
-            user_state, user_auth, user_created_at as created_at
-        FROM users
-        WHERE user_id = $1
-        "#,
-    )
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await?;
-    Ok(row)
+    // find_user와 동일한 로직이므로 재사용
+    find_user(pool, user_id).await
 }
 
-// 내 정보 수정 repo (transaction)
+/// 내 프로필 수정 (Transaction)
 pub async fn update_profile_tx(
     tx: &mut Transaction<'_, Postgres>,
     user_id: i64,
     req: &ProfileUpdateReq,
 ) -> AppResult<Option<ProfileRes>> {
-    let res = sqlx::query_as::<_, ProfileRes>(
-        r#"
+    let res = sqlx::query_as::<_, ProfileRes>(r#"
         UPDATE users
         SET
             user_nickname = COALESCE($2, user_nickname),
             user_language = COALESCE($3::user_language_enum, user_language),
-            user_country = COALESCE($4, user_country),
+            user_country  = COALESCE($4, user_country),
             user_birthday = COALESCE($5, user_birthday),
-            user_gender = COALESCE($6::user_gender_enum, user_gender)
+            user_gender   = COALESCE($6::user_gender_enum, user_gender)
         WHERE user_id = $1
         RETURNING
-            user_id as id, user_email as email, user_name as name,
-            user_nickname as nickname, user_language::TEXT as language, user_country as country,
-            user_birthday as birthday, user_gender as gender,
-            user_state, user_auth, user_created_at as created_at
-        "#,
-    )
+            user_id as id, 
+            user_email as email, 
+            user_name as name,
+            user_nickname as nickname, 
+            user_language::TEXT as language, 
+            user_country as country,
+            user_birthday as birthday, 
+            user_gender as gender,
+            user_state, 
+            user_auth, 
+            user_created_at as created_at
+    "#)
     .bind(user_id)
     .bind(req.nickname.as_ref())
     .bind(req.language.as_ref())
@@ -143,13 +147,16 @@ pub async fn update_profile_tx(
     .bind(req.gender)
     .fetch_optional(&mut **tx)
     .await?;
+    
     Ok(res)
 }
 
-// 환경설정 조회 repo
+// =========================================================================
+// Settings (Preferences)
+// =========================================================================
+
 pub async fn find_users_setting(pool: &PgPool, user_id: i64) -> AppResult<Option<SettingsRes>> {
-    let user_setting = sqlx::query_as::<_, SettingsRes>(
-        r#"
+    let row = sqlx::query_as::<_, SettingsRes>(r#"
         SELECT
             user_set_language::TEXT as user_set_language,
             COALESCE(user_set_timezone, 'UTC') as user_set_timezone,
@@ -158,23 +165,20 @@ pub async fn find_users_setting(pool: &PgPool, user_id: i64) -> AppResult<Option
             user_set_updated_at as updated_at
         FROM users_setting
         WHERE user_id = $1
-        "#,
-    )
+    "#)
     .bind(user_id)
     .fetch_optional(pool)
     .await?;
 
-    Ok(user_setting)
+    Ok(row)
 }
 
-// 환경설정 수정 repo (transaction)
 pub async fn upsert_settings_tx(
     tx: &mut Transaction<'_, Postgres>,
     user_id: i64,
     req: &SettingsUpdateReq,
 ) -> AppResult<SettingsRes> {
-    let res = sqlx::query_as::<_, SettingsRes>(
-        r#"
+    let res = sqlx::query_as::<_, SettingsRes>(r#"
         INSERT INTO users_setting (
             user_id,
             user_set_language,
@@ -203,8 +207,7 @@ pub async fn upsert_settings_tx(
             user_set_note_email,
             user_set_note_push,
             user_set_updated_at as updated_at
-        "#,
-    )
+    "#)
     .bind(user_id)
     .bind(req.user_set_language.as_ref())
     .bind(req.user_set_timezone.as_ref())
@@ -217,8 +220,10 @@ pub async fn upsert_settings_tx(
     Ok(res)
 }
 
-// 회원 관련 기록 log repo
-// 회원 관련 기록 log repo
+// =========================================================================
+// Logging (Audit)
+// =========================================================================
+
 pub async fn insert_user_log_after_tx(
     tx: &mut Transaction<'_, Postgres>,
     actor_user_id: Option<i64>,
@@ -226,38 +231,36 @@ pub async fn insert_user_log_after_tx(
     action: &str,
     success: bool,
 ) -> AppResult<()> {
-    sqlx::query(
-        r#"
+    sqlx::query(r#"
         INSERT INTO public.users_log (
-          updated_by_user_id, user_action_log, user_action_success, user_id,
-          user_auth_log, user_state_log, user_email_log, user_password_log,
-          user_nickname_log, user_language_log, user_country_log, user_birthday_log,
-          user_gender_log, user_terms_service_log, user_terms_personal_log,
-          user_log_created_at, user_log_quit_at, user_log_updated_at
+            updated_by_user_id, user_action_log, user_action_success, user_id,
+            user_auth_log, user_state_log, user_email_log, user_password_log,
+            user_nickname_log, user_language_log, user_country_log, user_birthday_log,
+            user_gender_log, user_terms_service_log, user_terms_personal_log,
+            user_log_created_at, user_log_quit_at, user_log_updated_at
         )
         SELECT
-          $1, 
-          CAST($2 AS user_action_log_enum), -- Rust String($2) -> DB Enum 변환 (필수)
-          $3, 
-          u.user_id,
-          u.user_auth,      -- [수정] ::text 제거 (Enum -> Enum)
-          u.user_state,     -- [수정] ::text 제거 (Bool -> Bool)
-          u.user_email, 
-          false,            -- [수정] Password 변경 아님 (Boolean default false)
-          u.user_nickname, 
-          u.user_language,  -- (Enum -> Enum)
-          u.user_country, 
-          u.user_birthday,
-          u.user_gender,    -- [수정] ::text 제거 (Enum -> Enum)
-          u.user_terms_service, 
-          u.user_terms_personal,
-          u.user_created_at, 
-          u.user_quit_at, 
-          now()
+            $1, 
+            CAST($2 AS user_action_log_enum), 
+            $3, 
+            u.user_id,
+            u.user_auth,      
+            u.user_state,    
+            u.user_email, 
+            false,            
+            u.user_nickname, 
+            u.user_language, 
+            u.user_country, 
+            u.user_birthday,
+            u.user_gender,   
+            u.user_terms_service, 
+            u.user_terms_personal,
+            u.user_created_at, 
+            u.user_quit_at, 
+            now()
         FROM public.users u
         WHERE u.user_id = $4
-        "#,
-    )
+    "#)
     .bind(actor_user_id)
     .bind(action)
     .bind(success)
@@ -268,6 +271,7 @@ pub async fn insert_user_log_after_tx(
     Ok(())
 }
 
+/// (Utility) 트랜잭션 없이 로그를 남겨야 할 때 사용
 pub async fn insert_user_log_after(
     pool: &PgPool,
     actor_user_id: Option<i64>,

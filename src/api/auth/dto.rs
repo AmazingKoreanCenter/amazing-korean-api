@@ -27,11 +27,12 @@ pub struct LoginReq {
     pub user_agent: Option<String>,
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "expires_in": 3600
 }))]
+#[serde(rename_all = "snake_case")]
 pub struct AccessTokenRes {
     pub access_token: String,
     pub expires_in: i64,
