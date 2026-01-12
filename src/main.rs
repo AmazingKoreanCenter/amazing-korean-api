@@ -14,6 +14,10 @@ use std::time::{Duration, Instant};
 use tokio::net::TcpListener;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+// [CORS] 필요한 모듈 추가
+use tower_http::cors::CorsLayer;
+use http::{Method, HeaderValue, header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT}};
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // 1) 환경변수 로드 및 설정 파싱
@@ -59,7 +63,24 @@ async fn main() -> anyhow::Result<()> {
         cfg: cfg.clone(),
         started_at: Instant::now(),
     };
-    let app = api::app_router(app_state);
+
+    // [CORS] 설정 정의
+    // 프론트엔드 개발 서버(Vite) 주소인 http://localhost:5173 허용
+    let cors = CorsLayer::new()
+        .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
+        .allow_methods([
+            Method::GET, 
+            Method::POST, 
+            Method::PUT, 
+            Method::PATCH, 
+            Method::DELETE,
+            Method::OPTIONS
+        ])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT])
+        .allow_credentials(true); // 쿠키(Refresh Token) 교환을 위해 필수
+
+    // [CORS] 라우터에 레이어 적용 (.layer(cors) 추가)
+    let app = api::app_router(app_state).layer(cors);
 
     // 6) 서버 시작
     let listener = TcpListener::bind(&cfg.bind_addr).await?;

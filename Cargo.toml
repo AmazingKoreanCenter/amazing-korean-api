@@ -19,7 +19,7 @@ thiserror = "2.0.14"
 tower = "0.5"
 hyper = "1"
 http = "1"
-tower-http = "0.6"
+tower-http = { version = "0.6", features = ["cors"] }
 argon2 = "0.5"
 password-hash = "0.5"
 rand_core = "0.6"
