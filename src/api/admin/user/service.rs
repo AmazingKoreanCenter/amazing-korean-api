@@ -220,7 +220,7 @@ impl AdminUserService {
         let user_auth = Self::parse_user_auth(req.user_auth.as_deref())?;
         let user_auth_str = user_auth.to_string();
 
-        let password_hash = password::hash(&req.password)?;
+        let password_hash = password::hash_password(&req.password)?;
 
         let language = "ko";
         let country = "ko";
@@ -395,7 +395,7 @@ impl AdminUserService {
         };
         let user_auth_str = user_auth.to_string();
 
-        let password_hash = match password::hash(&req.password) {
+        let password_hash = match password::hash_password(&req.password) {
             Ok(hash) => hash,
             Err(e) => {
                 return Err((500, "INTERNAL_SERVER_ERROR".to_string(), e.to_string()));
@@ -474,7 +474,7 @@ impl AdminUserService {
                     "password policy violation".into(),
                 ));
             }
-            Some(password::hash(password)?)
+            Some(password::hash_password(password)?)
         } else {
             None
         };
@@ -590,7 +590,7 @@ impl AdminUserService {
     
                 // [수정] 2-2. 비밀번호 해싱
                 let password_hash = if let Some(pw) = &item.password {
-                    Some(crate::api::auth::password::hash(pw)?)
+                    Some(crate::api::auth::password::hash_password(pw)?)
                 } else {
                     None
                 };
