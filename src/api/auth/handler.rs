@@ -7,7 +7,7 @@ use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use cookie::time::{Duration, OffsetDateTime};
 
 use crate::api::auth::dto::{
-    FindIdReq, FindIdRes, LoginReq, LoginRes, LogoutAllReq, LogoutRes, RefreshReq, ResetPwReq,
+    FindIdReq, FindIdRes, LoginReq, LoginRes, LogoutAllReq, LogoutRes, /* RefreshReq, */ ResetPwReq,
     ResetPwRes,
 };
 use crate::api::auth::extractor::AuthUser;
@@ -97,7 +97,7 @@ pub async fn login(
     post,
     path = "/auth/refresh",
     tag = "auth",
-    request_body = RefreshReq,
+    /* request_body = RefreshReq, */
     responses(
         (status = 200, description = "Token refreshed", body = LoginRes),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
@@ -109,16 +109,22 @@ pub async fn refresh(
     State(st): State<AppState>,
     headers: HeaderMap,
     jar: CookieJar,
-    Json(req): Json<RefreshReq>,
+    /* Json(req): Json<RefreshReq>, */
 ) -> Result<(CookieJar, Json<LoginRes>), AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
 
-    // Service returns (LoginRes, new_refresh_token_string, ttl)
-    let (refresh_res, new_token_str, ttl_secs) =
-        AuthService::refresh(&st, &req.refresh_token, ip, ua).await?;
+    // 1. 쿠키에서 리프레시 토큰 추출
+    let refresh_token = jar
+        .get(&st.cfg.refresh_cookie_name)
+        .map(|c| c.value().to_string())
+        .ok_or(AppError::Unauthorized("Missing refresh token".into()))?;
 
-    // Service returns raw string for refresh, so we construct the cookie here
+    // 2. Service 호출
+    let (refresh_res, new_token_str, ttl_secs) =
+        AuthService::refresh(&st, &refresh_token, ip, ua).await?;
+
+    // 3. 새 쿠키 설정 (Rotation)
     let mut refresh_cookie = Cookie::new(st.cfg.refresh_cookie_name.clone(), new_token_str);
     refresh_cookie.set_path("/");
     refresh_cookie.set_http_only(true);
@@ -129,7 +135,7 @@ pub async fn refresh(
         "None" => SameSite::None,
         _ => SameSite::Lax,
     });
-    refresh_cookie.set_expires(OffsetDateTime::now_utc() + Duration::seconds(ttl_secs));
+    refresh_cookie.set_expires(cookie::time::OffsetDateTime::now_utc() + cookie::time::Duration::seconds(ttl_secs));
     
     if let Some(domain) = &st.cfg.refresh_cookie_domain {
         refresh_cookie.set_domain(domain.clone());

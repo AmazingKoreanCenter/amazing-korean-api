@@ -215,13 +215,8 @@ impl AuthService {
         ).await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         // 3. User Sessions Set
-        let _: () = redis_conn.sadd(
-            format!("ak:user_sessions:{}", user_info.user_id),
-            &session_id,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
-
-        // [Step 7] Cookie Construction
-        let mut refresh_cookie = Cookie::new(st.cfg.refresh_cookie_name.clone(), refresh_token_value);
+        let mut refresh_cookie =
+        Cookie::new(st.cfg.refresh_cookie_name.clone(), refresh_token_value);
         refresh_cookie.set_path("/");
         refresh_cookie.set_http_only(true);
         refresh_cookie.set_secure(st.cfg.refresh_cookie_secure);
@@ -229,9 +224,15 @@ impl AuthService {
             "Strict" => SameSite::Strict,
             "Lax" => SameSite::Lax,
             "None" => SameSite::None,
-            _ => SameSite::Lax,
+            _ => SameSite::Lax, 
         });
-        refresh_cookie.set_expires(OffsetDateTime::now_utc() + time::Duration::seconds(refresh_ttl_secs));
+        refresh_cookie
+            .set_expires(OffsetDateTime::now_utc() + time::Duration::seconds(refresh_ttl_secs));
+        
+        // [수정] 도메인이 있을 때만 설정 (빈 문자열 방지)
+        if let Some(domain) = &st.cfg.refresh_cookie_domain {
+            refresh_cookie.set_domain(domain.clone());
+        }
         
         // [Fix] 도메인이 설정된 경우에만 set_domain 호출 (빈 문자열 방지)
         if let Some(domain) = &st.cfg.refresh_cookie_domain {
