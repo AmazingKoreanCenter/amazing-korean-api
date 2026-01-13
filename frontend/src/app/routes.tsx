@@ -5,6 +5,7 @@ import { HealthPage } from "@/category/health/page/health_page";
 import { SignupPage } from "@/category/auth/page/signup_page";
 import { LoginPage } from "@/category/auth/page/login_page";
 import { LogoutButton } from "@/category/auth/components/logout_button";
+import { FindIdPage } from "@/category/auth/page/find_id_page";
 
 function HomePage() {
   return (
@@ -29,6 +30,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/find-id" element={<FindIdPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/health" element={<HealthPage />} />
