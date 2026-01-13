@@ -32,7 +32,11 @@ export default function HomePage() {
             </p>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => go("/user/me")}>
-                마이 페이지
+                👤 마이 페이지
+              </Button>
+              {/* 👇 설정 버튼 추가됨 */}
+              <Button variant="outline" onClick={() => go("/settings")}>
+                ⚙️ 설정
               </Button>
               <LogoutButton />
             </div>
@@ -90,7 +94,11 @@ export default function HomePage() {
             👤 내 정보 (User Me)
           </Button>
           <Button variant="secondary" className="justify-start text-sm" onClick={() => go("/user/edit")}>
-             ⚙️ 정보 수정 (Edit)
+             📝 정보 수정 (Edit)
+          </Button>
+           {/* 👇 설정 버튼 추가됨 */}
+          <Button variant="secondary" className="justify-start text-sm col-span-2" onClick={() => go("/settings")}>
+             ⚙️ 설정 (Settings)
           </Button>
         </CardContent>
       </Card>
