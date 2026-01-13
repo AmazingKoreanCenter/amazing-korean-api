@@ -7,6 +7,8 @@ import { LoginPage } from "@/category/auth/page/login_page";
 import { FindIdPage } from "@/category/auth/page/find_id_page";
 import { ResetPasswordPage } from "@/category/auth/page/reset_password_page";
 import { MyPage } from "@/category/user/page/my_page";
+import { EditProfilePage } from "@/category/user/page/edit_profile_page";
+import { SettingsPage } from "@/category/user/page/settings_page";
 import PrivateRoute from "@/routes/private_route";
 
 export function AppRoutes() {
@@ -24,7 +26,8 @@ export function AppRoutes() {
       <Route element={<PrivateRoute />}>
         {/* 이 안에 있는 모든 Route는 보호받습니다 */}
         <Route path="/user/me" element={<MyPage />} />
-        {/* 추후 추가될 /user/edit 등도 여기에 넣으면 됩니다 */}
+        <Route path="/user/edit" element={<EditProfilePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
     </Routes>
   );

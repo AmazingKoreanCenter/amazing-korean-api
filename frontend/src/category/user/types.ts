@@ -66,9 +66,27 @@ export const userDetailSchema = z.object({
   nickname: z.string(),
   user_auth: z.string(),
   created_at: z.string().datetime(),
+  bio: z.string().optional(),
 });
 
 export type UserDetail = z.infer<typeof userDetailSchema>;
+
+export const userSettingSchema = z.object({
+  user_id: z.number().int(),
+  theme: z.enum(["light", "dark", "system"]),
+  is_email_marketing_agreed: z.boolean(),
+  language: z.enum(["ko", "en"]),
+});
+
+export type UserSetting = z.infer<typeof userSettingSchema>;
+
+export const updateUserReqSchema = z.object({
+  nickname: z.string().min(1).max(100).optional(),
+  name: z.string().min(1).max(100).optional(),
+  bio: z.string().max(500).optional(),
+});
+
+export type UpdateUserReq = z.infer<typeof updateUserReqSchema>;
 
 export const profileUpdateReqSchema = z.object({
   nickname: z.string().min(1).max(100).optional(),
