@@ -66,9 +66,18 @@ export const userDetailSchema = z.object({
   nickname: z.string(),
   user_auth: z.string(),
   created_at: z.string().datetime(),
+  bio: z.string().optional(),
 });
 
 export type UserDetail = z.infer<typeof userDetailSchema>;
+
+export const updateUserReqSchema = z.object({
+  nickname: z.string().min(1).max(100).optional(),
+  name: z.string().min(1).max(100).optional(),
+  bio: z.string().max(500).optional(),
+});
+
+export type UpdateUserReq = z.infer<typeof updateUserReqSchema>;
 
 export const profileUpdateReqSchema = z.object({
   nickname: z.string().min(1).max(100).optional(),
