@@ -15,3 +15,14 @@ export const signup = (data: SignupReq) => {
     body: JSON.stringify(data),
   });
 };
+
+export const logout = (accessToken?: string | null) => {
+  return request<void>("/api/auth/logout", {
+    method: "POST",
+    headers: accessToken
+      ? {
+          Authorization: `Bearer ${accessToken}`,
+        }
+      : undefined,
+  });
+};

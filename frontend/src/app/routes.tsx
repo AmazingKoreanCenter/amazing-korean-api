@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { HealthPage } from "@/category/health/page/health_page";
 import { SignupPage } from "@/category/auth/page/signup_page";
 import { LoginPage } from "@/category/auth/page/login_page";
+import { LogoutButton } from "@/category/auth/components/logout_button";
 
 function HomePage() {
   return (
@@ -18,6 +19,7 @@ function HomePage() {
         <Button variant="default">Button Test</Button>
         <Button variant="secondary">Shadcn UI</Button>
         <Button variant="destructive">Tailwind CSS</Button>
+        <LogoutButton />
       </div>
     </div>
   );
