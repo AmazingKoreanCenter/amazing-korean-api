@@ -1,7 +1,8 @@
 import type {
+  SettingsRes,
+  SettingsUpdateReq,
   UpdateUserReq,
   UserDetail,
-  UserSetting,
 } from "@/category/user/types";
 import { request } from "@/api/client";
 
@@ -17,5 +18,12 @@ export const updateUserMe = (data: UpdateUserReq) => {
 };
 
 export const getUserSettings = () => {
-  return request<UserSetting>("/users/me/settings");
+  return request<SettingsRes>("/users/me/settings");
+};
+
+export const updateUserSettings = (data: SettingsUpdateReq) => {
+  return request<void>("/users/me/settings", {
+    method: "POST",
+    data,
+  });
 };
