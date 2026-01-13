@@ -98,7 +98,7 @@ export function LoginPage() {
                   계정이 없으신가요? 회원가입
                 </Link>
                 <a
-                  href="#"
+                  href="/reset-password"
                   className="text-muted-foreground underline-offset-4 hover:underline"
                 >
                   비밀번호를 잊으셨나요?

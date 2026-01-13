@@ -46,6 +46,13 @@ export const resetPwReqSchema = z.object({
 
 export type ResetPwReq = z.infer<typeof resetPwReqSchema>;
 
+export const resetPasswordReqSchema = z.object({
+  token: z.string().min(1),
+  new_password: z.string().min(6),
+});
+
+export type ResetPasswordReq = z.infer<typeof resetPasswordReqSchema>;
+
 export const resetPwResSchema = z.object({
   message: z.string(),
 });

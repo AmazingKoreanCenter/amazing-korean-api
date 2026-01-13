@@ -1,5 +1,10 @@
 import { request } from "@/api/client";
-import type { FindIdReq, LoginReq, LoginRes } from "@/category/auth/types";
+import type {
+  FindIdReq,
+  LoginReq,
+  LoginRes,
+  ResetPasswordReq,
+} from "@/category/auth/types";
 import type { SignupReq, SignupRes } from "@/category/user/types";
 
 export const login = (data: LoginReq) => {
@@ -18,6 +23,13 @@ export const signup = (data: SignupReq) => {
 
 export const findId = (data: FindIdReq) => {
   return request<void>("/api/auth/find-id", {
+    method: "POST",
+    data,
+  });
+};
+
+export const resetPassword = (data: ResetPasswordReq) => {
+  return request<void>("/api/auth/reset-pw", {
     method: "POST",
     data,
   });
