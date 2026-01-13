@@ -59,6 +59,17 @@ export const profileResSchema = z.object({
 
 export type ProfileRes = z.infer<typeof profileResSchema>;
 
+export const userDetailSchema = z.object({
+  user_id: z.number().int(),
+  email: z.string().email(),
+  name: z.string(),
+  nickname: z.string(),
+  user_auth: z.string(),
+  created_at: z.string().datetime(),
+});
+
+export type UserDetail = z.infer<typeof userDetailSchema>;
+
 export const profileUpdateReqSchema = z.object({
   nickname: z.string().min(1).max(100).optional(),
   language: z.string().min(1).max(50).optional(),
