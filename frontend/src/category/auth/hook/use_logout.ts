@@ -10,7 +10,9 @@ export const useLogout = () => {
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: () => logout(useAuthStore.getState().accessToken),
+    // 🚨 [수정됨] logout()은 이제 인자를 받지 않습니다.
+    // (헤더 처리는 client.ts의 interceptor가 담당합니다)
+    mutationFn: () => logout(),
     onSettled: () => {
       useAuthStore.getState().logout();
       toast.success("로그아웃 되었습니다.");
