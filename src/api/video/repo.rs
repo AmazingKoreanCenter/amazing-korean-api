@@ -21,22 +21,31 @@ impl VideoRepo {
         let mut qb = QueryBuilder::new(
             r#"
             SELECT
-                v.video_id,
+                -- 1. [중요] INT4 -> INT8 캐스팅 (패닉 방지)
+                v.video_id::bigint as video_id,
                 v.video_idx,
-                v.video_title as title,
-                v.video_subtitle as subtitle,
-                v.video_duration as duration_seconds,
-                v.video_language::text as language,
-                v.video_thumbnail as thumbnail_url,
+                
+                -- 2. 1:N 관계에서 제목 가져오기 (MAX 사용)
+                MAX(vt.video_tag_title) as title,
+                MAX(vt.video_tag_subtitle) as subtitle,
+                
+                -- 3. DB에 없는 컬럼 NULL/기본값 처리
+                NULL::integer as duration_seconds,
+                NULL::text as language,
+                NULL::text as thumbnail_url,
+                false as has_captions,
+                
                 v.video_state::text as state,
                 v.video_access::text as access,
-                v.video_has_captions as has_captions,
                 v.video_created_at as created_at,
+                
+                -- 태그 집계
                 COALESCE(
                     array_agg(vt.video_tag_key) FILTER (WHERE vt.video_tag_key IS NOT NULL),
                     '{}'::varchar[]
                 ) as tags,
-                COUNT(*) OVER() as total_count -- 전체 개수 (Window Function)
+                
+                COUNT(*) OVER() as total_count
             FROM video v
             LEFT JOIN video_tag_map vtm ON vtm.video_id = v.video_id
             LEFT JOIN video_tag vt ON vt.video_tag_id = vtm.video_tag_id
@@ -45,60 +54,51 @@ impl VideoRepo {
         );
 
         // 2. Dynamic Filters
-        // 2-1. State (기본값: open, 관리자 등이 아니면 open만)
+        // 2-1. State
         if let Some(state) = &req.state {
-             qb.push(" AND v.video_state = ");
-             qb.push_bind(state);
-             qb.push("::video_state_enum");
+            qb.push(" AND v.video_state = ");
+            qb.push_bind(state);
+            qb.push("::video_state_enum");
         } else {
-             // 필터가 없으면 기본적으로 'open' 상태만 조회 (안전장치)
-             qb.push(" AND v.video_state = 'open'::video_state_enum");
+            qb.push(" AND v.video_state = 'open'::video_state_enum");
         }
 
-        // 2-2. Search (Title or Subtitle)
+        // 2-2. Search (Tag Title/Subtitle 기준)
         if let Some(q) = &req.q {
             if !q.trim().is_empty() {
-                qb.push(" AND (v.video_title ILIKE ");
+                qb.push(" AND (vt.video_tag_title ILIKE ");
                 qb.push_bind(format!("%{}%", q));
-                qb.push(" OR v.video_subtitle ILIKE ");
+                qb.push(" OR vt.video_tag_subtitle ILIKE ");
                 qb.push_bind(format!("%{}%", q));
                 qb.push(" )");
             }
         }
 
-        // 2-3. Language
-        if let Some(lang) = &req.lang {
-            qb.push(" AND v.video_language = ");
-            qb.push_bind(lang);
-            qb.push("::video_language_enum");
-        }
+        // 2-3. Language (DB 컬럼이 없으므로 필터 기능도 작동 안 함 - 무시하거나 에러처리)
+        // 일단 DB에 없으므로 조건절 추가하지 않음 (필요 시 나중에 컬럼 추가 후 복구)
+        // if let Some(lang) = &req.lang { ... } 
 
         // 2-4. Tag Filter
-        // (주의: Join된 상태에서 Where절을 걸면 Aggregation에 영향이 있을 수 있으나, 
-        //  여기서는 검색된 영상의 '모든' 태그를 보여주기보다, 해당 태그가 포함된 영상을 찾는 것이 목적)
-        //  정확한 동작: 해당 태그를 가진 Video를 찾고, 그 Video의 태그들을 모음 -> HAVING 절 또는 SubQuery 필요.
-        //  간단한 구현을 위해 여기서는 WHERE EXISTS 사용으로 분리하는 것이 가장 정확함.
         if let Some(tag_key) = &req.tag {
-            qb.push(" AND EXISTS (SELECT 1 FROM video_tag_map vtm2 JOIN video_tag vt2 ON vt2.video_tag_id = vtm2.video_tag_id WHERE vtm2.video_id = v.video_id AND vt2.video_tag_key = ");
+            qb.push(" AND vt.video_tag_key = ");
             qb.push_bind(tag_key);
-            qb.push(" )");
         }
 
-        // 3. Group By (Aggregation for tags)
+        // 3. Group By
+        // 집계 함수(MAX, ARRAY_AGG)를 제외한 컬럼들만 GROUP BY
         qb.push(
             r#"
             GROUP BY
-                v.video_id, v.video_idx, v.video_title, v.video_subtitle,
-                v.video_duration, v.video_language, v.video_thumbnail,
-                v.video_state, v.video_access, v.video_has_captions, v.video_created_at
+                v.video_id, v.video_idx,
+                v.video_state, v.video_access, v.video_created_at
             "#
         );
 
         // 4. Sort & Order
+        // views 등 없는 컬럼 정렬 제거
         let sort_column = match req.sort.as_deref() {
             Some("oldest") => "v.video_created_at ASC",
-            Some("views") => "v.video_view_count DESC", // 뷰 카운트가 있다면
-            _ => "v.video_created_at DESC", // default: latest
+            _ => "v.video_created_at DESC",
         };
         qb.push(format!(" ORDER BY {}", sort_column));
 
@@ -113,7 +113,6 @@ impl VideoRepo {
         let rows = qb.build().fetch_all(pool).await?;
 
         // 7. Parse Result
-        // total_count는 첫 번째 로우에서 추출 (데이터가 없으면 0)
         let total_count: i64 = rows.first().map(|r| r.try_get("total_count").unwrap_or(0)).unwrap_or(0);
 
         let list: Vec<VideoListItem> = rows.iter().map(|row| VideoListItem {
@@ -121,13 +120,13 @@ impl VideoRepo {
             video_idx: row.get("video_idx"),
             title: row.get("title"),
             subtitle: row.get("subtitle"),
-            duration_seconds: row.get("duration_seconds"),
-            language: row.get("language"),
-            thumbnail_url: row.get("thumbnail_url"),
+            duration_seconds: row.get("duration_seconds"), // NULL
+            language: row.get("language"),                 // NULL
+            thumbnail_url: row.get("thumbnail_url"),       // NULL
             state: row.get("state"),
             access: row.get("access"),
             tags: row.get("tags"),
-            has_captions: row.get("has_captions"),
+            has_captions: row.get("has_captions"),         // false
             created_at: row.get("created_at"),
         }).collect();
 
@@ -146,7 +145,7 @@ impl VideoRepo {
         let row = sqlx::query_as::<_, VideoDetailRes>(
             r#"
             SELECT
-                v.video_id,
+                v.video_id::bigint as video_id, -- [여기 수정]
                 v.video_url_vimeo,
                 v.video_state::text as video_state,
                 COALESCE(
@@ -174,7 +173,7 @@ impl VideoRepo {
         Ok(row)
     }
 
-    /// 비디오 존재 여부 확인 (가벼운 쿼리)
+    /// 비디오 존재 여부 확인
     pub async fn exists_by_id(pool: &PgPool, video_id: i64) -> AppResult<bool> {
         let exists = sqlx::query_scalar::<_, bool>(
             r#"SELECT EXISTS(SELECT 1 FROM video WHERE video_id = $1)"#,
@@ -189,8 +188,8 @@ impl VideoRepo {
     // =========================================================================
     // Progress (Learning Logs)
     // =========================================================================
-
-    /// 내 학습 진도 조회
+    
+    // 내 학습 진도 조회(이전과 동일)
     pub async fn find_progress(
         pool: &PgPool,
         user_id: i64,
@@ -199,7 +198,7 @@ impl VideoRepo {
         let row = sqlx::query_as::<_, VideoProgressRes>(
             r#"
             SELECT
-                video_id,
+                video_id::bigint as video_id, -- [여기 수정]
                 COALESCE(video_progress_log, 0) AS video_progress_log,
                 video_completed_log,
                 video_last_watched_at_log
@@ -211,7 +210,6 @@ impl VideoRepo {
         .bind(video_id)
         .fetch_optional(pool)
         .await?;
-
         Ok(row)
     }
 
@@ -236,10 +234,10 @@ impl VideoRepo {
                 video_completed_log = CASE 
                     WHEN video_log.video_completed_log = true THEN true 
                     ELSE EXCLUDED.video_completed_log 
-                END, -- 한 번 완료되면 true 유지 (선택 사항)
+                END, 
                 video_last_watched_at_log = NOW()
             RETURNING
-                video_id,
+                video_id::bigint as video_id,
                 COALESCE(video_progress_log, 0) AS video_progress_log,
                 video_completed_log,
                 video_last_watched_at_log
@@ -251,7 +249,6 @@ impl VideoRepo {
         .bind(is_completed)
         .fetch_one(pool)
         .await?;
-
         Ok(row)
     }
 }

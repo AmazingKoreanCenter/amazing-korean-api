@@ -1,9 +1,15 @@
 import path from "path"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
+import checker from "vite-plugin-checker";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    checker({
+      typescript: true,
+    }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -21,12 +27,18 @@ export default defineConfig({
       },
       // 1. /auth 로 시작하는 요청은 백엔드로 보냄
       '/auth': {
-        target: 'http://127.0.0.1:3000', // ⚠️ 백엔드 포트 확인 필수! (예: 8000, 3000, 8080)
+        target: 'http://127.0.0.1:3000', // ⚠️ 백엔드 포트 확인 필수!
         changeOrigin: true,
         secure: false,
       },
       // 2. /users 로 시작하는 요청도 백엔드로 보냄
       '/users': {
+        target: 'http://127.0.0.1:3000', // ⚠️ 백엔드 포트 확인 필수!
+        changeOrigin: true,
+        secure: false,
+      },
+      // 3. /videos 로 시작하는 요청도 백엔드로 보냄
+      '/videos': {
         target: 'http://127.0.0.1:3000', // ⚠️ 백엔드 포트 확인 필수!
         changeOrigin: true,
         secure: false,

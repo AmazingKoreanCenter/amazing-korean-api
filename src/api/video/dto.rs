@@ -30,7 +30,6 @@ pub struct VideoListReq {
     // 검색 및 필터
     pub q: Option<String>,          // 검색어
     pub tag: Option<String>,        // 태그 필터
-    pub lang: Option<String>,       // 언어 필터
     pub state: Option<String>,      // 상태 필터 (published, etc)
     
     // 정렬 (latest, views, etc.)

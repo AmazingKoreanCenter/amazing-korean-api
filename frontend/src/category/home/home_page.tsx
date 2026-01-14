@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/hooks/use_auth_store";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/category/auth/components/logout_button";
@@ -31,6 +31,9 @@ export default function HomePage() {
               님!
             </p>
             <div className="flex gap-2">
+              <Button asChild>
+                <Link to="/videos">영상 학습하기</Link>
+              </Button>
               <Button variant="outline" onClick={() => go("/user/me")}>
                 👤 마이 페이지
               </Button>
@@ -44,6 +47,9 @@ export default function HomePage() {
         ) : (
           <div className="flex flex-col items-center gap-2">
             <p className="text-sm text-gray-500 mb-2">서비스를 이용하려면 로그인이 필요합니다.</p>
+            <Button size="lg" variant="secondary" asChild>
+              <Link to="/videos">영상 학습하기</Link>
+            </Button>
             <div className="flex gap-2">
                 <Button size="lg" onClick={() => go("/login")}>
                 로그인
