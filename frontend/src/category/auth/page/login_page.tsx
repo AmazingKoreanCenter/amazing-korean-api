@@ -20,18 +20,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { loginReqSchema, type LoginReq } from "@/category/auth/types";
+import { loginReqSchema, type LoginReq } from "@/category/auth/types"; // ✅ 경로 정확함
 
 import { useLogin } from "../hook/use_login";
 
 export function LoginPage() {
   const loginMutation = useLogin();
+  
   const form = useForm<LoginReq>({
     resolver: zodResolver(loginReqSchema),
     mode: "onChange",
     defaultValues: {
       email: "",
       password: "",
+      // device, browser 등은 Optional이므로 생략 가능
     },
   });
 
@@ -54,6 +56,7 @@ export function LoginPage() {
               onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-4"
             >
+              {/* 이메일 입력 */}
               <FormField
                 control={form.control}
                 name="email"
@@ -72,6 +75,8 @@ export function LoginPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 비밀번호 입력 */}
               <FormField
                 control={form.control}
                 name="password"
@@ -90,6 +95,8 @@ export function LoginPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 하단 링크 영역 */}
               <div className="flex items-center justify-between text-sm">
                 <Link
                   to="/signup"
@@ -97,13 +104,16 @@ export function LoginPage() {
                 >
                   계정이 없으신가요? 회원가입
                 </Link>
-                <a
-                  href="/reset-password"
+                
+                {/* 🚨 [수정됨] a 태그 -> Link 컴포넌트 & 경로 변경 */}
+                <Link
+                  to="/find-id" 
                   className="text-muted-foreground underline-offset-4 hover:underline"
                 >
-                  비밀번호를 잊으셨나요?
-                </a>
+                  아이디/비밀번호 찾기
+                </Link>
               </div>
+
               <Button
                 type="submit"
                 className="w-full"
@@ -111,7 +121,7 @@ export function LoginPage() {
               >
                 {loginMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     로그인 중...
                   </>
                 ) : (

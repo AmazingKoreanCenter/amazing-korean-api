@@ -30,10 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { signupReqSchema, type SignupReq } from "@/category/user/types";
 
+// 🚨 [수정됨] User -> Auth로 경로 변경 (Critical!)
+import { signupReqSchema, type SignupReq } from "@/category/auth/types";
+
+// (주의: Hook 내부에서도 auth_api를 참조하는지 확인 필요)
 import { useSignup } from "../hook/use_signup";
 
+// Form Schema Refinement (약관 동의 검증)
 const signupFormSchema = signupReqSchema.superRefine((data, ctx) => {
   if (!data.terms_service) {
     ctx.addIssue({
@@ -84,14 +88,18 @@ export function SignupPage() {
       birthday: "",
       terms_service: false,
       terms_personal: false,
+      // Select 컴포넌트 제어를 위해 undefined 방지 (필요 시 추가)
+      language: "ko", 
+      country: "KR",
+      gender: "male",
     },
   });
 
   const onSubmit = (values: SignupReq) => {
     signupMutation.mutate(values, {
       onSuccess: () => {
-        toast.success("Welcome!");
-        navigate("/");
+        toast.success("회원가입을 축하합니다! 로그인해주세요.");
+        navigate("/login"); // 가입 후 보통 로그인 페이지로 이동
       },
     });
   };
@@ -111,6 +119,7 @@ export function SignupPage() {
               onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-4"
             >
+              {/* 이메일 */}
               <FormField
                 control={form.control}
                 name="email"
@@ -129,6 +138,8 @@ export function SignupPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 비밀번호 */}
               <FormField
                 control={form.control}
                 name="password"
@@ -147,6 +158,8 @@ export function SignupPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 이름 */}
               <FormField
                 control={form.control}
                 name="name"
@@ -164,6 +177,8 @@ export function SignupPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 닉네임 */}
               <FormField
                 control={form.control}
                 name="nickname"
@@ -177,6 +192,8 @@ export function SignupPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 생년월일 */}
               <FormField
                 control={form.control}
                 name="birthday"
@@ -190,6 +207,8 @@ export function SignupPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 성별 */}
               <FormField
                 control={form.control}
                 name="gender"
@@ -217,6 +236,8 @@ export function SignupPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 국가 */}
               <FormField
                 control={form.control}
                 name="country"
@@ -244,6 +265,8 @@ export function SignupPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 언어 */}
               <FormField
                 control={form.control}
                 name="language"
@@ -271,6 +294,8 @@ export function SignupPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 이용약관 */}
               <FormField
                 control={form.control}
                 name="terms_service"
@@ -281,12 +306,11 @@ export function SignupPage() {
                         <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
+                          // Checkbox ref 전달 시 에러 방지용
+                          ref={field.ref} 
                         />
                       </FormControl>
-                      <FormLabel className="text-sm font-normal">
+                      <FormLabel className="text-sm font-normal cursor-pointer">
                         이용약관에 동의합니다.
                       </FormLabel>
                     </div>
@@ -294,6 +318,8 @@ export function SignupPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 개인정보 처리방침 */}
               <FormField
                 control={form.control}
                 name="terms_personal"
@@ -304,12 +330,10 @@ export function SignupPage() {
                         <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
                           ref={field.ref}
                         />
                       </FormControl>
-                      <FormLabel className="text-sm font-normal">
+                      <FormLabel className="text-sm font-normal cursor-pointer">
                         개인정보 처리방침에 동의합니다.
                       </FormLabel>
                     </div>
@@ -317,6 +341,7 @@ export function SignupPage() {
                   </FormItem>
                 )}
               />
+
               <Button
                 type="submit"
                 className="w-full"
@@ -324,7 +349,7 @@ export function SignupPage() {
               >
                 {signupMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     가입하는 중...
                   </>
                 ) : (

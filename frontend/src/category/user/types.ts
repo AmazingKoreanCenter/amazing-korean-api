@@ -1,48 +1,16 @@
 import { z } from "zod";
 
-import { accessTokenResSchema } from "../auth/types";
+// ✅ [변경됨] Auth 모듈로 이사 간 공통 Enum을 가져옵니다. (중복 정의 제거)
+import { 
+  userAuthSchema, 
+  userGenderSchema 
+} from "../auth/types";
 
-export const userAuthSchema = z.enum(["HYMN", "admin", "manager", "learner"]);
+// ----------------------------------------------------------------------
+// 🚨 주의: Signup(회원가입) 관련 코드는 src/category/auth/types.ts로 이동했습니다.
+// ----------------------------------------------------------------------
 
-export type UserAuth = z.infer<typeof userAuthSchema>;
-
-export const userGenderSchema = z.enum(["none", "male", "female", "other"]);
-
-export type UserGender = z.infer<typeof userGenderSchema>;
-
-export const signupReqSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8).max(72),
-  name: z.string().min(1).max(50),
-  terms_service: z.boolean(),
-  terms_personal: z.boolean(),
-  nickname: z.string().min(1).max(100),
-  language: z.string().min(2).max(2),
-  country: z.string().min(2).max(50),
-  birthday: z.string().date(),
-  gender: userGenderSchema,
-});
-
-export type SignupReq = z.infer<typeof signupReqSchema>;
-
-export const signupResSchema = z.object({
-  user_id: z.number().int(),
-  email: z.string(),
-  name: z.string(),
-  nickname: z.string(),
-  language: z.string(),
-  country: z.string(),
-  birthday: z.string().date(),
-  gender: userGenderSchema,
-  user_state: z.boolean(),
-  user_auth: userAuthSchema,
-  created_at: z.string().datetime(),
-  access: accessTokenResSchema,
-  session_id: z.string(),
-});
-
-export type SignupRes = z.infer<typeof signupResSchema>;
-
+// [User Profile Response] - (타인의 프로필 조회 등에 사용)
 export const profileResSchema = z.object({
   id: z.number().int(),
   email: z.string(),
@@ -51,14 +19,15 @@ export const profileResSchema = z.object({
   language: z.string().optional(),
   country: z.string().optional(),
   birthday: z.string().date().optional(),
-  gender: userGenderSchema,
+  gender: userGenderSchema, // ✅ Auth에서 가져온 타입 사용
   user_state: z.boolean(),
-  user_auth: userAuthSchema,
+  user_auth: userAuthSchema, // ✅ Auth에서 가져온 타입 사용
   created_at: z.string().datetime(),
 });
 
 export type ProfileRes = z.infer<typeof profileResSchema>;
 
+// [User Detail] - 내 정보 조회 (GET /users/me)
 export const userDetailSchema = z.object({
   user_id: z.number().int(),
   email: z.string().email(),
@@ -71,6 +40,7 @@ export const userDetailSchema = z.object({
 
 export type UserDetail = z.infer<typeof userDetailSchema>;
 
+// [Update User] - 내 정보 수정 (POST /users/me)
 export const updateUserReqSchema = z.object({
   nickname: z.string().min(1).max(100).optional(),
   name: z.string().min(1).max(100).optional(),
@@ -79,16 +49,18 @@ export const updateUserReqSchema = z.object({
 
 export type UpdateUserReq = z.infer<typeof updateUserReqSchema>;
 
+// [Profile Update] - (관리자 또는 상세 프로필 수정용)
 export const profileUpdateReqSchema = z.object({
   nickname: z.string().min(1).max(100).optional(),
   language: z.string().min(1).max(50).optional(),
   country: z.string().min(1).max(50).optional(),
   birthday: z.string().date().optional(),
-  gender: userGenderSchema.optional(),
+  gender: userGenderSchema.optional(), // ✅ Auth에서 가져온 타입 사용
 });
 
 export type ProfileUpdateReq = z.infer<typeof profileUpdateReqSchema>;
 
+// [Study Lang] - 학습 언어 설정
 export const studyLangItemSchema = z.object({
   lang_code: z.string().min(2).max(2),
   priority: z.number().int().min(1),
@@ -97,6 +69,7 @@ export const studyLangItemSchema = z.object({
 
 export type StudyLangItem = z.infer<typeof studyLangItemSchema>;
 
+// [Settings] - 환경 설정 조회 (GET) - 어제 수정 완료된 부분 ✅
 export const settingsResSchema = z.object({
   user_set_language: z.string(),
   user_set_timezone: z.string(),
@@ -107,6 +80,7 @@ export const settingsResSchema = z.object({
 
 export type SettingsRes = z.infer<typeof settingsResSchema>;
 
+// [Settings Update] - 환경 설정 수정 (POST) - 어제 수정 완료된 부분 ✅
 export const settingsUpdateReqSchema = z.object({
   user_set_language: z.string().min(2).max(2).optional(),
   user_set_timezone: z.string().min(1).optional(),

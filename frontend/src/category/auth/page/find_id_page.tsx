@@ -20,12 +20,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { findIdReqSchema, type FindIdReq } from "@/category/auth/types";
+import { findIdReqSchema, type FindIdReq } from "@/category/auth/types"; // ✅ 경로 정확함
 
 import { useFindId } from "../hook/use_find_id";
 
 export function FindIdPage() {
   const findIdMutation = useFindId();
+  
   const form = useForm<FindIdReq>({
     resolver: zodResolver(findIdReqSchema),
     mode: "onChange",
@@ -51,6 +52,7 @@ export function FindIdPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* 이름 */}
               <FormField
                 control={form.control}
                 name="name"
@@ -68,6 +70,8 @@ export function FindIdPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 이메일 */}
               <FormField
                 control={form.control}
                 name="email"
@@ -86,20 +90,19 @@ export function FindIdPage() {
                   </FormItem>
                 )}
               />
-              <div className="flex items-center justify-between text-sm">
+
+              <div className="flex items-center justify-end text-sm">
                 <Link
                   to="/login"
                   className="text-primary underline-offset-4 hover:underline"
                 >
                   로그인으로 돌아가기
                 </Link>
-                <a
-                  href="#"
-                  className="text-muted-foreground underline-offset-4 hover:underline"
-                >
-                  비밀번호 찾기
-                </a>
+                {/* 🚨 [삭제됨] 작동하지 않는 '비밀번호 찾기' 링크 제거
+                  추후 '비밀번호 재설정 요청 API'가 구현되면 다시 추가하세요.
+                */}
               </div>
+
               <Button
                 type="submit"
                 className="w-full"
@@ -107,7 +110,7 @@ export function FindIdPage() {
               >
                 {findIdMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     요청 중...
                   </>
                 ) : (
