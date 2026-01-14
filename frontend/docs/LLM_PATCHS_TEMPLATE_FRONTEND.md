@@ -1,6 +1,6 @@
-# LLM_PATCHS_TEMPLATE_FRONTEND.md (MCP 버전)
+# LLM_PATCHS_TEMPLATE_FRONTEND.md (MCP 버전) - Updated for Phase 3
 
-# PATCH REQUEST — FRONTEND <모듈/단계 이름> (예: Phase 1-1 Login UI)
+# PATCH REQUEST — FRONTEND <모듈/단계 이름> (예: Phase 3-1 Video List)
 
 **ROLE**:
 - 당신은 **Amazing Korean API의 프론트엔드 전담 AI 에이전트**입니다.
@@ -9,85 +9,48 @@
 
 **OBJECTIVE**:
 - <작업 목표 요약>
-- 예: "`docs/AMK_API_MASTER.md`의 Phase 1 로그인 화면을 구현하고, `useAuth` 훅과 연동하시오."
+- 예: "유튜브 영상 목록을 조회하는 페이지(`/videos`)를 구현하고, 홈 화면에 진입 버튼을 만드시오."
 
 **MCP ACTIONS (필수 수행)**:
 작업을 시작하기 전에 다음 **도구(Tools)**를 사용하여 컨텍스트를 직접 확보하십시오.
-1.  **Read Specs**:
-    - `docs/AMK_API_MASTER.md`:
-        - **Section 5 (Roadmap)**: API 엔드포인트, URL, Request/Response 필드명(snake_case) 확인.
-        - **Section 6 (Frontend)**: 상태 관리(6.4), UI/Tailwind 규칙(6.5) 확인.
-2.  **Read Code**:
-    - `src/api/client.ts`: 공통 API 클라이언트 설정 확인.
-    - `src/components/ui/...`: 사용할 Shadcn 컴포넌트(Button, Input, Form 등) 존재 여부 확인.
-    - `tailwind.config.js`: 색상 변수(primary, destructive 등) 확인.
+1.  **Check Backend Specs**: `types.ts` 또는 백엔드 코드를 확인하여 **DTO 필드명(Snake Case)**이 100% 일치하는지 검증하십시오. (추측 금지)
+2.  **Check Dependencies**: UI 구현에 필요한 Shadcn/Radix 컴포넌트가 설치되어 있는지 확인하십시오.
 
-**IMPLEMENTATION STEPS (Frontend Flow)**:
-1.  **Types (DTO)**: 백엔드 API 명세에 맞춰 Zod 스키마 및 TypeScript 타입을 정의하십시오. (**중요: DTO 필드명은 백엔드와 동일하게 `snake_case` 유지**)
-2.  **API Client**: `src/api/` 내 도메인별 함수를 구현하십시오. (`client.ts` 활용)
-3.  **Hooks**: React Query(`useQuery`, `useMutation`) 또는 Zustand를 사용하여 비즈니스 로직을 훅으로 분리하십시오.
-4.  **UI Component**: `src/components/ui`의 Shadcn 컴포넌트를 조립하여 화면을 구성하십시오. (**Raw HTML/CSS 지양, 컴포넌트 재사용**)
-5.  **Page/Route**: 최종 페이지를 라우터 설정에 연결하십시오.
+**IMPLEMENTATION STEPS (Strict 4-Step Process)**:
+1.  **Step 1. Types (`types.ts`)**:
+    - 가장 중요합니다. 백엔드의 DB 모델/DTO와 **1:1로 일치하는 Zod 스키마**와 TypeScript 타입을 정의하십시오.
+    - 예: `VideoSummary` (리스트용), `VideoDetail` (상세용).
+2.  **Step 2. API & Hooks (`api.ts` -> `hooks/`)**:
+    - 정의한 `types.ts`를 import하여 API 함수를 작성하십시오.
+    - React Query(`useQuery`)를 사용하여 데이터를 가져오는 훅(`useVideoList` 등)을 만듭니다.
+3.  **Step 3. UI Component & Page**:
+    - **Components**: 재사용 가능한 컴포넌트(예: `VideoCard`)를 먼저 만드십시오.
+    - **Page**: Shadcn UI를 활용하여 최종 페이지(예: `VideoListPage`)를 구성하십시오. (넷플릭스 스타일 그리드 등)
+4.  **Step 4. Navigation (Entry Point)**:
+    - `src/app/routes.tsx`에 경로를 등록하십시오.
+    - **HomePage** 또는 네비게이션 바에 해당 페이지로 이동하는 **버튼/링크**를 반드시 추가하십시오.
 
-**PATCH RULES (Strict Frontend Guidelines)**:
-1.  **Full File Replacement**: 수정되는 파일은 반드시 **처음부터 끝까지 전체 코드**를 출력해야 합니다. (`// ... existing code` 생략 금지)
-2.  **Type Safety**: `any` 타입 사용을 금지합니다. 인터페이스와 Zod를 통해 엄격하게 타이핑하십시오.
-3.  **Naming Convention**:
-    - **Variables/Functions**: `camelCase` (예: `isLoading`, `handleSubmit`)
-    - **API DTO Fields**: **`snake_case`** (백엔드 DB 컬럼명과 1:1 일치, 프론트에서 임의 변환 금지)
-    - **Files**: `snake_case` 또는 `kebab-case` (프로젝트 컨벤션 통일)
-4.  **Shadcn First**: 버튼, 인풋, 카드 등은 반드시 `src/components/ui/` 내부의 컴포넌트를 import하여 사용하십시오. 없는 경우 설치 요청을 하십시오.
+**PATCH RULES (Iron Rules)**:
+1.  **🚫 No Hallucinations (SSOT 준수)**: `types.ts`나 백엔드 스키마에 없는 필드(`is_marketing_agreed` 등)를 임의로 창조하지 마십시오.
+2.  **🔗 DTO 1:1 Mapping**: 프론트엔드 변수명이나 Form Name은 백엔드 API 명세의 `snake_case` 키 값과 정확히 일치해야 합니다.
+3.  **📦 Dependency Check**: `Switch`, `Select`, `AspectRatio` 등 Shadcn 컴포넌트 사용 시, 설치 명령어가 필요한지 확인하고 가이드하십시오.
+4.  **Full File Replacement**: 수정되는 파일은 `// ... existing code` 없이 **전체 코드**를 출력하십시오.
 
 **OUTPUT FORMAT**:
 
-// FILE: src/api/.../filename.ts
+// FILE: src/category/.../types.ts
 <FILE CONTENT START>
-... (전체 코드) ...
+...
 <FILE CONTENT END>
 
-// FILE: src/category/.../filename.tsx
+// FILE: src/category/.../api.ts
 <FILE CONTENT START>
-... (전체 코드) ...
+...
 <FILE CONTENT END>
 
-// FILE: docs/AMK_API_MASTER.md
-... (구현 완료 체크 또는 스펙 변경 제안) ...
+... (나머지 파일들)
 
 # VERIFICATION (Smoke Check)
-1. **Type Check**: `npm run typecheck` (tsc -b)
+1. **Type Check**: `npm run typecheck`
 2. **Lint**: `npm run lint`
-3. **Browser**: `http://localhost:5173` 접속 후 [기능명] 동작 확인.
-
----
-
-## 🔄 AMK Frontend Development SOP
-
-프론트엔드 작업 시 아래 5단계를 따른다.
-
-### Step 1: UI & Data Analysis (화면 및 데이터 분석)
-- **Source:** `AMK_API_MASTER.md` Section 5 & 6.
-- **Check:** 필요한 Shadcn 컴포넌트가 `src/components/ui`에 있는지 확인.
-- **Goal:** 어떤 API를 호출하며, 어떤 상태(Loading, Error, Success)를 UI에 표현할지 정의.
-
-### Step 2: Generate Prompt Specification File (프롬프트 명세서 생성)
-- **Action:** 완결된 하나의 마크다운 파일(`.md`) 생성.
-- **Naming Convention:** `F-[Phase]-[Num]_[FeatureName].md` (예: `F-1-1.login_screen.md`).
-- **Required Sections:**
-  1. **ROLE & OBJECTIVE**: 구현 목표.
-  2. **UI SPEC**: 사용할 Shadcn 컴포넌트 목록, 레이아웃 구조, 반응형 전략.
-  3. **DATA SPEC**: API 요청/응답 DTO (snake_case 필수) 및 Zod Validation 규칙.
-  4. **FILE PATCHES**: 생성/수정할 파일 목록.
-
-### Step 3: Trigger Execution (실행 명령 전달)
-- **Action:** 채팅창에 파일 참조(`@`)와 함께 실행 지시.
-- **Prompt Format:**
-  > "Please implement the frontend feature described in @[FILENAME], strictly following the 'Shadcn First' and 'Snake_case DTO' rules."
-
-### Step 4: Verification (검증)
-- **Action:**
-    1. 터미널: `npm run typecheck` 실행 (타입 에러 0개).
-    2. 브라우저: 실제 클릭 및 데이터 연동 확인.
-- **Troubleshooting:** 타입 에러 발생 시, `ts-ignore`나 `any`를 쓰지 말고 타입을 올바르게 수정할 것.
-
-### Step 5: Retrospective (회고)
-- **Action:** 프론트엔드 특화 이슈(CSS 깨짐, 훅 무한 루프, API 연동 오류 등) 기록.
+3. **Browser**: 기능 동작 및 데이터 바인딩 확인.

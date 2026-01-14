@@ -155,7 +155,7 @@ impl Modify for SecurityAddon {
             /*crate::api::user::dto::StudyLangItem, // 향후 추가할 내용*/
 
             // videos dto
-            crate::api::video::dto::VideosQuery,
+            crate::api::video::dto::VideoListReq,
             crate::api::video::dto::VideoListItem,
             crate::api::video::dto::VideoTagDetail,
             crate::api::video::dto::VideoDetailRes,

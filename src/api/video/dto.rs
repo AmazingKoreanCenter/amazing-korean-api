@@ -4,26 +4,94 @@ use sqlx::{types::Json, FromRow};
 use utoipa::ToSchema;
 use validator::Validate;
 
+// =====================================================================
+// Request DTOs (요청)
+// =====================================================================
+
+/// 비디오 목록 조회 및 검색 요청 (Query String)
 #[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "page": 1,
+    "per_page": 20,
+    "q": "Korean Alphabet",
+    "sort": "latest",
+    "state": "published"
+}))]
 pub struct VideoListReq {
+    #[serde(default = "default_page")]
     #[validate(range(min = 1))]
-    pub page: Option<u64>,
+    pub page: u64,
+
+    #[serde(default = "default_per_page")]
     #[validate(range(min = 1, max = 100))]
-    pub per_page: Option<u64>,
+    pub per_page: u64,
+
+    // 검색 및 필터
+    pub q: Option<String>,          // 검색어
+    pub tag: Option<String>,        // 태그 필터
+    pub lang: Option<String>,       // 언어 필터
+    pub state: Option<String>,      // 상태 필터 (published, etc)
+    
+    // 정렬 (latest, views, etc.)
     pub sort: Option<String>,
 }
 
+fn default_page() -> u64 { 1 }
+fn default_per_page() -> u64 { 20 }
+
+/// 비디오 ID 파라미터 (Path Variable 등)
+#[derive(Debug, Deserialize)]
+pub struct IdParam {
+    pub id: i64,
+}
+
+/// 학습 진도 업데이트 요청
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "progress_rate": 80
+}))]
+pub struct VideoProgressUpdateReq {
+    #[validate(range(min = 0, max = 100))]
+    pub progress_rate: i32,
+}
+
+// =====================================================================
+// Response DTOs (응답)
+// =====================================================================
+
+// ----------------------
+// 1. List Response
+// ----------------------
+
+/// 비디오 목록 아이템 (경량 정보)
 #[derive(Debug, Serialize, FromRow, ToSchema)]
-pub struct VideoInfo {
+#[serde(rename_all = "snake_case")]
+pub struct VideoListItem {
     pub video_id: i64,
-    pub video_url_vimeo: String,
-    pub video_state: String,
-    pub video_access: String,
-    pub tags: Vec<String>,
+    pub video_idx: String, // 비즈니스 식별 코드 (예: VID-001)
+    
+    pub title: Option<String>,
+    pub subtitle: Option<String>,
+    pub duration_seconds: Option<i32>,
+    pub language: Option<String>,
+    pub thumbnail_url: Option<String>,
+    
+    pub state: String,
+    pub access: String,
+    
+    // 목록에서는 단순 문자열 태그 배열
+    #[serde(default)] 
+    pub tags: Vec<String>, 
+    
+    pub has_captions: bool,
     pub created_at: DateTime<Utc>,
 }
 
+/// 목록 페이징 메타데이터
 #[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
 pub struct VideoListMeta {
     pub total_count: i64,
     pub total_pages: i64,
@@ -31,88 +99,59 @@ pub struct VideoListMeta {
     pub per_page: u64,
 }
 
+/// 비디오 목록 응답 (Data + Meta)
 #[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
 pub struct VideoListRes {
     pub meta: VideoListMeta,
-    pub data: Vec<VideoInfo>,
+    pub data: Vec<VideoListItem>,
 }
 
-// 영상 목록/검색 API의 쿼리 파라미터 표준 묶음 개발시에 사용
+// ----------------------
+// 2. Detail Response
+// ----------------------
 
-#[allow(dead_code)]
-#[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
-pub struct VideosQuery {
-    pub q: Option<String>,
-    pub tag: Option<Vec<String>>,
-    pub lang: Option<String>,
-    pub access: Option<String>,
-    pub state: Option<String>,
-    #[serde(default = "default_limit")]
-    pub limit: i64,
-    #[serde(default = "default_offset")]
-    pub offset: i64,
-    pub sort: Option<String>,
-    pub order: Option<String>,
-}
-
-fn default_limit() -> i64 {
-    20
-}
-fn default_offset() -> i64 {
-    0
-}
-
-#[derive(Debug, Serialize, FromRow, ToSchema)]
-pub struct VideoListItem {
-    pub video_id: i64,
-    pub video_idx: String,
-    pub title: Option<String>,
-    pub subtitle: Option<String>,
-    pub duration_seconds: Option<i32>,
-    pub language: Option<String>,
-    pub thumbnail_url: Option<String>,
-    pub state: String,
-    pub access: String,
-    pub tags: Vec<String>,
-    pub has_captions: bool,
-    pub created_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct IdParam {
-    pub id: i64,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+/// 상세 태그 정보 (JSONB 구조)
+#[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
+#[serde(rename_all = "snake_case")]
 pub struct VideoTagDetail {
     pub key: Option<String>,
     pub title: Option<String>,
     pub subtitle: Option<String>,
 }
 
+/// 비디오 상세 정보
 #[derive(Debug, Serialize, FromRow, ToSchema)]
+#[serde(rename_all = "snake_case")]
 pub struct VideoDetailRes {
     pub video_id: i64,
     pub video_url_vimeo: String,
     pub video_state: String,
+    
+    // DB의 JSONB 타입을 Rust 구조체로 매핑
+    // Swagger 문서에는 Vec<VideoTagDetail>로 표시되도록 설정
     #[schema(value_type = Vec<VideoTagDetail>)]
     pub tags: Json<Vec<VideoTagDetail>>,
+    
     pub created_at: DateTime<Utc>,
 }
 
+// ----------------------
+// 3. Progress Response
+// ----------------------
+
+/// 학습 진도 조회 응답
 #[derive(Debug, Serialize, FromRow, ToSchema)]
+#[serde(rename_all = "snake_case")]
 pub struct VideoProgressRes {
     pub video_id: i64,
+    
     #[sqlx(rename = "video_progress_log")]
     pub progress_rate: i32,
+    
     #[sqlx(rename = "video_completed_log")]
     pub is_completed: bool,
+    
     #[sqlx(rename = "video_last_watched_at_log")]
     pub last_watched_at: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Deserialize, ToSchema, Validate)]
-pub struct VideoProgressUpdateReq {
-    #[validate(range(min = 0, max = 100))]
-    pub progress_rate: i32,
 }
