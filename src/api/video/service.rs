@@ -1,3 +1,5 @@
+use validator::Validate;
+
 use crate::api::video::dto::{
     VideoDetailRes, VideoListMeta, VideoListReq, VideoListRes, VideoProgressRes,
     VideoProgressUpdateReq,
@@ -5,31 +7,60 @@ use crate::api::video::dto::{
 use crate::api::video::repo::VideoRepo;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
-use validator::Validate;
 
-pub struct VideoService {
-    repo: VideoRepo,
-}
+pub struct VideoService;
 
 impl VideoService {
-    pub fn new(repo: VideoRepo) -> Self {
-        Self { repo }
+    /// 비디오 목록 조회 (검색 + 페이징 + 필터)
+    pub async fn list_videos(st: &AppState, req: VideoListReq) -> AppResult<VideoListRes> {
+        // 1. Validation
+        if let Err(e) = req.validate() {
+            return Err(AppError::BadRequest(e.to_string()));
+        }
+
+        // 2. Repo Call (Data + Total Count)
+        let (data, total_count) = VideoRepo::find_list_dynamic(&st.db, &req).await?;
+
+        // 3. Calc Meta
+        let total_pages = if total_count == 0 {
+            0
+        } else {
+            (total_count + req.per_page as i64 - 1) / req.per_page as i64
+        };
+
+        Ok(VideoListRes {
+            meta: VideoListMeta {
+                total_count,
+                total_pages,
+                current_page: req.page,
+                per_page: req.per_page,
+            },
+            data,
+        })
     }
 
+    /// 비디오 상세 조회
+    pub async fn get_video_detail(st: &AppState, video_id: i64) -> AppResult<VideoDetailRes> {
+        let video = VideoRepo::find_detail_by_id(&st.db, video_id).await?;
+        video.ok_or(AppError::NotFound)
+    }
+
+    /// 내 진도율 조회
     pub async fn get_video_progress(
-        &self,
-        _st: &AppState,
+        st: &AppState,
         user_id: i64,
         video_id: i64,
     ) -> AppResult<VideoProgressRes> {
-        // 비디오 존재 확인
-        let video_exists = self.repo.get_video_exists(video_id).await?;
-        if !video_exists {
+        // 1. 비디오 존재 확인
+        let exists = VideoRepo::exists_by_id(&st.db, video_id).await?;
+        if !exists {
             return Err(AppError::NotFound);
         }
 
-        let progress = self.repo.fetch_video_progress(user_id, video_id).await?;
+        // 2. 진도율 조회
+        let progress = VideoRepo::find_progress(&st.db, user_id, video_id).await?;
 
+        // 3. 없으면 기본값 반환 (0%)
         Ok(progress.unwrap_or_else(|| VideoProgressRes {
             video_id,
             progress_rate: 0,
@@ -38,65 +69,37 @@ impl VideoService {
         }))
     }
 
+    /// 내 진도율 업데이트
     pub async fn update_video_progress(
-        &self,
+        st: &AppState,
         user_id: i64,
         video_id: i64,
         req: VideoProgressUpdateReq,
     ) -> AppResult<VideoProgressRes> {
-        // 비디오 존재 확인
-        let video_exists = self.repo.get_video_exists(video_id).await?;
-        if !video_exists {
+        // 1. Validation
+        if let Err(e) = req.validate() {
+            return Err(AppError::Unprocessable(e.to_string()));
+        }
+
+        // 2. 비디오 존재 확인
+        let exists = VideoRepo::exists_by_id(&st.db, video_id).await?;
+        if !exists {
             return Err(AppError::NotFound);
         }
 
-        if let Err(e) = req.validate() {
-            return Err(AppError::Unprocessable(e.to_string()));
-        }
+        // 3. 완료 여부 판단 (100%면 완료)
+        let is_completed = req.progress_rate >= 100;
 
-        let is_completed = req.progress_rate == 100;
-        let res = self
-            .repo
-            .upsert_progress_log(user_id, video_id, req.progress_rate, is_completed)
-            .await?;
+        // 4. Upsert Log
+        let res = VideoRepo::upsert_progress(
+            &st.db,
+            user_id,
+            video_id,
+            req.progress_rate,
+            is_completed,
+        )
+        .await?;
 
         Ok(res)
-    }
-
-    pub async fn get_video_detail(&self, video_id: i64) -> AppResult<VideoDetailRes> {
-        let video = self.repo.find_video_by_id(video_id).await?;
-        video.ok_or(AppError::NotFound)
-    }
-
-    pub async fn list_videos(&self, req: VideoListReq) -> AppResult<VideoListRes> {
-        if let Err(e) = req.validate() {
-            return Err(AppError::Unprocessable(e.to_string()));
-        }
-
-        let page = req.page.unwrap_or(1);
-        let per_page = req.per_page.unwrap_or(10);
-        let total_count = self.repo.count_open_videos().await?;
-
-        let total_pages = if total_count == 0 {
-            0
-        } else {
-            (total_count + per_page as i64 - 1) / per_page as i64
-        };
-
-        let offset = (page - 1) * per_page;
-        let data = self
-            .repo
-            .find_open_videos(per_page, offset, req.sort.as_deref())
-            .await?;
-
-        Ok(VideoListRes {
-            meta: VideoListMeta {
-                total_count,
-                total_pages,
-                current_page: page,
-                per_page,
-            },
-            data,
-        })
     }
 }
