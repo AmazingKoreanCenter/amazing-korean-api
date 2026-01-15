@@ -3,7 +3,7 @@ import axios, { type AxiosRequestConfig } from "axios";
 import type { LoginRes } from "@/category/auth/types";
 import { useAuthStore } from "@/hooks/use_auth_store";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 type RequestOptions = Omit<AxiosRequestConfig, "url">;
 
@@ -108,7 +108,7 @@ api.interceptors.response.use(
         // [수정 1] body에 undefined 대신 빈 객체 {} 전달 (415 에러 방지)
         // [수정 2] config 객체를 'RetryableRequestConfig'로 캐스팅 (skipAuthRefresh 에러 해결)
         const refreshResponse = await api.post(
-          "/api/auth/refresh",
+          "/auth/refresh",
           {}, 
           {
             skipAuthRefresh: true,
