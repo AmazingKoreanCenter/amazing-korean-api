@@ -97,3 +97,20 @@ export const videoProgressResSchema = z.object({
 });
 
 export type VideoProgressRes = z.infer<typeof videoProgressResSchema>;
+
+// [Phase 3-2] 상세 조회용 인터페이스 (파일 하단에 추가)
+export interface VideoTag {
+  key: string | null;
+  title: string | null;
+  subtitle: string | null;
+}
+
+export interface VideoDetail {
+  video_id: number;
+  title: string | null;
+  subtitle: string | null;
+  video_url_vimeo: string;
+  video_state: string;
+  tags: VideoTag[];
+  created_at: string;
+}

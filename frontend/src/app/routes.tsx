@@ -10,6 +10,7 @@ import { MyPage } from "@/category/user/page/my_page";
 import { EditProfilePage } from "@/category/user/page/edit_profile_page";
 import { SettingsPage } from "@/category/user/page/settings_page";
 import { VideoListPage } from "@/category/video/page/video_list_page";
+import { VideoDetailPage } from "@/category/video/page/video_detail_page";
 import PrivateRoute from "@/routes/private_route";
 
 export function AppRoutes() {
@@ -23,6 +24,7 @@ export function AppRoutes() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/health" element={<HealthPage />} />
       <Route path="/videos" element={<VideoListPage />} />
+      <Route path="/videos/:videoId" element={<VideoDetailPage />} />
 
       {/* 🔒 로그인한 사람만 접근 가능 (Private) */}
       <Route element={<PrivateRoute />}>
