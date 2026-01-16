@@ -10,6 +10,7 @@ import type { VideoTag } from "@/category/video/types";
 
 import { VideoPlayer } from "../components/video_player";
 import { useVideoDetail } from "../hook/use_video_detail";
+import { useVideoProgress } from "../hook/use_video_progress";
 
 // 날짜 포맷팅 함수
 const formatDate = (value: string) => {
@@ -37,6 +38,7 @@ export function VideoDetailPage() {
 
   // 데이터 조회 Hook
   const { data, isPending, isError, error } = useVideoDetail(id);
+  const { data: progressData, isSuccess: isProgressSuccess } = useVideoProgress(videoId);
 
   // 유효하지 않은 ID 접근 시 리다이렉트
   useEffect(() => {
@@ -44,6 +46,17 @@ export function VideoDetailPage() {
       navigate("/videos", { replace: true });
     }
   }, [isValidId, navigate]);
+
+  useEffect(() => {
+    if (!isProgressSuccess || !progressData) {
+      return;
+    }
+
+    console.log("[VideoProgress] Loaded:", {
+      progress_rate: progressData.progress_rate,
+      is_completed: progressData.is_completed,
+    });
+  }, [isProgressSuccess, progressData]);
 
   if (!isValidId) return null;
 

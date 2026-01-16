@@ -1,6 +1,6 @@
 ---
 title: AMK_API_MASTER — Amazing Korean API  Master Spec
-updated: 2026-01-11
+updated: 2026-01-15
 owner: HYMN Co., Ltd. (Amazing Korean)
 audience: server / database / backend / frontend / lead / LLM assistant
 ---
@@ -45,28 +45,44 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ### 1.1 서비스 개요
 
-- 브랜드: **Amazing Korean**
-- 주요 타겟:
-  - EPS-TOPIK / TOPIK 준비생 ( 해외 한국어 학습자 중심)
-  - EPS-TOPIK / TOPIK을 위한 한국어 초급 과정 : 900문장 학습
-  - EPS-TOPIK / TOPIK 급수 달성을 위한 과정 : 초급(TOPIK 1~2급), 중급(TOPIK 3~4급), 고급(TOPIK 5~6급)
-- 핵심 가치:
-  - 한국어 학습이 아닌 한국어 습득에 중점, **실제 한국인이 자주 쓰는 표현 기반** 교과과정
-  - 기존 한국어 학습 시간 대비 **1/3 수준의 학습 시간으로 TOPIK 3급 이상 달성**을 목표로 하는 효율성
-  - 한국어를 한국어로만 교육하는 것이 아닌 학습자 구사언어와 한국어를 동시 사용으로 학습 진행
-- 채널:
-  - domain : https://amazingkorean.net 
-  - web & app : 동영상 강의 수강, 학습 & 복습 & 시험, 결제 시스템 제공
+- **Brand Identity**: **Amazing Korean** (Global Korean Language LMS)
+- **Target Audience**:
+  - **EPS-TOPIK & TOPIK 준비생**: 한국 취업 및 유학을 목표로 하는 해외 학습자
+  - **수준별 학습**:
+    - **기초(Foundation)**: 900문장 패턴 습득을 통한 문법/회화 기초 완성
+    - **급수별 과정**: 초급(TOPIK 1~2), 중급(TOPIK 3~4), 고급(TOPIK 5~6) 맞춤형 커리큘럼
+- **Core Value (차별점)**:
+  - **습득(Acquisition) 중심**: 암기가 아닌, 실제 한국인의 언어 사용 패턴(Context) 기반 자연적 습득 유도
+  - **압도적 효율성**: 데이터 기반 커리큘럼으로 기존 대비 **1/3 학습 시간**으로 목표 등급 달성
+  - **이중 언어 학습(Bilingual)**: 학습자의 모국어와 한국어를 매핑하여 이해도 극대화 (DB 다국어 지원 설계)
+- **Platform Channels**:
+  - **Web/App**: `https://amazingkorean.net` (반응형 웹 및 하이브리드 앱, 준비중)
+  - **Core Features**: LMS(학습 관리), VOD 스트리밍, CBT(Computer Based Test), 결제 및 멤버십
 
-### 1.2 비즈니스 흐름(요약)
+### 1.2 비즈니스 흐름 (Business Logic)
 
-- 관리자
-  - web & app → 로그인(배정된 계정으로) → 학습자 관리 및 학습 관련 사항 수정 가능
+- **학습자 (User Journey)**
+  1. **접근 및 가입**: 소셜/이메일 회원가입 (User/Auth)
+  2. **과정 탐색**: 레벨/목적에 맞는 강좌(Course) 및 무료 샘플 강의(Lesson) 체험
+  3. **결제 및 권한 획득**:
+     - PG 결제 또는 B2B 바우처 등록 (Payment/Ticket)
+     - 멤버십 기간 동안 해당 콘텐츠 접근 권한(Access Control) 획득
+  4. **학습 진행 (Learning Loop)**:
+     - **VOD 학습**: Vimeo 연동 영상 시청 및 진도율 자동 저장 (Video Log)
+     - **Practice**: 문장/단어 퀴즈 및 따라 하기 (Study Log)
+     - **Test**: 단원 평가 및 모의고사 응시 (Exam Result)
+  5. **성과 관리**: 나의 진도율 확인, 수료증 발급, 오답 노트 복습
 
-- 학습자
-  - web & app → 회원가입 → 로그인 → 결제 후 서비스 이용(동영상 강의 수강, 학습 & 복습 & 시험 및 관련 사항)
+- **관리자 (Admin & Operation)**
+  - **콘텐츠 관리**: 비디오/태그 메타데이터 등록, 강좌/강의 커리큘럼 구성 (CMS)
+  - **학습자 관리**: 회원 정보 조회, 수강 이력 모니터링, 악성 유저 제재
+  - **매출/통계**: 기간별 결제 내역 확인, 인기 강좌 및 이탈률 분석
 
-- B2C 온라인 강의 + B2B(대학·기관 대상 컨설팅/과정 운영) 병행을 고려
+- **Business Model (BM)**
+  - **B2C (개인)**: 월/년 단위 구독 또는 단과 강좌 구매
+  - **B2B (기관/대학)**:
+    - 기업/학교 대상 대량 수강권(Voucher) 발급 및 관리
+    - 기관 전용 대시보드 및 학습자 리포트 제공 (컨설팅)
 
 ---
 
@@ -74,25 +90,70 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ### 2.1 런타임 / 스택
 
-- **frontend**
-  - Vite + React
-  - TypeScript
-  - Tailwind CSS
-- **backend**
-  - Rust (Axum 0.8)
-  - Tokio
-  - SQLx (PostgreSQL)
-  - utoipa v5 (OpenAPI/Swagger UI `/docs`)
-  - JWT(HS256 기반 액세스 토큰)
-  - Redis (세션/리프레시 토큰 관리)
-- **database**
-  - PostgreSQL
-  - 도커 컨테이너 이름: `amk-pg`
-  - 기본 포트: `5432`
-  - 모든 로그/이력 테이블 시간 컬럼은 `TIMESTAMPTZ (UTC)`, `DEFAULT now()`
-- **server**
-  - AWS EC2 (Ubuntu/WSL에서 개발)
-  - Nginx (80/443 → 앱 서버 프록시) 
+#### **Frontend**
+  - **Core & Build**
+    - **Vite**: 빠른 개발 서버 및 번들링
+    - **React (v18)**: UI 라이브러리
+    - **TypeScript**: 정적 타입 언어
+
+  - **UI & Styling**
+    - **Tailwind CSS**: 유틸리티 퍼스트 CSS 프레임워크
+    - **Shadcn/ui**: 재사용 가능한 컴포넌트 라이브러리 (Radix UI 기반)
+    - **Lucide React**: 아이콘 팩
+    - **class-variance-authority (cva)**: 컴포넌트 변형(Variant) 관리
+
+  - **State Management**
+    - **TanStack Query (React Query)**: 서버 상태 관리 (Caching, Fetching, Synchronization)
+    - **Zustand**: 클라이언트 전역 상태 관리 (Auth, Session 등)
+
+  - **Routing & Network**
+    - **React Router DOM**: SPA 라우팅
+    - **Axios**: HTTP 클라이언트 (Interceptor를 통한 토큰/에러 처리)
+
+  - **Form & Validation**
+    - **React Hook Form**: 폼 상태 관리 및 성능 최적화
+    - **Zod**: 스키마 기반 데이터 검증 (TypeScript 타입 추론 연동)
+
+  - **Media & Features**
+    - **@vimeo/player**: Vimeo 영상 제어 및 이벤트 핸들링 (SDK)
+
+#### **Backend**
+  - **Language & Framework**
+    - **Rust**: 메모리 안전성 및 고성능 보장
+    - **Axum (0.8)**: Tokio 기반 비동기 웹 프레임워크
+  - **Data & API**
+    - **SQLx**: 컴파일 타임 쿼리 검증 및 비동기 PostgreSQL 드라이버
+    - **utoipa (v5)**: 코드 기반 OpenAPI(Swagger) 문서 자동화 (`/docs`)
+  - **Auth & Security**
+    - **JWT**: HS256 알고리즘 기반 Stateless Access Token
+    - **Argon2**: 안전한 비밀번호 해싱
+    - **Redis**: Refresh Token 저장 및 세션 관리
+
+#### **Database**
+  - **PostgreSQL**
+    - 도커 컨테이너명: `amk-pg`
+    - 기본 포트: `5432`
+    - 표준: 모든 시간 컬럼 `TIMESTAMPTZ` (UTC 기준), Default `now()`
+  - **Redis**
+    - 도커 컨테이너명: `amk-redis`
+    - 용도: 인증 토큰 관리 및 임시 데이터 캐싱
+
+#### **Infrastructure & Environment**
+  - **Development (Local)**
+    - **OS**: Windows (Host) + **WSL2** (Ubuntu Subsystem)
+    - **Runtime**: Docker Desktop / Docker Compose (WSL Integration)
+  - **Dev Tools & AI**
+    - **IDE**: VS Code (Remote - WSL)
+    - **AI Agent**: Codex CLI
+    - **MCP (Model Context Protocol)**:
+      - `filesystem`: 프로젝트 파일 시스템 접근 및 제어
+      - `sequential-thinking`: 단계적 사고 및 문제 해결
+      - `brave-search`: 실시간 웹 정보 검색 및 검증
+  - **Production (Server)**
+    - **Cloud**: AWS EC2 (Ubuntu 24.04 LTS)
+    - **Web Server**: Nginx (Reverse Proxy: 80/443 → App Server)
+  - **Deployment**
+    - **Docker Compose**: 컨테이너 기반 배포 및 오케스트레이션
 
 ### 2.2 라우팅 & OpenAPI
 
@@ -870,7 +931,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 | 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 |
 |---|---|---|---|---|---|
 | 3-1 | `GET /videos` | `/videos` | 비디오 목록 | ***`video_url_vimeo` 불러오기, 페이지네이션***<br>성공(데이터 있음): Auth pass 또는 stop / Page videos init→ready / Request videos pending→success / Data videos present → **200**<br>성공(데이터 없음): Auth pass 또는 stop / Page videos init→ready / Request videos pending→success / Data videos empty → **200**<br>실패(형식/누락): Auth pass 또는 stop / Page videos init→ready / Request videos pending→error / Data videos error → **400**<br>실패(도메인 제약): Auth pass 또는 stop / Page videos init→ready / Request videos pending→error / Data videos error → **422** | [✅🆗] |
-| 3-2 | `GET /videos/{id}` | `/videos/{videos_id}` | 비디오 상세 | ***VIDEO_TAG 조회, 시청 로그 트리거(클라이언트 재생 시)***<br>성공: Auth pass 또는 stop / Page video init→ready / Request video pending→success / Data video present → **200**<br>실패(없는 영상): Auth pass 또는 stop / Page video init→ready / Request video pending→error / Data video error → **404** | [✅] |
+| 3-2 | `GET /videos/{id}` | `/videos/{videos_id}` | 비디오 상세 | ***VIDEO_TAG 조회, 시청 로그 트리거(클라이언트 재생 시)***<br>성공: Auth pass 또는 stop / Page video init→ready / Request video pending→success / Data video present → **200**<br>실패(없는 영상): Auth pass 또는 stop / Page video init→ready / Request video pending→error / Data video error → **404** | [✅🆗] |
 | 3-3 | `GET /videos/{id}/progress` | `/videos/{videos_id}` | 진행도 조회 | ***VIDEO_LOG: `progress_percent`, `last_watched_at` 조회***<br>성공: Auth pass / Page video init→ready / Request progress pending→success / Data progress present(또는 empty=기록없음, 0%) → **200**<br>실패(미인증): Auth stop / Page video init→ready / Request progress pending→error / Data progress error → **401**<br>실패(없는 영상): Auth pass / Page video init→ready / Request progress pending→error / Data progress error → **404** | [✅] |
 | 3-4 | `POST /videos/{id}/progress` | `/videos/{videos_id}` | 진행도 갱신 | ***0~100 고정(멱등연산) → VIDEO_LOG 저장(`progress_percent`, `last_watched_at`)***<br>성공:<br> Auth pass / Page video init→ready / Form progress pristine→dirty→validating→submitting→success /<br> Request progress pending→success / Data progress present → **200**(또는 **204**)<br>실패(형식/누락):<br> Auth pass / Page video init→ready / Form progress pristine→dirty→validating→error.client / Request progress pending→error / Data progress empty → **400**<br>실패(도메인 제약: 범위/증감 규칙):<br> Auth pass / Page video init→ready / Form progress pristine→dirty→validating→error.client / Request progress pending→error / Data progress error → **422**<br>실패(미인증): Auth stop / Page video init→ready / Request progress pending→error / Data progress error → **401**<br>실패(없는 영상): Auth pass / Page video init→ready / Request progress pending→error / Data progress error → **404** | [✅] |
 
@@ -2196,7 +2257,7 @@ export function AppRouter() {
 
 ### 8.3 LLM_PATCH_TEMPLATE 연동
 
-- 실제 코드 패치는 `LLM_PATCH_TEMPLATE.md` 형식을 따른다.
+- 실제 코드 패치는 `LLM_PATCHS_TEMPLATE_BACKEND.md`, `LLM_PATCHS_TEMPLATE_FRONTEND.md` 형식을 따른다.
 - 기본 구조:
   - ROLE / OBJECTIVE / CONTEXT / CONTRACT / PATCH RULES / ACCEPTANCE / FILE PATCHES / cURL SMOKE
 - 요청 시:
@@ -2205,6 +2266,30 @@ export function AppRouter() {
 - 응답/패치 시:
   - FILE PATCHES에 나오는 각 `// FILE: ...` 블록은 **파일 전체 교체본**이다(부분 패치 금지).
   - 네이밍/enum/스키마는 AMK_API_MASTER.md의 3.2(네이밍 규칙), 4.x(데이터 모델)를 우선적으로 따른다.
+
+---
+
+### 8.4 표준 작업 절차 (SOP: Standard Operating Procedure)
+우리는 항상 다음 11단계 프로세스를 준수하며 작업을 진행한다.
+
+**[Phase 1: 준비 (Plan)]**
+1. **Request**: 사용자가 SSoT(`AMK_API_MASTER.md`)를 기반으로 특정 기능 구현을 위한 **Codex 프롬프트 생성**을 요청.
+2. **Draft**: LLM은 구현할 파일/코드 전체가 담긴 프롬프트를 작성하여 제공.
+3. **Save**: 사용자는 해당 프롬프트를 프로젝트 `docs/` 내에 저장.
+
+**[Phase 2: 구현 (Execute)]**
+4. **Run**: 사용자가 저장된 프롬프트를 Codex(에디터)에서 실행.
+5. **Code**: Codex가 코드 작성 완료.
+
+**[Phase 3: 검증 (Verify)]**
+6. **Test**: 사용자가 로컬 환경에서 직접 수동 테스팅 및 스모크 테스트 수행.
+7. **Fix**: 트러블슈팅 발생 시, 로그를 제공하고 LLM이 해결책 제시 (반복).
+
+**[Phase 4: 문서화 (Document)]**
+8. **Log Request**: 테스트 완료 후, 사용자가 "이번 작업의 이슈/교훈 정리해 줘"라고 요청.
+9. **Log Update**: LLM이 `AMK_DEV_LOG.md`에 추가할 내용을 정리하여 제공 -> 사용자가 저장.
+10. **Status Request**: 사용자가 "작업 현황 업데이트해 줘"라고 요청.
+11. **Status Update**: LLM이 `AMK_..._STATUS.md`의 체크리스트 갱신 내용을 제공 -> 사용자가 저장.
 
 ---
 
