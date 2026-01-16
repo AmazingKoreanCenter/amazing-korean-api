@@ -3,6 +3,7 @@ import type {
   VideoDetail,
   VideoListReq,
   VideoListRes,
+  VideoProgressRes,
 } from "@/category/video/types";
 
 export const getVideoList = (params: VideoListReq = {}) => {
@@ -13,4 +14,8 @@ export const getVideoList = (params: VideoListReq = {}) => {
 
 export const getVideoDetail = (id: number) => {
   return request<VideoDetail>(`/videos/${id}`);
+};
+
+export const getVideoProgress = (videoId: string) => {
+  return request<VideoProgressRes>(`/videos/${videoId}/progress`);
 };
