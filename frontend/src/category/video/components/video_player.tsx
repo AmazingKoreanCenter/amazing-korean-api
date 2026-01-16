@@ -5,9 +5,10 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 type VideoPlayerProps = {
   url: string;
   onEnded?: () => void;
+  onPause?: (payload: { seconds: number; duration: number }) => void;
 };
 
-export function VideoPlayer({ url, onEnded }: VideoPlayerProps) {
+export function VideoPlayer({ url, onEnded, onPause }: VideoPlayerProps) {
   // 1. iframe 요소에 접근하기 위한 Hook
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -21,21 +22,38 @@ export function VideoPlayer({ url, onEnded }: VideoPlayerProps) {
 
   // 3. Vimeo SDK 연결 (이벤트 감지용)
   useEffect(() => {
-    if (!iframeRef.current || !onEnded) return;
+    if (!iframeRef.current || (!onEnded && !onPause)) return;
 
     // iframe을 Vimeo Player 객체로 감싸서 제어권을 얻습니다.
     const player = new Player(iframeRef.current);
 
-    // 'ended' 이벤트가 발생하면 우리가 받은 onEnded 함수를 실행합니다.
-    player.on("ended", () => {
-      onEnded();
-    });
+    if (onEnded) {
+      // 'ended' 이벤트가 발생하면 우리가 받은 onEnded 함수를 실행합니다.
+      player.on("ended", () => {
+        onEnded();
+      });
+    }
+
+    if (onPause) {
+      player.on("pause", (event) => {
+        const payload = event as { seconds?: number; duration?: number };
+        const seconds = typeof payload.seconds === "number" ? payload.seconds : 0;
+        const duration = typeof payload.duration === "number" ? payload.duration : 0;
+        onPause({ seconds, duration });
+      });
+    }
 
     // 뒷정리 (Unmount 시 이벤트 해제)
     return () => {
-      player.off("ended");
+      if (onEnded) {
+        player.off("ended");
+      }
+
+      if (onPause) {
+        player.off("pause");
+      }
     };
-  }, [onEnded]); // url이 바뀌면 iframe이 새로 그려지므로 deps 제외 가능
+  }, [onEnded, onPause]); // url이 바뀌면 iframe이 새로 그려지므로 deps 제외 가능
 
   if (!videoId) return null;
 

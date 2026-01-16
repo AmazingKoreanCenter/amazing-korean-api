@@ -51,7 +51,12 @@ audience: frontend / lead / LLM assistant
     - **Player**: `@vimeo/player` SDK 연동 및 재생/종료 이벤트 감지
     - **Metadata**: 제목, 태그, 자막 정보 바인딩
     - **Error**: 없는 영상 접근 시 404 UI / 목록으로 돌아가기 구현
-- [ ] **Progress**: **(Next Phase 3-3)** 학습 진도율 조회 및 UI 바인딩 예정
+- [x] **Video Progress (GET)** `Phase 3-3`
+    - 진도율 조회 API 연동 (`GET /progress`).
+    - **Policy**: 숏폼 특성상 이어보기(Resume) 제외, 완료 상태(`is_completed`) 확인 위주.
+- [x] **Video Progress (POST)** `Phase 3-4`
+    - **Logic**: `onPause` (Debounce), `onEnded` (100% 강제) 이벤트 시 서버 저장.
+    - **Data Flow**: Player Event → Mutation → Server DB Upsert → Query Invalidate.
 
 ### User (Category: user)
 - [x] `/user/me` (MyPage): 내 정보 조회 (Profile Card)
@@ -136,3 +141,20 @@ audience: frontend / lead / LLM assistant
 - **React Hook Form Reset**
     - **이슈**: 수정 페이지(`EditProfile`) 진입 시 Input이 비어있음.
     - **해결**: `defaultValues`는 초기 렌더링에만 관여함. 비동기 데이터 로딩이 끝난 시점(`useEffect`)에 `reset(loadedData)`를 호출해야 값이 채워짐.
+
+### 🎥 Video & Player
+- **Vimeo CSP & Event Issue**
+    - **이슈**: Vimeo Player 로드 시 Blob 이미지 차단(CSP) 및 Passive Event 리스너 경고 발생.
+    - **결론**: 기능 동작에 영향이 없으므로 Low Priority로 분류. 추후 `vite.config` CSP 완화 고려.
+- **Auto-Resume UX Cancelled**
+    - **결정**: 초기 기획과 달리 영상이 짧아(10분 미만) 이어보기 기능은 오히려 UX를 해친다고 판단하여 제거함. DTO의 `last_position` 필드 의존성 삭제.
+
+### 🔐 Auth & Security
+- **401 Log is Normal**
+    - **현상**: 페이지 진입 시 콘솔에 401 에러가 뜨고 직후 200이 뜸.
+    - **해석**: Axios Interceptor가 만료된 토큰을 감지하고 `Refresh`를 수행하는 정상 과정임. "에러 아님".
+
+### 🔄 Data Flow & State
+- **Video Progress Persistence**
+    - **성과**: Vimeo Player의 이벤트(`pause`, `ended`)와 React Query Mutation을 연동하여 실시간 진도율 저장 성공.
+    - **특이사항**: "재학습" 시나리오(완료 후 다시 볼 때)에서도 `is_completed: true`는 유지되면서 `progress`는 현재 위치로 갱신되는 백엔드 로직 확인. 사용자에게 혼란을 주지 않는 적절한 동작임.

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { VideoTag } from "@/category/video/types";
+import { useAuthStore } from "@/hooks/use_auth_store";
 
 import { VideoPlayer } from "../components/video_player";
 import { useVideoDetail } from "../hook/use_video_detail";
-import { useVideoProgress } from "../hook/use_video_progress";
+import { useUpdateVideoProgress, useVideoProgress } from "../hook/use_video_progress";
 
 // 날짜 포맷팅 함수
 const formatDate = (value: string) => {
@@ -29,16 +30,72 @@ const getTagLabel = (tag: VideoTag) => {
   return tag.title ?? tag.subtitle ?? tag.key ?? null;
 };
 
+const clampProgressRate = (value: number) => {
+  if (!Number.isFinite(value)) return 0;
+  const normalized = Math.floor(value);
+  return Math.min(100, Math.max(0, normalized));
+};
+
 export function VideoDetailPage() {
   const { videoId } = useParams();
   const navigate = useNavigate();
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const id = useMemo(() => Number(videoId), [videoId]);
   const isValidId = Number.isFinite(id);
 
   // 데이터 조회 Hook
   const { data, isPending, isError, error } = useVideoDetail(id);
-  const { data: progressData, isSuccess: isProgressSuccess } = useVideoProgress(videoId);
+  const { data: progressData, isSuccess: isProgressSuccess } = useVideoProgress(
+    isValidId ? id : undefined
+  );
+  const { mutate: updateVideoProgress } = useUpdateVideoProgress(id);
+
+  const sendProgressUpdate = useCallback(
+    (progressRate: number) => {
+      if (!isLoggedIn || !isValidId) {
+        return;
+      }
+
+      const progress_rate = clampProgressRate(progressRate);
+      console.log("[VideoProgress] Updating:", { progress_rate });
+      updateVideoProgress({ progress_rate });
+    },
+    [isLoggedIn, isValidId, updateVideoProgress]
+  );
+
+  const handlePause = useCallback(
+    ({ seconds, duration }: { seconds: number; duration: number }) => {
+      if (!isLoggedIn || !isValidId) {
+        return;
+      }
+
+      if (!Number.isFinite(duration) || duration <= 0) {
+        return;
+      }
+
+      const progressRate = (seconds / duration) * 100;
+
+      if (pauseTimeoutRef.current) {
+        clearTimeout(pauseTimeoutRef.current);
+      }
+
+      pauseTimeoutRef.current = setTimeout(() => {
+        sendProgressUpdate(progressRate);
+      }, 500);
+    },
+    [isLoggedIn, isValidId, sendProgressUpdate]
+  );
+
+  const handleEnded = useCallback(() => {
+    if (pauseTimeoutRef.current) {
+      clearTimeout(pauseTimeoutRef.current);
+      pauseTimeoutRef.current = null;
+    }
+
+    sendProgressUpdate(100);
+  }, [sendProgressUpdate]);
 
   // 유효하지 않은 ID 접근 시 리다이렉트
   useEffect(() => {
@@ -57,6 +114,15 @@ export function VideoDetailPage() {
       is_completed: progressData.is_completed,
     });
   }, [isProgressSuccess, progressData]);
+
+  useEffect(() => {
+    return () => {
+      if (pauseTimeoutRef.current) {
+        clearTimeout(pauseTimeoutRef.current);
+        pauseTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   if (!isValidId) return null;
 
@@ -111,12 +177,10 @@ export function VideoDetailPage() {
       <div className="mx-auto w-full max-w-screen-lg space-y-8 px-4 py-10">
         
         {/* ✅ 실제 DB 데이터 연결 (더 이상 하드코딩 아님) */}
-        <VideoPlayer 
-          url={data.video_url_vimeo} 
-          onEnded={() => {
-            // TODO: Phase 3-3에서 진도율 완료 처리 연결 예정
-            console.log("Video Finished!"); 
-          }} 
+        <VideoPlayer
+          url={data.video_url_vimeo}
+          onPause={handlePause}
+          onEnded={handleEnded}
         />
 
         <div className="space-y-4">
