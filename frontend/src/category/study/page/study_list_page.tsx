@@ -107,7 +107,7 @@ export function StudyListPage() {
   const items = data?.data ?? [];
   const meta = data?.meta;
 
-  const currentPage = meta?.page ?? page;
+  const currentPage = meta?.total_pages ?? page;
   const totalPages = Math.max(meta?.total_pages ?? 1, 1);
 
   const pageItems = useMemo(
@@ -173,7 +173,7 @@ export function StudyListPage() {
 
         {meta && (
           <div className="mb-6 text-xs text-muted-foreground">
-            총 {(meta.total ?? 0).toLocaleString()}개 · {currentPage}/
+            총 {(meta.total_count ?? 0).toLocaleString()}개 · {currentPage}/
             {totalPages} 페이지
             {isFetching && (
               <span className="ml-2 inline-flex items-center gap-1">

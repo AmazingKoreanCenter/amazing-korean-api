@@ -56,23 +56,28 @@ audience: server / database / backend LLM assistant
 - [x] `POST /videos/{id}/progress`: 진도율 저장 (Upsert)
   - **로직**: `100%` 달성 시 `is_completed` 자동 처리.
 
-### Phase 4: Study Domain (To-Do) [ ]
+### Phase 4: Study Domain (Refactored) [x]
 > **Goal**: 학습 문제(Task) 풀이, 채점, 해설 및 로그 관리 (CBT 핵심 기능)
-- [ ] `GET /studies`: 학습 문제 목록 조회
-  - **Logic**: `study_program_enum` 기준 필터링 + 페이지네이션.
-  - **Auth**: 비로그인 접근 가능 (Public).
-- [ ] `GET /studies/tasks/{id}`: 학습 문제 상세 조회 (풀이 화면)
-  - **Logic**: `STUDY_TASK` 테이블 조회. 문제 지문 및 선택지 반환.
-- [ ] `POST /studies/tasks/{id}/answer`: 정답 제출 및 채점
-  - **Auth**: **필수** (`AuthUser`).
-  - **Logic**: 채점 로직 수행 → `STUDY_TASK_LOG` 저장(History) → `STUDY_TASK_STATUS` 업데이트(Latest). (트랜잭션 필수)
-  - **Validation**: 선택지 범위 오류 시 422, 형식 오류 시 400.
-- [ ] `GET /studies/tasks/{id}/status`: 내 학습 현황 조회
-  - **Auth**: **필수** (`AuthUser`).
-  - **Logic**: 해당 문제에 대한 내 최신 기록(진도, 점수, 시도 횟수) 조회. 기록 없으면 빈 값(200) 반환.
-- [ ] `GET /studies/tasks/{id}/explain`: 문제 해설 조회
-  - **Logic**: `STUDY_EXPLAIN` 테이블 조회 (해설 텍스트/미디어).
-  - **Access Control**: 정책에 따라 '문제 풀이 전 열람 시' **403 Forbidden** 처리 로직 고려.
+  - [x] `GET /studies`: 학습 문제 목록 조회
+    - **Logic**: `study_program_enum` 기준 필터링 + 페이지네이션.
+    - **Auth**: 비로그인 접근 가능 (Public).
+    - **Refactor Note**: `QueryBuilder`를 사용해 프로그램 필터/정렬/페이징을 하나의 동적 쿼리로 통합 구현.
+  - [x] `GET /studies/tasks/{id}`: 학습 문제 상세 조회 (풀이 화면)
+    - **Logic**: `STUDY_TASK` 테이블 조회. 문제 지문 및 선택지 반환.
+    - **Refactor Note**: DB의 평면적 컬럼들을 `TaskPayload` Enum(Choice/Typing/Voice)으로 매핑하여 다형성 있는 JSON 응답 구조 완성.
+  - [x] `POST /studies/tasks/{id}/answer`: 정답 제출 및 채점
+    - **Auth**: **필수** (`AuthUser`).
+    - **Logic**: 채점 로직 수행 → `STUDY_TASK_LOG` 저장(History) → `STUDY_TASK_STATUS` 업데이트(Latest). (트랜잭션 필수)
+    - **Validation**: 선택지 범위 오류 시 422, 형식 오류 시 400.
+    - **Refactor Note**: Service 계층에서 채점(Grading) 로직 수행 후, `upsert_log` 쿼리 하나로 이력 기록과 최신 상태 갱신을 동시에 처리.
+  - [x] `GET /studies/tasks/{id}/status`: 내 학습 현황 조회
+    - **Auth**: **필수** (`AuthUser`).
+    - **Logic**: 해당 문제에 대한 내 최신 기록(진도, 점수, 시도 횟수) 조회. 기록 없으면 빈 값(200) 반환.
+    - **Refactor Note**: `study_task_log` 테이블에서 사용자의 최신 풀이 기록(`try_count`, `is_correct` 등) 조회 로직 구현.
+  - [x] `GET /studies/tasks/{id}/explain`: 문제 해설 조회
+    - **Logic**: `STUDY_EXPLAIN` 테이블 조회 (해설 텍스트/미디어).
+    - **Access Control**: 정책에 따라 '문제 풀이 전 열람 시' **403 Forbidden** 처리 로직 고려.
+    - **Refactor Note**: 해설 및 정답 텍스트 조회 쿼리 구현 완료 (`403` 정책은 추후 기획 확정 시 Service 계층에 추가 예정).
 
 ### Phase 5: Lesson Domain (To-Do) [ ]
 > **Goal**: 수업(Lesson) 목록, 상세 정보, 학습 시퀀스(Items) 및 진도율 관리
@@ -164,18 +169,23 @@ audience: server / database / backend LLM assistant
     - 답변에 마크다운 파일 내용이나 ` ``` `(3중 백틱)이 포함된 코드를 작성할 때는, **반드시 4중 백틱(```` ` ````)으로 감싸서** 렌더링이 깨지지 않도록 해야 함.
 
 ### 🚨 Critical Rules (재발 방지 필수)
-- **SSOT 준수 (Phase 1)**: DB 스키마 변경 시 `migrations`, `types.rs`, `dto.rs`, `repo.rs` 4박자를 동시에 수정해야 함.
-- **Migration 전략 (Phase 3)**: 기능 구현 중 스키마 제약이 필요하면(Unique Key 등) 코드를 멈추고 **즉시 마이그레이션 파일**을 생성할 것. (Migration Driven Development)
-- **트랜잭션 패턴 (Phase 1, 7.5)**: `정보 수정` + `로그 기록`은 반드시 하나의 트랜잭션(`tx.begin` -> `commit`)으로 처리하여 정합성 보장.
+- **Axum 0.8 Path Syntax**:
+    - **이슈**: Axum 0.8 버전부터 라우터 경로 파라미터 문법이 변경됨. (기존 `:id` 사용 시 패닉 발생 가능성)
+    - **해결**: OpenAPI 표준과 동일하게 **`{id}`** 형식을 사용해야 함. (예: `.route("/tasks/{id}", ...)`).
+- **Utoipa Macro & Extractor Conflict**:
+    - **이슈**: 핸들러 함수 인자에 `AuthUser(_)`와 같이 패턴 매칭을 직접 사용하면, `#[utoipa::path]` 매크로가 이를 파싱하지 못해 컴파일 에러(`unexpected syn::Pat`) 발생.
+    - **해결**: 핸들러 인자에서는 **단순 변수명(`_auth`)**을 사용하고, 필요 시 함수 내부에서 로직을 처리해야 함.
+- **Unused Import Strictness**:
+    - **이슈**: DTO나 Enum을 습관적으로 `use` 구문에 모두 넣으면 Rust 컴파일러가 `unused import` 경고를 발생시킴.
+    - **해결**: 코드를 작성 후 실제 사용되는 타입만 `use`에 남기는 "가상 린트" 과정을 거쳐야 함.
+- **Dead Code Allowance**:
+    - **이슈**: DTO에는 존재하지만 비즈니스 로직에서 당장 쓰지 않는 필드(예: `audio_url`)는 경고 대상이 됨.
+    - **해결**: 의도된 미사용 필드에는 `#[allow(dead_code)]`를 명시하여, "나중에 쓸 것"임을 컴파일러에게 알려야 함.
 
 ### 🛠️ Implementation Patterns & Decisions
-- **PostgreSQL 타입 캐스팅**: `String` 필드 -> `TEXT` 컬럼 매핑 시 쿼리에서 `::TEXT` 캐스팅 필수. (`ENUM`은 그대로 사용)
-- **DTO 네이밍**: 프론트 편의보다 **DB 컬럼명(snake_case)과 1:1 일치**시키는 것이 유지보수에 유리.
-- **Enumeration 방지 (Phase 2)**: 계정 존재 여부와 상관없이 로그인/찾기 로직은 **항상 200 OK + 일정 시간 소요(Constant Time)**를 보장.
-- **조회 최적화 (Phase 3, 4)**:
-    - `LEFT JOIN` + `GROUP BY` + `array_agg` 패턴으로 N+1 문제 원천 차단.
-    - `validator` 크레이트로 입력값 범위(`min=1`, `max=100`) 선언적 검증 (422 에러 표준화).
-- **응답 전략 (Phase 5)**:
-    - **GET (Empty)**: 데이터가 없으면 `404`가 아니라 **"기본값(Default)"** 반환 (200 OK).
-    - **POST/PATCH (Update)**: 성공 시 `204`보다 **`200 + 갱신된 데이터`**를 반환하여 클라이언트 UI 동기화 지원.
-- **SRP 준수 (Phase 5)**: 유사한 조회 로직이라도 용도(목록 vs 학습화면)가 다르면 **별도 메서드로 분리**하여 의존성 제거.
+- **Polymorphic DTO Mapping**:
+    - **결정**: `StudyTask` 테이블의 평면적(Flat) 컬럼들(`choice_1`, `typing_text` 등)을 API 응답 시 `TaskPayload` Enum으로 묶어 처리.
+    - **이유**: 프론트엔드에서 문제 유형(`choice`, `typing`, `voice`)에 따라 UI를 분기(`switch case`)하기 가장 최적화된 구조임.
+- **Stateless Service & Repo**:
+    - **결정**: 모든 Service와 Repo는 상태(State)를 가지지 않는 빈 구조체(`struct StudyService;`)로 정의하고, 메서드는 정적(`StudyService::list(...)`)으로 호출.
+    - **이유**: 인스턴스 생성 비용 제거 및 `AppState` 주입의 단순화.
