@@ -39,6 +39,13 @@ audience: frontend / lead / LLM assistant
 - [x] **Navbar**: 로그인 상태(`useAuthStore`)에 따른 메뉴 분기 (로그인/비로그인)
 - [x] **PrivateRoute**: 비로그인 접근 차단 및 리다이렉트 처리
 
+### User (Category: user)
+- [x] `/user/me` (MyPage): 내 정보 조회 (Profile Card)
+- [x] `/user/edit`: 회원 정보 수정 폼 구현
+- [ ] `/settings`: **(작업 중)**
+    - UI: `Switch` (알림), `Select` (언어) 컴포넌트 배치 완료
+    - Logic: `useMutation` 연결 대기 중 (낙관적 업데이트 필요)
+
 ### Auth (Category: auth)
 - [x] `/login`: JWT 로그인 / 토큰 저장 / 에러 토스트 처리
 - [x] `/signup`: React Hook Form + Zod 유효성 검사 적용 완료
@@ -58,12 +65,15 @@ audience: frontend / lead / LLM assistant
     - **Logic**: `onPause` (Debounce), `onEnded` (100% 강제) 이벤트 시 서버 저장.
     - **Data Flow**: Player Event → Mutation → Server DB Upsert → Query Invalidate.
 
-### User (Category: user)
-- [x] `/user/me` (MyPage): 내 정보 조회 (Profile Card)
-- [x] `/user/edit`: 회원 정보 수정 폼 구현
-- [ ] `/settings`: **(작업 중)**
-    - UI: `Switch` (알림), `Select` (언어) 컴포넌트 배치 완료
-    - Logic: `useMutation` 연결 대기 중 (낙관적 업데이트 필요)
+#### 4. Study (문제 풀이)
+- [x] **Study List (`/studies`)** `Phase 4-1`
+    - 필터(Program), 정렬, 페이지네이션.
+    - **Policy**: 비로그인 접근 가능(Public).
+- [ ] **Study Detail & Solve (`/studies/:id`)**
+    - 문제 유형별(객관식/주관식/발음) 렌더링.
+    - 정답 제출 및 채점 UI.
+- [ ] **Study History (`/studies/history`)**
+    - 내 학습 기록 및 오답 노트.
 
 ### Etc
 - [x] `/`: 홈 화면 (랜딩 페이지)
@@ -158,3 +168,9 @@ audience: frontend / lead / LLM assistant
 - **Video Progress Persistence**
     - **성과**: Vimeo Player의 이벤트(`pause`, `ended`)와 React Query Mutation을 연동하여 실시간 진도율 저장 성공.
     - **특이사항**: "재학습" 시나리오(완료 후 다시 볼 때)에서도 `is_completed: true`는 유지되면서 `progress`는 현재 위치로 갱신되는 백엔드 로직 확인. 사용자에게 혼란을 주지 않는 적절한 동작임.
+
+### 📚 Study & Schema
+- **Schema-First Development**
+    - **성과**: 백엔드/기획 단계에서 확정된 Zod Schema를 프론트엔드 `types.ts`에 먼저 이식하고 개발을 시작하니, DTO 필드명 고민이나 타입 에러가 획기적으로 줄어듦.
+- **Public View Handling**
+    - **정책**: `/studies` 목록은 비로그인 상태에서도 접근 가능하므로, API Client나 Hook에서 불필요한 Auth Guard를 걸지 않도록 주의함.
