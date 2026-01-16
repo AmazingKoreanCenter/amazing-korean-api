@@ -1,10 +1,11 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError } from "@/api/client";
 import { useAuthStore } from "@/hooks/use_auth_store";
+import type { VideoProgressUpdateReq } from "@/category/video/types";
 
-import { getVideoProgress } from "../video_api";
+import { getVideoProgress, updateVideoProgress } from "../video_api";
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof ApiError) {
@@ -18,13 +19,15 @@ const getErrorMessage = (error: unknown) => {
   return "Request failed";
 };
 
-export const useVideoProgress = (videoId?: string) => {
+export const useVideoProgress = (videoId?: number) => {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const isEnabled =
+    typeof videoId === "number" && Number.isFinite(videoId) && isLoggedIn;
 
   const query = useQuery({
     queryKey: ["video-progress", videoId],
-    queryFn: () => getVideoProgress(videoId ?? ""),
-    enabled: !!videoId && isLoggedIn,
+    queryFn: () => getVideoProgress(videoId as number),
+    enabled: isEnabled,
     retry: 1,
     staleTime: 0,
   });
@@ -38,4 +41,30 @@ export const useVideoProgress = (videoId?: string) => {
   }, [query.error, query.isError]);
 
   return query;
+};
+
+export const useUpdateVideoProgress = (videoId?: number) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (values: VideoProgressUpdateReq) => {
+      if (typeof videoId !== "number" || !Number.isFinite(videoId)) {
+        return Promise.reject(new Error("Invalid video id"));
+      }
+
+      return updateVideoProgress(videoId, values);
+    },
+    onSuccess: () => {
+      if (typeof videoId !== "number" || !Number.isFinite(videoId)) {
+        return;
+      }
+
+      void queryClient.invalidateQueries({
+        queryKey: ["video-progress", videoId],
+      });
+    },
+    onError: (error) => {
+      console.error("[VideoProgress] Update failed:", getErrorMessage(error));
+    },
+  });
 };

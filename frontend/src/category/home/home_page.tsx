@@ -30,9 +30,12 @@ export default function HomePage() {
               </span>
               님!
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button asChild>
                 <Link to="/videos">영상 학습하기</Link>
+              </Button>
+              <Button variant="secondary" asChild>
+                <Link to="/studies">학습하기</Link>
               </Button>
               <Button variant="outline" onClick={() => go("/user/me")}>
                 👤 마이 페이지
@@ -47,9 +50,14 @@ export default function HomePage() {
         ) : (
           <div className="flex flex-col items-center gap-2">
             <p className="text-sm text-gray-500 mb-2">서비스를 이용하려면 로그인이 필요합니다.</p>
-            <Button size="lg" variant="secondary" asChild>
-              <Link to="/videos">영상 학습하기</Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button size="lg" variant="secondary" asChild>
+                <Link to="/videos">영상 학습하기</Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link to="/studies">학습하기</Link>
+              </Button>
+            </div>
             <div className="flex gap-2">
                 <Button size="lg" onClick={() => go("/login")}>
                 로그인
