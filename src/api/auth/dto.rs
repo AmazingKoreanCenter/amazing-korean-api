@@ -9,8 +9,8 @@ use validator::Validate;
 #[derive(Deserialize, Validate, ToSchema)]
 #[serde(rename_all = "snake_case")]
 #[schema(example = json!({
-    "email": "test@example.com",
-    "password": "password123!",
+    "email": "front@front.com",
+    "password": "front123!",
     "device": "web",
     "browser": "chrome",
     "os": "linux",

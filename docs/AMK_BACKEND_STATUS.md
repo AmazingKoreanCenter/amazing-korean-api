@@ -56,25 +56,25 @@ audience: server / database / backend LLM assistant
 - [x] `POST /videos/{id}/progress`: 진도율 저장 (Upsert)
   - **로직**: `100%` 달성 시 `is_completed` 자동 처리.
 
-### Phase 4: Study Domain (Refactored) [x]
+### Phase 4: Study Domain (Refactored) []
 > **Goal**: 학습 문제(Task) 풀이, 채점, 해설 및 로그 관리 (CBT 핵심 기능)
-  - [x] `GET /studies`: 학습 문제 목록 조회
+  - [] `GET /studies`: 학습 문제 목록 조회
     - **Logic**: `study_program_enum` 기준 필터링 + 페이지네이션.
     - **Auth**: 비로그인 접근 가능 (Public).
     - **Refactor Note**: `QueryBuilder`를 사용해 프로그램 필터/정렬/페이징을 하나의 동적 쿼리로 통합 구현.
-  - [x] `GET /studies/tasks/{id}`: 학습 문제 상세 조회 (풀이 화면)
+  - [] `GET /studies/tasks/{id}`: 학습 문제 상세 조회 (풀이 화면)
     - **Logic**: `STUDY_TASK` 테이블 조회. 문제 지문 및 선택지 반환.
     - **Refactor Note**: DB의 평면적 컬럼들을 `TaskPayload` Enum(Choice/Typing/Voice)으로 매핑하여 다형성 있는 JSON 응답 구조 완성.
-  - [x] `POST /studies/tasks/{id}/answer`: 정답 제출 및 채점
+  - [] `POST /studies/tasks/{id}/answer`: 정답 제출 및 채점
     - **Auth**: **필수** (`AuthUser`).
     - **Logic**: 채점 로직 수행 → `STUDY_TASK_LOG` 저장(History) → `STUDY_TASK_STATUS` 업데이트(Latest). (트랜잭션 필수)
     - **Validation**: 선택지 범위 오류 시 422, 형식 오류 시 400.
     - **Refactor Note**: Service 계층에서 채점(Grading) 로직 수행 후, `upsert_log` 쿼리 하나로 이력 기록과 최신 상태 갱신을 동시에 처리.
-  - [x] `GET /studies/tasks/{id}/status`: 내 학습 현황 조회
+  - [] `GET /studies/tasks/{id}/status`: 내 학습 현황 조회
     - **Auth**: **필수** (`AuthUser`).
     - **Logic**: 해당 문제에 대한 내 최신 기록(진도, 점수, 시도 횟수) 조회. 기록 없으면 빈 값(200) 반환.
     - **Refactor Note**: `study_task_log` 테이블에서 사용자의 최신 풀이 기록(`try_count`, `is_correct` 등) 조회 로직 구현.
-  - [x] `GET /studies/tasks/{id}/explain`: 문제 해설 조회
+  - [] `GET /studies/tasks/{id}/explain`: 문제 해설 조회
     - **Logic**: `STUDY_EXPLAIN` 테이블 조회 (해설 텍스트/미디어).
     - **Access Control**: 정책에 따라 '문제 풀이 전 열람 시' **403 Forbidden** 처리 로직 고려.
     - **Refactor Note**: 해설 및 정답 텍스트 조회 쿼리 구현 완료 (`403` 정책은 추후 기획 확정 시 Service 계층에 추가 예정).
