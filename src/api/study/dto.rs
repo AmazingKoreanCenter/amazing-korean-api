@@ -16,18 +16,18 @@ use crate::types::{StudyProgram, StudyTaskKind};
 pub struct StudyListReq {
     #[serde(default = "default_page")]
     #[validate(range(min = 1))]
-    pub page: u64,
+    pub page: u32,
 
     #[serde(default = "default_per_page")]
     #[validate(range(min = 1, max = 100))]
-    pub per_page: u64,
+    pub per_page: u32,
 
     pub program: Option<String>,
     pub sort: Option<String>,
 }
 
-fn default_page() -> u64 { 1 }
-fn default_per_page() -> u64 { 20 }
+fn default_page() -> u32 { 1 }
+fn default_per_page() -> u32 { 20 }
 
 /// 정답 제출 요청 (JSON Body)
 #[derive(Debug, Deserialize, ToSchema)]
@@ -51,7 +51,7 @@ pub enum SubmitAnswerReq {
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct StudyListItem {
-    pub study_id: i64,
+    pub study_id: i32,
     pub study_idx: String,
     pub study_program: StudyProgram,
     pub title: Option<String>,
@@ -63,10 +63,10 @@ pub struct StudyListItem {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct StudyListMeta {
-    pub total_count: i64,
-    pub total_pages: i64,
-    pub current_page: u64,
-    pub per_page: u64,
+    pub total_count: i32,
+    pub total_pages: i32,
+    pub current_page: u32,
+    pub per_page: u32,
 }
 
 /// 학습 목록 전체 응답
@@ -83,8 +83,8 @@ pub struct StudyListRes {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct StudyTaskDetailRes {
-    pub task_id: i64,
-    pub study_id: i64,
+    pub task_id: i32,
+    pub study_id: i32,
     pub kind: StudyTaskKind,
     pub seq: i32,
     pub question: Option<String>,
@@ -108,6 +108,7 @@ pub struct ChoicePayload {
     pub choice_2: String,
     pub choice_3: String,
     pub choice_4: String,
+    pub audio_url: Option<String>, // Added from STUDY_TASK_CHOICE schema
     pub image_url: Option<String>,
 }
 
@@ -120,6 +121,7 @@ pub struct TypingPayload {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct VoicePayload {
+    pub audio_url: Option<String>, // Added from STUDY_TASK_VOICE schema
     pub image_url: Option<String>,
 }
 
@@ -129,7 +131,7 @@ pub struct VoicePayload {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct SubmitAnswerRes {
-    pub task_id: i64,
+    pub task_id: i32,
     pub is_correct: bool,
     pub score: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -140,8 +142,8 @@ pub struct SubmitAnswerRes {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct TaskStatusRes {
-    pub task_id: i64,
-    pub attempts: i64,
+    pub task_id: i32,
+    pub attempts: i32,
     pub is_solved: bool,
     pub last_score: Option<i32>,
 }
@@ -150,9 +152,10 @@ pub struct TaskStatusRes {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct TaskExplainRes {
-    pub task_id: i64,
-    pub correct_answer: String,
+    pub task_id: i32,
+    pub title: Option<String>, // Added (explain_title)
+    pub correct_answer: Option<String>,
     pub explanation_text: Option<String>,
     pub explanation_media_url: Option<String>,
-    pub related_video_url: Option<String>,
+    // Removed: related_video_url (Not in STUDY_TASK_EXPLAIN schema)
 }
