@@ -150,20 +150,16 @@ pub struct SubmitAnswerRes {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct TaskStatusRes {
-    pub task_id: i32,
-    pub attempts: i32,
+    pub try_count: i32,
     pub is_solved: bool,
-    pub last_score: Option<i32>,
+    pub last_attempt_at: Option<DateTime<Utc>>,
 }
 
 /// 문제 해설 조회
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct TaskExplainRes {
-    pub task_id: i32,
-    pub title: Option<String>, // Added (explain_title)
-    pub correct_answer: Option<String>,
-    pub explanation_text: Option<String>,
-    pub explanation_media_url: Option<String>,
-    // Removed: related_video_url (Not in STUDY_TASK_EXPLAIN schema)
+    pub title: Option<String>,
+    pub explanation: Option<String>,
+    pub resources: Vec<String>,
 }

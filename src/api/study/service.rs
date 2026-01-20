@@ -198,16 +198,39 @@ impl StudyService {
     /// 내 문제 풀이 상태 조회
     pub async fn get_task_status(
         st: &AppState,
-        user_id: i64,
-        task_id: i64,
+        auth_user: AuthUser,
+        task_id: i32,
     ) -> AppResult<TaskStatusRes> {
-        // Task 존재 확인 (유효하지 않은 task_id 요청 방지)
-        if (StudyRepo::find_task_detail(&st.db, task_id).await?).is_none() {
+        let AuthUser(claims) = auth_user;
+
+        if !StudyRepo::exists_task(&st.db, task_id).await? {
             return Err(AppError::NotFound);
         }
 
-        // repo.rs의 find_status는 DB에서 i32 캐스팅을 수행하여 TaskStatusRes를 반환함
-        let status = StudyRepo::find_status(&st.db, task_id, user_id).await?;
+        let status = StudyRepo::find_task_status(&st.db, claims.sub, task_id).await?;
+        let status = status.unwrap_or(TaskStatusRes {
+            try_count: 0,
+            is_solved: false,
+            last_attempt_at: None,
+        });
+
+        if let Err(err) = StudyRepo::log_task_action(
+            &st.db,
+            claims.sub,
+            &claims.session_id,
+            task_id,
+            StudyTaskLogAction::Status,
+        )
+        .await
+        {
+            warn!(
+                error = ?err,
+                user_id = claims.sub,
+                task_id,
+                "Failed to log study task status"
+            );
+        }
+
         Ok(status)
     }
 
@@ -216,12 +239,50 @@ impl StudyService {
     // =========================================================================
 
     /// 해설 조회
-    pub async fn get_task_explanation(
+    pub async fn get_task_explain(
         st: &AppState,
-        task_id: i64,
+        auth_user: AuthUser,
+        task_id: i32,
     ) -> AppResult<TaskExplainRes> {
-        let explanation = StudyRepo::find_explanation(&st.db, task_id).await?;
-        explanation.ok_or(AppError::NotFound)
+        let AuthUser(claims) = auth_user;
+
+        let try_count = StudyRepo::get_try_count(&st.db, claims.sub, task_id).await?;
+        if try_count < 1 {
+            return Err(AppError::Forbidden);
+        }
+
+        let row = StudyRepo::find_task_explain(&st.db, task_id).await?;
+        let row = row.ok_or(AppError::NotFound)?;
+
+        let resources = match row.explain_media_url {
+            Some(url) => vec![url],
+            None => Vec::new(),
+        };
+
+        let response = TaskExplainRes {
+            title: row.explain_title,
+            explanation: row.explain_text,
+            resources,
+        };
+
+        if let Err(err) = StudyRepo::log_task_action(
+            &st.db,
+            claims.sub,
+            &claims.session_id,
+            task_id,
+            StudyTaskLogAction::Explain,
+        )
+        .await
+        {
+            warn!(
+                error = ?err,
+                user_id = claims.sub,
+                task_id,
+                "Failed to log study task explain"
+            );
+        }
+
+        Ok(response)
     }
 }
 

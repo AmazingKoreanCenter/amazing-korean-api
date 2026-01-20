@@ -6,8 +6,8 @@ use crate::error::{AppError, AppResult};
 use crate::types::{StudyProgram, StudyTaskKind, StudyTaskLogAction};
 
 use super::dto::{
-    ChoicePayload, StudyListSort, StudySummaryDto, StudyTaskDetailRes, TaskExplainRes, TaskPayload,
-    TaskStatusRes, TypingPayload, VoicePayload,
+    ChoicePayload, StudyListSort, StudySummaryDto, StudyTaskDetailRes, TaskPayload, TaskStatusRes,
+    TypingPayload, VoicePayload,
 };
 
 pub struct StudyRepo;
@@ -16,6 +16,13 @@ pub struct StudyRepo;
 pub struct AnswerKeyDto {
     pub kind: StudyTaskKind,
     pub answer: String,
+}
+
+#[derive(Debug)]
+pub struct TaskExplainRow {
+    pub explain_title: Option<String>,
+    pub explain_text: Option<String>,
+    pub explain_media_url: Option<String>,
 }
 
 // 내부 사용용 Row 구조체 (DB 조회 결과 매핑)
@@ -374,73 +381,86 @@ impl StudyRepo {
     // 3. Explanation
     // =========================================================================
 
-    pub async fn find_explanation(
-        pool: &PgPool,
-        task_id: i64,
-    ) -> AppResult<Option<TaskExplainRes>> {
-        // [FIX] Output Cast: study_task_id -> INT (i32)
-        // [FIX] Nullable Handling: COALESCE(..., '') for correct_answer (String)
-        let res = sqlx::query_as!(
-            TaskExplainRes,
+    pub async fn get_try_count(pool: &PgPool, user_id: i64, task_id: i32) -> AppResult<i32> {
+        let try_count = sqlx::query_scalar!(
             r#"
-            SELECT
-                t.study_task_id::INT AS task_id,
-                te.explain_title::TEXT AS title,
-                COALESCE(
-                    -- [수정됨] stc.study_task_choice_correct -> stc.study_task_choice_answer
-                    stc.study_task_choice_answer::TEXT, 
-                    stt.study_task_typing_answer,
-                    stv.study_task_voice_answer,
-                    ''
-                )::TEXT AS correct_answer,
-                te.explain_text::TEXT AS explanation_text,
-                te.explain_media_url::TEXT AS explanation_media_url
-            FROM study_task t
-            LEFT JOIN study_task_explain te ON t.study_task_id = te.study_task_id
-            LEFT JOIN study_task_choice stc ON t.study_task_id = stc.study_task_id
-            LEFT JOIN study_task_typing stt ON t.study_task_id = stt.study_task_id
-            LEFT JOIN study_task_voice stv  ON t.study_task_id = stv.study_task_id
-            WHERE t.study_task_id = $1
+            SELECT study_task_status_try_count
+            FROM study_task_status
+            WHERE study_task_id = $1 AND user_id = $2
             "#,
-            task_id as i32
+            task_id,
+            user_id
         )
         .fetch_optional(pool)
         .await?;
 
-        Ok(res)
+        Ok(try_count.unwrap_or(0))
+    }
+
+    pub async fn find_task_explain(
+        pool: &PgPool,
+        task_id: i32,
+    ) -> AppResult<Option<TaskExplainRow>> {
+        let row = sqlx::query_as!(
+            TaskExplainRow,
+            r#"
+            SELECT
+                explain_title::TEXT AS "explain_title?",
+                explain_text::TEXT AS "explain_text?",
+                explain_media_url::TEXT AS "explain_media_url?"
+            FROM study_task_explain
+            WHERE study_task_id = $1
+            "#,
+            task_id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(row)
     }
 
     // =========================================================================
     // 4. Status
     // =========================================================================
 
-    pub async fn find_status(
-        pool: &PgPool,
-        task_id: i64,
-        user_id: i64,
-    ) -> AppResult<TaskStatusRes> {
-        // [FIX] Output Cast: COUNT(*) -> INT (i32)
-        let rec = sqlx::query!(
+    pub async fn exists_task(pool: &PgPool, task_id: i32) -> AppResult<bool> {
+        let exists = sqlx::query_scalar::<_, bool>(
             r#"
-            SELECT
-                COUNT(*)::INT as "attempts!",
-                -- [수정됨] 실제 컬럼이 없으므로 정답 여부를 기준으로 점수 환산 (또는 필요 없으면 제거)
-                MAX(CASE WHEN study_task_is_correct_log IS TRUE THEN 100 ELSE 0 END)::INT as best_score,
-                BOOL_OR(study_task_is_correct_log) as "is_solved!"
-            FROM study_task_log
-            WHERE study_task_id = $1 AND user_id = $2
+            SELECT EXISTS(
+                SELECT 1
+                FROM study_task
+                WHERE study_task_id = $1
+            )
             "#,
-            task_id as i32,
-            user_id
         )
+        .bind(task_id)
         .fetch_one(pool)
         .await?;
 
-        Ok(TaskStatusRes {
-            task_id: task_id as i32,
-            attempts: rec.attempts,
-            is_solved: rec.is_solved,
-            last_score: rec.best_score.map(|s| s as i32),
-        })
+        Ok(exists)
+    }
+
+    pub async fn find_task_status(
+        pool: &PgPool,
+        user_id: i64,
+        task_id: i32,
+    ) -> AppResult<Option<TaskStatusRes>> {
+        let status = sqlx::query_as!(
+            TaskStatusRes,
+            r#"
+            SELECT
+                study_task_status_try_count AS "try_count!",
+                study_task_status_is_solved AS "is_solved!",
+                study_task_status_last_attempt_at AS "last_attempt_at?"
+            FROM study_task_status
+            WHERE study_task_id = $1 AND user_id = $2
+            "#,
+            task_id,
+            user_id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(status)
     }
 }
