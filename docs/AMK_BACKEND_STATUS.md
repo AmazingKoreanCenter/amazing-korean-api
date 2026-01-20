@@ -77,7 +77,7 @@ audience: server / database / backend LLM assistant
         2-1. `upsert_log` : `study_task_log` 테이블 업데이트 함수
         2-2. `upsert_status` : `study_task_status` 테이블 업데이트 함수
     - **Logging** : `study_task_status`, `study_task_log` 테이블 업데이트 (트랜잭션 필수)
-  - [] `GET /studies/tasks/{id}/status`: 내 학습 현황 조회
+  - [x] `GET /studies/tasks/{id}/status`: 내 학습 현황 조회
     - **Auth**: **필수** (`AuthUser`).
     - **Logic**: 해당 문제에 대한 내 최신 기록(진도, 점수, 시도 횟수) 조회. 기록 없으면 빈 값(200) 반환.
     - **Refactor Note**: `study_task_log` 테이블에서 사용자의 풀이 상태(`study_task_status_try_count`, `study_task_status_is_solved`) 조회 로직 구현.

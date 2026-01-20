@@ -96,7 +96,7 @@ pub async fn submit_answer(
     get,
     path = "/studies/tasks/{id}/status",
     params(
-        ("id" = i64, Path, description = "Study Task ID")
+        ("id" = i32, Path, description = "Study Task ID")
     ),
     responses(
         (status = 200, description = "My Task Status", body = TaskStatusRes),
@@ -108,10 +108,10 @@ pub async fn submit_answer(
 )]
 pub async fn get_task_status(
     State(state): State<AppState>,
-    AuthUser(auth_user): AuthUser,
-    Path(task_id): Path<i64>,
+    auth_user: AuthUser,
+    Path(task_id): Path<i32>,
 ) -> AppResult<Json<TaskStatusRes>> {
-    let res = StudyService::get_task_status(&state, auth_user.sub, task_id).await?;
+    let res = StudyService::get_task_status(&state, auth_user, task_id).await?;
     Ok(Json(res))
 }
 

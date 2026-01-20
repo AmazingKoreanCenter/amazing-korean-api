@@ -150,10 +150,9 @@ pub struct SubmitAnswerRes {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct TaskStatusRes {
-    pub task_id: i32,
-    pub attempts: i32,
+    pub try_count: i32,
     pub is_solved: bool,
-    pub last_score: Option<i32>,
+    pub last_attempt_at: Option<DateTime<Utc>>,
 }
 
 /// 문제 해설 조회

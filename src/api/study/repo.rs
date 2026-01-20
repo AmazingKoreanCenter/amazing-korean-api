@@ -414,33 +414,44 @@ impl StudyRepo {
     // 4. Status
     // =========================================================================
 
-    pub async fn find_status(
-        pool: &PgPool,
-        task_id: i64,
-        user_id: i64,
-    ) -> AppResult<TaskStatusRes> {
-        // [FIX] Output Cast: COUNT(*) -> INT (i32)
-        let rec = sqlx::query!(
+    pub async fn exists_task(pool: &PgPool, task_id: i32) -> AppResult<bool> {
+        let exists = sqlx::query_scalar::<_, bool>(
             r#"
-            SELECT
-                COUNT(*)::INT as "attempts!",
-                -- [수정됨] 실제 컬럼이 없으므로 정답 여부를 기준으로 점수 환산 (또는 필요 없으면 제거)
-                MAX(CASE WHEN study_task_is_correct_log IS TRUE THEN 100 ELSE 0 END)::INT as best_score,
-                BOOL_OR(study_task_is_correct_log) as "is_solved!"
-            FROM study_task_log
-            WHERE study_task_id = $1 AND user_id = $2
+            SELECT EXISTS(
+                SELECT 1
+                FROM study_task
+                WHERE study_task_id = $1
+            )
             "#,
-            task_id as i32,
-            user_id
         )
+        .bind(task_id)
         .fetch_one(pool)
         .await?;
 
-        Ok(TaskStatusRes {
-            task_id: task_id as i32,
-            attempts: rec.attempts,
-            is_solved: rec.is_solved,
-            last_score: rec.best_score.map(|s| s as i32),
-        })
+        Ok(exists)
+    }
+
+    pub async fn find_task_status(
+        pool: &PgPool,
+        user_id: i64,
+        task_id: i32,
+    ) -> AppResult<Option<TaskStatusRes>> {
+        let status = sqlx::query_as!(
+            TaskStatusRes,
+            r#"
+            SELECT
+                study_task_status_try_count AS "try_count!",
+                study_task_status_is_solved AS "is_solved!",
+                study_task_status_last_attempt_at AS "last_attempt_at?"
+            FROM study_task_status
+            WHERE study_task_id = $1 AND user_id = $2
+            "#,
+            task_id,
+            user_id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(status)
     }
 }

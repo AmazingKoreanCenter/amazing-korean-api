@@ -198,16 +198,39 @@ impl StudyService {
     /// 내 문제 풀이 상태 조회
     pub async fn get_task_status(
         st: &AppState,
-        user_id: i64,
-        task_id: i64,
+        auth_user: AuthUser,
+        task_id: i32,
     ) -> AppResult<TaskStatusRes> {
-        // Task 존재 확인 (유효하지 않은 task_id 요청 방지)
-        if (StudyRepo::find_task_detail(&st.db, task_id).await?).is_none() {
+        let AuthUser(claims) = auth_user;
+
+        if !StudyRepo::exists_task(&st.db, task_id).await? {
             return Err(AppError::NotFound);
         }
 
-        // repo.rs의 find_status는 DB에서 i32 캐스팅을 수행하여 TaskStatusRes를 반환함
-        let status = StudyRepo::find_status(&st.db, task_id, user_id).await?;
+        let status = StudyRepo::find_task_status(&st.db, claims.sub, task_id).await?;
+        let status = status.unwrap_or(TaskStatusRes {
+            try_count: 0,
+            is_solved: false,
+            last_attempt_at: None,
+        });
+
+        if let Err(err) = StudyRepo::log_task_action(
+            &st.db,
+            claims.sub,
+            &claims.session_id,
+            task_id,
+            StudyTaskLogAction::Status,
+        )
+        .await
+        {
+            warn!(
+                error = ?err,
+                user_id = claims.sub,
+                task_id,
+                "Failed to log study task status"
+            );
+        }
+
         Ok(status)
     }
 
