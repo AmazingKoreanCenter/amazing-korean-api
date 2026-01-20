@@ -82,7 +82,7 @@ audience: server / database / backend LLM assistant
     - **Logic**: 해당 문제에 대한 내 최신 기록(진도, 점수, 시도 횟수) 조회. 기록 없으면 빈 값(200) 반환.
     - **Refactor Note**: `study_task_log` 테이블에서 사용자의 풀이 상태(`study_task_status_try_count`, `study_task_status_is_solved`) 조회 로직 구현.
     - **Logging** : `study_task_log` 테이블 업데이트 (트랜잭션 필수)
-  - [] `GET /studies/tasks/{id}/explain`: 문제 해설 조회
+  - [x] `GET /studies/tasks/{id}/explain`: 문제 해설 조회
     - **Logic**: `STUDY_EXPLAIN` 테이블 조회 (해설 텍스트/미디어).
     - **Access Control**: 정책에 따라 '문제 풀이 전 열람 시' **403 Forbidden** 처리 로직 고려.
     - **Refactor Note**: 해설 및 정답 텍스트 조회 쿼리 구현 완료 (`403` 정책은 추후 기획 확정 시 Service 계층에 추가 예정).

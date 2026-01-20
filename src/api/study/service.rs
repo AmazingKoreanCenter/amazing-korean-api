@@ -239,12 +239,50 @@ impl StudyService {
     // =========================================================================
 
     /// 해설 조회
-    pub async fn get_task_explanation(
+    pub async fn get_task_explain(
         st: &AppState,
-        task_id: i64,
+        auth_user: AuthUser,
+        task_id: i32,
     ) -> AppResult<TaskExplainRes> {
-        let explanation = StudyRepo::find_explanation(&st.db, task_id).await?;
-        explanation.ok_or(AppError::NotFound)
+        let AuthUser(claims) = auth_user;
+
+        let try_count = StudyRepo::get_try_count(&st.db, claims.sub, task_id).await?;
+        if try_count < 1 {
+            return Err(AppError::Forbidden);
+        }
+
+        let row = StudyRepo::find_task_explain(&st.db, task_id).await?;
+        let row = row.ok_or(AppError::NotFound)?;
+
+        let resources = match row.explain_media_url {
+            Some(url) => vec![url],
+            None => Vec::new(),
+        };
+
+        let response = TaskExplainRes {
+            title: row.explain_title,
+            explanation: row.explain_text,
+            resources,
+        };
+
+        if let Err(err) = StudyRepo::log_task_action(
+            &st.db,
+            claims.sub,
+            &claims.session_id,
+            task_id,
+            StudyTaskLogAction::Explain,
+        )
+        .await
+        {
+            warn!(
+                error = ?err,
+                user_id = claims.sub,
+                task_id,
+                "Failed to log study task explain"
+            );
+        }
+
+        Ok(response)
     }
 }
 

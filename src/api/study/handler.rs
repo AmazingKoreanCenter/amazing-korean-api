@@ -120,21 +120,22 @@ pub async fn get_task_status(
     get,
     path = "/studies/tasks/{id}/explain",
     params(
-        ("id" = i64, Path, description = "Study Task ID")
+        ("id" = i32, Path, description = "Study Task ID")
     ),
     responses(
         (status = 200, description = "Task Explanation", body = TaskExplainRes),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
         (status = 404, description = "Not Found", body = crate::error::ErrorBody)
     ),
     security(("bearerAuth" = [])),
     tag = "study"
 )]
-pub async fn get_task_explanation(
+pub async fn get_task_explain_handler(
     State(state): State<AppState>,
-    _auth: AuthUser, // 수정: 패턴 매칭 제거
-    Path(task_id): Path<i64>,
+    auth_user: AuthUser,
+    Path(task_id): Path<i32>,
 ) -> AppResult<Json<TaskExplainRes>> {
-    let res = StudyService::get_task_explanation(&state, task_id).await?;
+    let res = StudyService::get_task_explain(&state, auth_user, task_id).await?;
     Ok(Json(res))
 }
