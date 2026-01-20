@@ -177,9 +177,9 @@ impl Modify for SecurityAddon {
             crate::api::lesson::dto::LessonProgressUpdateReq,
 
             // studies dto
-            crate::api::study::dto::StudyListRes,
+            crate::api::study::dto::StudyListResp,
             crate::api::study::dto::StudyListMeta,
-            crate::api::study::dto::StudyListItem,
+            crate::api::study::dto::StudySummaryDto,
             crate::api::study::dto::StudyTaskDetailRes,
             crate::api::study::dto::TaskPayload,
             crate::api::study::dto::SubmitAnswerReq,

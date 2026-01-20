@@ -6,7 +6,7 @@ use crate::error::AppResult;
 use crate::state::AppState;
 
 use super::dto::{
-    StudyListReq, StudyListRes, StudyTaskDetailRes, SubmitAnswerReq, SubmitAnswerRes,
+    StudyListReq, StudyListResp, StudyTaskDetailRes, SubmitAnswerReq, SubmitAnswerRes,
     TaskExplainRes, TaskStatusRes,
 };
 use super::service::StudyService;
@@ -20,25 +20,22 @@ use super::service::StudyService;
     get,
     path = "/studies",
     params(
-        ("page" = Option<u64>, Query, description = "Page number (default 1)"),
-        ("per_page" = Option<u64>, Query, description = "Items per page (default 20, max 100)"),
+        ("page" = Option<u32>, Query, description = "Page number (default 1)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page (default 10, max 100)"),
         ("program" = Option<String>, Query, description = "Program filter (basic_900, topik_read, etc)"),
-        ("sort" = Option<String>, Query, description = "Sort order (created_at_desc, etc)")
+        ("sort" = Option<String>, Query, description = "Sort order (latest, oldest, alphabetical)")
     ),
     responses(
-        (status = 200, description = "List of studies", body = StudyListRes),
+        (status = 200, description = "List of studies", body = StudyListResp),
         (status = 400, description = "Bad Request", body = crate::error::ErrorBody),
-        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
         (status = 422, description = "Validation Error", body = crate::error::ErrorBody)
     ),
-    security(("bearerAuth" = [])),
     tag = "study"
 )]
 pub async fn list_studies(
     State(state): State<AppState>,
-    _auth: AuthUser, // 수정: 매크로 오류 방지를 위해 패턴 매칭 제거하고 변수명 할당
     Query(req): Query<StudyListReq>,
-) -> AppResult<Json<StudyListRes>> {
+) -> AppResult<Json<StudyListResp>> {
     let res = StudyService::list_studies(&state, req).await?;
     Ok(Json(res))
 }

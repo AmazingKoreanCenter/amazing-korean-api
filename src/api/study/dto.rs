@@ -2,32 +2,40 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
-use validator::Validate;
 
-use crate::types::{StudyProgram, StudyTaskKind};
+use crate::types::{StudyProgram, StudyState, StudyTaskKind};
 
 // =========================================================================
 // Request DTOs (요청)
 // =========================================================================
 
 /// 학습 목록 조회 요청 (Query String)
-#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct StudyListReq {
-    #[serde(default = "default_page")]
-    #[validate(range(min = 1))]
-    pub page: u32,
-
-    #[serde(default = "default_per_page")]
-    #[validate(range(min = 1, max = 100))]
-    pub per_page: u32,
-
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
     pub program: Option<String>,
     pub sort: Option<String>,
 }
 
-fn default_page() -> u32 { 1 }
-fn default_per_page() -> u32 { 20 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StudyListSort {
+    Latest,
+    Oldest,
+    Alphabetical,
+}
+
+impl StudyListSort {
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "latest" => Some(Self::Latest),
+            "oldest" => Some(Self::Oldest),
+            "alphabetical" => Some(Self::Alphabetical),
+            _ => None,
+        }
+    }
+}
 
 /// 정답 제출 요청 (JSON Body)
 #[derive(Debug, Deserialize, ToSchema)]
@@ -50,12 +58,13 @@ pub enum SubmitAnswerReq {
 /// 학습 목록 아이템 (DB Row)
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct StudyListItem {
+pub struct StudySummaryDto {
     pub study_id: i32,
     pub study_idx: String,
-    pub study_program: StudyProgram,
+    pub program: StudyProgram,
     pub title: Option<String>,
     pub subtitle: Option<String>,
+    pub state: StudyState,
     pub created_at: DateTime<Utc>,
 }
 
@@ -63,18 +72,18 @@ pub struct StudyListItem {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct StudyListMeta {
-    pub total_count: i32,
-    pub total_pages: i32,
-    pub current_page: u32,
+    pub page: u32,
     pub per_page: u32,
+    pub total_count: i64,
+    pub total_pages: u32,
 }
 
 /// 학습 목록 전체 응답
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct StudyListRes {
+pub struct StudyListResp {
+    pub list: Vec<StudySummaryDto>,
     pub meta: StudyListMeta,
-    pub data: Vec<StudyListItem>,
 }
 
 // --- 2. Detail & Task Response ---

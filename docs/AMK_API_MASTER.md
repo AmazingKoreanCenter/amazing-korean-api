@@ -506,120 +506,129 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ### 4.1 사용자 도메인 (USERS)
 
-- `USERS`
+- `users`
   - 회원 정보 (이메일, 비밀번호 해시, 이름, 국가, 언어, 생년월일, 성별 등)
-  - `user_auth_enum` (HYMN, admin, manager, learner) 사용자 권한
+  - `user_auth_enum` ('HYMN', 'admin', 'manager', 'learner') 사용자 권한
   - `user_state` : boolean 타입 (true = on, false = off) 사용자 계정 활성 여부
-  - `user_language_enum` (ko, en) 사용자 구사 언어(추가 확장 예정)
-  - `user_gender_enum` (none, male, female, other) 사용자 성별
-- `USERS_LOG`
+  - `user_language_enum` ('ko', 'en') 사용자 구사 언어
+  - `user_gender_enum` ('none', 'male', 'female', 'other') 사용자 성별
+- `users_log`
   - 회원 정보 활동 기록
-  - `user_action_log` (signup, find_id, reset_pw, update) 사용자 활동 이력
-  - `user_auth_enum` (HYMN, admin, manager, learner) 사용자 권한 이력
-  - `user_language_enum` (ko, en) 사용자 구사 언어 이력(추가 확장 예정)
-  - `user_gender_enum` (none, male, female, other) 사용자 성별 이력
-- `USERS_SETTING`
-  - 사용자 관련 UI 언어, 학습 언어 우선순위 등 개인 설정
-  - `user_set_language_enum` (ko, en) 사용자 사용 언어(추가 확장 예정)
-- `ADMIN_USERS_LOG`
+  - `user_action_log_enum` ('signup', 'find_id', 'reset_pw', 'update') 사용자 활동 이력
+  - `user_auth_enum` ('HYMN', 'admin', 'manager', 'learner') 사용자 권한 이력
+  - `user_language_enum` ('ko', 'en') 사용자 구사 언어 이력
+  - `user_gender_enum` ('none', 'male', 'female', 'other') 사용자 성별 이력
+- `users_setting`
+  - 사용자 관련 UI 언어, 알림 등 개인 설정
+  - `user_set_language_enum` ('ko', 'en') 사용자 설정 언어
+- `admin_users_log`
   - 사용자 관련 관리자 활동 기록
-  - `admin_action_enum` (create, update, banned, reorder, publish, unpublish) 사용자 관련 관리자 활동 이력
-- `USER_EXPORT_DATA`
+  - `admin_action_enum` ('create', 'update', 'banned', 'reorder', 'publish', 'unpublish') 관리자 활동 이력
+- `user_export_data`
   - 개인정보 내보내기/백업 요청 상태 및 결과 관리(비동기 처리용)
 
 ### 4.2 인증/로그인 도메인 (AUTH/LOGIN)
 
-- `LOGIN`
+- `login`
   - 로그인 정보(지역, 방식, 시간, 상태)
-  - `login_device_enum` (mobile, tablet, desktop, other) 로그인 기기
-  - `login_method_enum` (email, google, apple) 로그인 방법
-  - `login_state_enum` (active, revoked, expired, logged_out) 로그인 상태
-- `LOGIN_LOG`
+  - `login_device_enum` ('mobile', 'tablet', 'desktop', 'other') 로그인 기기
+  - `login_method_enum` ('email', 'google', 'apple') 로그인 방법
+  - `login_state_enum` ('active', 'revoked', 'expired', 'logged_out', 'compromised') 로그인 상태
+- `login_log`
   - 로그인 정보 활동 이력(로그인 이벤트, 세부 지역, 세부 방식)
-  - `login_event_enum` (login, logout, refresh, rotate, fail) 로그인 활동 이력
-  - `login_device_enum` (mobile, tablet, desktop, other) 로그인 기기 이력
-  - `login_method_enum` (email, google, apple) 로그인 방법 이력
-  - `login_state_enum` (active, revoked, expired, logged_out) 로그인 상태 이력
-- `REDIS_SESSION`
+  - `login_event_enum` ('login', 'logout', 'refresh', 'rotate', 'fail', 'reuse_detected') 로그인 활동 이력
+  - `login_device_enum` ('mobile', 'tablet', 'desktop', 'other') 로그인 기기 이력
+  - `login_method_enum` ('email', 'google', 'apple') 로그인 방법 이력
+- `redis_session`
   - Key: ak:session:< sid >
   - TTL은 expire_at 기준. 세션 본문은 직렬화(JSON 등)하되, 운영 상 조회 필드는 컬럼으로 문서화.
-  - `login_state_enum` (active, revoked, expired, logged_out) 로그인 상태
-- `REDIS_REFRESH`
+  - `login_state_enum` ('active', 'revoked', 'expired', 'logged_out', 'compromised') 로그인 상태
+- `redis_refresh`
   - Key: ak:refresh:< hash > -> < sid >
   - 로테이션(rotate-on-use) 시 refresh_hash 교체. 재사용 탐지 시 세션 일괄 폐기 정책과 연동.
-- `REDIS_USER_SESSIONS`
+- `redis_user_sessions`
   - Key: ak:user_sessions:< uid > (set/list 모델을 행 단위로 전개)
   - 실제 Redis에서는 set/list로 보관. dbdiagram 문서화를 위해 행 형태로 표현.
 
 ### 4.3 비디오 도메인 (VIDEOS)
 
-- `VIDEO`
+- `video`
   - 동영상 강의 정보(vimeo 링크, 상태, 접근)
-  - `video_state_enum` (ready, open, close) 강의 상태
-  - `video_access_enum` (public, paid, private, promote) 강의 접근
-- `VIDEO_LOG`
+  - `video_state_enum` ('ready', 'open', 'close') 강의 상태
+  - `video_access_enum` ('public', 'paid', 'private', 'promote') 강의 접근
+- `video_log`
   - 동영상 강의 시청 정보(진행, 완료, 횟수, 접속정보)
-- `VIDEO_TAG`
+- `video_tag`
   - 동영상 강의 메타 정보(제목, 부제목)
-- `VIDEO_TAG_MAP`
-  - 동영상 강의 맵핑 : `VIDEO_TAG` - `VIDEO`
-- `VIDEO_STAT_DAILY`
+- `video_tag_map`
+  - 동영상 강의 맵핑 : `video_tag` - `video`
+- `video_stat_daily`
   - 동영상 일별 통계 : UTC 기준
-- `ADMIN_VIDEO_LOG`
+- `admin_video_log`
   - 동영상 강의 관련 관리자 활동 기록
-  - `admin_action_enum` (create, update, banned, reorder, publish, unpublish) 동영상 강의 관련 관리자 활동 이력
+  - `admin_action_enum` ('create', 'update', 'banned', 'reorder', 'publish', 'unpublish') 관리자 활동 이력
 
 ### 4.4 학습 도메인 (STUDY)
 
-- `STUDY`
+- `study`
   - 학습 문제 정보(상태, 프로그램, 문제 정보)
-  - `study_state_enum` (ready, open, close) 학습 문제 상태
-  - `study_program_enum` (basic_pronunciation, basic_word, basic_900, topik_read, topik_listen, topik_write, tbc) 학습 문제 프로그램
-- `STUDY_TASK`
+  - `study_state_enum` ('ready', 'open', 'close') 학습 문제 상태
+  - `study_program_enum` ('basic_pronunciation', 'basic_word', 'basic_900', 'topik_read', 'topik_listen', 'topik_write', 'tbc') 학습 프로그램 분류
+- `study_task`
   - 학습 문제 세부 정보(종류, 순서)
-  - `study_task_kind_enum` (choice, typing, voice) 학습 문제 유형
-- `STUDY_TASK_CHOICE`
-  - 학습 문제 : 4지 선다
-  - **정답 검증 방안(study_task_choice_correct 비교 방식 : DB Column 비교 방안? ) 추후 구현**
-- `STUDY_TASK_TYPING`
+  - `study_task_kind_enum` ('choice', 'typing', 'voice') 학습 문제 유형
+- `study_task_choice`
+  - 학습 문제 : 4지 선다 (정답 1~4)
+- `study_task_typing`
   - 학습 문제 : 쓰기 / 타이핑
-- `STUDY_TASK_VOICE`
-  - 학습 문제 : 발음 → *발음 입력 및 검증 로직 구성 후 세부 컬럼 추가*
-- `STUDY_EXPLAIN`
+- `study_task_voice`
+  - 학습 문제 : 발음
+- `study_task_explain`
   - 학습 문제 해설(해설 언어, 해설 내용)
-  - `user_set_language_enum` (ko, en) 해설 제공 언어(추가 확장 예정)
-- `STUDY_TASK_STATUS`
+  - `user_set_language_enum` ('ko', 'en') 해설 제공 언어
+- `study_task_status`
   - 학습 상태(시도 횟수, 최고점, 완료여부)
-- `STUDY_TASK_LOG`
+- `study_task_log`
   - 학습 문제 풀이 기록(시도 횟수, 최고점, 완료여부, 풀이내용, 접속정보)
-  - `study_task_log_action_enum` (view, start, answer, finish, explain) 학습 문제 풀이 이력
-- `ADMIN_STUDY_LOG`
+  - `study_task_log_action_enum` ('view', 'start', 'answer', 'finish', 'explain', 'status') 학습 행동 이력
+- `admin_study_log`
   - 학습 문제 관련 관리자 활동 기록
-  - `admin_action_enum` (create, update, banned, reorder, publish, unpublish) 학습 문제 관련 관리자 활동 이력
+  - `admin_action_enum` ('create', 'update', 'banned', 'reorder', 'publish', 'unpublish') 관리자 활동 이력
 
 ### 4.5 수업 구성 도메인 (LESSON)
 
-- `LESSON`
+- `lesson`
   - 수업 구성 : 동영상 강의 + 학습 문제(내용 설명)
-- `LESSON_ITEM`
-  - 수업 구성 : 순서 지정(순서, 종류)
-  - `lesson_item_kind_enum` (video, task) 수업 구성 내용
-- `LESSON_PROGRESS`
-  - 수업 구성 : 학습 진도 사항(진도율, 순서)
-- `ADMIN_LESSON_LOG`
+- `lesson_item`
+  - 수업 구성 아이템 : 순서 지정(순서, 종류)
+  - `lesson_item_kind_enum` ('video', 'task') 수업 구성 종류
+- `lesson_progress`
+  - 수업 구성 : 학습 진도 사항(진도율, 마지막 아이템)
+- `admin_lesson_log`
   - 수업 구성 관련 관리자 세부 정보
-  - `admin_action_enum` (create, update, banned, reorder, publish, unpublish) 수업 구성 관련 관리자 활동 이력
+  - `admin_action_enum` ('create', 'update', 'banned', 'reorder', 'publish', 'unpublish') 관리자 활동 이력
 
 > 상세 스키마 변경이 필요하면, 항상 이 문서와 `amk_schema_patched.sql`을 함께 업데이트한다.
 
-### 4.6 향후 업데이트 도메인 
+### 4.6 향후 업데이트 도메인
 
-- `PAY`
+- `pay`
   - 결제 : 사용자 결제 관련 테이블, 결제 후 콘텐츠 이용 가능
-- `COURSE`
-  - 결제 맵핑 : 결제 후 `COURSE` 와 `LESSON`를 맵핑해 콘텐츠 이용 진행
-- `LIVE`
+  - `pay_state` ('ready', 'done', 'cancel')
+- `course`
+  - 결제 맵핑 : 결제 후 `course`와 `lesson`를 맵핑해 콘텐츠 이용 진행
+  - `course_type` ('video', 'study', 'live', 'package')
+  - `course_state` ('active', 'inactive', 'deleted')
+- `course_video` / `course_live`
+  - 코스 구성 맵핑 테이블
+- `live`
   - 실시간 강의 : ZOOM API 연동을 통한 실시간 강의 서비스 관련 테이블
+  - `live_state` ('ready', 'open', 'close')
+- `live_zoom`
+  - 줌 연동 정보
+  - `live_zoom_state` ('pending', 'registered', 'failed')
+- `live_log`
+  - 라이브 강의 참여 로그
 
 ---
 
@@ -663,7 +672,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-### 5.0 Phase 0 — health ✅c
+### 5.0 Phase 0 — health ✅🆗
 | 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 | 
 |---|---|---|---|---|---|
 | 0-1 | `GET /healthz` | `/health` | 라이브 헬스 | ***서버 작동 여부 확인***<br>**성공:** Auth pass / Page : healthz init→ready / Request : healthz pending→success / Data : healthz present → **200**<br>**실패:** Auth pass / Page : healthz init→ready / Request : healthz pending→error / Data : healthz error → **500** | [✅🆗] |
