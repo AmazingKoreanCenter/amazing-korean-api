@@ -96,8 +96,7 @@ pub struct StudyTaskDetailRes {
     pub study_id: i32,
     pub kind: StudyTaskKind,
     pub seq: i32,
-    pub question: Option<String>,
-    pub media_url: Option<String>,
+    pub created_at: DateTime<Utc>,
     pub payload: TaskPayload,
 }
 
@@ -113,6 +112,7 @@ pub enum TaskPayload {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct ChoicePayload {
+    pub question: String,
     pub choice_1: String,
     pub choice_2: String,
     pub choice_3: String,
@@ -124,12 +124,14 @@ pub struct ChoicePayload {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct TypingPayload {
+    pub question: String,
     pub image_url: Option<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct VoicePayload {
+    pub question: String,
     pub audio_url: Option<String>, // Added from STUDY_TASK_VOICE schema
     pub image_url: Option<String>,
 }

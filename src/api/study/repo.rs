@@ -1,7 +1,8 @@
+use chrono::{DateTime, Utc};
 use sqlx::{PgPool, QueryBuilder};
 
 use crate::error::AppResult;
-use crate::types::{StudyProgram, StudyTaskKind};
+use crate::types::{StudyProgram, StudyTaskKind, StudyTaskLogAction};
 
 use super::dto::{
     ChoicePayload, StudyListSort, StudySummaryDto, StudyTaskDetailRes, TaskExplainRes, TaskPayload,
@@ -17,6 +18,7 @@ struct StudyTaskDetailRow {
     study_id: i32, // [FIX] DTO Type Mismatch: i64 -> i32
     kind: StudyTaskKind,
     seq: i32,
+    created_at: DateTime<Utc>,
 
     // Common
     question: Option<String>,
@@ -30,25 +32,23 @@ struct StudyTaskDetailRow {
     choice_image_url: Option<String>,
 
     // Typing
-    #[allow(dead_code)]
-    typing_answer_text: Option<String>,
     typing_image_url: Option<String>,
 
     // Voice
-    #[allow(dead_code)]
-    voice_answer_text: Option<String>,
     voice_audio_url: Option<String>, 
     voice_image_url: Option<String>,
 }
 
 impl StudyTaskDetailRow {
     fn map_to_res(self) -> Option<StudyTaskDetailRes> {
+        let question = self.question.unwrap_or_default();
         let payload = match self.kind {
             StudyTaskKind::Choice => {
                 if self.choice_1.is_none() || self.choice_2.is_none() {
                     return None;
                 }
                 TaskPayload::Choice(ChoicePayload {
+                    question,
                     choice_1: self.choice_1.unwrap(),
                     choice_2: self.choice_2.unwrap(),
                     choice_3: self.choice_3.unwrap_or_default(),
@@ -58,18 +58,14 @@ impl StudyTaskDetailRow {
                 })
             }
             StudyTaskKind::Typing => TaskPayload::Typing(TypingPayload {
+                question,
                 image_url: self.typing_image_url,
             }),
             StudyTaskKind::Voice => TaskPayload::Voice(VoicePayload {
+                question,
                 audio_url: self.voice_audio_url,
                 image_url: self.voice_image_url,
             }),
-        };
-
-        let media_url = match self.kind {
-            StudyTaskKind::Choice => None,
-            StudyTaskKind::Typing => None,
-            StudyTaskKind::Voice => None,
         };
 
         Some(StudyTaskDetailRes {
@@ -77,8 +73,7 @@ impl StudyTaskDetailRow {
             study_id: self.study_id,
             kind: self.kind,
             seq: self.seq,
-            question: self.question,
-            media_url,
+            created_at: self.created_at,
             payload,
         })
     }
@@ -171,26 +166,25 @@ impl StudyRepo {
                 t.study_id::INT AS study_id,
                 t.study_task_kind AS "kind!: StudyTaskKind",
                 t.study_task_seq AS seq,
+                t.study_task_created_at AS created_at,
                 
-                -- Question (Coalesce from each type)
-                COALESCE(stc.study_task_choice_question, stt.study_task_typing_question, stv.study_task_voice_question)::TEXT AS question,
+                -- Question: 이미 "question?"로 되어 있어서 OK
+                COALESCE(stc.study_task_choice_question, stt.study_task_typing_question, stv.study_task_voice_question)::TEXT AS "question?",
 
-                -- Choice Fields
-                stc.study_task_choice_1::TEXT AS choice_1,
-                stc.study_task_choice_2::TEXT AS choice_2,
-                stc.study_task_choice_3::TEXT AS choice_3,
-                stc.study_task_choice_4::TEXT AS choice_4,
-                stc.study_task_choice_audio_url::TEXT AS choice_audio_url,
-                stc.study_task_choice_image_url::TEXT AS choice_image_url,
+                -- [수정] Choice Fields: LEFT JOIN이므로 값이 없을 수 있음 -> "?" 추가
+                stc.study_task_choice_1::TEXT AS "choice_1?",
+                stc.study_task_choice_2::TEXT AS "choice_2?",
+                stc.study_task_choice_3::TEXT AS "choice_3?",
+                stc.study_task_choice_4::TEXT AS "choice_4?",
+                stc.study_task_choice_audio_url::TEXT AS "choice_audio_url?",
+                stc.study_task_choice_image_url::TEXT AS "choice_image_url?",
 
-                -- Typing Fields
-                stt.study_task_typing_answer::TEXT AS typing_answer_text,
-                stt.study_task_typing_image_url::TEXT AS typing_image_url,
+                -- [수정] Typing Fields: "?" 추가
+                stt.study_task_typing_image_url::TEXT AS "typing_image_url?",
 
-                -- Voice Fields
-                stv.study_task_voice_answer::TEXT AS voice_answer_text,
-                stv.study_task_voice_audio_url::TEXT AS voice_audio_url,
-                stv.study_task_voice_image_url::TEXT AS voice_image_url
+                -- [수정] Voice Fields: "?" 추가
+                stv.study_task_voice_audio_url::TEXT AS "voice_audio_url?",
+                stv.study_task_voice_image_url::TEXT AS "voice_image_url?"
 
             FROM study_task t
             LEFT JOIN study_task_choice stc ON t.study_task_id = stc.study_task_id
@@ -207,6 +201,41 @@ impl StudyRepo {
             Some(r) => Ok(r.map_to_res()),
             None => Ok(None),
         }
+    }
+
+    pub async fn log_task_action(
+        pool: &PgPool,
+        user_id: i64,
+        session_id: &str,
+        task_id: i32,
+        action: StudyTaskLogAction,
+    ) -> AppResult<()> {
+        sqlx::query(
+            r#"
+            INSERT INTO study_task_log (
+                study_task_id,
+                user_id,
+                login_id,
+                study_task_action_log
+            )
+            SELECT
+                $1,
+                $2,
+                l.login_id,
+                $3
+            FROM login l
+            WHERE l.login_session_id = CAST($4 AS uuid)
+              AND l.user_id = $2
+            "#,
+        )
+        .bind(task_id)
+        .bind(user_id)
+        .bind(action)
+        .bind(session_id)
+        .execute(pool)
+        .await?;
+
+        Ok(())
     }
 
     // =========================================================================

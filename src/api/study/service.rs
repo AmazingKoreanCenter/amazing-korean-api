@@ -1,6 +1,9 @@
+use tracing::warn;
+
+use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
-use crate::types::{StudyProgram, StudyTaskKind};
+use crate::types::{StudyProgram, StudyTaskKind, StudyTaskLogAction};
 
 // [Strict Mode] Import DTOs and Repo directly from the verified files
 use super::dto::{
@@ -90,9 +93,34 @@ impl StudyService {
     // =========================================================================
 
     /// 학습 문제 상세 조회
-    pub async fn get_study_task(st: &AppState, task_id: i64) -> AppResult<StudyTaskDetailRes> {
-        let task = StudyRepo::find_task_detail(&st.db, task_id).await?;
-        task.ok_or(AppError::NotFound)
+    pub async fn get_study_task(
+        st: &AppState,
+        task_id: i32,
+        auth: Option<AuthUser>,
+    ) -> AppResult<StudyTaskDetailRes> {
+        let task = StudyRepo::find_task_detail(&st.db, i64::from(task_id)).await?;
+        let task = task.ok_or(AppError::NotFound)?;
+
+        if let Some(AuthUser(claims)) = auth {
+            if let Err(err) = StudyRepo::log_task_action(
+                &st.db,
+                claims.sub,
+                &claims.session_id,
+                task_id,
+                StudyTaskLogAction::View,
+            )
+            .await
+            {
+                warn!(
+                    error = ?err,
+                    user_id = claims.sub,
+                    task_id,
+                    "Failed to log study task view"
+                );
+            }
+        }
+
+        Ok(task)
     }
 
     // =========================================================================

@@ -1,7 +1,7 @@
 use axum::extract::{Path, Query, State};
 use axum::Json;
 
-use crate::api::auth::extractor::AuthUser;
+use crate::api::auth::extractor::{AuthUser, OptionalAuthUser};
 use crate::error::AppResult;
 use crate::state::AppState;
 
@@ -45,22 +45,21 @@ pub async fn list_studies(
     get,
     path = "/studies/tasks/{id}",
     params(
-        ("id" = i64, Path, description = "Study Task ID")
+        ("id" = i32, Path, description = "Study Task ID")
     ),
     responses(
         (status = 200, description = "Task Detail", body = StudyTaskDetailRes),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
         (status = 404, description = "Not Found", body = crate::error::ErrorBody)
     ),
-    security(("bearerAuth" = [])),
     tag = "study"
 )]
 pub async fn get_study_task(
     State(state): State<AppState>,
-    _auth: AuthUser, // 수정: 패턴 매칭 제거
-    Path(task_id): Path<i64>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(task_id): Path<i32>,
 ) -> AppResult<Json<StudyTaskDetailRes>> {
-    let res = StudyService::get_study_task(&state, task_id).await?;
+    let res = StudyService::get_study_task(&state, task_id, auth).await?;
     Ok(Json(res))
 }
 

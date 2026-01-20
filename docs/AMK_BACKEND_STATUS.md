@@ -58,7 +58,7 @@ audience: server / database / backend LLM assistant
 
 ### Phase 4: Study Domain (Refactored) []
 > **Goal**: 학습 문제(Task) 풀이, 채점, 해설 및 로그 관리 (CBT 핵심 기능)
-  - [] `GET /studies`: 학습 문제 목록 조회
+  - [x] `GET /studies`: 학습 문제 목록 조회
     - **Auth**: 비로그인 접근 가능 (Public).
     - **Logic**: `study_program_enum` 기준 필터링 + 페이지네이션.
     - **Refactor Note**: `QueryBuilder`를 사용해 프로그램 필터/정렬/페이징을 하나의 동적 쿼리로 통합 구현.
