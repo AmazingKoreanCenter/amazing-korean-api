@@ -59,25 +59,34 @@ audience: server / database / backend LLM assistant
 ### Phase 4: Study Domain (Refactored) []
 > **Goal**: 학습 문제(Task) 풀이, 채점, 해설 및 로그 관리 (CBT 핵심 기능)
   - [] `GET /studies`: 학습 문제 목록 조회
-    - **Logic**: `study_program_enum` 기준 필터링 + 페이지네이션.
     - **Auth**: 비로그인 접근 가능 (Public).
+    - **Logic**: `study_program_enum` 기준 필터링 + 페이지네이션.
     - **Refactor Note**: `QueryBuilder`를 사용해 프로그램 필터/정렬/페이징을 하나의 동적 쿼리로 통합 구현.
   - [] `GET /studies/tasks/{id}`: 학습 문제 상세 조회 (풀이 화면)
+    - **Auth**: **필수** (`AuthUser`).
     - **Logic**: `STUDY_TASK` 테이블 조회. 문제 지문 및 선택지 반환.
     - **Refactor Note**: DB의 평면적 컬럼들을 `TaskPayload` Enum(Choice/Typing/Voice)으로 매핑하여 다형성 있는 JSON 응답 구조 완성.
+    - **Logging** : `study_task_log` 테이블 업데이트 (트랜잭션 필수)
   - [] `POST /studies/tasks/{id}/answer`: 정답 제출 및 채점
     - **Auth**: **필수** (`AuthUser`).
-    - **Logic**: 채점 로직 수행 → `STUDY_TASK_LOG` 저장(History) → `STUDY_TASK_STATUS` 업데이트(Latest). (트랜잭션 필수)
+    - **Logic**: 채점 로직 수행(Choice/Typing/Voice 테이블의 답안 비교)
     - **Validation**: 선택지 범위 오류 시 422, 형식 오류 시 400.
-    - **Refactor Note**: Service 계층에서 채점(Grading) 로직 수행 후, `upsert_log` 쿼리 하나로 이력 기록과 최신 상태 갱신을 동시에 처리.
+    - **Refactor Note**
+      1) Service 계층에서 채점(Grading) 로직 수행
+      2) Repo 계층에서 순차적으로 로그 업데이트 
+        2-1) `upsert_log` : `study_task_log` 테이블 업데이트 함수
+        2-2) `upsert_status` : `study_task_status` 테이블 업데이트 함수
+    - **Logging** : `study_task_status`, `study_task_log` 테이블 업데이트 (트랜잭션 필수)
   - [] `GET /studies/tasks/{id}/status`: 내 학습 현황 조회
     - **Auth**: **필수** (`AuthUser`).
     - **Logic**: 해당 문제에 대한 내 최신 기록(진도, 점수, 시도 횟수) 조회. 기록 없으면 빈 값(200) 반환.
-    - **Refactor Note**: `study_task_log` 테이블에서 사용자의 최신 풀이 기록(`try_count`, `is_correct` 등) 조회 로직 구현.
+    - **Refactor Note**: `study_task_log` 테이블에서 사용자의 풀이 상태(`study_task_status_try_count`, `study_task_status_is_solved`) 조회 로직 구현.
+    - **Logging** : `study_task_log` 테이블 업데이트 (트랜잭션 필수)
   - [] `GET /studies/tasks/{id}/explain`: 문제 해설 조회
     - **Logic**: `STUDY_EXPLAIN` 테이블 조회 (해설 텍스트/미디어).
     - **Access Control**: 정책에 따라 '문제 풀이 전 열람 시' **403 Forbidden** 처리 로직 고려.
     - **Refactor Note**: 해설 및 정답 텍스트 조회 쿼리 구현 완료 (`403` 정책은 추후 기획 확정 시 Service 계층에 추가 예정).
+    - **Logging** : `study_task_log` 테이블 업데이트 (트랜잭션 필수)
 
 ### Phase 5: Lesson Domain (To-Do) [ ]
 > **Goal**: 수업(Lesson) 목록, 상세 정보, 학습 시퀀스(Items) 및 진도율 관리
