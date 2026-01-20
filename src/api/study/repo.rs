@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
+use serde_json::Value;
 use sqlx::{PgPool, QueryBuilder};
 
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::types::{StudyProgram, StudyTaskKind, StudyTaskLogAction};
 
 use super::dto::{
@@ -10,6 +11,12 @@ use super::dto::{
 };
 
 pub struct StudyRepo;
+
+#[derive(Debug)]
+pub struct AnswerKeyDto {
+    pub kind: StudyTaskKind,
+    pub answer: String,
+}
 
 // 내부 사용용 Row 구조체 (DB 조회 결과 매핑)
 #[derive(sqlx::FromRow)]
@@ -149,7 +156,132 @@ impl StudyRepo {
     }
 
     // =========================================================================
-    // 2. Task Detail
+    // 2. Submit & Grading
+    // =========================================================================
+
+    pub async fn find_answer_key(
+        pool: &PgPool,
+        task_id: i32,
+    ) -> AppResult<Option<AnswerKeyDto>> {
+        #[derive(sqlx::FromRow)]
+        struct AnswerKeyRow {
+            kind: StudyTaskKind,
+            answer: Option<String>,
+        }
+
+        let row = sqlx::query_as!(
+            AnswerKeyRow,
+            r#"
+            SELECT
+                t.study_task_kind AS "kind!: StudyTaskKind",
+                CASE t.study_task_kind
+                    WHEN 'choice' THEN stc.study_task_choice_answer::TEXT
+                    WHEN 'typing' THEN stt.study_task_typing_answer
+                    WHEN 'voice' THEN stv.study_task_voice_answer
+                END AS "answer?"
+            FROM study_task t
+            LEFT JOIN study_task_choice stc ON t.study_task_id = stc.study_task_id
+            LEFT JOIN study_task_typing stt ON t.study_task_id = stt.study_task_id
+            LEFT JOIN study_task_voice stv  ON t.study_task_id = stv.study_task_id
+            WHERE t.study_task_id = $1
+            "#,
+            task_id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        match row {
+            Some(row) => {
+                let answer = row
+                    .answer
+                    .ok_or_else(|| AppError::Internal("Answer key missing".into()))?;
+                Ok(Some(AnswerKeyDto {
+                    kind: row.kind,
+                    answer,
+                }))
+            }
+            None => Ok(None),
+        }
+    }
+
+    pub async fn submit_grade_tx(
+        pool: &PgPool,
+        user_id: i64,
+        session_id: &str,
+        task_id: i32,
+        is_correct: bool,
+        payload: &Value,
+    ) -> AppResult<()> {
+        let mut tx = pool.begin().await?;
+
+        let try_count: i32 = sqlx::query_scalar(
+            r#"
+            INSERT INTO study_task_status (
+                study_task_id,
+                user_id,
+                study_task_status_try_count,
+                study_task_status_is_solved,
+                study_task_status_last_attempt_at
+            )
+            VALUES ($1, $2, 1, $3, NOW())
+            ON CONFLICT (study_task_id, user_id) DO UPDATE
+            SET study_task_status_try_count = study_task_status.study_task_status_try_count + 1,
+                study_task_status_is_solved =
+                    study_task_status.study_task_status_is_solved OR EXCLUDED.study_task_status_is_solved,
+                study_task_status_last_attempt_at = NOW()
+            RETURNING study_task_status_try_count
+            "#,
+        )
+        .bind(task_id)
+        .bind(user_id)
+        .bind(is_correct)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        let log_res = sqlx::query(
+            r#"
+            INSERT INTO study_task_log (
+                study_task_id,
+                user_id,
+                login_id,
+                study_task_action_log,
+                study_task_try_no_log,
+                study_task_is_correct_log,
+                study_task_answer_log
+            )
+            SELECT
+                $1,
+                $2,
+                l.login_id,
+                $3,
+                $4,
+                $5,
+                $6
+            FROM login l
+            WHERE l.login_session_id = CAST($7 AS uuid)
+              AND l.user_id = $2
+            "#,
+        )
+        .bind(task_id)
+        .bind(user_id)
+        .bind(StudyTaskLogAction::Finish)
+        .bind(try_count)
+        .bind(is_correct)
+        .bind(payload)
+        .bind(session_id)
+        .execute(&mut *tx)
+        .await?;
+
+        if log_res.rows_affected() == 0 {
+            return Err(AppError::Internal("Login record not found".into()));
+        }
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    // =========================================================================
+    // 3. Task Detail
     // =========================================================================
 
     pub async fn find_task_detail(
