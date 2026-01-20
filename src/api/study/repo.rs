@@ -1,7 +1,9 @@
+use chrono::{DateTime, Utc};
+use serde_json::Value;
 use sqlx::{PgPool, QueryBuilder};
 
-use crate::error::AppResult;
-use crate::types::{StudyProgram, StudyTaskKind};
+use crate::error::{AppError, AppResult};
+use crate::types::{StudyProgram, StudyTaskKind, StudyTaskLogAction};
 
 use super::dto::{
     ChoicePayload, StudyListSort, StudySummaryDto, StudyTaskDetailRes, TaskExplainRes, TaskPayload,
@@ -10,6 +12,12 @@ use super::dto::{
 
 pub struct StudyRepo;
 
+#[derive(Debug)]
+pub struct AnswerKeyDto {
+    pub kind: StudyTaskKind,
+    pub answer: String,
+}
+
 // 내부 사용용 Row 구조체 (DB 조회 결과 매핑)
 #[derive(sqlx::FromRow)]
 struct StudyTaskDetailRow {
@@ -17,6 +25,7 @@ struct StudyTaskDetailRow {
     study_id: i32, // [FIX] DTO Type Mismatch: i64 -> i32
     kind: StudyTaskKind,
     seq: i32,
+    created_at: DateTime<Utc>,
 
     // Common
     question: Option<String>,
@@ -30,25 +39,23 @@ struct StudyTaskDetailRow {
     choice_image_url: Option<String>,
 
     // Typing
-    #[allow(dead_code)]
-    typing_answer_text: Option<String>,
     typing_image_url: Option<String>,
 
     // Voice
-    #[allow(dead_code)]
-    voice_answer_text: Option<String>,
     voice_audio_url: Option<String>, 
     voice_image_url: Option<String>,
 }
 
 impl StudyTaskDetailRow {
     fn map_to_res(self) -> Option<StudyTaskDetailRes> {
+        let question = self.question.unwrap_or_default();
         let payload = match self.kind {
             StudyTaskKind::Choice => {
                 if self.choice_1.is_none() || self.choice_2.is_none() {
                     return None;
                 }
                 TaskPayload::Choice(ChoicePayload {
+                    question,
                     choice_1: self.choice_1.unwrap(),
                     choice_2: self.choice_2.unwrap(),
                     choice_3: self.choice_3.unwrap_or_default(),
@@ -58,18 +65,14 @@ impl StudyTaskDetailRow {
                 })
             }
             StudyTaskKind::Typing => TaskPayload::Typing(TypingPayload {
+                question,
                 image_url: self.typing_image_url,
             }),
             StudyTaskKind::Voice => TaskPayload::Voice(VoicePayload {
+                question,
                 audio_url: self.voice_audio_url,
                 image_url: self.voice_image_url,
             }),
-        };
-
-        let media_url = match self.kind {
-            StudyTaskKind::Choice => None,
-            StudyTaskKind::Typing => None,
-            StudyTaskKind::Voice => None,
         };
 
         Some(StudyTaskDetailRes {
@@ -77,8 +80,7 @@ impl StudyTaskDetailRow {
             study_id: self.study_id,
             kind: self.kind,
             seq: self.seq,
-            question: self.question,
-            media_url,
+            created_at: self.created_at,
             payload,
         })
     }
@@ -154,7 +156,132 @@ impl StudyRepo {
     }
 
     // =========================================================================
-    // 2. Task Detail
+    // 2. Submit & Grading
+    // =========================================================================
+
+    pub async fn find_answer_key(
+        pool: &PgPool,
+        task_id: i32,
+    ) -> AppResult<Option<AnswerKeyDto>> {
+        #[derive(sqlx::FromRow)]
+        struct AnswerKeyRow {
+            kind: StudyTaskKind,
+            answer: Option<String>,
+        }
+
+        let row = sqlx::query_as!(
+            AnswerKeyRow,
+            r#"
+            SELECT
+                t.study_task_kind AS "kind!: StudyTaskKind",
+                CASE t.study_task_kind
+                    WHEN 'choice' THEN stc.study_task_choice_answer::TEXT
+                    WHEN 'typing' THEN stt.study_task_typing_answer
+                    WHEN 'voice' THEN stv.study_task_voice_answer
+                END AS "answer?"
+            FROM study_task t
+            LEFT JOIN study_task_choice stc ON t.study_task_id = stc.study_task_id
+            LEFT JOIN study_task_typing stt ON t.study_task_id = stt.study_task_id
+            LEFT JOIN study_task_voice stv  ON t.study_task_id = stv.study_task_id
+            WHERE t.study_task_id = $1
+            "#,
+            task_id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        match row {
+            Some(row) => {
+                let answer = row
+                    .answer
+                    .ok_or_else(|| AppError::Internal("Answer key missing".into()))?;
+                Ok(Some(AnswerKeyDto {
+                    kind: row.kind,
+                    answer,
+                }))
+            }
+            None => Ok(None),
+        }
+    }
+
+    pub async fn submit_grade_tx(
+        pool: &PgPool,
+        user_id: i64,
+        session_id: &str,
+        task_id: i32,
+        is_correct: bool,
+        payload: &Value,
+    ) -> AppResult<()> {
+        let mut tx = pool.begin().await?;
+
+        let try_count: i32 = sqlx::query_scalar(
+            r#"
+            INSERT INTO study_task_status (
+                study_task_id,
+                user_id,
+                study_task_status_try_count,
+                study_task_status_is_solved,
+                study_task_status_last_attempt_at
+            )
+            VALUES ($1, $2, 1, $3, NOW())
+            ON CONFLICT (study_task_id, user_id) DO UPDATE
+            SET study_task_status_try_count = study_task_status.study_task_status_try_count + 1,
+                study_task_status_is_solved =
+                    study_task_status.study_task_status_is_solved OR EXCLUDED.study_task_status_is_solved,
+                study_task_status_last_attempt_at = NOW()
+            RETURNING study_task_status_try_count
+            "#,
+        )
+        .bind(task_id)
+        .bind(user_id)
+        .bind(is_correct)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        let log_res = sqlx::query(
+            r#"
+            INSERT INTO study_task_log (
+                study_task_id,
+                user_id,
+                login_id,
+                study_task_action_log,
+                study_task_try_no_log,
+                study_task_is_correct_log,
+                study_task_answer_log
+            )
+            SELECT
+                $1,
+                $2,
+                l.login_id,
+                $3,
+                $4,
+                $5,
+                $6
+            FROM login l
+            WHERE l.login_session_id = CAST($7 AS uuid)
+              AND l.user_id = $2
+            "#,
+        )
+        .bind(task_id)
+        .bind(user_id)
+        .bind(StudyTaskLogAction::Finish)
+        .bind(try_count)
+        .bind(is_correct)
+        .bind(payload)
+        .bind(session_id)
+        .execute(&mut *tx)
+        .await?;
+
+        if log_res.rows_affected() == 0 {
+            return Err(AppError::Internal("Login record not found".into()));
+        }
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    // =========================================================================
+    // 3. Task Detail
     // =========================================================================
 
     pub async fn find_task_detail(
@@ -171,26 +298,25 @@ impl StudyRepo {
                 t.study_id::INT AS study_id,
                 t.study_task_kind AS "kind!: StudyTaskKind",
                 t.study_task_seq AS seq,
+                t.study_task_created_at AS created_at,
                 
-                -- Question (Coalesce from each type)
-                COALESCE(stc.study_task_choice_question, stt.study_task_typing_question, stv.study_task_voice_question)::TEXT AS question,
+                -- Question: 이미 "question?"로 되어 있어서 OK
+                COALESCE(stc.study_task_choice_question, stt.study_task_typing_question, stv.study_task_voice_question)::TEXT AS "question?",
 
-                -- Choice Fields
-                stc.study_task_choice_1::TEXT AS choice_1,
-                stc.study_task_choice_2::TEXT AS choice_2,
-                stc.study_task_choice_3::TEXT AS choice_3,
-                stc.study_task_choice_4::TEXT AS choice_4,
-                stc.study_task_choice_audio_url::TEXT AS choice_audio_url,
-                stc.study_task_choice_image_url::TEXT AS choice_image_url,
+                -- [수정] Choice Fields: LEFT JOIN이므로 값이 없을 수 있음 -> "?" 추가
+                stc.study_task_choice_1::TEXT AS "choice_1?",
+                stc.study_task_choice_2::TEXT AS "choice_2?",
+                stc.study_task_choice_3::TEXT AS "choice_3?",
+                stc.study_task_choice_4::TEXT AS "choice_4?",
+                stc.study_task_choice_audio_url::TEXT AS "choice_audio_url?",
+                stc.study_task_choice_image_url::TEXT AS "choice_image_url?",
 
-                -- Typing Fields
-                stt.study_task_typing_answer::TEXT AS typing_answer_text,
-                stt.study_task_typing_image_url::TEXT AS typing_image_url,
+                -- [수정] Typing Fields: "?" 추가
+                stt.study_task_typing_image_url::TEXT AS "typing_image_url?",
 
-                -- Voice Fields
-                stv.study_task_voice_answer::TEXT AS voice_answer_text,
-                stv.study_task_voice_audio_url::TEXT AS voice_audio_url,
-                stv.study_task_voice_image_url::TEXT AS voice_image_url
+                -- [수정] Voice Fields: "?" 추가
+                stv.study_task_voice_audio_url::TEXT AS "voice_audio_url?",
+                stv.study_task_voice_image_url::TEXT AS "voice_image_url?"
 
             FROM study_task t
             LEFT JOIN study_task_choice stc ON t.study_task_id = stc.study_task_id
@@ -207,6 +333,41 @@ impl StudyRepo {
             Some(r) => Ok(r.map_to_res()),
             None => Ok(None),
         }
+    }
+
+    pub async fn log_task_action(
+        pool: &PgPool,
+        user_id: i64,
+        session_id: &str,
+        task_id: i32,
+        action: StudyTaskLogAction,
+    ) -> AppResult<()> {
+        sqlx::query(
+            r#"
+            INSERT INTO study_task_log (
+                study_task_id,
+                user_id,
+                login_id,
+                study_task_action_log
+            )
+            SELECT
+                $1,
+                $2,
+                l.login_id,
+                $3
+            FROM login l
+            WHERE l.login_session_id = CAST($4 AS uuid)
+              AND l.user_id = $2
+            "#,
+        )
+        .bind(task_id)
+        .bind(user_id)
+        .bind(action)
+        .bind(session_id)
+        .execute(pool)
+        .await?;
+
+        Ok(())
     }
 
     // =========================================================================

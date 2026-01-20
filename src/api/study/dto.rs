@@ -38,15 +38,12 @@ impl StudyListSort {
 }
 
 /// 정답 제출 요청 (JSON Body)
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SubmitAnswerReq {
     Choice { pick: i32 },
     Typing { text: String },
-    Voice {
-        #[allow(dead_code)] // TODO: 추후 AI 음성 분석 로직 구현 시 사용 예정
-        audio_url: String,
-    },
+    Voice { text: String },
 }
 
 // =========================================================================
@@ -96,8 +93,7 @@ pub struct StudyTaskDetailRes {
     pub study_id: i32,
     pub kind: StudyTaskKind,
     pub seq: i32,
-    pub question: Option<String>,
-    pub media_url: Option<String>,
+    pub created_at: DateTime<Utc>,
     pub payload: TaskPayload,
 }
 
@@ -113,6 +109,7 @@ pub enum TaskPayload {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct ChoicePayload {
+    pub question: String,
     pub choice_1: String,
     pub choice_2: String,
     pub choice_3: String,
@@ -124,12 +121,14 @@ pub struct ChoicePayload {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct TypingPayload {
+    pub question: String,
     pub image_url: Option<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct VoicePayload {
+    pub question: String,
     pub audio_url: Option<String>, // Added from STUDY_TASK_VOICE schema
     pub image_url: Option<String>,
 }
@@ -140,11 +139,11 @@ pub struct VoicePayload {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct SubmitAnswerRes {
-    pub task_id: i32,
     pub is_correct: bool,
-    pub score: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub correct_answer: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub explanation: Option<String>,
 }
 
 /// 문제 풀이 상태 조회

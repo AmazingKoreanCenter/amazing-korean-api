@@ -1,7 +1,7 @@
 use axum::extract::{Path, Query, State};
 use axum::Json;
 
-use crate::api::auth::extractor::AuthUser;
+use crate::api::auth::extractor::{AuthUser, OptionalAuthUser};
 use crate::error::AppResult;
 use crate::state::AppState;
 
@@ -45,22 +45,21 @@ pub async fn list_studies(
     get,
     path = "/studies/tasks/{id}",
     params(
-        ("id" = i64, Path, description = "Study Task ID")
+        ("id" = i32, Path, description = "Study Task ID")
     ),
     responses(
         (status = 200, description = "Task Detail", body = StudyTaskDetailRes),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
         (status = 404, description = "Not Found", body = crate::error::ErrorBody)
     ),
-    security(("bearerAuth" = [])),
     tag = "study"
 )]
 pub async fn get_study_task(
     State(state): State<AppState>,
-    _auth: AuthUser, // 수정: 패턴 매칭 제거
-    Path(task_id): Path<i64>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(task_id): Path<i32>,
 ) -> AppResult<Json<StudyTaskDetailRes>> {
-    let res = StudyService::get_study_task(&state, task_id).await?;
+    let res = StudyService::get_study_task(&state, task_id, auth).await?;
     Ok(Json(res))
 }
 
@@ -69,25 +68,26 @@ pub async fn get_study_task(
     post,
     path = "/studies/tasks/{id}/answer",
     params(
-        ("id" = i64, Path, description = "Study Task ID")
+        ("id" = i32, Path, description = "Study Task ID")
     ),
     request_body = SubmitAnswerReq,
     responses(
         (status = 200, description = "Submission Result (Graded)", body = SubmitAnswerRes),
         (status = 400, description = "Bad Request", body = crate::error::ErrorBody),
         (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
-        (status = 404, description = "Not Found", body = crate::error::ErrorBody)
+        (status = 404, description = "Not Found", body = crate::error::ErrorBody),
+        (status = 422, description = "Unprocessable Entity", body = crate::error::ErrorBody)
     ),
     security(("bearerAuth" = [])),
     tag = "study"
 )]
 pub async fn submit_answer(
     State(state): State<AppState>,
-    AuthUser(auth_user): AuthUser,
-    Path(task_id): Path<i64>,
+    auth_user: AuthUser,
+    Path(task_id): Path<i32>,
     Json(req): Json<SubmitAnswerReq>,
 ) -> AppResult<Json<SubmitAnswerRes>> {
-    let res = StudyService::submit_answer(&state, auth_user.sub, task_id, req).await?;
+    let res = StudyService::submit_answer(&state, auth_user, task_id, req).await?;
     Ok(Json(res))
 }
 

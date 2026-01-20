@@ -7,6 +7,8 @@ use crate::state::AppState;
 
 pub struct AuthUser(pub Claims);
 
+pub struct OptionalAuthUser(pub Option<AuthUser>);
+
 impl<S> FromRequestParts<S> for AuthUser
 where
     S: Send + Sync,
@@ -41,6 +43,42 @@ where
                 .map_err(|_| AppError::Unauthorized("Invalid token".into()))?;
 
             Ok(AuthUser(claims))
+        }
+    }
+}
+
+impl<S> FromRequestParts<S> for OptionalAuthUser
+where
+    S: Send + Sync,
+    AppState: FromRef<S>,
+{
+    type Rejection = AppError;
+
+    fn from_request_parts(
+        parts: &mut Parts,
+        state: &S,
+    ) -> impl core::future::Future<Output = Result<Self, Self::Rejection>> + Send {
+        let app_state = AppState::from_ref(state);
+        let secret = app_state.cfg.jwt_secret.clone();
+        let auth_header = parts.headers.get(AUTHORIZATION).cloned();
+
+        async move {
+            let Some(header_value) = auth_header else {
+                return Ok(OptionalAuthUser(None));
+            };
+
+            let header_str = header_value
+                .to_str()
+                .map_err(|_| AppError::Unauthorized("Invalid Authorization header".into()))?;
+
+            let token = header_str
+                .strip_prefix("Bearer ")
+                .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".into()))?;
+
+            let claims = jwt::decode_token(token, &secret)
+                .map_err(|_| AppError::Unauthorized("Invalid token".into()))?;
+
+            Ok(OptionalAuthUser(Some(AuthUser(claims))))
         }
     }
 }
