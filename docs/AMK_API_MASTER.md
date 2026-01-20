@@ -954,6 +954,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 ---
 
 #### 5.3-1 : `GET /videos` (비디오 목록)
+- **로그인 안해도 접근 가능**
 - **성공(데이터 있음) → 200**
   - When: `/videos` 진입, `page/per_page/sort`가 유효
   - Then: **200**, 목록 + 페이지 메타, 각 항목에 `video_url_vimeo` 포함
@@ -1024,7 +1025,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 | 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 |
 |---|---|---|---|---|---|
 | 4-1 | `GET /studies` | `/studies` | 학습 문제 목록 | ***`study_program_enum` 기준 조회, 페이지네이션***<br>성공(데이터 있음): Auth pass 또는 stop / Page studies init→ready / Request studies pending→success / Data studies present → **200**<br>성공(데이터 없음): Auth pass 또는 stop / Page studies init→ready / Request studies pending→success / Data studies empty → **200**<br>실패(형식/누락): Auth pass 또는 stop / Page studies init→ready / Request studies pending→error / Data studies error → **400**<br>실패(도메인 제약): Auth pass 또는 stop / Page studies init→ready / Request studies pending→error / Data studies error → **422** | [✅🆗] |
-| 4-2 | `GET /studies/tasks/{id}` | `/studies/tasks/{task_id}` | 학습 문제 상세 | ***STUDY_TASK 조회, 보기(풀이 전)***<br>성공: Auth pass 또는 stop / Page task init→ready / Request task pending→success / Data task present → **200**<br>실패(없는 문항): Auth pass 또는 stop / Page task init→ready / Request task pending→error / Data task error → **404** | [✅] |
+| 4-2 | `GET /studies/tasks/{id}` | `/studies/tasks/{task_id}` | 학습 문제 상세 | ***STUDY_TASK 조회, 보기(풀이 전)→ STUDY_TASK_LOG 저장(view)***<br>성공: Auth pass 또는 stop / Page task init→ready / Request task pending→success / Data task present → **200**<br>실패(없는 문항): Auth pass 또는 stop / Page task init→ready / Request task pending→error / Data task error → **404** | [✅] |
 | 4-3 | `POST /studies/tasks/{id}/answer` | `/studies/tasks/{task_id}` | 정답 제출/채점 | ***STUDY_TASK_STATUS 업데이트 → STUDY_TASK_LOG 저장(채점 포함)***<br>성공:<br> Auth pass / Page task init→ready / Form answer pristine→dirty→validating→submitting→success /<br> Request answer pending→success / Data answer present → **200**<br>실패(형식/누락):<br> Auth pass / Page task init→ready / Form answer pristine→dirty→validating→error.client / Request answer pending→error / Data answer empty → **400**<br>실패(도메인 제약: 선택지 범위/중복 허용 규칙 등):<br> Auth pass / Page task init→ready / Form answer pristine→dirty→validating→error.client / Request answer pending→error / Data answer error → **422**<br>실패(미인증): Auth stop / Page task init→ready / Request answer pending→error / Data answer error → **401**<br>실패(없는 문항): Auth pass / Page task init→ready / Request answer pending→error / Data answer error → **404** | [✅] |
 | 4-4 | `GET /studies/tasks/{id}/status` | `/studies/tasks/{task_id}` | 내 시도/기록 | ***내 최신 STATUS(progress/score/attempts) 조회***<br>성공: Auth pass / Page task init→ready / Request status pending→success / Data status present(또는 empty=기록없음) → **200**<br>실패(미인증): Auth stop / Page task init→ready / Request status pending→error / Data status error → **401**<br>실패(없는 문항): Auth pass / Page task init→ready / Request status pending→error / Data status error → **404** | [✅] |
 | 4-5 | `GET /studies/tasks/{id}/explain` | `/studies/tasks/{task_id}/explain` | 해설 보기 | ***STUDY_EXPLAIN 문항별 해설/미디어***<br>성공: Auth pass 또는 stop / Page explain init→ready / Request explain pending→success / Data explain present → **200**<br>실패(없는 문항/해설 없음): Auth pass 또는 stop / Page explain init→ready / Request explain pending→error / Data explain error → **404**<br>실패(도메인 정책: 시도 전 열람 금지 설정 시): Auth pass 또는 stop / Page explain ready / Request explain pending→error / Data explain error → **403** | [✅] |
@@ -1040,9 +1041,12 @@ audience: server / database / backend / frontend / lead / LLM assistant
 - **검증 기준**  
   - **400** = 형식/누락/파싱 실패(예: `page=abc`, `program=` 빈값)
   - **422** = 도메인 제약 위반(예: `study_program_enum`에 없는 값, `per_page` 상한 초과, 보기 규칙 위반)
-- **로그**  
-  - 정답 제출(4-3): **STUDY_TASK_LOG**에 제출/채점 결과, 소요시간, 선택지 기록(민감 마스킹 정책 준수)
-  - 상태 조회(4-4): 조회 로그는 선택(필요 시 집계용 샘플링)
+- **로그**
+  - 문제 조회(4-2): **STUDY_TASK_LOG**에 study_task_action_log 컬럼 study_task_log_action_enum 바탕으로 `view` 업데이트
+  - 정답 제출(4-3)
+    1. **STUDY_TASK_STATUS**에 업데이트 : 시도횟수(`study_task_status_try`), 최고점(`study_task_status_best`), 완료여부(`study_task_status_completed`)
+    2. **STUDY_TASK_LOG**에 업데이트 : 학습행동(`study_task_action_log`), 시도횟수(`study_task_try_no_log`), 점수기록(`study_task_score_log`), 완료여부(`study_task_is_correct_log`), 풀이기록(`study_task_payload_log`), 
+  - 상태 조회(4-4): **STUDY_TASK_LOG**에 study_task_action_log 컬럼 study_task_log_action_enum 바탕으로 `status` 업데이트
 - **레이트리밋(선택)**  
   - 과도한 채점/새로고침 방지 → **429 + Retry-After**(우선순위 낮음, 추후)
 - **권한/공개 정책**  
@@ -1051,22 +1055,23 @@ audience: server / database / backend / frontend / lead / LLM assistant
 ---
 
 #### 5.4-1 : `GET /studies` (학습 문제 목록)
-- 성공(데이터 있음) → **200**  
+- **로그인 안해도 접근 가능**
+- **성공(데이터 있음) → 200**  
   - When: `/studies` 진입, `program/page/per_page/sort` 유효
   - Then: **200**, 목록 + 페이지 메타, `study_program_enum` 필터 반영
   - 상태축: Auth=pass 또는 stop / Page=`studies` init→ready / Request=`studies` pending→success / Data=`studies` present
-- 성공(데이터 없음) → **200**  
+- **성공(데이터 없음) → 200**  
   - 빈 배열 + 페이지 메타 / Data=`studies` empty
-- 실패(형식/누락) → **400**  
+- **실패(형식/누락) → 400**  
   - 예: `page`/`per_page` 숫자 아님, `program` 파라미터 형식 오류
-- 실패(도메인 제약) → **422**  
+- **실패(도메인 제약) → 422**  
   - 예: `program`이 enum에 없음, `per_page` 상한 초과, 허용되지 않은 `sort` 필드
 
 ---
 
 #### 5.4-2 : `GET /studies/tasks/{id}` (학습 문제 상세)
 - 성공 → **200**  
-  - Then: **200**, 문제 본문/보기/메타(난이도/분류)
+  - Then: **200**, 문제 본문/보기/메타(난이도/분류) → **STUDY_TASK_LOG** `view` 업데이트
   - 상태축: Auth=pass 또는 stop / Page=`task` init→ready / Request=`task` pending→success / Data=`task` present
 - 실패(없는 문항) → **404**  
   - 잘못된 `{id}`
@@ -1075,8 +1080,14 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 #### 5.4-3 : `POST /studies/tasks/{id}/answer` (정답 제출/채점)
 - 성공 → **200**  
-  - When: 인증 사용자, study_task_typing, study_task_choice, study_task_voice 답안을 제출
-  - Then: **200**, 채점 결과(`is_correct`, `score`, `correct_choice`, `explain_available` 등), **STUDY_TASK_STATUS** 업데이트, **STUDY_TASK_LOG** 적재
+  - When: 인증 사용자,
+    1. study_task_typing : 타이핑 시도 → **STUDY_TASK_LOG** `start` 업데이트 → 타이핑 완료 → **STUDY_TASK_LOG** `answer` 업데이트
+    2. study_task_choice : 선택지 클릭 → **STUDY_TASK_LOG** `answer` 업데이트
+    3. study_task_voice : 녹음 버튼 클릭 → **STUDY_TASK_LOG** `start` 업데이트 → 녹음 버튼 재클릭 → **STUDY_TASK_LOG** `answer` 업데이트
+  - Then: **200**, 
+    1. study_task_typing : 채점 → **STUDY_TASK_CHOICE** `study_task_choice_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트
+    2. study_task_choice : 채점 →  **STUDY_TASK_TYPING** `study_task_typing_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트
+    3. study_task_voice : 채점 →  **STUDY_TASK_VOICE** `study_task_voice_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트
   - 상태축: Auth=pass / Page=`task` init→ready / Form=`answer` pristine→dirty→validating→submitting→success / Request=`answer` pending→success / Data=`answer` present
 - 실패(형식/누락) → **400**  
   - 예: 바디 없음, 선택지 배열 스키마 불일치, 서술형 빈 문자열 금지 등
@@ -1095,7 +1106,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 #### 5.4-4 : `GET /studies/tasks/{id}/status` (내 시도/기록)
 - 성공 → **200**  
-  - Then: **200**, `{ last_attempt_at, attempts, best_score, last_score, progress }`
+  - Then: **200**, `{ study_task_status_try_count, study_task_status_is_solved, study_task_status_last_attempt_at }` → **STUDY_TASK_LOG** `status` 업데이트
   - 상태축: Auth=pass / Page=`task` init→ready / Request=`status` pending→success / Data=`status` present(또는 empty)
 - 실패(미인증) → **401**
   - 토큰 없음/만료
@@ -1105,7 +1116,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 #### 5.4-5 : `GET /studies/tasks/{id}/explain` (해설 보기)
 - 성공 → **200**  
-  - Then: **200**, 해설 텍스트/이미지/영상 링크(있다면)
+  - Then: **200**,`{ explain_title, explain_text, explain_media_url }` → **STUDY_TASK_LOG** `explain` 업데이트
   - 상태축: Auth=pass 또는 stop / Page=`explain` init→ready / Request=`explain` pending→success / Data=`explain` present
 - 실패(해설 없음/없는 문항) → **404**
   - 자료 미제공 또는 잘못된 `{id}`
@@ -1148,6 +1159,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 ---
 
 #### 5.5-1 : `GET /lessons` (수업 전체 목록)
+- **로그인 안해도 접근 가능**
 - 성공(데이터 있음) → **200**  
   - When: `/lessons` 진입, `page/per_page/sort` 유효  
   - Then: **200**, 목록 + 페이지 메타(`lesson_idx` 기준 정렬)
