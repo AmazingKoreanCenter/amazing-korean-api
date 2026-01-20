@@ -1,11 +1,11 @@
 use sqlx::{PgPool, QueryBuilder};
 
 use crate::error::AppResult;
-use crate::types::StudyTaskKind;
+use crate::types::{StudyProgram, StudyTaskKind};
 
 use super::dto::{
-    ChoicePayload, StudyListItem, StudyListReq, StudyTaskDetailRes, TaskExplainRes,
-    TaskPayload, TaskStatusRes, TypingPayload, VoicePayload,
+    ChoicePayload, StudyListSort, StudySummaryDto, StudyTaskDetailRes, TaskExplainRes, TaskPayload,
+    TaskStatusRes, TypingPayload, VoicePayload,
 };
 
 pub struct StudyRepo;
@@ -89,19 +89,22 @@ impl StudyRepo {
     // 1. List & Search (Dynamic Query)
     // =========================================================================
 
-    pub async fn find_list_dynamic(
+    pub async fn find_open_studies(
         pool: &PgPool,
-        req: &StudyListReq,
-    ) -> AppResult<(Vec<StudyListItem>, i64)> {
+        page: u32,
+        per_page: u32,
+        program: Option<StudyProgram>,
+        sort: StudyListSort,
+    ) -> AppResult<(Vec<StudySummaryDto>, i64)> {
         // ---------------------------------------------------------
         // A. Count Query
         // ---------------------------------------------------------
-        let mut qb_count = QueryBuilder::new("SELECT COUNT(*) FROM study WHERE study_state = 'open'");
+        let mut qb_count = QueryBuilder::new(
+            "SELECT COUNT(*) FROM study WHERE study_state = 'open'::study_state_enum",
+        );
 
-        if let Some(program) = &req.program {
-            qb_count.push(" AND study_program = ")
-                .push_bind(program)
-                .push("::study_program_enum");
+        if let Some(program) = program {
+            qb_count.push(" AND study_program = ").push_bind(program);
         }
 
         let count: i64 = qb_count
@@ -114,38 +117,36 @@ impl StudyRepo {
         // ---------------------------------------------------------
         let mut qb_list = QueryBuilder::new(
             r#"
-            SELECT 
-                study_id::INT, -- [FIX] Output Cast: i64 -> i32
-                study_idx::TEXT,
-                study_program,
+            SELECT
+                study_id::INT AS study_id,
+                study_idx::TEXT AS study_idx,
+                study_program AS program,
                 study_title::TEXT AS title,
                 study_subtitle::TEXT AS subtitle,
+                study_state AS state,
                 study_created_at AS created_at
             FROM study
-            WHERE study_state = 'open'
+            WHERE study_state = 'open'::study_state_enum
             "#,
         );
 
-        if let Some(program) = &req.program {
-            qb_list.push(" AND study_program = ")
-                .push_bind(program)
-                .push("::study_program_enum");
+        if let Some(program) = program {
+            qb_list.push(" AND study_program = ").push_bind(program);
         }
 
-        // Sorting
-        match req.sort.as_deref() {
-            Some("oldest") => qb_list.push(" ORDER BY study_created_at ASC"),
-            _ => qb_list.push(" ORDER BY study_created_at DESC"), // Default: Newest
+        match sort {
+            StudyListSort::Latest => qb_list.push(" ORDER BY study_created_at DESC"),
+            StudyListSort::Oldest => qb_list.push(" ORDER BY study_created_at ASC"),
+            StudyListSort::Alphabetical => qb_list
+                .push(" ORDER BY study_title ASC NULLS LAST, study_idx ASC"),
         };
 
-        // Pagination
-        // Note: Arguments are cast to i64 for DB limit/offset safety, but result struct uses i32 for IDs
-        let offset = (req.page - 1) * req.per_page;
-        qb_list.push(" LIMIT ").push_bind(req.per_page as i64);
-        qb_list.push(" OFFSET ").push_bind(offset as i64);
+        let offset = (i64::from(page) - 1) * i64::from(per_page);
+        qb_list.push(" LIMIT ").push_bind(i64::from(per_page));
+        qb_list.push(" OFFSET ").push_bind(offset);
 
         let list = qb_list
-            .build_query_as::<StudyListItem>()
+            .build_query_as::<StudySummaryDto>()
             .fetch_all(pool)
             .await?;
 
@@ -225,7 +226,8 @@ impl StudyRepo {
                 t.study_task_id::INT AS task_id,
                 te.explain_title::TEXT AS title,
                 COALESCE(
-                    stc.study_task_choice_correct::TEXT,
+                    -- [수정됨] stc.study_task_choice_correct -> stc.study_task_choice_answer
+                    stc.study_task_choice_answer::TEXT, 
                     stt.study_task_typing_answer,
                     stv.study_task_voice_answer,
                     ''
@@ -261,7 +263,8 @@ impl StudyRepo {
             r#"
             SELECT
                 COUNT(*)::INT as "attempts!",
-                MAX(study_task_score_log) as best_score,
+                -- [수정됨] 실제 컬럼이 없으므로 정답 여부를 기준으로 점수 환산 (또는 필요 없으면 제거)
+                MAX(CASE WHEN study_task_is_correct_log IS TRUE THEN 100 ELSE 0 END)::INT as best_score,
                 BOOL_OR(study_task_is_correct_log) as "is_solved!"
             FROM study_task_log
             WHERE study_task_id = $1 AND user_id = $2

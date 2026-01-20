@@ -94,18 +94,20 @@ pub enum LoginState {
     Revoked,
     Expired,
     LoggedOut,
+    Compromised,
 }
 
 /// 로그인 로그 이벤트 타입
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
-#[sqlx(type_name = "login_event_enum", rename_all = "lowercase")]
-#[serde(rename_all = "lowercase")]
+#[sqlx(type_name = "login_event_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum LoginEvent {
     Login,
     Logout,
     Refresh,
     Rotate,
     Fail,
+    ReuseDetected,
 }
 
 // -----------------------------------------------------------------------------
@@ -196,6 +198,7 @@ pub enum StudyTaskLogAction {
     Answer,
     Finish,
     Explain,
+    Status,
 }
 
 /// 강의(Lesson) 아이템 종류

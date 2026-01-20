@@ -1,12 +1,10 @@
-use validator::Validate;
-
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
-use crate::types::StudyTaskKind;
+use crate::types::{StudyProgram, StudyTaskKind};
 
 // [Strict Mode] Import DTOs and Repo directly from the verified files
 use super::dto::{
-    StudyListMeta, StudyListReq, StudyListRes, StudyTaskDetailRes, SubmitAnswerReq,
+    StudyListMeta, StudyListReq, StudyListResp, StudyListSort, StudyTaskDetailRes, SubmitAnswerReq,
     SubmitAnswerRes, TaskExplainRes, TaskStatusRes,
 };
 use super::repo::StudyRepo;
@@ -19,33 +17,71 @@ impl StudyService {
     // =========================================================================
 
     /// 학습 목록 조회
-    pub async fn list_studies(st: &AppState, req: StudyListReq) -> AppResult<StudyListRes> {
-        // 1. Validation
-        if let Err(e) = req.validate() {
-            return Err(AppError::Unprocessable(e.to_string()));
+    pub async fn list_studies(st: &AppState, req: StudyListReq) -> AppResult<StudyListResp> {
+        let page = req.page.unwrap_or(1);
+        let per_page = req.per_page.unwrap_or(10);
+
+        if page == 0 {
+            return Err(AppError::BadRequest("page must be >= 1".into()));
         }
 
-        // 2. Repo Call (Data + Total Count)
-        // Repo returns (Vec<StudyListItem>, i64)
-        let (data, total_count) = StudyRepo::find_list_dynamic(&st.db, &req).await?;
+        if per_page == 0 {
+            return Err(AppError::BadRequest("per_page must be >= 1".into()));
+        }
 
-        // 3. Calc Meta
-        // [Strict Mode] Use i64 for calculation to prevent overflow, then cast to i32 for DTO
-        let per_page = req.per_page as i64;
-        let total_pages = if total_count == 0 {
-            0
-        } else {
-            (total_count + per_page - 1) / per_page
+        if per_page > 100 {
+            return Err(AppError::Unprocessable("per_page must be <= 100".into()));
+        }
+
+        let program = match req.program.as_deref() {
+            None => None,
+            Some(raw) => {
+                let trimmed = raw.trim();
+                if trimmed.is_empty() {
+                    return Err(AppError::BadRequest("program must not be empty".into()));
+                }
+
+                let parsed = parse_study_program(trimmed)
+                    .ok_or_else(|| AppError::Unprocessable(invalid_program_message()))?;
+                Some(parsed)
+            }
         };
 
-        Ok(StudyListRes {
+        let sort = match req.sort.as_deref() {
+            None => StudyListSort::Latest,
+            Some(raw) => {
+                let trimmed = raw.trim();
+                if trimmed.is_empty() {
+                    return Err(AppError::BadRequest("sort must not be empty".into()));
+                }
+
+                StudyListSort::parse(trimmed)
+                    .ok_or_else(|| AppError::Unprocessable(invalid_sort_message()))?
+            }
+        };
+
+        let (list, total_count) =
+            StudyRepo::find_open_studies(&st.db, page, per_page, program, sort).await?;
+
+        let per_page_i64 = i64::from(per_page);
+        let total_pages_i64 = if total_count == 0 {
+            0
+        } else {
+            (total_count + per_page_i64 - 1) / per_page_i64
+        };
+
+        if total_pages_i64 > u32::MAX as i64 {
+            return Err(AppError::Internal("total_pages overflow".into()));
+        }
+
+        Ok(StudyListResp {
+            list,
             meta: StudyListMeta {
-                total_count: total_count as i32, // [Strict Mode] Explicit Cast i64 -> i32
-                total_pages: total_pages as i32, // [Strict Mode] Explicit Cast i64 -> i32
-                current_page: req.page,
-                per_page: req.per_page,
+                page,
+                per_page,
+                total_count,
+                total_pages: total_pages_i64 as u32,
             },
-            data,
         })
     }
 
@@ -155,4 +191,25 @@ impl StudyService {
         let explanation = StudyRepo::find_explanation(&st.db, task_id).await?;
         explanation.ok_or(AppError::NotFound)
     }
+}
+
+fn parse_study_program(value: &str) -> Option<StudyProgram> {
+    match value {
+        "basic_pronunciation" => Some(StudyProgram::BasicPronunciation),
+        "basic_word" => Some(StudyProgram::BasicWord),
+        "basic_900" => Some(StudyProgram::Basic900),
+        "topik_read" => Some(StudyProgram::TopikRead),
+        "topik_listen" => Some(StudyProgram::TopikListen),
+        "topik_write" => Some(StudyProgram::TopikWrite),
+        "tbc" => Some(StudyProgram::Tbc),
+        _ => None,
+    }
+}
+
+fn invalid_program_message() -> String {
+    "program must be one of: basic_pronunciation, basic_word, basic_900, topik_read, topik_listen, topik_write, tbc".into()
+}
+
+fn invalid_sort_message() -> String {
+    "sort must be one of: latest, oldest, alphabetical".into()
 }
