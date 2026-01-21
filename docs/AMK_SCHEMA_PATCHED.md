@@ -499,7 +499,7 @@ CREATE TABLE "pay" (
 CREATE TABLE "course" (
   "course_id" int PRIMARY KEY,
   "course_type" enum(video,study,live,package),
-  "course_state" eunm(active,inactive,deleted) DEFAULT 'active',
+  "course_state" enum(active,inactive,deleted) DEFAULT 'active',
   "course_title" varchar(255),
   "course_subtitle" text,
   "course_price" int,
