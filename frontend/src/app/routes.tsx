@@ -12,6 +12,10 @@ import { SettingsPage } from "@/category/user/page/settings_page";
 import { VideoListPage } from "@/category/video/page/video_list_page";
 import { VideoDetailPage } from "@/category/video/page/video_detail_page";
 import { StudyListPage } from "@/category/study/page/study_list_page";
+import { StudyDetailPage } from "@/category/study/page/study_detail_page";
+import { StudyTaskPage } from "@/category/study/page/study_task_page";
+import { LessonListPage } from "@/category/lesson/page/lesson_list_page";
+import { LessonDetailPage } from "@/category/lesson/page/lesson_detail_page";
 import PrivateRoute from "@/routes/private_route";
 
 export function AppRoutes() {
@@ -27,6 +31,10 @@ export function AppRoutes() {
       <Route path="/videos" element={<VideoListPage />} />
       <Route path="/videos/:videoId" element={<VideoDetailPage />} />
       <Route path="/studies" element={<StudyListPage />} />
+      <Route path="/studies/:studyId" element={<StudyDetailPage />} />
+      <Route path="/studies/tasks/:taskId" element={<StudyTaskPage />} />
+      <Route path="/lessons" element={<LessonListPage />} />
+      <Route path="/lessons/:lessonId" element={<LessonDetailPage />} />
 
       {/* 🔒 로그인한 사람만 접근 가능 (Private) */}
       <Route element={<PrivateRoute />}>

@@ -37,6 +37,9 @@ export default function HomePage() {
               <Button variant="secondary" asChild>
                 <Link to="/studies">학습하기</Link>
               </Button>
+              <Button variant="default" asChild>
+                <Link to="/lessons">수업하기</Link>
+              </Button>
               <Button variant="outline" onClick={() => go("/user/me")}>
                 👤 마이 페이지
               </Button>

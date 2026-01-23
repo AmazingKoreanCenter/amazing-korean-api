@@ -7,8 +7,8 @@ use crate::types::{StudyProgram, StudyTaskKind, StudyTaskLogAction};
 
 // [Strict Mode] Import DTOs and Repo directly from the verified files
 use super::dto::{
-    StudyListMeta, StudyListReq, StudyListResp, StudyListSort, StudyTaskDetailRes, SubmitAnswerReq,
-    SubmitAnswerRes, TaskExplainRes, TaskStatusRes,
+    StudyDetailReq, StudyDetailRes, StudyListMeta, StudyListReq, StudyListResp, StudyListSort,
+    StudyTaskDetailRes, SubmitAnswerReq, SubmitAnswerRes, TaskExplainRes, TaskStatusRes,
 };
 use super::repo::StudyRepo;
 
@@ -79,6 +79,68 @@ impl StudyService {
 
         Ok(StudyListResp {
             list,
+            meta: StudyListMeta {
+                page,
+                per_page,
+                total_count,
+                total_pages: total_pages_i64 as u32,
+            },
+        })
+    }
+
+    // =========================================================================
+    // 1-2. Study Detail (Study + Task List)
+    // =========================================================================
+
+    /// Study 상세 조회 (Study 정보 + Task 목록)
+    pub async fn get_study_detail(
+        st: &AppState,
+        study_id: i32,
+        req: StudyDetailReq,
+    ) -> AppResult<StudyDetailRes> {
+        let page = req.page.unwrap_or(1);
+        let per_page = req.per_page.unwrap_or(10);
+
+        if page == 0 {
+            return Err(AppError::BadRequest("page must be >= 1".into()));
+        }
+
+        if per_page == 0 {
+            return Err(AppError::BadRequest("per_page must be >= 1".into()));
+        }
+
+        if per_page > 100 {
+            return Err(AppError::Unprocessable("per_page must be <= 100".into()));
+        }
+
+        // Get Study
+        let study = StudyRepo::get_study_by_id(&st.db, study_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        // Get Tasks
+        let (tasks, total_count) =
+            StudyRepo::get_tasks_by_study_id(&st.db, study_id, page, per_page).await?;
+
+        let per_page_i64 = i64::from(per_page);
+        let total_pages_i64 = if total_count == 0 {
+            0
+        } else {
+            (total_count + per_page_i64 - 1) / per_page_i64
+        };
+
+        if total_pages_i64 > u32::MAX as i64 {
+            return Err(AppError::Internal("total_pages overflow".into()));
+        }
+
+        Ok(StudyDetailRes {
+            study_id: study.study_id,
+            study_idx: study.study_idx,
+            program: study.program,
+            title: study.title,
+            subtitle: study.subtitle,
+            state: study.state,
+            tasks,
             meta: StudyListMeta {
                 page,
                 per_page,

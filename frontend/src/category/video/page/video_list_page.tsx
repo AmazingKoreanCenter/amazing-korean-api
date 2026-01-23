@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import {
   Pagination,
@@ -89,6 +90,12 @@ export function VideoListPage() {
       <div className="mx-auto w-full max-w-screen-xl px-4 py-10">
         <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
+            <Link
+              to="/"
+              className="text-sm text-muted-foreground hover:text-foreground transition mb-2 inline-block"
+            >
+              &larr; 홈으로
+            </Link>
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
               영상 학습
             </h1>

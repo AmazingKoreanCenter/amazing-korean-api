@@ -83,6 +83,39 @@ pub struct StudyListResp {
     pub meta: StudyListMeta,
 }
 
+// --- 1-2. Study Detail Response ---
+
+/// Study 상세 조회 요청 (Query String)
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct StudyDetailReq {
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+}
+
+/// Study 내 Task 요약 정보
+#[derive(Debug, Serialize, FromRow, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct StudyTaskSummaryDto {
+    pub task_id: i32,
+    pub kind: StudyTaskKind,
+    pub seq: i32,
+}
+
+/// Study 상세 응답 (Study 정보 + Task 목록)
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct StudyDetailRes {
+    pub study_id: i32,
+    pub study_idx: String,
+    pub program: StudyProgram,
+    pub title: Option<String>,
+    pub subtitle: Option<String>,
+    pub state: StudyState,
+    pub tasks: Vec<StudyTaskSummaryDto>,
+    pub meta: StudyListMeta,
+}
+
 // --- 2. Detail & Task Response ---
 
 /// 학습 문제 상세 정보 (Payload 포함)

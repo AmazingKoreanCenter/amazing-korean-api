@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import {
   Pagination,
@@ -13,17 +13,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { StudyListReq, StudyProgram } from "@/category/study/types";
-import { studyProgramSchema } from "@/category/study/types";
+import type { StudyDetailReq, StudyProgram, StudyTaskKind } from "@/category/study/types";
 
-import { useStudyList } from "../hook/use_study_list";
+import { useStudyDetail } from "../hook/use_study_detail";
 
 const PER_PAGE = 10;
 const ELLIPSIS = "ellipsis" as const;
@@ -40,16 +32,11 @@ const PROGRAM_LABELS: Record<StudyProgram, string> = {
   tbc: "TBC",
 };
 
-const PROGRAM_OPTIONS: Array<{ value: StudyProgram | "all"; label: string }> = [
-  { value: "all", label: "전체 프로그램" },
-  { value: "basic_pronunciation", label: PROGRAM_LABELS.basic_pronunciation },
-  { value: "basic_word", label: PROGRAM_LABELS.basic_word },
-  { value: "basic_900", label: PROGRAM_LABELS.basic_900 },
-  { value: "topik_read", label: PROGRAM_LABELS.topik_read },
-  { value: "topik_listen", label: PROGRAM_LABELS.topik_listen },
-  { value: "topik_write", label: PROGRAM_LABELS.topik_write },
-  { value: "tbc", label: PROGRAM_LABELS.tbc },
-];
+const KIND_LABELS: Record<StudyTaskKind, string> = {
+  choice: "객관식",
+  typing: "입력형",
+  voice: "음성형",
+};
 
 const getPageItems = (currentPage: number, totalPages: number): PageItem[] => {
   if (totalPages <= 7) {
@@ -76,35 +63,22 @@ const getPageItems = (currentPage: number, totalPages: number): PageItem[] => {
   return items;
 };
 
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+export function StudyDetailPage() {
+  const { studyId: studyIdParam } = useParams<{ studyId: string }>();
+  const studyId = studyIdParam ? Number(studyIdParam) : undefined;
 
-  return date.toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-};
-
-export function StudyListPage() {
   const [page, setPage] = useState(1);
-  const [program, setProgram] = useState<StudyProgram | "all">("all");
-  const sort = undefined;
 
-  const params = useMemo<StudyListReq>(() => {
-    const programParam = program === "all" ? undefined : program;
+  const params = useMemo<StudyDetailReq>(() => {
     return {
       page,
       per_page: PER_PAGE,
-      program: programParam,
-      sort,
     };
-  }, [page, program, sort]);
+  }, [page]);
 
-  const { data, isPending, isFetching } = useStudyList(params);
+  const { data, isPending, isFetching } = useStudyDetail(studyId, params);
 
-  const items = data?.list ?? [];
+  const tasks = data?.tasks ?? [];
   const meta = data?.meta;
 
   const currentPage = meta?.page ?? page;
@@ -126,60 +100,50 @@ export function StudyListPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleProgramChange = (value: string) => {
-    if (value === "all") {
-      setProgram("all");
-      setPage(1);
-      return;
-    }
-
-    const parsed = studyProgramSchema.safeParse(value);
-    if (parsed.success) {
-      setProgram(parsed.data);
-      setPage(1);
-    }
-  };
+  if (!studyId || !Number.isFinite(studyId)) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <p className="text-muted-foreground">잘못된 Study ID입니다.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="mx-auto w-full max-w-screen-xl px-4 py-10">
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <Link
-              to="/"
-              className="text-sm text-muted-foreground hover:text-foreground transition mb-2 inline-block"
-            >
-              &larr; 홈으로
-            </Link>
+        {/* Header */}
+        {isPending ? (
+          <div className="mb-8 space-y-3">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-5 w-1/2" />
+          </div>
+        ) : data ? (
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              <Link
+                to="/studies"
+                className="text-sm text-muted-foreground hover:text-foreground transition"
+              >
+                &larr; 목록으로
+              </Link>
+              <Badge variant="secondary">{PROGRAM_LABELS[data.program]}</Badge>
+            </div>
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-              학습 문제 목록
+              {data.title ?? "제목 없음"}
             </h1>
-            <p className="text-sm text-muted-foreground">
-              학습 프로그램별 문제를 확인하고 도전해보세요.
+            {data.subtitle && (
+              <p className="text-sm text-muted-foreground mt-1">{data.subtitle}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-2">
+              Study ID: {data.study_idx}
             </p>
           </div>
-          <div className="w-full md:w-72">
-            <div className="mb-2 text-xs font-medium text-muted-foreground">
-              Program
-            </div>
-            <Select value={program} onValueChange={handleProgramChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="전체 프로그램" />
-              </SelectTrigger>
-              <SelectContent>
-                {PROGRAM_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        ) : null}
 
+        {/* Meta Info */}
         {meta && (
           <div className="mb-6 text-xs text-muted-foreground">
-            총 {(meta.total_count ?? 0).toLocaleString()}개 · {currentPage}/
+            총 {(meta.total_count ?? 0).toLocaleString()}개 문제 · {currentPage}/
             {totalPages} 페이지
             {isFetching && (
               <span className="ml-2 inline-flex items-center gap-1">
@@ -190,48 +154,47 @@ export function StudyListPage() {
           </div>
         )}
 
+        {/* Task List */}
         {isPending ? (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: PER_PAGE }, (_, index) => (
               <div key={`skeleton-${index}`} className="space-y-3">
-                <Skeleton className="h-28 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-24 w-full" />
               </div>
             ))}
           </div>
-        ) : items.length === 0 ? (
+        ) : tasks.length === 0 ? (
           <div className="rounded-lg border border-dashed bg-background p-12 text-center text-sm text-muted-foreground">
             등록된 문제가 없습니다.
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((study) => (
-                <Link key={study.study_id} to={`/studies/${study.study_id}`}>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {tasks.map((task) => (
+                <Link key={task.task_id} to={`/studies/tasks/${task.task_id}`}>
                   <Card className="h-full transition hover:-translate-y-1 hover:shadow-lg">
-                    <CardHeader className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <Badge variant="secondary">
-                          {PROGRAM_LABELS[study.program]}
-                        </Badge>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline">{KIND_LABELS[task.kind]}</Badge>
                         <span className="text-xs text-muted-foreground">
-                          {formatDate(study.created_at)}
+                          #{task.seq}
                         </span>
                       </div>
-                      <CardTitle className="text-lg">
-                        {study.title ?? "제목 없음"}
-                      </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2 text-sm text-muted-foreground">
-                      {study.subtitle && <p>{study.subtitle}</p>}
-                      <p className="text-xs">ID · {study.study_idx}</p>
+                    <CardContent>
+                      <CardTitle className="text-base">
+                        문제 {task.seq}
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Task ID: {task.task_id}
+                      </p>
                     </CardContent>
                   </Card>
                 </Link>
               ))}
             </div>
+
+            {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-10 flex justify-center">
                 <Pagination>

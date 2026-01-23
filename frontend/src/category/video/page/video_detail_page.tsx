@@ -175,7 +175,13 @@ export function VideoDetailPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="mx-auto w-full max-w-screen-lg space-y-8 px-4 py-10">
-        
+        <Link
+          to="/videos"
+          className="text-sm text-muted-foreground hover:text-foreground transition inline-block"
+        >
+          &larr; 목록으로
+        </Link>
+
         {/* ✅ 실제 DB 데이터 연결 (더 이상 하드코딩 아님) */}
         <VideoPlayer
           url={data.video_url_vimeo}

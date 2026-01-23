@@ -29,21 +29,19 @@ export const studyListReqSchema = z.object({
 
 export type StudyListReq = z.infer<typeof studyListReqSchema>;
 
-export const submitAnswerReqSchema = z.union([
+// Backend uses #[serde(tag = "kind")] - discriminated union
+export const submitAnswerReqSchema = z.discriminatedUnion("kind", [
   z.object({
-    choice: z.object({
-      pick: z.number().int(),
-    }),
+    kind: z.literal("choice"),
+    pick: z.number().int(),
   }),
   z.object({
-    typing: z.object({
-      text: z.string(),
-    }),
+    kind: z.literal("typing"),
+    text: z.string(),
   }),
   z.object({
-    voice: z.object({
-      audio_url: z.string(),
-    }),
+    kind: z.literal("voice"),
+    text: z.string(),
   }),
 ]);
 
@@ -56,18 +54,19 @@ export type SubmitAnswerReq = z.infer<typeof submitAnswerReqSchema>;
 export const studyListItemSchema = z.object({
   study_id: z.number().int(),
   study_idx: z.string(),
-  study_program: studyProgramSchema,
-  title: z.string().optional(), // Rust: Option<String>
-  subtitle: z.string().optional(),
-  created_at: z.string().datetime(), // Rust: DateTime<Utc>
+  program: studyProgramSchema, // Backend: "program"
+  title: z.string().optional().nullable(),
+  subtitle: z.string().optional().nullable(),
+  state: z.string(), // Backend includes state field
+  created_at: z.string().datetime(),
 });
 
 export type StudyListItem = z.infer<typeof studyListItemSchema>;
 
 export const studyListMetaSchema = z.object({
-  total_count: z.number().int(), // Fixed: total -> total_count
+  total_count: z.number().int(),
   total_pages: z.number().int(),
-  current_page: z.number().int(), // Fixed: page -> current_page
+  page: z.number().int(), // Backend: "page" not "current_page"
   per_page: z.number().int(),
 });
 
@@ -75,30 +74,65 @@ export type StudyListMeta = z.infer<typeof studyListMetaSchema>;
 
 export const studyListResSchema = z.object({
   meta: studyListMetaSchema,
-  data: z.array(studyListItemSchema),
+  list: z.array(studyListItemSchema), // Backend: "list" not "data"
 });
 
 export type StudyListRes = z.infer<typeof studyListResSchema>;
 
+// 1-2. Study Detail Response (GET /studies/{id})
+
+export const studyDetailReqSchema = z.object({
+  page: z.number().int().min(1).optional(),
+  per_page: z.number().int().min(1).max(100).optional(),
+});
+
+export type StudyDetailReq = z.infer<typeof studyDetailReqSchema>;
+
+export const studyTaskSummarySchema = z.object({
+  task_id: z.number().int(),
+  kind: studyTaskKindSchema,
+  seq: z.number().int(),
+});
+
+export type StudyTaskSummary = z.infer<typeof studyTaskSummarySchema>;
+
+export const studyDetailResSchema = z.object({
+  study_id: z.number().int(),
+  study_idx: z.string(),
+  program: studyProgramSchema,
+  title: z.string().optional().nullable(),
+  subtitle: z.string().optional().nullable(),
+  state: z.string(),
+  tasks: z.array(studyTaskSummarySchema),
+  meta: studyListMetaSchema,
+});
+
+export type StudyDetailRes = z.infer<typeof studyDetailResSchema>;
+
 // 2. Task Detail Response
 
 export const choicePayloadSchema = z.object({
+  question: z.string(),
   choice_1: z.string(),
   choice_2: z.string(),
   choice_3: z.string(),
   choice_4: z.string(),
-  image_url: z.string().optional().nullable(), // Rust: Option<String>
+  audio_url: z.string().optional().nullable(),
+  image_url: z.string().optional().nullable(),
 });
 
 export type ChoicePayload = z.infer<typeof choicePayloadSchema>;
 
 export const typingPayloadSchema = z.object({
+  question: z.string(),
   image_url: z.string().optional().nullable(),
 });
 
 export type TypingPayload = z.infer<typeof typingPayloadSchema>;
 
 export const voicePayloadSchema = z.object({
+  question: z.string(),
+  audio_url: z.string().optional().nullable(),
   image_url: z.string().optional().nullable(),
 });
 
@@ -118,8 +152,7 @@ export const studyTaskDetailResSchema = z.object({
   study_id: z.number().int(),
   kind: studyTaskKindSchema,
   seq: z.number().int(),
-  question: z.string().optional().nullable(),
-  media_url: z.string().optional().nullable(),
+  created_at: z.string().datetime(),
   payload: taskPayloadSchema,
 });
 
@@ -128,29 +161,25 @@ export type StudyTaskDetailRes = z.infer<typeof studyTaskDetailResSchema>;
 // 3. Action Responses (Answer, Status, Explain)
 
 export const submitAnswerResSchema = z.object({
-  task_id: z.number().int(),
   is_correct: z.boolean(),
-  score: z.number().int(),
   correct_answer: z.string().optional().nullable(),
+  explanation: z.string().optional().nullable(),
 });
 
 export type SubmitAnswerRes = z.infer<typeof submitAnswerResSchema>;
 
 export const taskStatusResSchema = z.object({
-  task_id: z.number().int(),
-  attempts: z.number().int(),
+  try_count: z.number().int(),
   is_solved: z.boolean(),
-  last_score: z.number().int().optional().nullable(), // Rust: Option<i32>
+  last_attempt_at: z.string().datetime().optional().nullable(),
 });
 
 export type TaskStatusRes = z.infer<typeof taskStatusResSchema>;
 
 export const taskExplainResSchema = z.object({
-  task_id: z.number().int(),
-  correct_answer: z.string(),
-  explanation_text: z.string().optional().nullable(),
-  explanation_media_url: z.string().optional().nullable(),
-  related_video_url: z.string().optional().nullable(),
+  title: z.string().optional().nullable(),
+  explanation: z.string().optional().nullable(),
+  resources: z.array(z.string()),
 });
 
 export type TaskExplainRes = z.infer<typeof taskExplainResSchema>;

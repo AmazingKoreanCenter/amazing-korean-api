@@ -6,8 +6,8 @@ use crate::error::AppResult;
 use crate::state::AppState;
 
 use super::dto::{
-    StudyListReq, StudyListResp, StudyTaskDetailRes, SubmitAnswerReq, SubmitAnswerRes,
-    TaskExplainRes, TaskStatusRes,
+    StudyDetailReq, StudyDetailRes, StudyListReq, StudyListResp, StudyTaskDetailRes,
+    SubmitAnswerReq, SubmitAnswerRes, TaskExplainRes, TaskStatusRes,
 };
 use super::service::StudyService;
 
@@ -37,6 +37,32 @@ pub async fn list_studies(
     Query(req): Query<StudyListReq>,
 ) -> AppResult<Json<StudyListResp>> {
     let res = StudyService::list_studies(&state, req).await?;
+    Ok(Json(res))
+}
+
+/// Study 상세 조회 (Study 정보 + Task 목록)
+#[utoipa::path(
+    get,
+    path = "/studies/{id}",
+    params(
+        ("id" = i32, Path, description = "Study ID"),
+        ("page" = Option<u32>, Query, description = "Page number (default 1)"),
+        ("per_page" = Option<u32>, Query, description = "Items per page (default 10, max 100)")
+    ),
+    responses(
+        (status = 200, description = "Study detail with task list", body = StudyDetailRes),
+        (status = 400, description = "Bad Request", body = crate::error::ErrorBody),
+        (status = 404, description = "Study Not Found", body = crate::error::ErrorBody),
+        (status = 422, description = "Validation Error", body = crate::error::ErrorBody)
+    ),
+    tag = "study"
+)]
+pub async fn get_study_detail(
+    State(state): State<AppState>,
+    Path(study_id): Path<i32>,
+    Query(req): Query<StudyDetailReq>,
+) -> AppResult<Json<StudyDetailRes>> {
+    let res = StudyService::get_study_detail(&state, study_id, req).await?;
     Ok(Json(res))
 }
 
