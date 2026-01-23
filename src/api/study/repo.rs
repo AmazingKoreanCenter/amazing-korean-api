@@ -6,8 +6,8 @@ use crate::error::{AppError, AppResult};
 use crate::types::{StudyProgram, StudyTaskKind, StudyTaskLogAction};
 
 use super::dto::{
-    ChoicePayload, StudyListSort, StudySummaryDto, StudyTaskDetailRes, TaskPayload, TaskStatusRes,
-    TypingPayload, VoicePayload,
+    ChoicePayload, StudyListSort, StudySummaryDto, StudyTaskDetailRes, StudyTaskSummaryDto,
+    TaskPayload, TaskStatusRes, TypingPayload, VoicePayload,
 };
 
 pub struct StudyRepo;
@@ -160,6 +160,72 @@ impl StudyRepo {
             .await?;
 
         Ok((list, count))
+    }
+
+    // =========================================================================
+    // 1-2. Study Detail (Study + Task List)
+    // =========================================================================
+
+    pub async fn get_study_by_id(
+        pool: &PgPool,
+        study_id: i32,
+    ) -> AppResult<Option<StudySummaryDto>> {
+        let row = sqlx::query_as::<_, StudySummaryDto>(
+            r#"
+            SELECT
+                study_id::INT AS study_id,
+                study_idx::TEXT AS study_idx,
+                study_program AS program,
+                study_title::TEXT AS title,
+                study_subtitle::TEXT AS subtitle,
+                study_state AS state,
+                study_created_at AS created_at
+            FROM study
+            WHERE study_id = $1 AND study_state = 'open'::study_state_enum
+            "#,
+        )
+        .bind(study_id)
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(row)
+    }
+
+    pub async fn get_tasks_by_study_id(
+        pool: &PgPool,
+        study_id: i32,
+        page: u32,
+        per_page: u32,
+    ) -> AppResult<(Vec<StudyTaskSummaryDto>, i64)> {
+        // Count
+        let count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM study_task WHERE study_id = $1",
+        )
+        .bind(study_id)
+        .fetch_one(pool)
+        .await?;
+
+        // List
+        let offset = (i64::from(page) - 1) * i64::from(per_page);
+        let tasks = sqlx::query_as::<_, StudyTaskSummaryDto>(
+            r#"
+            SELECT
+                study_task_id::INT AS task_id,
+                study_task_kind AS kind,
+                study_task_seq::INT AS seq
+            FROM study_task
+            WHERE study_id = $1
+            ORDER BY study_task_seq ASC
+            LIMIT $2 OFFSET $3
+            "#,
+        )
+        .bind(study_id)
+        .bind(i64::from(per_page))
+        .bind(offset)
+        .fetch_all(pool)
+        .await?;
+
+        Ok((tasks, count))
     }
 
     // =========================================================================

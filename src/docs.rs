@@ -62,6 +62,7 @@ impl Modify for SecurityAddon {
 
         // study (user)
         crate::api::study::handler::list_studies,
+        crate::api::study::handler::get_study_detail,
         crate::api::study::handler::get_study_task,
         crate::api::study::handler::submit_answer,
         crate::api::study::handler::get_task_status,
@@ -180,6 +181,9 @@ impl Modify for SecurityAddon {
             crate::api::study::dto::StudyListResp,
             crate::api::study::dto::StudyListMeta,
             crate::api::study::dto::StudySummaryDto,
+            crate::api::study::dto::StudyDetailReq,
+            crate::api::study::dto::StudyDetailRes,
+            crate::api::study::dto::StudyTaskSummaryDto,
             crate::api::study::dto::StudyTaskDetailRes,
             crate::api::study::dto::TaskPayload,
             crate::api::study::dto::SubmitAnswerReq,
