@@ -17,6 +17,7 @@ import type {
 } from "@/category/study/types";
 
 import { useStudyTask } from "../hook/use_study_task";
+import { useStudyDetail } from "../hook/use_study_detail";
 import { useSubmitAnswer } from "../hook/use_submit_answer";
 import { useTaskStatus } from "../hook/use_task_status";
 import { useTaskExplain } from "../hook/use_task_explain";
@@ -239,11 +240,25 @@ export function StudyTaskPage() {
   const submitMutation = useSubmitAnswer(id);
   const { data: statusData } = useTaskStatus(isValidId ? id : undefined);
 
+  // Study 정보 가져오기 (다음 문제 파악용)
+  const studyId = data?.study_id;
+  const { data: studyData } = useStudyDetail(studyId, { per_page: 100 });
+
   // Form state
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [typingText, setTypingText] = useState("");
   const [voiceText, setVoiceText] = useState("");
   const [showExplain, setShowExplain] = useState(false);
+  const [showCompletion, setShowCompletion] = useState(false);
+
+  // 다음 문제 찾기
+  const tasks = studyData?.tasks ?? [];
+  const sortedTasks = [...tasks].sort((a, b) => a.seq - b.seq);
+  const currentIndex = sortedTasks.findIndex((t) => t.task_id === id);
+  const nextTask = currentIndex >= 0 && currentIndex < sortedTasks.length - 1
+    ? sortedTasks[currentIndex + 1]
+    : null;
+  const isLastTask = currentIndex >= 0 && currentIndex === sortedTasks.length - 1 && sortedTasks.length > 0;
 
   // 해설은 1회 이상 시도 후에만 조회 가능
   const canViewExplain = (statusData?.try_count ?? 0) > 0 || submitMutation.isSuccess;
@@ -264,6 +279,7 @@ export function StudyTaskPage() {
     setTypingText("");
     setVoiceText("");
     setShowExplain(false);
+    setShowCompletion(false);
     submitMutation.reset();
   }, [id]);
 
@@ -438,34 +454,70 @@ export function StudyTaskPage() {
           </div>
         )}
 
-        <div className="flex justify-between">
-          <Button variant="outline" asChild>
-            <Link to="/studies">목록으로</Link>
-          </Button>
-          {!isLoggedIn ? (
-            <Button asChild>
-              <Link to="/login">로그인하고 제출하기</Link>
+        {/* 마지막 문제 완료 메시지 */}
+        {showCompletion && studyData && (
+          <Card className="border-green-500 bg-green-50">
+            <CardContent className="p-6 text-center space-y-4">
+              <div className="text-4xl">🎉</div>
+              <h2 className="text-xl font-bold text-green-700">
+                "{studyData.title ?? "학습"}"을(를) 완료했습니다!
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                모든 문제를 풀어주셔서 감사합니다.
+              </p>
+              <Button asChild>
+                <Link to="/studies">학습 목록으로 돌아가기</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {!showCompletion && (
+          <div className="flex justify-between gap-2">
+            <Button variant="outline" asChild>
+              <Link to={studyId ? `/studies/${studyId}` : "/studies"}>목록으로</Link>
             </Button>
-          ) : submitMutation.isSuccess ? (
-            <Button
-              onClick={() => {
-                setSelectedChoice(null);
-                setTypingText("");
-                setVoiceText("");
-                submitMutation.reset();
-              }}
-            >
-              다시 풀기
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={!canSubmit()}
-            >
-              {submitMutation.isPending ? "제출 중..." : "제출하기"}
-            </Button>
-          )}
-        </div>
+            <div className="flex gap-2">
+              {!isLoggedIn ? (
+                <Button asChild>
+                  <Link to="/login">로그인하고 제출하기</Link>
+                </Button>
+              ) : submitMutation.isSuccess ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedChoice(null);
+                      setTypingText("");
+                      setVoiceText("");
+                      submitMutation.reset();
+                    }}
+                  >
+                    다시 풀기
+                  </Button>
+                  {isLastTask ? (
+                    <Button onClick={() => setShowCompletion(true)}>
+                      학습 완료하기
+                    </Button>
+                  ) : nextTask ? (
+                    <Button asChild>
+                      <Link to={`/studies/tasks/${nextTask.task_id}`}>
+                        다음 문제 풀기
+                      </Link>
+                    </Button>
+                  ) : null}
+                </>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!canSubmit()}
+                >
+                  {submitMutation.isPending ? "제출 중..." : "제출하기"}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

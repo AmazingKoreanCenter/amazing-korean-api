@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -41,6 +41,7 @@ export function VideoDetailPage() {
   const navigate = useNavigate();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isVideoEnded, setIsVideoEnded] = useState(false);
 
   const id = useMemo(() => Number(videoId), [videoId]);
   const isValidId = Number.isFinite(id);
@@ -95,6 +96,7 @@ export function VideoDetailPage() {
     }
 
     sendProgressUpdate(100);
+    setIsVideoEnded(true);
   }, [sendProgressUpdate]);
 
   // 유효하지 않은 ID 접근 시 리다이렉트
@@ -217,6 +219,21 @@ export function VideoDetailPage() {
             </div>
           )}
         </div>
+
+        {/* 시청 완료 메시지 */}
+        {isVideoEnded && (
+          <Card className="border-green-500 bg-green-50">
+            <CardContent className="p-6 text-center space-y-4">
+              <div className="text-4xl">🎉</div>
+              <h2 className="text-xl font-bold text-green-700">
+                영상 시청을 완료했습니다!
+              </h2>
+              <Button asChild>
+                <Link to="/videos">목록으로 돌아가기</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
