@@ -2,9 +2,9 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { LoginRes } from "@/category/auth/types";
-import type { SignupRes } from "@/category/user/types";
+import type { SignupRes } from "@/category/auth/types";
 
-type StoredUser = Omit<SignupRes, "access" | "session_id"> | Pick<LoginRes, "user_id">;
+type StoredUser = Omit<SignupRes, "access"> | Pick<LoginRes, "user_id">;
 
 type AuthState = {
   user: StoredUser | null;
@@ -22,7 +22,7 @@ const initialState: Pick<AuthState, "user" | "accessToken" | "isLoggedIn"> = {
 
 const getStoredUser = (data: LoginRes | SignupRes): StoredUser => {
   if ("email" in data) {
-    const { access, session_id, ...user } = data;
+    const { access, ...user } = data;
     return user;
   }
 
@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthState>()(
       login: (data) => {
         set({
           user: getStoredUser(data),
-          accessToken: data.access.access_token,
+          accessToken: data.access?.access_token ?? null,
           isLoggedIn: true,
         });
       },

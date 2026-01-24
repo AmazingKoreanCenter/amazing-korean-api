@@ -343,11 +343,15 @@ audience: server / database / backend / frontend / lead / LLM assistant
       - `filesystem`: 프로젝트 파일 시스템 접근 및 제어
       - `sequential-thinking`: 단계적 사고 및 문제 해결
       - `brave-search`: 실시간 웹 정보 검색 및 검증
-  - **Production (Server)**
-    - **Cloud**: AWS EC2 (Ubuntu 24.04 LTS)
-    - **Web Server**: Nginx (Reverse Proxy: 80/443 → App Server)
-  - **Deployment**
-    - **Docker Compose**: 컨테이너 기반 배포 및 오케스트레이션
+  - **Production (Hybrid Architecture)**
+    - **Frontend**: Cloudflare Pages
+      - 글로벌 CDN으로 정적 자원 배포
+      - 자동 SSL, DDoS 방어
+      - Git 연동 자동 배포
+    - **Backend**: AWS EC2 (Ubuntu 24.04 LTS)
+      - Nginx (Reverse Proxy: 80/443 → App Server)
+      - Docker Compose: 컨테이너 기반 오케스트레이션
+    - **Database/Cache**: AWS EC2 내 Docker 또는 관리형 서비스 (RDS/ElastiCache)
 
 ### 2.2 라우팅 & OpenAPI
 
@@ -2322,6 +2326,28 @@ export function AppRouter() {
   - 프론트엔드는 **Single Page Application**이므로, **모든 404 요청을 `index.html`로 리다이렉트**해야 한다.
   - **Nginx 배포 시**: `try_files $uri $uri/ /index.html;` 설정 필수.
   - **Rust(Axum) 통합 배포 시**: 정적 파일 서빙 핸들러에서 Fallback 경로 설정 필요.
+
+#### 6.6.2-1 Cloudflare Pages 배포 (프론트엔드)
+
+- **배포 플랫폼**: Cloudflare Pages
+- **빌드 설정**:
+  - Build command: `npm run build`
+  - Build output directory: `dist`
+  - Root directory: `frontend`
+- **환경 변수**:
+  - `VITE_API_BASE_URL`: `https://api.amazingkorean.net`
+- **SPA 라우팅**: Cloudflare Pages는 SPA Fallback을 자동 지원 (별도 설정 불필요)
+- **CORS 설정**: 백엔드에서 Cloudflare Pages 도메인 허용 필요
+  ```rust
+  // src/config.rs 또는 CORS 미들웨어에 추가
+  .allow_origin("https://www.amazingkorean.net")
+  ```
+
+#### 6.6.2-2 AWS EC2 배포 (백엔드)
+
+- **배포 방식**: Docker Compose
+- **Nginx 설정**: API 요청만 처리 (정적 파일 서빙 불필요)
+- **SSL**: Let's Encrypt (Certbot) 또는 AWS Certificate Manager
 
 #### 6.6.3 품질 보증 (QA) & 스모크 체크
 
