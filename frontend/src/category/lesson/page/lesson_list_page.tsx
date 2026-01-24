@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { BookMarked, Layers } from "lucide-react";
 
 import {
   Pagination,
@@ -83,133 +84,178 @@ export function LessonListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto w-full max-w-screen-xl px-4 py-10">
-        <div className="mb-8">
-          <Link
-            to="/"
-            className="text-sm text-muted-foreground hover:text-foreground transition mb-2 inline-block"
-          >
-            &larr; 홈으로
-          </Link>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-            레슨 목록
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            단계별 학습 레슨을 선택하세요.
-          </p>
-        </div>
-
-        {meta && (
-          <div className="mb-6 text-xs text-muted-foreground">
-            총 {(meta.total_count ?? 0).toLocaleString()}개 · {currentPage}/
-            {totalPages} 페이지
-            {isFetching && (
-              <span className="ml-2 inline-flex items-center gap-1">
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary" />
-                불러오는 중
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-[#F0F3FF] via-white to-[#E8F4FF] border-b">
+        <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-12 lg:py-16">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border">
+              <Layers className="h-5 w-5 text-secondary" />
+              <span className="text-sm font-medium text-muted-foreground">
+                단계별 커리큘럼
               </span>
-            )}
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+              수업 목록
+            </h1>
+            <p className="text-muted-foreground max-w-lg">
+              체계적으로 구성된 수업을 통해 한국어를 단계별로 학습하세요.
+              영상, 문제, 과제가 통합된 수업을 제공합니다.
+            </p>
           </div>
-        )}
+        </div>
+      </section>
 
-        {isPending ? (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: PER_PAGE }, (_, index) => (
-              <div key={`skeleton-${index}`} className="space-y-3">
-                <Skeleton className="h-40 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-4 w-1/2" />
+      {/* Content Section */}
+      <section className="py-10 lg:py-14">
+        <div className="max-w-[1350px] mx-auto px-6 lg:px-8">
+          {/* Stats Bar */}
+          {meta && (
+            <div className="mb-8 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <BookMarked className="h-4 w-4" />
+                <span>
+                  총 <strong className="text-foreground">{(meta.total_count ?? 0).toLocaleString()}</strong>개 수업
+                </span>
+                <span className="text-border">|</span>
+                <span>{currentPage} / {totalPages} 페이지</span>
               </div>
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="rounded-lg border border-dashed bg-background p-12 text-center text-sm text-muted-foreground">
-            등록된 레슨이 없습니다.
-          </div>
-        ) : (
-          <>
+              {isFetching && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
+                  불러오는 중
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isPending ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((lesson) => (
-                <Link key={lesson.id} to={`/lessons/${lesson.id}`}>
-                  <Card className="h-full transition hover:-translate-y-1 hover:shadow-lg overflow-hidden">
-                    {lesson.thumbnail_url && (
-                      <div className="aspect-video w-full overflow-hidden">
-                        <img
-                          src={lesson.thumbnail_url}
-                          alt={lesson.title}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <CardHeader className="space-y-2">
-                      <CardTitle className="text-lg">{lesson.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm text-muted-foreground">
-                      {lesson.description && <p className="line-clamp-2">{lesson.description}</p>}
-                      <p className="text-xs">ID: {lesson.lesson_idx}</p>
-                    </CardContent>
-                  </Card>
-                </Link>
+              {Array.from({ length: PER_PAGE }, (_, index) => (
+                <Card key={`skeleton-${index}`} className="border-0 shadow-card rounded-2xl overflow-hidden">
+                  <Skeleton className="aspect-video w-full" />
+                  <CardHeader className="space-y-2">
+                    <Skeleton className="h-6 w-3/4" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3 mt-2" />
+                  </CardContent>
+                </Card>
               ))}
             </div>
-            {totalPages > 1 && (
-              <div className="mt-10 flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          if (hasPrev) {
-                            handlePageChange(currentPage - 1);
-                          }
-                        }}
-                        aria-disabled={!hasPrev}
-                        className={!hasPrev ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                    {pageItems.map((item, index) => (
-                      <PaginationItem
-                        key={item === ELLIPSIS ? `ellipsis-${index}` : item}
-                      >
-                        {item === ELLIPSIS ? (
-                          <PaginationEllipsis />
-                        ) : (
-                          <PaginationLink
-                            href="#"
-                            isActive={item === currentPage}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              handlePageChange(item);
-                            }}
-                          >
-                            {item}
-                          </PaginationLink>
-                        )}
-                      </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          if (hasNext) {
-                            handlePageChange(currentPage + 1);
-                          }
-                        }}
-                        aria-disabled={!hasNext}
-                        className={!hasNext ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+          ) : items.length === 0 ? (
+            /* Empty State */
+            <div className="text-center py-20">
+              <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
+                <BookMarked className="h-10 w-10 text-muted-foreground" />
               </div>
-            )}
-          </>
-        )}
-      </div>
+              <h3 className="text-lg font-semibold mb-2">등록된 수업이 없습니다</h3>
+              <p className="text-sm text-muted-foreground">
+                새로운 수업이 곧 추가될 예정입니다.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Lesson Cards Grid */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {items.map((lesson) => (
+                  <Link key={lesson.id} to={`/lessons/${lesson.id}`}>
+                    <Card className="h-full border-0 shadow-card rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover group">
+                      {lesson.thumbnail_url ? (
+                        <div className="aspect-video w-full overflow-hidden bg-muted">
+                          <img
+                            src={lesson.thumbnail_url}
+                            alt={lesson.title}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        </div>
+                      ) : (
+                        <div className="aspect-video w-full bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
+                          <BookMarked className="h-12 w-12 text-primary/30" />
+                        </div>
+                      )}
+                      <CardHeader className="space-y-2 pb-2">
+                        <CardTitle className="text-lg leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                          {lesson.title}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0 space-y-2">
+                        {lesson.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {lesson.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground/60">
+                          ID: {lesson.lesson_idx}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-12 flex justify-center">
+                  <Pagination>
+                    <PaginationContent className="gap-1">
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            if (hasPrev) {
+                              handlePageChange(currentPage - 1);
+                            }
+                          }}
+                          aria-disabled={!hasPrev}
+                          className={`rounded-xl ${!hasPrev ? "pointer-events-none opacity-50" : ""}`}
+                        />
+                      </PaginationItem>
+                      {pageItems.map((item, index) => (
+                        <PaginationItem
+                          key={item === ELLIPSIS ? `ellipsis-${index}` : item}
+                        >
+                          {item === ELLIPSIS ? (
+                            <PaginationEllipsis />
+                          ) : (
+                            <PaginationLink
+                              href="#"
+                              isActive={item === currentPage}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                handlePageChange(item);
+                              }}
+                              className={`rounded-xl ${item === currentPage ? "gradient-primary text-white border-0" : ""}`}
+                            >
+                              {item}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            if (hasNext) {
+                              handlePageChange(currentPage + 1);
+                            }
+                          }}
+                          aria-disabled={!hasNext}
+                          className={`rounded-xl ${!hasNext ? "pointer-events-none opacity-50" : ""}`}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

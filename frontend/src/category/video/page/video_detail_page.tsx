@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Calendar, CheckCircle2, ArrowRight } from "lucide-react";
 
 import { ApiError } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
@@ -15,11 +16,10 @@ import { VideoPlayer } from "../components/video_player";
 import { useVideoDetail } from "../hook/use_video_detail";
 import { useUpdateVideoProgress, useVideoProgress } from "../hook/use_video_progress";
 
-// 날짜 포맷팅 함수
 const formatDate = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  
+
   return date.toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "2-digit",
@@ -27,7 +27,6 @@ const formatDate = (value: string) => {
   });
 };
 
-// 태그 라벨 추출 함수
 const getTagLabel = (tag: VideoTag) => {
   return tag.title ?? tag.subtitle ?? tag.key ?? null;
 };
@@ -49,7 +48,6 @@ export function VideoDetailPage() {
   const id = useMemo(() => Number(videoId), [videoId]);
   const isValidId = Number.isFinite(id);
 
-  // Lesson 컨텍스트 파싱 (쿼리 파라미터)
   const lessonId = useMemo(() => {
     const param = searchParams.get("lessonId");
     return param ? Number(param) : undefined;
@@ -67,18 +65,15 @@ export function VideoDetailPage() {
 
   const isInLessonContext = lessonId !== undefined && currentItemSeq !== undefined;
 
-  // 데이터 조회 Hook
   const { data, isPending, isError, error } = useVideoDetail(id);
   const { data: progressData, isSuccess: isProgressSuccess } = useVideoProgress(
     isValidId ? id : undefined
   );
   const { mutate: updateVideoProgress } = useUpdateVideoProgress(id);
 
-  // Lesson 데이터 조회 (lesson 컨텍스트일 때만)
   const { data: lessonData } = useLessonDetail(isInLessonContext ? lessonId : undefined);
   const updateLessonProgress = useUpdateLessonProgress(lessonId ?? 0);
 
-  // 다음 lesson_item 찾기
   const nextLessonItem = useMemo(() => {
     if (!isInLessonContext || !lessonData?.items || !currentItemSeq) return null;
     const currentIndex = lessonData.items.findIndex((item) => item.seq === currentItemSeq);
@@ -139,7 +134,6 @@ export function VideoDetailPage() {
     setIsVideoEnded(true);
   }, [sendProgressUpdate]);
 
-  // 유효하지 않은 ID 접근 시 리다이렉트
   useEffect(() => {
     if (!isValidId) {
       navigate("/videos", { replace: true });
@@ -168,18 +162,17 @@ export function VideoDetailPage() {
 
   if (!isValidId) return null;
 
-  // 1. 로딩 상태 (Skeleton)
   if (isPending) {
     return (
-      <div className="min-h-screen bg-muted/30">
-        <div className="mx-auto w-full max-w-screen-lg space-y-6 px-4 py-10">
-          <Skeleton className="aspect-video w-full rounded-lg" />
+      <div className="min-h-screen">
+        <div className="max-w-[1000px] mx-auto space-y-6 px-6 lg:px-8 py-10">
+          <Skeleton className="aspect-video w-full rounded-2xl" />
           <div className="space-y-3">
             <Skeleton className="h-8 w-2/3" />
             <Skeleton className="h-4 w-1/2" />
             <div className="flex gap-2">
-              <Skeleton className="h-6 w-16" />
-              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-6 w-16 rounded-full" />
+              <Skeleton className="h-6 w-16 rounded-full" />
             </div>
           </div>
         </div>
@@ -187,20 +180,24 @@ export function VideoDetailPage() {
     );
   }
 
-  // 2. 에러 상태 (404 etc)
   if (isError || !data) {
     const isNotFound = error instanceof ApiError && error.status === 404;
     return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <CardTitle>{isNotFound ? "영상을 찾을 수 없습니다." : "오류 발생"}</CardTitle>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center shadow-card border-0">
+          <CardHeader className="pb-4">
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">😕</span>
+            </div>
+            <CardTitle className="text-xl">
+              {isNotFound ? "영상을 찾을 수 없습니다" : "오류 발생"}
+            </CardTitle>
             <p className="text-sm text-muted-foreground">
               {isNotFound ? "존재하지 않거나 삭제된 영상입니다." : "일시적인 오류입니다. 다시 시도해주세요."}
             </p>
           </CardHeader>
           <CardContent>
-            <Button asChild>
+            <Button asChild className="gradient-primary text-white rounded-full">
               <Link to="/videos">목록으로 돌아가기</Link>
             </Button>
           </CardContent>
@@ -209,38 +206,45 @@ export function VideoDetailPage() {
     );
   }
 
-  // 3. 정상 렌더링
   const tagLabels = data.tags
     .map(getTagLabel)
     .filter((label): label is string => Boolean(label));
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto w-full max-w-screen-lg space-y-8 px-4 py-10">
+    <div className="min-h-screen py-8 lg:py-12">
+      <div className="max-w-[1000px] mx-auto space-y-8 px-6 lg:px-8">
+        {/* Back Link */}
         <Link
           to={isInLessonContext ? `/lessons/${lessonId}` : "/videos"}
-          className="text-sm text-muted-foreground hover:text-foreground transition inline-block"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
         >
-          &larr; {isInLessonContext ? "수업으로" : "목록으로"}
+          <ArrowLeft className="h-4 w-4" />
+          {isInLessonContext ? "수업으로" : "목록으로"}
         </Link>
 
-        {/* ✅ 실제 DB 데이터 연결 (더 이상 하드코딩 아님) */}
-        <VideoPlayer
-          url={data.video_url_vimeo}
-          onPause={handlePause}
-          onEnded={handleEnded}
-        />
+        {/* Video Player */}
+        <div className="rounded-2xl overflow-hidden shadow-card">
+          <VideoPlayer
+            url={data.video_url_vimeo}
+            onPause={handlePause}
+            onEnded={handleEnded}
+          />
+        </div>
 
+        {/* Video Info */}
         <div className="space-y-4">
-          {/* 메타 정보 */}
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary" className="uppercase">{data.video_state}</Badge>
-            <Badge variant="outline">{formatDate(data.created_at)}</Badge>
+            <Badge className="gradient-primary text-white border-0 uppercase">
+              {data.video_state}
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              <Calendar className="h-3 w-3" />
+              {formatDate(data.created_at)}
+            </Badge>
           </div>
 
-          {/* 제목 및 설명 */}
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               {data.title ?? "제목 없음"}
             </h1>
             {data.subtitle && (
@@ -248,11 +252,14 @@ export function VideoDetailPage() {
             )}
           </div>
 
-          {/* 태그 목록 */}
           {tagLabels.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-2">
               {tagLabels.map((label, index) => (
-                <Badge key={`${label}-${index}`} variant="outline" className="px-3 py-1">
+                <Badge
+                  key={`${label}-${index}`}
+                  variant="secondary"
+                  className="px-3 py-1 rounded-full"
+                >
                   #{label}
                 </Badge>
               ))}
@@ -260,24 +267,31 @@ export function VideoDetailPage() {
           )}
         </div>
 
-        {/* 시청 완료 메시지 */}
+        {/* Completion Card */}
         {isVideoEnded && (
-          <Card className="border-green-500 bg-green-50">
-            <CardContent className="p-6 text-center space-y-4">
-              <div className="text-4xl">🎉</div>
-              <h2 className="text-xl font-bold text-green-700">
-                영상 시청을 완료했습니다!
-              </h2>
+          <Card className="border-0 bg-gradient-to-br from-green-50 to-emerald-50 shadow-card">
+            <CardContent className="p-8 text-center space-y-6">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-green-700 mb-2">
+                  영상 시청을 완료했습니다!
+                </h2>
+                <p className="text-sm text-green-600/80">
+                  수고하셨습니다. 학습을 계속해보세요.
+                </p>
+              </div>
 
-              {/* Lesson 컨텍스트: 다음 아이템 또는 수업 완료 */}
               {isInLessonContext ? (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-3">
                   {isLastLessonItem ? (
                     <>
                       <p className="text-sm text-muted-foreground">
                         "{lessonData?.title ?? "수업"}"의 모든 항목을 완료했습니다!
                       </p>
                       <Button
+                        className="gradient-primary text-white rounded-full"
                         onClick={() => {
                           if (isLoggedIn && lessonId && currentItemSeq) {
                             updateLessonProgress.mutate({
@@ -295,6 +309,7 @@ export function VideoDetailPage() {
                     <>
                       <Button
                         asChild
+                        className="gradient-primary text-white rounded-full"
                         onClick={() => {
                           if (isLoggedIn && lessonId && currentItemSeq && totalItems) {
                             const percent = Math.floor((currentItemSeq / totalItems) * 100);
@@ -314,22 +329,22 @@ export function VideoDetailPage() {
                                 : `/lessons/${lessonId}`
                           }
                         >
-                          다음 항목으로 ({nextLessonItem.kind === "video" ? "영상" : "문제"})
+                          다음 항목으로
+                          <ArrowRight className="ml-2 h-4 w-4" />
                         </Link>
                       </Button>
-                      <Button variant="outline" asChild>
+                      <Button variant="outline" asChild className="rounded-full">
                         <Link to={`/lessons/${lessonId}`}>수업으로 돌아가기</Link>
                       </Button>
                     </>
                   ) : (
-                    <Button asChild>
+                    <Button asChild className="gradient-primary text-white rounded-full">
                       <Link to={`/lessons/${lessonId}`}>수업으로 돌아가기</Link>
                     </Button>
                   )}
                 </div>
               ) : (
-                /* 일반 비디오 컨텍스트: 목록으로 돌아가기 */
-                <Button asChild>
+                <Button asChild className="gradient-primary text-white rounded-full">
                   <Link to="/videos">목록으로 돌아가기</Link>
                 </Button>
               )}
