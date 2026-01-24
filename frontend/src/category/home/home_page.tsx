@@ -1,124 +1,112 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useAuthStore } from "@/hooks/use_auth_store";
+import { Link } from "react-router-dom";
+
 import { Button } from "@/components/ui/button";
-import { LogoutButton } from "@/category/auth/components/logout_button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function HomePage() {
-  const navigate = useNavigate();
-  const user = useAuthStore((state) => state.user);
-  const isLoggedIn = !!user;
-
-  // 페이지 이동 헬퍼 함수
-  const go = (path: string) => navigate(path);
-
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-4 bg-slate-50">
-      {/* 1. 메인 헤더 및 로그인 상태 표시 */}
-      <div className="flex flex-col items-center gap-4">
-        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-primary">
-          Amazing Korean API
-        </h1>
-        
-        {isLoggedIn ? (
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-xl font-medium text-gray-700">
-              👋 환영합니다,{" "}
-              <span className="text-primary font-bold">
-                {/* 타입 에러 방지를 위한 임시 처리 */}
-                {(user as any).nickname || (user as any).name || `User ${user.user_id}`}
-              </span>
-              님!
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild>
-                <Link to="/videos">영상 학습하기</Link>
-              </Button>
-              <Button variant="secondary" asChild>
-                <Link to="/studies">학습하기</Link>
-              </Button>
-              <Button variant="default" asChild>
-                <Link to="/lessons">수업하기</Link>
-              </Button>
-              <Button variant="outline" onClick={() => go("/user/me")}>
-                👤 마이 페이지
-              </Button>
-              {/* 👇 설정 버튼 추가됨 */}
-              <Button variant="outline" onClick={() => go("/settings")}>
-                ⚙️ 설정
-              </Button>
-              <LogoutButton />
-            </div>
+    <div className="flex flex-col">
+      {/* Hero Section */}
+      <section className="py-20 px-4 bg-gradient-to-b from-primary/5 to-background">
+        <div className="container mx-auto text-center">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-primary mb-6">
+            한국어 학습의 새로운 시작
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+            Amazing Korean과 함께 효과적이고 즐거운 한국어 학습을 경험하세요.
+            영상, 학습 자료, 1:1 수업까지 모든 것을 한 곳에서 만나보세요.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button size="lg" asChild>
+              <Link to="/videos">영상 보러가기</Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link to="/about">서비스 소개</Link>
+            </Button>
           </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-sm text-gray-500 mb-2">서비스를 이용하려면 로그인이 필요합니다.</p>
-            <div className="flex flex-wrap gap-2">
-              <Button size="lg" variant="secondary" asChild>
-                <Link to="/videos">영상 학습하기</Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link to="/studies">학습하기</Link>
-              </Button>
-            </div>
-            <div className="flex gap-2">
-                <Button size="lg" onClick={() => go("/login")}>
-                로그인
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto">
+          <h2 className="text-2xl font-semibold text-center mb-10">
+            Amazing Korean의 학습 방법
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">🎬</span>
+                  영상 학습
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  다양한 주제의 한국어 영상을 통해 자연스럽게 듣기와 말하기 실력을 향상시킵니다.
+                </p>
+                <Button variant="ghost" asChild className="p-0">
+                  <Link to="/videos">영상 보기 →</Link>
                 </Button>
-                <Button size="lg" variant="outline" onClick={() => go("/signup")}>
-                회원가입
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">📚</span>
+                  체계적 학습
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  단계별 커리큘럼으로 문법, 어휘, 표현을 체계적으로 학습할 수 있습니다.
+                </p>
+                <Button variant="ghost" asChild className="p-0">
+                  <Link to="/studies">학습하기 →</Link>
                 </Button>
-            </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">👩‍🏫</span>
+                  1:1 수업
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  전문 강사와 함께하는 맞춤형 수업으로 빠르게 실력을 향상시킵니다.
+                </p>
+                <Button variant="ghost" asChild className="p-0">
+                  <Link to="/lessons">수업 보기 →</Link>
+                </Button>
+              </CardContent>
+            </Card>
           </div>
-        )}
-      </div>
+        </div>
+      </section>
 
-      {/* 🚧 구분선 🚧 */}
-      <div className="w-full max-w-md border-t border-gray-300 my-4"></div>
-
-      {/* 2. 개발자 전용 네비게이션 (나중에 삭제 예정) */}
-      <Card className="w-full max-w-md bg-white shadow-lg border-dashed border-2 border-gray-300">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-mono text-gray-500 flex justify-between">
-            <span>🚧 DEV ROUTE MAP</span>
-            <span className="text-xs text-red-400">배포 시 삭제</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-2">
-          {/* Auth 관련 링크 */}
-          <Button variant="ghost" className="justify-start h-auto py-2 px-3 text-sm" onClick={() => go("/login")}>
-            🔑 로그인 (/login)
-          </Button>
-          <Button variant="ghost" className="justify-start h-auto py-2 px-3 text-sm" onClick={() => go("/signup")}>
-            📝 회원가입 (/signup)
-          </Button>
-          <Button variant="ghost" className="justify-start h-auto py-2 px-3 text-sm" onClick={() => go("/find-id")}>
-            🔍 아이디 찾기 (/find-id)
-          </Button>
-          {/* 테스트용 토큰 자동 포함 */}
-          <Button 
-            variant="ghost" 
-            className="justify-start h-auto py-2 px-3 text-sm text-left" 
-            onClick={() => go("/reset-password?token=DEV_TEST_TOKEN")}
-          >
-            🔐 비번 재설정<br/>(Testing Token)
-          </Button>
-
-          {/* User 관련 링크 (Phase 2 준비) */}
-          <div className="col-span-2 border-t my-1"></div>
-          
-          <Button variant="secondary" className="justify-start text-sm" onClick={() => go("/user/me")}>
-            👤 내 정보 (User Me)
-          </Button>
-          <Button variant="secondary" className="justify-start text-sm" onClick={() => go("/user/edit")}>
-             📝 정보 수정 (Edit)
-          </Button>
-           {/* 👇 설정 버튼 추가됨 */}
-          <Button variant="secondary" className="justify-start text-sm col-span-2" onClick={() => go("/settings")}>
-             ⚙️ 설정 (Settings)
-          </Button>
-        </CardContent>
-      </Card>
+      {/* CTA Section */}
+      <section className="py-16 px-4 bg-muted/50">
+        <div className="container mx-auto text-center">
+          <h2 className="text-2xl font-semibold mb-4">
+            지금 바로 시작하세요
+          </h2>
+          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+            회원가입하고 무료 콘텐츠를 체험해보세요.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button size="lg" asChild>
+              <Link to="/signup">무료로 시작하기</Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link to="/login">로그인</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

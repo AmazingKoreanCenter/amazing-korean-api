@@ -1,5 +1,8 @@
 import { Route, Routes } from "react-router-dom";
+
+import { RootLayout } from "@/components/layout/root_layout";
 import HomePage from "@/category/home/home_page";
+import { AboutPage } from "@/category/about/page/about_page";
 
 import { HealthPage } from "@/category/health/page/health_page";
 import { SignupPage } from "@/category/auth/page/signup_page";
@@ -21,27 +24,30 @@ import PrivateRoute from "@/routes/private_route";
 export function AppRoutes() {
   return (
     <Routes>
-      {/* 누구나 접근 가능 (Public) */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/find-id" element={<FindIdPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/health" element={<HealthPage />} />
-      <Route path="/videos" element={<VideoListPage />} />
-      <Route path="/videos/:videoId" element={<VideoDetailPage />} />
-      <Route path="/studies" element={<StudyListPage />} />
-      <Route path="/studies/:studyId" element={<StudyDetailPage />} />
-      <Route path="/studies/tasks/:taskId" element={<StudyTaskPage />} />
-      <Route path="/lessons" element={<LessonListPage />} />
-      <Route path="/lessons/:lessonId" element={<LessonDetailPage />} />
+      {/* RootLayout으로 모든 페이지 감싸기 (Header + Footer) */}
+      <Route element={<RootLayout />}>
+        {/* 누구나 접근 가능 (Public) */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/find-id" element={<FindIdPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/health" element={<HealthPage />} />
+        <Route path="/videos" element={<VideoListPage />} />
+        <Route path="/videos/:videoId" element={<VideoDetailPage />} />
+        <Route path="/studies" element={<StudyListPage />} />
+        <Route path="/studies/:studyId" element={<StudyDetailPage />} />
+        <Route path="/studies/tasks/:taskId" element={<StudyTaskPage />} />
+        <Route path="/lessons" element={<LessonListPage />} />
+        <Route path="/lessons/:lessonId" element={<LessonDetailPage />} />
 
-      {/* 🔒 로그인한 사람만 접근 가능 (Private) */}
-      <Route element={<PrivateRoute />}>
-        {/* 이 안에 있는 모든 Route는 보호받습니다 */}
-        <Route path="/user/me" element={<MyPage />} />
-        <Route path="/user/edit" element={<EditProfilePage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        {/* 로그인한 사람만 접근 가능 (Private) */}
+        <Route element={<PrivateRoute />}>
+          <Route path="/user/me" element={<MyPage />} />
+          <Route path="/user/edit" element={<EditProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
       </Route>
     </Routes>
   );
