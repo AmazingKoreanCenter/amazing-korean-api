@@ -2034,6 +2034,8 @@ src/
   - **성능 원칙**: 모든 페이지 컴포넌트는 `React.lazy`로 import하여, 초기 번들 사이즈를 최소화해야 한다.
 
 - **파일명 패턴 (예시)**
+  - `/` → `category/home/page/HomePage.tsx` (홈)
+  - `/about` → `category/about/page/AboutPage.tsx` (소개)
   - `/login` → `category/auth/page/LoginPage.tsx`
   - `/videos/:video_id` → `category/video/page/VideoDetailPage.tsx`
   - `/admin/users` → `category/admin/page/AdminUserListPage.tsx`
@@ -2051,10 +2053,14 @@ import { RequireAdmin } from "./route_guard_admin";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 // ★ 핵심: 모든 페이지는 Lazy Load 처리
+const HomePage = lazy(() => import("@/category/home/page/HomePage"));
+const AboutPage = lazy(() => import("@/category/about/page/AboutPage"));
 const LoginPage = lazy(() => import("@/category/auth/page/LoginPage"));
 const SignupPage = lazy(() => import("@/category/auth/page/SignupPage"));
 const VideoListPage = lazy(() => import("@/category/video/page/VideoListPage"));
 const VideoDetailPage = lazy(() => import("@/category/video/page/VideoDetailPage"));
+const StudyListPage = lazy(() => import("@/category/study/page/StudyListPage"));
+const LessonListPage = lazy(() => import("@/category/lesson/page/LessonListPage"));
 const MePage = lazy(() => import("@/category/user/page/MePage"));
 const AdminUserListPage = lazy(() => import("@/category/admin/page/AdminUserListPage"));
 
@@ -2066,14 +2072,18 @@ export function AppRouter() {
         <AppShell>
           <Routes>
             {/* Public Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/videos" element={<VideoListPage />} />
+            <Route path="/videos/:video_id" element={<VideoDetailPage />} />
+            <Route path="/studies" element={<StudyListPage />} />
+            <Route path="/lessons" element={<LessonListPage />} />
 
             {/* Protected Routes (Member) */}
             <Route element={<RequireAuth />}>
               <Route path="/me" element={<MePage />} />
-              <Route path="/videos" element={<VideoListPage />} />
-              <Route path="/videos/:video_id" element={<VideoDetailPage />} />
             </Route>
 
             {/* Admin Routes (RBAC) */}
@@ -2234,12 +2244,31 @@ export function AppRouter() {
 
 #### 6.5.2 레이아웃 & 그리드
 
-- **AppShell (`components/layout/AppShell.tsx`)**
+- **AppShell (`components/layout/RootLayout.tsx`)**
   - 앱의 최상위 껍데기.
   - 구성:
-    - **Header**: 로고 + 햄버거 메뉴(모바일) / 네비게이션(데스크톱) + 유저 프로필
+    - **Header**: 로고 + 햄버거 메뉴(모바일) / 네비게이션(데스크톱) + 로그인/로그아웃 버튼
     - **Main**: `max-w-screen-xl mx-auto px-4` (콘텐츠 중앙 정렬 및 가로 여백 확보)
-    - **Footer**: (선택적) 법적 고지 등
+    - **Footer**: 회사 정보, 연락처, 이용약관/개인정보처리방침 링크
+
+- **Header 네비게이션 구조**
+  ```
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ [Amazing Korean]    [소개] [영상] [학습] [수업]     [로그인/로그아웃] │
+  │      (Logo)           (Navigation)                  (Auth)       │
+  └─────────────────────────────────────────────────────────────────┘
+  ```
+  - **왼쪽 (Logo)**: "Amazing Korean" 텍스트 로고 (클릭 시 `/` 홈으로 이동)
+  - **가운데 (Navigation)**: 메인 메뉴
+    | 메뉴명 | 라우트 | 설명 |
+    |--------|--------|------|
+    | 소개 | `/about` | 서비스 소개 |
+    | 영상 | `/videos` | 영상 목록 |
+    | 학습 | `/studies` | 학습 목록 |
+    | 수업 | `/lessons` | 수업 목록 |
+  - **오른쪽 (Auth)**: 인증 상태에 따른 조건부 렌더링
+    - 비로그인: `[로그인]` `[회원가입]` 버튼
+    - 로그인: `[마이페이지]` `[로그아웃]` 버튼
 
 - **반응형 전략**
   - **Grid**: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6` 패턴을 기본으로 한다.
