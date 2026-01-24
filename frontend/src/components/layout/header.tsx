@@ -1,6 +1,6 @@
-import { Link, NavLink } from "react-router-dom";
-import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { Menu, X, User } from "lucide-react";
+import { useState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/hooks/use_auth_store";
@@ -16,26 +16,56 @@ const NAV_ITEMS = [
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const location = useLocation();
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full transition-all duration-300",
+        scrolled
+          ? "bg-white/95 backdrop-blur-md shadow-sm border-b"
+          : "bg-white border-b border-transparent"
+      )}
+    >
+      <div className="max-w-[1350px] mx-auto flex h-[72px] items-center justify-between px-6 lg:px-8">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold text-primary">Amazing Korean</span>
+        <Link to="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+            <span className="text-white font-bold text-lg">A</span>
+          </div>
+          <span className="text-xl font-bold text-primary hidden sm:block">
+            Amazing Korean
+          </span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden lg:flex items-center gap-1">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  "text-sm font-medium transition-colors hover:text-primary",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  "px-5 py-2.5 text-[15px] font-medium rounded-lg transition-all duration-200",
+                  isActive
+                    ? "text-primary bg-primary/5"
+                    : "text-muted-foreground hover:text-primary hover:bg-muted/50"
                 )
               }
             >
@@ -45,20 +75,37 @@ export function Header() {
         </nav>
 
         {/* Desktop Auth Buttons */}
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden lg:flex items-center gap-3">
           {isLoggedIn ? (
             <>
-              <Button variant="ghost" asChild>
-                <Link to="/user/me">마이페이지</Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="gap-2 text-muted-foreground hover:text-primary"
+              >
+                <Link to="/user/me">
+                  <User className="h-4 w-4" />
+                  마이페이지
+                </Link>
               </Button>
               <LogoutButton />
             </>
           ) : (
             <>
-              <Button variant="ghost" asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="text-muted-foreground hover:text-primary"
+              >
                 <Link to="/login">로그인</Link>
               </Button>
-              <Button asChild>
+              <Button
+                size="sm"
+                asChild
+                className="gradient-primary hover:opacity-90 text-white shadow-md hover:shadow-lg transition-all rounded-full px-6"
+              >
                 <Link to="/signup">회원가입</Link>
               </Button>
             </>
@@ -68,65 +115,72 @@ export function Header() {
         {/* Mobile Menu Button */}
         <button
           type="button"
-          className="md:hidden p-2"
+          className="lg:hidden p-2 rounded-lg hover:bg-muted/50 transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >
           {mobileMenuOpen ? (
-            <X className="h-6 w-6" />
+            <X className="h-6 w-6 text-foreground" />
           ) : (
-            <Menu className="h-6 w-6" />
+            <Menu className="h-6 w-6 text-foreground" />
           )}
         </button>
       </div>
 
       {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t bg-background">
-          <nav className="container mx-auto px-4 py-4 flex flex-col gap-4">
-            {NAV_ITEMS.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  cn(
-                    "text-sm font-medium transition-colors hover:text-primary py-2",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-            <div className="border-t pt-4 flex flex-col gap-2">
-              {isLoggedIn ? (
-                <>
-                  <Button variant="ghost" asChild className="justify-start">
-                    <Link to="/user/me" onClick={() => setMobileMenuOpen(false)}>
-                      마이페이지
-                    </Link>
-                  </Button>
-                  <LogoutButton />
-                </>
-              ) : (
-                <>
-                  <Button variant="ghost" asChild className="justify-start">
-                    <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                      로그인
-                    </Link>
-                  </Button>
-                  <Button asChild>
-                    <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
-                      회원가입
-                    </Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          </nav>
-        </div>
-      )}
+      <div
+        className={cn(
+          "lg:hidden overflow-hidden transition-all duration-300 ease-in-out",
+          mobileMenuOpen ? "max-h-[400px] border-t" : "max-h-0"
+        )}
+      >
+        <nav className="max-w-[1350px] mx-auto px-6 py-4 flex flex-col gap-1 bg-white">
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                cn(
+                  "px-4 py-3 text-[15px] font-medium rounded-lg transition-colors",
+                  isActive
+                    ? "text-primary bg-primary/5"
+                    : "text-muted-foreground hover:text-primary hover:bg-muted/50"
+                )
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+
+          <div className="border-t my-3" />
+
+          <div className="flex flex-col gap-2 px-1">
+            {isLoggedIn ? (
+              <>
+                <Button variant="ghost" asChild className="justify-start gap-2">
+                  <Link to="/user/me">
+                    <User className="h-4 w-4" />
+                    마이페이지
+                  </Link>
+                </Button>
+                <LogoutButton />
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" asChild className="justify-start">
+                  <Link to="/login">로그인</Link>
+                </Button>
+                <Button
+                  asChild
+                  className="gradient-primary text-white rounded-full"
+                >
+                  <Link to="/signup">회원가입</Link>
+                </Button>
+              </>
+            )}
+          </div>
+        </nav>
+      </div>
     </header>
   );
 }

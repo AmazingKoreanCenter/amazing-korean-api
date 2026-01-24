@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, BookOpen, ClipboardList, Keyboard, Mic } from "lucide-react";
 
 import {
   Pagination,
@@ -36,6 +37,12 @@ const KIND_LABELS: Record<StudyTaskKind, string> = {
   choice: "객관식",
   typing: "입력형",
   voice: "음성형",
+};
+
+const KIND_ICONS: Record<StudyTaskKind, typeof ClipboardList> = {
+  choice: ClipboardList,
+  typing: Keyboard,
+  voice: Mic,
 };
 
 const getPageItems = (currentPage: number, totalPages: number): PageItem[] => {
@@ -102,156 +109,219 @@ export function StudyDetailPage() {
 
   if (!studyId || !Number.isFinite(studyId)) {
     return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
-        <p className="text-muted-foreground">잘못된 Study ID입니다.</p>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center shadow-card border-0 rounded-2xl">
+          <CardHeader className="pb-4">
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">😕</span>
+            </div>
+            <CardTitle className="text-xl">잘못된 접근입니다</CardTitle>
+            <p className="text-sm text-muted-foreground mt-2">
+              올바르지 않은 Study ID입니다.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Link
+              to="/studies"
+              className="inline-flex items-center justify-center gap-2 gradient-primary text-white rounded-full px-6 py-2.5 text-sm font-medium hover:opacity-90 transition"
+            >
+              목록으로 돌아가기
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto w-full max-w-screen-xl px-4 py-10">
-        {/* Header */}
-        {isPending ? (
-          <div className="mb-8 space-y-3">
-            <Skeleton className="h-8 w-1/3" />
-            <Skeleton className="h-5 w-1/2" />
-          </div>
-        ) : data ? (
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-[#F0F3FF] via-white to-[#E8F4FF] border-b">
+        <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-10 lg:py-14">
+          {isPending ? (
+            <div className="space-y-4">
+              <Skeleton className="h-6 w-24 rounded-full" />
+              <Skeleton className="h-10 w-2/3" />
+              <Skeleton className="h-5 w-1/2" />
+            </div>
+          ) : data ? (
+            <div className="space-y-4">
               <Link
                 to="/studies"
-                className="text-sm text-muted-foreground hover:text-foreground transition"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
               >
-                &larr; 목록으로
+                <ArrowLeft className="h-4 w-4" />
+                목록으로
               </Link>
-              <Badge variant="secondary">{PROGRAM_LABELS[data.program]}</Badge>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-              {data.title ?? "제목 없음"}
-            </h1>
-            {data.subtitle && (
-              <p className="text-sm text-muted-foreground mt-1">{data.subtitle}</p>
-            )}
-            <p className="text-xs text-muted-foreground mt-2">
-              Study ID: {data.study_idx}
-            </p>
-          </div>
-        ) : null}
 
-        {/* Meta Info */}
-        {meta && (
-          <div className="mb-6 text-xs text-muted-foreground">
-            총 {(meta.total_count ?? 0).toLocaleString()}개 문제 · {currentPage}/
-            {totalPages} 페이지
-            {isFetching && (
-              <span className="ml-2 inline-flex items-center gap-1">
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary" />
-                불러오는 중
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Task List */}
-        {isPending ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: PER_PAGE }, (_, index) => (
-              <div key={`skeleton-${index}`} className="space-y-3">
-                <Skeleton className="h-24 w-full" />
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge className="gradient-primary text-white border-0 px-4 py-1.5 rounded-full">
+                  {PROGRAM_LABELS[data.program]}
+                </Badge>
               </div>
-            ))}
-          </div>
-        ) : tasks.length === 0 ? (
-          <div className="rounded-lg border border-dashed bg-background p-12 text-center text-sm text-muted-foreground">
-            등록된 문제가 없습니다.
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {tasks.map((task) => (
-                <Link key={task.task_id} to={`/studies/tasks/${task.task_id}`}>
-                  <Card className="h-full transition hover:-translate-y-1 hover:shadow-lg">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline">{KIND_LABELS[task.kind]}</Badge>
-                        <span className="text-xs text-muted-foreground">
-                          #{task.seq}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <CardTitle className="text-base">
-                        문제 {task.seq}
-                      </CardTitle>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Task ID: {task.task_id}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
+
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+                {data.title ?? "제목 없음"}
+              </h1>
+
+              {data.subtitle && (
+                <p className="text-lg text-muted-foreground">{data.subtitle}</p>
+              )}
+
+              <p className="text-sm text-muted-foreground/60">
+                Study ID: {data.study_idx}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {/* Content Section */}
+      <section className="py-10 lg:py-14">
+        <div className="max-w-[1350px] mx-auto px-6 lg:px-8">
+          {/* Stats Bar */}
+          {meta && (
+            <div className="mb-8 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <BookOpen className="h-4 w-4" />
+                <span>
+                  총 <strong className="text-foreground">{(meta.total_count ?? 0).toLocaleString()}</strong>개 문제
+                </span>
+                <span className="text-border">|</span>
+                <span>{currentPage} / {totalPages} 페이지</span>
+              </div>
+              {isFetching && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
+                  불러오는 중
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isPending ? (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: PER_PAGE }, (_, index) => (
+                <Card key={`skeleton-${index}`} className="border-0 shadow-card rounded-2xl overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                      <Skeleton className="h-5 w-12" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-6 w-2/3" />
+                    <Skeleton className="h-4 w-1/2 mt-2" />
+                  </CardContent>
+                </Card>
               ))}
             </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-10 flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          if (hasPrev) {
-                            handlePageChange(currentPage - 1);
-                          }
-                        }}
-                        aria-disabled={!hasPrev}
-                        className={!hasPrev ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                    {pageItems.map((item, index) => (
-                      <PaginationItem
-                        key={item === ELLIPSIS ? `ellipsis-${index}` : item}
-                      >
-                        {item === ELLIPSIS ? (
-                          <PaginationEllipsis />
-                        ) : (
-                          <PaginationLink
-                            href="#"
-                            isActive={item === currentPage}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              handlePageChange(item);
-                            }}
-                          >
-                            {item}
-                          </PaginationLink>
-                        )}
-                      </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          if (hasNext) {
-                            handlePageChange(currentPage + 1);
-                          }
-                        }}
-                        aria-disabled={!hasNext}
-                        className={!hasNext ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+          ) : tasks.length === 0 ? (
+            /* Empty State */
+            <div className="text-center py-20">
+              <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
+                <BookOpen className="h-10 w-10 text-muted-foreground" />
               </div>
-            )}
-          </>
-        )}
-      </div>
+              <h3 className="text-lg font-semibold mb-2">등록된 문제가 없습니다</h3>
+              <p className="text-sm text-muted-foreground">
+                이 학습에는 아직 문제가 등록되지 않았습니다.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Task Cards Grid */}
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+                {tasks.map((task) => {
+                  const KindIcon = KIND_ICONS[task.kind];
+                  return (
+                    <Link key={task.task_id} to={`/studies/tasks/${task.task_id}`}>
+                      <Card className="h-full border-0 shadow-card rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover group">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="gap-1.5 px-3 py-1 rounded-full">
+                              <KindIcon className="h-3 w-3" />
+                              {KIND_LABELS[task.kind]}
+                            </Badge>
+                            <span className="text-sm font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">
+                              #{task.seq}
+                            </span>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                            문제 {task.seq}
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground/60 mt-2">
+                            Task ID: {task.task_id}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-12 flex justify-center">
+                  <Pagination>
+                    <PaginationContent className="gap-1">
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            if (hasPrev) {
+                              handlePageChange(currentPage - 1);
+                            }
+                          }}
+                          aria-disabled={!hasPrev}
+                          className={`rounded-xl ${!hasPrev ? "pointer-events-none opacity-50" : ""}`}
+                        />
+                      </PaginationItem>
+                      {pageItems.map((item, index) => (
+                        <PaginationItem
+                          key={item === ELLIPSIS ? `ellipsis-${index}` : item}
+                        >
+                          {item === ELLIPSIS ? (
+                            <PaginationEllipsis />
+                          ) : (
+                            <PaginationLink
+                              href="#"
+                              isActive={item === currentPage}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                handlePageChange(item);
+                              }}
+                              className={`rounded-xl ${item === currentPage ? "gradient-primary text-white border-0" : ""}`}
+                            >
+                              {item}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            if (hasNext) {
+                              handlePageChange(currentPage + 1);
+                            }
+                          }}
+                          aria-disabled={!hasNext}
+                          className={`rounded-xl ${!hasNext ? "pointer-events-none opacity-50" : ""}`}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

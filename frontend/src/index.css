@@ -4,53 +4,77 @@
 
 @layer base {
   :root {
+    /* Amazing Korean - Blue Theme (Studian Class Reference) */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 222 47% 11%;
+
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary: Dark Navy Blue (#051D55) */
+    --primary: 222 90% 18%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+
+    /* Secondary: Light Blue (#4F71EB) */
+    --secondary: 224 81% 61%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted: Soft Gray-Blue */
+    --muted: 228 33% 97%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent: Cyan (#129DD8) */
+    --accent: 197 84% 46%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 222 90% 18%;
+    --radius: 0.625rem;
+
+    /* Chart Colors */
+    --chart-1: 222 90% 18%;
+    --chart-2: 197 84% 46%;
+    --chart-3: 224 81% 61%;
     --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --chart-5: 340 75% 55%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 5%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+
+    --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
+
     --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --primary-foreground: 222 90% 18%;
+
+    --secondary: 224 81% 61%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 197 84% 46%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 212 27% 84%;
+
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -64,6 +88,40 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Typography refinements */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+}
+
+@layer utilities {
+  /* Gradient utilities for buttons and backgrounds */
+  .gradient-primary {
+    background: linear-gradient(90deg, #4F71EB 0%, #129DD8 100%);
+  }
+
+  .gradient-primary-hover {
+    background: linear-gradient(90deg, #3D5FD9 0%, #0B8BC6 100%);
+  }
+
+  /* Text gradient */
+  .text-gradient {
+    background: linear-gradient(90deg, #051D55 0%, #129DD8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Shadow utilities */
+  .shadow-card {
+    box-shadow: 0 0 26px -5px rgba(4, 4, 91, 0.12);
+  }
+
+  .shadow-card-hover {
+    box-shadow: 0 8px 30px -5px rgba(4, 4, 91, 0.18);
   }
 }

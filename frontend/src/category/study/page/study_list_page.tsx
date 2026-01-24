@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { BookOpen, Calendar, GraduationCap, Filter } from "lucide-react";
 
 import {
   Pagination,
@@ -141,154 +142,201 @@ export function StudyListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto w-full max-w-screen-xl px-4 py-10">
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <Link
-              to="/"
-              className="text-sm text-muted-foreground hover:text-foreground transition mb-2 inline-block"
-            >
-              &larr; 홈으로
-            </Link>
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-              학습 문제 목록
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              학습 프로그램별 문제를 확인하고 도전해보세요.
-            </p>
-          </div>
-          <div className="w-full md:w-72">
-            <div className="mb-2 text-xs font-medium text-muted-foreground">
-              Program
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-[#F0F3FF] via-white to-[#E8F4FF] border-b">
+        <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-12 lg:py-16">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border">
+                <GraduationCap className="h-5 w-5 text-secondary" />
+                <span className="text-sm font-medium text-muted-foreground">
+                  체계적인 한국어 학습
+                </span>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+                학습 문제
+              </h1>
+              <p className="text-muted-foreground max-w-lg">
+                프로그램별 학습 문제를 통해 한국어 실력을 체계적으로 향상시켜 보세요.
+                발음부터 TOPIK까지 다양한 학습 콘텐츠를 제공합니다.
+              </p>
             </div>
-            <Select value={program} onValueChange={handleProgramChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="전체 프로그램" />
-              </SelectTrigger>
-              <SelectContent>
-                {PROGRAM_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+            {/* Filter Section */}
+            <div className="w-full lg:w-80">
+              <div className="bg-white rounded-2xl shadow-card p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Filter className="h-4 w-4" />
+                  프로그램 필터
+                </div>
+                <Select value={program} onValueChange={handleProgramChange}>
+                  <SelectTrigger className="bg-muted/30 border-0 rounded-xl">
+                    <SelectValue placeholder="전체 프로그램" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROGRAM_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
-        {meta && (
-          <div className="mb-6 text-xs text-muted-foreground">
-            총 {(meta.total_count ?? 0).toLocaleString()}개 · {currentPage}/
-            {totalPages} 페이지
-            {isFetching && (
-              <span className="ml-2 inline-flex items-center gap-1">
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary" />
-                불러오는 중
-              </span>
-            )}
-          </div>
-        )}
-
-        {isPending ? (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: PER_PAGE }, (_, index) => (
-              <div key={`skeleton-${index}`} className="space-y-3">
-                <Skeleton className="h-28 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-4 w-full" />
+      {/* Content Section */}
+      <section className="py-10 lg:py-14">
+        <div className="max-w-[1350px] mx-auto px-6 lg:px-8">
+          {/* Stats Bar */}
+          {meta && (
+            <div className="mb-8 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <BookOpen className="h-4 w-4" />
+                <span>
+                  총 <strong className="text-foreground">{(meta.total_count ?? 0).toLocaleString()}</strong>개 문제
+                </span>
+                <span className="text-border">|</span>
+                <span>{currentPage} / {totalPages} 페이지</span>
               </div>
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="rounded-lg border border-dashed bg-background p-12 text-center text-sm text-muted-foreground">
-            등록된 문제가 없습니다.
-          </div>
-        ) : (
-          <>
+              {isFetching && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
+                  불러오는 중
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isPending ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((study) => (
-                <Link key={study.study_id} to={`/studies/${study.study_id}`}>
-                  <Card className="h-full transition hover:-translate-y-1 hover:shadow-lg">
-                    <CardHeader className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <Badge variant="secondary">
-                          {PROGRAM_LABELS[study.program]}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(study.created_at)}
-                        </span>
-                      </div>
-                      <CardTitle className="text-lg">
-                        {study.title ?? "제목 없음"}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm text-muted-foreground">
-                      {study.subtitle && <p>{study.subtitle}</p>}
-                      <p className="text-xs">ID · {study.study_idx}</p>
-                    </CardContent>
-                  </Card>
-                </Link>
+              {Array.from({ length: PER_PAGE }, (_, index) => (
+                <Card key={`skeleton-${index}`} className="border-0 shadow-card rounded-2xl overflow-hidden">
+                  <CardHeader className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-6 w-24 rounded-full" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    <Skeleton className="h-6 w-3/4" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3 mt-2" />
+                  </CardContent>
+                </Card>
               ))}
             </div>
-            {totalPages > 1 && (
-              <div className="mt-10 flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          if (hasPrev) {
-                            handlePageChange(currentPage - 1);
-                          }
-                        }}
-                        aria-disabled={!hasPrev}
-                        className={!hasPrev ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                    {pageItems.map((item, index) => (
-                      <PaginationItem
-                        key={item === ELLIPSIS ? `ellipsis-${index}` : item}
-                      >
-                        {item === ELLIPSIS ? (
-                          <PaginationEllipsis />
-                        ) : (
-                          <PaginationLink
-                            href="#"
-                            isActive={item === currentPage}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              handlePageChange(item);
-                            }}
-                          >
-                            {item}
-                          </PaginationLink>
-                        )}
-                      </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          if (hasNext) {
-                            handlePageChange(currentPage + 1);
-                          }
-                        }}
-                        aria-disabled={!hasNext}
-                        className={!hasNext ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+          ) : items.length === 0 ? (
+            /* Empty State */
+            <div className="text-center py-20">
+              <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
+                <BookOpen className="h-10 w-10 text-muted-foreground" />
               </div>
-            )}
-          </>
-        )}
-      </div>
+              <h3 className="text-lg font-semibold mb-2">등록된 문제가 없습니다</h3>
+              <p className="text-sm text-muted-foreground">
+                선택한 프로그램에 해당하는 학습 문제가 아직 없습니다.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Study Cards Grid */}
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {items.map((study) => (
+                  <Link key={study.study_id} to={`/studies/${study.study_id}`}>
+                    <Card className="h-full border-0 shadow-card rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover group">
+                      <CardHeader className="space-y-4 pb-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <Badge className="gradient-primary text-white border-0 px-3 py-1 rounded-full text-xs">
+                            {PROGRAM_LABELS[study.program]}
+                          </Badge>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(study.created_at)}
+                          </div>
+                        </div>
+                        <CardTitle className="text-lg leading-snug group-hover:text-primary transition-colors">
+                          {study.title ?? "제목 없음"}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {study.subtitle && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                            {study.subtitle}
+                          </p>
+                        )}
+                        <div className="text-xs text-muted-foreground/60">
+                          ID: {study.study_idx}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-12 flex justify-center">
+                  <Pagination>
+                    <PaginationContent className="gap-1">
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            if (hasPrev) {
+                              handlePageChange(currentPage - 1);
+                            }
+                          }}
+                          aria-disabled={!hasPrev}
+                          className={`rounded-xl ${!hasPrev ? "pointer-events-none opacity-50" : ""}`}
+                        />
+                      </PaginationItem>
+                      {pageItems.map((item, index) => (
+                        <PaginationItem
+                          key={item === ELLIPSIS ? `ellipsis-${index}` : item}
+                        >
+                          {item === ELLIPSIS ? (
+                            <PaginationEllipsis />
+                          ) : (
+                            <PaginationLink
+                              href="#"
+                              isActive={item === currentPage}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                handlePageChange(item);
+                              }}
+                              className={`rounded-xl ${item === currentPage ? "gradient-primary text-white border-0" : ""}`}
+                            >
+                              {item}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            if (hasNext) {
+                              handlePageChange(currentPage + 1);
+                            }
+                          }}
+                          aria-disabled={!hasNext}
+                          className={`rounded-xl ${!hasNext ? "pointer-events-none opacity-50" : ""}`}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
