@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { userAuthSchema, userGenderSchema } from "../../user/types";
+import { userAuthSchema, userGenderSchema } from "../../auth/types";
 
 export const adminUserResSchema = z.object({
   id: z.number().int(),
