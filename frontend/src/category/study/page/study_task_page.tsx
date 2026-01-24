@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/hooks/use_auth_store";
+import { useLessonDetail } from "@/category/lesson/hook/use_lesson_detail";
+import { useUpdateLessonProgress } from "@/category/lesson/hook/use_lesson_progress";
 import type {
   StudyTaskKind,
   ChoicePayload,
@@ -230,19 +232,60 @@ function StatusBadge({ tryCount, isSolved }: { tryCount: number; isSolved: boole
 
 export function StudyTaskPage() {
   const { taskId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
 
   const id = useMemo(() => Number(taskId), [taskId]);
   const isValidId = Number.isFinite(id);
 
+  // Lesson 컨텍스트 파싱 (쿼리 파라미터)
+  const lessonId = useMemo(() => {
+    const param = searchParams.get("lessonId");
+    return param ? Number(param) : undefined;
+  }, [searchParams]);
+
+  const currentItemSeq = useMemo(() => {
+    const param = searchParams.get("itemSeq");
+    return param ? Number(param) : undefined;
+  }, [searchParams]);
+
+  const totalItems = useMemo(() => {
+    const param = searchParams.get("totalItems");
+    return param ? Number(param) : undefined;
+  }, [searchParams]);
+
+  const isInLessonContext = lessonId !== undefined && currentItemSeq !== undefined;
+
   const { data, isPending, isError, error } = useStudyTask(isValidId ? id : undefined);
   const submitMutation = useSubmitAnswer(id);
   const { data: statusData } = useTaskStatus(isValidId ? id : undefined);
 
-  // Study 정보 가져오기 (다음 문제 파악용)
+  // Study 정보 가져오기 (다음 문제 파악용) - lesson 컨텍스트가 아닐 때만
   const studyId = data?.study_id;
-  const { data: studyData } = useStudyDetail(studyId, { per_page: 100 });
+  const { data: studyData } = useStudyDetail(
+    !isInLessonContext ? studyId : undefined,
+    { per_page: 100 }
+  );
+
+  // Lesson 데이터 조회 (lesson 컨텍스트일 때만)
+  const { data: lessonData } = useLessonDetail(isInLessonContext ? lessonId : undefined);
+  const updateLessonProgress = useUpdateLessonProgress(lessonId ?? 0);
+
+  // 다음 lesson_item 찾기
+  const nextLessonItem = useMemo(() => {
+    if (!isInLessonContext || !lessonData?.items || !currentItemSeq) return null;
+    const currentIndex = lessonData.items.findIndex((item) => item.seq === currentItemSeq);
+    if (currentIndex >= 0 && currentIndex < lessonData.items.length - 1) {
+      return lessonData.items[currentIndex + 1];
+    }
+    return null;
+  }, [isInLessonContext, lessonData, currentItemSeq]);
+
+  const isLastLessonItem = useMemo(() => {
+    if (!isInLessonContext || !totalItems || !currentItemSeq) return false;
+    return currentItemSeq >= totalItems;
+  }, [isInLessonContext, totalItems, currentItemSeq]);
 
   // Form state
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
@@ -454,8 +497,8 @@ export function StudyTaskPage() {
           </div>
         )}
 
-        {/* 마지막 문제 완료 메시지 */}
-        {showCompletion && studyData && (
+        {/* 마지막 문제 완료 메시지 (Study 컨텍스트) */}
+        {showCompletion && studyData && !isInLessonContext && (
           <Card className="border-green-500 bg-green-50">
             <CardContent className="p-6 text-center space-y-4">
               <div className="text-4xl">🎉</div>
@@ -475,7 +518,9 @@ export function StudyTaskPage() {
         {!showCompletion && (
           <div className="flex justify-between gap-2">
             <Button variant="outline" asChild>
-              <Link to={studyId ? `/studies/${studyId}` : "/studies"}>목록으로</Link>
+              <Link to={isInLessonContext ? `/lessons/${lessonId}` : (studyId ? `/studies/${studyId}` : "/studies")}>
+                {isInLessonContext ? "수업으로" : "목록으로"}
+              </Link>
             </Button>
             <div className="flex gap-2">
               {!isLoggedIn ? (
@@ -495,17 +540,63 @@ export function StudyTaskPage() {
                   >
                     다시 풀기
                   </Button>
-                  {isLastTask ? (
-                    <Button onClick={() => setShowCompletion(true)}>
-                      학습 완료하기
-                    </Button>
-                  ) : nextTask ? (
-                    <Button asChild>
-                      <Link to={`/studies/tasks/${nextTask.task_id}`}>
-                        다음 문제 풀기
-                      </Link>
-                    </Button>
-                  ) : null}
+
+                  {/* Lesson 컨텍스트: 다음 아이템 또는 수업 완료 */}
+                  {isInLessonContext ? (
+                    isLastLessonItem ? (
+                      <Button
+                        onClick={() => {
+                          if (lessonId && currentItemSeq) {
+                            updateLessonProgress.mutate({
+                              percent: 100,
+                              last_seq: currentItemSeq,
+                            });
+                          }
+                          navigate(`/lessons/${lessonId}`);
+                        }}
+                      >
+                        수업 완료하기
+                      </Button>
+                    ) : nextLessonItem ? (
+                      <Button
+                        asChild
+                        onClick={() => {
+                          if (lessonId && currentItemSeq && totalItems) {
+                            const percent = Math.floor((currentItemSeq / totalItems) * 100);
+                            updateLessonProgress.mutate({
+                              percent,
+                              last_seq: currentItemSeq,
+                            });
+                          }
+                        }}
+                      >
+                        <Link
+                          to={
+                            nextLessonItem.kind === "video" && nextLessonItem.video_id
+                              ? `/videos/${nextLessonItem.video_id}?lessonId=${lessonId}&itemSeq=${nextLessonItem.seq}&totalItems=${totalItems}`
+                              : nextLessonItem.kind === "task" && nextLessonItem.task_id
+                                ? `/studies/tasks/${nextLessonItem.task_id}?lessonId=${lessonId}&itemSeq=${nextLessonItem.seq}&totalItems=${totalItems}`
+                                : `/lessons/${lessonId}`
+                          }
+                        >
+                          다음 항목으로 ({nextLessonItem.kind === "video" ? "영상" : "문제"})
+                        </Link>
+                      </Button>
+                    ) : null
+                  ) : (
+                    /* Study 컨텍스트: 기존 로직 */
+                    isLastTask ? (
+                      <Button onClick={() => setShowCompletion(true)}>
+                        학습 완료하기
+                      </Button>
+                    ) : nextTask ? (
+                      <Button asChild>
+                        <Link to={`/studies/tasks/${nextTask.task_id}`}>
+                          다음 문제 풀기
+                        </Link>
+                      </Button>
+                    ) : null
+                  )}
                 </>
               ) : (
                 <Button
