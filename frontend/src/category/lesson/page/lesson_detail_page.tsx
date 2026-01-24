@@ -17,13 +17,25 @@ const KIND_LABELS: Record<string, string> = {
   task: "문제",
 };
 
-function LessonItemCard({ item }: { item: LessonItemRes }) {
+interface LessonItemCardProps {
+  item: LessonItemRes;
+  lessonId: number;
+  totalItems: number;
+}
+
+function LessonItemCard({ item, lessonId, totalItems }: LessonItemCardProps) {
   const getItemLink = () => {
+    const params = new URLSearchParams({
+      lessonId: String(lessonId),
+      itemSeq: String(item.seq),
+      totalItems: String(totalItems),
+    });
+
     if (item.kind === "video" && item.video_id) {
-      return `/videos/${item.video_id}`;
+      return `/videos/${item.video_id}?${params.toString()}`;
     }
     if (item.kind === "task" && item.task_id) {
-      return `/studies/tasks/${item.task_id}`;
+      return `/studies/tasks/${item.task_id}?${params.toString()}`;
     }
     return null;
   };
@@ -172,7 +184,12 @@ export function LessonDetailPage() {
           ) : (
             <div className="space-y-2">
               {data.items.map((item) => (
-                <LessonItemCard key={item.seq} item={item} />
+                <LessonItemCard
+                  key={item.seq}
+                  item={item}
+                  lessonId={id}
+                  totalItems={data.items.length}
+                />
               ))}
             </div>
           )}

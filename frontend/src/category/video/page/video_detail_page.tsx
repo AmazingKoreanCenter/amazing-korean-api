@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { VideoTag } from "@/category/video/types";
 import { useAuthStore } from "@/hooks/use_auth_store";
+import { useLessonDetail } from "@/category/lesson/hook/use_lesson_detail";
+import { useUpdateLessonProgress } from "@/category/lesson/hook/use_lesson_progress";
 
 import { VideoPlayer } from "../components/video_player";
 import { useVideoDetail } from "../hook/use_video_detail";
@@ -38,6 +40,7 @@ const clampProgressRate = (value: number) => {
 
 export function VideoDetailPage() {
   const { videoId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -46,12 +49,49 @@ export function VideoDetailPage() {
   const id = useMemo(() => Number(videoId), [videoId]);
   const isValidId = Number.isFinite(id);
 
+  // Lesson 컨텍스트 파싱 (쿼리 파라미터)
+  const lessonId = useMemo(() => {
+    const param = searchParams.get("lessonId");
+    return param ? Number(param) : undefined;
+  }, [searchParams]);
+
+  const currentItemSeq = useMemo(() => {
+    const param = searchParams.get("itemSeq");
+    return param ? Number(param) : undefined;
+  }, [searchParams]);
+
+  const totalItems = useMemo(() => {
+    const param = searchParams.get("totalItems");
+    return param ? Number(param) : undefined;
+  }, [searchParams]);
+
+  const isInLessonContext = lessonId !== undefined && currentItemSeq !== undefined;
+
   // 데이터 조회 Hook
   const { data, isPending, isError, error } = useVideoDetail(id);
   const { data: progressData, isSuccess: isProgressSuccess } = useVideoProgress(
     isValidId ? id : undefined
   );
   const { mutate: updateVideoProgress } = useUpdateVideoProgress(id);
+
+  // Lesson 데이터 조회 (lesson 컨텍스트일 때만)
+  const { data: lessonData } = useLessonDetail(isInLessonContext ? lessonId : undefined);
+  const updateLessonProgress = useUpdateLessonProgress(lessonId ?? 0);
+
+  // 다음 lesson_item 찾기
+  const nextLessonItem = useMemo(() => {
+    if (!isInLessonContext || !lessonData?.items || !currentItemSeq) return null;
+    const currentIndex = lessonData.items.findIndex((item) => item.seq === currentItemSeq);
+    if (currentIndex >= 0 && currentIndex < lessonData.items.length - 1) {
+      return lessonData.items[currentIndex + 1];
+    }
+    return null;
+  }, [isInLessonContext, lessonData, currentItemSeq]);
+
+  const isLastLessonItem = useMemo(() => {
+    if (!isInLessonContext || !totalItems || !currentItemSeq) return false;
+    return currentItemSeq >= totalItems;
+  }, [isInLessonContext, totalItems, currentItemSeq]);
 
   const sendProgressUpdate = useCallback(
     (progressRate: number) => {
@@ -178,10 +218,10 @@ export function VideoDetailPage() {
     <div className="min-h-screen bg-muted/30">
       <div className="mx-auto w-full max-w-screen-lg space-y-8 px-4 py-10">
         <Link
-          to="/videos"
+          to={isInLessonContext ? `/lessons/${lessonId}` : "/videos"}
           className="text-sm text-muted-foreground hover:text-foreground transition inline-block"
         >
-          &larr; 목록으로
+          &larr; {isInLessonContext ? "수업으로" : "목록으로"}
         </Link>
 
         {/* ✅ 실제 DB 데이터 연결 (더 이상 하드코딩 아님) */}
@@ -228,9 +268,71 @@ export function VideoDetailPage() {
               <h2 className="text-xl font-bold text-green-700">
                 영상 시청을 완료했습니다!
               </h2>
-              <Button asChild>
-                <Link to="/videos">목록으로 돌아가기</Link>
-              </Button>
+
+              {/* Lesson 컨텍스트: 다음 아이템 또는 수업 완료 */}
+              {isInLessonContext ? (
+                <div className="flex flex-col gap-2">
+                  {isLastLessonItem ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        "{lessonData?.title ?? "수업"}"의 모든 항목을 완료했습니다!
+                      </p>
+                      <Button
+                        onClick={() => {
+                          if (isLoggedIn && lessonId && currentItemSeq) {
+                            updateLessonProgress.mutate({
+                              percent: 100,
+                              last_seq: currentItemSeq,
+                            });
+                          }
+                          navigate(`/lessons/${lessonId}`);
+                        }}
+                      >
+                        수업 완료하기
+                      </Button>
+                    </>
+                  ) : nextLessonItem ? (
+                    <>
+                      <Button
+                        asChild
+                        onClick={() => {
+                          if (isLoggedIn && lessonId && currentItemSeq && totalItems) {
+                            const percent = Math.floor((currentItemSeq / totalItems) * 100);
+                            updateLessonProgress.mutate({
+                              percent,
+                              last_seq: currentItemSeq,
+                            });
+                          }
+                        }}
+                      >
+                        <Link
+                          to={
+                            nextLessonItem.kind === "video" && nextLessonItem.video_id
+                              ? `/videos/${nextLessonItem.video_id}?lessonId=${lessonId}&itemSeq=${nextLessonItem.seq}&totalItems=${totalItems}`
+                              : nextLessonItem.kind === "task" && nextLessonItem.task_id
+                                ? `/studies/tasks/${nextLessonItem.task_id}?lessonId=${lessonId}&itemSeq=${nextLessonItem.seq}&totalItems=${totalItems}`
+                                : `/lessons/${lessonId}`
+                          }
+                        >
+                          다음 항목으로 ({nextLessonItem.kind === "video" ? "영상" : "문제"})
+                        </Link>
+                      </Button>
+                      <Button variant="outline" asChild>
+                        <Link to={`/lessons/${lessonId}`}>수업으로 돌아가기</Link>
+                      </Button>
+                    </>
+                  ) : (
+                    <Button asChild>
+                      <Link to={`/lessons/${lessonId}`}>수업으로 돌아가기</Link>
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                /* 일반 비디오 컨텍스트: 목록으로 돌아가기 */
+                <Button asChild>
+                  <Link to="/videos">목록으로 돌아가기</Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
