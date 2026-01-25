@@ -1,7 +1,10 @@
 # Stage 1: Build
-FROM rust:1.83-bookworm AS builder
+FROM rust:1.85-bookworm AS builder
 
 WORKDIR /app
+
+# Enable SQLx offline mode
+ENV SQLX_OFFLINE=true
 
 # Install dependencies for sqlx
 RUN apt-get update && apt-get install -y \
@@ -21,6 +24,7 @@ RUN cargo build --release && rm -rf src
 # Copy actual source code
 COPY src ./src
 COPY migrations ./migrations
+COPY .sqlx ./.sqlx
 
 # Build the application
 RUN touch src/main.rs && cargo build --release

@@ -1,0 +1,117 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                t.study_task_id::INT AS task_id,\n                t.study_id::INT AS study_id,\n                t.study_task_kind AS \"kind!: StudyTaskKind\",\n                t.study_task_seq AS seq,\n                t.study_task_created_at AS created_at,\n                \n                -- Question: 이미 \"question?\"로 되어 있어서 OK\n                COALESCE(stc.study_task_choice_question, stt.study_task_typing_question, stv.study_task_voice_question)::TEXT AS \"question?\",\n\n                -- [수정] Choice Fields: LEFT JOIN이므로 값이 없을 수 있음 -> \"?\" 추가\n                stc.study_task_choice_1::TEXT AS \"choice_1?\",\n                stc.study_task_choice_2::TEXT AS \"choice_2?\",\n                stc.study_task_choice_3::TEXT AS \"choice_3?\",\n                stc.study_task_choice_4::TEXT AS \"choice_4?\",\n                stc.study_task_choice_audio_url::TEXT AS \"choice_audio_url?\",\n                stc.study_task_choice_image_url::TEXT AS \"choice_image_url?\",\n\n                -- [수정] Typing Fields: \"?\" 추가\n                stt.study_task_typing_image_url::TEXT AS \"typing_image_url?\",\n\n                -- [수정] Voice Fields: \"?\" 추가\n                stv.study_task_voice_audio_url::TEXT AS \"voice_audio_url?\",\n                stv.study_task_voice_image_url::TEXT AS \"voice_image_url?\"\n\n            FROM study_task t\n            LEFT JOIN study_task_choice stc ON t.study_task_id = stc.study_task_id\n            LEFT JOIN study_task_typing stt ON t.study_task_id = stt.study_task_id\n            LEFT JOIN study_task_voice stv  ON t.study_task_id = stv.study_task_id\n            WHERE t.study_task_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "task_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "study_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "kind!: StudyTaskKind",
+        "type_info": {
+          "Custom": {
+            "name": "study_task_kind_enum",
+            "kind": {
+              "Enum": [
+                "choice",
+                "typing",
+                "voice"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "seq",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "question?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "choice_1?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "choice_2?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "choice_3?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "choice_4?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "choice_audio_url?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "choice_image_url?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "typing_image_url?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "voice_audio_url?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "voice_image_url?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "23eaad52b322fc73b2103b51bd79d2ccc0b3ccd3927ee1114c2c198af81bf6af"
+}
