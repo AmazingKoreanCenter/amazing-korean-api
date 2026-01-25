@@ -65,14 +65,23 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // [CORS] 설정 정의
-    // 프론트엔드 개발 서버(Vite) 주소인 http://localhost:5173 허용
+    // 환경변수 CORS_ORIGINS에서 허용할 origin 목록을 읽음
+    // 예: CORS_ORIGINS=http://localhost:5173,https://amazing-korean-api.pages.dev
+    let origins: Vec<HeaderValue> = cfg
+        .cors_origins
+        .iter()
+        .filter_map(|o| o.parse::<HeaderValue>().ok())
+        .collect();
+
+    tracing::info!("🌐 CORS allowed origins: {:?}", cfg.cors_origins);
+
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
+        .allow_origin(origins)
         .allow_methods([
-            Method::GET, 
-            Method::POST, 
-            Method::PUT, 
-            Method::PATCH, 
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::PATCH,
             Method::DELETE,
             Method::OPTIONS
         ])
