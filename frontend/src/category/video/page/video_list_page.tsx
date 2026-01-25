@@ -86,42 +86,47 @@ export function VideoListPage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-[#F0F3FF] via-white to-[#E8F4FF] border-b">
         <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-12 lg:py-16">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
-              <Play className="h-6 w-6 text-white" />
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border">
+              <Play className="h-5 w-5 text-secondary" />
+              <span className="text-sm font-medium text-muted-foreground">
+                영상으로 배우는 한국어
+              </span>
             </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-                영상 학습
-              </h1>
-              <p className="text-muted-foreground">
-                다양한 주제의 한국어 영상으로 자연스럽게 학습하세요
-              </p>
-            </div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+              영상 학습
+            </h1>
+            <p className="text-muted-foreground max-w-lg">
+              다양한 주제의 한국어 영상으로 자연스럽게 학습하세요.
+              원어민의 발음과 표현을 직접 보고 들으며 실력을 향상시킬 수 있습니다.
+            </p>
           </div>
-
-          {meta && (
-            <div className="flex items-center gap-4 mt-6">
-              <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm">
-                <Film className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">
-                  총 {(meta.total_count ?? 0).toLocaleString()}개 영상
-                </span>
-              </div>
-              {isFetching && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-accent" />
-                  불러오는 중
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </section>
 
       {/* Content Section */}
       <section className="py-10 lg:py-14">
         <div className="max-w-[1350px] mx-auto px-6 lg:px-8">
+          {/* Stats Bar */}
+          {meta && (
+            <div className="mb-8 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Film className="h-4 w-4" />
+                <span>
+                  총 <strong className="text-foreground">{(meta.total_count ?? 0).toLocaleString()}</strong>개 영상
+                </span>
+                <span className="text-border">|</span>
+                <span>{currentPage} / {totalPages} 페이지</span>
+              </div>
+              {isFetching && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
+                  불러오는 중
+                </div>
+              )}
+            </div>
+          )}
+
           {isPending ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: PER_PAGE }, (_, index) => (
