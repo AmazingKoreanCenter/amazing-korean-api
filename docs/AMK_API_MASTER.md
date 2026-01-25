@@ -2356,27 +2356,187 @@ export function AppRouter() {
   - **Nginx 배포 시**: `try_files $uri $uri/ /index.html;` 설정 필수.
   - **Rust(Axum) 통합 배포 시**: 정적 파일 서빙 핸들러에서 Fallback 경로 설정 필요.
 
+#### 6.6.2-0 도메인 및 DNS 설정 (Route 53)
+
+- **도메인**: `amazingkorean.net`
+- **DNS 관리**: AWS Route 53
+
+##### DNS 레코드 설정
+
+| 레코드 타입 | 이름 | 값 | TTL |
+|------------|------|-----|-----|
+| CNAME | amazingkorean.net | amazing-korean-api.pages.dev | 300 |
+| CNAME | www | amazing-korean-api.pages.dev | 300 |
+| A | api | 3.39.234.157 | 300 |
+
+##### 서비스 URL
+
+| 서비스 | URL |
+|--------|-----|
+| 프론트엔드 | https://amazingkorean.net |
+| 프론트엔드 (www) | https://www.amazingkorean.net |
+| 백엔드 API | https://api.amazingkorean.net |
+| Cloudflare Pages | https://amazing-korean-api.pages.dev |
+
 #### 6.6.2-1 Cloudflare Pages 배포 (프론트엔드)
 
 - **배포 플랫폼**: Cloudflare Pages
+- **GitHub 연동**: `AmazingKoreanCenter/amazing-korean-api`
 - **빌드 설정**:
+  - Framework preset: `Vite`
   - Build command: `npm run build`
   - Build output directory: `dist`
   - Root directory: `frontend`
 - **환경 변수**:
   - `VITE_API_BASE_URL`: `https://api.amazingkorean.net`
+- **커스텀 도메인**:
+  - `amazingkorean.net`
+  - `www.amazingkorean.net`
 - **SPA 라우팅**: Cloudflare Pages는 SPA Fallback을 자동 지원 (별도 설정 불필요)
-- **CORS 설정**: 백엔드에서 Cloudflare Pages 도메인 허용 필요
-  ```rust
-  // src/config.rs 또는 CORS 미들웨어에 추가
-  .allow_origin("https://www.amazingkorean.net")
-  ```
 
 #### 6.6.2-2 AWS EC2 배포 (백엔드)
 
+- **EC2 인스턴스**: Ubuntu 22.04 LTS, t3.small
+- **Public IP**: `3.39.234.157`
+- **도메인**: `api.amazingkorean.net`
 - **배포 방식**: Docker Compose
-- **Nginx 설정**: API 요청만 처리 (정적 파일 서빙 불필요)
-- **SSL**: Let's Encrypt (Certbot) 또는 AWS Certificate Manager
+- **Nginx 설정**: 리버스 프록시 (80/443 → API:3000)
+- **SSL**: Let's Encrypt (Certbot)
+
+##### 환경 변수 (.env.prod)
+
+```env
+POSTGRES_PASSWORD=your-secure-password
+JWT_SECRET=your-32-byte-minimum-secret-key
+DOMAIN=api.amazingkorean.net
+CORS_ORIGINS=http://localhost:5173,https://amazingkorean.net,https://www.amazingkorean.net
+```
+
+##### 1. EC2 인스턴스 준비
+
+```bash
+# 1. EC2 인스턴스 생성 (권장 사양)
+# - OS: Ubuntu 22.04 LTS
+# - Instance Type: t3.small (2 vCPU, 2GB RAM) 이상
+# - Storage: 20GB 이상
+# - Security Group: 22(SSH), 80(HTTP), 443(HTTPS) 포트 오픈
+
+# 2. SSH 접속
+ssh -i your-key.pem ubuntu@your-ec2-ip
+
+# 3. 시스템 업데이트
+sudo apt update && sudo apt upgrade -y
+
+# 4. Docker 설치
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+
+# 5. Docker Compose 설치
+sudo apt install docker-compose-plugin -y
+
+# 6. 로그아웃 후 재접속 (docker 그룹 적용)
+exit
+ssh -i your-key.pem ubuntu@your-ec2-ip
+```
+
+##### 2. 프로젝트 배포
+
+```bash
+# 1. 프로젝트 클론
+git clone https://github.com/AmazingKoreanCenter/amazing-korean-api.git
+cd amazing-korean-api
+
+# 2. 환경 변수 설정
+cp .env.example .env.prod
+nano .env.prod
+```
+
+**.env.prod 설정:**
+```env
+POSTGRES_PASSWORD=your-secure-password
+JWT_SECRET=your-32-byte-minimum-secret-key
+DOMAIN=api.yourdomain.com
+```
+
+```bash
+# 3. 필요 디렉토리 생성
+mkdir -p certbot/www certbot/conf
+
+# 4. Docker Compose 실행
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+
+# 5. 로그 확인
+docker compose -f docker-compose.prod.yml logs -f
+```
+
+##### 3. SSL 인증서 발급 (Let's Encrypt)
+
+```bash
+# 1. 초기 인증서 발급 (HTTP 모드로 nginx 실행 중인 상태에서)
+docker compose -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot \
+  --webroot-path=/var/www/certbot \
+  -d api.yourdomain.com \
+  --email your-email@example.com \
+  --agree-tos \
+  --no-eff-email
+
+# 2. nginx.conf HTTPS 섹션 활성화 (주석 해제)
+nano nginx/nginx.conf
+
+# 3. Nginx 재시작
+docker compose -f docker-compose.prod.yml restart nginx
+```
+
+##### 4. 데이터베이스 마이그레이션
+
+```bash
+# SQLx CLI 설치 (로컬 또는 EC2에서)
+cargo install sqlx-cli --no-default-features --features postgres
+
+# 마이그레이션 실행
+DATABASE_URL=postgres://postgres:your-password@localhost:5432/amazing_korean_db \
+  sqlx migrate run
+```
+
+##### 5. 배포 후 확인
+
+```bash
+# API 헬스체크
+curl http://your-ec2-ip/health
+
+# 컨테이너 상태 확인
+docker compose -f docker-compose.prod.yml ps
+
+# 로그 확인
+docker compose -f docker-compose.prod.yml logs api
+```
+
+##### 6. 관련 파일
+
+| 파일 | 설명 |
+|------|------|
+| `Dockerfile` | Rust 백엔드 멀티스테이지 빌드 |
+| `docker-compose.prod.yml` | 프로덕션 구성 (API + DB + Redis + Nginx) |
+| `nginx/nginx.conf` | 리버스 프록시 + SSL + CORS 설정 |
+
+##### 7. 유용한 명령어
+
+```bash
+# 전체 재시작
+docker compose -f docker-compose.prod.yml down && docker compose -f docker-compose.prod.yml up -d
+
+# 특정 서비스만 재빌드
+docker compose -f docker-compose.prod.yml up -d --build api
+
+# 로그 실시간 확인
+docker compose -f docker-compose.prod.yml logs -f api
+
+# 컨테이너 쉘 접속
+docker exec -it amk-api /bin/bash
+docker exec -it amk-pg psql -U postgres -d amazing_korean_db
+```
 
 #### 6.6.3 품질 보증 (QA) & 스모크 체크
 

@@ -24,6 +24,7 @@ pub struct Config {
     pub refresh_cookie_samesite: String,
     pub rate_limit_login_window_sec: i64,
     pub rate_limit_login_max: i64,
+    pub cors_origins: Vec<String>,
 }
 
 impl Config {
@@ -67,6 +68,15 @@ impl Config {
             .parse::<i64>()
             .expect("RATE_LIMIT_LOGIN_MAX must be a number");
 
+        // CORS_ORIGINS: 쉼표로 구분된 origin 목록
+        // 예: "http://localhost:5173,https://amazing-korean-api.pages.dev"
+        let cors_origins = env::var("CORS_ORIGINS")
+            .unwrap_or_else(|_| "http://localhost:5173".into())
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+
         Self {
             database_url,
             bind_addr,
@@ -83,6 +93,7 @@ impl Config {
             refresh_cookie_samesite,
             rate_limit_login_window_sec,
             rate_limit_login_max,
+            cors_origins,
         }
     }
 

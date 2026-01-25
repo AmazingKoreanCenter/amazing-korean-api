@@ -1,0 +1,89 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amk-api
+    restart: always
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/amazing_korean_db
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TTL_MIN: 15
+      REFRESH_TTL_DAYS: 30
+      REFRESH_COOKIE_NAME: ak_refresh
+      REFRESH_COOKIE_DOMAIN: ${DOMAIN}
+      REFRESH_COOKIE_SECURE: "true"
+      REFRESH_COOKIE_SAMESITE: Lax
+      BIND_ADDR: 0.0.0.0:3000
+      ENABLE_DOCS: 0
+      RATE_LIMIT_LOGIN_WINDOW_SEC: 900
+      RATE_LIMIT_LOGIN_MAX: 10
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - amk-network
+
+  db:
+    image: postgres:16
+    container_name: amk-pg
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: amazing_korean_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - amk-network
+
+  redis:
+    image: redis:7
+    container_name: amk-redis
+    restart: always
+    volumes:
+      - redis_data:/data
+    networks:
+      - amk-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: amk-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+    depends_on:
+      - api
+    networks:
+      - amk-network
+
+  certbot:
+    image: certbot/certbot
+    container_name: amk-certbot
+    volumes:
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+networks:
+  amk-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
