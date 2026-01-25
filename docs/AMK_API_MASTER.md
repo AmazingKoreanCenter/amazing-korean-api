@@ -2356,27 +2356,61 @@ export function AppRouter() {
   - **Nginx 배포 시**: `try_files $uri $uri/ /index.html;` 설정 필수.
   - **Rust(Axum) 통합 배포 시**: 정적 파일 서빙 핸들러에서 Fallback 경로 설정 필요.
 
+#### 6.6.2-0 도메인 및 DNS 설정 (Route 53)
+
+- **도메인**: `amazingkorean.net`
+- **DNS 관리**: AWS Route 53
+
+##### DNS 레코드 설정
+
+| 레코드 타입 | 이름 | 값 | TTL |
+|------------|------|-----|-----|
+| CNAME | amazingkorean.net | amazing-korean-api.pages.dev | 300 |
+| CNAME | www | amazing-korean-api.pages.dev | 300 |
+| A | api | 3.39.234.157 | 300 |
+
+##### 서비스 URL
+
+| 서비스 | URL |
+|--------|-----|
+| 프론트엔드 | https://amazingkorean.net |
+| 프론트엔드 (www) | https://www.amazingkorean.net |
+| 백엔드 API | https://api.amazingkorean.net |
+| Cloudflare Pages | https://amazing-korean-api.pages.dev |
+
 #### 6.6.2-1 Cloudflare Pages 배포 (프론트엔드)
 
 - **배포 플랫폼**: Cloudflare Pages
+- **GitHub 연동**: `AmazingKoreanCenter/amazing-korean-api`
 - **빌드 설정**:
+  - Framework preset: `Vite`
   - Build command: `npm run build`
   - Build output directory: `dist`
   - Root directory: `frontend`
 - **환경 변수**:
   - `VITE_API_BASE_URL`: `https://api.amazingkorean.net`
+- **커스텀 도메인**:
+  - `amazingkorean.net`
+  - `www.amazingkorean.net`
 - **SPA 라우팅**: Cloudflare Pages는 SPA Fallback을 자동 지원 (별도 설정 불필요)
-- **CORS 설정**: 백엔드에서 Cloudflare Pages 도메인 허용 필요
-  ```rust
-  // src/config.rs 또는 CORS 미들웨어에 추가
-  .allow_origin("https://www.amazingkorean.net")
-  ```
 
 #### 6.6.2-2 AWS EC2 배포 (백엔드)
 
+- **EC2 인스턴스**: Ubuntu 22.04 LTS, t3.small
+- **Public IP**: `3.39.234.157`
+- **도메인**: `api.amazingkorean.net`
 - **배포 방식**: Docker Compose
-- **Nginx 설정**: API 요청만 처리 (정적 파일 서빙 불필요)
-- **SSL**: Let's Encrypt (Certbot) 또는 AWS Certificate Manager
+- **Nginx 설정**: 리버스 프록시 (80/443 → API:3000)
+- **SSL**: Let's Encrypt (Certbot)
+
+##### 환경 변수 (.env.prod)
+
+```env
+POSTGRES_PASSWORD=your-secure-password
+JWT_SECRET=your-32-byte-minimum-secret-key
+DOMAIN=api.amazingkorean.net
+CORS_ORIGINS=http://localhost:5173,https://amazingkorean.net,https://www.amazingkorean.net
+```
 
 ##### 1. EC2 인스턴스 준비
 

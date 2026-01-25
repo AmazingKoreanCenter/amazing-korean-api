@@ -15,6 +15,7 @@
 docker-compose.yml
 
 # allow example template (예외사항)
+!docker-compose.prod.yml
 !.env.example
 amazing-korean-client/Amazing Korean_LOGO.png
 amazing-korean-client/index.html
