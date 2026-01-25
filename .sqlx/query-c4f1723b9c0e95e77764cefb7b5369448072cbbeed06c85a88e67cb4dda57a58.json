@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                explain_title::TEXT AS \"explain_title?\",\n                explain_text::TEXT AS \"explain_text?\",\n                explain_media_url::TEXT AS \"explain_media_url?\"\n            FROM study_task_explain\n            WHERE study_task_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "explain_title?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "explain_text?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "explain_media_url?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      true,
+      true
+    ]
+  },
+  "hash": "c4f1723b9c0e95e77764cefb7b5369448072cbbeed06c85a88e67cb4dda57a58"
+}

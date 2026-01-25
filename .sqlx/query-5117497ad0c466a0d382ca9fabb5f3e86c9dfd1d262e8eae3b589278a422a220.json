@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                study_task_status_try_count AS \"try_count!\",\n                study_task_status_is_solved AS \"is_solved!\",\n                study_task_status_last_attempt_at AS \"last_attempt_at?\"\n            FROM study_task_status\n            WHERE study_task_id = $1 AND user_id = $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "try_count!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "is_solved!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_attempt_at?",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "5117497ad0c466a0d382ca9fabb5f3e86c9dfd1d262e8eae3b589278a422a220"
+}
