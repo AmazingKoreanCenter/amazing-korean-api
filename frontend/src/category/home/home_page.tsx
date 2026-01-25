@@ -226,7 +226,7 @@ export default function HomePage() {
               size="lg"
               variant="outline"
               asChild
-              className="rounded-full px-8 h-14 text-base border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50"
+              className="rounded-full px-8 h-14 text-base border-2 border-white/30 text-black hover:bg-white/10 hover:border-white/50"
             >
               <Link to="/login">이미 계정이 있으신가요?</Link>
             </Button>

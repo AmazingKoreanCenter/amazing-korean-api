@@ -1,6 +1,6 @@
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { Menu, X, User } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/hooks/use_auth_store";
@@ -18,12 +18,10 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const location = useLocation();
 
-  // Close mobile menu on route change
-  useEffect(() => {
+  const closeMobileMenu = useCallback(() => {
     setMobileMenuOpen(false);
-  }, [location.pathname]);
+  }, []);
 
   // Handle scroll effect
   useEffect(() => {
@@ -139,6 +137,7 @@ export function Header() {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={closeMobileMenu}
               className={({ isActive }) =>
                 cn(
                   "px-4 py-3 text-[15px] font-medium rounded-lg transition-colors",
@@ -157,7 +156,7 @@ export function Header() {
           <div className="flex flex-col gap-2 px-1">
             {isLoggedIn ? (
               <>
-                <Button variant="ghost" asChild className="justify-start gap-2">
+                <Button variant="ghost" asChild className="justify-start gap-2" onClick={closeMobileMenu}>
                   <Link to="/user/me">
                     <User className="h-4 w-4" />
                     마이페이지
@@ -167,12 +166,13 @@ export function Header() {
               </>
             ) : (
               <>
-                <Button variant="ghost" asChild className="justify-start">
+                <Button variant="ghost" asChild className="justify-start" onClick={closeMobileMenu}>
                   <Link to="/login">로그인</Link>
                 </Button>
                 <Button
                   asChild
                   className="gradient-primary text-white rounded-full"
+                  onClick={closeMobileMenu}
                 >
                   <Link to="/signup">회원가입</Link>
                 </Button>

@@ -157,7 +157,7 @@ export function AboutPage() {
               size="lg"
               variant="outline"
               asChild
-              className="rounded-full px-8 h-14 text-base border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50"
+              className="rounded-full px-8 h-14 text-base border-2 border-white/30 text-black hover:bg-white/10 hover:border-white/50"
             >
               <Link to="/videos">영상 둘러보기</Link>
             </Button>
