@@ -1,8 +1,6 @@
 services:
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${DOCKER_IMAGE:-amazing-korean-api}:latest
     container_name: amk-api
     restart: always
     environment:

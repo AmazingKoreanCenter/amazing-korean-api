@@ -1,6 +1,6 @@
 ---
 title: AMK_API_MASTER — Amazing Korean API  Master Spec
-updated: 2026-01-23
+updated: 2026-01-26
 owner: HYMN Co., Ltd. (Amazing Korean)
 audience: server / database / backend / frontend / lead / LLM assistant
 ---
@@ -1640,14 +1640,14 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-### 5.6 Phase 6 — lesson ✅
+### 5.6 Phase 6 — lesson ✅🆗
 | 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 |
 |---|---|---|---|---|---|
-| 6-1 | `GET /lessons` | `/lessons` | 수업 전체 목록 | ***`lesson_idx` 기준 조회, 페이지네이션***<br>성공(데이터 있음): Auth pass 또는 stop / Page lessons init→ready / Request lessons pending→success / Data lessons present → **200**<br>성공(데이터 없음): Auth pass 또는 stop / Page lessons init→ready / Request lessons pending→success / Data lessons empty → **200**<br>실패(형식/누락): Auth pass 또는 stop / Page lessons init→ready / Request lessons pending→error / Data lessons error → **400**<br>실패(도메인 제약): Auth pass 또는 stop / Page lessons init→ready / Request lessons pending→error / Data lessons error → **422** | [✅] |
-| 6-2 | `GET /lessons/{id}` | `/lessons/{lesson_id}` | 수업 상세 | ***`video_tag_id` + `study_task_id` 기반 목록 조회, 페이지네이션***<br>성공: Auth pass 또는 stop / Page lesson init→ready / Request lesson pending→success / Data lesson present → **200**<br>실패(없는 수업): Auth pass 또는 stop / Page lesson init→ready / Request lesson pending→error / Data lesson error → **404** | [✅] |
-| 6-3 | `GET /lessons/{id}/items` | `/lessons/{lesson_id}/items` | 수업 학습 | ***`lesson_item_seq` 기준 조회, 학습 화면 로드(풀이/진행은 별도 API)***<br>성공: Auth pass 또는 stop / Page lesson_items init→ready / Request lesson_items pending→success / Data lesson_items present → **200**<br>실패(없는 수업/항목): Auth pass 또는 stop / Page lesson_items init→ready / Request lesson_items pending→error / Data lesson_items error → **404**<br>실패(정책상 제한: 수강권 필요): Auth forbid / Page lesson_items ready / Request lesson_items pending→error / Data lesson_items error → **403**<br>실패(형식/누락·도메인): Auth pass 또는 stop / Page lesson_items init→ready / Request lesson_items pending→error / Data lesson_items error → **400**/**422** | [✅] |
-| 6-4 | `GET /lessons/{id}/progress` | `/lessons/{lesson_id}` | 수업 진행 조회 | ***LESSON_PROGRESS 최신 값 조회(없으면 0%)***<br>성공: Auth pass / Page lesson init→ready / Request lesson_progress pending→success / Data lesson_progress present(또는 empty=0%) → **200**<br>실패(미인증): Auth stop / Page lesson init→ready / Request lesson_progress pending→error / Data lesson_progress error → **401**<br>실패(없는 수업): Auth pass / Page lesson init→ready / Request lesson_progress pending→error / Data lesson_progress error → **404** | [✅] |
-| 6-5 | `POST /lessons/{id}/progress` | `/lessons/{lesson_id}` | 수업 진행 갱신 | ***LESSON_PROGRESS 컬럼 업데이트(0~100 고정, 멱등)***<br>성공:<br> Auth pass / Page lesson init→ready / Form lesson_progress pristine→dirty→validating→submitting→success /<br> Request lesson_progress pending→success / Data lesson_progress present → **200**(또는 **204**)<br>실패(형식/누락):<br> Auth pass / Page lesson init→ready / Form lesson_progress pristine→dirty→validating→error.client /<br> Request lesson_progress pending→error / Data lesson_progress empty → **400**<br>실패(도메인 제약: 범위/증감 규칙):<br> Auth pass / Page lesson init→ready / Form lesson_progress pristine→dirty→validating→error.client /<br> Request lesson_progress pending→error / Data lesson_progress error → **422**<br>실패(미인증): Auth stop / Page lesson init→ready / Request lesson_progress pending→error / Data lesson_progress error → **401**<br>실패(없는 수업): Auth pass / Page lesson init→ready / Request lesson_progress pending→error / Data lesson_progress error → **404**<br>실패(정책상 제한: 수강권 필요): Auth forbid / Page lesson ready / Request lesson_progress pending→error / Data lesson_progress error → **403** | [✅] |
+| 6-1 | `GET /lessons` | `/lessons` | 수업 전체 목록 | ***`lesson_idx` 기준 조회, 페이지네이션***<br>성공(데이터 있음): Auth pass 또는 stop / Page lessons init→ready / Request lessons pending→success / Data lessons present → **200**<br>성공(데이터 없음): Auth pass 또는 stop / Page lessons init→ready / Request lessons pending→success / Data lessons empty → **200**<br>실패(형식/누락): Auth pass 또는 stop / Page lessons init→ready / Request lessons pending→error / Data lessons error → **400**<br>실패(도메인 제약): Auth pass 또는 stop / Page lessons init→ready / Request lessons pending→error / Data lessons error → **422** | [✅🆗] |
+| 6-2 | `GET /lessons/{id}` | `/lessons/{lesson_id}` | 수업 상세 | ***`video_tag_id` + `study_task_id` 기반 목록 조회, 페이지네이션***<br>성공: Auth pass 또는 stop / Page lesson init→ready / Request lesson pending→success / Data lesson present → **200**<br>실패(없는 수업): Auth pass 또는 stop / Page lesson init→ready / Request lesson pending→error / Data lesson error → **404** | [✅🆗] |
+| 6-3 | `GET /lessons/{id}/items` | `/lessons/{lesson_id}/items` | 수업 학습 | ***`lesson_item_seq` 기준 조회, 학습 화면 로드(풀이/진행은 별도 API)***<br>성공: Auth pass 또는 stop / Page lesson_items init→ready / Request lesson_items pending→success / Data lesson_items present → **200**<br>실패(없는 수업/항목): Auth pass 또는 stop / Page lesson_items init→ready / Request lesson_items pending→error / Data lesson_items error → **404**<br>실패(정책상 제한: 수강권 필요): Auth forbid / Page lesson_items ready / Request lesson_items pending→error / Data lesson_items error → **403**<br>실패(형식/누락·도메인): Auth pass 또는 stop / Page lesson_items init→ready / Request lesson_items pending→error / Data lesson_items error → **400**/**422** | [✅🆗] |
+| 6-4 | `GET /lessons/{id}/progress` | `/lessons/{lesson_id}` | 수업 진행 조회 | ***LESSON_PROGRESS 최신 값 조회(없으면 0%)***<br>성공: Auth pass / Page lesson init→ready / Request lesson_progress pending→success / Data lesson_progress present(또는 empty=0%) → **200**<br>실패(미인증): Auth stop / Page lesson init→ready / Request lesson_progress pending→error / Data lesson_progress error → **401**<br>실패(없는 수업): Auth pass / Page lesson init→ready / Request lesson_progress pending→error / Data lesson_progress error → **404** | [✅🆗] |
+| 6-5 | `POST /lessons/{id}/progress` | `/lessons/{lesson_id}` | 수업 진행 갱신 | ***LESSON_PROGRESS 컬럼 업데이트(0~100 고정, 멱등)***<br>성공:<br> Auth pass / Page lesson init→ready / Form lesson_progress pristine→dirty→validating→submitting→success /<br> Request lesson_progress pending→success / Data lesson_progress present → **200**(또는 **204**)<br>실패(형식/누락):<br> Auth pass / Page lesson init→ready / Form lesson_progress pristine→dirty→validating→error.client /<br> Request lesson_progress pending→error / Data lesson_progress empty → **400**<br>실패(도메인 제약: 범위/증감 규칙):<br> Auth pass / Page lesson init→ready / Form lesson_progress pristine→dirty→validating→error.client /<br> Request lesson_progress pending→error / Data lesson_progress error → **422**<br>실패(미인증): Auth stop / Page lesson init→ready / Request lesson_progress pending→error / Data lesson_progress error → **401**<br>실패(없는 수업): Auth pass / Page lesson init→ready / Request lesson_progress pending→error / Data lesson_progress error → **404**<br>실패(정책상 제한: 수강권 필요): Auth forbid / Page lesson ready / Request lesson_progress pending→error / Data lesson_progress error → **403** | [✅🆗] |
 
 ---
 
@@ -2397,14 +2397,16 @@ export function AppRouter() {
 #### 6.6.2-2 AWS EC2 배포 (백엔드)
 
 - **EC2 인스턴스**: Amazon Linux 2023 또는 Ubuntu 22.04 LTS
-- **Instance Type**: t2.micro (1 vCPU, 1GB) ~ t3.small (2 vCPU, 2GB)
+- **Instance Type**: t2.micro (1 vCPU, 1GB) - 빌드 시 t3.medium 권장
 - **Storage**: **최소 20GB gp3** (Rust 빌드에 필요, 8GB는 부족)
-- **Public IP**: `3.39.234.157`
+- **Public IP**: `43.200.180.110` (인스턴스 중지/시작 시 변경됨)
 - **도메인**: `api.amazingkorean.net`
 - **배포 방식**: Docker Compose
 - **Nginx 설정**: 리버스 프록시 (80/443 → API:3000)
-- **SSL**: Let's Encrypt (Certbot)
-- **빌드 시간**: t2.micro 기준 15-30분 소요 (Rust release 빌드)
+- **SSL**: Cloudflare Flexible (프록시 모드)
+- **빌드 시간**: t2.micro에서 빌드 불가 (메모리 부족), t3.medium 권장
+
+> **참고**: t2.micro (1GB RAM)는 Rust 빌드에 메모리가 부족합니다. 빌드 시 임시로 t3.medium으로 변경 후, 완료 후 다시 t2.micro로 변경하세요.
 
 ##### 환경 변수 (.env.prod)
 
@@ -2630,6 +2632,58 @@ docker stats
 | `No space left on device` | 디스크 부족 (8GB) | EBS 볼륨 20GB gp3로 확장 |
 | `set DATABASE_URL to use query macros` | SQLx 캐시 없음 | `cargo sqlx prepare` 후 `.sqlx` 커밋 |
 | `divergent branches` (git pull) | 브랜치 충돌 | `git fetch origin && git reset --hard origin/BRANCH` |
+| `address already in use` (443) | 포트 충돌 | `sudo fuser -k 443/tcp` 후 재시작 |
+| `database is being accessed` | DB 연결 중 | API 중지 후 `pg_terminate_backend()` 실행 |
+
+##### 9. Cloudflare SSL 설정 (Let's Encrypt 대안)
+
+Cloudflare 프록시 사용 시 Let's Encrypt 없이 SSL 적용 가능:
+
+1. Cloudflare 대시보드 → `amazingkorean.net` → **DNS**
+2. `api` A 레코드의 프록시 상태를 **주황색 구름** (Proxied)으로 설정
+3. **SSL/TLS** → **Overview** → 모드를 **Flexible**로 설정
+
+> **참고**: Flexible 모드는 Cloudflare ↔ 사용자 간 HTTPS, Cloudflare ↔ EC2 간 HTTP를 사용합니다.
+
+##### 10. 로컬 → EC2 데이터 이전
+
+개발 환경의 테스트 데이터를 프로덕션으로 이전하는 방법:
+
+**로컬 (WSL)에서:**
+```bash
+# 1. SSH 키 권한 설정 (WSL에서 Windows 드라이브 사용 시)
+cp /mnt/d/YOUR_PATH/your-key.pem ~/
+chmod 400 ~/your-key.pem
+
+# 2. 데이터베이스 덤프 (스키마 + 데이터)
+docker exec amk-pg pg_dump -U postgres -d amazing_korean_db --exclude-table=_sqlx_migrations > ~/db_full.sql
+
+# 3. EC2로 파일 전송
+scp -i ~/your-key.pem ~/db_full.sql ec2-user@YOUR_EC2_IP:~/db_full.sql
+```
+
+**EC2에서:**
+```bash
+# 1. API 중지
+docker stop amk-api
+
+# 2. 기존 연결 종료 및 DB 리셋
+docker exec -it amk-pg psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'amazing_korean_db' AND pid <> pg_backend_pid();"
+docker exec -it amk-pg psql -U postgres -c "DROP DATABASE amazing_korean_db;"
+docker exec -it amk-pg psql -U postgres -c "CREATE DATABASE amazing_korean_db;"
+
+# 3. 데이터 가져오기
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db < ~/db_full.sql
+
+# 4. API 재시작
+docker start amk-api
+
+# 5. 확인
+docker exec -it amk-pg psql -U postgres -d amazing_korean_db -c "\dt"
+docker exec -it amk-pg psql -U postgres -d amazing_korean_db -c "SELECT COUNT(*) FROM users;"
+```
+
+> **주의**: `--exclude-table=_sqlx_migrations`로 마이그레이션 기록 테이블은 제외합니다.
 
 #### 6.6.3 품질 보증 (QA) & 스모크 체크
 
