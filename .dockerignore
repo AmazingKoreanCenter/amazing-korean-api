@@ -1,0 +1,36 @@
+# Documentation
+docs/
+*.md
+LICENSE
+
+# Frontend (deployed separately to Cloudflare Pages)
+frontend/
+
+# Git
+.git/
+.github/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Development
+.env
+.env.*
+!.env.example
+
+# Rust build artifacts (use fresh build in Docker)
+target/
+
+# Tests
+tests/
+
+# Docker files (not needed inside container)
+docker-compose*.yml
+Dockerfile
+
+# Misc
+*.log
+*.tmp
+.DS_Store
