@@ -2396,12 +2396,15 @@ export function AppRouter() {
 
 #### 6.6.2-2 AWS EC2 배포 (백엔드)
 
-- **EC2 인스턴스**: Ubuntu 22.04 LTS, t3.small
+- **EC2 인스턴스**: Amazon Linux 2023 또는 Ubuntu 22.04 LTS
+- **Instance Type**: t2.micro (1 vCPU, 1GB) ~ t3.small (2 vCPU, 2GB)
+- **Storage**: **최소 20GB gp3** (Rust 빌드에 필요, 8GB는 부족)
 - **Public IP**: `3.39.234.157`
 - **도메인**: `api.amazingkorean.net`
 - **배포 방식**: Docker Compose
 - **Nginx 설정**: 리버스 프록시 (80/443 → API:3000)
 - **SSL**: Let's Encrypt (Certbot)
+- **빌드 시간**: t2.micro 기준 15-30분 소요 (Rust release 빌드)
 
 ##### 환경 변수 (.env.prod)
 
@@ -2412,63 +2415,136 @@ DOMAIN=api.amazingkorean.net
 CORS_ORIGINS=http://localhost:5173,https://amazingkorean.net,https://www.amazingkorean.net
 ```
 
+##### 0. SQLx 오프라인 모드 준비 (Docker 빌드 전 필수)
+
+Docker 빌드 시 데이터베이스 연결 없이 SQLx 매크로를 컴파일하려면 `.sqlx` 캐시가 필요합니다.
+
+```bash
+# 로컬에서 PostgreSQL 실행 중인 상태에서
+cargo install sqlx-cli --no-default-features --features native-tls,postgres
+
+# .sqlx 캐시 생성
+cargo sqlx prepare
+
+# Git에 커밋
+git add .sqlx
+git commit -m "Add SQLx offline cache"
+git push
+```
+
+> **참고**: Dockerfile에 `ENV SQLX_OFFLINE=true`와 `COPY .sqlx ./.sqlx`가 설정되어 있어야 합니다.
+> Rust 버전은 **1.85 이상** 필요 (edition2024 지원).
+
 ##### 1. EC2 인스턴스 준비
+
+**Amazon Linux 2023 (권장)**
 
 ```bash
 # 1. EC2 인스턴스 생성 (권장 사양)
-# - OS: Ubuntu 22.04 LTS
-# - Instance Type: t3.small (2 vCPU, 2GB RAM) 이상
-# - Storage: 20GB 이상
+# - OS: Amazon Linux 2023
+# - Instance Type: t2.micro (프리티어) 또는 t3.small
+# - Storage: 20GB gp3 (8GB는 Rust 빌드 시 디스크 부족 발생)
 # - Security Group: 22(SSH), 80(HTTP), 443(HTTPS) 포트 오픈
 
-# 2. SSH 접속
-ssh -i your-key.pem ubuntu@your-ec2-ip
+# 2. SSH 접속 (Amazon Linux는 ec2-user 사용)
+ssh -i your-key.pem ec2-user@your-ec2-ip
 
-# 3. 시스템 업데이트
-sudo apt update && sudo apt upgrade -y
+# 3. Git 설치 (Amazon Linux에는 기본 설치 안됨)
+sudo yum install -y git
 
 # 4. Docker 설치
+sudo yum install -y docker
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER
+
+# 5. Docker Compose (Buildx) 설치
+DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+mkdir -p $DOCKER_CONFIG/cli-plugins
+curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+  -o $DOCKER_CONFIG/cli-plugins/docker-compose
+chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+
+# Buildx 설치 (compose build에 필요)
+curl -SL https://github.com/docker/buildx/releases/latest/download/buildx-v0.19.3.linux-amd64 \
+  -o $DOCKER_CONFIG/cli-plugins/docker-buildx
+chmod +x $DOCKER_CONFIG/cli-plugins/docker-buildx
+
+# 6. 로그아웃 후 재접속 (docker 그룹 적용)
+exit
+ssh -i your-key.pem ec2-user@your-ec2-ip
+```
+
+**Ubuntu 22.04 LTS (대안)**
+
+```bash
+# SSH 접속 (Ubuntu는 ubuntu 사용)
+ssh -i your-key.pem ubuntu@your-ec2-ip
+
+# 시스템 업데이트
+sudo apt update && sudo apt upgrade -y
+
+# Docker 설치
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
 sudo usermod -aG docker $USER
 
-# 5. Docker Compose 설치
+# Docker Compose 설치
 sudo apt install docker-compose-plugin -y
 
-# 6. 로그아웃 후 재접속 (docker 그룹 적용)
+# 로그아웃 후 재접속
 exit
 ssh -i your-key.pem ubuntu@your-ec2-ip
+```
+
+##### 1-1. EBS 볼륨 확장 (디스크 부족 시)
+
+```bash
+# AWS 콘솔에서 EBS 볼륨 크기 변경 후 (예: 8GB → 20GB)
+
+# 파티션 확장 (Amazon Linux / Ubuntu 공통)
+sudo growpart /dev/xvda 1
+
+# 파일시스템 확장
+# Amazon Linux (xfs):
+sudo xfs_growfs /
+
+# Ubuntu (ext4):
+sudo resize2fs /dev/xvda1
+
+# 확인
+df -h
 ```
 
 ##### 2. 프로젝트 배포
 
 ```bash
-# 1. 프로젝트 클론
+# 1. 프로젝트 클론 및 브랜치 설정
 git clone https://github.com/AmazingKoreanCenter/amazing-korean-api.git
 cd amazing-korean-api
+git checkout KKRYOUN  # 또는 배포할 브랜치
 
 # 2. 환경 변수 설정
-cp .env.example .env.prod
-nano .env.prod
-```
-
-**.env.prod 설정:**
-```env
+cat > .env.prod << 'EOF'
 POSTGRES_PASSWORD=your-secure-password
 JWT_SECRET=your-32-byte-minimum-secret-key
-DOMAIN=api.yourdomain.com
+DOMAIN=api.amazingkorean.net
+CORS_ORIGINS=http://localhost:5173,https://amazingkorean.net,https://www.amazingkorean.net
+EOF
 ```
 
 ```bash
 # 3. 필요 디렉토리 생성
 mkdir -p certbot/www certbot/conf
 
-# 4. Docker Compose 실행
+# 4. Docker Compose 실행 (t2.micro 기준 15-30분 소요)
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
 # 5. 로그 확인
 docker compose -f docker-compose.prod.yml logs -f
 ```
+
+> **주의**: `.sqlx` 폴더가 없으면 빌드 실패합니다. "Step 0. SQLx 오프라인 모드 준비" 참조.
 
 ##### 3. SSL 인증서 발급 (Let's Encrypt)
 
@@ -2517,9 +2593,11 @@ docker compose -f docker-compose.prod.yml logs api
 
 | 파일 | 설명 |
 |------|------|
-| `Dockerfile` | Rust 백엔드 멀티스테이지 빌드 |
+| `Dockerfile` | Rust 백엔드 멀티스테이지 빌드 (rust:1.85, SQLx offline mode) |
 | `docker-compose.prod.yml` | 프로덕션 구성 (API + DB + Redis + Nginx) |
 | `nginx/nginx.conf` | 리버스 프록시 + SSL + CORS 설정 |
+| `.sqlx/` | SQLx 오프라인 캐시 (Docker 빌드 시 필수) |
+| `.env.prod` | 프로덕션 환경 변수 (Git에 포함하지 않음) |
 
 ##### 7. 유용한 명령어
 
@@ -2536,7 +2614,22 @@ docker compose -f docker-compose.prod.yml logs -f api
 # 컨테이너 쉘 접속
 docker exec -it amk-api /bin/bash
 docker exec -it amk-pg psql -U postgres -d amazing_korean_db
+
+# 빌드 진행 상황 확인 (다른 터미널에서)
+docker stats
 ```
+
+##### 8. 트러블슈팅
+
+| 에러 | 원인 | 해결 |
+|------|------|------|
+| `Permission denied (publickey)` | SSH 사용자 이름 오류 | Amazon Linux: `ec2-user@`, Ubuntu: `ubuntu@` |
+| `git: command not found` | Git 미설치 (Amazon Linux) | `sudo yum install -y git` |
+| `compose build requires buildx` | Buildx 미설치 | 위 Docker 설치 섹션 참조 |
+| `feature 'edition2024' is required` | Rust 버전 낮음 | Dockerfile에서 `rust:1.85-bookworm` 사용 |
+| `No space left on device` | 디스크 부족 (8GB) | EBS 볼륨 20GB gp3로 확장 |
+| `set DATABASE_URL to use query macros` | SQLx 캐시 없음 | `cargo sqlx prepare` 후 `.sqlx` 커밋 |
+| `divergent branches` (git pull) | 브랜치 충돌 | `git fetch origin && git reset --hard origin/BRANCH` |
 
 #### 6.6.3 품질 보증 (QA) & 스모크 체크
 
