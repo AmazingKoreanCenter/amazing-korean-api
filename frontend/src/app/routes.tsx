@@ -21,6 +21,15 @@ import { LessonListPage } from "@/category/lesson/page/lesson_list_page";
 import { LessonDetailPage } from "@/category/lesson/page/lesson_detail_page";
 import PrivateRoute from "@/routes/private_route";
 
+// Admin imports
+import { AdminRoute } from "@/routes/admin_route";
+import { AdminLayout } from "@/category/admin/page/admin_layout";
+import { AdminDashboard } from "@/category/admin/page/admin_dashboard";
+import { AdminUsersPage } from "@/category/admin/page/admin_users_page";
+import { AdminVideosPage } from "@/category/admin/page/admin_videos_page";
+import { AdminStudiesPage } from "@/category/admin/page/admin_studies_page";
+import { AdminLessonsPage } from "@/category/admin/page/admin_lessons_page";
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -48,6 +57,17 @@ export function AppRoutes() {
           <Route path="/user/me" element={<MyPage />} />
           <Route path="/user/edit" element={<EditProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+        </Route>
+      </Route>
+
+      {/* Admin 라우트 (admin/HYMN 권한 필요) */}
+      <Route element={<AdminRoute />}>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="videos" element={<AdminVideosPage />} />
+          <Route path="studies" element={<AdminStudiesPage />} />
+          <Route path="lessons" element={<AdminLessonsPage />} />
         </Route>
       </Route>
     </Routes>
