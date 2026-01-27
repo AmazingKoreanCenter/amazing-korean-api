@@ -1,9 +1,10 @@
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use utoipa::{IntoParams, ToSchema};
 use validator::Validate;
 
-use crate::types::{UserAuth, UserGender};
+use crate::types::{AdminAction, UserActionLog, UserAuth, UserGender, UserLanguage};
 
 /// 관리자용 사용자 프로필 응답
 #[derive(Serialize, sqlx::FromRow, ToSchema, Clone, Debug, PartialEq)]
@@ -82,6 +83,26 @@ pub struct AdminCreateUserReq {
     pub nickname: String,
     #[validate(length(min = 1, max = 100))]
     pub name: String,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 1, max = 50))]
+    pub language: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 1, max = 50))]
+    pub country: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = String, format = "date")]
+    pub birthday: Option<NaiveDate>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gender: Option<UserGender>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_state: Option<bool>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_auth: Option<String>,
 }
 
@@ -236,4 +257,62 @@ pub struct AdminUpdateUserReq {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_auth: Option<UserAuth>,
+}
+
+// ==========================================
+// Admin User Logs DTOs
+// ==========================================
+
+/// 관리자 변경 로그 요청 파라미터
+#[derive(Debug, Deserialize, IntoParams, ToSchema)]
+pub struct AdminUserLogsReq {
+    pub page: Option<i64>,
+    pub size: Option<i64>,
+}
+
+/// 관리자 변경 로그 아이템
+#[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]
+pub struct AdminUserLogItem {
+    pub id: i64,
+    pub admin_id: i64,
+    pub admin_email: Option<String>,
+    pub action: AdminAction,
+    #[schema(value_type = Object)]
+    pub before: Option<JsonValue>,
+    #[schema(value_type = Object)]
+    pub after: Option<JsonValue>,
+    #[schema(value_type = String, format = "date-time")]
+    pub created_at: DateTime<Utc>,
+}
+
+/// 관리자 변경 로그 응답
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminUserLogsRes {
+    pub items: Vec<AdminUserLogItem>,
+    pub meta: AdminUserListMeta,
+}
+
+/// 사용자 자체 변경 로그 아이템
+#[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]
+pub struct UserLogItem {
+    pub id: i64,
+    pub action: UserActionLog,
+    pub success: bool,
+    pub email: Option<String>,
+    pub nickname: Option<String>,
+    pub language: Option<UserLanguage>,
+    pub country: Option<String>,
+    #[schema(value_type = String, format = "date")]
+    pub birthday: Option<NaiveDate>,
+    pub gender: Option<UserGender>,
+    pub password_changed: bool,
+    #[schema(value_type = String, format = "date-time")]
+    pub created_at: DateTime<Utc>,
+}
+
+/// 사용자 자체 변경 로그 응답
+#[derive(Debug, Serialize, ToSchema)]
+pub struct UserLogsRes {
+    pub items: Vec<UserLogItem>,
+    pub meta: AdminUserListMeta,
 }

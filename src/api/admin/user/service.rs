@@ -111,7 +111,7 @@ impl AdminUserService {
         }
 
         let sort = req.sort.as_deref().unwrap_or("created_at");
-        if !matches!(sort, "created_at" | "email" | "nickname") {
+        if !matches!(sort, "id" | "created_at" | "email" | "nickname" | "role") {
             return Err(AppError::Unprocessable("invalid sort".into()));
         }
 
@@ -222,10 +222,11 @@ impl AdminUserService {
 
         let password_hash = password::hash_password(&req.password)?;
 
-        let language = "ko";
-        let country = "ko";
-        let birthday = NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
-        let gender = UserGender::None;
+        // DTO에서 받은 값 또는 기본값 사용
+        let language = req.language.as_deref().unwrap_or("ko");
+        let country = req.country.as_deref().unwrap_or("KR");
+        let birthday = req.birthday.unwrap_or_else(|| NaiveDate::from_ymd_opt(1900, 1, 1).unwrap());
+        let gender = req.gender.unwrap_or(UserGender::None);
 
         let res = repo::admin_create_user(
             &st.db,
@@ -683,10 +684,68 @@ impl AdminUserService {
         ).await?;
     
         let all_success = failure_count == 0;
-    
+
         Ok((all_success, AdminBulkUpdateRes {
             summary,
             results,
         }))
+    }
+
+    // ==========================================
+    // User Logs API
+    // ==========================================
+
+    /// 관리자가 변경한 유저 로그 조회
+    pub async fn get_admin_user_logs(
+        st: &AppState,
+        _admin_sub: i64,
+        target_user_id: i64,
+        page: Option<i64>,
+        size: Option<i64>,
+    ) -> AppResult<super::dto::AdminUserLogsRes> {
+        let page = page.unwrap_or(1).max(1);
+        let size = size.unwrap_or(20).clamp(1, 100);
+
+        let (items, total_count) =
+            repo::get_admin_user_logs(&st.db, target_user_id, page, size).await?;
+
+        let total_pages = (total_count as f64 / size as f64).ceil() as i64;
+
+        Ok(super::dto::AdminUserLogsRes {
+            items,
+            meta: AdminUserListMeta {
+                total_count,
+                total_pages,
+                current_page: page,
+                per_page: size,
+            },
+        })
+    }
+
+    /// 유저 본인이 변경한 로그 조회
+    pub async fn get_user_self_logs(
+        st: &AppState,
+        _admin_sub: i64,
+        user_id: i64,
+        page: Option<i64>,
+        size: Option<i64>,
+    ) -> AppResult<super::dto::UserLogsRes> {
+        let page = page.unwrap_or(1).max(1);
+        let size = size.unwrap_or(20).clamp(1, 100);
+
+        let (items, total_count) =
+            repo::get_user_self_logs(&st.db, user_id, page, size).await?;
+
+        let total_pages = (total_count as f64 / size as f64).ceil() as i64;
+
+        Ok(super::dto::UserLogsRes {
+            items,
+            meta: AdminUserListMeta {
+                total_count,
+                total_pages,
+                current_page: page,
+                per_page: size,
+            },
+        })
     }
 }
