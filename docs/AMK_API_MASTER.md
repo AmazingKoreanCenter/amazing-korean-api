@@ -1738,7 +1738,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-### 5.7 Phase 7 — admin ✅ **mvp 진행 후 보안 부분 업데이트 필요**
+### 5.7 Phase 7 — admin ✅ 
 | 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 |
 |---|---|---|---|---|---|
 | 7-1 | `GET /admin/users` | `/admin/users?page=&size=&q=&sort=&order=` | 사용자 조회 | ***검색/정렬/페이지네이션, RBAC(admin)***<br>성공(데이터 있음/없음):<br> Auth pass / Page admin_users init→ready / Request admin_users pending→success /<br> Data admin_users present empty → **200**<br>실패(미인증): Auth stop → **401**<br>실패(RBAC): Auth forbid → **403**<br>실패(형식/누락): … → **400**<br>실패(도메인 제약): … → **422** | [✅] |
