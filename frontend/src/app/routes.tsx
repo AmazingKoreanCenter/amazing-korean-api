@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import { RootLayout } from "@/components/layout/root_layout";
 import HomePage from "@/category/home/home_page";
@@ -29,6 +29,7 @@ export function AppRoutes() {
         {/* 누구나 접근 가능 (Public) */}
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/intro" element={<Navigate to="/about" replace />} />
         <Route path="/find-id" element={<FindIdPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />

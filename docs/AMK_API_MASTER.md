@@ -67,6 +67,10 @@ audience: server / database / backend / frontend / lead / LLM assistant
   - [6.4 상태 관리 & API 연동 패턴](#64-상태-관리--api-연동-패턴)
   - [6.5 UI/UX & Tailwind 규칙 (shadcn/ui System)](#65-uiux--tailwind-규칙-shadcnui-system)
   - [6.6 프론트 테스트 & 빌드/배포 (요약)](#66-프론트-테스트--빌드배포-요약)
+    - [6.6.2-1 Cloudflare Pages 배포 (프론트엔드)](#6621-cloudflare-pages-배포-프론트엔드)
+    - [6.6.2-2 AWS EC2 배포 (백엔드)](#6622-aws-ec2-배포-백엔드)
+    - [6.6.2-3 GitHub Actions CI/CD 파이프라인](#6623-github-actions-cicd-파이프라인)
+    - [6.6.2-4 EC2 유지보수 가이드](#6624-ec2-유지보수-가이드)
 
 - [7. 작업 방식 / 엔지니어링 가이드 (요약)](#7-작업-방식--엔지니어링-가이드-요약)
   - [7.1 작업 원칙](#71-작업-원칙)
@@ -106,6 +110,10 @@ audience: server / database / backend / frontend / lead / LLM assistant
   - [9.5 보안/운영 (후순위 계획)](#95-보안운영-후순위-계획)
   - [9.6 코드 일관성 (Technical Debt)](#96-코드-일관성-technical-debt)
   - [9.7 추후 작업 항목 (문서 내 TODO 통합)](#97-추후-작업-항목-문서-내-todo-통합)
+  - [9.8 LLM 협업 도구 전환](#98-llm-협업-도구-전환)
+  - [9.9 인프라 로드맵 (RDS 이전)](#99-인프라-로드맵-rds-이전)
+  - [9.10 데이터 모니터링 & 접근](#910-데이터-모니터링--접근)
+  - [9.11 디자인 & UI](#911-디자인--ui)
 
 - [10. 변경 이력 (요약)](#10-변경-이력-요약)
 
@@ -2684,6 +2692,187 @@ docker exec -it amk-pg psql -U postgres -d amazing_korean_db -c "SELECT COUNT(*)
 ```
 
 > **주의**: `--exclude-table=_sqlx_migrations`로 마이그레이션 기록 테이블은 제외합니다.
+
+#### 6.6.2-3 GitHub Actions CI/CD 파이프라인
+
+> **목적**: EC2에서 Rust 빌드 없이 자동 배포. t2.micro (1GB RAM)로 운영 가능.
+
+##### CI/CD 흐름
+
+```
+┌─────────────┐    ┌──────────────────┐    ┌─────────────┐    ┌─────────┐
+│  git push   │ →  │  GitHub Actions  │ →  │ Docker Hub  │ →  │   EC2   │
+│  (로컬)      │    │  (빌드 서버)      │    │ (이미지저장) │    │  (실행)  │
+└─────────────┘    └──────────────────┘    └─────────────┘    └─────────┘
+```
+
+1. **코드 Push** → `main` 또는 `KKRYOUN` 브랜치에 push
+2. **GitHub Actions** → GitHub 서버(7GB RAM)에서 Docker 이미지 빌드
+3. **Docker Hub Push** → 빌드된 이미지를 Docker Hub에 업로드
+4. **EC2 배포** → SSH로 EC2 접속 → 이미지 pull → 컨테이너 재시작
+
+##### GitHub Secrets 설정
+
+GitHub repo → **Settings** → **Secrets and variables** → **Actions**에서 추가:
+
+| Secret Name | 값 | 설명 |
+|-------------|-----|------|
+| `DOCKERHUB_USERNAME` | Docker Hub 사용자명 | |
+| `DOCKERHUB_TOKEN` | Docker Hub Access Token | Read & Write 권한 |
+| `EC2_HOST` | EC2 Public IP | 예: `43.200.180.110` |
+| `EC2_SSH_KEY` | .pem 파일 내용 전체 | `-----BEGIN` ~ `END-----` |
+| `POSTGRES_PASSWORD` | DB 비밀번호 | |
+| `JWT_SECRET` | JWT 시크릿 키 | |
+
+##### Workflow 파일 (.github/workflows/deploy.yml)
+
+```yaml
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main, KKRYOUN]
+  workflow_dispatch:  # 수동 실행 가능
+
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/amazing-korean-api
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:latest
+            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/amazing-korean-api
+            docker pull ${{ env.DOCKER_IMAGE }}:latest
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+            docker image prune -f
+```
+
+##### docker-compose.prod.yml (이미지 사용 방식)
+
+```yaml
+services:
+  api:
+    image: ${DOCKER_IMAGE:-amazing-korean-api}:latest  # Docker Hub 이미지 사용
+    container_name: amk-api
+    # ... 이하 동일
+```
+
+> **참고**: 기존 `build:` 블록 대신 `image:` 사용. EC2에서 빌드하지 않음.
+
+##### .dockerignore
+
+```
+# Documentation
+docs/
+*.md
+
+# Frontend (Cloudflare Pages에서 별도 배포)
+frontend/
+
+# Git
+.git/
+.github/
+
+# Development
+.env
+target/
+tests/
+```
+
+##### 배포 방법
+
+```bash
+# 자동 배포 (push만 하면 끝)
+git add . && git commit -m "feat: 새 기능" && git push origin KKRYOUN
+
+# 수동 배포 (GitHub Actions 페이지에서)
+# Actions → Deploy to EC2 → Run workflow
+```
+
+##### 장점
+
+| 항목 | 이전 (EC2 빌드) | 현재 (CI/CD) |
+|------|----------------|--------------|
+| Rust 컴파일 | EC2에서 (t3.medium 필요) | GitHub Actions에서 |
+| 빌드 시간 | 15-30분 | 5-10분 |
+| EC2 스펙 | t3.medium 임시 필요 | t2.micro 유지 가능 |
+| 배포 방식 | SSH 접속 후 수동 | `git push`만 |
+
+#### 6.6.2-4 EC2 유지보수 가이드
+
+##### 디스크 사용량 확인
+
+```bash
+# 전체 디스크 사용량
+df -h
+
+# Docker 관련 용량
+docker system df
+
+# Docker 이미지별 용량
+docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+```
+
+##### 디스크 정리
+
+```bash
+# Docker Build Cache 정리 (CI/CD 사용 시 불필요)
+docker builder prune -f
+
+# 사용하지 않는 이미지 정리
+docker image prune -a
+
+# 사용하지 않는 볼륨 정리 (주의: 데이터 손실 가능)
+docker volume prune
+```
+
+##### Docker/시스템 업데이트
+
+```bash
+# Docker 업데이트 (Amazon Linux)
+sudo yum update docker -y
+sudo systemctl restart docker
+
+# 이미지 업데이트 후 재시작
+docker compose -f docker-compose.prod.yml --env-file .env.prod pull
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+```
+
+> **참고**: CI/CD 적용 후 EC2에서는 빌드 작업이 없으므로 t2.micro (1GB RAM)로 모든 유지보수 작업 가능.
 
 #### 6.6.3 품질 보증 (QA) & 스모크 체크
 
@@ -7238,7 +7427,8 @@ export function AppRoutes() {
 
 | 항목 | 출처 | 우선순위 | 설명 |
 |------|------|----------|------|
-| CI GitHub Actions | 7.6 테스트 & 자동화 | 중간 | PR 생성/업데이트 시 fmt/clippy/check 자동 실행 |
+| ~~CI GitHub Actions~~ | ~~7.6 테스트 & 자동화~~ | ~~중간~~ | ✅ **완료** (2026-01-26) - 배포 자동화 구축 |
+| RDS 이전 | 9.9 인프라 로드맵 | 중간 | Admin 완료 → 리팩토링 → 보안 강화 → RDS 이전 순서로 진행 |
 | 통계 비동기/배치 분리 | 7.5 트랜잭션 패턴 | 낮음 | 집계/통계 갱신이 복잡해지면 비동기/배치로 분리 검토 |
 
 #### 코드 정리
@@ -7247,6 +7437,181 @@ export function AppRoutes() {
 |------|------|----------|------|
 | URL 구성 순서 수정 | Phase 전체 수정 | 낮음 | 전체 URL 점검 및 수정 사항 파악 후 작업 진행 |
 | api 함수명 통일 | Phase 전체 수정 | 낮음 | back-front 전부 연결되는 함수명 통일화 진행 필요 |
+
+### 9.8 LLM 협업 도구 전환
+
+> Claude Code 도입으로 기존 LLM 프롬프트 기반 작업 방식 변경 필요
+
+#### 9.8.1 기존 Patch 템플릿 처리
+
+**현재 상태:**
+- `docs/patchs/` - 백엔드 Phase별 프롬프트 (0.health ~ 6.admin)
+- `frontend/docs/patchs/` - 프론트엔드 Phase별 프롬프트 (0.health ~ 4.study)
+- `docs/patchs/LLM_PATCHS_TEMPLATE_BACKEND.md` - 백엔드 템플릿
+- `frontend/docs/LLM_PATCHS_TEMPLATE_FRONTEND.md` - 프론트엔드 템플릿
+
+**결정 사항:**
+
+| 옵션 | 설명 | 선택 |
+|------|------|------|
+| **아카이브** | `docs/archive/patchs/`로 이동, 참고용 유지 | ⭐ 권장 |
+| 삭제 | 완전히 제거 | △ |
+| 유지 | 현 위치 유지 | △ |
+
+**이유:**
+- 작업 히스토리/의사결정 기록으로서 가치
+- Claude Code 사용 불가 상황에서 백업 수단
+- 다른 LLM (Gemini, ChatGPT)으로 작업 시 참고 가능
+
+**TODO:**
+- [ ] `docs/patchs/` → `docs/archive/patchs/` 이동
+- [ ] `frontend/docs/patchs/` → `frontend/docs/archive/patchs/` 이동
+- [ ] Section 0.3 관련 파일 경로 업데이트
+
+#### 9.8.2 GitHub Gemini Code Assistant
+
+**활용 방안:**
+
+| 용도 | 도구 | 비고 |
+|------|------|------|
+| 코드 작성/수정 | **Claude Code** | 메인 도구 |
+| PR 리뷰 자동화 | GitHub Gemini | 보조 도구 |
+| 코드 제안/설명 | GitHub Copilot / Gemini | 선택적 |
+
+**설정 방법:**
+1. GitHub repo → Settings → Integrations
+2. Gemini Code Assist 활성화
+3. PR 생성 시 자동 리뷰 코멘트
+
+**주의사항:**
+- Claude Code와 충돌 없이 병행 가능
+- 최종 판단은 직접 확인 필요
+- PR 리뷰 자동화에 유용
+
+### 9.9 인프라 로드맵 (RDS 이전)
+
+> EC2 내 Docker PostgreSQL → AWS RDS 이전 계획
+
+#### 9.9.1 이전 순서 (권장)
+
+```
+1. Admin 프론트 구현     ← 현재 DB 구조 확정
+2. 코드 리뷰/리팩토링    ← DB 쿼리 최적화 포함
+3. 보안/처리 로직 강화   ← 인덱스, 제약조건 정리
+4. RDS 이전             ← 안정화된 상태에서 이전
+```
+
+**이유:**
+- 스키마 변경 가능성 있는 작업 먼저 완료
+- RDS 이전 후 스키마 변경은 더 신중해야 함
+- 현재 Docker PostgreSQL도 볼륨으로 데이터 유지되니 급하지 않음
+
+#### 9.9.2 RDS 이전 시점 기준
+
+| 조건 | 설명 |
+|------|------|
+| 실사용자 데이터 축적 | 테스트 데이터가 아닌 실제 데이터가 쌓이기 시작할 때 |
+| EC2 디스크/성능 이슈 | 현재 20GB 중 여유 있으나, 부족 시 |
+| 백업/복구 요구사항 | 자동 백업, Point-in-time recovery 필요 시 |
+| 고가용성 필요 | Multi-AZ 배포 필요 시 |
+
+#### 9.9.3 RDS 설정 예상
+
+| 항목 | 권장값 |
+|------|--------|
+| Engine | PostgreSQL 16 |
+| Instance Class | db.t3.micro (프리티어) → db.t3.small |
+| Storage | 20GB gp3 (자동 확장) |
+| Multi-AZ | 초기 비활성화 → 추후 활성화 |
+| Backup | 7일 자동 백업 |
+
+### 9.10 데이터 모니터링 & 접근
+
+> 운영 DB 데이터 확인 및 로컬 동기화 방법
+
+#### 9.10.1 즉시 사용 가능: SSH 터널 + DB 클라이언트
+
+```bash
+# 1. SSH 터널 설정 (로컬 5433 → EC2 PostgreSQL 5432)
+ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
+
+# 2. DBeaver/pgAdmin에서 접속
+# Host: localhost
+# Port: 5433
+# Database: amazing_korean_db
+# User: postgres
+# Password: (POSTGRES_PASSWORD)
+```
+
+**장점:**
+- 별도 설정 없이 즉시 사용 가능
+- GUI로 데이터 조회/수정 편리
+
+#### 9.10.2 Admin 대시보드 (개발 예정)
+
+Admin Phase 개발 시 함께 구현:
+- 사용자 통계 (가입 수, 활성 사용자)
+- 로그인 통계 (일별/주별)
+- 학습 현황 (진도율, 완료율)
+- 시스템 상태 (DB 연결, Redis 상태)
+
+#### 9.10.3 로컬 ↔ EC2 데이터 동기화
+
+**EC2 → 로컬 (운영 데이터 복사)**
+
+```bash
+# 1. EC2에서 덤프
+ssh ec2-user@EC2_IP "docker exec amk-pg pg_dump -U postgres amazing_korean_db" > prod_backup.sql
+
+# 2. 로컬에 복원
+psql -U postgres -d amazing_korean_db < prod_backup.sql
+```
+
+**주의사항:**
+- 개인정보 포함 데이터는 마스킹 처리 권장
+- 로컬 테스트 데이터와 혼용 주의
+
+### 9.11 디자인 & UI
+
+> 현재 MVP 단계의 UI/UX 개선 및 디자인 시스템 정립 필요
+
+#### 9.11.1 현재 상태
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| 컴포넌트 라이브러리 | shadcn/ui | Tailwind 기반 |
+| 디자인 시스템 | 미정립 | 색상, 타이포그래피, 간격 등 |
+| 반응형 | 부분 적용 | 모바일 최적화 필요 |
+| 다크 모드 | 미적용 | 추후 검토 |
+
+#### 9.11.2 개선 필요 항목
+
+| 우선순위 | 항목 | 설명 |
+|----------|------|------|
+| 높음 | 로고 & 브랜딩 | Amazing Korean 로고, 파비콘, OG 이미지 |
+| 높음 | 색상 팔레트 | Primary, Secondary, Accent 색상 정의 |
+| 중간 | 타이포그래피 | 폰트 패밀리, 사이즈 체계 (h1~h6, body, caption) |
+| 중간 | 간격 시스템 | 4px/8px 기반 spacing scale |
+| 중간 | 반응형 브레이크포인트 | sm/md/lg/xl 기준 정의 |
+| 낮음 | 다크 모드 | 색상 팔레트 확정 후 검토 |
+| 낮음 | 애니메이션/트랜지션 | 로딩, 페이지 전환 효과 |
+
+#### 9.11.3 디자인 도구 & 자산
+
+| 항목 | 현재 | 권장 |
+|------|------|------|
+| 디자인 도구 | - | Figma |
+| 아이콘 | Lucide Icons | 유지 |
+| 이미지 자산 | `/public/images/` | 최적화 필요 (WebP 변환) |
+| 폰트 | 시스템 폰트 | Pretendard / Noto Sans KR 검토 |
+
+#### 9.11.4 TODO
+
+- [ ] 브랜드 가이드라인 정의 (로고 사용법, 색상 코드)
+- [ ] Figma 디자인 시스템 구축
+- [ ] Tailwind config에 커스텀 색상/폰트 적용
+- [ ] 공통 컴포넌트 스타일 통일 (Button, Input, Card 등)
+- [ ] 반응형 레이아웃 점검 (모바일 우선)
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
@@ -7269,6 +7634,24 @@ export function AppRoutes() {
   - 목차(TOC) 실제 섹션 헤딩과 동기화 (Section 6, 7, 8, 9 하위 항목 추가)
   - Section 9.6 "코드 일관성 (Technical Debt)" 추가
   - Section 9.7 "추후 작업 항목 (문서 내 TODO 통합)" 추가
+- **2026-01-26 — v1.0.0 MVP 릴리스**
+  - **MVP 배포 완료**
+    - Frontend: Cloudflare Pages (`amazingkorean.net`)
+    - Backend: AWS EC2 (`api.amazingkorean.net`)
+    - SSL: Cloudflare Flexible 모드
+  - **GitHub Actions CI/CD 파이프라인 구축**
+    - Section 6.6.2-3 "GitHub Actions CI/CD 파이프라인" 추가
+    - EC2에서 빌드 불필요 → t2.micro 유지 가능
+    - `git push`만으로 자동 배포
+  - **배포 최적화**
+    - `.dockerignore` 추가 (docs, frontend, .git 등 제외)
+    - `docker-compose.prod.yml` Docker Hub 이미지 사용으로 변경
+    - Section 6.6.2-4 "EC2 유지보수 가이드" 추가
+  - **버전 관리**: Cargo.toml `version = "1.0.0"`, Git tag `v1.0.0` 생성
+  - **Section 9 확장** (Open Questions & 설계 TODO)
+    - Section 9.8 "LLM 협업 도구 전환" 추가 (Patch 템플릿 처리 + GitHub Gemini)
+    - Section 9.9 "인프라 로드맵 (RDS 이전)" 추가 (이전 순서 및 시점 기준)
+    - Section 9.10 "데이터 모니터링 & 접근" 추가 (SSH 터널, Admin 대시보드, 동기화)
 - 이후 변경 사항은 커밋 메시지 `docs: update AMK_API_MASTER <요약>` 형식으로 관리하고, 필요 시 이 섹션에 중요한 방향 전환만 추가한다.
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
