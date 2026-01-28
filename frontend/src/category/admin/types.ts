@@ -173,23 +173,245 @@ export const adminBulkUpdateUserResSchema = z.object({
 export type AdminBulkUpdateUserRes = z.infer<typeof adminBulkUpdateUserResSchema>;
 
 // ==========================================
-// 3. Admin Video 타입 (기본)
+// 3. Admin Video 타입
 // ==========================================
 
+// Video 상태
+export const videoStateSchema = z.enum(["ready", "open", "close"]);
+export type VideoState = z.infer<typeof videoStateSchema>;
+
+// Video 접근 권한
+export const videoAccessSchema = z.enum(["public", "paid", "private", "promote"]);
+export type VideoAccess = z.infer<typeof videoAccessSchema>;
+
+// 비디오 목록 아이템 (요약)
 export const adminVideoSummarySchema = z.object({
   id: z.number().int(),
+  title: z.string(),
+  url: z.string().nullable(),
+  description: z.string().nullable(),
+  views: z.number().int(),
+  video_state: videoStateSchema,
+  video_access: videoAccessSchema,
   video_idx: z.string(),
-  title: z.string().nullable(),
-  state: z.string(),
+  video_tag_key: z.string().nullable(),
+  updated_by_user_id: z.number().int().nullable(),
   created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
 });
 export type AdminVideoSummary = z.infer<typeof adminVideoSummarySchema>;
 
+// 비디오 목록 응답 (pagination 필드명 주의)
 export const adminVideoListResSchema = z.object({
   items: z.array(adminVideoSummarySchema),
-  meta: adminListMetaSchema,
+  pagination: z.object({
+    total_count: z.number().int(),
+    total_pages: z.number().int(),
+    current_page: z.number().int(),
+    per_page: z.number().int(),
+  }),
 });
 export type AdminVideoListRes = z.infer<typeof adminVideoListResSchema>;
+
+// 비디오 상세 응답 (AdminVideoRes와 동일)
+export const adminVideoResSchema = adminVideoSummarySchema;
+export type AdminVideoRes = z.infer<typeof adminVideoResSchema>;
+
+// 비디오 생성 요청
+export const videoCreateReqSchema = z.object({
+  // 1. video 테이블 컬럼
+  video_idx: z.string().min(1).max(100).optional(),
+  video_state: videoStateSchema.optional(), // 기본값: ready
+  video_access: videoAccessSchema,
+  // 2. video_tag 테이블 컬럼
+  video_tag_title: z.string().min(1).max(200),
+  video_tag_subtitle: z.string().max(500).optional(),
+  video_tag_key: z.string().min(1).max(30).optional(),
+  // 3. video URL
+  video_url_vimeo: z.string().url().max(1024),
+});
+export type VideoCreateReq = z.infer<typeof videoCreateReqSchema>;
+
+// 비디오 수정 요청
+export const videoUpdateReqSchema = z.object({
+  video_tag_title: z.string().min(1).max(200).optional(),
+  video_tag_subtitle: z.string().max(500).optional(),
+  video_tag_key: z.string().min(1).max(30).optional(),
+  video_url_vimeo: z.string().url().max(1024).optional(),
+  video_access: videoAccessSchema.optional(),
+  video_state: videoStateSchema.optional(),
+  video_idx: z.string().min(1).max(100).optional(),
+});
+export type VideoUpdateReq = z.infer<typeof videoUpdateReqSchema>;
+
+// 비디오 태그 수정 요청
+export const videoTagUpdateReqSchema = z.object({
+  video_tag_title: z.string().min(1).max(200).optional(),
+  video_tag_subtitle: z.string().max(500).optional(),
+  video_tag_key: z.string().min(1).max(30).optional(),
+});
+export type VideoTagUpdateReq = z.infer<typeof videoTagUpdateReqSchema>;
+
+// 벌크 생성 요청
+export const videoBulkCreateReqSchema = z.object({
+  items: z.array(videoCreateReqSchema).min(1).max(100),
+});
+export type VideoBulkCreateReq = z.infer<typeof videoBulkCreateReqSchema>;
+
+// 벌크 생성 결과 아이템
+export const videoBulkItemResultSchema = z.object({
+  id: z.number().int().optional(),
+  status: z.number().int(),
+  data: adminVideoResSchema.optional(),
+  error: bulkItemErrorSchema.optional(),
+});
+export type VideoBulkItemResult = z.infer<typeof videoBulkItemResultSchema>;
+
+// 벌크 생성 응답
+export const videoBulkCreateResSchema = z.object({
+  summary: bulkSummarySchema,
+  results: z.array(videoBulkItemResultSchema),
+});
+export type VideoBulkCreateRes = z.infer<typeof videoBulkCreateResSchema>;
+
+// 벌크 수정 요청 아이템
+export const videoBulkUpdateItemSchema = z.object({
+  id: z.number().int(),
+  video_idx: z.string().min(1).max(100).optional(),
+  video_state: videoStateSchema.optional(),
+  video_access: videoAccessSchema.optional(),
+  video_tag_title: z.string().min(1).max(200).optional(),
+  video_tag_subtitle: z.string().max(500).optional(),
+  video_tag_key: z.string().min(1).max(30).optional(),
+  video_url_vimeo: z.string().url().max(1024).optional(),
+});
+export type VideoBulkUpdateItem = z.infer<typeof videoBulkUpdateItemSchema>;
+
+// 벌크 수정 요청
+export const videoBulkUpdateReqSchema = z.object({
+  items: z.array(videoBulkUpdateItemSchema).min(1).max(100),
+});
+export type VideoBulkUpdateReq = z.infer<typeof videoBulkUpdateReqSchema>;
+
+// 벌크 수정 결과 아이템
+export const videoBulkUpdateItemResultSchema = z.object({
+  id: z.number().int(),
+  status: z.number().int(),
+  data: adminVideoResSchema.optional(),
+  error: bulkItemErrorSchema.optional(),
+});
+export type VideoBulkUpdateItemResult = z.infer<typeof videoBulkUpdateItemResultSchema>;
+
+// 벌크 수정 응답
+export const videoBulkUpdateResSchema = z.object({
+  summary: bulkSummarySchema,
+  results: z.array(videoBulkUpdateItemResultSchema),
+});
+export type VideoBulkUpdateRes = z.infer<typeof videoBulkUpdateResSchema>;
+
+// 벌크 태그 수정 요청 아이템
+export const videoTagBulkUpdateItemSchema = z.object({
+  id: z.number().int(),
+  video_tag_title: z.string().min(1).max(200).optional(),
+  video_tag_subtitle: z.string().max(500).optional(),
+  video_tag_key: z.string().min(1).max(30).optional(),
+});
+export type VideoTagBulkUpdateItem = z.infer<typeof videoTagBulkUpdateItemSchema>;
+
+// 벌크 태그 수정 요청
+export const videoTagBulkUpdateReqSchema = z.object({
+  items: z.array(videoTagBulkUpdateItemSchema).min(1).max(100),
+});
+export type VideoTagBulkUpdateReq = z.infer<typeof videoTagBulkUpdateReqSchema>;
+
+// Vimeo 메타데이터 미리보기 응답
+export const vimeoPreviewResSchema = z.object({
+  vimeo_video_id: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  duration: z.number().int(),
+  thumbnail_url: z.string().nullable(),
+});
+export type VimeoPreviewRes = z.infer<typeof vimeoPreviewResSchema>;
+
+// Vimeo 업로드 티켓 요청
+export const vimeoUploadTicketReqSchema = z.object({
+  file_name: z.string().min(1).max(255),
+  file_size: z.number().int().min(1),
+});
+export type VimeoUploadTicketReq = z.infer<typeof vimeoUploadTicketReqSchema>;
+
+// Vimeo 업로드 티켓 응답
+export const vimeoUploadTicketResSchema = z.object({
+  video_uri: z.string(),
+  vimeo_video_id: z.string(),
+  upload_link: z.string(),
+});
+export type VimeoUploadTicketRes = z.infer<typeof vimeoUploadTicketResSchema>;
+
+// ==========================================
+// 3-1. Admin Video Stats 타입
+// ==========================================
+
+// 통계 쿼리 파라미터 (공통)
+export const statsQuerySchema = z.object({
+  from: z.string(), // YYYY-MM-DD
+  to: z.string(), // YYYY-MM-DD
+});
+export type StatsQuery = z.infer<typeof statsQuerySchema>;
+
+// TOP 비디오 쿼리 파라미터
+export const topVideosQuerySchema = statsQuerySchema.extend({
+  limit: z.number().int().min(1).max(50).optional(),
+  sort_by: z.enum(["views", "completes"]).optional(),
+});
+export type TopVideosQuery = z.infer<typeof topVideosQuerySchema>;
+
+// 통계 요약 응답
+export const statsSummaryResSchema = z.object({
+  total_views: z.number().int(),
+  total_completes: z.number().int(),
+  active_video_count: z.number().int(),
+  from_date: z.string(), // YYYY-MM-DD
+  to_date: z.string(), // YYYY-MM-DD
+});
+export type StatsSummaryRes = z.infer<typeof statsSummaryResSchema>;
+
+// TOP 비디오 아이템
+export const topVideoItemSchema = z.object({
+  rank: z.number().int(),
+  video_id: z.number().int(),
+  video_idx: z.string(),
+  title: z.string().nullable(),
+  views: z.number().int(),
+  completes: z.number().int(),
+});
+export type TopVideoItem = z.infer<typeof topVideoItemSchema>;
+
+// TOP 비디오 응답
+export const topVideosResSchema = z.object({
+  from_date: z.string(),
+  to_date: z.string(),
+  sort_by: z.string(),
+  items: z.array(topVideoItemSchema),
+});
+export type TopVideosRes = z.infer<typeof topVideosResSchema>;
+
+// 일별 통계 아이템
+export const dailyStatItemSchema = z.object({
+  date: z.string(), // YYYY-MM-DD
+  views: z.number().int(),
+  completes: z.number().int(),
+});
+export type DailyStatItem = z.infer<typeof dailyStatItemSchema>;
+
+// 일별 통계 응답 (집계)
+export const aggregateDailyStatsResSchema = z.object({
+  from_date: z.string(),
+  to_date: z.string(),
+  items: z.array(dailyStatItemSchema),
+});
+export type AggregateDailyStatsRes = z.infer<typeof aggregateDailyStatsResSchema>;
 
 // ==========================================
 // 4. Admin Study 타입 (기본)

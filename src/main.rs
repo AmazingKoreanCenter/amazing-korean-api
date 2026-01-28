@@ -2,6 +2,7 @@ mod api;
 mod config;
 mod docs;
 mod error;
+mod external;
 mod state;
 mod types;
 

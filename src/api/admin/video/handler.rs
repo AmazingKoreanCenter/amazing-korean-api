@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 use crate::api::admin::video::dto::{
     AdminVideoListReq, AdminVideoListRes, AdminVideoRes, VideoBulkCreateReq, VideoBulkCreateRes,
     VideoBulkUpdateReq, VideoBulkUpdateRes, VideoCreateReq, VideoTagBulkUpdateReq, VideoTagUpdateReq,
-    VideoUpdateReq,
+    VideoUpdateReq, VimeoPreviewReq, VimeoPreviewRes, VimeoUploadTicketReq, VimeoUploadTicketRes,
 };
 use crate::api::auth::extractor::AuthUser;
 #[allow(unused_imports)] // Used in return type
@@ -76,6 +76,42 @@ pub async fn admin_list_videos(
         &st,
         auth_user.sub,
         params,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/videos/{video_id}",
+    tag = "admin_video",
+    params(
+        ("video_id" = i64, Path, description = "Video ID")
+    ),
+    responses(
+        (status = 200, description = "Video details", body = AdminVideoRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 404, description = "Video not found", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_get_video(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Path(video_id): Path<i64>,
+) -> AppResult<Json<AdminVideoRes>> {
+    let ip_address = extract_client_ip(&headers);
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_get_video(
+        &st,
+        auth_user.sub,
+        video_id,
         ip_address,
         user_agent,
     )
@@ -331,5 +367,48 @@ pub async fn admin_update_video_tags(
     )
     .await?;
 
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/videos/vimeo/preview",
+    tag = "admin_video",
+    params(VimeoPreviewReq),
+    responses(
+        (status = 200, description = "Vimeo metadata preview", body = VimeoPreviewRes),
+        (status = 400, description = "Invalid URL or Vimeo error", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn get_vimeo_preview_handler(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Query(params): Query<VimeoPreviewReq>,
+) -> AppResult<Json<VimeoPreviewRes>> {
+    let res = super::service::get_vimeo_preview(&st, auth_user.sub, &params.url).await?;
+    Ok(Json(res))
+}
+
+/// Vimeo 업로드 티켓 생성 (tus resumable upload용)
+#[utoipa::path(
+    post,
+    path = "/admin/videos/vimeo/upload-ticket",
+    tag = "admin_video",
+    request_body = VimeoUploadTicketReq,
+    responses(
+        (status = 200, description = "Upload ticket created", body = VimeoUploadTicketRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn create_vimeo_upload_ticket_handler(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Json(req): Json<VimeoUploadTicketReq>,
+) -> AppResult<Json<VimeoUploadTicketRes>> {
+    let res = super::service::create_vimeo_upload_ticket(&st, auth_user.sub, req).await?;
     Ok(Json(res))
 }

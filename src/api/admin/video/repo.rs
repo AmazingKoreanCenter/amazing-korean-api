@@ -1,4 +1,5 @@
-use crate::api::admin::video::dto::{AdminVideoRes, VideoCreateReq, VideoUpdateReq};
+use crate::api::admin::video::dto::{AdminVideoRes, VideoAccess, VideoCreateReq, VideoState, VideoUpdateReq};
+use std::str::FromStr;
 use crate::error::AppResult;
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction, Row}; // [수정] Row 추가
@@ -37,23 +38,29 @@ pub async fn admin_list_videos(
     // 2. 목록 조회 쿼리
     let mut list_builder = QueryBuilder::<Postgres>::new(
         r#"
-        SELECT 
+        SELECT
             v.video_id::bigint AS id,
             COALESCE(MAX(t.video_tag_title), v.video_idx) AS title,
             v.video_url_vimeo AS url,
             MAX(t.video_tag_subtitle) AS description,
             COALESCE(SUM(stats.views), 0)::bigint AS views,
-            (v.video_access = 'public'::video_access_enum) AS is_public,
+            v.video_state::text AS video_state,
+            v.video_access::text AS video_access,
+            v.video_idx AS video_idx,
+            MAX(t.video_tag_key) AS video_tag_key,
+            v.updated_by_user_id::bigint AS updated_by_user_id,
             v.video_created_at AS created_at,
-            v.video_updated_at AS updated_at
+            v.video_updated_at AS updated_at,
+            v.video_duration AS video_duration,
+            v.video_thumbnail AS video_thumbnail
         FROM video v
         LEFT JOIN video_tag_map m ON v.video_id = m.video_id
         LEFT JOIN video_tag t ON m.video_tag_id = t.video_tag_id
         LEFT JOIN (
-            SELECT 
-                video_id, 
-                SUM(video_stat_views) AS views 
-            FROM video_stat_daily 
+            SELECT
+                video_id,
+                SUM(video_stat_views) AS views
+            FROM video_stat_daily
             GROUP BY video_id
         ) stats ON stats.video_id = v.video_id
         "#
@@ -67,11 +74,14 @@ pub async fn admin_list_videos(
         list_builder.push(")");
     }
 
-    list_builder.push(" GROUP BY v.video_id, v.video_idx, v.video_url_vimeo, v.video_access, v.video_created_at, v.video_updated_at ");
+    list_builder.push(" GROUP BY v.video_id, v.video_idx, v.video_url_vimeo, v.video_state, v.video_access, v.updated_by_user_id, v.video_created_at, v.video_updated_at, v.video_duration, v.video_thumbnail ");
 
     let order_by = match sort {
+        "id" => "v.video_id",
         "views" => "views",
         "title" => "MAX(t.video_tag_title)",
+        "video_state" => "v.video_state",
+        "video_access" => "v.video_access",
         _ => "v.video_created_at",
     };
     let order_dir = match order {
@@ -88,12 +98,99 @@ pub async fn admin_list_videos(
     list_builder.push(" OFFSET ");
     list_builder.push_bind((page - 1) * size);
 
-    let items = list_builder
-        .build_query_as::<AdminVideoRes>()
+    let rows = list_builder
+        .build()
         .fetch_all(pool)
         .await?;
 
+    let items: Vec<AdminVideoRes> = rows
+        .into_iter()
+        .map(|row| {
+            let state_str: String = row.try_get("video_state").unwrap_or_default();
+            let access_str: String = row.try_get("video_access").unwrap_or_default();
+
+            AdminVideoRes {
+                id: row.try_get("id").unwrap_or(0),
+                title: row.try_get("title").unwrap_or_default(),
+                url: row.try_get("url").ok(),
+                description: row.try_get("description").ok(),
+                views: row.try_get("views").unwrap_or(0),
+                video_state: VideoState::from_str(&state_str).unwrap_or(VideoState::Ready),
+                video_access: VideoAccess::from_str(&access_str).unwrap_or(VideoAccess::Private),
+                video_idx: row.try_get("video_idx").unwrap_or_default(),
+                video_tag_key: row.try_get("video_tag_key").ok(),
+                updated_by_user_id: Some(row.try_get::<i64, _>("updated_by_user_id").unwrap_or(0)),
+                created_at: row.try_get("created_at").unwrap_or_default(),
+                updated_at: row.try_get("updated_at").unwrap_or_default(),
+                video_duration: row.try_get("video_duration").ok(),
+                video_thumbnail: row.try_get("video_thumbnail").ok(),
+            }
+        })
+        .collect();
+
     Ok((total_count, items))
+}
+
+pub async fn admin_get_video(pool: &PgPool, video_id: i64) -> AppResult<Option<AdminVideoRes>> {
+    let row = sqlx::query(
+        r#"
+        SELECT
+            v.video_id::bigint AS id,
+            COALESCE(MAX(t.video_tag_title), v.video_idx) AS title,
+            v.video_url_vimeo AS url,
+            MAX(t.video_tag_subtitle) AS description,
+            COALESCE(SUM(stats.views), 0)::bigint AS views,
+            v.video_state::text AS video_state,
+            v.video_access::text AS video_access,
+            v.video_idx AS video_idx,
+            MAX(t.video_tag_key) AS video_tag_key,
+            v.updated_by_user_id::bigint AS updated_by_user_id,
+            v.video_created_at AS created_at,
+            v.video_updated_at AS updated_at,
+            v.video_duration AS video_duration,
+            v.video_thumbnail AS video_thumbnail
+        FROM video v
+        LEFT JOIN video_tag_map m ON v.video_id = m.video_id
+        LEFT JOIN video_tag t ON m.video_tag_id = t.video_tag_id
+        LEFT JOIN (
+            SELECT
+                video_id,
+                SUM(video_stat_views) AS views
+            FROM video_stat_daily
+            GROUP BY video_id
+        ) stats ON stats.video_id = v.video_id
+        WHERE v.video_id = $1
+        GROUP BY v.video_id, v.video_idx, v.video_url_vimeo, v.video_state, v.video_access, v.updated_by_user_id, v.video_created_at, v.video_updated_at, v.video_duration, v.video_thumbnail
+        "#,
+    )
+    .bind(video_id)
+    .fetch_optional(pool)
+    .await?;
+
+    match row {
+        Some(row) => {
+            let state_str: String = row.try_get("video_state").unwrap_or_default();
+            let access_str: String = row.try_get("video_access").unwrap_or_default();
+
+            Ok(Some(AdminVideoRes {
+                id: row.try_get("id").unwrap_or(0),
+                title: row.try_get("title").unwrap_or_default(),
+                url: row.try_get("url").ok(),
+                description: row.try_get("description").ok(),
+                views: row.try_get("views").unwrap_or(0),
+                video_state: VideoState::from_str(&state_str).unwrap_or(VideoState::Ready),
+                video_access: VideoAccess::from_str(&access_str).unwrap_or(VideoAccess::Private),
+                video_idx: row.try_get("video_idx").unwrap_or_default(),
+                video_tag_key: row.try_get("video_tag_key").ok(),
+                updated_by_user_id: Some(row.try_get::<i64, _>("updated_by_user_id").unwrap_or(0)),
+                created_at: row.try_get("created_at").unwrap_or_default(),
+                updated_at: row.try_get("updated_at").unwrap_or_default(),
+                video_duration: row.try_get("video_duration").ok(),
+                video_thumbnail: row.try_get("video_thumbnail").ok(),
+            }))
+        }
+        None => Ok(None),
+    }
 }
 
 pub async fn exists_video_idx(pool: &PgPool, video_idx: &str) -> AppResult<bool> {
@@ -120,6 +217,9 @@ pub async fn admin_create_video(
     video_idx: &str,
     video_tag_key: &str,
 ) -> AppResult<AdminVideoRes> {
+    // video_state 기본값: ready
+    let video_state = req.video_state.as_deref().unwrap_or("ready");
+
     // 1. VIDEO 테이블 Insert
     let video_row = sqlx::query(
         r#"
@@ -130,18 +230,20 @@ pub async fn admin_create_video(
             video_access,
             video_url_vimeo
         )
-        VALUES ($1, $2, 'ready'::video_state_enum, $3::video_access_enum, $4)
-        RETURNING 
-            video_id::bigint,        -- [타입 캐스팅] i64
-            video_created_at, 
-            video_updated_at, 
-            video_access::text,      -- [타입 캐스팅] Enum -> String
+        VALUES ($1, $2, $3::video_state_enum, $4::video_access_enum, $5)
+        RETURNING
+            video_id::bigint,
+            video_created_at,
+            video_updated_at,
+            video_state::text,
+            video_access::text,
             video_url_vimeo
         "#,
     )
     .bind(actor_user_id)
     .bind(video_idx)
-    .bind(&req.video_access)         // "public" or "private"
+    .bind(video_state)
+    .bind(&req.video_access)
     .bind(req.video_url_vimeo.trim())
     .fetch_one(&mut **tx)
     .await?;
@@ -149,6 +251,7 @@ pub async fn admin_create_video(
     let video_id: i64 = video_row.try_get("video_id")?;
     let created_at = video_row.try_get("video_created_at")?;
     let updated_at = video_row.try_get("video_updated_at")?;
+    let v_state: String = video_row.try_get("video_state")?;
     let video_access: String = video_row.try_get("video_access")?;
     let video_url: String = video_row.try_get("video_url_vimeo")?;
 
@@ -195,9 +298,15 @@ pub async fn admin_create_video(
         url: Some(video_url),
         description,
         views: 0,
-        is_public: video_access == "public",
+        video_state: VideoState::from_str(&v_state).unwrap_or(VideoState::Ready),
+        video_access: VideoAccess::from_str(&video_access).unwrap_or(VideoAccess::Private),
+        video_idx: video_idx.to_string(),
+        video_tag_key: Some(video_tag_key.to_string()),
+        updated_by_user_id: Some(actor_user_id),
         created_at,
         updated_at,
+        video_duration: None, // Vimeo 동기화 후 업데이트됨
+        video_thumbnail: None, // Vimeo 동기화 후 업데이트됨
     })
 }
 
@@ -278,7 +387,16 @@ pub async fn admin_update_video(
         is_first = false;
     }
 
-    // (3) video_url
+    // (3) video_state (Enum 캐스팅)
+    if let Some(ref state) = req.video_state {
+        if !is_first { builder.push(", "); }
+        builder.push("video_state = ");
+        builder.push_bind(state);
+        builder.push("::video_state_enum");
+        is_first = false;
+    }
+
+    // (4) video_url
     if let Some(ref url) = req.video_url_vimeo {
         if !is_first { builder.push(", "); }
         builder.push("video_url_vimeo = ");
@@ -297,15 +415,18 @@ pub async fn admin_update_video(
     builder.push_bind(video_id);
     
     // RETURNING
-    builder.push(" RETURNING video_id::bigint, video_created_at, video_updated_at, video_access::text, video_url_vimeo");
+    builder.push(" RETURNING video_id::bigint, video_created_at, video_updated_at, video_state::text, video_access::text, video_url_vimeo, video_idx, updated_by_user_id");
 
     let video_row = builder.build().fetch_one(&mut **tx).await?;
-    
+
     let v_id: i64 = video_row.try_get("video_id")?;
     let created_at = video_row.try_get("video_created_at")?;
     let updated_at = video_row.try_get("video_updated_at")?;
+    let v_state: String = video_row.try_get("video_state")?;
     let v_access: String = video_row.try_get("video_access")?;
     let v_url: String = video_row.try_get("video_url_vimeo")?;
+    let v_idx: String = video_row.try_get("video_idx")?;
+    let v_updated_by: Option<i64> = video_row.try_get("updated_by_user_id").ok();
 
     // -------------------------------------------------------------------------
     // 2. VIDEO_TAG 테이블 업데이트
@@ -356,22 +477,25 @@ pub async fn admin_update_video(
     // -------------------------------------------------------------------------
     // 3. 최종 결과 조회 (Codex High Issue 해결: MAX 집계 사용)
     // -------------------------------------------------------------------------
-    // GROUP BY에서 t.video_tag_title 등을 제외하고 MAX()를 써서 
+    // GROUP BY에서 t.video_tag_title 등을 제외하고 MAX()를 써서
     // 혹시라도 여러 태그가 매핑되어 있어도 1개의 Row만 반환되도록 보장합니다.
     let row = sqlx::query(
         r#"
-        SELECT 
+        SELECT
             v.video_id::bigint as id,
             COALESCE(MAX(t.video_tag_title), v.video_idx) as title,
             v.video_url_vimeo as url,
             MAX(t.video_tag_subtitle) as description,
-            COALESCE(SUM(s.video_stat_views), 0)::bigint as views
+            COALESCE(SUM(s.video_stat_views), 0)::bigint as views,
+            MAX(t.video_tag_key) as video_tag_key,
+            v.video_duration as video_duration,
+            v.video_thumbnail as video_thumbnail
         FROM video v
         LEFT JOIN video_tag_map m ON v.video_id = m.video_id
         LEFT JOIN video_tag t ON m.video_tag_id = t.video_tag_id
         LEFT JOIN video_stat_daily s ON v.video_id = s.video_id
         WHERE v.video_id = $1
-        GROUP BY v.video_id, v.video_idx, v.video_url_vimeo
+        GROUP BY v.video_id, v.video_idx, v.video_url_vimeo, v.video_duration, v.video_thumbnail
         "#
     )
     .bind(video_id)
@@ -384,9 +508,15 @@ pub async fn admin_update_video(
         url: Some(v_url),
         description: row.try_get("description").ok(),
         views: row.try_get("views")?,
-        is_public: v_access == "public",
+        video_state: VideoState::from_str(&v_state).unwrap_or(VideoState::Ready),
+        video_access: VideoAccess::from_str(&v_access).unwrap_or(VideoAccess::Private),
+        video_idx: v_idx,
+        video_tag_key: row.try_get("video_tag_key").ok(),
+        updated_by_user_id: v_updated_by,
         created_at,
         updated_at,
+        video_duration: row.try_get("video_duration").ok(),
+        video_thumbnail: row.try_get("video_thumbnail").ok(),
     })
 }
 
@@ -460,6 +590,50 @@ pub async fn create_video_log(
     .bind(before)
     .bind(after)
     .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+/// Vimeo 메타데이터로 video, video_tag 테이블 업데이트
+pub async fn update_vimeo_meta(
+    tx: &mut Transaction<'_, Postgres>,
+    video_id: i64,
+    duration: i32,
+    thumbnail_url: Option<&str>,
+    title: &str,
+    description: Option<&str>,
+) -> AppResult<()> {
+    // 1. video 테이블에 duration, thumbnail 업데이트
+    sqlx::query(
+        r#"
+        UPDATE video
+        SET video_duration = $2,
+            video_thumbnail = $3
+        WHERE video_id = $1
+        "#,
+    )
+    .bind(video_id)
+    .bind(duration)
+    .bind(thumbnail_url)
+    .execute(&mut **tx)
+    .await?;
+
+    // 2. video_tag 테이블에 title, subtitle 업데이트
+    sqlx::query(
+        r#"
+        UPDATE video_tag t
+        SET video_tag_title = $2,
+            video_tag_subtitle = $3
+        FROM video_tag_map m
+        WHERE m.video_tag_id = t.video_tag_id
+          AND m.video_id = $1
+        "#,
+    )
+    .bind(video_id)
+    .bind(title)
+    .bind(description)
+    .execute(&mut **tx)
     .await?;
 
     Ok(())

@@ -30,6 +30,10 @@ import { AdminUserDetail } from "@/category/admin/page/admin_user_detail";
 import { AdminUserCreate } from "@/category/admin/page/admin_user_create";
 import { AdminUserBulkCreate } from "@/category/admin/page/admin_user_bulk_create";
 import { AdminVideosPage } from "@/category/admin/page/admin_videos_page";
+import { AdminVideoDetail } from "@/category/admin/page/admin_video_detail";
+import { AdminVideoCreate } from "@/category/admin/page/admin_video_create";
+import { AdminVideoBulkCreate } from "@/category/admin/page/admin_video_bulk_create";
+import { AdminVideoStatsPage } from "@/category/admin/page/admin_video_stats_page";
 import { AdminStudiesPage } from "@/category/admin/page/admin_studies_page";
 import { AdminLessonsPage } from "@/category/admin/page/admin_lessons_page";
 
@@ -72,6 +76,10 @@ export function AppRoutes() {
           <Route path="users/bulk-create" element={<AdminUserBulkCreate />} />
           <Route path="users/:userId" element={<AdminUserDetail />} />
           <Route path="videos" element={<AdminVideosPage />} />
+          <Route path="videos/stats" element={<AdminVideoStatsPage />} />
+          <Route path="videos/new" element={<AdminVideoCreate />} />
+          <Route path="videos/bulk-create" element={<AdminVideoBulkCreate />} />
+          <Route path="videos/:videoId" element={<AdminVideoDetail />} />
           <Route path="studies" element={<AdminStudiesPage />} />
           <Route path="lessons" element={<AdminLessonsPage />} />
         </Route>

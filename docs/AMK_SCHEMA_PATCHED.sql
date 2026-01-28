@@ -186,6 +186,8 @@ CREATE TABLE video (
   video_state video_state_enum NOT NULL DEFAULT 'ready',
   video_access video_access_enum NOT NULL DEFAULT 'public',
   video_url_vimeo text NOT NULL,
+  video_thumbnail text,
+  video_duration text,
   video_created_at timestamptz NOT NULL DEFAULT (now()),
   video_updated_at timestamptz NOT NULL DEFAULT (now())
 );

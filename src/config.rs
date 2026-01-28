@@ -25,6 +25,7 @@ pub struct Config {
     pub rate_limit_login_window_sec: i64,
     pub rate_limit_login_max: i64,
     pub cors_origins: Vec<String>,
+    pub vimeo_access_token: Option<String>,
 }
 
 impl Config {
@@ -77,6 +78,9 @@ impl Config {
             .filter(|s| !s.is_empty())
             .collect();
 
+        // Vimeo API Access Token (optional)
+        let vimeo_access_token = env::var("VIMEO_ACCESS_TOKEN").ok();
+
         Self {
             database_url,
             bind_addr,
@@ -94,6 +98,7 @@ impl Config {
             rate_limit_login_window_sec,
             rate_limit_login_max,
             cors_origins,
+            vimeo_access_token,
         }
     }
 
