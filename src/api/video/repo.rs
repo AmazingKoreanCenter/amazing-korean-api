@@ -137,7 +137,7 @@ impl VideoRepo {
     // Detail & Single Fetch
     // =========================================================================
 
-    /// 비디오 상세 조회
+    /// 비디오 상세 조회 (공개 상태인 영상만)
     pub async fn find_detail_by_id(
         pool: &PgPool,
         video_id: i64,
@@ -145,7 +145,7 @@ impl VideoRepo {
         let row = sqlx::query_as::<_, VideoDetailRes>(
             r#"
             SELECT
-                v.video_id::bigint as video_id, -- [여기 수정]
+                v.video_id::bigint as video_id,
                 v.video_url_vimeo,
                 v.video_state::text as video_state,
                 COALESCE(
@@ -163,6 +163,7 @@ impl VideoRepo {
             LEFT JOIN video_tag_map vtm ON vtm.video_id = v.video_id
             LEFT JOIN video_tag vt ON vt.video_tag_id = vtm.video_tag_id
             WHERE v.video_id = $1
+              AND v.video_state = 'open'
             GROUP BY v.video_id
             "#
         )
@@ -173,15 +174,15 @@ impl VideoRepo {
         Ok(row)
     }
 
-    /// 비디오 존재 여부 확인
+    /// 비디오 존재 여부 확인 (공개 상태인 영상만)
     pub async fn exists_by_id(pool: &PgPool, video_id: i64) -> AppResult<bool> {
         let exists = sqlx::query_scalar::<_, bool>(
-            r#"SELECT EXISTS(SELECT 1 FROM video WHERE video_id = $1)"#,
+            r#"SELECT EXISTS(SELECT 1 FROM video WHERE video_id = $1 AND video_state = 'open')"#,
         )
         .bind(video_id)
         .fetch_one(pool)
         .await?;
-        
+
         Ok(exists)
     }
 
