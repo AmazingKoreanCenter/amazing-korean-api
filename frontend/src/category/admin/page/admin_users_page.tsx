@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, ChevronUp, ChevronDown, Upload, Users } from "lucide-react";
+import { Search, Plus, ChevronUp, ChevronDown, Upload, Users, BarChart3, LogIn } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -163,6 +163,18 @@ export function AdminUsersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Users Management</h1>
         <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/admin/users/stats">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              User Stats
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to="/admin/logins/stats">
+              <LogIn className="mr-2 h-4 w-4" />
+              Login Stats
+            </Link>
+          </Button>
           <Button variant="outline" asChild>
             <Link to="/admin/users/bulk-create">
               <Upload className="mr-2 h-4 w-4" />

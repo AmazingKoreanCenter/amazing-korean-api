@@ -9,6 +9,11 @@ import {
   updateAdminUsersBulk,
   getAdminUserLogs,
   getUserSelfLogs,
+  getUserStatsSummary,
+  getUserStatsSignups,
+  getLoginStatsSummary,
+  getLoginStatsDaily,
+  getLoginStatsDevices,
 } from "../admin_api";
 import type {
   AdminListReq,
@@ -17,6 +22,7 @@ import type {
   AdminBulkCreateUserReq,
   AdminBulkUpdateUserReq,
   AdminUserLogsReq,
+  StatsQuery,
 } from "../types";
 
 // ==========================================
@@ -142,5 +148,85 @@ export const useUserSelfLogs = (userId: number, params: AdminUserLogsReq) => {
     queryKey: [...adminUsersKeys.detail(userId), "user-logs", params] as const,
     queryFn: () => getUserSelfLogs(userId, params),
     enabled: userId > 0,
+  });
+};
+
+// ==========================================
+// User Stats Query Keys
+// ==========================================
+
+export const userStatsKeys = {
+  all: ["admin", "users", "stats"] as const,
+  summary: (params: StatsQuery) => [...userStatsKeys.all, "summary", params] as const,
+  signups: (params: StatsQuery) => [...userStatsKeys.all, "signups", params] as const,
+};
+
+export const loginStatsKeys = {
+  all: ["admin", "logins", "stats"] as const,
+  summary: (params: StatsQuery) => [...loginStatsKeys.all, "summary", params] as const,
+  daily: (params: StatsQuery) => [...loginStatsKeys.all, "daily", params] as const,
+  devices: (params: StatsQuery) => [...loginStatsKeys.all, "devices", params] as const,
+};
+
+// ==========================================
+// User Stats Hooks
+// ==========================================
+
+/**
+ * 7-53: 사용자 요약 통계 조회
+ */
+export const useUserStatsSummary = (params: StatsQuery) => {
+  return useQuery({
+    queryKey: userStatsKeys.summary(params),
+    queryFn: () => getUserStatsSummary(params),
+    enabled: !!params.from && !!params.to,
+  });
+};
+
+/**
+ * 7-54: 일별 가입 통계 조회
+ */
+export const useUserStatsSignups = (params: StatsQuery) => {
+  return useQuery({
+    queryKey: userStatsKeys.signups(params),
+    queryFn: () => getUserStatsSignups(params),
+    enabled: !!params.from && !!params.to,
+  });
+};
+
+// ==========================================
+// Login Stats Hooks
+// ==========================================
+
+/**
+ * 7-55: 로그인 요약 통계 조회
+ */
+export const useLoginStatsSummary = (params: StatsQuery) => {
+  return useQuery({
+    queryKey: loginStatsKeys.summary(params),
+    queryFn: () => getLoginStatsSummary(params),
+    enabled: !!params.from && !!params.to,
+  });
+};
+
+/**
+ * 7-56: 일별 로그인 통계 조회
+ */
+export const useLoginStatsDaily = (params: StatsQuery) => {
+  return useQuery({
+    queryKey: loginStatsKeys.daily(params),
+    queryFn: () => getLoginStatsDaily(params),
+    enabled: !!params.from && !!params.to,
+  });
+};
+
+/**
+ * 7-57: 디바이스별 통계 조회
+ */
+export const useLoginStatsDevices = (params: StatsQuery) => {
+  return useQuery({
+    queryKey: loginStatsKeys.devices(params),
+    queryFn: () => getLoginStatsDevices(params),
+    enabled: !!params.from && !!params.to,
   });
 };

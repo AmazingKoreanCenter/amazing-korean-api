@@ -1852,6 +1852,11 @@ audience: server / database / backend / frontend / lead / LLM assistant
 | 7-50 | `GET /admin/lessons/progress` | `/admin/lessons/progress?page=&size=&q=&sort=&order=` | 수업 진행 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [✅] |
 | 7-51 | `PATCH /admin/lessons/{id}/progress` | `/admin/lessons/{lesson_id}/progress` | 수업 진행 단건 수정 | ***순서 규칙 검증, ADMIN_LESSON_LOG, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
 | 7-52 | `PATCH /admin/lessons/bulk/progress` | `/admin/lessons/bulk/progress` | 수업 진행 다중 수정 | ***부분 성공, 순서 규칙 검증, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409/404** | [✅] |
+| 7-53 | `GET /admin/users/stats/summary` | `/admin/users/stats/summary?from=&to=` | 사용자 요약 통계 | ***총 사용자수/신규/활성/비활성, 역할별(HYMN/admin/manager/learner) 집계, 기간 검증(max 366일), RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [✅] |
+| 7-54 | `GET /admin/users/stats/signups` | `/admin/users/stats/signups?from=&to=` | 일별 가입 통계 | ***일별 가입수, 역할별(HYMN/admin/manager/learner) 집계, 제로필, RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [✅] |
+| 7-55 | `GET /admin/logins/stats/summary` | `/admin/logins/stats/summary?from=&to=` | 로그인 요약 통계 | ***총 로그인/성공/실패/고유사용자/활성세션, 기간 검증(max 366일), RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [✅] |
+| 7-56 | `GET /admin/logins/stats/daily` | `/admin/logins/stats/daily?from=&to=` | 일별 로그인 통계 | ***일별 성공/실패/고유사용자, 제로필, RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [✅] |
+| 7-57 | `GET /admin/logins/stats/devices` | `/admin/logins/stats/devices?from=&to=` | 디바이스별 로그인 통계 | ***디바이스별 성공횟수/비율, RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [✅] |
 
 ---
 

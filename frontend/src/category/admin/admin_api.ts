@@ -32,6 +32,11 @@ import type {
   AdminUserLogsReq,
   AdminUserLogsRes,
   UserLogsRes,
+  UserStatsSummaryRes,
+  UserStatsSignupsRes,
+  LoginStatsSummaryRes,
+  LoginStatsDailyRes,
+  LoginStatsDevicesRes,
 } from "./types";
 
 // ==========================================
@@ -166,6 +171,44 @@ export const getVideoStatsTop = (params: TopVideosQuery) =>
 
 export const getVideoStatsDaily = (params: StatsQuery) =>
   request<AggregateDailyStatsRes>("/admin/videos/stats/daily", {
+    method: "GET",
+    params,
+  });
+
+// ==========================================
+// Admin User Stats API
+// ==========================================
+
+export const getUserStatsSummary = (params: StatsQuery) =>
+  request<UserStatsSummaryRes>("/admin/users/stats/summary", {
+    method: "GET",
+    params,
+  });
+
+export const getUserStatsSignups = (params: StatsQuery) =>
+  request<UserStatsSignupsRes>("/admin/users/stats/signups", {
+    method: "GET",
+    params,
+  });
+
+// ==========================================
+// Admin Login Stats API
+// ==========================================
+
+export const getLoginStatsSummary = (params: StatsQuery) =>
+  request<LoginStatsSummaryRes>("/admin/logins/stats/summary", {
+    method: "GET",
+    params,
+  });
+
+export const getLoginStatsDaily = (params: StatsQuery) =>
+  request<LoginStatsDailyRes>("/admin/logins/stats/daily", {
+    method: "GET",
+    params,
+  });
+
+export const getLoginStatsDevices = (params: StatsQuery) =>
+  request<LoginStatsDevicesRes>("/admin/logins/stats/devices", {
     method: "GET",
     params,
   });

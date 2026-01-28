@@ -414,6 +414,96 @@ export const aggregateDailyStatsResSchema = z.object({
 export type AggregateDailyStatsRes = z.infer<typeof aggregateDailyStatsResSchema>;
 
 // ==========================================
+// 3-2. Admin User Stats 타입
+// ==========================================
+
+// 역할별 사용자 수
+export const usersByRoleSchema = z.object({
+  hymn: z.number().int(),
+  admin: z.number().int(),
+  manager: z.number().int(),
+  learner: z.number().int(),
+});
+export type UsersByRole = z.infer<typeof usersByRoleSchema>;
+
+// 7-53: 사용자 요약 통계 응답
+export const userStatsSummaryResSchema = z.object({
+  total_users: z.number().int(),
+  new_users: z.number().int(),
+  active_users: z.number().int(),
+  inactive_users: z.number().int(),
+  by_role: usersByRoleSchema,
+  from_date: z.string(),
+  to_date: z.string(),
+});
+export type UserStatsSummaryRes = z.infer<typeof userStatsSummaryResSchema>;
+
+// 일별 가입 통계 아이템
+export const dailySignupItemSchema = z.object({
+  date: z.string(),
+  signups: z.number().int(),
+  by_role: usersByRoleSchema,
+});
+export type DailySignupItem = z.infer<typeof dailySignupItemSchema>;
+
+// 7-54: 일별 가입 통계 응답
+export const userStatsSignupsResSchema = z.object({
+  from_date: z.string(),
+  to_date: z.string(),
+  items: z.array(dailySignupItemSchema),
+});
+export type UserStatsSignupsRes = z.infer<typeof userStatsSignupsResSchema>;
+
+// ==========================================
+// 3-3. Admin Login Stats 타입
+// ==========================================
+
+// 7-55: 로그인 요약 통계 응답
+export const loginStatsSummaryResSchema = z.object({
+  total_logins: z.number().int(),
+  success_count: z.number().int(),
+  fail_count: z.number().int(),
+  unique_users: z.number().int(),
+  active_sessions: z.number().int(),
+  from_date: z.string(),
+  to_date: z.string(),
+});
+export type LoginStatsSummaryRes = z.infer<typeof loginStatsSummaryResSchema>;
+
+// 일별 로그인 통계 아이템
+export const dailyLoginItemSchema = z.object({
+  date: z.string(),
+  success: z.number().int(),
+  fail: z.number().int(),
+  unique_users: z.number().int(),
+});
+export type DailyLoginItem = z.infer<typeof dailyLoginItemSchema>;
+
+// 7-56: 일별 로그인 통계 응답
+export const loginStatsDailyResSchema = z.object({
+  from_date: z.string(),
+  to_date: z.string(),
+  items: z.array(dailyLoginItemSchema),
+});
+export type LoginStatsDailyRes = z.infer<typeof loginStatsDailyResSchema>;
+
+// 디바이스별 통계 아이템
+export const deviceStatsItemSchema = z.object({
+  device: z.string(),
+  count: z.number().int(),
+  percentage: z.number(),
+});
+export type DeviceStatsItem = z.infer<typeof deviceStatsItemSchema>;
+
+// 7-57: 디바이스별 통계 응답
+export const loginStatsDevicesResSchema = z.object({
+  from_date: z.string(),
+  to_date: z.string(),
+  items: z.array(deviceStatsItemSchema),
+});
+export type LoginStatsDevicesRes = z.infer<typeof loginStatsDevicesResSchema>;
+
+// ==========================================
 // 4. Admin Study 타입 (기본)
 // ==========================================
 
