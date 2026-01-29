@@ -6,15 +6,15 @@ use axum::{
 use std::net::IpAddr;
 
 use crate::api::admin::study::dto::{
-    AdminStudyListRes, AdminStudyRes, StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkUpdateReq,
-    StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskBulkCreateReq,
-    StudyTaskBulkCreateRes, StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes,
-    StudyTaskCreateReq, StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq,
-    AdminStudyTaskListRes, AdminStudyTaskDetailRes, TaskExplainBulkCreateReq,
-    TaskExplainBulkCreateRes, TaskExplainBulkUpdateReq, TaskExplainBulkUpdateRes,
-    TaskExplainCreateReq, TaskExplainListReq, TaskExplainUpdateReq,
-    TaskStatusBulkUpdateReq, TaskStatusBulkUpdateRes, TaskStatusListReq, TaskStatusUpdateReq,
-    AdminTaskStatusListRes, AdminTaskStatusRes, AdminTaskExplainListRes, AdminTaskExplainRes,
+    AdminStudyDetailRes, AdminStudyListRes, AdminStudyRes, StudyBulkCreateReq, StudyBulkCreateRes,
+    StudyBulkUpdateReq, StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskBulkCreateReq,
+    StudyTaskBulkCreateRes, StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes, StudyTaskCreateReq,
+    StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq, AdminStudyTaskListRes,
+    AdminStudyTaskDetailRes, TaskExplainBulkCreateReq, TaskExplainBulkCreateRes,
+    TaskExplainBulkUpdateReq, TaskExplainBulkUpdateRes, TaskExplainCreateReq, TaskExplainListReq,
+    TaskExplainUpdateReq, TaskStatusBulkUpdateReq, TaskStatusBulkUpdateRes, TaskStatusListReq,
+    TaskStatusUpdateReq, AdminTaskStatusListRes, AdminTaskStatusRes, AdminTaskExplainListRes,
+    AdminTaskExplainRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -76,6 +76,42 @@ pub async fn admin_list_studies(
         auth_user.sub,
         params,
         ip_address, // String으로 변환된 IP 전달
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/studies/{study_id}",
+    tag = "admin_study",
+    params(
+        ("study_id" = i64, Path, description = "Study ID")
+    ),
+    responses(
+        (status = 200, description = "Study details with tasks", body = AdminStudyDetailRes),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Study not found"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_get_study(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Path(study_id): Path<i64>,
+) -> AppResult<Json<AdminStudyDetailRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_get_study(
+        &st,
+        auth_user.sub,
+        study_id,
+        ip_address,
         user_agent,
     )
     .await?;
@@ -278,6 +314,43 @@ pub async fn admin_list_study_tasks(
         &st,
         auth_user.sub,
         params,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/studies/tasks/{task_id}",
+    tag = "admin_study_task",
+    params(
+        ("task_id" = i64, Path, description = "Study Task ID")
+    ),
+    responses(
+        (status = 200, description = "Study task detail", body = AdminStudyTaskDetailRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_get_study_task(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Path(task_id): Path<i64>,
+) -> AppResult<Json<AdminStudyTaskDetailRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::admin_get_study_task(
+        &st,
+        auth_user.sub,
+        task_id,
         ip_address,
         user_agent,
     )

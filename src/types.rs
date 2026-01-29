@@ -162,6 +162,17 @@ pub enum StudyState {
     Close,
 }
 
+/// 학습(Study) 접근 권한
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "study_access_enum", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum StudyAccess {
+    Public,
+    Paid,
+    Private,
+    Promote,
+}
+
 /// 학습 프로그램 종류
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
 #[sqlx(type_name = "study_program_enum", rename_all = "snake_case")]
@@ -199,6 +210,27 @@ pub enum StudyTaskLogAction {
     Finish,
     Explain,
     Status,
+}
+
+/// 강의(Lesson) 상태
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "lesson_state_enum", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum LessonState {
+    Ready,
+    Open,
+    Close,
+}
+
+/// 강의(Lesson) 접근 권한
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "lesson_access_enum", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum LessonAccess {
+    Public,
+    Paid,
+    Private,
+    Promote,
 }
 
 /// 강의(Lesson) 아이템 종류

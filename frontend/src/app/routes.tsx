@@ -37,6 +37,10 @@ import { AdminVideoStatsPage } from "@/category/admin/page/admin_video_stats_pag
 import { AdminUserStatsPage } from "@/category/admin/page/admin_user_stats_page";
 import { AdminLoginStatsPage } from "@/category/admin/page/admin_login_stats_page";
 import { AdminStudiesPage } from "@/category/admin/page/admin_studies_page";
+import { AdminStudyDetail } from "@/category/admin/page/admin_study_detail";
+import { AdminStudyCreate } from "@/category/admin/page/admin_study_create";
+import { AdminStudyStatsPage } from "@/category/admin/page/admin_study_stats_page";
+import { AdminStudyBulkCreate } from "@/category/admin/page/admin_study_bulk_create";
 import { AdminLessonsPage } from "@/category/admin/page/admin_lessons_page";
 
 export function AppRoutes() {
@@ -85,6 +89,10 @@ export function AppRoutes() {
           <Route path="videos/bulk-create" element={<AdminVideoBulkCreate />} />
           <Route path="videos/:videoId" element={<AdminVideoDetail />} />
           <Route path="studies" element={<AdminStudiesPage />} />
+          <Route path="studies/stats" element={<AdminStudyStatsPage />} />
+          <Route path="studies/new" element={<AdminStudyCreate />} />
+          <Route path="studies/bulk-create" element={<AdminStudyBulkCreate />} />
+          <Route path="studies/:studyId" element={<AdminStudyDetail />} />
           <Route path="lessons" element={<AdminLessonsPage />} />
         </Route>
       </Route>

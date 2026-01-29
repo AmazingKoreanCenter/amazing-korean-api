@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use validator::{Validate, ValidationError};
-use crate::types::{StudyProgram, StudyState, StudyTaskKind, UserSetLanguage};
+use crate::types::{StudyAccess, StudyProgram, StudyState, StudyTaskKind, UserSetLanguage};
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
@@ -19,7 +19,8 @@ pub struct StudyListReq {
     
     // String 대신 Enum을 직접 사용하여 Axum이 자동 파싱하게 함
     pub study_state: Option<StudyState>,
-    pub study_program: Option<StudyProgram>, 
+    pub study_access: Option<StudyAccess>,
+    pub study_program: Option<StudyProgram>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
@@ -31,6 +32,7 @@ pub struct StudyCreateReq {
     pub study_description: Option<String>,
     pub study_program: Option<StudyProgram>,
     pub study_state: Option<StudyState>,
+    pub study_access: Option<StudyAccess>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
@@ -40,14 +42,15 @@ pub struct StudyUpdateReq {
     pub study_idx: Option<String>,
 
     pub study_state: Option<StudyState>,
+    pub study_access: Option<StudyAccess>,
     pub study_program: Option<StudyProgram>,
 
     #[validate(length(min = 1, max = 80))]
     pub study_title: Option<String>,
-    
+
     #[validate(length(max = 120))]
     pub study_subtitle: Option<String>,
-    
+
     pub study_description: Option<String>,
 }
 
@@ -69,6 +72,7 @@ pub struct StudyBulkUpdateItem {
     pub study_description: Option<String>,
     pub study_program: Option<StudyProgram>,
     pub study_state: Option<StudyState>,
+    pub study_access: Option<StudyAccess>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
@@ -95,8 +99,26 @@ pub struct AdminStudyRes {
     pub study_subtitle: Option<String>,
     pub study_program: StudyProgram,
     pub study_state: StudyState,
+    pub study_access: StudyAccess,
     pub study_created_at: DateTime<Utc>,
     pub study_updated_at: DateTime<Utc>,
+}
+
+/// Study 상세 응답 (tasks 포함)
+#[derive(Serialize, ToSchema)]
+pub struct AdminStudyDetailRes {
+    pub study_id: i32,
+    pub study_idx: String,
+    pub study_title: Option<String>,
+    pub study_subtitle: Option<String>,
+    pub study_description: Option<String>,
+    pub study_program: StudyProgram,
+    pub study_state: StudyState,
+    pub study_access: StudyAccess,
+    pub study_created_at: DateTime<Utc>,
+    pub study_updated_at: DateTime<Utc>,
+    pub task_count: i64,
+    pub tasks: Vec<AdminStudyTaskRes>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -268,10 +290,9 @@ pub struct TaskStatusListReq {
 pub struct AdminTaskStatusRes {
     pub study_task_id: i64,
     pub user_id: i64,
-    pub study_task_status_try: i32,
-    pub study_task_status_best: i32,
-    pub study_task_status_completed: bool,
-    pub study_task_status_last_answer: Option<DateTime<Utc>>,
+    pub study_task_status_try_count: i32,
+    pub study_task_status_is_solved: bool,
+    pub study_task_status_last_attempt_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
@@ -287,10 +308,9 @@ pub struct AdminTaskStatusListRes {
 pub struct TaskStatusUpdateReq {
     #[validate(range(min = 1))]
     pub user_id: i64,
-    pub study_task_status_try: Option<i32>,
-    pub study_task_status_best: Option<i32>,
-    pub study_task_status_completed: Option<bool>,
-    pub study_task_status_last_answer: Option<DateTime<Utc>>,
+    pub study_task_status_try_count: Option<i32>,
+    pub study_task_status_is_solved: Option<bool>,
+    pub study_task_status_last_attempt_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
@@ -299,10 +319,9 @@ pub struct TaskStatusUpdateItem {
     pub study_task_id: i32,
     #[validate(range(min = 1))]
     pub user_id: i64,
-    pub study_task_status_try: Option<i32>,
-    pub study_task_status_best: Option<i32>,
-    pub study_task_status_completed: Option<bool>,
-    pub study_task_status_last_answer: Option<DateTime<Utc>>,
+    pub study_task_status_try_count: Option<i32>,
+    pub study_task_status_is_solved: Option<bool>,
+    pub study_task_status_last_attempt_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
@@ -332,10 +351,9 @@ impl From<TaskStatusUpdateItem> for TaskStatusUpdateReq {
     fn from(item: TaskStatusUpdateItem) -> Self {
         Self {
             user_id: item.user_id,
-            study_task_status_try: item.study_task_status_try,
-            study_task_status_best: item.study_task_status_best,
-            study_task_status_completed: item.study_task_status_completed,
-            study_task_status_last_answer: item.study_task_status_last_answer,
+            study_task_status_try_count: item.study_task_status_try_count,
+            study_task_status_is_solved: item.study_task_status_is_solved,
+            study_task_status_last_attempt_at: item.study_task_status_last_attempt_at,
         }
     }
 }

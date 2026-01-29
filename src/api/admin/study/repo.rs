@@ -1,12 +1,12 @@
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 use crate::api::admin::study::dto::{
-    AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes, AdminTaskExplainRes,
-    AdminTaskStatusRes, StudyTaskCreateReq, StudyTaskUpdateReq, StudyUpdateReq,
-    TaskExplainCreateReq, TaskExplainUpdateReq, TaskStatusUpdateReq,
+    AdminStudyDetailRes, AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes,
+    AdminTaskExplainRes, AdminTaskStatusRes, StudyTaskCreateReq, StudyTaskUpdateReq,
+    StudyUpdateReq, TaskExplainCreateReq, TaskExplainUpdateReq, TaskStatusUpdateReq,
 };
 use crate::error::AppResult;
-use crate::types::{StudyProgram, StudyState, UserSetLanguage};
+use crate::types::{StudyAccess, StudyProgram, StudyState, UserSetLanguage};
 
 /// 동적 필터링 적용 헬퍼 함수
 /// 라이프타임 'a를 추가하여 builder와 바인딩 데이터(search)의 수명을 일치시킵니다.
@@ -14,6 +14,7 @@ fn apply_filters<'a>(
     builder: &mut QueryBuilder<'a, Postgres>,
     search: Option<&'a String>,
     study_state: Option<StudyState>,
+    study_access: Option<StudyAccess>,
     study_program: Option<StudyProgram>,
 ) {
     let mut has_where = false;
@@ -48,7 +49,14 @@ fn apply_filters<'a>(
         builder.push_bind(state);
     }
 
-    // 3. 프로그램 필터
+    // 3. 접근 권한 필터
+    if let Some(access) = study_access {
+        push_cond(builder);
+        builder.push("study_access = ");
+        builder.push_bind(access);
+    }
+
+    // 4. 프로그램 필터
     if let Some(program) = study_program {
         push_cond(builder);
         builder.push("study_program = ");
@@ -93,6 +101,7 @@ pub async fn admin_list_studies(
     sort: &str,
     order: &str,
     study_state: Option<StudyState>,
+    study_access: Option<StudyAccess>,
     study_program: Option<StudyProgram>,
 ) -> AppResult<(i64, Vec<AdminStudyRes>)> {
     // 검색어 포매팅 (%검색어%)
@@ -102,8 +111,8 @@ pub async fn admin_list_studies(
     // 1. Total Count Query
     // -------------------------------------------------------------------------
     let mut count_builder = QueryBuilder::new("SELECT count(*) FROM study");
-    apply_filters(&mut count_builder, search.as_ref(), study_state, study_program);
-    
+    apply_filters(&mut count_builder, search.as_ref(), study_state, study_access, study_program);
+
     let total_count: i64 = count_builder
         .build()
         .fetch_one(pool)
@@ -115,29 +124,33 @@ pub async fn admin_list_studies(
     // -------------------------------------------------------------------------
     let mut builder = QueryBuilder::new(
         r#"
-        SELECT 
-            study_id, 
-            study_idx, 
-            study_title, 
-            study_subtitle, 
-            study_program, 
-            study_state, 
-            study_created_at, 
-            study_updated_at 
+        SELECT
+            study_id,
+            study_idx,
+            study_title,
+            study_subtitle,
+            study_program,
+            study_state,
+            study_access,
+            study_created_at,
+            study_updated_at
         FROM study
         "#
     );
-    
-    apply_filters(&mut builder, search.as_ref(), study_state, study_program);
+
+    apply_filters(&mut builder, search.as_ref(), study_state, study_access, study_program);
 
     // 정렬 (Sorting)
     builder.push(" ORDER BY ");
     let sort_col = match sort {
-        "idx" => "study_idx",
-        "title" => "study_title",
-        "program" => "study_program",
-        "state" => "study_state",
-        "updated_at" => "study_updated_at",
+        "study_id" => "study_id",
+        "idx" | "study_idx" => "study_idx",
+        "title" | "study_title" => "study_title",
+        "subtitle" | "study_subtitle" => "study_subtitle",
+        "program" | "study_program" => "study_program",
+        "state" | "study_state" => "study_state",
+        "access" | "study_access" => "study_access",
+        "updated_at" | "study_updated_at" => "study_updated_at",
         _ => "study_created_at", // 기본값
     };
     builder.push(sort_col);
@@ -268,15 +281,14 @@ pub async fn admin_list_task_status(
         SELECT
             study_task_id::bigint AS study_task_id,
             user_id::bigint AS user_id,
-            study_task_status_try,
-            study_task_status_best,
-            study_task_status_completed,
-            study_task_status_last_answer
+            study_task_status_try_count,
+            study_task_status_is_solved,
+            study_task_status_last_attempt_at
         FROM study_task_status
         "#,
     );
     apply_task_status_filters(&mut list_builder, task_id, user_id);
-    list_builder.push(" ORDER BY study_task_status_last_answer DESC");
+    list_builder.push(" ORDER BY study_task_status_last_attempt_at DESC");
     list_builder.push(" LIMIT ");
     list_builder.push_bind(size as i64);
     list_builder.push(" OFFSET ");
@@ -300,10 +312,9 @@ pub async fn find_task_status(
         SELECT
             study_task_id::bigint AS study_task_id,
             user_id::bigint AS user_id,
-            study_task_status_try,
-            study_task_status_best,
-            study_task_status_completed,
-            study_task_status_last_answer
+            study_task_status_try_count,
+            study_task_status_is_solved,
+            study_task_status_last_attempt_at
         FROM study_task_status
         WHERE study_task_id = $1
           AND user_id = $2
@@ -327,10 +338,9 @@ pub async fn find_task_status_tx(
         SELECT
             study_task_id::bigint AS study_task_id,
             user_id::bigint AS user_id,
-            study_task_status_try,
-            study_task_status_best,
-            study_task_status_completed,
-            study_task_status_last_answer
+            study_task_status_try_count,
+            study_task_status_is_solved,
+            study_task_status_last_attempt_at
         FROM study_task_status
         WHERE study_task_id = $1
           AND user_id = $2
@@ -350,29 +360,24 @@ pub async fn update_task_status(
     req: &TaskStatusUpdateReq,
 ) -> AppResult<()> {
     let mut builder = QueryBuilder::<Postgres>::new("UPDATE study_task_status SET ");
-    
+
     // ", "를 구분자로 설정합니다.
     // 첫 번째 항목에는 구분자가 안 붙고, 두 번째 항목부터 자동으로 앞에 ", "를 붙여줍니다.
     let mut separated = builder.separated(", ");
 
-    if let Some(try_count) = req.study_task_status_try {
-        separated.push("study_task_status_try = ");
-        separated.push_bind_unseparated(try_count); 
+    if let Some(try_count) = req.study_task_status_try_count {
+        separated.push("study_task_status_try_count = ");
+        separated.push_bind_unseparated(try_count);
     }
 
-    if let Some(best) = req.study_task_status_best {
-        separated.push("study_task_status_best = ");
-        separated.push_bind_unseparated(best);
+    if let Some(is_solved) = req.study_task_status_is_solved {
+        separated.push("study_task_status_is_solved = ");
+        separated.push_bind_unseparated(is_solved);
     }
 
-    if let Some(completed) = req.study_task_status_completed {
-        separated.push("study_task_status_completed = ");
-        separated.push_bind_unseparated(completed);
-    }
-
-    if let Some(last_answer) = req.study_task_status_last_answer {
-        separated.push("study_task_status_last_answer = ");
-        separated.push_bind_unseparated(last_answer);
+    if let Some(last_attempt_at) = req.study_task_status_last_attempt_at {
+        separated.push("study_task_status_last_attempt_at = ");
+        separated.push_bind_unseparated(last_attempt_at);
     }
 
     // 주의: 만약 업데이트할 필드가 하나도 없다면 SQL 에러가 날 수 있습니다.
@@ -586,7 +591,7 @@ pub async fn find_study_task_by_id(
             c.study_task_choice_2 AS choice_2,
             c.study_task_choice_3 AS choice_3,
             c.study_task_choice_4 AS choice_4,
-            c.study_task_choice_correct AS choice_correct
+            c.study_task_choice_answer AS choice_correct
         FROM study_task st
         LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
         LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
@@ -634,7 +639,7 @@ pub async fn find_study_task_by_id_tx(
             c.study_task_choice_2 AS choice_2,
             c.study_task_choice_3 AS choice_3,
             c.study_task_choice_4 AS choice_4,
-            c.study_task_choice_correct AS choice_correct
+            c.study_task_choice_answer AS choice_correct
         FROM study_task st
         LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
         LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
@@ -659,6 +664,7 @@ pub async fn find_study_by_id(pool: &PgPool, study_id: i64) -> AppResult<Option<
             study_subtitle,
             study_program,
             study_state,
+            study_access,
             study_created_at,
             study_updated_at
         FROM study
@@ -670,6 +676,58 @@ pub async fn find_study_by_id(pool: &PgPool, study_id: i64) -> AppResult<Option<
     .await?;
 
     Ok(study)
+}
+
+/// Study 상세 조회 (tasks 포함)
+pub async fn admin_get_study_detail(
+    pool: &PgPool,
+    study_id: i64,
+) -> AppResult<Option<AdminStudyDetailRes>> {
+    // 1. Study 기본 정보 조회 (description 포함)
+    let study_row = sqlx::query(
+        r#"
+        SELECT
+            study_id,
+            study_idx,
+            study_title,
+            study_subtitle,
+            study_description,
+            study_program,
+            study_state,
+            study_access,
+            study_created_at,
+            study_updated_at
+        FROM study
+        WHERE study_id = $1
+        "#,
+    )
+    .bind(study_id)
+    .fetch_optional(pool)
+    .await?;
+
+    let study_row = match study_row {
+        Some(row) => row,
+        None => return Ok(None),
+    };
+
+    // 2. 연관 tasks 조회 (최대 100개)
+    let (task_count, tasks) = admin_list_study_tasks(pool, study_id as i32, 1, 100).await?;
+
+    // 3. AdminStudyDetailRes 구성
+    Ok(Some(AdminStudyDetailRes {
+        study_id: study_row.try_get("study_id")?,
+        study_idx: study_row.try_get("study_idx")?,
+        study_title: study_row.try_get("study_title")?,
+        study_subtitle: study_row.try_get("study_subtitle")?,
+        study_description: study_row.try_get("study_description")?,
+        study_program: study_row.try_get("study_program")?,
+        study_state: study_row.try_get("study_state")?,
+        study_access: study_row.try_get("study_access")?,
+        study_created_at: study_row.try_get("study_created_at")?,
+        study_updated_at: study_row.try_get("study_updated_at")?,
+        task_count,
+        tasks,
+    }))
 }
 
 pub async fn exists_study_idx(pool: &PgPool, study_idx: &str) -> AppResult<bool> {
@@ -721,6 +779,7 @@ pub async fn admin_create_study(
     study_description: Option<&str>,
     study_program: StudyProgram,
     study_state: StudyState,
+    study_access: StudyAccess,
 ) -> AppResult<AdminStudyRes> {
     let row = sqlx::query_as::<_, AdminStudyRes>(
         r#"
@@ -728,12 +787,13 @@ pub async fn admin_create_study(
             updated_by_user_id,
             study_idx,
             study_state,
+            study_access,
             study_program,
             study_title,
             study_subtitle,
             study_description
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING
             study_id,
             study_idx,
@@ -741,6 +801,7 @@ pub async fn admin_create_study(
             study_subtitle,
             study_program,
             study_state,
+            study_access,
             study_created_at,
             study_updated_at
         "#,
@@ -748,6 +809,7 @@ pub async fn admin_create_study(
     .bind(actor_user_id)
     .bind(study_idx)
     .bind(study_state)
+    .bind(study_access)
     .bind(study_program)
     .bind(study_title)
     .bind(study_subtitle)
@@ -821,6 +883,15 @@ pub async fn admin_update_study(
         is_first = false;
     }
 
+    if let Some(access) = req.study_access {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("study_access = ");
+        builder.push_bind(access);
+        is_first = false;
+    }
+
     if !is_first {
         builder.push(", ");
     }
@@ -832,7 +903,7 @@ pub async fn admin_update_study(
     builder.push_bind(study_id);
     builder.push(
         " RETURNING study_id, study_idx, study_title, study_subtitle, \
-         study_program, study_state, study_created_at, study_updated_at",
+         study_program, study_state, study_access, study_created_at, study_updated_at",
     );
 
     let updated = builder
@@ -911,7 +982,7 @@ pub async fn admin_update_study_task(
             }
             if let Some(correct) = req.choice_correct {
                 if has_any { qb.push(", "); }
-                qb.push("study_task_choice_correct = ");
+                qb.push("study_task_choice_answer = ");
                 qb.push_bind(correct);
                 has_any = true;
             }
@@ -1029,7 +1100,7 @@ pub async fn admin_update_study_task(
             c.study_task_choice_2 AS choice_2,
             c.study_task_choice_3 AS choice_3,
             c.study_task_choice_4 AS choice_4,
-            c.study_task_choice_correct AS choice_correct
+            c.study_task_choice_answer AS choice_correct
         FROM study_task st
         LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
         LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
@@ -1089,7 +1160,7 @@ pub async fn create_task_choice(
             study_task_choice_2,
             study_task_choice_3,
             study_task_choice_4,
-            study_task_choice_correct,
+            study_task_choice_answer,
             study_task_choice_audio_url,
             study_task_choice_image_url
         )

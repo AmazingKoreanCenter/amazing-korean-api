@@ -504,23 +504,103 @@ export const loginStatsDevicesResSchema = z.object({
 export type LoginStatsDevicesRes = z.infer<typeof loginStatsDevicesResSchema>;
 
 // ==========================================
-// 4. Admin Study 타입 (기본)
+// 4. Admin Study 타입 - study/types.ts에서 re-export
 // ==========================================
 
-export const adminStudySummarySchema = z.object({
-  id: z.number().int(),
-  study_idx: z.string(),
-  title: z.string().nullable(),
-  state: z.string(),
-  created_at: z.string().datetime(),
-});
-export type AdminStudySummary = z.infer<typeof adminStudySummarySchema>;
-
-export const adminStudyListResSchema = z.object({
-  items: z.array(adminStudySummarySchema),
-  meta: adminListMetaSchema,
-});
-export type AdminStudyListRes = z.infer<typeof adminStudyListResSchema>;
+export {
+  studyStateSchema,
+  type StudyState,
+  studyAccessSchema,
+  type StudyAccess,
+  studyListReqSchema,
+  type StudyListReq,
+  studyCreateReqSchema,
+  type StudyCreateReq,
+  studyUpdateReqSchema,
+  type StudyUpdateReq,
+  studyBulkCreateReqSchema,
+  type StudyBulkCreateReq,
+  studyBulkCreateResSchema,
+  type StudyBulkCreateRes,
+  studyBulkUpdateReqSchema,
+  type StudyBulkUpdateReq,
+  adminStudyResSchema,
+  type AdminStudyRes,
+  adminStudyDetailResSchema,
+  type AdminStudyDetailRes,
+  adminStudyListResSchema,
+  type AdminStudyListRes,
+  studyBulkUpdateResSchema,
+  type StudyBulkUpdateRes,
+  adminStudyTaskResSchema,
+  type AdminStudyTaskRes,
+  studyTaskCreateReqSchema,
+  type StudyTaskCreateReq,
+  studyTaskBulkCreateReqSchema,
+  type StudyTaskBulkCreateReq,
+  studyTaskBulkCreateResSchema,
+  type StudyTaskBulkCreateRes,
+  adminStudyTaskDetailResSchema,
+  type AdminStudyTaskDetailRes,
+  // Task Update
+  studyTaskUpdateReqSchema,
+  type StudyTaskUpdateReq,
+  studyTaskBulkUpdateReqSchema,
+  type StudyTaskBulkUpdateReq,
+  studyTaskBulkUpdateResSchema,
+  type StudyTaskBulkUpdateRes,
+  // Task Explain
+  taskExplainListReqSchema,
+  type TaskExplainListReq,
+  taskExplainCreateReqSchema,
+  type TaskExplainCreateReq,
+  taskExplainUpdateReqSchema,
+  type TaskExplainUpdateReq,
+  taskExplainBulkCreateReqSchema,
+  type TaskExplainBulkCreateReq,
+  taskExplainBulkCreateResSchema,
+  type TaskExplainBulkCreateRes,
+  taskExplainBulkUpdateReqSchema,
+  type TaskExplainBulkUpdateReq,
+  taskExplainBulkUpdateResSchema,
+  type TaskExplainBulkUpdateRes,
+  adminTaskExplainResSchema,
+  type AdminTaskExplainRes,
+  adminTaskExplainListResSchema,
+  type AdminTaskExplainListRes,
+  // Task Status
+  taskStatusListReqSchema,
+  type TaskStatusListReq,
+  taskStatusUpdateReqSchema,
+  type TaskStatusUpdateReq,
+  taskStatusBulkUpdateReqSchema,
+  type TaskStatusBulkUpdateReq,
+  taskStatusBulkUpdateResSchema,
+  type TaskStatusBulkUpdateRes,
+  adminTaskStatusResSchema,
+  type AdminTaskStatusRes,
+  adminTaskStatusListResSchema,
+  type AdminTaskStatusListRes,
+  // Study Stats
+  studyStatsQuerySchema,
+  type StudyStatsQuery,
+  topStudiesQuerySchema,
+  type TopStudiesQuery,
+  programStatsSchema,
+  type ProgramStats,
+  stateStatsSchema,
+  type StateStats,
+  studyStatsSummaryResSchema,
+  type StudyStatsSummaryRes,
+  topStudyItemSchema,
+  type TopStudyItem,
+  topStudiesResSchema,
+  type TopStudiesRes,
+  studyDailyStatItemSchema,
+  type StudyDailyStatItem,
+  studyDailyStatsResSchema,
+  type StudyDailyStatsRes,
+} from "./study/types";
 
 // ==========================================
 // 5. Admin Lesson 타입 (기본)

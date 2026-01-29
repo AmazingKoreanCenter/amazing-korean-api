@@ -28,6 +28,37 @@ import type {
   TopVideosRes,
   AggregateDailyStatsRes,
   AdminStudyListRes,
+  AdminStudyDetailRes,
+  AdminStudyRes,
+  StudyListReq,
+  StudyCreateReq,
+  StudyUpdateReq,
+  StudyBulkCreateReq,
+  StudyBulkCreateRes,
+  StudyBulkUpdateReq,
+  StudyBulkUpdateRes,
+  StudyTaskCreateReq,
+  StudyTaskBulkCreateReq,
+  StudyTaskBulkCreateRes,
+  StudyTaskUpdateReq,
+  StudyTaskBulkUpdateReq,
+  StudyTaskBulkUpdateRes,
+  AdminStudyTaskDetailRes,
+  TaskExplainListReq,
+  TaskExplainCreateReq,
+  TaskExplainUpdateReq,
+  TaskExplainBulkCreateReq,
+  TaskExplainBulkCreateRes,
+  TaskExplainBulkUpdateReq,
+  TaskExplainBulkUpdateRes,
+  AdminTaskExplainListRes,
+  AdminTaskExplainRes,
+  TaskStatusListReq,
+  TaskStatusUpdateReq,
+  TaskStatusBulkUpdateReq,
+  TaskStatusBulkUpdateRes,
+  AdminTaskStatusListRes,
+  AdminTaskStatusRes,
   AdminLessonListRes,
   AdminUserLogsReq,
   AdminUserLogsRes,
@@ -37,6 +68,11 @@ import type {
   LoginStatsSummaryRes,
   LoginStatsDailyRes,
   LoginStatsDevicesRes,
+  StudyStatsQuery,
+  TopStudiesQuery,
+  StudyStatsSummaryRes,
+  TopStudiesRes,
+  StudyDailyStatsRes,
 } from "./types";
 
 // ==========================================
@@ -217,8 +253,148 @@ export const getLoginStatsDevices = (params: StatsQuery) =>
 // Admin Studies API
 // ==========================================
 
-export const getAdminStudies = (params: AdminListReq) =>
+export const getAdminStudies = (params: StudyListReq) =>
   request<AdminStudyListRes>("/admin/studies", {
+    method: "GET",
+    params,
+  });
+
+export const getAdminStudy = (id: number) =>
+  request<AdminStudyDetailRes>(`/admin/studies/${id}`, {
+    method: "GET",
+  });
+
+export const createAdminStudy = (data: StudyCreateReq) =>
+  request<AdminStudyRes>("/admin/studies", {
+    method: "POST",
+    data,
+  });
+
+export const createAdminStudiesBulk = (data: StudyBulkCreateReq) =>
+  request<StudyBulkCreateRes>("/admin/studies/bulk", {
+    method: "POST",
+    data,
+  });
+
+export const updateAdminStudy = (id: number, data: StudyUpdateReq) =>
+  request<AdminStudyRes>(`/admin/studies/${id}`, {
+    method: "PATCH",
+    data,
+  });
+
+export const updateAdminStudiesBulk = (data: StudyBulkUpdateReq) =>
+  request<StudyBulkUpdateRes>("/admin/studies/bulk", {
+    method: "PATCH",
+    data,
+  });
+
+// ==========================================
+// Admin Study Tasks API
+// ==========================================
+
+export const createAdminStudyTask = (data: StudyTaskCreateReq) =>
+  request<AdminStudyTaskDetailRes>("/admin/studies/tasks", {
+    method: "POST",
+    data,
+  });
+
+export const createAdminStudyTasksBulk = (data: StudyTaskBulkCreateReq) =>
+  request<StudyTaskBulkCreateRes>("/admin/studies/tasks/bulk", {
+    method: "POST",
+    data,
+  });
+
+export const getAdminStudyTask = (taskId: number) =>
+  request<AdminStudyTaskDetailRes>(`/admin/studies/tasks/${taskId}`, {
+    method: "GET",
+  });
+
+export const updateAdminStudyTask = (taskId: number, data: StudyTaskUpdateReq) =>
+  request<AdminStudyTaskDetailRes>(`/admin/studies/tasks/${taskId}`, {
+    method: "PATCH",
+    data,
+  });
+
+export const updateAdminStudyTasksBulk = (data: StudyTaskBulkUpdateReq) =>
+  request<StudyTaskBulkUpdateRes>("/admin/studies/tasks/bulk", {
+    method: "PATCH",
+    data,
+  });
+
+// ==========================================
+// Admin Study Task Explains API
+// ==========================================
+
+export const getAdminTaskExplains = (params: TaskExplainListReq) =>
+  request<AdminTaskExplainListRes>("/admin/studies/tasks/explain", {
+    method: "GET",
+    params,
+  });
+
+export const createAdminTaskExplain = (taskId: number, data: TaskExplainCreateReq) =>
+  request<AdminTaskExplainRes>(`/admin/studies/tasks/${taskId}/explain`, {
+    method: "POST",
+    data,
+  });
+
+export const updateAdminTaskExplain = (taskId: number, data: TaskExplainUpdateReq) =>
+  request<AdminTaskExplainRes>(`/admin/studies/tasks/${taskId}/explain`, {
+    method: "PATCH",
+    data,
+  });
+
+export const createAdminTaskExplainsBulk = (data: TaskExplainBulkCreateReq) =>
+  request<TaskExplainBulkCreateRes>("/admin/studies/tasks/bulk/explain", {
+    method: "POST",
+    data,
+  });
+
+export const updateAdminTaskExplainsBulk = (data: TaskExplainBulkUpdateReq) =>
+  request<TaskExplainBulkUpdateRes>("/admin/studies/tasks/bulk/explain", {
+    method: "PATCH",
+    data,
+  });
+
+// ==========================================
+// Admin Study Task Status API
+// ==========================================
+
+export const getAdminTaskStatus = (params: TaskStatusListReq) =>
+  request<AdminTaskStatusListRes>("/admin/studies/tasks/status", {
+    method: "GET",
+    params,
+  });
+
+export const updateAdminTaskStatus = (taskId: number, data: TaskStatusUpdateReq) =>
+  request<AdminTaskStatusRes>(`/admin/studies/tasks/${taskId}/status`, {
+    method: "PATCH",
+    data,
+  });
+
+export const updateAdminTaskStatusBulk = (data: TaskStatusBulkUpdateReq) =>
+  request<TaskStatusBulkUpdateRes>("/admin/studies/tasks/bulk/status", {
+    method: "PATCH",
+    data,
+  });
+
+// ==========================================
+// Admin Study Stats API
+// ==========================================
+
+export const getStudyStatsSummary = (params: StudyStatsQuery) =>
+  request<StudyStatsSummaryRes>("/admin/studies/stats/summary", {
+    method: "GET",
+    params,
+  });
+
+export const getStudyStatsTop = (params: TopStudiesQuery) =>
+  request<TopStudiesRes>("/admin/studies/stats/top", {
+    method: "GET",
+    params,
+  });
+
+export const getStudyStatsDaily = (params: StudyStatsQuery) =>
+  request<StudyDailyStatsRes>("/admin/studies/stats/daily", {
     method: "GET",
     params,
   });

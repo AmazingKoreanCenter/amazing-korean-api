@@ -6,8 +6,14 @@ use crate::api::admin::lesson::dto::{
     LessonUpdateItem,
 };
 use crate::error::AppResult;
+use crate::types::{LessonAccess, LessonState};
 
-fn apply_lesson_filters<'a>(builder: &mut QueryBuilder<'a, Postgres>, search: Option<&'a String>) {
+fn apply_lesson_filters<'a>(
+    builder: &mut QueryBuilder<'a, Postgres>,
+    search: Option<&'a String>,
+    lesson_state: Option<LessonState>,
+    lesson_access: Option<LessonAccess>,
+) {
     let mut has_where = false;
 
     let mut push_cond = |builder: &mut QueryBuilder<'a, Postgres>| {
@@ -29,6 +35,18 @@ fn apply_lesson_filters<'a>(builder: &mut QueryBuilder<'a, Postgres>, search: Op
         builder.push(" OR lesson_idx ILIKE ");
         builder.push_bind(search);
         builder.push(")");
+    }
+
+    if let Some(state) = lesson_state {
+        push_cond(builder);
+        builder.push("lesson_state = ");
+        builder.push_bind(state);
+    }
+
+    if let Some(access) = lesson_access {
+        push_cond(builder);
+        builder.push("lesson_access = ");
+        builder.push_bind(access);
     }
 }
 
@@ -98,11 +116,13 @@ pub async fn admin_list_lessons(
     size: u64,
     sort: &str,
     order: &str,
+    lesson_state: Option<LessonState>,
+    lesson_access: Option<LessonAccess>,
 ) -> AppResult<(i64, Vec<AdminLessonRes>)> {
     let search = q.map(|s| format!("%{}%", s));
 
     let mut count_builder = QueryBuilder::new("SELECT count(*) FROM lesson");
-    apply_lesson_filters(&mut count_builder, search.as_ref());
+    apply_lesson_filters(&mut count_builder, search.as_ref(), lesson_state, lesson_access);
 
     let total_count: i64 = count_builder
         .build()
@@ -119,18 +139,22 @@ pub async fn admin_list_lessons(
             lesson_title,
             lesson_subtitle,
             lesson_description,
+            lesson_state,
+            lesson_access,
             lesson_created_at,
             lesson_updated_at
         FROM lesson
         "#,
     );
 
-    apply_lesson_filters(&mut builder, search.as_ref());
+    apply_lesson_filters(&mut builder, search.as_ref(), lesson_state, lesson_access);
 
     builder.push(" ORDER BY ");
     let sort_col = match sort {
         "lesson_idx" | "idx" => "lesson_idx",
         "lesson_title" | "title" => "lesson_title",
+        "lesson_state" | "state" => "lesson_state",
+        "lesson_access" | "access" => "lesson_access",
         "lesson_updated_at" | "updated_at" => "lesson_updated_at",
         "lesson_created_at" | "created_at" => "lesson_created_at",
         _ => "lesson_created_at",
@@ -613,6 +637,8 @@ pub async fn create_lesson(
     lesson_title: &str,
     lesson_subtitle: Option<&str>,
     lesson_description: Option<&str>,
+    lesson_state: LessonState,
+    lesson_access: LessonAccess,
 ) -> AppResult<AdminLessonRes> {
     let created = sqlx::query_as::<_, AdminLessonRes>(
         r#"
@@ -621,9 +647,11 @@ pub async fn create_lesson(
             lesson_idx,
             lesson_title,
             lesson_subtitle,
-            lesson_description
+            lesson_description,
+            lesson_state,
+            lesson_access
         )
-        VALUES ($1, $2, $3, $4, $5)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING
             lesson_id,
             updated_by_user_id,
@@ -631,6 +659,8 @@ pub async fn create_lesson(
             lesson_title,
             lesson_subtitle,
             lesson_description,
+            lesson_state,
+            lesson_access,
             lesson_created_at,
             lesson_updated_at
         "#,
@@ -640,6 +670,8 @@ pub async fn create_lesson(
     .bind(lesson_title)
     .bind(lesson_subtitle)
     .bind(lesson_description)
+    .bind(lesson_state)
+    .bind(lesson_access)
     .fetch_one(&mut **tx)
     .await?;
 
@@ -653,6 +685,8 @@ pub async fn create_lesson_tx(
     lesson_title: &str,
     lesson_subtitle: Option<&str>,
     lesson_description: Option<&str>,
+    lesson_state: LessonState,
+    lesson_access: LessonAccess,
 ) -> AppResult<AdminLessonRes> {
     create_lesson(
         tx,
@@ -661,6 +695,8 @@ pub async fn create_lesson_tx(
         lesson_title,
         lesson_subtitle,
         lesson_description,
+        lesson_state,
+        lesson_access,
     )
     .await
 }
@@ -751,6 +787,8 @@ pub async fn find_lesson_by_id_tx(
             lesson_title,
             lesson_subtitle,
             lesson_description,
+            lesson_state,
+            lesson_access,
             lesson_created_at,
             lesson_updated_at
         FROM lesson
@@ -829,6 +867,24 @@ pub async fn update_lesson_tx(
         }
         builder.push("lesson_description = ");
         builder.push_bind(lesson_description);
+        is_first = false;
+    }
+
+    if let Some(state) = req.lesson_state {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("lesson_state = ");
+        builder.push_bind(state);
+        is_first = false;
+    }
+
+    if let Some(access) = req.lesson_access {
+        if !is_first {
+            builder.push(", ");
+        }
+        builder.push("lesson_access = ");
+        builder.push_bind(access);
         is_first = false;
     }
 

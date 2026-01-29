@@ -4,7 +4,7 @@ use std::str::FromStr;
 use validator::Validate;
 
 use crate::error::{AppError, AppResult};
-use crate::types::UserAuth;
+use crate::types::{LessonAccess, LessonState, UserAuth};
 use crate::AppState;
 
 use super::dto::{
@@ -82,7 +82,17 @@ pub async fn admin_list_lessons(
     )
     .await?;
 
-    let (total, list) = repo::admin_list_lessons(&st.db, q, page, size, sort, order).await?;
+    let (total, list) = repo::admin_list_lessons(
+        &st.db,
+        q,
+        page,
+        size,
+        sort,
+        order,
+        req.lesson_state,
+        req.lesson_access,
+    )
+    .await?;
 
     Ok(AdminLessonListRes {
         list,
@@ -1123,6 +1133,8 @@ pub async fn admin_create_lesson(
         .as_deref()
         .map(str::trim)
         .filter(|v| !v.is_empty());
+    let lesson_state = req.lesson_state.unwrap_or(LessonState::Ready);
+    let lesson_access = req.lesson_access.unwrap_or(LessonAccess::Public);
 
     let ip_addr: Option<IpAddr> = ip_address
         .as_deref()
@@ -1153,6 +1165,8 @@ pub async fn admin_create_lesson(
         lesson_title,
         lesson_subtitle,
         lesson_description,
+        lesson_state,
+        lesson_access,
     )
     .await;
 
@@ -1247,6 +1261,8 @@ pub async fn admin_bulk_create_lessons(
                 .as_deref()
                 .map(str::trim)
                 .filter(|v| !v.is_empty());
+            let lesson_state = item.lesson_state.unwrap_or(LessonState::Ready);
+            let lesson_access = item.lesson_access.unwrap_or(LessonAccess::Public);
 
             let mut tx = st.db.begin().await?;
 
@@ -1261,6 +1277,8 @@ pub async fn admin_bulk_create_lessons(
                 &lesson_title,
                 lesson_subtitle,
                 lesson_description,
+                lesson_state,
+                lesson_access,
             )
             .await;
 
@@ -1381,7 +1399,9 @@ pub async fn admin_bulk_update_lessons(
             let has_any = item.lesson_idx.is_some()
                 || item.lesson_title.is_some()
                 || item.lesson_subtitle.is_some()
-                || item.lesson_description.is_some();
+                || item.lesson_description.is_some()
+                || item.lesson_state.is_some()
+                || item.lesson_access.is_some();
 
             if !has_any {
                 return Err(AppError::BadRequest("no fields to update".into()));
@@ -1430,6 +1450,8 @@ pub async fn admin_bulk_update_lessons(
                 lesson_title,
                 lesson_subtitle,
                 lesson_description,
+                lesson_state: item.lesson_state,
+                lesson_access: item.lesson_access,
             };
 
             repo::update_lesson_tx(&mut tx, actor_user_id, lesson_id, &update_req).await?;
@@ -1532,7 +1554,9 @@ pub async fn admin_update_lesson(
     let has_any = req.lesson_idx.is_some()
         || req.lesson_title.is_some()
         || req.lesson_subtitle.is_some()
-        || req.lesson_description.is_some();
+        || req.lesson_description.is_some()
+        || req.lesson_state.is_some()
+        || req.lesson_access.is_some();
 
     if !has_any {
         return Err(AppError::BadRequest("no fields to update".into()));
@@ -1581,6 +1605,8 @@ pub async fn admin_update_lesson(
         lesson_title,
         lesson_subtitle,
         lesson_description,
+        lesson_state: req.lesson_state,
+        lesson_access: req.lesson_access,
     };
 
     repo::update_lesson_tx(&mut tx, actor_user_id, lesson_id, &update_req).await?;

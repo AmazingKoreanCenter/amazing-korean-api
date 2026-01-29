@@ -4,6 +4,8 @@ use sqlx::FromRow;
 use utoipa::{IntoParams, ToSchema};
 use validator::Validate;
 
+use crate::types::{LessonAccess, LessonState};
+
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, IntoParams)]
 #[schema(as = AdminLessonListReq)]
 pub struct LessonListReq {
@@ -14,6 +16,8 @@ pub struct LessonListReq {
     pub q: Option<String>,
     pub sort: Option<String>,
     pub order: Option<String>,
+    pub lesson_state: Option<LessonState>,
+    pub lesson_access: Option<LessonAccess>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
@@ -24,6 +28,8 @@ pub struct LessonCreateReq {
     pub lesson_title: String,
     pub lesson_subtitle: Option<String>,
     pub lesson_description: Option<String>,
+    pub lesson_state: Option<LessonState>,
+    pub lesson_access: Option<LessonAccess>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
@@ -34,6 +40,8 @@ pub struct LessonCreateItem {
     pub lesson_title: String,
     pub lesson_subtitle: Option<String>,
     pub lesson_description: Option<String>,
+    pub lesson_state: Option<LessonState>,
+    pub lesson_access: Option<LessonAccess>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
@@ -67,6 +75,8 @@ pub struct LessonUpdateItem {
     pub lesson_title: Option<String>,
     pub lesson_subtitle: Option<String>,
     pub lesson_description: Option<String>,
+    pub lesson_state: Option<LessonState>,
+    pub lesson_access: Option<LessonAccess>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
@@ -97,6 +107,8 @@ pub struct LessonUpdateReq {
     pub lesson_title: Option<String>,
     pub lesson_subtitle: Option<String>,
     pub lesson_description: Option<String>,
+    pub lesson_state: Option<LessonState>,
+    pub lesson_access: Option<LessonAccess>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, IntoParams)]
@@ -315,6 +327,8 @@ pub struct AdminLessonRes {
     pub lesson_title: String,
     pub lesson_subtitle: Option<String>,
     pub lesson_description: Option<String>,
+    pub lesson_state: LessonState,
+    pub lesson_access: LessonAccess,
     pub lesson_created_at: DateTime<Utc>,
     pub lesson_updated_at: DateTime<Utc>,
 }
