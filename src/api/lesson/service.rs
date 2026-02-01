@@ -89,6 +89,8 @@ impl LessonService {
             lesson_id: lesson.lesson_id,
             title: lesson.title,
             description: lesson.description,
+            lesson_state: lesson.lesson_state,
+            lesson_access: lesson.lesson_access,
             items,
             meta: LessonListMeta {
                 total_count,

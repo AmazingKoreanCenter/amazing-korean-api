@@ -1,6 +1,6 @@
 ---
 title: AMK_API_MASTER — Amazing Korean API  Master Spec
-updated: 2026-01-26
+updated: 2026-01-29
 owner: HYMN Co., Ltd. (Amazing Korean)
 audience: server / database / backend / frontend / lead / LLM assistant
 ---
@@ -1012,6 +1012,8 @@ audience: server / database / backend / frontend / lead / LLM assistant
   - 동영상 강의 정보(vimeo 링크, 상태, 접근)
   - `video_state_enum` ('ready', 'open', 'close') 강의 상태
   - `video_access_enum` ('public', 'paid', 'private', 'promote') 강의 접근
+  - `video_duration` (INT, nullable) — 영상 길이 (초, Vimeo API 동기화)
+  - `video_thumbnail` (TEXT, nullable) — 썸네일 URL (Vimeo API 동기화)
 - `video_log`
   - 동영상 강의 시청 정보(진행, 완료, 횟수, 접속정보)
 - `video_tag`
@@ -1429,15 +1431,72 @@ audience: server / database / backend / frontend / lead / LLM assistant
   <summary>5.4 Phase 4 — video 시나리오 상세 (5.4-1 ~ 5.4-4)</summary>
 
 #### 공통 정책(5.4-1 ~ 5.4-4)
-- **에러 바디(고정)**  
+- **에러 바디(고정)**
   `{ "error": { "http_status": 400|401|404|422|429|500, "code": "...", "message": "...", "details": { }, "trace_id": "..." } }`
-- **검증 기준**  
-  - **400** = 형식 오류/필수 누락/파싱 실패(예: page, per_page 숫자 아님)  
+- **검증 기준**
+  - **400** = 형식 오류/필수 누락/파싱 실패(예: page, per_page 숫자 아님)
   - **422** = 도메인 제약 위반(예: progress 0~100 범위 위반, 증가/감소 규칙 위반을 둘 경우)
-- **진행도 규칙**  
-  - 멱등: 동일 값 재전송은 상태 변화 없이 성공  
-  - `last_watched_at`는 서버 시각으로 갱신  
+- **진행도 규칙**
+  - 멱등: 동일 값 재전송은 상태 변화 없이 성공
+  - `last_watched_at`는 서버 시각으로 갱신
   - 기록 없음(progress 미생성)은 **200 + empty(0%)**로 응답(오류 아님)
+
+---
+
+#### 응답 스키마
+
+**VideoListRes (목록 응답)**
+```json
+{
+  "meta": {
+    "total_count": 100,
+    "total_pages": 5,
+    "current_page": 1,
+    "per_page": 20
+  },
+  "data": [VideoListItem, ...]
+}
+```
+
+**VideoListItem (목록 아이템)**
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `video_id` | `i64` | 비디오 고유 ID |
+| `video_idx` | `string` | 비즈니스 식별 코드 (예: VID-001) |
+| `title` | `string?` | 영상 제목 (video_tag에서 가져옴) |
+| `subtitle` | `string?` | 영상 설명 (video_tag에서 가져옴) |
+| `duration_seconds` | `i32?` | 영상 길이 (초, Vimeo 동기화) |
+| `language` | `string?` | 언어 코드 |
+| `thumbnail_url` | `string?` | 썸네일 URL (Vimeo 동기화) |
+| `state` | `string` | 상태 (draft, published, archived) |
+| `access` | `string` | 접근권한 (public, private, restricted) |
+| `tags` | `string[]` | 태그 문자열 배열 |
+| `has_captions` | `bool` | 자막 유무 |
+| `created_at` | `datetime` | 생성일시 |
+
+**VideoDetailRes (상세 응답)**
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `video_id` | `i64` | 비디오 고유 ID |
+| `video_url_vimeo` | `string` | Vimeo 영상 URL |
+| `video_state` | `string` | 상태 (draft, published, archived) |
+| `tags` | `VideoTagDetail[]` | 태그 상세 배열 |
+| `created_at` | `datetime` | 생성일시 |
+
+**VideoTagDetail (태그 상세)**
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `key` | `string?` | 태그 키 |
+| `title` | `string?` | 태그 제목 |
+| `subtitle` | `string?` | 태그 설명 |
+
+**VideoProgressRes (진행도 응답)**
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `video_id` | `i64` | 비디오 고유 ID |
+| `progress_rate` | `i32` | 진행률 (0~100) |
+| `is_completed` | `bool` | 완료 여부 |
+| `last_watched_at` | `datetime?` | 마지막 시청 시각 |
 
 ---
 
@@ -1738,53 +1797,80 @@ audience: server / database / backend / frontend / lead / LLM assistant
 
 ---
 
-### 5.7 Phase 7 — admin ✅ 
+### 5.7 Phase 7 — admin ✅🆗
 | 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 |
 |---|---|---|---|---|---|
-| 7-1 | `GET /admin/users` | `/admin/users?page=&size=&q=&sort=&order=` | 사용자 조회 | ***검색/정렬/페이지네이션, RBAC(admin)***<br>성공(데이터 있음/없음):<br> Auth pass / Page admin_users init→ready / Request admin_users pending→success /<br> Data admin_users present empty → **200**<br>실패(미인증): Auth stop → **401**<br>실패(RBAC): Auth forbid → **403**<br>실패(형식/누락): … → **400**<br>실패(도메인 제약): … → **422** | [✅] |
-| 7-2 | `POST /admin/users` | `/admin/users/new` | 사용자 단건 생성 | ***ADMIN_USERS_LOG 저장, RBAC***<br>성공:<br> Auth pass / Page admin_users_new init→ready / Form admin_users_new pristine→dirty→validating→submitting→success /<br> Request admin_users_new pending→success / Data admin_users_new present → **201**<br>실패(미인증): **401** / RBAC: **403** / 형식: **400** / 도메인: **422** / 중복: **409** | [✅] |
-| 7-3 | `POST /admin/users/bulk` | `/admin/users/bulk` | 사용자 다중 생성 | ***ADMIN_USERS_LOG 저장, 부분 성공 처리, RBAC***<br>성공(전량): … → **201**<br>성공(부분): … → **207**(멀티), 실패 항목 포함<br>실패(인증/권한/형식/도메인/중복): **401/403/400/422/409** | [✅] |
-| 7-4 | `PATCH /admin/users/{id}` | `/admin/users/{user_id}/edit` | 사용자 단건 수정 | ***ADMIN_USERS_LOG 저장, RBAC***<br>성공: … → **200**(또는 **204**)<br>실패(미인증/권한): **401/403**<br>실패(대상없음): **404**<br>실패(형식/도메인/충돌): **400/422/409** | [✅] |
-| 7-5 | `PATCH /admin/users/bulk` | `/admin/users/bulk` | 사용자 다중 수정 | ***ADMIN_USERS_LOG 저장, 부분 성공, RBAC***<br>성공(전량): **200**(또는 **204**)<br>성공(부분): **207**<br>실패(인증/권한/형식/도메인/충돌): **401/403/400/422/409** | [✅] |
-| 7-6 | `GET /admin/videos` | `/admin/videos?page=&size=&q=&sort=&order=` | 비디오 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공(있음/없음): … → **200** / 실패(401/403/400/422) | [✅] |
-| 7-7 | `POST /admin/videos` | `/admin/videos/new` | 비디오 단건 생성 | ***ADMIN_VIDEO_LOG 저장, RBAC***<br>성공: … → **201**<br>실패(401/403/400/422/409) | [✅] |
-| 7-8 | `POST /admin/videos/bulk` | `/admin/videos/bulk` | 비디오 다중 생성 | ***ADMIN_VIDEO_LOG 저장, 부분 성공, RBAC***<br>성공(전량): **201** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
-| 7-9 | `PATCH /admin/videos/{id}` | `/admin/videos/{video_id}/edit` | 비디오 단건 수정 | ***ADMIN_VIDEO_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
-| 7-10 | `PATCH /admin/videos/bulk` | `/admin/videos/bulk` | 비디오 다중 수정 | ***ADMIN_VIDEO_LOG 저장, 부분 성공, RBAC***<br>성공: **200**(또는 **204**) / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
-| 7-11 | `PATCH /admin/videos/{id}/tags` | `/admin/videos/{video_id}/tags` | 비디오 태그 단건 수정 | ***태그 검증·중복 방지, ADMIN_VIDEO_LOG, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
-| 7-12 | `PATCH /admin/videos/bulk/tags` | `/admin/videos/bulk/tags` | 비디오 태그 다중 수정 | ***부분 성공, ADMIN_VIDEO_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
-| 7-13 | `GET /admin/videos/{id}/stats` | `/admin/videos/{video_id}/stats?from=&to=&granularity=daily` | 비디오 일별 통계 조회 | ***VIDEO_STAT_DAILY 조회, 기간/그라뉼러리티 검증, RBAC***<br>성공: **200**(없음도 **200**) / 실패: **401/403/404/400/422** | [❗❗❗❗❗] |
-| 7-14 | `GET /admin/studies` | `/admin/studies?page=&size=&q=&sort=&order=` | 학습 문제 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [✅] |
-| 7-15 | `POST /admin/studies` | `/admin/studies/new` | 학습 문제 단건 생성 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **201** / 실패: **401/403/400/422/409** | [✅] |
-| 7-16 | `POST /admin/studies/bulk` | `/admin/studies/bulk` | 학습 문제 다중 생성 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **201** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
-| 7-17 | `PATCH /admin/studies/{id}` | `/admin/studies/{study_id}/edit` | 학습 문제 단건 수정 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
-| 7-18 | `PATCH /admin/studies/bulk` | `/admin/studies/bulk` | 학습 문제 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
-| 7-19 | `GET /admin/studies/tasks` | `/admin/studies/tasks?study_id={study_id}&page=&size=` | 학습 문제 세부 정보 조회 | ***study_id 필수 검증, 페이지네이션, RBAC***<br>성공: **200** / 실패: **401/403/400/422/404** | [✅] |
-| 7-20 | `POST /admin/studies/tasks` | `/admin/studies/tasks/new` | 학습 문제 세부 정보 단건 생성 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **201** / 실패: **401/403/400/422/404/409** | [✅] |
-| 7-21 | `POST /admin/studies/tasks/bulk` | `/admin/studies/tasks/bulk` | 학습 문제 세부 정보 다중 생성 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **201** / 부분: **207** / 실패: **401/403/400/422/404/409** | [✅] |
-| 7-22 | `PATCH /admin/studies/tasks/{id}` | `/admin/studies/tasks/{task_id}/edit` | 학습 문제 세부 정보 단건 수정 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
-| 7-23 | `PATCH /admin/studies/tasks/bulk` | `/admin/studies/tasks/bulk` | 학습 문제 세부 정보 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
-| 7-24 | `GET /admin/studies/tasks/explain` | `/admin/studies/tasks/explain?task_id={task_id}&page=&size=` | 학습 문제 해설 조회 | ***task_id/페이지 검증, RBAC***<br>성공: **200** / 실패: **401/403/400/422/404** | [✅] |
-| 7-25 | `POST /admin/studies/tasks/{id}/explain` | `/admin/studies/tasks/{task_id}/explain/new` | 학습 문제 해설 단건 생성 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **201** / 실패: **401/403/400/422/404/409** | [✅] |
-| 7-26 | `POST /admin/studies/tasks/bulk/explain` | `/admin/studies/tasks/bulk/explain` | 학습 문제 해설 다중 생성 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **201** / 부분: **207** / 실패: **401/403/400/422/404/409** | [✅] |
-| 7-25 | `PATCH /admin/studies/tasks/{id}/explain` | `/admin/studies/tasks/{task_id}/explain/edit` | 학습 문제 해설 단건 수정 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
-| 7-27 | `PATCH /admin/studies/tasks/bulk/explain` | `/admin/studies/tasks/bulk/explain` | 학습 문제 해설 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409/404** | [✅] |
-| 7-28 | `GET /admin/studies/tasks/status` | `/admin/studies/tasks/status?task_id={task_id}&page=&size=` | 학습 문제 상태 조회 | ***task_id/페이지 검증, RBAC***<br>성공: **200** / 실패: **401/403/400/422/404** | [✅] |
-| 7-29 | `PATCH /admin/studies/tasks/{id}/status` | `/admin/studies/tasks/{task_id}/status/edit` | 학습 문제 상태 단건 수정 | ***ADMIN_STUDY_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
-| 7-30 | `PATCH /admin/studies/tasks/bulk/status` | `/admin/studies/tasks/bulk/status` | 학습 문제 상태 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409/404** | [ ✅] |
-| 7-31 | `GET /admin/lessons` | `/admin/lessons?page=&size=&q=&sort=&order=` | 수업 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [✅] |
-| 7-32 | `POST /admin/lessons` | `/admin/lessons/new` | 수업 단건 생성 | ***ADMIN_LESSON_LOG 저장, RBAC***<br>성공: **201** / 실패: **401/403/400/422/409** | [✅] |
-| 7-33 | `POST /admin/lessons/bulk` | `/admin/lessons/bulk` | 수업 다중 생성 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **201** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
-| 7-34 | `PATCH /admin/lessons/{id}` | `/admin/lessons/{lesson_id}/edit` | 수업 단건 수정 | ***ADMIN_LESSON_LOG 저장, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
-| 7-35 | `PATCH /admin/lessons/bulk` | `/admin/lessons/bulk` | 수업 다중 수정 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
-| 7-36 | `GET /admin/lessons/items` | `/admin/lessons/items?page=&size=&q=&sort=&order=` | 수업 순서 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [✅] |
-| 7-37 | `POST /admin/lessons/items/{id}` | `/admin/lessons/new` | 수업 단건 생성 | ***ADMIN_LESSON_LOG 저장, RBAC***<br>성공: **201** / 실패: **401/403/400/422/409** | [✅] |
-| 7-38 | `POST /admin/lessons/bulk/items` | `/admin/lessons/bulk` | 수업 다중 생성 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **201** / 부분: **207** / 실패: **401/403/400/422/409** | [✅] |
-| 7-39 | `PATCH /admin/lessons/{id}/items` | `/admin/lessons/{lesson_id}/items` | 수업 순서 단건 수정 | ***순서 규칙 검증, ADMIN_LESSON_LOG, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
-| 7-40 | `PATCH /admin/lessons/bulk/items` | `/admin/lessons/bulk/items` | 수업 순서 다중 수정 | ***부분 성공, 순서 규칙 검증, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409/404** | [✅] |
-| 7-41 | `GET /admin/lessons/progress` | `/admin/lessons/progress?page=&size=&q=&sort=&order=` | 수업 진행 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공: **200** / 실패: **401/403/400/422** | [✅] |
-| 7-42 | `PATCH /admin/lessons/{id}/progress` | `/admin/lessons/{lesson_id}/progress` | 수업 진행 단건 수정 | ***순서 규칙 검증, ADMIN_LESSON_LOG, RBAC***<br>성공: **200**(또는 **204**) / 실패: **401/403/404/400/422/409** | [✅] |
-| 7-43 | `PATCH /admin/lessons/bulk/progress` | `/admin/lessons/bulk/progress` | 수업 진행 다중 수정 | ***부분 성공, 순서 규칙 검증, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207** / 실패: **401/403/400/422/409/404** | [✅] |
+| 7-1 | `GET /admin/users` | `/admin/users?page=&size=&q=&sort=&order=` | 사용자 조회 | ***검색/정렬/페이지네이션, RBAC(admin)***<br>성공(데이터 있음/없음): → **200**<br>실패(미인증): **401** / RBAC: **403** / 형식: **400** / 도메인: **422** | [✅🆗] |
+| 7-2 | `GET /admin/users/{id}/admin-logs` | `/admin/users/{user_id}?tab=admin-logs&page=&size=` | 관리자 사용자 변경 로그 조회 | ***페이지네이션, RBAC***<br>성공: → **200**<br>실패: **401/403/404/400/422** | [✅🆗] |
+| 7-3 | `GET /admin/users/{id}/user-logs` | `/admin/users/{user_id}?tab=user-logs&page=&size=` | 사용자 자체 변경 로그 조회 | ***페이지네이션, RBAC***<br>성공: → **200**<br>실패: **401/403/404/400/422** | [✅🆗] |
+| 7-4 | `POST /admin/users` | `/admin/users/new` | 사용자 단건 생성 | ***ADMIN_USERS_LOG 저장, RBAC***<br>성공: → **201**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-5 | `POST /admin/users/bulk` | `/admin/users/bulk` | 사용자 다중 생성 | ***부분 성공, ADMIN_USERS_LOG, RBAC***<br>성공: **201** / 부분: **207**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-6 | `PATCH /admin/users/{id}` | `/admin/users/{user_id}/edit` | 사용자 단건 수정 | ***ADMIN_USERS_LOG 저장, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422/409** | [✅🆗] |
+| 7-7 | `PATCH /admin/users/bulk` | `/admin/users/bulk` | 사용자 다중 수정 | ***부분 성공, ADMIN_USERS_LOG, RBAC***<br>성공: **200** / 부분: **207**<br>실패: **401/403/400/422/409** | [✅🆗] |
+
+| 7-8 | `GET /admin/videos` | `/admin/videos?page=&size=&q=&sort=&order=` | 비디오 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-9 | `GET /admin/videos/{id}` | `/admin/videos/{video_id}` | 비디오 상세 조회 | ***RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅🆗] |
+| 7-10 | `GET /admin/videos/vimeo/preview` | `/admin/videos/new` | Vimeo 메타데이터 미리보기 | ***Vimeo API 연동, RBAC***<br>query: `url`<br>성공: **200**<br>실패: **401/403/400** | [✅🆗] |
+| 7-11 | `POST /admin/videos/vimeo/upload-ticket` | `/admin/videos/new` | Vimeo 업로드 티켓 생성 | ***Vimeo tus upload, RBAC***<br>성공: **200**<br>실패: **401/403/400** | [✅🆗] |
+| 7-12 | `POST /admin/videos` | `/admin/videos/new` | 비디오 단건 생성 | ***ADMIN_VIDEO_LOG, RBAC***<br>성공: **201**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-13 | `POST /admin/videos/bulk` | `/admin/videos/bulk` | 비디오 다중 생성 | ***부분 성공, ADMIN_VIDEO_LOG, RBAC***<br>성공: **201** / 부분: **207**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-14 | `PATCH /admin/videos/{id}` | `/admin/videos/{video_id}/edit` | 비디오 단건 수정 | ***ADMIN_VIDEO_LOG, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422/409** | [✅🆗] |
+| 7-15 | `PATCH /admin/videos/bulk` | `/admin/videos/bulk` | 비디오 다중 수정 | ***부분 성공, ADMIN_VIDEO_LOG, RBAC***<br>성공: **200** / 부분: **207**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-16 | `PATCH /admin/videos/{id}/tags` | `/admin/videos/{video_id}/tags` | 비디오 태그 단건 수정 | ***태그 검증, ADMIN_VIDEO_LOG, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422/409** | [✅🆗] |
+| 7-17 | `PATCH /admin/videos/bulk/tags` | `/admin/videos/bulk/tags` | 비디오 태그 다중 수정 | ***부분 성공, ADMIN_VIDEO_LOG, RBAC***<br>성공: **200** / 부분: **207**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-18 | `GET /admin/videos/stats/summary` | `/admin/videos/stats?from=&to=` | 비디오 통계 요약 | ***총 조회수/완료수/활성비디오수, 기간 검증(max 366일), RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-19 | `GET /admin/videos/stats/top` | `/admin/videos/stats?from=&to=&limit=&sort_by=` | TOP 비디오 조회 | ***조회수/완료수 정렬, limit 1-50, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-20 | `GET /admin/videos/stats/daily` | `/admin/videos/stats?from=&to=` | 비디오 일별 통계 | ***전체 집계, 제로필, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-21 | `GET /admin/videos/{id}/stats/daily` | `/admin/videos/{video_id}/stats?from=&to=` | 비디오별 일별 통계 | ***VIDEO_STAT_DAILY 조회, 제로필, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422** | [✅🆗] |
+
+| 7-22 | `GET /admin/studies` | `/admin/studies?page=&size=&q=&sort=&order=` | 학습 문제 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-23 | `GET /admin/studies/{id}` | `/admin/studies/{study_id}` | 학습 문제 상세 조회 | ***tasks 포함, RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅🆗] |
+| 7-24 | `POST /admin/studies` | `/admin/studies/new` | 학습 문제 단건 생성 | ***ADMIN_STUDY_LOG, RBAC***<br>성공: **201**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-25 | `POST /admin/studies/bulk` | `/admin/studies/bulk` | 학습 문제 다중 생성 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **201** / 부분: **207**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-26 | `PATCH /admin/studies/{id}` | `/admin/studies/{study_id}/edit` | 학습 문제 단건 수정 | ***ADMIN_STUDY_LOG, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422/409** | [✅🆗] |
+| 7-27 | `PATCH /admin/studies/bulk` | `/admin/studies/bulk` | 학습 문제 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-28 | `GET /admin/studies/tasks` | `/admin/studies/tasks?study_id=&page=&size=` | 학습 Task 조회 | ***study_id 필수, 페이지네이션, RBAC***<br>성공: **200**<br>실패: **401/403/400/422/404** | [✅🆗] |
+| 7-29 | `GET /admin/studies/tasks/{id}` | `/admin/studies/tasks/{task_id}` | 학습 Task 상세 조회 | ***RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅🆗] |
+| 7-30 | `POST /admin/studies/tasks` | `/admin/studies/tasks/new` | 학습 Task 단건 생성 | ***ADMIN_STUDY_LOG, RBAC***<br>성공: **201**<br>실패: **401/403/400/422/404/409** | [✅🆗] |
+| 7-31 | `POST /admin/studies/tasks/bulk` | `/admin/studies/tasks/bulk` | 학습 Task 다중 생성 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **201** / 부분: **207**<br>실패: **401/403/400/422/404/409** | [✅🆗] |
+| 7-32 | `PATCH /admin/studies/tasks/{id}` | `/admin/studies/tasks/{task_id}/edit` | 학습 Task 단건 수정 | ***ADMIN_STUDY_LOG, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422/409** | [✅🆗] |
+| 7-33 | `PATCH /admin/studies/tasks/bulk` | `/admin/studies/tasks/bulk` | 학습 Task 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-34 | `GET /admin/studies/tasks/explain` | `/admin/studies/tasks/explain?task_id=&page=&size=` | 학습 해설 조회 | ***task_id 검증, 페이지네이션, RBAC***<br>성공: **200**<br>실패: **401/403/400/422/404** | [✅🆗] |
+| 7-35 | `POST /admin/studies/tasks/{id}/explain` | `/admin/studies/tasks/{task_id}/explain/new` | 학습 해설 단건 생성 | ***ADMIN_STUDY_LOG, RBAC***<br>성공: **201**<br>실패: **401/403/400/422/404/409** | [✅🆗] |
+| 7-36 | `POST /admin/studies/tasks/bulk/explain` | `/admin/studies/tasks/bulk/explain` | 학습 해설 다중 생성 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **201** / 부분: **207**<br>실패: **401/403/400/422/404/409** | [✅🆗] |
+| 7-37 | `PATCH /admin/studies/tasks/{id}/explain` | `/admin/studies/tasks/{task_id}/explain/edit` | 학습 해설 단건 수정 | ***ADMIN_STUDY_LOG, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422/409** | [✅🆗] |
+| 7-38 | `PATCH /admin/studies/tasks/bulk/explain` | `/admin/studies/tasks/bulk/explain` | 학습 해설 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207**<br>실패: **401/403/400/422/409/404** | [✅🆗] |
+| 7-39 | `GET /admin/studies/tasks/status` | `/admin/studies/tasks/status?task_id=&page=&size=` | 학습 상태 조회 | ***task_id 검증, 페이지네이션, RBAC***<br>성공: **200**<br>실패: **401/403/400/422/404** | [✅🆗] |
+| 7-40 | `PATCH /admin/studies/tasks/{id}/status` | `/admin/studies/tasks/{task_id}/status/edit` | 학습 상태 단건 수정 | ***ADMIN_STUDY_LOG, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422/409** | [✅🆗] |
+| 7-41 | `PATCH /admin/studies/tasks/bulk/status` | `/admin/studies/tasks/bulk/status` | 학습 상태 다중 수정 | ***부분 성공, ADMIN_STUDY_LOG, RBAC***<br>성공: **200** / 부분: **207**<br>실패: **401/403/400/422/409/404** | [✅🆗] |
+| 7-42 | `GET /admin/studies/stats/summary` | `/admin/studies/stats?from=&to=` | 학습 통계 요약 | ***총 학습수/Task수/시도수/해결수/해결률, Program별/State별 분포, 기간 검증(max 366일), RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-43 | `GET /admin/studies/stats/top` | `/admin/studies/stats?from=&to=&limit=&sort_by=` | TOP 학습 조회 | ***시도수/해결수/해결률 정렬, limit 1-50, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-44 | `GET /admin/studies/stats/daily` | `/admin/studies/stats?from=&to=` | 학습 일별 통계 | ***일별 시도수/해결수/활성사용자, 제로필, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+
+| 7-45 | `GET /admin/lessons` | `/admin/lessons?page=&size=&q=&sort=&order=` | 수업 조회 | ***검색/정렬/페이지네이션, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-46 | `GET /admin/lessons/{id}` | `/admin/lessons/{lesson_id}` | 수업 상세 조회 | ***lesson_id로 단건 조회, RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅🆗] |
+| 7-47 | `POST /admin/lessons` | `/admin/lessons/new` | 수업 단건 생성 | ***ADMIN_LESSON_LOG, RBAC***<br>성공: **201**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-48 | `POST /admin/lessons/bulk` | `/admin/lessons/bulk-create` | 수업 다중 생성 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **201** / 부분: **207**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-49 | `PATCH /admin/lessons/{id}` | `/admin/lessons/{lesson_id}` | 수업 단건 수정 | ***ADMIN_LESSON_LOG, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422/409** | [✅🆗] |
+| 7-50 | `PATCH /admin/lessons/bulk` | `/admin/lessons` | 수업 다중 수정 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-51 | `GET /admin/lessons/items` | `/admin/lessons/items?page=&size=&lesson_id=` | 수업 아이템 조회 | ***lesson_id 필터, 페이지네이션, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-52 | `GET /admin/lessons/items/{id}` | `/admin/lessons/{lesson_id}` (Items 탭) | 수업 아이템 상세 조회 | ***lesson_id로 아이템 목록+상세 조회 (video/task 정보 포함), RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅🆗] |
+| 7-53 | `POST /admin/lessons/{id}/items` | `/admin/lessons/{lesson_id}` (Items 탭) | 수업 아이템 생성 | ***insert_mode(error/shift), ADMIN_LESSON_LOG, RBAC***<br>성공: **201**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-54 | `POST /admin/lessons/bulk/items` | `/admin/lessons/bulk-create` | 수업 아이템 다중 생성 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **201** / 부분: **207**<br>실패: **401/403/400/422/409** | [✅🆗] |
+| 7-55 | `PATCH /admin/lessons/{id}/items/{seq}` | `/admin/lessons/{lesson_id}` (Items 탭) | 수업 아이템 단건 수정 | ***seq로 아이템 지정, 순서 규칙 검증, ADMIN_LESSON_LOG, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422/409** | [✅🆗] |
+| 7-56 | `PATCH /admin/lessons/bulk/items` | `/admin/lessons/{lesson_id}` (Items 탭) | 수업 아이템 다중 수정 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207**<br>실패: **401/403/400/422/409/404** | [✅🆗] |
+| 7-57 | `DELETE /admin/lessons/{id}/items/{seq}` | `/admin/lessons/{lesson_id}` (Items 탭) | 수업 아이템 단건 삭제 | ***seq로 아이템 지정, ADMIN_LESSON_LOG, RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅🆗] |
+| 7-58 | `DELETE /admin/lessons/bulk/items` | `/admin/lessons/{lesson_id}` (Items 탭) | 수업 아이템 다중 삭제 | ***부분 성공, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207**<br>실패: **401/403/400/422/404** | [✅🆗] |
+| 7-59 | `GET /admin/lessons/progress` | `/admin/lessons/progress?page=&size=&lesson_id=&user_id=` | 수업 진행 조회 | ***lesson_id/user_id 필터, 페이지네이션, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-60 | `GET /admin/lessons/progress/{id}` | `/admin/lessons/{lesson_id}` (Progress 탭) | 수업 진행 상세 조회 | ***lesson_id로 사용자별 진행현황 목록 조회 (current_item 포함), RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅🆗] |
+| 7-61 | `PATCH /admin/lessons/{id}/progress` | `/admin/lessons/{lesson_id}` (Progress 탭) | 수업 진행 단건 수정 | ***user_id 지정, percent/last_item_seq 수정, ADMIN_LESSON_LOG, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422/409** | [✅🆗] |
+| 7-62 | `PATCH /admin/lessons/bulk/progress` | `/admin/lessons/{lesson_id}` (Progress 탭) | 수업 진행 다중 수정 | ***부분 성공, 다중 사용자 진행 수정, ADMIN_LESSON_LOG, RBAC***<br>성공: **200** / 부분: **207**<br>실패: **401/403/400/422/409/404** | [✅🆗] |
+
+| 7-63 | `GET /admin/users/stats/summary` | `/admin/users/stats?from=&to=` | 사용자 요약 통계 | ***총 사용자수/신규/활성/비활성, 역할별 집계, 기간 검증(max 366일), RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-64 | `GET /admin/users/stats/signups` | `/admin/users/stats?from=&to=` | 일별 가입 통계 | ***일별 가입수, 역할별 집계, 제로필, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-65 | `GET /admin/logins/stats/summary` | `/admin/logins/stats?from=&to=` | 로그인 요약 통계 | ***총 로그인/성공/실패/고유사용자/활성세션, 기간 검증(max 366일), RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-66 | `GET /admin/logins/stats/daily` | `/admin/logins/stats?from=&to=` | 일별 로그인 통계 | ***일별 성공/실패/고유사용자, 제로필, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+| 7-67 | `GET /admin/logins/stats/devices` | `/admin/logins/stats?from=&to=` | 디바이스별 로그인 통계 | ***디바이스별 성공횟수/비율, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
 
 ---
 
@@ -7364,8 +7450,12 @@ export function AppRoutes() {
 
 - `ADMIN_USERS_LOG` 및 비디오/스터디/레슨 admin 로그에:
   - **actor user id**를 전 경로에서 일관되게 채워야 함.
+- **로그 테이블 역할별 구분 필요:**
+  - 현재 단일 로그 테이블 구조 → 역할(HYMN/admin/manager)별 로그 분리 또는 필터링 검토
+  - 역할별 접근 권한에 따른 로그 조회 범위 제한 필요
 - TODO:
   - 인증 추출기 → handler/service/repo까지 actor id 전달 체계 확립
+  - 로그 테이블 역할별 분리 또는 조회 필터 적용 방안 설계
 
 ### 9.3 페이징 고도화 (Keyset vs Page)
 
@@ -7414,11 +7504,16 @@ export function AppRoutes() {
 |------|------|----------|------|
 | Redis 세션 도입 | 5.3 Phase 3 — auth | 중간 | 현재 DB 기반 세션 → Redis 세션 스토어로 전환 |
 | Study 레이트리밋 | 5.5 Phase 5 — study | 낮음 | 과도한 채점/새로고침 방지 → 429 + Retry-After |
-| Lesson state enum 추가 | 5.6 Phase 6 — lesson | 중간 | Lessons 관련 state enum 및 column 추가 필요 |
+| ~~Lesson state enum 추가~~ | ~~5.6 Phase 6 — lesson~~ | ~~중간~~ | ✅ **완료** - `lesson_state` (ready/open/close), `lesson_access` (public/paid/private/promote) enum 구현 완료 |
 | 수강권 정책 적용 | 5.6 Phase 6 — lesson | 중간 | 403 Forbidden 정책 - 수강권 관련 사항 업데이트 후 적용 |
 | Admin 보안 강화 | 5.7 Phase 7 — admin | 높음 | MVP 후 보안 부분 업데이트 필요 |
-| 비디오 일별 통계 | 5.7 Phase 7 — admin (6-13) | 낮음 | `GET /admin/videos/{id}/stats` 구현 추후 진행 |
+| Admin 폼 검증 로직 | 5.7 Phase 7 — admin | 중간 | 관리자 업데이트 시 입력 폼 검증 로직 구현 필요 (프론트+백엔드 validation) |
+| ~~비디오 일별 통계~~ | ~~5.7 Phase 7 — admin (7-21)~~ | ~~낮음~~ | ✅ **완료** - `GET /admin/videos/{id}/stats/daily` 구현 완료 |
+| 영상 실제 시청 시간 | 5.4 Phase 4 — video | 중간 | `video_log`에 실제 시청 시간 컬럼 추가 → 영상 전체 길이와 비교하여 완료 판정 강화 |
+| 토픽 정답 제출/검사 | 5.5 Phase 5 — study | 높음 | 학습 토픽별 정답 제출 및 자동 채점 프로그램 구현 |
+| 학습 문제 생성/전달 | 5.5 Phase 5 — study | 높음 | 학습 문제 동적 생성 및 사용자별 전달 로직 구현 |
 | Course 도메인 추가 | 비고 (Section 5) | 낮음 | ERD 정리 후 별도 Phase로 추가 예정 |
+| Lesson 통계 기능 | 5.6 Phase 6 — lesson | 낮음 | 수업별 완료율, 항목별 이탈 지점, 인기 수업 순위, 평균 학습 기간 등 집계 통계. 기본 progress 데이터는 이미 있으므로 필요 시 추가 |
 | Login 방법 추가 | 5.3 Phase 3 — auth | 중간 | Google, Apple 소셜 로그인 추가 → 소셜 로그인 장려(보안 이슈) |
 | Login 정보 추가 | 5.3 Phase 3 — auth | 낮음 | `login` 데이터 업데이트 로직 점검 및 추가 : login_country, login_asn, login_org, login_os, login_browser, login_device |
 | Login 로그 추가 | 5.3 Phase 3 — auth | 낮음 | `login_log` 데이터 업데이트 로직 점검 및 추가 : `login_log` 테이블 전체 |
@@ -7495,8 +7590,8 @@ export function AppRoutes() {
 #### 9.9.1 이전 순서 (권장)
 
 ```
-1. Admin 프론트 구현     ← 현재 DB 구조 확정
-2. 코드 리뷰/리팩토링    ← DB 쿼리 최적화 포함
+1. Admin 프론트 구현     ✅ 완료 (Users, Videos, Studies, Lessons + Stats)
+2. 코드 리뷰/리팩토링    ← 현재 단계: DB 쿼리 최적화 포함
 3. 보안/처리 로직 강화   ← 인덱스, 제약조건 정리
 4. RDS 이전             ← 안정화된 상태에서 이전
 ```
@@ -7547,13 +7642,14 @@ ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
 - 별도 설정 없이 즉시 사용 가능
 - GUI로 데이터 조회/수정 편리
 
-#### 9.10.2 Admin 대시보드 (개발 예정)
+#### 9.10.2 Admin 대시보드
 
-Admin Phase 개발 시 함께 구현:
-- 사용자 통계 (가입 수, 활성 사용자)
-- 로그인 통계 (일별/주별)
-- 학습 현황 (진도율, 완료율)
-- 시스템 상태 (DB 연결, Redis 상태)
+Admin Phase에서 구현된 통계 기능:
+- ✅ 사용자 통계 (가입 수, 역할별 분포) — `/admin/users/stats`
+- ✅ 로그인 통계 (일별, 디바이스별) — `/admin/logins/stats`
+- ✅ 학습 현황 (Program별/State별 분포, TOP Studies, 일별 통계) — `/admin/studies/stats`
+- ✅ 영상 통계 (조회수, State별 분포, 일별 통계) — `/admin/videos/stats`
+- 🔄 시스템 상태 (DB 연결, Redis 상태) — 미구현
 
 #### 9.10.3 로컬 ↔ EC2 데이터 동기화
 
@@ -7590,6 +7686,7 @@ psql -U postgres -d amazing_korean_db < prod_backup.sql
 |----------|------|------|
 | 높음 | 로고 & 브랜딩 | Amazing Korean 로고, 파비콘, OG 이미지 |
 | 높음 | 색상 팔레트 | Primary, Secondary, Accent 색상 정의 |
+| 높음 | 에러 페이지 | HTTP 에러 코드별 페이지 생성 (400, 401, 403, 404, 500 등) |
 | 중간 | 타이포그래피 | 폰트 패밀리, 사이즈 체계 (h1~h6, body, caption) |
 | 중간 | 간격 시스템 | 4px/8px 기반 spacing scale |
 | 중간 | 반응형 브레이크포인트 | sm/md/lg/xl 기준 정의 |
@@ -7613,6 +7710,35 @@ psql -U postgres -d amazing_korean_db < prod_backup.sql
 - [ ] 공통 컴포넌트 스타일 통일 (Button, Input, Card 등)
 - [ ] 반응형 레이아웃 점검 (모바일 우선)
 
+### 9.12 마케팅 & 데이터 분석
+
+> 서비스 이용 데이터를 활용한 마케팅 및 사용자 분석 기능
+
+#### 9.12.1 데이터 수집 항목
+
+| 항목 | 수집 위치 | 활용 방안 |
+|------|----------|----------|
+| 서비스 이용 시간 | `login_log`, `video_log` | 사용 패턴 분석, 피크 시간대 파악 |
+| 학습 진행률 | `video_log`, `study_task_log` | 이탈 구간 분석, 콘텐츠 개선 |
+| 기기/브라우저 | `login_log` | 타겟 플랫폼 최적화 |
+| 접속 빈도 | `login_log` | 활성 사용자 정의, 리텐션 분석 |
+
+#### 9.12.2 마케팅 활용 방안
+
+| 우선순위 | 항목 | 설명 |
+|----------|------|------|
+| 중간 | 학습 리마인더 | 비활성 사용자 대상 이메일/푸시 알림 |
+| 중간 | 학습 성취 공유 | 완료율/연속 학습일 SNS 공유 기능 |
+| 낮음 | A/B 테스트 | 콘텐츠/UI 변형 테스트 인프라 |
+| 낮음 | 코호트 분석 | 가입 시점별 사용자 행동 분석 |
+
+#### 9.12.3 TODO
+
+- [ ] 이용 시간 집계 쿼리/API 설계
+- [ ] 사용자 세그먼트 정의 (활성/이탈/재방문 등)
+- [ ] 마케팅 자동화 도구 연동 검토 (이메일, 푸시)
+- [ ] 데이터 대시보드 구축 (Admin 또는 별도 도구)
+
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
 ---
@@ -7634,6 +7760,18 @@ psql -U postgres -d amazing_korean_db < prod_backup.sql
   - 목차(TOC) 실제 섹션 헤딩과 동기화 (Section 6, 7, 8, 9 하위 항목 추가)
   - Section 9.6 "코드 일관성 (Technical Debt)" 추가
   - Section 9.7 "추후 작업 항목 (문서 내 TODO 통합)" 추가
+- **2026-01-28 — Vimeo API 연동 & Admin Video 문서화**
+  - **Vimeo API 연동 (Phase 5 & 6 계획 기반)**
+    - `GET /admin/videos/vimeo/preview` — Vimeo 메타데이터 미리보기 (7-10)
+    - `POST /admin/videos/vimeo/upload-ticket` — Vimeo tus 업로드 티켓 생성 (7-11)
+    - `video` 테이블에 `video_duration`, `video_thumbnail` 컬럼 추가
+  - **Admin Video 엔드포인트 정비**
+    - `GET /admin/videos/{id}` 상세 조회 추가 (7-9)
+    - Phase 7 엔드포인트 번호 재정렬 (7-8 ~ 7-57, 이후 Study Stats 추가로 7-67까지 확장)
+  - **문서 업데이트**
+    - Section 4.3 비디오 도메인에 신규 컬럼 명세 추가
+    - Section 5.4 Phase 4 video에 응답 스키마 상세 추가 (VideoListItem, VideoDetailRes, VideoProgressRes)
+    - Section 5.7 Phase 7 admin video 엔드포인트 목록 갱신
 - **2026-01-26 — v1.0.0 MVP 릴리스**
   - **MVP 배포 완료**
     - Frontend: Cloudflare Pages (`amazingkorean.net`)
@@ -7652,7 +7790,52 @@ psql -U postgres -d amazing_korean_db < prod_backup.sql
     - Section 9.8 "LLM 협업 도구 전환" 추가 (Patch 템플릿 처리 + GitHub Gemini)
     - Section 9.9 "인프라 로드맵 (RDS 이전)" 추가 (이전 순서 및 시점 기준)
     - Section 9.10 "데이터 모니터링 & 접근" 추가 (SSH 터널, Admin 대시보드, 동기화)
-- 이후 변경 사항은 커밋 메시지 `docs: update AMK_API_MASTER <요약>` 형식으로 관리하고, 필요 시 이 섹션에 중요한 방향 전환만 추가한다.
+    - 이후 변경 사항은 커밋 메시지 `docs: update AMK_API_MASTER <요약>` 형식으로 관리하고, 필요 시 이 섹션에 중요한 방향 전환만 추가한다.
+- **2026-01-28 — User/Login Stats & TODO 정비**
+  - **User/Login Stats 구현 (현재 7-63 ~ 7-67로 재번호)**
+    - `GET /admin/users/stats/summary` — 역할별(HYMN/admin/manager/learner) 통계로 변경
+    - `GET /admin/users/stats/signups` — 역할별 일별 가입 통계
+    - `GET /admin/logins/stats/summary` — 로그인 성공/실패/고유사용자/활성세션
+    - `GET /admin/logins/stats/daily` — 일별 로그인 통계
+    - `GET /admin/logins/stats/devices` — 디바이스별 통계
+  - **버그 수정**
+    - Video 상세 조회 시 `video_state = 'open'` 필터 추가 (비공개 영상 직접 접근 차단)
+  - **Section 9 TODO 업데이트**
+    - Section 9.2 로그 테이블 역할별 구분 항목 추가
+    - Section 9.7 기능 개발에 Admin 폼 검증, 영상 시청 시간, 토픽 정답 검사, 학습 문제 생성 추가
+    - Section 9.11.2 에러 페이지 항목 추가
+    - Section 9.12 "마케팅 & 데이터 분석" 신규 추가
+- **2026-01-29 — Admin Study Stats & Phase 7 정비**
+  - **Study Stats 구현 (7-42 ~ 7-44)**
+    - `GET /admin/studies/stats/summary` — 총 학습수/Task수/시도수/해결수/해결률, Program별(basic_pronunciation/basic_word/basic_900/topik_read/topik_listen/topik_write/tbc)/State별(ready/open/close) 분포
+    - `GET /admin/studies/stats/top` — TOP 학습 조회 (시도수/해결수/해결률 정렬, limit 1-50)
+    - `GET /admin/studies/stats/daily` — 일별 시도수/해결수/활성사용자, 제로필
+  - **Phase 7 엔드포인트 번호 재정렬 (7-1 ~ 7-67)**
+    - 중복된 번호 수정 (7-23, 7-28 중복 해소)
+    - `GET /admin/studies/{id}` (7-23), `GET /admin/studies/tasks/{id}` (7-29) 명확화
+    - Study Stats 추가로 인한 후속 번호 조정 (Lessons: 7-45~7-62, User/Login Stats: 7-63~7-67)
+  - **프론트엔드 Study Stats 페이지 구현**
+    - `/admin/studies/stats` 라우트 추가
+    - Summary Cards, Program/State 분포 차트, TOP Studies 테이블, Daily Stats 테이블
+    - Studies 목록 페이지에 Stats 버튼 추가
+- **2026-01-31 — Admin Lesson 프론트엔드 & Phase 7 Lesson 정비**
+  - **Admin Lesson 프론트엔드 완성**
+    - `/admin/lessons` — 목록 (검색/정렬/페이지네이션/벌크 수정)
+    - `/admin/lessons/new` — 단건 생성
+    - `/admin/lessons/bulk-create` — CSV 벌크 생성
+    - `/admin/lessons/:lessonId` — 상세/수정 (Info/Items/Progress 탭)
+  - **Lesson Items DELETE 엔드포인트 추가 (7-57, 7-58)**
+    - `DELETE /admin/lessons/{id}/items/{seq}` — 수업 아이템 단건 삭제
+    - `DELETE /admin/lessons/bulk/items` — 수업 아이템 다중 삭제
+  - **Phase 7 엔드포인트 번호 재정렬 (7-45 ~ 7-67)**
+    - Lessons: 7-45~7-62 (DELETE 추가로 +2)
+    - User/Login Stats: 7-63~7-67 (기존 7-61~7-65에서 +2)
+  - **Study Task 접근 제어 개선**
+    - `study_state = 'open'` 필터 추가 (부모 Study가 닫히면 Task 접근 차단)
+    - `find_task_detail`, `find_answer_key`, `get_try_count`, `find_task_explain`, `exists_task` 함수에 INNER JOIN study 추가
+  - **Progress 수정 UI 구현**
+    - Lesson Progress 탭에 단건/벌크 수정 다이얼로그 추가
+    - Last Item Seq 필드에 max 제약 (lesson items 기준)
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 

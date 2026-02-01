@@ -1,5 +1,7 @@
 use sqlx::PgPool;
 
+use crate::types::{LessonAccess, LessonState};
+
 use super::dto::{
     LessonItemDetailRes, LessonItemRes, LessonProgressRes, LessonRes,
 };
@@ -18,6 +20,7 @@ impl LessonRepo {
             r#"
             SELECT COUNT(*)
             FROM lesson
+            WHERE lesson_state = 'open'
             "#,
         )
         .fetch_one(&self.pool)
@@ -34,8 +37,11 @@ impl LessonRepo {
                 lesson_title as title,
                 lesson_description as description,
                 lesson_idx,
-                NULL::text as thumbnail_url
+                NULL::text as thumbnail_url,
+                lesson_state,
+                lesson_access
             FROM lesson
+            WHERE lesson_state = 'open'
             ORDER BY lesson_idx ASC
             LIMIT $1
             OFFSET $2
@@ -58,7 +64,9 @@ impl LessonRepo {
             SELECT
                 lesson_id::bigint as lesson_id,
                 lesson_title as title,
-                lesson_description as description
+                lesson_description as description,
+                lesson_state,
+                lesson_access
             FROM lesson
             WHERE lesson_id = $1
             "#,
@@ -228,4 +236,6 @@ pub struct LessonMetaRow {
     pub lesson_id: i64,
     pub title: String,
     pub description: Option<String>,
+    pub lesson_state: LessonState,
+    pub lesson_access: LessonAccess,
 }

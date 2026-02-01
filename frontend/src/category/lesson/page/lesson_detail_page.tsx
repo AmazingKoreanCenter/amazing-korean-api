@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, BookMarked, CheckCircle2, ClipboardList, Play, ChevronRight } from "lucide-react";
+import { ArrowLeft, BookMarked, CheckCircle2, ClipboardList, Play, ChevronRight, Crown, Lock } from "lucide-react";
 
 import { ApiError } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/hooks/use_auth_store";
-import type { LessonItemRes } from "@/category/lesson/types";
+import type { LessonItemRes, LessonAccess } from "@/category/lesson/types";
 
 import { useLessonDetail } from "../hook/use_lesson_detail";
 import { useLessonProgress, useUpdateLessonProgress } from "../hook/use_lesson_progress";
@@ -21,6 +21,35 @@ const KIND_LABELS: Record<string, string> = {
 const KIND_ICONS: Record<string, typeof Play> = {
   video: Play,
   task: ClipboardList,
+};
+
+const getAccessBadge = (access: LessonAccess) => {
+  switch (access) {
+    case "public":
+      return null;
+    case "paid":
+      return (
+        <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-0 gap-1">
+          <Crown className="h-3 w-3" />
+          유료
+        </Badge>
+      );
+    case "private":
+      return (
+        <Badge className="bg-gray-500 hover:bg-gray-500 text-white border-0 gap-1">
+          <Lock className="h-3 w-3" />
+          비공개
+        </Badge>
+      );
+    case "promote":
+      return (
+        <Badge className="bg-green-500 hover:bg-green-500 text-white border-0">
+          무료체험
+        </Badge>
+      );
+    default:
+      return null;
+  }
 };
 
 interface LessonItemCardProps {
@@ -188,9 +217,12 @@ export function LessonDetailPage() {
           </Link>
 
           <div className="space-y-4">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-              {data.title}
-            </h1>
+            <div className="flex items-start gap-3 flex-wrap">
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+                {data.title}
+              </h1>
+              {getAccessBadge(data.lesson_access)}
+            </div>
             {data.description && (
               <p className="text-lg text-muted-foreground max-w-2xl">
                 {data.description}

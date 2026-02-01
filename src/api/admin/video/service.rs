@@ -3,11 +3,14 @@ use crate::api::admin::video::dto::{
     AdminVideoListReq, AdminVideoListRes, AdminVideoRes, Pagination, VideoBulkCreateReq,
     VideoBulkCreateRes, VideoBulkItemError, VideoBulkItemResult, VideoBulkSummary,
     VideoBulkUpdateReq, VideoBulkUpdateRes, VideoBulkUpdateItemResult, VideoCreateReq,
-    VideoTagBulkUpdateReq, VideoTagUpdateReq, VideoUpdateReq,
+    VideoTagBulkUpdateReq, VideoTagUpdateReq, VideoUpdateReq, VimeoPreviewRes,
+    VimeoUploadTicketReq, VimeoUploadTicketRes,
 };
 use crate::error::{AppError, AppResult};
+use crate::external::vimeo::VimeoClient;
 use crate::types::UserAuth;
 use crate::AppState;
+use sqlx::{Postgres, Transaction};
 use std::net::IpAddr;
 use uuid::Uuid;
 use validator::Validate;
@@ -22,6 +25,63 @@ fn is_unique_violation(err: &AppError) -> bool {
     }
 }
 
+/// Vimeo URL에서 메타데이터를 가져와 DB에 저장
+async fn sync_vimeo_meta(
+    st: &AppState,
+    tx: &mut Transaction<'_, Postgres>,
+    video_id: i64,
+    vimeo_url: &str,
+) -> AppResult<()> {
+    // 1. Access Token 확인
+    let access_token = match &st.cfg.vimeo_access_token {
+        Some(token) if !token.is_empty() => token.clone(),
+        _ => {
+            tracing::warn!("Vimeo access token not configured, skipping metadata sync");
+            return Ok(());
+        }
+    };
+
+    // 2. Vimeo Video ID 추출
+    let vimeo_video_id = match VimeoClient::extract_video_id(vimeo_url) {
+        Some(id) => id,
+        None => {
+            tracing::warn!("Could not extract Vimeo video ID from URL: {}", vimeo_url);
+            return Ok(());
+        }
+    };
+
+    // 3. Vimeo API 호출
+    let client = VimeoClient::new(access_token);
+    let meta = match client.get_video_meta(&vimeo_video_id).await {
+        Ok(m) => m,
+        Err(e) => {
+            tracing::error!("Failed to fetch Vimeo metadata: {:?}", e);
+            // Vimeo API 실패해도 영상 생성/수정은 진행
+            return Ok(());
+        }
+    };
+
+    // 4. DB 업데이트
+    repo::update_vimeo_meta(
+        tx,
+        video_id,
+        meta.duration,
+        meta.thumbnail_url.as_deref(),
+        &meta.name,
+        meta.description.as_deref(),
+    )
+    .await?;
+
+    tracing::info!(
+        "Synced Vimeo metadata for video_id={}: duration={}, title={}",
+        video_id,
+        meta.duration,
+        meta.name
+    );
+
+    Ok(())
+}
+
 async fn check_admin_rbac(pool: &sqlx::PgPool, actor_user_id: i64) -> AppResult<UserAuth> {
     let actor = crate::api::user::repo::find_user(pool, actor_user_id)
         .await?
@@ -32,6 +92,75 @@ async fn check_admin_rbac(pool: &sqlx::PgPool, actor_user_id: i64) -> AppResult<
         UserAuth::Hymn | UserAuth::Admin | UserAuth::Manager => Ok(actor_auth),
         _ => Err(AppError::Forbidden),
     }
+}
+
+/// Vimeo URL에서 메타데이터 미리보기 (DB 저장 없음)
+pub async fn get_vimeo_preview(
+    st: &AppState,
+    actor_user_id: i64,
+    url: &str,
+) -> AppResult<VimeoPreviewRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    // 1. Access Token 확인
+    let access_token = st
+        .cfg
+        .vimeo_access_token
+        .as_ref()
+        .filter(|t| !t.is_empty())
+        .ok_or_else(|| AppError::BadRequest("Vimeo access token not configured".into()))?;
+
+    // 2. Vimeo Video ID 추출
+    let vimeo_video_id = VimeoClient::extract_video_id(url)
+        .ok_or_else(|| AppError::BadRequest("Invalid Vimeo URL".into()))?;
+
+    // 3. Vimeo API 호출
+    let client = VimeoClient::new(access_token.clone());
+    let meta = client.get_video_meta(&vimeo_video_id).await?;
+
+    Ok(VimeoPreviewRes {
+        vimeo_video_id,
+        title: meta.name,
+        description: meta.description,
+        duration: meta.duration,
+        thumbnail_url: meta.thumbnail_url,
+    })
+}
+
+/// Vimeo 업로드 티켓 생성 (tus resumable upload용)
+pub async fn create_vimeo_upload_ticket(
+    st: &AppState,
+    actor_user_id: i64,
+    req: VimeoUploadTicketReq,
+) -> AppResult<VimeoUploadTicketRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    // 1. Access Token 확인
+    let access_token = st
+        .cfg
+        .vimeo_access_token
+        .as_ref()
+        .filter(|t| !t.is_empty())
+        .ok_or_else(|| AppError::BadRequest("Vimeo access token not configured".into()))?;
+
+    // 2. Vimeo API로 업로드 티켓 생성
+    let client = VimeoClient::new(access_token.clone());
+    let (video_uri, vimeo_video_id, upload_link) = client
+        .create_upload_ticket(&req.file_name, req.file_size)
+        .await?;
+
+    tracing::info!(
+        "Created Vimeo upload ticket: video_uri={}, vimeo_video_id={}, user_id={}",
+        video_uri,
+        vimeo_video_id,
+        actor_user_id
+    );
+
+    Ok(VimeoUploadTicketRes {
+        video_uri,
+        vimeo_video_id,
+        upload_link,
+    })
 }
 
 pub async fn admin_create_video(
@@ -72,6 +201,9 @@ pub async fn admin_create_video(
         }
         Err(e) => return Err(e),
     };
+
+    // Vimeo 메타데이터 동기화
+    sync_vimeo_meta(st, &mut tx, created.id, &req.video_url_vimeo).await?;
 
     let after = serde_json::to_value(&created).unwrap_or_default();
     repo::create_video_log_tx(
@@ -227,7 +359,7 @@ pub async fn admin_list_videos(
     }
 
     let sort = req.sort.as_deref().unwrap_or("created_at");
-    if !matches!(sort, "created_at" | "views" | "title") {
+    if !matches!(sort, "id" | "created_at" | "views" | "title" | "video_state" | "video_access") {
         return Err(AppError::Unprocessable("invalid sort".into()));
     }
 
@@ -276,6 +408,38 @@ pub async fn admin_list_videos(
     })
 }
 
+pub async fn admin_get_video(
+    st: &AppState,
+    actor_user_id: i64,
+    video_id: i64,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<String>,
+) -> AppResult<AdminVideoRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    let details = serde_json::json!({
+        "video_id": video_id
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "GET_VIDEO",
+        Some("video"),
+        Some(video_id),
+        &details,
+        ip_address,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let video = repo::admin_get_video(&st.db, video_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    Ok(video)
+}
+
 pub async fn admin_bulk_update_videos(
     st: &AppState,
     actor_user_id: i64,
@@ -305,6 +469,7 @@ pub async fn admin_bulk_update_videos(
                 video_tag_key: item.video_tag_key.clone(),
                 video_url_vimeo: item.video_url_vimeo.clone(),
                 video_access: item.video_access.clone(),
+                video_state: item.video_state.clone(),
                 video_idx: item.video_idx.clone(),
             };
 
@@ -313,6 +478,7 @@ pub async fn admin_bulk_update_videos(
                 || update_req.video_tag_key.is_some()
                 || update_req.video_url_vimeo.is_some()
                 || update_req.video_access.is_some()
+                || update_req.video_state.is_some()
                 || update_req.video_idx.is_some();
 
             if !has_any {
@@ -459,6 +625,7 @@ pub async fn admin_bulk_update_video_tags(
                 video_tag_key: item.video_tag_key.clone(),
                 video_url_vimeo: None,
                 video_access: None,
+                video_state: None,
                 video_idx: None,
             };
 
@@ -715,6 +882,11 @@ pub async fn admin_update_video(
         }
         Err(e) => return Err(e),
     };
+
+    // Vimeo URL 변경 시 메타데이터 동기화
+    if let Some(ref vimeo_url) = req.video_url_vimeo {
+        sync_vimeo_meta(st, &mut tx, video_id, vimeo_url).await?;
+    }
 
     let after = serde_json::to_value(&updated).unwrap_or_default();
     repo::create_video_log_tx(

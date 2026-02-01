@@ -253,10 +253,12 @@ impl StudyRepo {
                     WHEN 'voice' THEN stv.study_task_voice_answer
                 END AS "answer?"
             FROM study_task t
+            INNER JOIN study s ON t.study_id = s.study_id
             LEFT JOIN study_task_choice stc ON t.study_task_id = stc.study_task_id
             LEFT JOIN study_task_typing stt ON t.study_task_id = stt.study_task_id
             LEFT JOIN study_task_voice stv  ON t.study_task_id = stv.study_task_id
             WHERE t.study_task_id = $1
+              AND s.study_state = 'open'::study_state_enum
             "#,
             task_id
         )
@@ -363,6 +365,7 @@ impl StudyRepo {
     ) -> AppResult<Option<StudyTaskDetailRes>> {
         // [FIX] Output Cast: study_task_id -> INT (i32)
         // [FIX] Input Cast: task_id arg -> i32
+        // [FIX] JOIN study table and check study_state = 'open'
         let row = sqlx::query_as!(
             StudyTaskDetailRow,
             r#"
@@ -372,7 +375,7 @@ impl StudyRepo {
                 t.study_task_kind AS "kind!: StudyTaskKind",
                 t.study_task_seq AS seq,
                 t.study_task_created_at AS created_at,
-                
+
                 -- Question: 이미 "question?"로 되어 있어서 OK
                 COALESCE(stc.study_task_choice_question, stt.study_task_typing_question, stv.study_task_voice_question)::TEXT AS "question?",
 
@@ -392,10 +395,12 @@ impl StudyRepo {
                 stv.study_task_voice_image_url::TEXT AS "voice_image_url?"
 
             FROM study_task t
+            INNER JOIN study s ON t.study_id = s.study_id
             LEFT JOIN study_task_choice stc ON t.study_task_id = stc.study_task_id
             LEFT JOIN study_task_typing stt ON t.study_task_id = stt.study_task_id
             LEFT JOIN study_task_voice stv  ON t.study_task_id = stv.study_task_id
             WHERE t.study_task_id = $1
+              AND s.study_state = 'open'::study_state_enum
             "#,
             task_id as i32
         )
@@ -450,9 +455,13 @@ impl StudyRepo {
     pub async fn get_try_count(pool: &PgPool, user_id: i64, task_id: i32) -> AppResult<i32> {
         let try_count = sqlx::query_scalar!(
             r#"
-            SELECT study_task_status_try_count
-            FROM study_task_status
-            WHERE study_task_id = $1 AND user_id = $2
+            SELECT sts.study_task_status_try_count
+            FROM study_task_status sts
+            INNER JOIN study_task t ON sts.study_task_id = t.study_task_id
+            INNER JOIN study s ON t.study_id = s.study_id
+            WHERE sts.study_task_id = $1
+              AND sts.user_id = $2
+              AND s.study_state = 'open'::study_state_enum
             "#,
             task_id,
             user_id
@@ -471,11 +480,14 @@ impl StudyRepo {
             TaskExplainRow,
             r#"
             SELECT
-                explain_title::TEXT AS "explain_title?",
-                explain_text::TEXT AS "explain_text?",
-                explain_media_url::TEXT AS "explain_media_url?"
-            FROM study_task_explain
-            WHERE study_task_id = $1
+                e.explain_title::TEXT AS "explain_title?",
+                e.explain_text::TEXT AS "explain_text?",
+                e.explain_media_url::TEXT AS "explain_media_url?"
+            FROM study_task_explain e
+            INNER JOIN study_task t ON e.study_task_id = t.study_task_id
+            INNER JOIN study s ON t.study_id = s.study_id
+            WHERE e.study_task_id = $1
+              AND s.study_state = 'open'::study_state_enum
             "#,
             task_id
         )
@@ -494,8 +506,10 @@ impl StudyRepo {
             r#"
             SELECT EXISTS(
                 SELECT 1
-                FROM study_task
-                WHERE study_task_id = $1
+                FROM study_task t
+                INNER JOIN study s ON t.study_id = s.study_id
+                WHERE t.study_task_id = $1
+                  AND s.study_state = 'open'::study_state_enum
             )
             "#,
         )

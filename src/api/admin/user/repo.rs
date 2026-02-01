@@ -51,9 +51,11 @@ pub async fn admin_list_users(
     }
 
     let sort_column = match sort {
+        "id" => "user_id",
         "created_at" => "user_created_at",
         "email" => "user_email",
         "nickname" => "user_nickname",
+        "role" => "user_auth",
         _ => "user_created_at",
     };
 
@@ -386,4 +388,109 @@ pub async fn create_history_log(
     .await?;
 
     Ok(())
+}
+
+// ==========================================
+// Admin User Logs Repository
+// ==========================================
+
+use super::dto::{AdminUserLogItem, UserLogItem};
+
+/// 관리자가 변경한 유저 로그 조회 (admin_users_log)
+pub async fn get_admin_user_logs(
+    pool: &PgPool,
+    target_user_id: i64,
+    page: i64,
+    size: i64,
+) -> Result<(Vec<AdminUserLogItem>, i64), sqlx::Error> {
+    let offset = (page - 1) * size;
+
+    // 총 개수 조회
+    let count: (i64,) = sqlx::query_as(
+        r#"
+        SELECT COUNT(*)
+        FROM admin_users_log
+        WHERE admin_pick_user_id = $1
+        "#,
+    )
+    .bind(target_user_id)
+    .fetch_one(pool)
+    .await?;
+
+    // 로그 조회 (관리자 이메일 JOIN)
+    let items = sqlx::query_as::<_, AdminUserLogItem>(
+        r#"
+        SELECT
+            aul.admin_user_log_id as id,
+            aul.admin_user_id as admin_id,
+            u.user_email as admin_email,
+            aul.admin_user_action as action,
+            aul.admin_user_before as before,
+            aul.admin_user_after as after,
+            aul.admin_user_created_at as created_at
+        FROM admin_users_log aul
+        LEFT JOIN users u ON aul.admin_user_id = u.user_id
+        WHERE aul.admin_pick_user_id = $1
+        ORDER BY aul.admin_user_created_at DESC
+        LIMIT $2 OFFSET $3
+        "#,
+    )
+    .bind(target_user_id)
+    .bind(size)
+    .bind(offset)
+    .fetch_all(pool)
+    .await?;
+
+    Ok((items, count.0))
+}
+
+/// 유저 본인이 변경한 로그 조회 (users_log)
+pub async fn get_user_self_logs(
+    pool: &PgPool,
+    user_id: i64,
+    page: i64,
+    size: i64,
+) -> Result<(Vec<UserLogItem>, i64), sqlx::Error> {
+    let offset = (page - 1) * size;
+
+    // 총 개수 조회
+    let count: (i64,) = sqlx::query_as(
+        r#"
+        SELECT COUNT(*)
+        FROM users_log
+        WHERE user_id = $1
+        "#,
+    )
+    .bind(user_id)
+    .fetch_one(pool)
+    .await?;
+
+    // 로그 조회
+    let items = sqlx::query_as::<_, UserLogItem>(
+        r#"
+        SELECT
+            user_log_id as id,
+            user_action_log as action,
+            user_action_success as success,
+            user_email_log as email,
+            user_nickname_log as nickname,
+            user_language_log as language,
+            user_country_log as country,
+            user_birthday_log as birthday,
+            user_gender_log as gender,
+            COALESCE(user_password_log, false) as password_changed,
+            user_log_updated_at as created_at
+        FROM users_log
+        WHERE user_id = $1
+        ORDER BY user_log_updated_at DESC
+        LIMIT $2 OFFSET $3
+        "#,
+    )
+    .bind(user_id)
+    .bind(size)
+    .bind(offset)
+    .fetch_all(pool)
+    .await?;
+
+    Ok((items, count.0))
 }

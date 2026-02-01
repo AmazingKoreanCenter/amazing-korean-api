@@ -6,6 +6,10 @@ export const studyStateSchema = z.enum(["ready", "open", "close"]);
 
 export type StudyState = z.infer<typeof studyStateSchema>;
 
+export const studyAccessSchema = z.enum(["public", "paid", "private", "promote"]);
+
+export type StudyAccess = z.infer<typeof studyAccessSchema>;
+
 export const userSetLanguageSchema = z.enum(["ko", "en"]);
 
 export type UserSetLanguage = z.infer<typeof userSetLanguageSchema>;
@@ -17,6 +21,7 @@ export const studyListReqSchema = z.object({
   sort: z.string().optional(),
   order: z.string().optional(),
   study_state: studyStateSchema.optional(),
+  study_access: studyAccessSchema.optional(),
   study_program: studyProgramSchema.optional(),
 });
 
@@ -29,6 +34,7 @@ export const studyCreateReqSchema = z.object({
   study_description: z.string().optional(),
   study_program: studyProgramSchema.optional(),
   study_state: studyStateSchema.optional(),
+  study_access: studyAccessSchema.optional(),
 });
 
 export type StudyCreateReq = z.infer<typeof studyCreateReqSchema>;
@@ -36,6 +42,7 @@ export type StudyCreateReq = z.infer<typeof studyCreateReqSchema>;
 export const studyUpdateReqSchema = z.object({
   study_idx: z.string().min(2).optional(),
   study_state: studyStateSchema.optional(),
+  study_access: studyAccessSchema.optional(),
   study_program: studyProgramSchema.optional(),
   study_title: z.string().min(1).max(80).optional(),
   study_subtitle: z.string().max(120).optional(),
@@ -58,6 +65,7 @@ export const studyBulkUpdateItemSchema = z.object({
   study_description: z.string().optional(),
   study_program: studyProgramSchema.optional(),
   study_state: studyStateSchema.optional(),
+  study_access: studyAccessSchema.optional(),
 });
 
 export type StudyBulkUpdateItem = z.infer<typeof studyBulkUpdateItemSchema>;
@@ -71,15 +79,41 @@ export type StudyBulkUpdateReq = z.infer<typeof studyBulkUpdateReqSchema>;
 export const adminStudyResSchema = z.object({
   study_id: z.number().int(),
   study_idx: z.string(),
-  study_title: z.string().optional(),
-  study_subtitle: z.string().optional(),
+  study_title: z.string().nullable().optional(),
+  study_subtitle: z.string().nullable().optional(),
   study_program: studyProgramSchema,
   study_state: studyStateSchema,
+  study_access: studyAccessSchema,
   study_created_at: z.string().datetime(),
   study_updated_at: z.string().datetime(),
 });
 
 export type AdminStudyRes = z.infer<typeof adminStudyResSchema>;
+
+// Study 상세 응답 (tasks 포함)
+export const adminStudyDetailResSchema = z.object({
+  study_id: z.number().int(),
+  study_idx: z.string(),
+  study_title: z.string().nullable().optional(),
+  study_subtitle: z.string().nullable().optional(),
+  study_description: z.string().nullable().optional(),
+  study_program: studyProgramSchema,
+  study_state: studyStateSchema,
+  study_access: studyAccessSchema,
+  study_created_at: z.string().datetime(),
+  study_updated_at: z.string().datetime(),
+  task_count: z.number().int(),
+  tasks: z.array(
+    z.object({
+      study_task_id: z.number().int(),
+      study_task_kind: studyTaskKindSchema,
+      study_task_seq: z.number().int(),
+      question: z.string().nullable().optional(),
+    })
+  ),
+});
+
+export type AdminStudyDetailRes = z.infer<typeof adminStudyDetailResSchema>;
 
 export const adminStudyListResSchema = z.object({
   list: z.array(adminStudyResSchema),
@@ -258,10 +292,9 @@ export type TaskStatusListReq = z.infer<typeof taskStatusListReqSchema>;
 export const adminTaskStatusResSchema = z.object({
   study_task_id: z.number().int(),
   user_id: z.number().int(),
-  study_task_status_try: z.number().int(),
-  study_task_status_best: z.number().int(),
-  study_task_status_completed: z.boolean(),
-  study_task_status_last_answer: z.string().datetime().optional(),
+  study_task_status_try_count: z.number().int(),
+  study_task_status_is_solved: z.boolean(),
+  study_task_status_last_attempt_at: z.string().datetime().optional(),
 });
 
 export type AdminTaskStatusRes = z.infer<typeof adminTaskStatusResSchema>;
@@ -278,10 +311,9 @@ export type AdminTaskStatusListRes = z.infer<typeof adminTaskStatusListResSchema
 
 export const taskStatusUpdateReqSchema = z.object({
   user_id: z.number().int().min(1),
-  study_task_status_try: z.number().int().optional(),
-  study_task_status_best: z.number().int().optional(),
-  study_task_status_completed: z.boolean().optional(),
-  study_task_status_last_answer: z.string().datetime().optional(),
+  study_task_status_try_count: z.number().int().optional(),
+  study_task_status_is_solved: z.boolean().optional(),
+  study_task_status_last_attempt_at: z.string().datetime().optional(),
 });
 
 export type TaskStatusUpdateReq = z.infer<typeof taskStatusUpdateReqSchema>;
@@ -289,10 +321,9 @@ export type TaskStatusUpdateReq = z.infer<typeof taskStatusUpdateReqSchema>;
 export const taskStatusUpdateItemSchema = z.object({
   study_task_id: z.number().int().min(1),
   user_id: z.number().int().min(1),
-  study_task_status_try: z.number().int().optional(),
-  study_task_status_best: z.number().int().optional(),
-  study_task_status_completed: z.boolean().optional(),
-  study_task_status_last_answer: z.string().datetime().optional(),
+  study_task_status_try_count: z.number().int().optional(),
+  study_task_status_is_solved: z.boolean().optional(),
+  study_task_status_last_attempt_at: z.string().datetime().optional(),
 });
 
 export type TaskStatusUpdateItem = z.infer<typeof taskStatusUpdateItemSchema>;
@@ -449,3 +480,96 @@ export const adminStudyTaskDetailResSchema = z.object({
 });
 
 export type AdminStudyTaskDetailRes = z.infer<typeof adminStudyTaskDetailResSchema>;
+
+// ==========================================
+// Admin Study Stats 타입
+// ==========================================
+
+// 통계 쿼리 파라미터
+export const studyStatsQuerySchema = z.object({
+  from: z.string(), // YYYY-MM-DD
+  to: z.string(), // YYYY-MM-DD
+});
+export type StudyStatsQuery = z.infer<typeof studyStatsQuerySchema>;
+
+// TOP Study 쿼리 파라미터
+export const topStudiesQuerySchema = studyStatsQuerySchema.extend({
+  limit: z.number().int().min(1).max(50).optional(),
+  sort_by: z.enum(["attempts", "solves", "solve_rate"]).optional(),
+});
+export type TopStudiesQuery = z.infer<typeof topStudiesQuerySchema>;
+
+// Program별 통계
+export const programStatsSchema = z.object({
+  basic_pronunciation: z.number().int(),
+  basic_word: z.number().int(),
+  basic_900: z.number().int(),
+  topik_read: z.number().int(),
+  topik_listen: z.number().int(),
+  topik_write: z.number().int(),
+  tbc: z.number().int(),
+});
+export type ProgramStats = z.infer<typeof programStatsSchema>;
+
+// State별 통계
+export const stateStatsSchema = z.object({
+  ready: z.number().int(),
+  open: z.number().int(),
+  close: z.number().int(),
+});
+export type StateStats = z.infer<typeof stateStatsSchema>;
+
+// Study 통계 요약 응답
+export const studyStatsSummaryResSchema = z.object({
+  total_studies: z.number().int(),
+  open_studies: z.number().int(),
+  total_tasks: z.number().int(),
+  total_attempts: z.number().int(),
+  total_solves: z.number().int(),
+  solve_rate: z.number(),
+  by_program: programStatsSchema,
+  by_state: stateStatsSchema,
+  from_date: z.string(),
+  to_date: z.string(),
+});
+export type StudyStatsSummaryRes = z.infer<typeof studyStatsSummaryResSchema>;
+
+// TOP Study 아이템
+export const topStudyItemSchema = z.object({
+  rank: z.number().int(),
+  study_id: z.number().int(),
+  study_idx: z.string(),
+  study_title: z.string().nullable().optional(),
+  study_program: z.string(),
+  task_count: z.number().int(),
+  attempt_count: z.number().int(),
+  solve_count: z.number().int(),
+  solve_rate: z.number(),
+});
+export type TopStudyItem = z.infer<typeof topStudyItemSchema>;
+
+// TOP Studies 응답
+export const topStudiesResSchema = z.object({
+  from_date: z.string(),
+  to_date: z.string(),
+  sort_by: z.string(),
+  items: z.array(topStudyItemSchema),
+});
+export type TopStudiesRes = z.infer<typeof topStudiesResSchema>;
+
+// 일별 통계 아이템
+export const studyDailyStatItemSchema = z.object({
+  date: z.string(), // YYYY-MM-DD
+  attempts: z.number().int(),
+  solves: z.number().int(),
+  active_users: z.number().int(),
+});
+export type StudyDailyStatItem = z.infer<typeof studyDailyStatItemSchema>;
+
+// 일별 통계 응답
+export const studyDailyStatsResSchema = z.object({
+  from_date: z.string(),
+  to_date: z.string(),
+  items: z.array(studyDailyStatItemSchema),
+});
+export type StudyDailyStatsRes = z.infer<typeof studyDailyStatsResSchema>;

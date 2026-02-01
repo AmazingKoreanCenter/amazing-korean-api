@@ -198,7 +198,9 @@ export function VideoDetailPage() {
           </CardHeader>
           <CardContent>
             <Button asChild className="gradient-primary text-white rounded-full">
-              <Link to="/videos">목록으로 돌아가기</Link>
+              <Link to={lessonId ? `/lessons/${lessonId}` : "/videos"}>
+                {lessonId ? "수업으로 돌아가기" : "목록으로 돌아가기"}
+              </Link>
             </Button>
           </CardContent>
         </Card>

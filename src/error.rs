@@ -27,6 +27,8 @@ pub enum AppError {
     Conflict(String),
     #[error("Too many requests: {0}")]
     TooManyRequests(String),
+    #[error("External service error: {0}")]
+    External(String),
 
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
@@ -113,6 +115,13 @@ impl IntoResponse for AppError {
                 msg.clone(),
                 None,
                 Some(60),
+            ),
+            AppError::External(msg) => (
+                StatusCode::BAD_GATEWAY,
+                "EXTERNAL_SERVICE_ERROR".to_string(),
+                "External service error".to_string(),
+                Some(serde_json::json!({ "debug": msg })),
+                None,
             ),
             AppError::Sqlx(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,

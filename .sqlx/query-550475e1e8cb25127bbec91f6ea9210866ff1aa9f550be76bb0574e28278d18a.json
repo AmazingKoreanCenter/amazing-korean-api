@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT sts.study_task_status_try_count\n            FROM study_task_status sts\n            INNER JOIN study_task t ON sts.study_task_id = t.study_task_id\n            INNER JOIN study s ON t.study_id = s.study_id\n            WHERE sts.study_task_id = $1\n              AND sts.user_id = $2\n              AND s.study_state = 'open'::study_state_enum\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "study_task_status_try_count",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "550475e1e8cb25127bbec91f6ea9210866ff1aa9f550be76bb0574e28278d18a"
+}

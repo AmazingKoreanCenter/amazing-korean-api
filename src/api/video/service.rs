@@ -87,18 +87,35 @@ impl VideoService {
             return Err(AppError::NotFound);
         }
 
-        // 3. 완료 여부 판단 (100%면 완료)
-        let is_completed = req.progress_rate >= 100;
+        // 3. 기존 진도 조회 (통계 판단용)
+        let existing = VideoRepo::find_progress(&st.db, user_id, video_id).await?;
 
-        // 4. Upsert Log
+        // 4. 통계 판단
+        let is_new_view = existing.is_none(); // 최초 시청 여부
+        let was_completed = existing.as_ref().map(|p| p.is_completed).unwrap_or(false);
+        let is_completed = req.progress_rate >= 100;
+        let is_new_complete = !was_completed && is_completed; // 이번에 처음 완료
+
+        // 5. Upsert Log (with is_new_view flag)
         let res = VideoRepo::upsert_progress(
             &st.db,
             user_id,
             video_id,
             req.progress_rate,
             is_completed,
+            is_new_view,
         )
         .await?;
+
+        // 6. 일별 통계 업데이트
+        if is_new_view {
+            // 최초 시청 시 views 증가
+            VideoRepo::increment_daily_views(&st.db, video_id).await?;
+        }
+        if is_new_complete {
+            // 처음 완료 시 completes 증가
+            VideoRepo::increment_daily_completes(&st.db, video_id).await?;
+        }
 
         Ok(res)
     }

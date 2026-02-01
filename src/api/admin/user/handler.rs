@@ -53,7 +53,7 @@ fn extract_user_agent(headers: &HeaderMap) -> Option<String> {
     tag = "admin_users",
     params(
         ("q", Query, description = "Search email or nickname", example = "test"),
-        ("sort", Query, description = "Sort field (created_at, email, nickname)", example = "created_at"),
+        ("sort", Query, description = "Sort field (id, created_at, email, nickname, role)", example = "created_at"),
         ("order", Query, description = "Sort order (asc, desc)", example = "desc"),
         ("page", Query, description = "Page number, defaults to 1", example = 1),
         ("size", Query, description = "Page size, defaults to 20 (max 100)", example = 20)
@@ -345,4 +345,80 @@ pub async fn admin_update_users_bulk(
     };
 
     Ok((status, Json(res)))
+}
+
+// ==========================================
+// User Logs Handlers
+// ==========================================
+
+use super::dto::{AdminUserLogsReq, AdminUserLogsRes, UserLogsRes};
+
+#[utoipa::path(
+    get,
+    path = "/admin/users/{user_id}/admin-logs",
+    tag = "admin_users",
+    params(
+        ("user_id", Path, description = "ID of the user to get logs for"),
+        ("page", Query, description = "Page number, defaults to 1"),
+        ("size", Query, description = "Page size, defaults to 20")
+    ),
+    responses(
+        (status = 200, description = "Admin change logs for the user", body = AdminUserLogsRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 404, description = "User not found", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn get_admin_user_logs(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(user_id): Path<i64>,
+    Query(params): Query<AdminUserLogsReq>,
+) -> AppResult<Json<AdminUserLogsRes>> {
+    let res = AdminUserService::get_admin_user_logs(
+        &st,
+        auth_user.sub,
+        user_id,
+        params.page,
+        params.size,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/users/{user_id}/user-logs",
+    tag = "admin_users",
+    params(
+        ("user_id", Path, description = "ID of the user to get logs for"),
+        ("page", Query, description = "Page number, defaults to 1"),
+        ("size", Query, description = "Page size, defaults to 20")
+    ),
+    responses(
+        (status = 200, description = "User self-change logs", body = UserLogsRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Forbidden", body = crate::error::ErrorBody),
+        (status = 404, description = "User not found", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn get_user_self_logs(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(user_id): Path<i64>,
+    Query(params): Query<AdminUserLogsReq>,
+) -> AppResult<Json<UserLogsRes>> {
+    let res = AdminUserService::get_user_self_logs(
+        &st,
+        auth_user.sub,
+        user_id,
+        params.page,
+        params.size,
+    )
+    .await?;
+
+    Ok(Json(res))
 }

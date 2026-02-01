@@ -3,17 +3,17 @@ use std::str::FromStr; // [필수] String -> IpAddr 변환용 trait
 use validator::Validate;
 
 use crate::error::{AppError, AppResult};
-use crate::types::{StudyProgram, StudyState, UserAuth};
+use crate::types::{StudyAccess, StudyProgram, StudyState, UserAuth};
 use crate::AppState;
 
 use super::dto::{
-    AdminStudyListRes, AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskListRes,
-    AdminTaskExplainListRes, AdminTaskExplainRes, StudyBulkCreateReq, StudyBulkCreateRes,
-    StudyBulkResult, StudyBulkUpdateReq, StudyBulkUpdateRes, StudyBulkUpdateResult,
-    StudyCreateReq, StudyListReq, StudyTaskCreateReq, StudyTaskListReq, StudyTaskUpdateReq,
-    StudyUpdateReq, StudyTaskBulkCreateReq, StudyTaskBulkCreateRes, StudyTaskBulkResult,
-    StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes, StudyTaskBulkUpdateResult,
-    TaskExplainBulkCreateReq, TaskExplainBulkCreateRes, TaskExplainBulkResult,
+    AdminStudyDetailRes, AdminStudyListRes, AdminStudyRes, AdminStudyTaskDetailRes,
+    AdminStudyTaskListRes, AdminTaskExplainListRes, AdminTaskExplainRes, StudyBulkCreateReq,
+    StudyBulkCreateRes, StudyBulkResult, StudyBulkUpdateReq, StudyBulkUpdateRes,
+    StudyBulkUpdateResult, StudyCreateReq, StudyListReq, StudyTaskBulkCreateReq,
+    StudyTaskBulkCreateRes, StudyTaskBulkResult, StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes,
+    StudyTaskBulkUpdateResult, StudyTaskCreateReq, StudyTaskListReq, StudyTaskUpdateReq,
+    StudyUpdateReq, TaskExplainBulkCreateReq, TaskExplainBulkCreateRes, TaskExplainBulkResult,
     TaskExplainBulkUpdateReq, TaskExplainBulkUpdateRes, TaskExplainBulkUpdateResult,
     TaskExplainCreateReq, TaskExplainListReq, TaskExplainUpdateReq, TaskStatusBulkUpdateReq,
     TaskStatusBulkUpdateRes, TaskStatusBulkUpdateResult, TaskStatusListReq, TaskStatusUpdateReq,
@@ -98,6 +98,7 @@ pub async fn admin_list_studies(
         sort,
         order,
         req.study_state,
+        req.study_access,
         req.study_program,
     )
     .await?;
@@ -109,6 +110,47 @@ pub async fn admin_list_studies(
         size,
         total_pages: (total as f64 / size as f64).ceil() as i64,
     })
+}
+
+/// Study 상세 조회
+pub async fn admin_get_study(
+    st: &AppState,
+    actor_user_id: i64,
+    study_id: i64,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminStudyDetailRes> {
+    // 1. RBAC
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    // 2. IP 변환
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    // 3. Audit Log
+    let details = serde_json::json!({
+        "study_id": study_id
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "GET_STUDY",
+        Some("STUDY"),
+        Some(study_id),
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    // 4. Repo Call
+    let study = repo::admin_get_study_detail(&st.db, study_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    Ok(study)
 }
 
 pub async fn admin_create_study(
@@ -129,6 +171,7 @@ pub async fn admin_create_study(
 
     let study_program = req.study_program.unwrap_or(StudyProgram::Tbc);
     let study_state = req.study_state.unwrap_or(StudyState::Ready);
+    let study_access = req.study_access.unwrap_or(StudyAccess::Public);
 
     let study_title = req
         .study_title
@@ -162,6 +205,7 @@ pub async fn admin_create_study(
         study_description,
         study_program,
         study_state,
+        study_access,
     )
     .await;
 
@@ -240,6 +284,7 @@ pub async fn admin_bulk_create_studies(
 
             let study_program = item.study_program.unwrap_or(StudyProgram::Tbc);
             let study_state = item.study_state.unwrap_or(StudyState::Ready);
+            let study_access = item.study_access.unwrap_or(StudyAccess::Public);
 
             let study_title = item
                 .study_title
@@ -268,6 +313,7 @@ pub async fn admin_bulk_create_studies(
                 study_description,
                 study_program,
                 study_state,
+                study_access,
             )
             .await;
 
@@ -359,6 +405,7 @@ pub async fn admin_update_study(
 
     let has_any = req.study_idx.is_some()
         || req.study_state.is_some()
+        || req.study_access.is_some()
         || req.study_program.is_some()
         || req.study_title.is_some()
         || req.study_subtitle.is_some()
@@ -470,6 +517,42 @@ pub async fn admin_list_study_tasks(
         size,
         total_pages,
     })
+}
+
+pub async fn admin_get_study_task(
+    st: &AppState,
+    actor_user_id: i64,
+    task_id: i64,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminStudyTaskDetailRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "task_id": task_id
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "VIEW_STUDY_TASK",
+        Some("STUDY_TASK"),
+        Some(task_id),
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let task = repo::find_study_task_by_id(&st.db, task_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    Ok(task)
 }
 
 pub async fn admin_list_task_explains(
@@ -628,10 +711,9 @@ pub async fn admin_update_task_status(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let has_any = req.study_task_status_try.is_some()
-        || req.study_task_status_best.is_some()
-        || req.study_task_status_completed.is_some()
-        || req.study_task_status_last_answer.is_some();
+    let has_any = req.study_task_status_try_count.is_some()
+        || req.study_task_status_is_solved.is_some()
+        || req.study_task_status_last_attempt_at.is_some();
 
     if !has_any {
         return Err(AppError::BadRequest("no fields to update".into()));
@@ -1128,10 +1210,9 @@ pub async fn admin_bulk_update_task_status(
                 return Err(AppError::BadRequest(e.to_string()));
             }
 
-            let has_any = item.study_task_status_try.is_some()
-                || item.study_task_status_best.is_some()
-                || item.study_task_status_completed.is_some()
-                || item.study_task_status_last_answer.is_some();
+            let has_any = item.study_task_status_try_count.is_some()
+                || item.study_task_status_is_solved.is_some()
+                || item.study_task_status_last_attempt_at.is_some();
 
             if !has_any {
                 return Err(AppError::BadRequest("no fields to update".into()));
@@ -1804,6 +1885,7 @@ pub async fn admin_bulk_update_studies(
                 study_description: item.study_description.clone(),
                 study_program: item.study_program,
                 study_state: item.study_state,
+                study_access: item.study_access,
             };
 
             if let Some(idx) = update_req.study_idx.as_mut() {
@@ -1812,6 +1894,7 @@ pub async fn admin_bulk_update_studies(
 
             let has_any = update_req.study_idx.is_some()
                 || update_req.study_state.is_some()
+                || update_req.study_access.is_some()
                 || update_req.study_program.is_some()
                 || update_req.study_title.is_some()
                 || update_req.study_subtitle.is_some()

@@ -137,7 +137,7 @@ impl VideoRepo {
     // Detail & Single Fetch
     // =========================================================================
 
-    /// 비디오 상세 조회
+    /// 비디오 상세 조회 (공개 상태인 영상만)
     pub async fn find_detail_by_id(
         pool: &PgPool,
         video_id: i64,
@@ -145,7 +145,7 @@ impl VideoRepo {
         let row = sqlx::query_as::<_, VideoDetailRes>(
             r#"
             SELECT
-                v.video_id::bigint as video_id, -- [여기 수정]
+                v.video_id::bigint as video_id,
                 v.video_url_vimeo,
                 v.video_state::text as video_state,
                 COALESCE(
@@ -163,6 +163,7 @@ impl VideoRepo {
             LEFT JOIN video_tag_map vtm ON vtm.video_id = v.video_id
             LEFT JOIN video_tag vt ON vt.video_tag_id = vtm.video_tag_id
             WHERE v.video_id = $1
+              AND v.video_state = 'open'
             GROUP BY v.video_id
             "#
         )
@@ -173,15 +174,15 @@ impl VideoRepo {
         Ok(row)
     }
 
-    /// 비디오 존재 여부 확인
+    /// 비디오 존재 여부 확인 (공개 상태인 영상만)
     pub async fn exists_by_id(pool: &PgPool, video_id: i64) -> AppResult<bool> {
         let exists = sqlx::query_scalar::<_, bool>(
-            r#"SELECT EXISTS(SELECT 1 FROM video WHERE video_id = $1)"#,
+            r#"SELECT EXISTS(SELECT 1 FROM video WHERE video_id = $1 AND video_state = 'open')"#,
         )
         .bind(video_id)
         .fetch_one(pool)
         .await?;
-        
+
         Ok(exists)
     }
 
@@ -213,29 +214,39 @@ impl VideoRepo {
         Ok(row)
     }
 
-    /// 학습 진도 업데이트 (Upsert)
+    /// 학습 진도 업데이트 (Upsert) - 확장 버전
+    /// is_new_view: true면 watch_count++, first_watched_at 설정
     pub async fn upsert_progress(
         pool: &PgPool,
         user_id: i64,
         video_id: i64,
         progress_rate: i32,
         is_completed: bool,
+        is_new_view: bool,
     ) -> AppResult<VideoProgressRes> {
         let row = sqlx::query_as::<_, VideoProgressRes>(
             r#"
             INSERT INTO video_log (
-                user_id, video_id, 
-                video_progress_log, video_completed_log, video_last_watched_at_log
+                user_id, video_id,
+                video_progress_log, video_completed_log, video_last_watched_at_log,
+                video_watch_count_log, video_first_watched_at_log
             )
-            VALUES ($1, $2, $3, $4, NOW())
+            VALUES ($1, $2, $3, $4, NOW(),
+                CASE WHEN $5 THEN 1 ELSE 0 END,
+                CASE WHEN $5 THEN NOW() ELSE NULL END
+            )
             ON CONFLICT (user_id, video_id) DO UPDATE
             SET
                 video_progress_log = EXCLUDED.video_progress_log,
-                video_completed_log = CASE 
-                    WHEN video_log.video_completed_log = true THEN true 
-                    ELSE EXCLUDED.video_completed_log 
-                END, 
-                video_last_watched_at_log = NOW()
+                video_completed_log = CASE
+                    WHEN video_log.video_completed_log = true THEN true
+                    ELSE EXCLUDED.video_completed_log
+                END,
+                video_last_watched_at_log = NOW(),
+                video_watch_count_log = CASE
+                    WHEN $5 THEN video_log.video_watch_count_log + 1
+                    ELSE video_log.video_watch_count_log
+                END
             RETURNING
                 video_id::bigint as video_id,
                 COALESCE(video_progress_log, 0) AS video_progress_log,
@@ -247,8 +258,51 @@ impl VideoRepo {
         .bind(video_id)
         .bind(progress_rate)
         .bind(is_completed)
+        .bind(is_new_view)
         .fetch_one(pool)
         .await?;
         Ok(row)
+    }
+
+    // =========================================================================
+    // Daily Stats (video_stat_daily)
+    // =========================================================================
+
+    /// 일별 통계 views 증가 (UPSERT)
+    pub async fn increment_daily_views(
+        pool: &PgPool,
+        video_id: i64,
+    ) -> AppResult<()> {
+        sqlx::query(
+            r#"
+            INSERT INTO video_stat_daily (video_stat_date, video_id, video_stat_views, video_stat_completes)
+            VALUES (CURRENT_DATE, $1, 1, 0)
+            ON CONFLICT (video_stat_date, video_id) DO UPDATE
+            SET video_stat_views = video_stat_daily.video_stat_views + 1
+            "#,
+        )
+        .bind(video_id)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    /// 일별 통계 completes 증가 (UPSERT)
+    pub async fn increment_daily_completes(
+        pool: &PgPool,
+        video_id: i64,
+    ) -> AppResult<()> {
+        sqlx::query(
+            r#"
+            INSERT INTO video_stat_daily (video_stat_date, video_id, video_stat_views, video_stat_completes)
+            VALUES (CURRENT_DATE, $1, 0, 1)
+            ON CONFLICT (video_stat_date, video_id) DO UPDATE
+            SET video_stat_completes = video_stat_daily.video_stat_completes + 1
+            "#,
+        )
+        .bind(video_id)
+        .execute(pool)
+        .await?;
+        Ok(())
     }
 }
