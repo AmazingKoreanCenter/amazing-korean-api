@@ -46,6 +46,9 @@ import { AdminLessonDetail } from "@/category/admin/page/admin_lesson_detail";
 import { AdminLessonCreate } from "@/category/admin/page/admin_lesson_create";
 import { AdminLessonBulkCreate } from "@/category/admin/page/admin_lesson_bulk_create";
 
+// Error pages
+import { AccessDeniedPage, NotFoundPage, ErrorPage } from "@/category/error/page";
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -102,6 +105,11 @@ export function AppRoutes() {
           <Route path="lessons/:lessonId" element={<AdminLessonDetail />} />
         </Route>
       </Route>
+
+      {/* 에러 페이지 */}
+      <Route path="/403" element={<AccessDeniedPage />} />
+      <Route path="/error" element={<ErrorPage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

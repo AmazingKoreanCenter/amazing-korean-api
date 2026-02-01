@@ -157,12 +157,14 @@ impl AuthService {
         // [Step 4] Token & Session Generation
         let session_id = Uuid::new_v4().to_string();
         let (refresh_token_value, refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
-        let refresh_ttl_secs = st.cfg.refresh_ttl_days * 24 * 3600;
+        // 역할별 세션 TTL 적용 (HYMN: 1일, Admin/Manager: 7일, Learner: 30일)
+        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user_info.user_auth) * 24 * 3600;
 
-        // JWT Access Token
+        // JWT Access Token (role 포함)
         let access_token_res = jwt::create_token(
             user_info.user_id,
             &session_id,
+            user_info.user_auth,
             st.cfg.jwt_access_ttl_min,
             &st.cfg.jwt_secret,
         )?;
@@ -322,23 +324,29 @@ impl AuthService {
         
         tx.commit().await?;
 
-        // [Step 5] Redis Sync
+        // [Step 5] Fetch user role for JWT and TTL calculation
+        let user = user_repo::find_user(&st.db, login_record.user_id)
+            .await?
+            .ok_or(AppError::Unauthorized("User not found".into()))?;
+
+        // [Step 6] Redis Sync
         // Delete old hash
         let _: () = redis_conn.del(format!("ak:refresh:{}", login_record.refresh_hash))
             .await.map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // Set new hash
-        let refresh_ttl_secs = st.cfg.refresh_ttl_days * 24 * 3600;
+        // Set new hash (역할별 TTL 적용)
+        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;
         let _: () = redis_conn.set_ex(
             format!("ak:refresh:{}", new_refresh_hash),
             &session_id,
             refresh_ttl_secs as u64,
         ).await.map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // Issue new Access Token
+        // Issue new Access Token (role 포함)
         let access_token_res = jwt::create_token(
             login_record.user_id,
             &session_id,
+            user.user_auth,
             st.cfg.jwt_access_ttl_min,
             &st.cfg.jwt_secret,
         )?;
