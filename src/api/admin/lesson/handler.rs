@@ -6,13 +6,14 @@ use axum::{
 use std::net::IpAddr;
 
 use crate::api::admin::lesson::dto::{
-    AdminLessonItemListRes, AdminLessonItemRes, AdminLessonListRes, AdminLessonProgressListRes,
-    AdminLessonProgressRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
-    LessonBulkUpdateReq, LessonBulkUpdateRes, LessonCreateReq, LessonItemBulkCreateReq,
-    LessonItemBulkCreateRes, LessonItemBulkUpdateReq, LessonItemBulkUpdateRes,
-    LessonItemCreateReq, LessonItemListReq, LessonItemUpdateReq, LessonListReq,
-    LessonProgressBulkUpdateReq, LessonProgressBulkUpdateRes, LessonProgressListReq,
-    LessonProgressUpdateReq, LessonUpdateReq,
+    AdminLessonItemListRes, AdminLessonItemRes, AdminLessonItemsDetailRes, AdminLessonListRes,
+    AdminLessonProgressListDetailRes, AdminLessonProgressListRes, AdminLessonProgressRes,
+    AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes, LessonBulkUpdateReq,
+    LessonBulkUpdateRes, LessonCreateReq, LessonItemBulkCreateReq, LessonItemBulkCreateRes,
+    LessonItemBulkDeleteReq, LessonItemBulkDeleteRes, LessonItemBulkUpdateReq,
+    LessonItemBulkUpdateRes, LessonItemCreateReq, LessonItemListReq, LessonItemUpdateReq,
+    LessonListReq, LessonProgressBulkUpdateReq, LessonProgressBulkUpdateRes,
+    LessonProgressListReq, LessonProgressUpdateReq, LessonUpdateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::AppResult;
@@ -365,6 +366,48 @@ pub async fn admin_bulk_update_lesson_items(
 }
 
 #[utoipa::path(
+    delete,
+    path = "/admin/lessons/bulk/items",
+    tag = "admin_lesson",
+    request_body = LessonItemBulkDeleteReq,
+    responses(
+        (status = 200, description = "All items deleted successfully", body = LessonItemBulkDeleteRes),
+        (status = 207, description = "Partial success", body = LessonItemBulkDeleteRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_bulk_delete_lesson_items(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<LessonItemBulkDeleteReq>,
+) -> AppResult<(StatusCode, Json<LessonItemBulkDeleteRes>)> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let (all_success, res) = super::service::admin_bulk_delete_lesson_items(
+        &st,
+        auth_user.sub,
+        req,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    let status = if all_success {
+        StatusCode::OK
+    } else {
+        StatusCode::MULTI_STATUS
+    };
+
+    Ok((status, Json(res)))
+}
+
+#[utoipa::path(
     patch,
     path = "/admin/lessons/{lesson_id}/items/{seq}",
     tag = "admin_lesson",
@@ -571,4 +614,170 @@ pub async fn admin_update_lesson(
     .await?;
 
     Ok(Json(res))
+}
+
+// ============================================
+// 7-46: Lesson Detail
+// ============================================
+
+#[utoipa::path(
+    get,
+    path = "/admin/lessons/{lesson_id}",
+    tag = "admin_lesson",
+    params(
+        ("lesson_id" = i32, Path, description = "Lesson ID")
+    ),
+    responses(
+        (status = 200, description = "Lesson detail", body = AdminLessonRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_get_lesson_detail(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(lesson_id): Path<i32>,
+    headers: HeaderMap,
+) -> AppResult<Json<AdminLessonRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::get_lesson_detail(
+        &st,
+        auth_user.sub,
+        lesson_id,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+// ============================================
+// 7-52: Lesson Items Detail (with video/study_task)
+// ============================================
+
+#[utoipa::path(
+    get,
+    path = "/admin/lessons/items/{lesson_id}",
+    tag = "admin_lesson",
+    params(
+        ("lesson_id" = i32, Path, description = "Lesson ID")
+    ),
+    responses(
+        (status = 200, description = "Lesson items detail with video/study_task info", body = AdminLessonItemsDetailRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_get_lesson_items_detail(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(lesson_id): Path<i32>,
+    headers: HeaderMap,
+) -> AppResult<Json<AdminLessonItemsDetailRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::get_lesson_items_detail(
+        &st,
+        auth_user.sub,
+        lesson_id,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+// ============================================
+// 7-58: Lesson Progress Detail (with current item)
+// ============================================
+
+#[utoipa::path(
+    get,
+    path = "/admin/lessons/progress/{lesson_id}",
+    tag = "admin_lesson",
+    params(
+        ("lesson_id" = i32, Path, description = "Lesson ID")
+    ),
+    responses(
+        (status = 200, description = "Lesson progress detail with current item info", body = AdminLessonProgressListDetailRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_get_lesson_progress_detail(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(lesson_id): Path<i32>,
+    headers: HeaderMap,
+) -> AppResult<Json<AdminLessonProgressListDetailRes>> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    let res = super::service::get_lesson_progress_detail(
+        &st,
+        auth_user.sub,
+        lesson_id,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(Json(res))
+}
+
+// ============================================
+// DELETE: Lesson Item
+// ============================================
+
+#[utoipa::path(
+    delete,
+    path = "/admin/lessons/{lesson_id}/items/{seq}",
+    tag = "admin_lesson",
+    params(
+        ("lesson_id" = i32, Path, description = "Lesson ID"),
+        ("seq" = i32, Path, description = "Lesson item sequence")
+    ),
+    responses(
+        (status = 204, description = "Lesson item deleted"),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_delete_lesson_item(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path((lesson_id, seq)): Path<(i32, i32)>,
+    headers: HeaderMap,
+) -> AppResult<StatusCode> {
+    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let user_agent = extract_user_agent(&headers);
+
+    super::service::admin_delete_lesson_item(
+        &st,
+        auth_user.sub,
+        lesson_id,
+        seq,
+        ip_address,
+        user_agent,
+    )
+    .await?;
+
+    Ok(StatusCode::NO_CONTENT)
 }

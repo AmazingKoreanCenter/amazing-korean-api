@@ -4,6 +4,12 @@ export const lessonItemKindSchema = z.enum(["video", "task"]);
 
 export type LessonItemKind = z.infer<typeof lessonItemKindSchema>;
 
+export const lessonStateSchema = z.enum(["ready", "open", "close"]);
+export type LessonState = z.infer<typeof lessonStateSchema>;
+
+export const lessonAccessSchema = z.enum(["public", "paid", "private", "promote"]);
+export type LessonAccess = z.infer<typeof lessonAccessSchema>;
+
 export const lessonListReqSchema = z.object({
   page: z.number().int().optional(),
   per_page: z.number().int().optional(),
@@ -18,6 +24,8 @@ export const lessonResSchema = z.object({
   description: z.string().optional(),
   lesson_idx: z.string(),
   thumbnail_url: z.string().optional(),
+  lesson_state: lessonStateSchema,
+  lesson_access: lessonAccessSchema,
 });
 
 export type LessonRes = z.infer<typeof lessonResSchema>;
@@ -58,6 +66,8 @@ export const lessonDetailResSchema = z.object({
   lesson_id: z.number().int(),
   title: z.string(),
   description: z.string().optional(),
+  lesson_state: lessonStateSchema,
+  lesson_access: lessonAccessSchema,
   items: z.array(lessonItemResSchema),
   meta: lessonListMetaSchema,
 });

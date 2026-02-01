@@ -59,7 +59,6 @@ import type {
   TaskStatusBulkUpdateRes,
   AdminTaskStatusListRes,
   AdminTaskStatusRes,
-  AdminLessonListRes,
   AdminUserLogsReq,
   AdminUserLogsRes,
   UserLogsRes,
@@ -74,6 +73,37 @@ import type {
   TopStudiesRes,
   StudyDailyStatsRes,
 } from "./types";
+
+import type {
+  LessonListReq,
+  AdminLessonListRes,
+  AdminLessonRes,
+  LessonCreateReq,
+  LessonBulkCreateReq,
+  LessonBulkCreateRes,
+  LessonUpdateReq,
+  LessonBulkUpdateReq,
+  LessonBulkUpdateRes,
+  LessonItemListReq,
+  AdminLessonItemListRes,
+  AdminLessonItemsDetailRes,
+  LessonItemCreateReq,
+  AdminLessonItemRes,
+  LessonItemBulkCreateReq,
+  LessonItemBulkCreateRes,
+  LessonItemUpdateReq,
+  LessonItemBulkUpdateReq,
+  LessonItemBulkUpdateRes,
+  LessonItemBulkDeleteReq,
+  LessonItemBulkDeleteRes,
+  LessonProgressListReq,
+  AdminLessonProgressListRes,
+  AdminLessonProgressListDetailRes,
+  LessonProgressUpdateReq,
+  AdminLessonProgressRes,
+  LessonProgressBulkUpdateReq,
+  LessonProgressBulkUpdateRes,
+} from "./lesson/types";
 
 // ==========================================
 // Admin Users API
@@ -403,8 +433,124 @@ export const getStudyStatsDaily = (params: StudyStatsQuery) =>
 // Admin Lessons API
 // ==========================================
 
-export const getAdminLessons = (params: AdminListReq) =>
+// 7-45: Lesson List
+export const getAdminLessons = (params: LessonListReq) =>
   request<AdminLessonListRes>("/admin/lessons", {
     method: "GET",
     params,
+  });
+
+// 7-46: Lesson Detail
+export const getAdminLesson = (id: number) =>
+  request<AdminLessonRes>(`/admin/lessons/${id}`, {
+    method: "GET",
+  });
+
+// 7-47: Lesson Create
+export const createAdminLesson = (data: LessonCreateReq) =>
+  request<AdminLessonRes>("/admin/lessons", {
+    method: "POST",
+    data,
+  });
+
+// 7-48: Lesson Bulk Create
+export const createAdminLessonsBulk = (data: LessonBulkCreateReq) =>
+  request<LessonBulkCreateRes>("/admin/lessons/bulk", {
+    method: "POST",
+    data,
+  });
+
+// 7-49: Lesson Update
+export const updateAdminLesson = (id: number, data: LessonUpdateReq) =>
+  request<AdminLessonRes>(`/admin/lessons/${id}`, {
+    method: "PATCH",
+    data,
+  });
+
+// 7-50: Lesson Bulk Update
+export const updateAdminLessonsBulk = (data: LessonBulkUpdateReq) =>
+  request<LessonBulkUpdateRes>("/admin/lessons/bulk", {
+    method: "PATCH",
+    data,
+  });
+
+// 7-51: Lesson Items List
+export const getAdminLessonItems = (params: LessonItemListReq) =>
+  request<AdminLessonItemListRes>("/admin/lessons/items", {
+    method: "GET",
+    params,
+  });
+
+// 7-52: Lesson Items Detail
+export const getAdminLessonItemsDetail = (lessonId: number) =>
+  request<AdminLessonItemsDetailRes>(`/admin/lessons/items/${lessonId}`, {
+    method: "GET",
+  });
+
+// 7-53: Lesson Item Create
+export const createAdminLessonItem = (lessonId: number, data: LessonItemCreateReq) =>
+  request<AdminLessonItemRes>(`/admin/lessons/${lessonId}/items`, {
+    method: "POST",
+    data,
+  });
+
+// 7-54: Lesson Items Bulk Create
+export const createAdminLessonItemsBulk = (data: LessonItemBulkCreateReq) =>
+  request<LessonItemBulkCreateRes>("/admin/lessons/bulk/items", {
+    method: "POST",
+    data,
+  });
+
+// 7-55: Lesson Item Update
+export const updateAdminLessonItem = (lessonId: number, seq: number, data: LessonItemUpdateReq) =>
+  request<AdminLessonItemRes>(`/admin/lessons/${lessonId}/items/${seq}`, {
+    method: "PATCH",
+    data,
+  });
+
+// DELETE: Lesson Item Delete
+export const deleteAdminLessonItem = (lessonId: number, seq: number) =>
+  request<void>(`/admin/lessons/${lessonId}/items/${seq}`, {
+    method: "DELETE",
+  });
+
+// 7-56: Lesson Items Bulk Update
+export const updateAdminLessonItemsBulk = (data: LessonItemBulkUpdateReq) =>
+  request<LessonItemBulkUpdateRes>("/admin/lessons/bulk/items", {
+    method: "PATCH",
+    data,
+  });
+
+// Lesson Items Bulk Delete
+export const deleteAdminLessonItemsBulk = (data: LessonItemBulkDeleteReq) =>
+  request<LessonItemBulkDeleteRes>("/admin/lessons/bulk/items", {
+    method: "DELETE",
+    data,
+  });
+
+// 7-57: Lesson Progress List
+export const getAdminLessonProgress = (params: LessonProgressListReq) =>
+  request<AdminLessonProgressListRes>("/admin/lessons/progress", {
+    method: "GET",
+    params,
+  });
+
+// 7-58: Lesson Progress Detail
+export const getAdminLessonProgressDetail = (lessonId: number) =>
+  request<AdminLessonProgressListDetailRes>(`/admin/lessons/progress/${lessonId}`, {
+    method: "GET",
+  });
+
+// 7-59: Lesson Progress Update
+export const updateAdminLessonProgress = (lessonId: number, data: LessonProgressUpdateReq) =>
+  request<AdminLessonProgressRes>(`/admin/lessons/${lessonId}/progress`, {
+    method: "PATCH",
+    data,
+  });
+
+// 7-60: Lesson Progress Bulk Update
+export const updateAdminLessonProgressBulk = (data: LessonProgressBulkUpdateReq) =>
+  request<LessonProgressBulkUpdateRes>("/admin/lessons/bulk/progress", {
+    method: "PATCH",
+    data,
   });

@@ -42,6 +42,9 @@ import { AdminStudyCreate } from "@/category/admin/page/admin_study_create";
 import { AdminStudyStatsPage } from "@/category/admin/page/admin_study_stats_page";
 import { AdminStudyBulkCreate } from "@/category/admin/page/admin_study_bulk_create";
 import { AdminLessonsPage } from "@/category/admin/page/admin_lessons_page";
+import { AdminLessonDetail } from "@/category/admin/page/admin_lesson_detail";
+import { AdminLessonCreate } from "@/category/admin/page/admin_lesson_create";
+import { AdminLessonBulkCreate } from "@/category/admin/page/admin_lesson_bulk_create";
 
 export function AppRoutes() {
   return (
@@ -94,6 +97,9 @@ export function AppRoutes() {
           <Route path="studies/bulk-create" element={<AdminStudyBulkCreate />} />
           <Route path="studies/:studyId" element={<AdminStudyDetail />} />
           <Route path="lessons" element={<AdminLessonsPage />} />
+          <Route path="lessons/new" element={<AdminLessonCreate />} />
+          <Route path="lessons/bulk-create" element={<AdminLessonBulkCreate />} />
+          <Route path="lessons/:lessonId" element={<AdminLessonDetail />} />
         </Route>
       </Route>
     </Routes>

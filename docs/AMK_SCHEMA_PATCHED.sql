@@ -2,7 +2,7 @@
 -- 모든 이전 마이그레이션을 하나로 통합
 
 -- 1. ENUM Types
-CREATE TYPE admin_action_enum AS ENUM ('create', 'update', 'banned', 'reorder', 'publish', 'unpublish');
+CREATE TYPE admin_action_enum AS ENUM ('create', 'update', 'banned', 'reorder', 'publish', 'unpublish', 'delete');
 CREATE TYPE user_auth_enum AS ENUM ('HYMN', 'admin', 'manager', 'learner');
 CREATE TYPE user_language_enum AS ENUM ('ko', 'en');
 CREATE TYPE user_gender_enum AS ENUM ('none', 'male', 'female', 'other');

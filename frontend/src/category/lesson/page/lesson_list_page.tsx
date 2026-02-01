@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookMarked, Layers } from "lucide-react";
+import { BookMarked, Layers, Lock, Crown } from "lucide-react";
 
 import {
   Pagination,
@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/pagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { LessonListReq } from "@/category/lesson/types";
+import { Badge } from "@/components/ui/badge";
+import type { LessonListReq, LessonAccess } from "@/category/lesson/types";
 
 import { useLessonList } from "../hook/use_lesson_list";
 
@@ -45,6 +46,35 @@ const getPageItems = (currentPage: number, totalPages: number): PageItem[] => {
 
   items.push(totalPages);
   return items;
+};
+
+const getAccessBadge = (access: LessonAccess) => {
+  switch (access) {
+    case "public":
+      return null; // Don't show badge for public (free) content
+    case "paid":
+      return (
+        <Badge className="absolute top-3 right-3 bg-amber-500 hover:bg-amber-500 text-white border-0 gap-1">
+          <Crown className="h-3 w-3" />
+          유료
+        </Badge>
+      );
+    case "private":
+      return (
+        <Badge className="absolute top-3 right-3 bg-gray-500 hover:bg-gray-500 text-white border-0 gap-1">
+          <Lock className="h-3 w-3" />
+          비공개
+        </Badge>
+      );
+    case "promote":
+      return (
+        <Badge className="absolute top-3 right-3 bg-green-500 hover:bg-green-500 text-white border-0">
+          무료체험
+        </Badge>
+      );
+    default:
+      return null;
+  }
 };
 
 export function LessonListPage() {
@@ -162,7 +192,8 @@ export function LessonListPage() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {items.map((lesson) => (
                   <Link key={lesson.id} to={`/lessons/${lesson.id}`}>
-                    <Card className="h-full border-0 shadow-card rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover group">
+                    <Card className="h-full border-0 shadow-card rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover group relative">
+                      {getAccessBadge(lesson.lesson_access)}
                       {lesson.thumbnail_url ? (
                         <div className="aspect-video w-full overflow-hidden bg-muted">
                           <img

@@ -8,15 +8,16 @@ use crate::types::{LessonAccess, LessonState, UserAuth};
 use crate::AppState;
 
 use super::dto::{
-    AdminLessonListRes, AdminLessonRes, LessonBulkCreateReq, LessonBulkCreateRes,
-    LessonBulkResult, LessonBulkUpdateReq, LessonBulkUpdateRes, LessonBulkUpdateResult,
-    AdminLessonItemListRes, AdminLessonItemRes, AdminLessonProgressListRes,
-    AdminLessonProgressRes, LessonCreateReq, LessonItemBulkCreateReq, LessonItemBulkCreateRes,
-    LessonItemBulkCreateResult, LessonItemBulkUpdateReq, LessonItemBulkUpdateRes,
-    LessonItemBulkUpdateResult, LessonItemCreateReq, LessonItemListReq, LessonItemUpdateReq,
-    LessonListReq, LessonProgressBulkUpdateReq, LessonProgressBulkUpdateRes,
-    LessonProgressBulkUpdateResult, LessonProgressListReq, LessonProgressUpdateReq,
-    LessonUpdateItem, LessonUpdateReq,
+    AdminLessonItemListRes, AdminLessonItemRes, AdminLessonItemsDetailRes, AdminLessonListRes,
+    AdminLessonProgressListDetailRes, AdminLessonProgressListRes, AdminLessonProgressRes,
+    AdminLessonRes, InsertMode, LessonBulkCreateReq, LessonBulkCreateRes, LessonBulkResult,
+    LessonBulkUpdateReq, LessonBulkUpdateRes, LessonBulkUpdateResult, LessonCreateReq,
+    LessonItemBulkCreateReq, LessonItemBulkCreateRes, LessonItemBulkCreateResult,
+    LessonItemBulkDeleteReq, LessonItemBulkDeleteRes, LessonItemBulkDeleteResult,
+    LessonItemBulkUpdateReq, LessonItemBulkUpdateRes, LessonItemBulkUpdateResult,
+    LessonItemCreateReq, LessonItemListReq, LessonItemUpdateReq, LessonListReq,
+    LessonProgressBulkUpdateReq, LessonProgressBulkUpdateRes, LessonProgressBulkUpdateResult,
+    LessonProgressListReq, LessonProgressUpdateReq, LessonUpdateItem, LessonUpdateReq,
 };
 use super::repo;
 
@@ -514,11 +515,21 @@ pub async fn admin_create_lesson_item(
         return Err(AppError::NotFound);
     }
 
-    if repo::exists_lesson_item(&st.db, lesson_id, req.lesson_item_seq).await? {
-        return Err(AppError::Conflict("lesson_item_seq already exists".into()));
-    }
-
     let mut tx = st.db.begin().await?;
+
+    // Handle insert mode
+    let seq_exists = repo::exists_lesson_item_tx(&mut tx, lesson_id, req.lesson_item_seq).await?;
+    if seq_exists {
+        match req.insert_mode {
+            InsertMode::Error => {
+                return Err(AppError::Conflict("lesson_item_seq already exists".into()));
+            }
+            InsertMode::Shift => {
+                // Shift existing items down (seq >= target becomes seq + 1)
+                repo::shift_lesson_items_tx(&mut tx, lesson_id, req.lesson_item_seq).await?;
+            }
+        }
+    }
 
     let created = repo::create_lesson_item(
         &mut tx,
@@ -911,6 +922,22 @@ pub async fn admin_bulk_update_lesson_items(
     )
     .await?;
 
+    // Check if this is a pure reorder operation (only seq changes for the same lesson_id)
+    let is_pure_reorder = !req.items.is_empty()
+        && req.items.iter().all(|item| {
+            item.new_lesson_item_seq.is_some()
+                && item.lesson_item_kind.is_none()
+                && item.video_id.is_none()
+                && item.study_task_id.is_none()
+        })
+        && req.items.iter().map(|i| i.lesson_id).collect::<std::collections::HashSet<_>>().len() == 1;
+
+    if is_pure_reorder {
+        // Use atomic reorder with two-phase update to avoid unique constraint violations
+        return admin_bulk_reorder_lesson_items(st, actor_user_id, req).await;
+    }
+
+    // Standard bulk update (individual transactions)
     let mut results = Vec::with_capacity(req.items.len());
     let mut success = 0i64;
     let mut failure = 0i64;
@@ -1095,6 +1122,209 @@ pub async fn admin_bulk_update_lesson_items(
     Ok((
         all_success,
         LessonItemBulkUpdateRes {
+            success_count: success,
+            failure_count: failure,
+            results,
+        },
+    ))
+}
+
+/// Atomic reorder of lesson items using two-phase update to avoid unique constraint violations
+async fn admin_bulk_reorder_lesson_items(
+    st: &AppState,
+    actor_user_id: i64,
+    req: LessonItemBulkUpdateReq,
+) -> AppResult<(bool, LessonItemBulkUpdateRes)> {
+    let lesson_id = req.items.first().map(|i| i.lesson_id).unwrap_or(0);
+
+    let mut tx = st.db.begin().await?;
+
+    // Collect reorder mappings: (current_seq, new_seq)
+    let mut reorder_map: Vec<(i32, i32)> = Vec::with_capacity(req.items.len());
+
+    for item in &req.items {
+        let current_seq = item.current_lesson_item_seq;
+        let new_seq = item.new_lesson_item_seq.unwrap_or(current_seq);
+
+        // Verify item exists
+        if !repo::exists_lesson_item_tx(&mut tx, lesson_id, current_seq).await? {
+            tx.rollback().await?;
+            return Err(AppError::NotFound);
+        }
+
+        reorder_map.push((current_seq, new_seq));
+    }
+
+    // Phase 1: Update all items to temporary negative sequences
+    // Use offset of -10000 to avoid collision with any real sequences
+    for (current_seq, _) in &reorder_map {
+        let temp_seq = -10000 - current_seq;
+        repo::update_lesson_item_seq_tx(&mut tx, lesson_id, *current_seq, temp_seq).await?;
+    }
+
+    // Phase 2: Update from temporary to final sequences
+    for (current_seq, new_seq) in &reorder_map {
+        let temp_seq = -10000 - current_seq;
+        repo::update_lesson_item_seq_tx(&mut tx, lesson_id, temp_seq, *new_seq).await?;
+    }
+
+    // Log the reorder operation
+    let reorder_details = serde_json::json!({
+        "lesson_id": lesson_id,
+        "reorder": reorder_map.iter().map(|(from, to)| {
+            serde_json::json!({ "from": from, "to": to })
+        }).collect::<Vec<_>>()
+    });
+
+    repo::create_lesson_log_tx(
+        &mut tx,
+        actor_user_id,
+        "update", // Use "update" action for reorder (as reorder is a type of update)
+        lesson_id,
+        None,
+        None,
+        None,
+        Some(&reorder_details),
+        None,
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    // Build success results
+    let results: Vec<LessonItemBulkUpdateResult> = reorder_map
+        .iter()
+        .map(|(_, new_seq)| LessonItemBulkUpdateResult {
+            lesson_id,
+            lesson_item_seq: *new_seq,
+            success: true,
+            error: None,
+        })
+        .collect();
+
+    let success_count = results.len() as i64;
+
+    Ok((
+        true,
+        LessonItemBulkUpdateRes {
+            success_count,
+            failure_count: 0,
+            results,
+        },
+    ))
+}
+
+pub async fn admin_bulk_delete_lesson_items(
+    st: &AppState,
+    actor_user_id: i64,
+    req: LessonItemBulkDeleteReq,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<(bool, LessonItemBulkDeleteRes)> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    if let Err(e) = req.validate() {
+        return Err(AppError::BadRequest(e.to_string()));
+    }
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "count": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_DELETE_LESSON_ITEMS",
+        Some("LESSON_ITEM"),
+        None,
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let mut results = Vec::with_capacity(req.items.len());
+    let mut success = 0i64;
+    let mut failure = 0i64;
+
+    for item in req.items {
+        let lesson_id = item.lesson_id;
+        let seq = item.lesson_item_seq;
+
+        let outcome = async {
+            if let Err(e) = item.validate() {
+                return Err(AppError::BadRequest(e.to_string()));
+            }
+
+            let mut tx = st.db.begin().await?;
+
+            // Find the item to delete (for logging)
+            let before = repo::find_lesson_item_tx(&mut tx, lesson_id, seq)
+                .await?
+                .ok_or(AppError::NotFound)?;
+
+            // Delete the item
+            repo::delete_lesson_item_tx(&mut tx, lesson_id, seq).await?;
+
+            // Log the deletion
+            let before_val = serde_json::to_value(&before).unwrap_or_default();
+            repo::create_lesson_log_tx(
+                &mut tx,
+                actor_user_id,
+                "delete",
+                lesson_id,
+                Some(seq),
+                before.video_id,
+                before.study_task_id,
+                Some(&before_val),
+                None,
+            )
+            .await?;
+
+            tx.commit().await?;
+
+            Ok(())
+        }
+        .await;
+
+        match outcome {
+            Ok(()) => {
+                success += 1;
+                results.push(LessonItemBulkDeleteResult {
+                    lesson_id,
+                    lesson_item_seq: seq,
+                    success: true,
+                    error: None,
+                });
+            }
+            Err(e) => {
+                failure += 1;
+                let msg = match e {
+                    AppError::NotFound => "Lesson item not found".to_string(),
+                    AppError::BadRequest(m) => m,
+                    AppError::Forbidden => "Forbidden".to_string(),
+                    _ => "Internal Server Error".to_string(),
+                };
+
+                results.push(LessonItemBulkDeleteResult {
+                    lesson_id,
+                    lesson_item_seq: seq,
+                    success: false,
+                    error: Some(msg),
+                });
+            }
+        }
+    }
+
+    let all_success = failure == 0;
+
+    Ok((
+        all_success,
+        LessonItemBulkDeleteRes {
             success_count: success,
             failure_count: failure,
             results,
@@ -1634,4 +1864,207 @@ pub async fn admin_update_lesson(
     tx.commit().await?;
 
     Ok(after)
+}
+
+// ============================================
+// 7-46: Lesson Detail
+// ============================================
+
+pub async fn get_lesson_detail(
+    st: &AppState,
+    actor_user_id: i64,
+    lesson_id: i32,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminLessonRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "lesson_id": lesson_id
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "GET_LESSON_DETAIL",
+        Some("LESSON"),
+        Some(lesson_id as i64),
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let lesson = repo::find_lesson_by_id(&st.db, lesson_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    Ok(lesson)
+}
+
+// ============================================
+// 7-52: Lesson Items Detail (with video/study_task)
+// ============================================
+
+pub async fn get_lesson_items_detail(
+    st: &AppState,
+    actor_user_id: i64,
+    lesson_id: i32,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminLessonItemsDetailRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "lesson_id": lesson_id
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "GET_LESSON_ITEMS_DETAIL",
+        Some("LESSON_ITEM"),
+        Some(lesson_id as i64),
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    // Verify lesson exists
+    let lesson = repo::find_lesson_by_id(&st.db, lesson_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    // Get items with video/study_task details
+    let items = repo::get_lesson_items_with_details(&st.db, lesson_id).await?;
+    let total_items = repo::count_lesson_items(&st.db, lesson_id).await?;
+
+    Ok(AdminLessonItemsDetailRes {
+        lesson_id,
+        lesson_title: lesson.lesson_title,
+        total_items,
+        items,
+    })
+}
+
+// ============================================
+// 7-58: Lesson Progress Detail (with current item)
+// ============================================
+
+pub async fn get_lesson_progress_detail(
+    st: &AppState,
+    actor_user_id: i64,
+    lesson_id: i32,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<AdminLessonProgressListDetailRes> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    let details = serde_json::json!({
+        "lesson_id": lesson_id
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "GET_LESSON_PROGRESS_DETAIL",
+        Some("LESSON_PROGRESS"),
+        Some(lesson_id as i64),
+        &details,
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    // Verify lesson exists
+    let lesson = repo::find_lesson_by_id(&st.db, lesson_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    // Get progress with current item details
+    let list = repo::get_lesson_progress_with_items(&st.db, lesson_id).await?;
+    let total_progress = repo::count_lesson_progress(&st.db, lesson_id).await?;
+
+    Ok(AdminLessonProgressListDetailRes {
+        lesson_id,
+        lesson_title: lesson.lesson_title,
+        total_progress,
+        list,
+    })
+}
+
+// ============================================
+// DELETE: Lesson Item
+// ============================================
+
+pub async fn admin_delete_lesson_item(
+    st: &AppState,
+    actor_user_id: i64,
+    lesson_id: i32,
+    seq: i32,
+    ip_address: Option<String>,
+    user_agent: Option<String>,
+) -> AppResult<()> {
+    check_admin_rbac(&st.db, actor_user_id).await?;
+
+    let ip_addr: Option<IpAddr> = ip_address
+        .as_deref()
+        .and_then(|ip| IpAddr::from_str(ip).ok());
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "DELETE_LESSON_ITEM",
+        Some("LESSON_ITEM"),
+        Some(lesson_id as i64),
+        &serde_json::json!({
+            "lesson_id": lesson_id,
+            "lesson_item_seq": seq
+        }),
+        ip_addr,
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let mut tx = st.db.begin().await?;
+
+    // Find the item to delete (for logging)
+    let before = repo::find_lesson_item_tx(&mut tx, lesson_id, seq)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    // Delete the item
+    repo::delete_lesson_item_tx(&mut tx, lesson_id, seq).await?;
+
+    // Log the deletion
+    let before_val = serde_json::to_value(&before).unwrap_or_default();
+    repo::create_lesson_log_tx(
+        &mut tx,
+        actor_user_id,
+        "delete",
+        lesson_id,
+        Some(seq),
+        before.video_id,
+        before.study_task_id,
+        Some(&before_val),
+        None,
+    )
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(())
 }

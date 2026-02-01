@@ -2,8 +2,9 @@ use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 
 use crate::api::admin::lesson::dto::{
-    AdminLessonItemRes, AdminLessonProgressRes, AdminLessonRes, LessonItemCreateReq,
-    LessonUpdateItem,
+    AdminLessonItemDetailRes, AdminLessonItemRes, AdminLessonProgressDetailRes,
+    AdminLessonProgressRes, AdminLessonRes, LessonItemCreateReq, LessonItemStudyTaskDetail,
+    LessonItemVideoDetail, LessonUpdateItem,
 };
 use crate::error::AppResult;
 use crate::types::{LessonAccess, LessonState};
@@ -394,29 +395,6 @@ pub async fn exists_lesson_tx(
     Ok(exists)
 }
 
-pub async fn exists_lesson_item(
-    pool: &PgPool,
-    lesson_id: i32,
-    lesson_item_seq: i32,
-) -> AppResult<bool> {
-    let exists = sqlx::query_scalar::<_, bool>(
-        r#"
-        SELECT EXISTS(
-            SELECT 1
-            FROM lesson_item
-            WHERE lesson_id = $1
-              AND lesson_item_seq = $2
-        )
-        "#,
-    )
-    .bind(lesson_id)
-    .bind(lesson_item_seq)
-    .fetch_one(pool)
-    .await?;
-
-    Ok(exists)
-}
-
 pub async fn exists_lesson_item_tx(
     tx: &mut Transaction<'_, Postgres>,
     lesson_id: i32,
@@ -438,6 +416,48 @@ pub async fn exists_lesson_item_tx(
     .await?;
 
     Ok(exists)
+}
+
+/// Shift lesson items: all items with seq >= target_seq get incremented by 1
+/// Updates from highest to lowest to avoid unique constraint violations
+pub async fn shift_lesson_items_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+    target_seq: i32,
+) -> AppResult<i32> {
+    // Get count of items that will be shifted
+    let count = sqlx::query_scalar::<_, i64>(
+        r#"
+        SELECT COUNT(*)
+        FROM lesson_item
+        WHERE lesson_id = $1
+          AND lesson_item_seq >= $2
+        "#,
+    )
+    .bind(lesson_id)
+    .bind(target_seq)
+    .fetch_one(&mut **tx)
+    .await?;
+
+    if count == 0 {
+        return Ok(0);
+    }
+
+    // Shift items: update from highest seq to lowest to avoid unique constraint violations
+    sqlx::query(
+        r#"
+        UPDATE lesson_item
+        SET lesson_item_seq = lesson_item_seq + 1
+        WHERE lesson_id = $1
+          AND lesson_item_seq >= $2
+        "#,
+    )
+    .bind(lesson_id)
+    .bind(target_seq)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(count as i32)
 }
 
 pub async fn find_lesson_item_tx(
@@ -593,6 +613,30 @@ pub async fn update_lesson_item_tx(
     Ok(())
 }
 
+/// Update only the sequence of a lesson item (for atomic reordering)
+pub async fn update_lesson_item_seq_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+    current_seq: i32,
+    new_seq: i32,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        UPDATE lesson_item
+        SET lesson_item_seq = $3
+        WHERE lesson_id = $1
+          AND lesson_item_seq = $2
+        "#,
+    )
+    .bind(lesson_id)
+    .bind(current_seq)
+    .bind(new_seq)
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
 pub async fn exists_lesson_idx(pool: &PgPool, lesson_idx: &str) -> AppResult<bool> {
     let exists = sqlx::query_scalar::<_, bool>(
         r#"
@@ -705,6 +749,7 @@ fn normalize_lesson_action(action: &str) -> &'static str {
     match action {
         "create" | "CREATE" | "create_lesson" | "CREATE_LESSON" => "create",
         "update" | "UPDATE" | "update_lesson" | "UPDATE_LESSON" => "update",
+        "delete" | "DELETE" | "delete_lesson" | "DELETE_LESSON" => "delete",
         _ => "update",
     }
 }
@@ -899,6 +944,311 @@ pub async fn update_lesson_tx(
     builder.push_bind(lesson_id);
 
     builder.build().execute(&mut **tx).await?;
+
+    Ok(())
+}
+
+// ============================================
+// 7-46: Lesson Detail
+// ============================================
+
+pub async fn find_lesson_by_id(pool: &PgPool, lesson_id: i32) -> AppResult<Option<AdminLessonRes>> {
+    let row = sqlx::query_as::<_, AdminLessonRes>(
+        r#"
+        SELECT
+            lesson_id,
+            updated_by_user_id,
+            lesson_idx,
+            lesson_title,
+            lesson_subtitle,
+            lesson_description,
+            lesson_state,
+            lesson_access,
+            lesson_created_at,
+            lesson_updated_at
+        FROM lesson
+        WHERE lesson_id = $1
+        "#,
+    )
+    .bind(lesson_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row)
+}
+
+// ============================================
+// 7-52: Lesson Items Detail (with video/study_task)
+// ============================================
+
+#[derive(sqlx::FromRow)]
+struct LessonItemWithDetailsRow {
+    // lesson_item fields
+    lesson_id: i32,
+    lesson_item_seq: i32,
+    lesson_item_kind: String,
+    // video fields (prefixed) - from video, video_tag, video_tag_map, video_stat_daily
+    v_video_id: Option<i32>,
+    v_video_idx: Option<String>,
+    v_video_tag_title: Option<String>,
+    v_video_url_vimeo: Option<String>,
+    v_video_tag_subtitle: Option<String>,
+    v_video_views: Option<i64>,
+    v_video_state: Option<String>,
+    v_video_access: Option<String>,
+    v_video_duration: Option<i32>,
+    v_video_thumbnail: Option<String>,
+    v_video_created_at: Option<chrono::DateTime<chrono::Utc>>,
+    v_video_updated_at: Option<chrono::DateTime<chrono::Utc>>,
+    // study_task fields (prefixed)
+    st_study_task_id: Option<i32>,
+    st_study_id: Option<i32>,
+    st_study_task_kind: Option<String>,
+    st_study_task_seq: Option<i32>,
+    st_study_task_created_at: Option<chrono::DateTime<chrono::Utc>>,
+    st_study_task_updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+pub async fn get_lesson_items_with_details(
+    pool: &PgPool,
+    lesson_id: i32,
+) -> AppResult<Vec<AdminLessonItemDetailRes>> {
+    let rows = sqlx::query_as::<_, LessonItemWithDetailsRow>(
+        r#"
+        SELECT
+            li.lesson_id,
+            li.lesson_item_seq,
+            li.lesson_item_kind::text AS lesson_item_kind,
+            -- video fields (from video + video_tag via video_tag_map + stats)
+            v.video_id AS v_video_id,
+            v.video_idx AS v_video_idx,
+            vt.video_tag_title AS v_video_tag_title,
+            v.video_url_vimeo AS v_video_url_vimeo,
+            vt.video_tag_subtitle AS v_video_tag_subtitle,
+            COALESCE(vs.total_views, 0) AS v_video_views,
+            v.video_state::text AS v_video_state,
+            v.video_access::text AS v_video_access,
+            v.video_duration AS v_video_duration,
+            v.video_thumbnail AS v_video_thumbnail,
+            v.video_created_at AS v_video_created_at,
+            v.video_updated_at AS v_video_updated_at,
+            -- study_task fields
+            st.study_task_id AS st_study_task_id,
+            st.study_id AS st_study_id,
+            st.study_task_kind::text AS st_study_task_kind,
+            st.study_task_seq AS st_study_task_seq,
+            st.study_task_created_at AS st_study_task_created_at,
+            st.study_task_updated_at AS st_study_task_updated_at
+        FROM lesson_item li
+        LEFT JOIN video v ON li.video_id = v.video_id
+        LEFT JOIN video_tag_map vtm ON v.video_id = vtm.video_id
+        LEFT JOIN video_tag vt ON vtm.video_tag_id = vt.video_tag_id
+        LEFT JOIN (
+            SELECT video_id, SUM(video_stat_views)::bigint AS total_views
+            FROM video_stat_daily
+            GROUP BY video_id
+        ) vs ON v.video_id = vs.video_id
+        LEFT JOIN study_task st ON li.study_task_id = st.study_task_id
+        WHERE li.lesson_id = $1
+        ORDER BY li.lesson_item_seq ASC
+        "#,
+    )
+    .bind(lesson_id)
+    .fetch_all(pool)
+    .await?;
+
+    let items = rows
+        .into_iter()
+        .map(|row| {
+            let video = if let Some(vid) = row.v_video_id {
+                Some(LessonItemVideoDetail {
+                    video_id: vid,
+                    video_idx: row.v_video_idx.unwrap_or_default(),
+                    video_tag_title: row.v_video_tag_title,
+                    video_url_vimeo: row.v_video_url_vimeo,
+                    video_tag_subtitle: row.v_video_tag_subtitle,
+                    video_views: row.v_video_views.unwrap_or(0),
+                    video_state: row
+                        .v_video_state
+                        .as_deref()
+                        .map(|s| match s {
+                            "ready" => crate::types::VideoState::Ready,
+                            "open" => crate::types::VideoState::Open,
+                            "close" => crate::types::VideoState::Close,
+                            _ => crate::types::VideoState::Ready,
+                        })
+                        .unwrap_or(crate::types::VideoState::Ready),
+                    video_access: row
+                        .v_video_access
+                        .as_deref()
+                        .map(|s| match s {
+                            "public" => crate::types::VideoAccess::Public,
+                            "paid" => crate::types::VideoAccess::Paid,
+                            "private" => crate::types::VideoAccess::Private,
+                            "promote" => crate::types::VideoAccess::Promote,
+                            _ => crate::types::VideoAccess::Public,
+                        })
+                        .unwrap_or(crate::types::VideoAccess::Public),
+                    video_duration: row.v_video_duration,
+                    video_thumbnail: row.v_video_thumbnail,
+                    video_created_at: row.v_video_created_at.unwrap_or_else(chrono::Utc::now),
+                    video_updated_at: row.v_video_updated_at.unwrap_or_else(chrono::Utc::now),
+                })
+            } else {
+                None
+            };
+
+            let study_task = if let Some(stid) = row.st_study_task_id {
+                Some(LessonItemStudyTaskDetail {
+                    study_task_id: stid,
+                    study_id: row.st_study_id.unwrap_or(0),
+                    study_task_kind: row.st_study_task_kind.unwrap_or_default(),
+                    study_task_seq: row.st_study_task_seq.unwrap_or(1),
+                    study_task_created_at: row.st_study_task_created_at.unwrap_or_else(chrono::Utc::now),
+                    study_task_updated_at: row.st_study_task_updated_at.unwrap_or_else(chrono::Utc::now),
+                })
+            } else {
+                None
+            };
+
+            AdminLessonItemDetailRes {
+                lesson_id: row.lesson_id,
+                lesson_item_seq: row.lesson_item_seq,
+                lesson_item_kind: row.lesson_item_kind,
+                video,
+                study_task,
+            }
+        })
+        .collect();
+
+    Ok(items)
+}
+
+pub async fn count_lesson_items(pool: &PgPool, lesson_id: i32) -> AppResult<i64> {
+    let count: i64 = sqlx::query_scalar(
+        r#"
+        SELECT COUNT(*) FROM lesson_item WHERE lesson_id = $1
+        "#,
+    )
+    .bind(lesson_id)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(count)
+}
+
+// ============================================
+// 7-58: Lesson Progress Detail (with current item)
+// ============================================
+
+#[derive(sqlx::FromRow)]
+struct LessonProgressWithItemRow {
+    // lesson_progress fields
+    lesson_id: i32,
+    user_id: i64,
+    lesson_progress_percent: i32,
+    lesson_progress_last_item_seq: Option<i32>,
+    lesson_progress_last_progress_at: Option<chrono::DateTime<chrono::Utc>>,
+    // current item fields (from lesson_item)
+    ci_lesson_id: Option<i32>,
+    ci_lesson_item_seq: Option<i32>,
+    ci_lesson_item_kind: Option<String>,
+    ci_video_id: Option<i32>,
+    ci_study_task_id: Option<i32>,
+}
+
+pub async fn get_lesson_progress_with_items(
+    pool: &PgPool,
+    lesson_id: i32,
+) -> AppResult<Vec<AdminLessonProgressDetailRes>> {
+    let rows = sqlx::query_as::<_, LessonProgressWithItemRow>(
+        r#"
+        SELECT
+            lp.lesson_id,
+            lp.user_id::bigint AS user_id,
+            lp.lesson_progress_percent,
+            lp.lesson_progress_last_item_seq,
+            lp.lesson_progress_last_progress_at,
+            -- current item fields
+            li.lesson_id AS ci_lesson_id,
+            li.lesson_item_seq AS ci_lesson_item_seq,
+            li.lesson_item_kind::text AS ci_lesson_item_kind,
+            li.video_id AS ci_video_id,
+            li.study_task_id AS ci_study_task_id
+        FROM lesson_progress lp
+        LEFT JOIN lesson_item li
+            ON lp.lesson_id = li.lesson_id
+            AND lp.lesson_progress_last_item_seq = li.lesson_item_seq
+        WHERE lp.lesson_id = $1
+        ORDER BY lp.lesson_progress_last_progress_at DESC NULLS LAST
+        "#,
+    )
+    .bind(lesson_id)
+    .fetch_all(pool)
+    .await?;
+
+    let list = rows
+        .into_iter()
+        .map(|row| {
+            let current_item = if let Some(ci_lesson_id) = row.ci_lesson_id {
+                Some(AdminLessonItemRes {
+                    lesson_id: ci_lesson_id,
+                    lesson_item_seq: row.ci_lesson_item_seq.unwrap_or(1),
+                    lesson_item_kind: row.ci_lesson_item_kind.unwrap_or_default(),
+                    video_id: row.ci_video_id,
+                    study_task_id: row.ci_study_task_id,
+                })
+            } else {
+                None
+            };
+
+            AdminLessonProgressDetailRes {
+                lesson_id: row.lesson_id,
+                user_id: row.user_id,
+                lesson_progress_percent: row.lesson_progress_percent,
+                lesson_progress_last_item_seq: row.lesson_progress_last_item_seq,
+                lesson_progress_last_progress_at: row.lesson_progress_last_progress_at,
+                current_item,
+            }
+        })
+        .collect();
+
+    Ok(list)
+}
+
+pub async fn count_lesson_progress(pool: &PgPool, lesson_id: i32) -> AppResult<i64> {
+    let count: i64 = sqlx::query_scalar(
+        r#"
+        SELECT COUNT(*) FROM lesson_progress WHERE lesson_id = $1
+        "#,
+    )
+    .bind(lesson_id)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(count)
+}
+
+// ============================================
+// DELETE: Lesson Item
+// ============================================
+
+pub async fn delete_lesson_item_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    lesson_id: i32,
+    lesson_item_seq: i32,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        DELETE FROM lesson_item
+        WHERE lesson_id = $1
+          AND lesson_item_seq = $2
+        "#,
+    )
+    .bind(lesson_id)
+    .bind(lesson_item_seq)
+    .execute(&mut **tx)
+    .await?;
 
     Ok(())
 }

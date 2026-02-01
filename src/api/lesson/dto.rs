@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
+use crate::types::{LessonAccess, LessonState};
+
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
 pub struct LessonListReq {
     pub page: Option<i64>,
@@ -16,6 +18,8 @@ pub struct LessonRes {
     pub description: Option<String>,
     pub lesson_idx: String,
     pub thumbnail_url: Option<String>,
+    pub lesson_state: LessonState,
+    pub lesson_access: LessonAccess,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -51,6 +55,8 @@ pub struct LessonDetailRes {
     pub lesson_id: i64,
     pub title: String,
     pub description: Option<String>,
+    pub lesson_state: LessonState,
+    pub lesson_access: LessonAccess,
     pub items: Vec<LessonItemRes>,
     pub meta: LessonListMeta,
 }
