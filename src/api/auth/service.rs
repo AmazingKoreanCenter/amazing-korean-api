@@ -376,9 +376,10 @@ impl AuthService {
         if let Some(found) = user {
             // 실제로는 여기서 이메일 발송 로직이 수행되어야 함
             let _ = user_repo::insert_user_log_after(&st.db, Some(found.user_id), found.user_id, "find_id", true).await;
-            info!("Find ID email simulated for {}", found.user_email);
+            info!("Find ID email simulated for user_id={}", found.user_id);
         } else {
-            warn!("Find ID request failed. User not found: {}", req.email);
+            // Security: Don't log the actual email to prevent enumeration via logs
+            info!("Find ID request processed");
         }
 
         Ok(FindIdRes {

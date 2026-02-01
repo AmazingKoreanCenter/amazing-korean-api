@@ -1,5 +1,4 @@
 use std::net::IpAddr;
-use std::str::FromStr;
 
 use validator::Validate;
 
@@ -46,7 +45,7 @@ pub async fn admin_list_lessons(
     st: &AppState,
     actor_user_id: i64,
     req: LessonListReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminLessonListRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -58,10 +57,6 @@ pub async fn admin_list_lessons(
     let sort = req.sort.as_deref().unwrap_or("created_at");
     let order = req.order.as_deref().unwrap_or("desc");
     let q = req.q.clone();
-
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
 
     let details = serde_json::json!({
         "q": q.as_deref(),
@@ -78,7 +73,7 @@ pub async fn admin_list_lessons(
         Some("LESSON"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -108,7 +103,7 @@ pub async fn admin_list_lesson_items(
     st: &AppState,
     actor_user_id: i64,
     req: LessonItemListReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminLessonItemListRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -139,10 +134,7 @@ pub async fn admin_list_lesson_items(
         None => None,
     };
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::to_value(&req).unwrap_or(serde_json::Value::Null);
 
     crate::api::admin::user::repo::create_audit_log(
@@ -152,7 +144,7 @@ pub async fn admin_list_lesson_items(
         Some("LESSON_ITEM"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -181,7 +173,7 @@ pub async fn admin_list_lesson_progress(
     st: &AppState,
     actor_user_id: i64,
     req: LessonProgressListReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminLessonProgressListRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -196,10 +188,7 @@ pub async fn admin_list_lesson_progress(
         .unwrap_or("lesson_progress_last_progress_at");
     let order = req.order.as_deref().unwrap_or("desc");
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "page": page,
         "size": size,
@@ -216,7 +205,7 @@ pub async fn admin_list_lesson_progress(
         Some("LESSON_PROGRESS"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -246,7 +235,7 @@ pub async fn admin_update_lesson_progress(
     actor_user_id: i64,
     lesson_id: i32,
     req: LessonProgressUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminLessonProgressRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -262,10 +251,7 @@ pub async fn admin_update_lesson_progress(
         return Err(AppError::BadRequest("no fields to update".into()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "lesson_id": lesson_id,
         "user_id": req.user_id,
@@ -279,7 +265,7 @@ pub async fn admin_update_lesson_progress(
         Some("LESSON_PROGRESS"),
         Some(lesson_id as i64),
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -328,7 +314,7 @@ pub async fn admin_bulk_update_lesson_progress(
     st: &AppState,
     actor_user_id: i64,
     req: LessonProgressBulkUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, LessonProgressBulkUpdateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -337,10 +323,7 @@ pub async fn admin_bulk_update_lesson_progress(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -352,7 +335,7 @@ pub async fn admin_bulk_update_lesson_progress(
         Some("LESSON_PROGRESS"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -466,7 +449,7 @@ pub async fn admin_create_lesson_item(
     actor_user_id: i64,
     lesson_id: i32,
     req: LessonItemCreateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminLessonItemRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -490,10 +473,7 @@ pub async fn admin_create_lesson_item(
         _ => return Err(AppError::BadRequest("invalid lesson_item_kind".into())),
     };
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "lesson_id": lesson_id,
         "payload": &req
@@ -506,7 +486,7 @@ pub async fn admin_create_lesson_item(
         Some("LESSON_ITEM"),
         Some(lesson_id as i64),
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -572,7 +552,7 @@ pub async fn admin_bulk_create_lesson_items(
     st: &AppState,
     actor_user_id: i64,
     req: LessonItemBulkCreateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, LessonItemBulkCreateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -581,10 +561,7 @@ pub async fn admin_bulk_create_lesson_items(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -596,7 +573,7 @@ pub async fn admin_bulk_create_lesson_items(
         Some("LESSON_ITEM"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -728,7 +705,7 @@ pub async fn admin_update_lesson_item(
     lesson_id: i32,
     current_seq: i32,
     req: LessonItemUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminLessonItemRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -744,9 +721,7 @@ pub async fn admin_update_lesson_item(
             "lesson_item_seq": current_seq,
             "payload": &req
         }),
-        ip_address
-            .as_deref()
-            .and_then(|ip| IpAddr::from_str(ip).ok()),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -893,7 +868,7 @@ pub async fn admin_bulk_update_lesson_items(
     st: &AppState,
     actor_user_id: i64,
     req: LessonItemBulkUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, LessonItemBulkUpdateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -902,10 +877,7 @@ pub async fn admin_bulk_update_lesson_items(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -917,7 +889,7 @@ pub async fn admin_bulk_update_lesson_items(
         Some("LESSON_ITEM"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1218,7 +1190,7 @@ pub async fn admin_bulk_delete_lesson_items(
     st: &AppState,
     actor_user_id: i64,
     req: LessonItemBulkDeleteReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, LessonItemBulkDeleteRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1227,10 +1199,7 @@ pub async fn admin_bulk_delete_lesson_items(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1242,7 +1211,7 @@ pub async fn admin_bulk_delete_lesson_items(
         Some("LESSON_ITEM"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1336,7 +1305,7 @@ pub async fn admin_create_lesson(
     st: &AppState,
     actor_user_id: i64,
     req: LessonCreateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminLessonRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1366,10 +1335,7 @@ pub async fn admin_create_lesson(
     let lesson_state = req.lesson_state.unwrap_or(LessonState::Ready);
     let lesson_access = req.lesson_access.unwrap_or(LessonAccess::Public);
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -1377,7 +1343,7 @@ pub async fn admin_create_lesson(
         Some("LESSON"),
         None,
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1431,7 +1397,7 @@ pub async fn admin_bulk_create_lessons(
     st: &AppState,
     actor_user_id: i64,
     req: LessonBulkCreateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, LessonBulkCreateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1440,10 +1406,7 @@ pub async fn admin_bulk_create_lessons(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1455,7 +1418,7 @@ pub async fn admin_bulk_create_lessons(
         Some("LESSON"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1586,7 +1549,7 @@ pub async fn admin_bulk_update_lessons(
     st: &AppState,
     actor_user_id: i64,
     req: LessonBulkUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, LessonBulkUpdateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1595,10 +1558,7 @@ pub async fn admin_bulk_update_lessons(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1610,7 +1570,7 @@ pub async fn admin_bulk_update_lessons(
         Some("LESSON"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1758,7 +1718,7 @@ pub async fn admin_update_lesson(
     actor_user_id: i64,
     lesson_id: i32,
     req: LessonUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminLessonRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1770,9 +1730,7 @@ pub async fn admin_update_lesson(
         Some("LESSON"),
         Some(lesson_id as i64),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address
-            .as_deref()
-            .and_then(|ip| IpAddr::from_str(ip).ok()),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1870,19 +1828,16 @@ pub async fn admin_update_lesson(
 // 7-46: Lesson Detail
 // ============================================
 
-pub async fn get_lesson_detail(
+pub async fn admin_get_lesson(
     st: &AppState,
     actor_user_id: i64,
     lesson_id: i32,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminLessonRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "lesson_id": lesson_id
     });
@@ -1894,7 +1849,7 @@ pub async fn get_lesson_detail(
         Some("LESSON"),
         Some(lesson_id as i64),
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1910,19 +1865,16 @@ pub async fn get_lesson_detail(
 // 7-52: Lesson Items Detail (with video/study_task)
 // ============================================
 
-pub async fn get_lesson_items_detail(
+pub async fn admin_get_lesson_items_detail(
     st: &AppState,
     actor_user_id: i64,
     lesson_id: i32,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminLessonItemsDetailRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "lesson_id": lesson_id
     });
@@ -1934,7 +1886,7 @@ pub async fn get_lesson_items_detail(
         Some("LESSON_ITEM"),
         Some(lesson_id as i64),
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1960,19 +1912,16 @@ pub async fn get_lesson_items_detail(
 // 7-58: Lesson Progress Detail (with current item)
 // ============================================
 
-pub async fn get_lesson_progress_detail(
+pub async fn admin_get_lesson_progress_detail(
     st: &AppState,
     actor_user_id: i64,
     lesson_id: i32,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminLessonProgressListDetailRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "lesson_id": lesson_id
     });
@@ -1984,7 +1933,7 @@ pub async fn get_lesson_progress_detail(
         Some("LESSON_PROGRESS"),
         Some(lesson_id as i64),
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -2015,15 +1964,12 @@ pub async fn admin_delete_lesson_item(
     actor_user_id: i64,
     lesson_id: i32,
     seq: i32,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<()> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -2034,7 +1980,7 @@ pub async fn admin_delete_lesson_item(
             "lesson_id": lesson_id,
             "lesson_item_seq": seq
         }),
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;

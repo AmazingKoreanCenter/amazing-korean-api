@@ -53,20 +53,26 @@ pub type AppResult<T> = Result<T, AppError>;
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_code, message, details, retry_after) = match self {
-            AppError::Internal(msg) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "INTERNAL_SERVER_ERROR".to_string(),
-                "Internal server error".to_string(),
-                Some(serde_json::json!({ "debug": msg })),
-                None,
-            ),
-            AppError::HealthInternal(reason) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "HEALTH_INTERNAL".to_string(),
-                "Health check failed".to_string(),
-                Some(serde_json::json!({ "reason": reason })),
-                None,
-            ),
+            AppError::Internal(msg) => {
+                tracing::error!("Internal error: {}", msg);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "INTERNAL_SERVER_ERROR".to_string(),
+                    "Internal server error".to_string(),
+                    None,
+                    None,
+                )
+            }
+            AppError::HealthInternal(reason) => {
+                tracing::error!("Health check failed: {}", reason);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "HEALTH_INTERNAL".to_string(),
+                    "Health check failed".to_string(),
+                    None,
+                    None,
+                )
+            }
             AppError::BadRequest(msg) => (
                 StatusCode::BAD_REQUEST,
                 "BAD_REQUEST".to_string(),
@@ -116,41 +122,56 @@ impl IntoResponse for AppError {
                 None,
                 Some(60),
             ),
-            AppError::External(msg) => (
-                StatusCode::BAD_GATEWAY,
-                "EXTERNAL_SERVICE_ERROR".to_string(),
-                "External service error".to_string(),
-                Some(serde_json::json!({ "debug": msg })),
-                None,
-            ),
-            AppError::Sqlx(e) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "DB_ERROR".to_string(),
-                "Database error".to_string(),
-                Some(serde_json::json!({ "debug": e.to_string() })),
-                None,
-            ),
-            AppError::Anyhow(e) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "ANYHOW_ERROR".to_string(),
-                "Application error".to_string(),
-                Some(serde_json::json!({ "debug": e.to_string() })),
-                None,
-            ),
-            AppError::Redis(e) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "REDIS_ERROR".to_string(),
-                "Redis error".to_string(),
-                Some(serde_json::json!({ "debug": e.to_string() })),
-                None,
-            ),
-            AppError::Jsonwebtoken(e) => (
-                StatusCode::UNAUTHORIZED,
-                "JWT_ERROR".to_string(),
-                "JWT error".to_string(),
-                Some(serde_json::json!({ "debug": e.to_string() })),
-                None,
-            ),
+            AppError::External(msg) => {
+                tracing::error!("External service error: {}", msg);
+                (
+                    StatusCode::BAD_GATEWAY,
+                    "EXTERNAL_SERVICE_ERROR".to_string(),
+                    "External service error".to_string(),
+                    None,
+                    None,
+                )
+            }
+            AppError::Sqlx(e) => {
+                tracing::error!("Database error: {:?}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "DB_ERROR".to_string(),
+                    "Database error".to_string(),
+                    None,
+                    None,
+                )
+            }
+            AppError::Anyhow(e) => {
+                tracing::error!("Application error: {:?}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "ANYHOW_ERROR".to_string(),
+                    "Application error".to_string(),
+                    None,
+                    None,
+                )
+            }
+            AppError::Redis(e) => {
+                tracing::error!("Redis error: {:?}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "REDIS_ERROR".to_string(),
+                    "Cache error".to_string(),
+                    None,
+                    None,
+                )
+            }
+            AppError::Jsonwebtoken(e) => {
+                tracing::warn!("JWT error: {:?}", e);
+                (
+                    StatusCode::UNAUTHORIZED,
+                    "JWT_ERROR".to_string(),
+                    "Authentication failed".to_string(),
+                    None,
+                    None,
+                )
+            }
             AppError::Validation(e) => (
                 StatusCode::BAD_REQUEST,
                 "VALIDATION_ERROR".to_string(),

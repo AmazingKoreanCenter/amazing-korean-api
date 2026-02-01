@@ -135,7 +135,7 @@ fn validate_state(state: &str) -> Result<(), validator::ValidationError> {
     }
 }
 
-#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
 pub struct VideoUpdateReq {
     #[validate(
         length(min = 1, max = 200),
@@ -162,7 +162,7 @@ pub struct VideoUpdateReq {
     pub video_idx: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
 pub struct VideoTagUpdateReq {
     #[validate(
         length(min = 1, max = 200),

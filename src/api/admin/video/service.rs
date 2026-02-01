@@ -95,7 +95,7 @@ async fn check_admin_rbac(pool: &sqlx::PgPool, actor_user_id: i64) -> AppResult<
 }
 
 /// Vimeo URL에서 메타데이터 미리보기 (DB 저장 없음)
-pub async fn get_vimeo_preview(
+pub async fn admin_get_vimeo_preview(
     st: &AppState,
     actor_user_id: i64,
     url: &str,
@@ -128,7 +128,7 @@ pub async fn get_vimeo_preview(
 }
 
 /// Vimeo 업로드 티켓 생성 (tus resumable upload용)
-pub async fn create_vimeo_upload_ticket(
+pub async fn admin_create_vimeo_upload_ticket(
     st: &AppState,
     actor_user_id: i64,
     req: VimeoUploadTicketReq,
@@ -167,14 +167,26 @@ pub async fn admin_create_video(
     st: &AppState,
     actor_user_id: i64,
     req: VideoCreateReq,
-    _ip_address: Option<IpAddr>,
-    _user_agent: Option<String>,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<String>,
 ) -> AppResult<AdminVideoRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
     if let Err(e) = req.validate() {
         return Err(AppError::BadRequest(e.to_string()));
     }
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "CREATE_VIDEO",
+        Some("VIDEO"),
+        None,
+        &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
+        ip_address,
+        user_agent.as_deref(),
+    )
+    .await?;
 
     let (video_idx, tag_key) = build_video_keys(&req);
 
@@ -226,14 +238,30 @@ pub async fn admin_bulk_create_videos(
     st: &AppState,
     actor_user_id: i64,
     req: VideoBulkCreateReq,
-    _ip_address: Option<IpAddr>,
-    _user_agent: Option<String>,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<String>,
 ) -> AppResult<(bool, VideoBulkCreateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
     if let Err(e) = req.validate() {
         return Err(AppError::BadRequest(e.to_string()));
     }
+
+    let details = serde_json::json!({
+        "count": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_CREATE_VIDEOS",
+        Some("VIDEO"),
+        None,
+        &details,
+        ip_address,
+        user_agent.as_deref(),
+    )
+    .await?;
 
     let mut results = Vec::with_capacity(req.items.len());
     let mut success = 0i64;
@@ -444,14 +472,30 @@ pub async fn admin_bulk_update_videos(
     st: &AppState,
     actor_user_id: i64,
     req: VideoBulkUpdateReq,
-    _ip_address: Option<IpAddr>,
-    _user_agent: Option<String>,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<String>,
 ) -> AppResult<(bool, VideoBulkUpdateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
     if let Err(e) = req.validate() {
         return Err(AppError::BadRequest(e.to_string()));
     }
+
+    let details = serde_json::json!({
+        "count": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_UPDATE_VIDEOS",
+        Some("VIDEO"),
+        None,
+        &details,
+        ip_address,
+        user_agent.as_deref(),
+    )
+    .await?;
 
     let mut results = Vec::with_capacity(req.items.len());
     let mut success = 0i64;
@@ -600,14 +644,30 @@ pub async fn admin_bulk_update_video_tags(
     st: &AppState,
     actor_user_id: i64,
     req: VideoTagBulkUpdateReq,
-    _ip_address: Option<IpAddr>,
-    _user_agent: Option<String>,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<String>,
 ) -> AppResult<(bool, VideoBulkUpdateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
     if let Err(e) = req.validate() {
         return Err(AppError::BadRequest(e.to_string()));
     }
+
+    let details = serde_json::json!({
+        "count": req.items.len()
+    });
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "BULK_UPDATE_VIDEO_TAGS",
+        Some("VIDEO"),
+        None,
+        &details,
+        ip_address,
+        user_agent.as_deref(),
+    )
+    .await?;
 
     let mut results = Vec::with_capacity(req.items.len());
     let mut success = 0i64;
@@ -747,14 +807,26 @@ pub async fn admin_update_video_tags(
     actor_user_id: i64,
     video_id: i64,
     req: VideoTagUpdateReq,
-    _ip_address: Option<IpAddr>,
-    _user_agent: Option<String>,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<String>,
 ) -> AppResult<AdminVideoRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
     if let Err(e) = req.validate() {
         return Err(AppError::BadRequest(e.to_string()));
     }
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "UPDATE_VIDEO_TAGS",
+        Some("VIDEO"),
+        Some(video_id),
+        &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
+        ip_address,
+        user_agent.as_deref(),
+    )
+    .await?;
 
     let update_req: VideoUpdateReq = req.into();
     let has_any = update_req.video_tag_title.is_some()
@@ -822,14 +894,26 @@ pub async fn admin_update_video(
     actor_user_id: i64,
     video_id: i64,
     req: VideoUpdateReq,
-    _ip_address: Option<IpAddr>,
-    _user_agent: Option<String>,
+    ip_address: Option<IpAddr>,
+    user_agent: Option<String>,
 ) -> AppResult<AdminVideoRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
     if let Err(e) = req.validate() {
         return Err(AppError::BadRequest(e.to_string()));
     }
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "UPDATE_VIDEO",
+        Some("VIDEO"),
+        Some(video_id),
+        &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
+        ip_address,
+        user_agent.as_deref(),
+    )
+    .await?;
 
     let has_any = req.video_tag_title.is_some()
         || req.video_tag_subtitle.is_some()
