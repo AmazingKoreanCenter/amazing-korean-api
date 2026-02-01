@@ -38,6 +38,11 @@ impl Config {
         let bind_addr = env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:3000".into());
         let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".into());
         let jwt_secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+
+        // Security: JWT secret should be at least 32 bytes for HS256
+        if jwt_secret.len() < 32 {
+            panic!("JWT_SECRET must be at least 32 bytes for security. Current length: {}", jwt_secret.len());
+        }
         let jwt_expire_hours = env::var("JWT_EXPIRE_HOURS")
             .unwrap_or_else(|_| "24".into())
             .parse::<i64>()
@@ -54,7 +59,9 @@ impl Config {
             .expect("REFRESH_TTL_DAYS must be a number");
         let refresh_cookie_name =
             env::var("REFRESH_COOKIE_NAME").unwrap_or_else(|_| "ak_refresh".into());
-        let refresh_cookie_domain = env::var("REFRESH_COOKIE_DOMAIN").ok();
+        let refresh_cookie_domain = env::var("REFRESH_COOKIE_DOMAIN")
+            .ok()
+            .filter(|s| !s.is_empty());
         let refresh_cookie_secure = env::var("REFRESH_COOKIE_SECURE")
             .map(|s| s == "true")
             .unwrap_or(false);

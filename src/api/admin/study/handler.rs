@@ -68,7 +68,7 @@ pub async fn admin_list_studies(
     Query(params): Query<StudyListReq>,
 ) -> AppResult<Json<AdminStudyListRes>> {
     // IpAddr -> Option<String> 변환
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_list_studies(
@@ -104,7 +104,7 @@ pub async fn admin_get_study(
     headers: HeaderMap,
     Path(study_id): Path<i64>,
 ) -> AppResult<Json<AdminStudyDetailRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_get_study(
@@ -140,7 +140,7 @@ pub async fn admin_create_study(
     headers: HeaderMap,
     Json(req): Json<StudyCreateReq>,
 ) -> Result<(StatusCode, Json<AdminStudyRes>), AppError> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_create_study(
@@ -177,7 +177,7 @@ pub async fn admin_bulk_create_studies(
     headers: HeaderMap,
     Json(req): Json<StudyBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<StudyBulkCreateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_create_studies(
@@ -224,7 +224,7 @@ pub async fn admin_update_study(
     headers: HeaderMap,
     Json(req): Json<StudyUpdateReq>,
 ) -> AppResult<Json<AdminStudyRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_update_study(
@@ -262,7 +262,7 @@ pub async fn admin_bulk_update_studies(
     headers: HeaderMap,
     Json(req): Json<StudyBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<StudyBulkUpdateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_update_studies(
@@ -307,7 +307,7 @@ pub async fn admin_list_study_tasks(
     headers: HeaderMap,
     Query(params): Query<StudyTaskListReq>,
 ) -> AppResult<Json<AdminStudyTaskListRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_list_study_tasks(
@@ -344,7 +344,7 @@ pub async fn admin_get_study_task(
     headers: HeaderMap,
     Path(task_id): Path<i64>,
 ) -> AppResult<Json<AdminStudyTaskDetailRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_get_study_task(
@@ -383,7 +383,7 @@ pub async fn admin_list_task_explains(
     headers: HeaderMap,
     Query(params): Query<TaskExplainListReq>,
 ) -> AppResult<Json<AdminTaskExplainListRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_list_task_explains(
@@ -423,7 +423,7 @@ pub async fn admin_list_task_status(
     headers: HeaderMap,
     Query(params): Query<TaskStatusListReq>,
 ) -> AppResult<Json<AdminTaskStatusListRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_list_task_status(
@@ -463,7 +463,7 @@ pub async fn admin_update_task_status(
     headers: HeaderMap,
     Json(req): Json<TaskStatusUpdateReq>,
 ) -> AppResult<Json<AdminTaskStatusRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_update_task_status(
@@ -502,7 +502,7 @@ pub async fn admin_bulk_update_task_status(
     headers: HeaderMap,
     Json(req): Json<TaskStatusBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<TaskStatusBulkUpdateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_update_task_status(
@@ -549,7 +549,7 @@ pub async fn admin_create_task_explain(
     headers: HeaderMap,
     Json(req): Json<TaskExplainCreateReq>,
 ) -> Result<(StatusCode, Json<AdminTaskExplainRes>), AppError> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_create_task_explain(
@@ -590,7 +590,7 @@ pub async fn admin_update_task_explain(
     headers: HeaderMap,
     Json(req): Json<TaskExplainUpdateReq>,
 ) -> AppResult<Json<AdminTaskExplainRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_update_task_explain(
@@ -629,7 +629,7 @@ pub async fn admin_bulk_create_task_explains(
     headers: HeaderMap,
     Json(req): Json<TaskExplainBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<TaskExplainBulkCreateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_create_task_explains(
@@ -673,7 +673,7 @@ pub async fn admin_bulk_update_task_explains(
     headers: HeaderMap,
     Json(req): Json<TaskExplainBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<TaskExplainBulkUpdateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_update_task_explains(
@@ -715,7 +715,7 @@ pub async fn admin_create_study_task(
     headers: HeaderMap,
     Json(req): Json<StudyTaskCreateReq>,
 ) -> Result<(StatusCode, Json<AdminStudyTaskDetailRes>), AppError> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_create_study_task(
@@ -752,7 +752,7 @@ pub async fn admin_bulk_create_study_tasks(
     headers: HeaderMap,
     Json(req): Json<StudyTaskBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<StudyTaskBulkCreateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_create_study_tasks(
@@ -795,7 +795,7 @@ pub async fn admin_bulk_update_study_tasks(
     headers: HeaderMap,
     Json(req): Json<StudyTaskBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<StudyTaskBulkUpdateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_update_study_tasks(
@@ -842,7 +842,7 @@ pub async fn admin_update_study_task(
     headers: HeaderMap,
     Json(req): Json<StudyTaskUpdateReq>,
 ) -> AppResult<Json<AdminStudyTaskDetailRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_update_study_task(

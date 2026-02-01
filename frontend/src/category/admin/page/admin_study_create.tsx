@@ -719,8 +719,7 @@ export function AdminStudyCreate() {
 
               {/* Bulk Tasks Tab */}
               <TabsContent value="bulk">
-                <form onSubmit={bulkTaskForm.handleSubmit(onBulkTaskSubmit, (errors) => {
-                  console.error(errors);
+                <form onSubmit={bulkTaskForm.handleSubmit(onBulkTaskSubmit, () => {
                   toast.error("Please fix errors in the form");
                 })}>
                   <div className="space-y-4">

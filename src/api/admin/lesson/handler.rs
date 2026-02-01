@@ -66,7 +66,7 @@ pub async fn admin_list_lessons(
     headers: HeaderMap,
     Query(params): Query<LessonListReq>,
 ) -> AppResult<Json<AdminLessonListRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_list_lessons(
@@ -101,7 +101,7 @@ pub async fn admin_list_lesson_items(
     headers: HeaderMap,
     Query(params): Query<LessonItemListReq>,
 ) -> AppResult<Json<AdminLessonItemListRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_list_lesson_items(
@@ -136,7 +136,7 @@ pub async fn admin_list_lesson_progress(
     headers: HeaderMap,
     Query(params): Query<LessonProgressListReq>,
 ) -> AppResult<Json<AdminLessonProgressListRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_list_lesson_progress(
@@ -176,7 +176,7 @@ pub async fn admin_update_lesson_progress(
     headers: HeaderMap,
     Json(req): Json<LessonProgressUpdateReq>,
 ) -> AppResult<Json<AdminLessonProgressRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_update_lesson_progress(
@@ -214,7 +214,7 @@ pub async fn admin_bulk_update_lesson_progress(
     headers: HeaderMap,
     Json(req): Json<LessonProgressBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<LessonProgressBulkUpdateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_update_lesson_progress(
@@ -261,7 +261,7 @@ pub async fn admin_create_lesson_item(
     headers: HeaderMap,
     Json(req): Json<LessonItemCreateReq>,
 ) -> AppResult<(StatusCode, Json<AdminLessonItemRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_create_lesson_item(
@@ -300,7 +300,7 @@ pub async fn admin_bulk_create_lesson_items(
     headers: HeaderMap,
     Json(req): Json<LessonItemBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<LessonItemBulkCreateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_create_lesson_items(
@@ -344,7 +344,7 @@ pub async fn admin_bulk_update_lesson_items(
     headers: HeaderMap,
     Json(req): Json<LessonItemBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<LessonItemBulkUpdateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_update_lesson_items(
@@ -386,7 +386,7 @@ pub async fn admin_bulk_delete_lesson_items(
     headers: HeaderMap,
     Json(req): Json<LessonItemBulkDeleteReq>,
 ) -> AppResult<(StatusCode, Json<LessonItemBulkDeleteRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_delete_lesson_items(
@@ -434,7 +434,7 @@ pub async fn admin_update_lesson_item(
     headers: HeaderMap,
     Json(req): Json<LessonItemUpdateReq>,
 ) -> AppResult<Json<AdminLessonItemRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_update_lesson_item(
@@ -472,7 +472,7 @@ pub async fn admin_create_lesson(
     headers: HeaderMap,
     Json(req): Json<LessonCreateReq>,
 ) -> AppResult<(StatusCode, Json<AdminLessonRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_create_lesson(
@@ -509,7 +509,7 @@ pub async fn admin_bulk_create_lessons(
     headers: HeaderMap,
     Json(req): Json<LessonBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<LessonBulkCreateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_create_lessons(
@@ -553,7 +553,7 @@ pub async fn admin_bulk_update_lessons(
     headers: HeaderMap,
     Json(req): Json<LessonBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<LessonBulkUpdateRes>)> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let (all_success, res) = super::service::admin_bulk_update_lessons(
@@ -600,7 +600,7 @@ pub async fn admin_update_lesson(
     headers: HeaderMap,
     Json(req): Json<LessonUpdateReq>,
 ) -> AppResult<Json<AdminLessonRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     let res = super::service::admin_update_lesson(
@@ -642,10 +642,10 @@ pub async fn admin_get_lesson_detail(
     Path(lesson_id): Path<i32>,
     headers: HeaderMap,
 ) -> AppResult<Json<AdminLessonRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::get_lesson_detail(
+    let res = super::service::admin_get_lesson(
         &st,
         auth_user.sub,
         lesson_id,
@@ -683,10 +683,10 @@ pub async fn admin_get_lesson_items_detail(
     Path(lesson_id): Path<i32>,
     headers: HeaderMap,
 ) -> AppResult<Json<AdminLessonItemsDetailRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::get_lesson_items_detail(
+    let res = super::service::admin_get_lesson_items_detail(
         &st,
         auth_user.sub,
         lesson_id,
@@ -724,10 +724,10 @@ pub async fn admin_get_lesson_progress_detail(
     Path(lesson_id): Path<i32>,
     headers: HeaderMap,
 ) -> AppResult<Json<AdminLessonProgressListDetailRes>> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::get_lesson_progress_detail(
+    let res = super::service::admin_get_lesson_progress_detail(
         &st,
         auth_user.sub,
         lesson_id,
@@ -766,7 +766,7 @@ pub async fn admin_delete_lesson_item(
     Path((lesson_id, seq)): Path<(i32, i32)>,
     headers: HeaderMap,
 ) -> AppResult<StatusCode> {
-    let ip_address = extract_client_ip(&headers).map(|ip| ip.to_string());
+    let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
     super::service::admin_delete_lesson_item(

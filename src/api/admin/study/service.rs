@@ -1,5 +1,4 @@
-use std::net::IpAddr; // [필수] IpAddr 타입 사용
-use std::str::FromStr; // [필수] String -> IpAddr 변환용 trait
+use std::net::IpAddr;
 use validator::Validate;
 
 use crate::error::{AppError, AppResult};
@@ -46,7 +45,7 @@ pub async fn admin_list_studies(
     st: &AppState,
     actor_user_id: i64,
     req: StudyListReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminStudyListRes> {
     // 1. RBAC
@@ -61,11 +60,7 @@ pub async fn admin_list_studies(
     let order = req.order.as_deref().unwrap_or("desc");
     let q = req.q.clone();
 
-    // [수정] String IP를 IpAddr 타입으로 변환 (변수 선언 추가)
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     // 3. Audit Log
     let details = serde_json::json!({
         "q": q.as_deref(),
@@ -84,7 +79,7 @@ pub async fn admin_list_studies(
         Some("STUDY"), // target_id
         None, // target_sub_id (5번째 인자)
         &details,
-        ip_addr, // [수정] 위에서 변환한 ip_addr 변수 사용
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -117,17 +112,13 @@ pub async fn admin_get_study(
     st: &AppState,
     actor_user_id: i64,
     study_id: i64,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminStudyDetailRes> {
     // 1. RBAC
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    // 2. IP 변환
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     // 3. Audit Log
     let details = serde_json::json!({
         "study_id": study_id
@@ -140,7 +131,7 @@ pub async fn admin_get_study(
         Some("STUDY"),
         Some(study_id),
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -157,7 +148,7 @@ pub async fn admin_create_study(
     st: &AppState,
     actor_user_id: i64,
     req: StudyCreateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminStudyRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -189,10 +180,17 @@ pub async fn admin_create_study(
         .map(str::trim)
         .filter(|v| !v.is_empty());
 
-    let _ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-    let _user_agent = user_agent;
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "CREATE_STUDY",
+        Some("STUDY"),
+        None,
+        &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
+        ip_address,
+        user_agent.as_deref(),
+    )
+    .await?;
 
     let mut tx = st.db.begin().await?;
 
@@ -238,7 +236,7 @@ pub async fn admin_bulk_create_studies(
     st: &AppState,
     actor_user_id: i64,
     req: StudyBulkCreateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, StudyBulkCreateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -247,10 +245,7 @@ pub async fn admin_bulk_create_studies(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "total": req.items.len()
     });
@@ -262,7 +257,7 @@ pub async fn admin_bulk_create_studies(
         Some("study"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -390,10 +385,22 @@ pub async fn admin_update_study(
     actor_user_id: i64,
     study_id: i64,
     mut req: StudyUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminStudyRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
+
+    crate::api::admin::user::repo::create_audit_log(
+        &st.db,
+        actor_user_id,
+        "UPDATE_STUDY",
+        Some("STUDY"),
+        Some(study_id),
+        &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
+        ip_address,
+        user_agent.as_deref(),
+    )
+    .await?;
 
     if let Err(e) = req.validate() {
         return Err(AppError::BadRequest(e.to_string()));
@@ -427,10 +434,7 @@ pub async fn admin_update_study(
         }
     }
 
-    let _ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-    let _user_agent = user_agent;
+    // audit log를 통해 기록됨
 
     let mut tx = st.db.begin().await?;
 
@@ -459,7 +463,7 @@ pub async fn admin_list_study_tasks(
     st: &AppState,
     actor_user_id: i64,
     req: StudyTaskListReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminStudyTaskListRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -481,10 +485,7 @@ pub async fn admin_list_study_tasks(
         return Err(AppError::Unprocessable("size exceeds 100".into()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "study_id": req.study_id
     });
@@ -496,7 +497,7 @@ pub async fn admin_list_study_tasks(
         Some("STUDY_TASK"),
         Some(req.study_id as i64),
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -523,15 +524,12 @@ pub async fn admin_get_study_task(
     st: &AppState,
     actor_user_id: i64,
     task_id: i64,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminStudyTaskDetailRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "task_id": task_id
     });
@@ -543,7 +541,7 @@ pub async fn admin_get_study_task(
         Some("STUDY_TASK"),
         Some(task_id),
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -559,7 +557,7 @@ pub async fn admin_list_task_explains(
     st: &AppState,
     actor_user_id: i64,
     req: TaskExplainListReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminTaskExplainListRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -581,10 +579,7 @@ pub async fn admin_list_task_explains(
         return Err(AppError::Unprocessable("size exceeds 100".into()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "page": page,
         "size": size
@@ -597,7 +592,7 @@ pub async fn admin_list_task_explains(
         Some("STUDY_TASK_EXPLAIN"),
         Some(req.task_id as i64),
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -624,7 +619,7 @@ pub async fn admin_list_task_status(
     st: &AppState,
     actor_user_id: i64,
     req: TaskStatusListReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminTaskStatusListRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -646,10 +641,7 @@ pub async fn admin_list_task_status(
         return Err(AppError::Unprocessable("size exceeds 100".into()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "task_id": req.task_id,
         "user_id": req.user_id
@@ -662,7 +654,7 @@ pub async fn admin_list_task_status(
         Some("STUDY_TASK_STATUS"),
         req.task_id.map(|id| id as i64),
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -690,7 +682,7 @@ pub async fn admin_update_task_status(
     actor_user_id: i64,
     task_id: i64,
     req: TaskStatusUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminTaskStatusRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -702,7 +694,7 @@ pub async fn admin_update_task_status(
         Some("STUDY_TASK_STATUS"),
         Some(task_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address.as_deref().and_then(|ip| IpAddr::from_str(ip).ok()),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -762,7 +754,7 @@ pub async fn admin_create_task_explain(
     actor_user_id: i64,
     task_id: i64,
     req: TaskExplainCreateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminTaskExplainRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -774,7 +766,7 @@ pub async fn admin_create_task_explain(
         Some("STUDY_TASK_EXPLAIN"),
         Some(task_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address.as_deref().and_then(|ip| IpAddr::from_str(ip).ok()),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -827,7 +819,7 @@ pub async fn admin_update_task_explain(
     actor_user_id: i64,
     task_id: i64,
     req: TaskExplainUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminTaskExplainRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -839,7 +831,7 @@ pub async fn admin_update_task_explain(
         Some("STUDY_TASK_EXPLAIN"),
         Some(task_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address.as_deref().and_then(|ip| IpAddr::from_str(ip).ok()),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -898,7 +890,7 @@ pub async fn admin_bulk_create_task_explains(
     st: &AppState,
     actor_user_id: i64,
     req: TaskExplainBulkCreateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, TaskExplainBulkCreateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -907,10 +899,7 @@ pub async fn admin_bulk_create_task_explains(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -922,7 +911,7 @@ pub async fn admin_bulk_create_task_explains(
         Some("STUDY_TASK_EXPLAIN"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1030,7 +1019,7 @@ pub async fn admin_bulk_update_task_explains(
     st: &AppState,
     actor_user_id: i64,
     req: TaskExplainBulkUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, TaskExplainBulkUpdateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1039,10 +1028,7 @@ pub async fn admin_bulk_update_task_explains(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1054,7 +1040,7 @@ pub async fn admin_bulk_update_task_explains(
         Some("STUDY_TASK_EXPLAIN"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1169,7 +1155,7 @@ pub async fn admin_bulk_update_task_status(
     st: &AppState,
     actor_user_id: i64,
     req: TaskStatusBulkUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, TaskStatusBulkUpdateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1178,10 +1164,7 @@ pub async fn admin_bulk_update_task_status(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1193,7 +1176,7 @@ pub async fn admin_bulk_update_task_status(
         Some("STUDY_TASK_STATUS"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1295,7 +1278,7 @@ pub async fn admin_create_study_task(
     st: &AppState,
     actor_user_id: i64,
     req: StudyTaskCreateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminStudyTaskDetailRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1309,7 +1292,7 @@ pub async fn admin_create_study_task(
         Some("STUDY_TASK"),      // target_table
         Some(req.study_id as i64), // target_id (생성 전이라 부모 ID 기록)
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null), // ✅ [수정 후] 변환 실패 시 Null을 사용하고, 참조(&)를 전달
-        ip_address.as_deref().and_then(|ip| std::net::IpAddr::from_str(ip).ok()),
+        ip_address,
         user_agent.as_deref(),
     ).await?;
 
@@ -1361,10 +1344,7 @@ pub async fn admin_create_study_task(
         }
     }
 
-    let _ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-    let _user_agent = user_agent;
+    // audit log를 통해 기록됨
 
     let mut tx = st.db.begin().await?;
 
@@ -1420,7 +1400,7 @@ pub async fn admin_bulk_create_study_tasks(
     st: &AppState,
     actor_user_id: i64,
     req: StudyTaskBulkCreateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, StudyTaskBulkCreateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1429,10 +1409,7 @@ pub async fn admin_bulk_create_study_tasks(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "total": req.items.len()
     });
@@ -1444,7 +1421,7 @@ pub async fn admin_bulk_create_study_tasks(
         Some("study_task"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1609,7 +1586,7 @@ pub async fn admin_bulk_update_study_tasks(
     st: &AppState,
     actor_user_id: i64,
     req: StudyTaskBulkUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, StudyTaskBulkUpdateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1618,10 +1595,7 @@ pub async fn admin_bulk_update_study_tasks(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1633,7 +1607,7 @@ pub async fn admin_bulk_update_study_tasks(
         Some("STUDY_TASK"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1758,7 +1732,7 @@ pub async fn admin_update_study_task(
     actor_user_id: i64,
     study_task_id: i64,
     req: StudyTaskUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<AdminStudyTaskDetailRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1772,7 +1746,7 @@ pub async fn admin_update_study_task(
         Some("STUDY_TASK"),      // target_table
         Some(study_task_id as i64),    // target_id
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null), // details
-        ip_address.as_deref().and_then(|ip| std::net::IpAddr::from_str(ip).ok()),
+        ip_address,
         user_agent.as_deref(),
     ).await?;
 
@@ -1799,10 +1773,7 @@ pub async fn admin_update_study_task(
         .await?
         .ok_or(AppError::NotFound)?;
 
-    let _ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-    let _user_agent = user_agent;
+    // audit log를 통해 기록됨
 
     let mut tx = st.db.begin().await?;
 
@@ -1838,7 +1809,7 @@ pub async fn admin_bulk_update_studies(
     st: &AppState,
     actor_user_id: i64,
     req: StudyBulkUpdateReq,
-    ip_address: Option<String>,
+    ip_address: Option<IpAddr>,
     user_agent: Option<String>,
 ) -> AppResult<(bool, StudyBulkUpdateRes)> {
     check_admin_rbac(&st.db, actor_user_id).await?;
@@ -1847,10 +1818,7 @@ pub async fn admin_bulk_update_studies(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    let ip_addr: Option<IpAddr> = ip_address
-        .as_deref()
-        .and_then(|ip| IpAddr::from_str(ip).ok());
-
+    
     let details = serde_json::json!({
         "total": req.items.len()
     });
@@ -1862,7 +1830,7 @@ pub async fn admin_bulk_update_studies(
         Some("study"),
         None,
         &details,
-        ip_addr,
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;

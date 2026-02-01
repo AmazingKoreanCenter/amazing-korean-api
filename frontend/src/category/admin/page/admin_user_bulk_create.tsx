@@ -150,11 +150,11 @@ export function AdminUserBulkCreate() {
         <CardContent>
           <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
 {`email,password,name,nickname,role,language,country,birthday,gender
-user1@example.com,password123,User One,user1,learner,ko,KR,1990-01-15,male
-user2@example.com,password456,User Two,user2,manager,en,US,1985-06-20,female`}
+user1@example.com,********,User One,user1,learner,ko,KR,1990-01-15,male
+user2@example.com,********,User Two,user2,manager,en,US,1985-06-20,female`}
           </pre>
           <p className="text-sm text-muted-foreground mt-2">
-            Gender values: none, male, female, other. Birthday format: YYYY-MM-DD
+            <strong>Password:</strong> min 8 characters. <strong>Gender:</strong> none, male, female, other. <strong>Birthday:</strong> YYYY-MM-DD
           </p>
         </CardContent>
       </Card>

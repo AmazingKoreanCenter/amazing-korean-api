@@ -66,9 +66,8 @@ export function VideoDetailPage() {
   const isInLessonContext = lessonId !== undefined && currentItemSeq !== undefined;
 
   const { data, isPending, isError, error } = useVideoDetail(id);
-  const { data: progressData, isSuccess: isProgressSuccess } = useVideoProgress(
-    isValidId ? id : undefined
-  );
+  // Progress query for React Query caching - update invalidates this
+  useVideoProgress(isValidId ? id : undefined);
   const { mutate: updateVideoProgress } = useUpdateVideoProgress(id);
 
   const { data: lessonData } = useLessonDetail(isInLessonContext ? lessonId : undefined);
@@ -95,7 +94,6 @@ export function VideoDetailPage() {
       }
 
       const progress_rate = clampProgressRate(progressRate);
-      console.log("[VideoProgress] Updating:", { progress_rate });
       updateVideoProgress({ progress_rate });
     },
     [isLoggedIn, isValidId, updateVideoProgress]
@@ -139,17 +137,6 @@ export function VideoDetailPage() {
       navigate("/videos", { replace: true });
     }
   }, [isValidId, navigate]);
-
-  useEffect(() => {
-    if (!isProgressSuccess || !progressData) {
-      return;
-    }
-
-    console.log("[VideoProgress] Loaded:", {
-      progress_rate: progressData.progress_rate,
-      is_completed: progressData.is_completed,
-    });
-  }, [isProgressSuccess, progressData]);
 
   useEffect(() => {
     return () => {

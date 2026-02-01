@@ -387,7 +387,7 @@ pub async fn get_vimeo_preview_handler(
     AuthUser(auth_user): AuthUser,
     Query(params): Query<VimeoPreviewReq>,
 ) -> AppResult<Json<VimeoPreviewRes>> {
-    let res = super::service::get_vimeo_preview(&st, auth_user.sub, &params.url).await?;
+    let res = super::service::admin_get_vimeo_preview(&st, auth_user.sub, &params.url).await?;
     Ok(Json(res))
 }
 
@@ -409,6 +409,6 @@ pub async fn create_vimeo_upload_ticket_handler(
     AuthUser(auth_user): AuthUser,
     Json(req): Json<VimeoUploadTicketReq>,
 ) -> AppResult<Json<VimeoUploadTicketRes>> {
-    let res = super::service::create_vimeo_upload_ticket(&st, auth_user.sub, req).await?;
+    let res = super::service::admin_create_vimeo_upload_ticket(&st, auth_user.sub, req).await?;
     Ok(Json(res))
 }
