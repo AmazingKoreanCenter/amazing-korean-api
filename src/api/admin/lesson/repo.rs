@@ -419,7 +419,9 @@ pub async fn exists_lesson_item_tx(
 }
 
 /// Shift lesson items: all items with seq >= target_seq get incremented by 1
-/// Updates from highest to lowest to avoid unique constraint violations
+/// Uses two-phase update to avoid unique constraint violations:
+/// Phase 1: Move to negative temporary values
+/// Phase 2: Move to final positive values
 pub async fn shift_lesson_items_tx(
     tx: &mut Transaction<'_, Postgres>,
     lesson_id: i32,
@@ -443,17 +445,31 @@ pub async fn shift_lesson_items_tx(
         return Ok(0);
     }
 
-    // Shift items: update from highest seq to lowest to avoid unique constraint violations
+    // Phase 1: Move to negative temporary values to avoid unique constraint violations
+    // Using -(seq + 1000000) ensures no collision with existing positive or other negative values
     sqlx::query(
         r#"
         UPDATE lesson_item
-        SET lesson_item_seq = lesson_item_seq + 1
+        SET lesson_item_seq = -(lesson_item_seq + 1000000)
         WHERE lesson_id = $1
           AND lesson_item_seq >= $2
         "#,
     )
     .bind(lesson_id)
     .bind(target_seq)
+    .execute(&mut **tx)
+    .await?;
+
+    // Phase 2: Move from negative temporary values to final positive values (+1 shift)
+    sqlx::query(
+        r#"
+        UPDATE lesson_item
+        SET lesson_item_seq = (-lesson_item_seq - 1000000) + 1
+        WHERE lesson_id = $1
+          AND lesson_item_seq < 0
+        "#,
+    )
+    .bind(lesson_id)
     .execute(&mut **tx)
     .await?;
 

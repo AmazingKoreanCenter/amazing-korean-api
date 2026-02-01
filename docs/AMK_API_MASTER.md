@@ -2562,7 +2562,7 @@ curl -SL https://github.com/docker/compose/releases/latest/download/docker-compo
 chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
 
 # Buildx 설치 (compose build에 필요)
-curl -SL https://github.com/docker/buildx/releases/latest/download/buildx-v0.19.3.linux-amd64 \
+curl -SL https://github.com/docker/buildx/releases/download/v0.15.1/buildx-v0.15.1.linux-amd64 \
   -o $DOCKER_CONFIG/cli-plugins/docker-buildx
 chmod +x $DOCKER_CONFIG/cli-plugins/docker-buildx
 
