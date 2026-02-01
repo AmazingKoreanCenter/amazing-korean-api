@@ -31,7 +31,7 @@ pub async fn admin_ip_guard(
     next: Next,
 ) -> Response {
     // X-Forwarded-For 헤더에서 첫 번째 IP 추출 (프록시/로드밸런서 환경)
-    // 없으면 X-Real-IP, 그래도 없으면 기본값 사용
+    // 없으면 X-Real-IP 확인
     let client_ip = request
         .headers()
         .get("x-forwarded-for")
@@ -44,14 +44,23 @@ pub async fn admin_ip_guard(
                 .get("x-real-ip")
                 .and_then(|h| h.to_str().ok())
                 .map(|s| s.trim().to_string())
-        })
-        .unwrap_or_else(|| "127.0.0.1".to_string());
+        });
 
-    if state.cfg.is_admin_ip_allowed(&client_ip) {
+    // IP를 식별할 수 없으면 보안상 접근 거부
+    let Some(ip) = client_ip else {
+        tracing::warn!("Admin access denied: Could not determine client IP from headers");
+        return (
+            StatusCode::FORBIDDEN,
+            "Access denied: Client IP could not be determined",
+        )
+            .into_response();
+    };
+
+    if state.cfg.is_admin_ip_allowed(&ip) {
         next.run(request).await
     } else {
         tracing::warn!(
-            ip = %client_ip,
+            ip = %ip,
             "Admin access denied: IP not in allowlist"
         );
         (

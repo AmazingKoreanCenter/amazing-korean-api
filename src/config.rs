@@ -200,9 +200,14 @@ impl Config {
     fn ip_in_cidr(ip: &std::net::IpAddr, network: &std::net::IpAddr, prefix_len: u8) -> bool {
         match (ip, network) {
             (std::net::IpAddr::V4(ip), std::net::IpAddr::V4(net)) => {
+                if prefix_len > 32 {
+                    return false; // Invalid prefix length for IPv4
+                }
                 let ip_bits = u32::from(*ip);
                 let net_bits = u32::from(*net);
-                let mask = if prefix_len >= 32 {
+                let mask = if prefix_len == 0 {
+                    0 // /0 means all IPs match
+                } else if prefix_len == 32 {
                     u32::MAX
                 } else {
                     u32::MAX << (32 - prefix_len)
@@ -210,16 +215,21 @@ impl Config {
                 (ip_bits & mask) == (net_bits & mask)
             }
             (std::net::IpAddr::V6(ip), std::net::IpAddr::V6(net)) => {
+                if prefix_len > 128 {
+                    return false; // Invalid prefix length for IPv6
+                }
                 let ip_bits = u128::from(*ip);
                 let net_bits = u128::from(*net);
-                let mask = if prefix_len >= 128 {
+                let mask = if prefix_len == 0 {
+                    0 // /0 means all IPs match
+                } else if prefix_len == 128 {
                     u128::MAX
                 } else {
                     u128::MAX << (128 - prefix_len)
                 };
                 (ip_bits & mask) == (net_bits & mask)
             }
-            _ => false, // IPv4/IPv6 불일치
+            _ => false, // IPv4/IPv6 mismatch
         }
     }
 }
