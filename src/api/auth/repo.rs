@@ -1,4 +1,5 @@
 use crate::error::AppResult;
+use crate::types::UserAuth;
 use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Postgres, Transaction};
 
@@ -23,6 +24,7 @@ pub struct UserLoginInfo {
     pub user_email: String,
     pub user_password: String,
     pub user_state: bool,
+    pub user_auth: UserAuth,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -62,14 +64,15 @@ impl AuthRepo {
                 user_id,
                 user_email,
                 user_password,
-                user_state
+                user_state,
+                user_auth
             FROM users
             WHERE user_email = $1
         "#)
         .bind(email)
         .fetch_optional(pool)
         .await?;
-        
+
         Ok(row)
     }
 

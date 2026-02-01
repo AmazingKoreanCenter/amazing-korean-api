@@ -121,7 +121,6 @@ impl UserService {
         // [Step 5] Prepare Session & Tokens
         let session_id = Uuid::new_v4().to_string();
         let (refresh_token, refresh_hash) = Self::generate_refresh_token();
-        let refresh_ttl_secs = st.cfg.refresh_ttl_days * 24 * 3600;
 
         // [Step 6] DB Transaction (Insert User -> Log -> Login Record)
         let mut tx = st.db.begin().await?;
@@ -153,33 +152,36 @@ impl UserService {
 
         tx.commit().await?;
 
-        // [Step 7] Redis Session Caching
-        // 7-1. Session Mapping (SessionID -> UserID)
+        // [Step 7] Calculate role-based refresh TTL
+        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;
+
+        // [Step 8] Redis Session Caching
+        // 8-1. Session Mapping (SessionID -> UserID)
         let _: () = redis.set_ex(
             format!("ak:session:{}", session_id), 
             user.id, 
             st.cfg.jwt_access_ttl_min as u64 * 60
         ).await.map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // 7-2. Refresh Token Mapping (RefreshHash -> SessionID)
+        // 8-2. Refresh Token Mapping (RefreshHash -> SessionID)
         let _: () = redis.set_ex(
             format!("ak:refresh:{}", refresh_hash), 
             &session_id, 
             refresh_ttl_secs as u64
         ).await.map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // 7-3. User Sessions Set (UserID -> Set<SessionID>) - For 'Logout All'
+        // 8-3. User Sessions Set (UserID -> Set<SessionID>) - For 'Logout All'
         let _: () = redis.sadd(
             format!("ak:user_sessions:{}", user.id), 
             &session_id
         ).await.map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // [Step 8] JWT Access Token Generation
+        // [Step 9] JWT Access Token Generation (role 포함)
         let access_token = jwt::create_token(
-            user.id, &session_id, st.cfg.jwt_access_ttl_min, &st.cfg.jwt_secret
+            user.id, &session_id, user.user_auth, st.cfg.jwt_access_ttl_min, &st.cfg.jwt_secret
         )?;
 
-        // [Step 9] Response Construction
+        // [Step 10] Response Construction
         let res = SignupRes {
             user_id: user.id,
             email: user.email.clone(),

@@ -35,8 +35,8 @@ export function AdminRoute() {
   // 권한 확인: admin 또는 HYMN만 허용
   const allowedRoles = ["admin", "HYMN"];
   if (!allowedRoles.includes(user.user_auth)) {
-    // 권한 없으면 홈으로 (또는 403 페이지)
-    return <Navigate to="/" replace />;
+    // 권한 없으면 403 페이지로
+    return <Navigate to="/403" replace />;
   }
 
   // 권한 있으면 자식 라우트 렌더링

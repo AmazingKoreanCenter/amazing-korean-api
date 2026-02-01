@@ -172,7 +172,7 @@ pub async fn fetch_login_stats_summary(
         r#"
         SELECT COUNT(*) AS cnt
         FROM login
-        WHERE login_expired_at > NOW()
+        WHERE login_expire_at > NOW()
         "#,
     )
     .fetch_one(db)
