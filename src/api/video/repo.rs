@@ -13,7 +13,7 @@ impl VideoRepo {
     // =========================================================================
 
     /// 비디오 목록 조회 (검색, 필터, 페이징)
-    pub async fn find_list_dynamic(
+    pub async fn list_videos(
         pool: &PgPool,
         req: &VideoListReq,
     ) -> AppResult<(Vec<VideoListItem>, i64)> {
@@ -138,7 +138,7 @@ impl VideoRepo {
     // =========================================================================
 
     /// 비디오 상세 조회 (공개 상태인 영상만)
-    pub async fn find_detail_by_id(
+    pub async fn get_video_detail(
         pool: &PgPool,
         video_id: i64,
     ) -> AppResult<Option<VideoDetailRes>> {
@@ -191,7 +191,7 @@ impl VideoRepo {
     // =========================================================================
     
     // 내 학습 진도 조회(이전과 동일)
-    pub async fn find_progress(
+    pub async fn get_progress(
         pool: &PgPool,
         user_id: i64,
         video_id: i64,
@@ -199,10 +199,11 @@ impl VideoRepo {
         let row = sqlx::query_as::<_, VideoProgressRes>(
             r#"
             SELECT
-                video_id::bigint as video_id, -- [여기 수정]
+                video_id::bigint as video_id,
                 COALESCE(video_progress_log, 0) AS video_progress_log,
                 video_completed_log,
-                video_last_watched_at_log
+                video_last_watched_at_log,
+                COALESCE(video_watch_duration_sec, 0) AS video_watch_duration_sec
             FROM video_log
             WHERE user_id = $1 AND video_id = $2
             "#,
@@ -216,24 +217,27 @@ impl VideoRepo {
 
     /// 학습 진도 업데이트 (Upsert) - 확장 버전
     /// is_new_view: true면 watch_count++, first_watched_at 설정
-    pub async fn upsert_progress(
+    /// watch_duration_sec: 이번 세션에서 시청한 시간 (누적됨)
+    pub async fn update_progress(
         pool: &PgPool,
         user_id: i64,
         video_id: i64,
         progress_rate: i32,
         is_completed: bool,
         is_new_view: bool,
+        watch_duration_sec: i32,
     ) -> AppResult<VideoProgressRes> {
         let row = sqlx::query_as::<_, VideoProgressRes>(
             r#"
             INSERT INTO video_log (
                 user_id, video_id,
                 video_progress_log, video_completed_log, video_last_watched_at_log,
-                video_watch_count_log, video_first_watched_at_log
+                video_watch_count_log, video_first_watched_at_log, video_watch_duration_sec
             )
             VALUES ($1, $2, $3, $4, NOW(),
                 CASE WHEN $5 THEN 1 ELSE 0 END,
-                CASE WHEN $5 THEN NOW() ELSE NULL END
+                CASE WHEN $5 THEN NOW() ELSE NULL END,
+                $6
             )
             ON CONFLICT (user_id, video_id) DO UPDATE
             SET
@@ -246,12 +250,14 @@ impl VideoRepo {
                 video_watch_count_log = CASE
                     WHEN $5 THEN video_log.video_watch_count_log + 1
                     ELSE video_log.video_watch_count_log
-                END
+                END,
+                video_watch_duration_sec = video_log.video_watch_duration_sec + $6
             RETURNING
                 video_id::bigint as video_id,
                 COALESCE(video_progress_log, 0) AS video_progress_log,
                 video_completed_log,
-                video_last_watched_at_log
+                video_last_watched_at_log,
+                video_watch_duration_sec
             "#,
         )
         .bind(user_id)
@@ -259,6 +265,7 @@ impl VideoRepo {
         .bind(progress_rate)
         .bind(is_completed)
         .bind(is_new_view)
+        .bind(watch_duration_sec)
         .fetch_one(pool)
         .await?;
         Ok(row)

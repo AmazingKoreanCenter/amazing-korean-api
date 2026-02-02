@@ -19,7 +19,7 @@ impl VideoService {
         }
 
         // 2. Repo Call (Data + Total Count)
-        let (data, total_count) = VideoRepo::find_list_dynamic(&st.db, &req).await?;
+        let (data, total_count) = VideoRepo::list_videos(&st.db, &req).await?;
 
         // 3. Calc Meta
         let total_pages = if total_count == 0 {
@@ -41,7 +41,7 @@ impl VideoService {
 
     /// 비디오 상세 조회
     pub async fn get_video_detail(st: &AppState, video_id: i64) -> AppResult<VideoDetailRes> {
-        let video = VideoRepo::find_detail_by_id(&st.db, video_id).await?;
+        let video = VideoRepo::get_video_detail(&st.db, video_id).await?;
         video.ok_or(AppError::NotFound)
     }
 
@@ -58,7 +58,7 @@ impl VideoService {
         }
 
         // 2. 진도율 조회
-        let progress = VideoRepo::find_progress(&st.db, user_id, video_id).await?;
+        let progress = VideoRepo::get_progress(&st.db, user_id, video_id).await?;
 
         // 3. 없으면 기본값 반환 (0%)
         Ok(progress.unwrap_or_else(|| VideoProgressRes {
@@ -66,6 +66,7 @@ impl VideoService {
             progress_rate: 0,
             is_completed: false,
             last_watched_at: None,
+            watch_duration_sec: 0,
         }))
     }
 
@@ -88,7 +89,7 @@ impl VideoService {
         }
 
         // 3. 기존 진도 조회 (통계 판단용)
-        let existing = VideoRepo::find_progress(&st.db, user_id, video_id).await?;
+        let existing = VideoRepo::get_progress(&st.db, user_id, video_id).await?;
 
         // 4. 통계 판단
         let is_new_view = existing.is_none(); // 최초 시청 여부
@@ -97,13 +98,14 @@ impl VideoService {
         let is_new_complete = !was_completed && is_completed; // 이번에 처음 완료
 
         // 5. Upsert Log (with is_new_view flag)
-        let res = VideoRepo::upsert_progress(
+        let res = VideoRepo::update_progress(
             &st.db,
             user_id,
             video_id,
             req.progress_rate,
             is_completed,
             is_new_view,
+            req.watch_duration_sec,
         )
         .await?;
 

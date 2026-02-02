@@ -49,11 +49,17 @@ pub struct IdParam {
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 #[serde(rename_all = "snake_case")]
 #[schema(example = json!({
-    "progress_rate": 80
+    "progress_rate": 80,
+    "watch_duration_sec": 120
 }))]
 pub struct VideoProgressUpdateReq {
     #[validate(range(min = 0, max = 100))]
     pub progress_rate: i32,
+
+    /// 이번 세션에서 시청한 시간 (초) - 누적됨
+    #[validate(range(min = 0))]
+    #[serde(default)]
+    pub watch_duration_sec: i32,
 }
 
 // =====================================================================
@@ -144,13 +150,17 @@ pub struct VideoDetailRes {
 #[serde(rename_all = "snake_case")]
 pub struct VideoProgressRes {
     pub video_id: i64,
-    
+
     #[sqlx(rename = "video_progress_log")]
     pub progress_rate: i32,
-    
+
     #[sqlx(rename = "video_completed_log")]
     pub is_completed: bool,
-    
+
     #[sqlx(rename = "video_last_watched_at_log")]
     pub last_watched_at: Option<DateTime<Utc>>,
+
+    /// 총 누적 시청 시간 (초)
+    #[sqlx(rename = "video_watch_duration_sec")]
+    pub watch_duration_sec: i32,
 }

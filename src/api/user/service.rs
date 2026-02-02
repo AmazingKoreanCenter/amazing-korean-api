@@ -3,7 +3,6 @@ use argon2::{
     Algorithm, Argon2, Params, PasswordHasher, Version,
 };
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use rand::RngCore;
 use redis::AsyncCommands;
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
@@ -39,12 +38,15 @@ impl UserService {
         }
     }
 
-    fn generate_refresh_token() -> (String, String) {
-        let mut bytes = [0u8; 32];
-        rand::thread_rng().fill_bytes(&mut bytes);
-        let token = URL_SAFE_NO_PAD.encode(bytes);
-        let hash = URL_SAFE_NO_PAD.encode(Sha256::digest(bytes));
-        (token, hash)
+    /// 리프레시 토큰 생성 (auth/service.rs와 동일한 포맷: session_id:uuid)
+    fn generate_refresh_token_and_hash(session_id: &str) -> (String, String) {
+        let random_uuid = Uuid::new_v4().to_string();
+        let payload = format!("{session_id}:{random_uuid}");
+
+        let refresh_token = URL_SAFE_NO_PAD.encode(payload.as_bytes());
+        let refresh_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(payload.as_bytes()));
+
+        (refresh_token, refresh_hash)
     }
 
     fn validate_password_policy(password: &str) -> bool {
@@ -120,7 +122,7 @@ impl UserService {
 
         // [Step 5] Prepare Session & Tokens
         let session_id = Uuid::new_v4().to_string();
-        let (refresh_token, refresh_hash) = Self::generate_refresh_token();
+        let (refresh_token, refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
 
         // [Step 6] DB Transaction (Insert User -> Log -> Login Record)
         let mut tx = st.db.begin().await?;

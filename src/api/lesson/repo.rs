@@ -1,21 +1,14 @@
 use sqlx::PgPool;
 
+use crate::error::AppResult;
 use crate::types::{LessonAccess, LessonState};
 
-use super::dto::{
-    LessonItemDetailRes, LessonItemRes, LessonProgressRes, LessonRes,
-};
+use super::dto::{LessonItemDetailRes, LessonItemRes, LessonProgressRes, LessonRes};
 
-pub struct LessonRepo {
-    pool: PgPool,
-}
+pub struct LessonRepo;
 
 impl LessonRepo {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-
-    pub async fn count_all(&self) -> Result<i64, sqlx::Error> {
+    pub async fn count_all(pool: &PgPool) -> AppResult<i64> {
         let count = sqlx::query_scalar::<_, i64>(
             r#"
             SELECT COUNT(*)
@@ -23,13 +16,13 @@ impl LessonRepo {
             WHERE lesson_state = 'open'
             "#,
         )
-        .fetch_one(&self.pool)
+        .fetch_one(pool)
         .await?;
 
         Ok(count)
     }
 
-    pub async fn find_all(&self, limit: i64, offset: i64) -> Result<Vec<LessonRes>, sqlx::Error> {
+    pub async fn find_all(pool: &PgPool, limit: i64, offset: i64) -> AppResult<Vec<LessonRes>> {
         let rows = sqlx::query_as::<_, LessonRes>(
             r#"
             SELECT
@@ -49,16 +42,13 @@ impl LessonRepo {
         )
         .bind(limit)
         .bind(offset)
-        .fetch_all(&self.pool)
+        .fetch_all(pool)
         .await?;
 
         Ok(rows)
     }
 
-    pub async fn find_lesson_by_id(
-        &self,
-        lesson_id: i64,
-    ) -> Result<Option<LessonMetaRow>, sqlx::Error> {
+    pub async fn find_lesson_by_id(pool: &PgPool, lesson_id: i64) -> AppResult<Option<LessonMetaRow>> {
         let row = sqlx::query_as::<_, LessonMetaRow>(
             r#"
             SELECT
@@ -72,13 +62,13 @@ impl LessonRepo {
             "#,
         )
         .bind(lesson_id)
-        .fetch_optional(&self.pool)
+        .fetch_optional(pool)
         .await?;
 
         Ok(row)
     }
 
-    pub async fn exists_lesson(&self, lesson_id: i64) -> Result<bool, sqlx::Error> {
+    pub async fn exists_lesson(pool: &PgPool, lesson_id: i64) -> AppResult<bool> {
         let exists = sqlx::query_scalar::<_, bool>(
             r#"
             SELECT EXISTS(
@@ -89,13 +79,64 @@ impl LessonRepo {
             "#,
         )
         .bind(lesson_id)
-        .fetch_one(&self.pool)
+        .fetch_one(pool)
         .await?;
 
         Ok(exists)
     }
 
-    pub async fn count_items(&self, lesson_id: i64) -> Result<i64, sqlx::Error> {
+    /// 레슨 접근 권한 조회 (상태와 접근 레벨)
+    pub async fn find_lesson_access(
+        pool: &PgPool,
+        lesson_id: i64,
+    ) -> AppResult<Option<LessonAccessInfo>> {
+        let row = sqlx::query_as::<_, LessonAccessInfo>(
+            r#"
+            SELECT
+                lesson_state,
+                lesson_access
+            FROM lesson
+            WHERE lesson_id = $1
+            "#,
+        )
+        .bind(lesson_id)
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(row)
+    }
+
+    /// 사용자가 특정 레슨에 대한 수강권이 있는지 확인
+    /// (Course 도메인 구현 후 user_course 테이블과 연동)
+    pub async fn has_course_access(
+        pool: &PgPool,
+        user_id: i64,
+        lesson_id: i64,
+    ) -> AppResult<bool> {
+        // user_course 테이블과 course_lesson 매핑을 통해 확인
+        let has_access = sqlx::query_scalar::<_, bool>(
+            r#"
+            SELECT EXISTS(
+                SELECT 1
+                FROM user_course uc
+                JOIN course_lesson cl ON cl.course_id = uc.course_id
+                WHERE uc.user_id = $1
+                  AND cl.lesson_id = $2
+                  AND uc.user_course_active = true
+                  AND (uc.user_course_expire_at IS NULL OR uc.user_course_expire_at > NOW())
+            )
+            "#,
+        )
+        .bind(user_id)
+        .bind(lesson_id)
+        .fetch_one(pool)
+        .await
+        .unwrap_or(false);  // 테이블이 없으면 false 반환
+
+        Ok(has_access)
+    }
+
+    pub async fn count_items(pool: &PgPool, lesson_id: i64) -> AppResult<i64> {
         let count = sqlx::query_scalar::<_, i64>(
             r#"
             SELECT COUNT(*)
@@ -104,18 +145,18 @@ impl LessonRepo {
             "#,
         )
         .bind(lesson_id)
-        .fetch_one(&self.pool)
+        .fetch_one(pool)
         .await?;
 
         Ok(count)
     }
 
     pub async fn find_items(
-        &self,
+        pool: &PgPool,
         lesson_id: i64,
         limit: i64,
         offset: i64,
-    ) -> Result<Vec<LessonItemRes>, sqlx::Error> {
+    ) -> AppResult<Vec<LessonItemRes>> {
         let rows = sqlx::query_as::<_, LessonItemRes>(
             r#"
             SELECT
@@ -133,18 +174,18 @@ impl LessonRepo {
         .bind(lesson_id)
         .bind(limit)
         .bind(offset)
-        .fetch_all(&self.pool)
+        .fetch_all(pool)
         .await?;
 
         Ok(rows)
     }
 
     pub async fn find_items_for_study_view(
-        &self,
+        pool: &PgPool,
         lesson_id: i64,
         limit: i64,
         offset: i64,
-    ) -> Result<Vec<LessonItemDetailRes>, sqlx::Error> {
+    ) -> AppResult<Vec<LessonItemDetailRes>> {
         let rows = sqlx::query_as::<_, LessonItemDetailRes>(
             r#"
             SELECT
@@ -162,17 +203,17 @@ impl LessonRepo {
         .bind(lesson_id)
         .bind(limit)
         .bind(offset)
-        .fetch_all(&self.pool)
+        .fetch_all(pool)
         .await?;
 
         Ok(rows)
     }
 
     pub async fn find_progress(
-        &self,
+        pool: &PgPool,
         lesson_id: i64,
         user_id: i64,
-    ) -> Result<Option<LessonProgressRes>, sqlx::Error> {
+    ) -> AppResult<Option<LessonProgressRes>> {
         let row = sqlx::query_as::<_, LessonProgressRes>(
             r#"
             SELECT
@@ -186,19 +227,19 @@ impl LessonRepo {
         )
         .bind(lesson_id)
         .bind(user_id)
-        .fetch_optional(&self.pool)
+        .fetch_optional(pool)
         .await?;
 
         Ok(row)
     }
 
     pub async fn upsert_progress(
-        &self,
+        pool: &PgPool,
         lesson_id: i64,
         user_id: i64,
         percent: i32,
         last_seq: Option<i32>,
-    ) -> Result<LessonProgressRes, sqlx::Error> {
+    ) -> AppResult<LessonProgressRes> {
         let row = sqlx::query_as::<_, LessonProgressRes>(
             r#"
             INSERT INTO lesson_progress (
@@ -224,7 +265,7 @@ impl LessonRepo {
         .bind(user_id)
         .bind(percent)
         .bind(last_seq)
-        .fetch_one(&self.pool)
+        .fetch_one(pool)
         .await?;
 
         Ok(row)
@@ -236,6 +277,12 @@ pub struct LessonMetaRow {
     pub lesson_id: i64,
     pub title: String,
     pub description: Option<String>,
+    pub lesson_state: LessonState,
+    pub lesson_access: LessonAccess,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+pub struct LessonAccessInfo {
     pub lesson_state: LessonState,
     pub lesson_access: LessonAccess,
 }

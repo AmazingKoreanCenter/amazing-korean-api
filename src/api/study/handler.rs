@@ -157,7 +157,7 @@ pub async fn get_task_status(
     security(("bearerAuth" = [])),
     tag = "study"
 )]
-pub async fn get_task_explain_handler(
+pub async fn get_task_explain(
     State(state): State<AppState>,
     auth_user: AuthUser,
     Path(task_id): Path<i32>,

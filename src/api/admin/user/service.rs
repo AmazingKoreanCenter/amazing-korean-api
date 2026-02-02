@@ -696,7 +696,7 @@ impl AdminUserService {
     // ==========================================
 
     /// 관리자가 변경한 유저 로그 조회
-    pub async fn get_admin_user_logs(
+    pub async fn admin_get_user_logs(
         st: &AppState,
         _admin_sub: i64,
         target_user_id: i64,
@@ -707,7 +707,7 @@ impl AdminUserService {
         let size = size.unwrap_or(20).clamp(1, 100);
 
         let (items, total_count) =
-            repo::get_admin_user_logs(&st.db, target_user_id, page, size).await?;
+            repo::admin_get_user_logs(&st.db, target_user_id, page, size).await?;
 
         let total_pages = (total_count as f64 / size as f64).ceil() as i64;
 
@@ -723,7 +723,7 @@ impl AdminUserService {
     }
 
     /// 유저 본인이 변경한 로그 조회
-    pub async fn get_user_self_logs(
+    pub async fn admin_get_user_self_logs(
         st: &AppState,
         _admin_sub: i64,
         user_id: i64,
@@ -734,7 +734,7 @@ impl AdminUserService {
         let size = size.unwrap_or(20).clamp(1, 100);
 
         let (items, total_count) =
-            repo::get_user_self_logs(&st.db, user_id, page, size).await?;
+            repo::admin_get_user_self_logs(&st.db, user_id, page, size).await?;
 
         let total_pages = (total_count as f64 / size as f64).ceil() as i64;
 
