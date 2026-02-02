@@ -17,9 +17,6 @@ use crate::error::{AppError, AppResult};
 use crate::AppState;
 use std::net::IpAddr;
 
-// NOTE: 임시 관리자 가드. 추후 RBAC(HYMN/admin/manager)로 교체.
-// TODO: replace with real role check extracting actor_user_id from claims.
-
 fn extract_client_ip(headers: &HeaderMap) -> Option<IpAddr> {
     let forwarded = headers
         .get("x-forwarded-for")
@@ -136,7 +133,7 @@ pub async fn admin_get_video(
     ),
     security(("bearerAuth" = []))
 )]
-pub async fn create_video_handler(
+pub async fn admin_create_video(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
@@ -382,7 +379,7 @@ pub async fn admin_update_video_tags(
     ),
     security(("bearerAuth" = []))
 )]
-pub async fn get_vimeo_preview_handler(
+pub async fn admin_get_vimeo_preview(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     Query(params): Query<VimeoPreviewReq>,
@@ -404,7 +401,7 @@ pub async fn get_vimeo_preview_handler(
     ),
     security(("bearerAuth" = []))
 )]
-pub async fn create_vimeo_upload_ticket_handler(
+pub async fn admin_create_vimeo_upload_ticket(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     Json(req): Json<VimeoUploadTicketReq>,

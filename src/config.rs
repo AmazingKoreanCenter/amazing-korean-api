@@ -26,6 +26,8 @@ pub struct Config {
     pub refresh_cookie_samesite: String,
     pub rate_limit_login_window_sec: i64,
     pub rate_limit_login_max: i64,
+    pub rate_limit_study_window_sec: i64,  // Study 답안 제출 레이트리밋 윈도우 (초)
+    pub rate_limit_study_max: i64,         // Study 답안 제출 최대 횟수/윈도우
     pub cors_origins: Vec<String>,
     pub vimeo_access_token: Option<String>,
     pub admin_ip_allowlist: Vec<String>,  // Admin 접근 허용 IP 목록 (비어있으면 모든 IP 허용)
@@ -87,6 +89,16 @@ impl Config {
             .parse::<i64>()
             .expect("RATE_LIMIT_LOGIN_MAX must be a number");
 
+        // Study Rate Limit: 답안 제출 과도한 요청 방지
+        let rate_limit_study_window_sec = env::var("RATE_LIMIT_STUDY_WINDOW_SEC")
+            .unwrap_or_else(|_| "60".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_STUDY_WINDOW_SEC must be a number");
+        let rate_limit_study_max = env::var("RATE_LIMIT_STUDY_MAX")
+            .unwrap_or_else(|_| "30".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_STUDY_MAX must be a number");
+
         // CORS_ORIGINS: 쉼표로 구분된 origin 목록
         // 예: "http://localhost:5173,https://amazing-korean-api.pages.dev"
         let cors_origins = env::var("CORS_ORIGINS")
@@ -127,6 +139,8 @@ impl Config {
             refresh_cookie_samesite,
             rate_limit_login_window_sec,
             rate_limit_login_max,
+            rate_limit_study_window_sec,
+            rate_limit_study_max,
             cors_origins,
             vimeo_access_token,
             admin_ip_allowlist,
@@ -200,9 +214,14 @@ impl Config {
     fn ip_in_cidr(ip: &std::net::IpAddr, network: &std::net::IpAddr, prefix_len: u8) -> bool {
         match (ip, network) {
             (std::net::IpAddr::V4(ip), std::net::IpAddr::V4(net)) => {
+                if prefix_len > 32 {
+                    return false; // Invalid prefix length for IPv4
+                }
                 let ip_bits = u32::from(*ip);
                 let net_bits = u32::from(*net);
-                let mask = if prefix_len >= 32 {
+                let mask = if prefix_len == 0 {
+                    0 // /0 means all IPs match
+                } else if prefix_len == 32 {
                     u32::MAX
                 } else {
                     u32::MAX << (32 - prefix_len)
@@ -210,16 +229,21 @@ impl Config {
                 (ip_bits & mask) == (net_bits & mask)
             }
             (std::net::IpAddr::V6(ip), std::net::IpAddr::V6(net)) => {
+                if prefix_len > 128 {
+                    return false; // Invalid prefix length for IPv6
+                }
                 let ip_bits = u128::from(*ip);
                 let net_bits = u128::from(*net);
-                let mask = if prefix_len >= 128 {
+                let mask = if prefix_len == 0 {
+                    0 // /0 means all IPs match
+                } else if prefix_len == 128 {
                     u128::MAX
                 } else {
                     u128::MAX << (128 - prefix_len)
                 };
                 (ip_bits & mask) == (net_bits & mask)
             }
-            _ => false, // IPv4/IPv6 불일치
+            _ => false, // IPv4/IPv6 mismatch
         }
     }
 }

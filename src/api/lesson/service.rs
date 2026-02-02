@@ -1,4 +1,9 @@
+use sqlx::PgPool;
+use tracing::warn;
+
 use crate::error::{AppError, AppResult};
+use crate::state::AppState;
+use crate::types::{LessonAccess, LessonState};
 
 use super::dto::{
     LessonDetailReq, LessonDetailRes, LessonItemsReq, LessonItemsRes, LessonListMeta, LessonListReq,
@@ -6,16 +11,10 @@ use super::dto::{
 };
 use super::repo::LessonRepo;
 
-pub struct LessonService {
-    repo: LessonRepo,
-}
+pub struct LessonService;
 
 impl LessonService {
-    pub fn new(repo: LessonRepo) -> Self {
-        Self { repo }
-    }
-
-    pub async fn list_lessons(&self, req: LessonListReq) -> AppResult<LessonListRes> {
+    pub async fn list_lessons(pool: &PgPool, req: LessonListReq) -> AppResult<LessonListRes> {
         let page = req.page.unwrap_or(1);
         let per_page = req.per_page.unwrap_or(20);
         let sort = req.sort.as_deref().unwrap_or("lesson_idx");
@@ -32,7 +31,7 @@ impl LessonService {
             return Err(AppError::Unprocessable("invalid sort".into()));
         }
 
-        let total_count = self.repo.count_all().await?;
+        let total_count = LessonRepo::count_all(pool).await?;
         let total_pages = if total_count == 0 {
             0
         } else {
@@ -40,7 +39,7 @@ impl LessonService {
         };
 
         let offset = (page - 1) * per_page;
-        let items = self.repo.find_all(per_page, offset).await?;
+        let items = LessonRepo::find_all(pool, per_page, offset).await?;
 
         Ok(LessonListRes {
             items,
@@ -54,13 +53,11 @@ impl LessonService {
     }
 
     pub async fn get_lesson_detail(
-        &self,
+        pool: &PgPool,
         lesson_id: i64,
         req: LessonDetailReq,
     ) -> AppResult<LessonDetailRes> {
-        let lesson = self
-            .repo
-            .find_lesson_by_id(lesson_id)
+        let lesson = LessonRepo::find_lesson_by_id(pool, lesson_id)
             .await?
             .ok_or(AppError::NotFound)?;
 
@@ -75,7 +72,7 @@ impl LessonService {
             return Err(AppError::Unprocessable("per_page exceeds 50".into()));
         }
 
-        let total_count = self.repo.count_items(lesson_id).await?;
+        let total_count = LessonRepo::count_items(pool, lesson_id).await?;
         let total_pages = if total_count == 0 {
             0
         } else {
@@ -83,7 +80,7 @@ impl LessonService {
         };
 
         let offset = (page - 1) * per_page;
-        let items = self.repo.find_items(lesson_id, per_page, offset).await?;
+        let items = LessonRepo::find_items(pool, lesson_id, per_page, offset).await?;
 
         Ok(LessonDetailRes {
             lesson_id: lesson.lesson_id,
@@ -102,15 +99,56 @@ impl LessonService {
     }
 
     pub async fn get_lesson_items(
-        &self,
+        st: &AppState,
         lesson_id: i64,
         req: LessonItemsReq,
+        user_id: Option<i64>,
     ) -> AppResult<LessonItemsRes> {
-        let exists = self.repo.exists_lesson(lesson_id).await?;
-        if !exists {
-            return Err(AppError::NotFound);
+        // 1. 레슨 존재 및 접근 권한 확인
+        let access_info = LessonRepo::find_lesson_access(&st.db, lesson_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        // 2. 레슨 상태 검증 (open 상태만 접근 가능)
+        if access_info.lesson_state != LessonState::Open {
+            return Err(AppError::NotFound); // ready/close 상태는 404 반환
         }
 
+        // 3. 접근 권한 검증
+        match access_info.lesson_access {
+            LessonAccess::Private => {
+                // private: 비공개 - 접근 불가 (admin은 별도 엔드포인트 사용)
+                return Err(AppError::Forbidden);
+            }
+            LessonAccess::Paid => {
+                // paid: 유료 - 로그인 필수 + 수강권 확인
+                match user_id {
+                    None => {
+                        return Err(AppError::Unauthorized(
+                            "LOGIN_REQUIRED_FOR_PAID_CONTENT".into(),
+                        ));
+                    }
+                    Some(uid) => {
+                        // 수강권 확인 (user_course 테이블 연동)
+                        let has_access =
+                            LessonRepo::has_course_access(&st.db, uid, lesson_id).await?;
+                        if !has_access {
+                            warn!(
+                                user_id = uid,
+                                lesson_id,
+                                "User attempted to access paid content without subscription"
+                            );
+                            return Err(AppError::Forbidden);
+                        }
+                    }
+                }
+            }
+            LessonAccess::Public | LessonAccess::Promote => {
+                // public/promote: 누구나 접근 가능
+            }
+        }
+
+        // 4. 페이지네이션 검증
         let page = req.page.unwrap_or(1);
         let per_page = req.per_page.unwrap_or(20);
 
@@ -122,7 +160,8 @@ impl LessonService {
             return Err(AppError::Unprocessable("per_page exceeds 50".into()));
         }
 
-        let total_count = self.repo.count_items(lesson_id).await?;
+        // 5. 아이템 조회
+        let total_count = LessonRepo::count_items(&st.db, lesson_id).await?;
         let total_pages = if total_count == 0 {
             0
         } else {
@@ -130,10 +169,8 @@ impl LessonService {
         };
 
         let offset = (page - 1) * per_page;
-        let items = self
-            .repo
-            .find_items_for_study_view(lesson_id, per_page, offset)
-            .await?;
+        let items =
+            LessonRepo::find_items_for_study_view(&st.db, lesson_id, per_page, offset).await?;
 
         Ok(LessonItemsRes {
             items,
@@ -147,16 +184,16 @@ impl LessonService {
     }
 
     pub async fn get_lesson_progress(
-        &self,
+        pool: &PgPool,
         user_id: i64,
         lesson_id: i64,
     ) -> AppResult<LessonProgressRes> {
-        let exists = self.repo.exists_lesson(lesson_id).await?;
+        let exists = LessonRepo::exists_lesson(pool, lesson_id).await?;
         if !exists {
             return Err(AppError::NotFound);
         }
 
-        let progress = self.repo.find_progress(lesson_id, user_id).await?;
+        let progress = LessonRepo::find_progress(pool, lesson_id, user_id).await?;
 
         Ok(progress.unwrap_or(LessonProgressRes {
             percent: 0,
@@ -166,12 +203,12 @@ impl LessonService {
     }
 
     pub async fn update_lesson_progress(
-        &self,
+        pool: &PgPool,
         user_id: i64,
         lesson_id: i64,
         req: LessonProgressUpdateReq,
     ) -> AppResult<LessonProgressRes> {
-        let exists = self.repo.exists_lesson(lesson_id).await?;
+        let exists = LessonRepo::exists_lesson(pool, lesson_id).await?;
         if !exists {
             return Err(AppError::NotFound);
         }
@@ -188,10 +225,7 @@ impl LessonService {
             }
         }
 
-        let progress = self
-            .repo
-            .upsert_progress(lesson_id, user_id, req.percent, req.last_seq)
-            .await?;
+        let progress = LessonRepo::upsert_progress(pool, lesson_id, user_id, req.percent, req.last_seq).await?;
 
         Ok(progress)
     }

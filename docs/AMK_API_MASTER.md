@@ -1,6 +1,6 @@
 ---
 title: AMK_API_MASTER — Amazing Korean API  Master Spec
-updated: 2026-02-01
+updated: 2026-02-02
 owner: HYMN Co., Ltd. (Amazing Korean)
 audience: server / database / backend / frontend / lead / LLM assistant
 ---
@@ -811,6 +811,19 @@ audience: server / database / backend / frontend / lead / LLM assistant
   2. Redis에서 리프레시 토큰 삭제 (`DEL ak:refresh:<hash>`)
   3. `users_login_log` 테이블에 로그아웃 기록
   4. 쿠키 삭제: `Set-Cookie: ak_refresh=; Max-Age=0`
+
+#### Redis 키 패턴 & TTL
+
+| 키 패턴 | 값 | TTL | 용도 |
+|---------|-----|-----|------|
+| `ak:session:{session_id}` | user_id (i64) | 15분 | 액세스 토큰 유효성 빠른 확인 |
+| `ak:refresh:{refresh_hash}` | session_id (UUID) | 역할별 (1/7/30일) | 리프레시 토큰 검증 |
+| `ak:user_sessions:{user_id}` | Set\<session_id\> | - | 전체 로그아웃 시 세션 목록 |
+| `rl:login:{email}:{ip}` | 시도 횟수 (i64) | 15분 | 로그인 Rate Limiting (10회/15분) |
+| `rl:find_id:{ip}` | 시도 횟수 (i64) | 15분 | 아이디 찾기 Rate Limiting |
+| `rl:reset_pw:{ip}` | 시도 횟수 (i64) | 15분 | 비밀번호 재설정 Rate Limiting |
+
+> **참고**: `ak:session`, `ak:refresh` TTL은 `config.rs`의 `jwt_access_ttl_min`, 역할별 `refresh_ttl_secs` 값 기준
 
 #### 에러 케이스 & HTTP 상태 코드
 
@@ -4790,7 +4803,7 @@ pub async fn insert_user_log_after_tx(
 
 ```rust
 // 1. QueryBuilder로 동적 쿼리
-pub async fn find_list_dynamic(
+pub async fn list_videos(
     pool: &PgPool,
     req: &VideoListReq,
 ) -> AppResult<(Vec<VideoListItem>, i64)> {
@@ -4824,7 +4837,7 @@ pub async fn find_list_dynamic(
 }
 
 // 2. JSONB 집계
-pub async fn find_detail_by_id(/* ... */) -> AppResult<Option<VideoDetailRes>> {
+pub async fn get_video_detail(/* ... */) -> AppResult<Option<VideoDetailRes>> {
     sqlx::query_as::<_, VideoDetailRes>(r#"
         SELECT
             COALESCE(
@@ -4843,7 +4856,7 @@ pub async fn find_detail_by_id(/* ... */) -> AppResult<Option<VideoDetailRes>> {
 }
 
 // 3. Upsert + 조건부 업데이트
-pub async fn upsert_progress(/* ... */) -> AppResult<VideoProgressRes> {
+pub async fn update_progress(/* ... */) -> AppResult<VideoProgressRes> {
     sqlx::query_as::<_, VideoProgressRes>(r#"
         INSERT INTO video_log (user_id, video_id, video_progress_log, video_completed_log)
         VALUES ($1, $2, $3, $4)
@@ -5308,7 +5321,7 @@ pub async fn list_videos(st: &AppState, req: VideoListReq) -> AppResult<VideoLis
     }
 
     // Repo 호출 (Data + Total Count)
-    let (data, total_count) = VideoRepo::find_list_dynamic(&st.db, &req).await?;
+    let (data, total_count) = VideoRepo::list_videos(&st.db, &req).await?;
 
     // Meta 계산
     let total_pages = if total_count == 0 { 0 }
@@ -5803,7 +5816,7 @@ pub async fn submit_answer(
     security(("bearerAuth" = [])),
     tag = "study"
 )]
-pub async fn get_task_explain_handler(/* ... */) { /* ... */ }
+pub async fn get_task_explain(/* ... */) { /* ... */ }
 ```
 
 ##### 5️⃣ Lesson Domain ([lesson/handler.rs](src/api/lesson/handler.rs))
@@ -6133,7 +6146,7 @@ pub fn router() -> Router<AppState> {
         .route("/tasks/{id}", get(handler::get_study_task))
         .route("/tasks/{id}/answer", post(handler::submit_answer))
         .route("/tasks/{id}/status", get(handler::get_task_status))
-        .route("/tasks/{id}/explain", get(handler::get_task_explain_handler))
+        .route("/tasks/{id}/explain", get(handler::get_task_explain))
 }
 ```
 
@@ -6200,7 +6213,7 @@ pub fn router() -> Router<AppState> {
 | | `/studies/tasks/{id}` | GET | get_study_task |
 | | `/studies/tasks/{id}/answer` | POST | submit_answer |
 | | `/studies/tasks/{id}/status` | GET | get_task_status |
-| | `/studies/tasks/{id}/explain` | GET | get_task_explain_handler |
+| | `/studies/tasks/{id}/explain` | GET | get_task_explain |
 | **Lesson** | `/lessons` | GET | list_lessons |
 | | `/lessons/{id}` | GET | get_lesson_detail |
 | | `/lessons/{id}/items` | GET | get_lesson_items |
@@ -7478,32 +7491,33 @@ export function AppRoutes() {
   - manager 역할: class 테이블 구현 후 담당 학습자 범위 내 접근 권한 부여
   - 세분화된 권한 (예: admin이 일부 민감 기능 제한)
 
-### 9.2 Admin action log actor 연결
+### 9.2 Admin action log actor 연결 ✅ 구현 완료 (2026-02-02)
 
-- `ADMIN_USERS_LOG` 및 비디오/스터디/레슨 admin 로그에:
-  - **actor user id**를 전 경로에서 일관되게 채워야 함.
-- **로그 테이블 역할별 구분 필요:**
-  - 현재 단일 로그 테이블 구조 → 역할(HYMN/admin/manager)별 로그 분리 또는 필터링 검토
-  - 역할별 접근 권한에 따른 로그 조회 범위 제한 필요
-- TODO:
-  - 인증 추출기 → handler/service/repo까지 actor id 전달 체계 확립
-  - 로그 테이블 역할별 분리 또는 조회 필터 적용 방안 설계
+- ~~`ADMIN_USERS_LOG` 및 비디오/스터디/레슨 admin 로그에 **actor user id** 채우기~~ → **완료**
+  - `AuthUser` extractor에서 JWT Claims의 `sub` (user_id) 추출
+  - 모든 Admin handler → service → repo까지 `actor_user_id` 전달
+  - `create_audit_log()`에서 `admin_id`로 정상 저장
+- 향후 검토: 역할별 로그 조회 범위 제한 (manager는 담당 class만 조회 등)
 
 ### 9.3 페이징 고도화 (Keyset vs Page)
 
-- 현재 표준은 page/size 기반.
-- 비디오/학습 문제와 같이 데이터가 커질 도메인에서는 **Keyset pagination** 검토 필요.
-- TODO:
-  - 어떤 리스트에 keyset을 우선 적용할지 정의
-  - 기존 API와의 호환성 (기존 page/size와 병행할지 여부)
+- 현재 표준은 page/size 기반
+- **트리거**: 테이블 데이터 **1만 건 이상** 시 Keyset pagination 검토
+- 대상 테이블: `video_log`, `study_task_log`, `login_log`
+- 기존 API와 호환성 유지 (page/size 파라미터 병행)
 
 ### 9.4 테스트 전략
 
-- E2E/K6 부하 테스트:
-  - 목표 RPS, 허용 응답시간, peak 시나리오 정의 필요
-- TODO:
-  - 대표 시나리오 정리 (회원가입+로그인+비디오 시청+진도 저장 등)
-  - k6 스크립트 기본 골격 설계
+**목표 성능 (K6 부하 테스트 기준)**:
+
+| 엔드포인트 | 목표 RPS | P95 응답시간 |
+|----------|---------|-------------|
+| 인증 (login/refresh) | 100 | < 200ms |
+| 목록 조회 (videos/studies) | 200 | < 100ms |
+| 상세 조회 | 300 | < 50ms |
+| 진도 저장 (progress) | 100 | < 150ms |
+
+**대표 시나리오**: 회원가입 → 로그인 → 비디오 조회 → 시청 → 진도 저장 → 학습 문제 풀이
 
 ### 9.5 보안/운영 (후순위 계획)
 
@@ -7512,271 +7526,88 @@ export function AppRoutes() {
 - ~~접근 제어: 관리자 IP allowlist~~ → **완료** (`admin_ip_guard.rs`, CIDR 지원)
 - ~~RBAC 미들웨어~~ → **완료** (`role_guard.rs`, HYMN/admin만 admin 접근 허용)
 
-**📋 남은 항목:**
-- 관리자 MFA 도입 (특히 HYMN/admin 계정)
-- 동시 세션 수 제한
-- 토큰 재사용 탐지 (Refresh Token Replay Attack 방지)
-- step-up MFA (민감한 작업 시 추가 인증)
+**📋 남은 항목 (외부 API 연결 작업 후 진행):**
+- 관리자 MFA 도입 (특히 HYMN/admin 계정) — 소셜 로그인/결제 시스템 후
+- 동시 세션 수 제한 — RDS 이전 후
+- 토큰 재사용 탐지 (Refresh Token Replay Attack 방지) — RDS 이전 후
+- step-up MFA (민감한 작업 시 추가 인증) — MFA 도입 후
 
-### 9.6 코드 일관성 (Technical Debt)
+### 9.6 코드 일관성 (Technical Debt) ✅
 
-> ⚠️ **현재 서버 정상 작동 중**. 기능적 버그가 아닌 코드 일관성/유지보수성 이슈.
-> 향후 확장 시 정리 권장.
+> **완료됨** (2026-02-02). 모든 항목 정리 완료.
 
-| 이슈 | 현재 상태 | 표준 | 우선순위 | 관련 파일 |
-|------|----------|------|----------|----------|
-| Refresh Token 포맷 | auth: `session_id:uuid`, user: `random_32bytes` | 포맷 통일 | 낮음 | auth/service.rs, user/service.rs |
-| LessonService 구조 | Stateful (repo 필드 소유) | Stateless (`struct XxxService;`) | 낮음 | lesson/service.rs |
-| Lesson 에러 타입 | `sqlx::Error` 직접 반환 | `AppResult<T>` 래핑 | 낮음 | lesson/repo.rs |
-| login SADD 누락 | user_sessions SADD 미사용 | 필요시 추가 | 낮음 | auth/service.rs |
-| set_domain 중복 | 2번 호출 | 1번으로 정리 | 낮음 | auth/handler.rs |
+| 이슈 | 상태 | 변경 내용 |
+|------|:----:|----------|
+| Refresh Token 포맷 | ✅ | user/service.rs → `session_id:uuid` 포맷으로 통일 |
+| LessonService 구조 | ✅ | Stateless 패턴 적용 (`struct LessonService;`) |
+| Lesson 에러 타입 | ✅ | `AppResult<T>` 래핑 적용 |
+| login SADD 추가 | ✅ | auth/service.rs 로그인 시 `ak:user_sessions` SADD 추가 |
+| set_domain 중복 | ✅ | auth/service.rs 중복 호출 제거 |
+| Handler `_handler` 접미사 | ✅ | `create_video_handler` → `admin_create_video` 등 통일 |
+| Admin 함수 prefix | ✅ | `get_user_self_logs` → `admin_get_user_self_logs` 등 통일 |
+| Video repo 함수명 | ✅ | `find_*` → `get_*/list_*` 패턴 통일 |
 
-- **조치 방침**: 현재는 문서화만 진행. 다음 리팩토링 사이클에서 일괄 정리.
+### 9.7 작업 로드맵
 
-### 9.7 추후 작업 항목 (문서 내 TODO 통합)
+> 내부 DB 작업 → 외부 API 연결 순서로 진행
 
-> 문서 전체에서 "추후", "예정", "업데이트 필요" 등으로 표시된 항목을 통합 정리.
+#### 내부 DB 작업 ✅
 
-#### 기능 개발 (Phase 관련)
+| 순서 | 항목 | 상태 | 설명 |
+|------|------|------|------|
+| 1 | Redis 인증 설정 | ✅ | `REDIS_PASSWORD` 환경변수 추가, docker-compose 수정 |
+| 2 | Redis 포트 바인딩 | ✅ | 개발환경 127.0.0.1:16379로 제한 |
+| 3 | 영상 실제 시청 시간 | ✅ | `video_log`에 `video_watch_duration_sec` 컬럼 추가 |
+| 4 | Study 레이트리밋 | ✅ | `rl:study_submit:{user_id}` 키로 30회/분 제한 |
+| 5 | Course 도메인 추가 | ✅ | `20260202_ADD_COURSE_DOMAIN.sql` 마이그레이션 생성 |
+| 6 | 수강권 정책 적용 | ✅ | `lesson_access` 기반 403 Forbidden 검증 로직 (lesson/service.rs) |
 
-| 항목 | 출처 | 우선순위 | 설명 |
-|------|------|----------|------|
-| Redis 세션 도입 | 5.3 Phase 3 — auth | 중간 | 현재 DB 기반 세션 → Redis 세션 스토어로 전환 |
-| Study 레이트리밋 | 5.5 Phase 5 — study | 낮음 | 과도한 채점/새로고침 방지 → 429 + Retry-After |
-| ~~Lesson state enum 추가~~ | ~~5.6 Phase 6 — lesson~~ | ~~중간~~ | ✅ **완료** - `lesson_state` (ready/open/close), `lesson_access` (public/paid/private/promote) enum 구현 완료 |
-| 수강권 정책 적용 | 5.6 Phase 6 — lesson | 중간 | 403 Forbidden 정책 - 수강권 관련 사항 업데이트 후 적용 |
-| ~~Admin 보안 강화~~ | ~~5.7 Phase 7 — admin~~ | ~~높음~~ | ✅ **완료** (2026-02-01) - RBAC 미들웨어, IP Allowlist, 역할별 TTL, 에러 페이지 구현 |
-| Admin 폼 검증 로직 | 5.7 Phase 7 — admin | 중간 | 관리자 업데이트 시 입력 폼 검증 로직 구현 필요 (프론트+백엔드 validation) |
-| ~~비디오 일별 통계~~ | ~~5.7 Phase 7 — admin (7-21)~~ | ~~낮음~~ | ✅ **완료** - `GET /admin/videos/{id}/stats/daily` 구현 완료 |
-| 영상 실제 시청 시간 | 5.4 Phase 4 — video | 중간 | `video_log`에 실제 시청 시간 컬럼 추가 → 영상 전체 길이와 비교하여 완료 판정 강화 |
-| 토픽 정답 제출/검사 | 5.5 Phase 5 — study | 높음 | 학습 토픽별 정답 제출 및 자동 채점 프로그램 구현 |
-| 학습 문제 생성/전달 | 5.5 Phase 5 — study | 높음 | 학습 문제 동적 생성 및 사용자별 전달 로직 구현 |
-| Course 도메인 추가 | 비고 (Section 5) | 낮음 | ERD 정리 후 별도 Phase로 추가 예정 |
-| Lesson 통계 기능 | 5.6 Phase 6 — lesson | 낮음 | 수업별 완료율, 항목별 이탈 지점, 인기 수업 순위, 평균 학습 기간 등 집계 통계. 기본 progress 데이터는 이미 있으므로 필요 시 추가 |
-| Login 방법 추가 | 5.3 Phase 3 — auth | 중간 | Google, Apple 소셜 로그인 추가 → 소셜 로그인 장려(보안 이슈) |
-| Login 정보 추가 | 5.3 Phase 3 — auth | 낮음 | `login` 데이터 업데이트 로직 점검 및 추가 : login_country, login_asn, login_org, login_os, login_browser, login_device |
-| Login 로그 추가 | 5.3 Phase 3 — auth | 낮음 | `login_log` 데이터 업데이트 로직 점검 및 추가 : `login_log` 테이블 전체 |
+#### 외부 API 연결
 
-#### 인프라 / 자동화
-
-| 항목 | 출처 | 우선순위 | 설명 |
-|------|------|----------|------|
-| ~~CI GitHub Actions~~ | ~~7.6 테스트 & 자동화~~ | ~~중간~~ | ✅ **완료** (2026-01-26) - 배포 자동화 구축 |
-| RDS 이전 | 9.9 인프라 로드맵 | 중간 | Admin 완료 → 리팩토링 → 보안 강화 → RDS 이전 순서로 진행 |
-| 통계 비동기/배치 분리 | 7.5 트랜잭션 패턴 | 낮음 | 집계/통계 갱신이 복잡해지면 비동기/배치로 분리 검토 |
-
-#### 코드 정리
-
-| 항목 | 출처 | 우선순위 | 설명 |
-|------|------|----------|------|
-| URL 구성 순서 수정 | Phase 전체 수정 | 낮음 | 전체 URL 점검 및 수정 사항 파악 후 작업 진행 |
-| api 함수명 통일 | Phase 전체 수정 | 낮음 | back-front 전부 연결되는 함수명 통일화 진행 필요 |
-
-### 9.8 LLM 협업 도구 전환
-
-> Claude Code 도입으로 기존 LLM 프롬프트 기반 작업 방식 변경 필요
-
-#### 9.8.1 기존 Patch 템플릿 처리
-
-**현재 상태:**
-- `docs/patchs/` - 백엔드 Phase별 프롬프트 (0.health ~ 6.admin)
-- `frontend/docs/patchs/` - 프론트엔드 Phase별 프롬프트 (0.health ~ 4.study)
-- `docs/patchs/LLM_PATCHS_TEMPLATE_BACKEND.md` - 백엔드 템플릿
-- `frontend/docs/LLM_PATCHS_TEMPLATE_FRONTEND.md` - 프론트엔드 템플릿
-
-**결정 사항:**
-
-| 옵션 | 설명 | 선택 |
+| 순서 | 항목 | 설명 |
 |------|------|------|
-| **아카이브** | `docs/archive/patchs/`로 이동, 참고용 유지 | ⭐ 권장 |
-| 삭제 | 완전히 제거 | △ |
-| 유지 | 현 위치 유지 | △ |
+| 1 | 소셜 로그인 | Google, Apple OAuth 연동 |
+| 2 | 결제 시스템 | Stripe, Polar 연동 (수강권과 연계) |
+| 3 | RDS/ElastiCache 이전 | EC2 → AWS RDS + ElastiCache (TLS, maxmemory 자동 적용) |
 
-**이유:**
-- 작업 히스토리/의사결정 기록으로서 가치
-- Claude Code 사용 불가 상황에서 백업 수단
-- 다른 LLM (Gemini, ChatGPT)으로 작업 시 참고 가능
+#### 보류/낮음 우선순위
 
-**TODO:**
-- [ ] `docs/patchs/` → `docs/archive/patchs/` 이동
-- [ ] `frontend/docs/patchs/` → `frontend/docs/archive/patchs/` 이동
-- [ ] Section 0.3 관련 파일 경로 업데이트
+| 항목 | 상태 | 설명 |
+|------|:----:|------|
+| 학습 문제 동적 생성/전달 | 보류 | 커리큘럼 데이터 완비 후, 사용자 요구 시 구현 |
+| Lesson 통계 기능 | 보류 | `/admin/lessons/stats` — 기본 progress 데이터 있음, 추후 구현 예정 |
+| Login 정보/로그 추가 | 보류 | `login_country`, `login_asn`, `login_org` — 외부 API 연동 시 IP Geolocation 적용 |
+| 통계 비동기/배치 분리 | 보류 | 집계/통계 복잡해지면 검토 |
+| URL/함수명 통일 | ✅ | 2026-02-02 완료 — handler/service/repo 네이밍 패턴 통일 |
 
-#### 9.8.2 GitHub Gemini Code Assistant
+### 9.8 데이터 모니터링 & 접근
 
-**활용 방안:**
+**현재 상태**: SSH 터널 + DB 클라이언트로 운영 데이터 접근 가능, Admin 통계 API 구현 완료
 
-| 용도 | 도구 | 비고 |
-|------|------|------|
-| 코드 작성/수정 | **Claude Code** | 메인 도구 |
-| PR 리뷰 자동화 | GitHub Gemini | 보조 도구 |
-| 코드 제안/설명 | GitHub Copilot / Gemini | 선택적 |
-
-**설정 방법:**
-1. GitHub repo → Settings → Integrations
-2. Gemini Code Assist 활성화
-3. PR 생성 시 자동 리뷰 코멘트
-
-**주의사항:**
-- Claude Code와 충돌 없이 병행 가능
-- 최종 판단은 직접 확인 필요
-- PR 리뷰 자동화에 유용
-
-### 9.9 인프라 로드맵 (RDS 이전)
-
-> EC2 내 Docker PostgreSQL → AWS RDS 이전 계획
-
-#### 9.9.1 이전 순서 (권장)
-
-```
-1. Admin 프론트 구현     ✅ 완료 (Users, Videos, Studies, Lessons + Stats)
-2. 코드 리뷰/리팩토링    ← 현재 단계: DB 쿼리 최적화 포함
-3. 보안/처리 로직 강화   ← 인덱스, 제약조건 정리
-4. RDS 이전             ← 안정화된 상태에서 이전
-```
-
-**이유:**
-- 스키마 변경 가능성 있는 작업 먼저 완료
-- RDS 이전 후 스키마 변경은 더 신중해야 함
-- 현재 Docker PostgreSQL도 볼륨으로 데이터 유지되니 급하지 않음
-
-#### 9.9.2 RDS 이전 시점 기준
-
-| 조건 | 설명 |
-|------|------|
-| 실사용자 데이터 축적 | 테스트 데이터가 아닌 실제 데이터가 쌓이기 시작할 때 |
-| EC2 디스크/성능 이슈 | 현재 20GB 중 여유 있으나, 부족 시 |
-| 백업/복구 요구사항 | 자동 백업, Point-in-time recovery 필요 시 |
-| 고가용성 필요 | Multi-AZ 배포 필요 시 |
-
-#### 9.9.3 RDS 설정 예상
-
-| 항목 | 권장값 |
-|------|--------|
-| Engine | PostgreSQL 16 |
-| Instance Class | db.t3.micro (프리티어) → db.t3.small |
-| Storage | 20GB gp3 (자동 확장) |
-| Multi-AZ | 초기 비활성화 → 추후 활성화 |
-| Backup | 7일 자동 백업 |
-
-### 9.10 데이터 모니터링 & 접근
-
-> 운영 DB 데이터 확인 및 로컬 동기화 방법
-
-#### 9.10.1 즉시 사용 가능: SSH 터널 + DB 클라이언트
+#### 9.8.1 SSH 터널 접속
 
 ```bash
-# 1. SSH 터널 설정 (로컬 5433 → EC2 PostgreSQL 5432)
+# SSH 터널 → DBeaver/pgAdmin 접속
 ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
-
-# 2. DBeaver/pgAdmin에서 접속
-# Host: localhost
-# Port: 5433
-# Database: amazing_korean_db
-# User: postgres
-# Password: (POSTGRES_PASSWORD)
+# Host: localhost, Port: 5433, DB: amazing_korean_db
 ```
 
-**장점:**
-- 별도 설정 없이 즉시 사용 가능
-- GUI로 데이터 조회/수정 편리
+#### 9.8.2 Admin 통계 API
 
-#### 9.10.2 Admin 대시보드
+- ✅ `/admin/users/stats`, `/admin/logins/stats`, `/admin/studies/stats`, `/admin/videos/stats`
+- 🔄 시스템 상태 모니터링 (DB/Redis) — 미구현
 
-Admin Phase에서 구현된 통계 기능:
-- ✅ 사용자 통계 (가입 수, 역할별 분포) — `/admin/users/stats`
-- ✅ 로그인 통계 (일별, 디바이스별) — `/admin/logins/stats`
-- ✅ 학습 현황 (Program별/State별 분포, TOP Studies, 일별 통계) — `/admin/studies/stats`
-- ✅ 영상 통계 (조회수, State별 분포, 일별 통계) — `/admin/videos/stats`
-- 🔄 시스템 상태 (DB 연결, Redis 상태) — 미구현
+### 9.9 디자인 & UI
 
-#### 9.10.3 로컬 ↔ EC2 데이터 동기화
+**현재 상태**: shadcn/ui + Tailwind 사용, 디자인 시스템 미정립
 
-**EC2 → 로컬 (운영 데이터 복사)**
+**TODO**: 브랜딩, 타이포그래피, 반응형 점검
 
-```bash
-# 1. EC2에서 덤프
-ssh ec2-user@EC2_IP "docker exec amk-pg pg_dump -U postgres amazing_korean_db" > prod_backup.sql
+### 9.10 마케팅 & 데이터 분석
 
-# 2. 로컬에 복원
-psql -U postgres -d amazing_korean_db < prod_backup.sql
-```
+**현재 상태**: login_log, video_log, study_task_log로 기본 데이터 수집 중
 
-**주의사항:**
-- 개인정보 포함 데이터는 마스킹 처리 권장
-- 로컬 테스트 데이터와 혼용 주의
-
-### 9.11 디자인 & UI
-
-> 현재 MVP 단계의 UI/UX 개선 및 디자인 시스템 정립 필요
-
-#### 9.11.1 현재 상태
-
-| 항목 | 상태 | 비고 |
-|------|------|------|
-| 컴포넌트 라이브러리 | shadcn/ui | Tailwind 기반 |
-| 디자인 시스템 | 미정립 | 색상, 타이포그래피, 간격 등 |
-| 반응형 | 부분 적용 | 모바일 최적화 필요 |
-| 다크 모드 | 미적용 | 추후 검토 |
-
-#### 9.11.2 개선 필요 항목
-
-| 우선순위 | 항목 | 설명 |
-|----------|------|------|
-| 높음 | 로고 & 브랜딩 | Amazing Korean 로고, 파비콘, OG 이미지 |
-| 높음 | 색상 팔레트 | Primary, Secondary, Accent 색상 정의 |
-| 높음 | 에러 페이지 | HTTP 에러 코드별 페이지 생성 (400, 401, 403, 404, 500 등) |
-| 중간 | 타이포그래피 | 폰트 패밀리, 사이즈 체계 (h1~h6, body, caption) |
-| 중간 | 간격 시스템 | 4px/8px 기반 spacing scale |
-| 중간 | 반응형 브레이크포인트 | sm/md/lg/xl 기준 정의 |
-| 낮음 | 다크 모드 | 색상 팔레트 확정 후 검토 |
-| 낮음 | 애니메이션/트랜지션 | 로딩, 페이지 전환 효과 |
-
-#### 9.11.3 디자인 도구 & 자산
-
-| 항목 | 현재 | 권장 |
-|------|------|------|
-| 디자인 도구 | - | Figma |
-| 아이콘 | Lucide Icons | 유지 |
-| 이미지 자산 | `/public/images/` | 최적화 필요 (WebP 변환) |
-| 폰트 | 시스템 폰트 | Pretendard / Noto Sans KR 검토 |
-
-#### 9.11.4 TODO
-
-- [ ] 브랜드 가이드라인 정의 (로고 사용법, 색상 코드)
-- [ ] Figma 디자인 시스템 구축
-- [ ] Tailwind config에 커스텀 색상/폰트 적용
-- [ ] 공통 컴포넌트 스타일 통일 (Button, Input, Card 등)
-- [ ] 반응형 레이아웃 점검 (모바일 우선)
-
-### 9.12 마케팅 & 데이터 분석
-
-> 서비스 이용 데이터를 활용한 마케팅 및 사용자 분석 기능
-
-#### 9.12.1 데이터 수집 항목
-
-| 항목 | 수집 위치 | 활용 방안 |
-|------|----------|----------|
-| 서비스 이용 시간 | `login_log`, `video_log` | 사용 패턴 분석, 피크 시간대 파악 |
-| 학습 진행률 | `video_log`, `study_task_log` | 이탈 구간 분석, 콘텐츠 개선 |
-| 기기/브라우저 | `login_log` | 타겟 플랫폼 최적화 |
-| 접속 빈도 | `login_log` | 활성 사용자 정의, 리텐션 분석 |
-
-#### 9.12.2 마케팅 활용 방안
-
-| 우선순위 | 항목 | 설명 |
-|----------|------|------|
-| 중간 | 학습 리마인더 | 비활성 사용자 대상 이메일/푸시 알림 |
-| 중간 | 학습 성취 공유 | 완료율/연속 학습일 SNS 공유 기능 |
-| 낮음 | A/B 테스트 | 콘텐츠/UI 변형 테스트 인프라 |
-| 낮음 | 코호트 분석 | 가입 시점별 사용자 행동 분석 |
-
-#### 9.12.3 TODO
-
-- [ ] 이용 시간 집계 쿼리/API 설계
-- [ ] 사용자 세그먼트 정의 (활성/이탈/재방문 등)
-- [ ] 마케팅 자동화 도구 연동 검토 (이메일, 푸시)
-- [ ] 데이터 대시보드 구축 (Admin 또는 별도 도구)
+**TODO**: 사용자 세그먼트 정의, 리텐션 분석, 마케팅 자동화 연동
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
@@ -7875,6 +7706,25 @@ psql -U postgres -d amazing_korean_db < prod_backup.sql
   - **Progress 수정 UI 구현**
     - Lesson Progress 탭에 단건/벌크 수정 다이얼로그 추가
     - Last Item Seq 필드에 max 제약 (lesson items 기준)
+- **2026-02-02 — URL/함수명 통일 리팩토링**
+  - **Handler 네이밍 통일**
+    - `create_video_handler` → `admin_create_video`
+    - `get_vimeo_preview_handler` → `admin_get_vimeo_preview`
+    - `create_vimeo_upload_ticket_handler` → `admin_create_vimeo_upload_ticket`
+    - `get_task_explain_handler` → `get_task_explain`
+    - `admin_get_lesson_detail` → `admin_get_lesson`
+  - **Admin User logs 함수명 prefix 통일**
+    - `get_admin_user_logs` → `admin_get_user_logs`
+    - `get_user_self_logs` → `admin_get_user_self_logs`
+  - **Video repo 함수명 통일**
+    - `find_list_dynamic` → `list_videos`
+    - `find_detail_by_id` → `get_video_detail`
+    - `find_progress` → `get_progress`
+    - `upsert_progress` → `update_progress`
+  - **Section 9.7 "보류/낮음 우선순위" 업데이트**
+    - URL/함수명 통일 ✅ 완료
+    - Login 정보/로그 추가 — 외부 API 연동 시 진행 예정
+    - Lesson 통계 기능 — 추후 구현 예정
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 

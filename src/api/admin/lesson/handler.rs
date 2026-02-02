@@ -636,7 +636,7 @@ pub async fn admin_update_lesson(
     ),
     security(("bearerAuth" = []))
 )]
-pub async fn admin_get_lesson_detail(
+pub async fn admin_get_lesson(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     Path(lesson_id): Path<i32>,

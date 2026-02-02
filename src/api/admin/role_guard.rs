@@ -52,7 +52,8 @@ pub async fn admin_role_guard(
     // JWT 디코딩 및 검증
     let claims = match jwt::decode_token(&token, &state.cfg.jwt_secret) {
         Ok(c) => c,
-        Err(_) => {
+        Err(e) => {
+            tracing::warn!("Admin role guard: JWT decode failed: {}", e);
             return (StatusCode::UNAUTHORIZED, "Invalid token").into_response();
         }
     };

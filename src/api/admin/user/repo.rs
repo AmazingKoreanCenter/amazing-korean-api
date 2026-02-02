@@ -397,7 +397,7 @@ pub async fn create_history_log(
 use super::dto::{AdminUserLogItem, UserLogItem};
 
 /// 관리자가 변경한 유저 로그 조회 (admin_users_log)
-pub async fn get_admin_user_logs(
+pub async fn admin_get_user_logs(
     pool: &PgPool,
     target_user_id: i64,
     page: i64,
@@ -445,7 +445,7 @@ pub async fn get_admin_user_logs(
 }
 
 /// 유저 본인이 변경한 로그 조회 (users_log)
-pub async fn get_user_self_logs(
+pub async fn admin_get_user_self_logs(
     pool: &PgPool,
     user_id: i64,
     page: i64,

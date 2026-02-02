@@ -1,3 +1,4 @@
+use redis::AsyncCommands;
 use tracing::warn;
 
 use crate::api::auth::extractor::AuthUser;
@@ -197,6 +198,31 @@ impl StudyService {
         req: SubmitAnswerReq,
     ) -> AppResult<SubmitAnswerRes> {
         let AuthUser(claims) = auth_user;
+
+        // [Rate Limiting] 과도한 답안 제출 방지
+        let rl_key = format!("rl:study_submit:{}", claims.sub);
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let attempts: i64 = redis_conn
+            .incr(&rl_key, 1)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        if attempts == 1 {
+            let _: () = redis_conn
+                .expire(&rl_key, st.cfg.rate_limit_study_window_sec)
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+        }
+        if attempts > st.cfg.rate_limit_study_max {
+            return Err(AppError::TooManyRequests(
+                "STUDY_429_TOO_MANY_SUBMISSIONS".into(),
+            ));
+        }
+
         let answer_key = StudyRepo::find_answer_key(&st.db, task_id).await?;
         let answer_key = answer_key.ok_or(AppError::NotFound)?;
 

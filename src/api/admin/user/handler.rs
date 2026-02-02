@@ -370,13 +370,13 @@ use super::dto::{AdminUserLogsReq, AdminUserLogsRes, UserLogsRes};
     ),
     security(("bearerAuth" = []))
 )]
-pub async fn get_admin_user_logs(
+pub async fn admin_get_user_logs(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     Path(user_id): Path<i64>,
     Query(params): Query<AdminUserLogsReq>,
 ) -> AppResult<Json<AdminUserLogsRes>> {
-    let res = AdminUserService::get_admin_user_logs(
+    let res = AdminUserService::admin_get_user_logs(
         &st,
         auth_user.sub,
         user_id,
@@ -405,13 +405,13 @@ pub async fn get_admin_user_logs(
     ),
     security(("bearerAuth" = []))
 )]
-pub async fn get_user_self_logs(
+pub async fn admin_get_user_self_logs(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     Path(user_id): Path<i64>,
     Query(params): Query<AdminUserLogsReq>,
 ) -> AppResult<Json<UserLogsRes>> {
-    let res = AdminUserService::get_user_self_logs(
+    let res = AdminUserService::admin_get_user_self_logs(
         &st,
         auth_user.sub,
         user_id,
