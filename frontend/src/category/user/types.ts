@@ -28,23 +28,33 @@ export const profileResSchema = z.object({
 export type ProfileRes = z.infer<typeof profileResSchema>;
 
 // [User Detail] - 내 정보 조회 (GET /users/me)
+// 백엔드 ProfileRes에 맞춤
 export const userDetailSchema = z.object({
-  user_id: z.number().int(),
+  id: z.number().int(),
   email: z.string().email(),
   name: z.string(),
-  nickname: z.string(),
-  user_auth: z.string(),
+  nickname: z.string().nullable(),
+  language: z.string().nullable(),
+  country: z.string().nullable(),
+  birthday: z.string().nullable(),
+  gender: userGenderSchema,
+  user_state: z.boolean(),
+  user_auth: userAuthSchema,
   created_at: z.string().datetime(),
-  bio: z.string().optional(),
+  // OAuth 전용 계정 여부 판단용 (비밀번호가 설정되어 있으면 true)
+  has_password: z.boolean().optional(),
 });
 
 export type UserDetail = z.infer<typeof userDetailSchema>;
 
 // [Update User] - 내 정보 수정 (POST /users/me)
+// 백엔드 ProfileUpdateReq에 맞춤 (name, bio는 백엔드에서 지원 안함)
 export const updateUserReqSchema = z.object({
   nickname: z.string().min(1).max(100).optional(),
-  name: z.string().min(1).max(100).optional(),
-  bio: z.string().max(500).optional(),
+  language: z.string().min(1).max(50).optional(),
+  country: z.string().min(1).max(50).optional(),
+  birthday: z.string().optional(),
+  gender: userGenderSchema.optional(),
 });
 
 export type UpdateUserReq = z.infer<typeof updateUserReqSchema>;

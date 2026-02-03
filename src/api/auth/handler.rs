@@ -6,9 +6,11 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use cookie::time::{Duration, OffsetDateTime};
 
+use axum::{extract::Query, response::Redirect};
+
 use crate::api::auth::dto::{
-    FindIdReq, FindIdRes, LoginReq, LoginRes, LogoutAllReq, LogoutRes, /* RefreshReq, */ ResetPwReq,
-    ResetPwRes,
+    FindIdReq, FindIdRes, GoogleAuthUrlRes, GoogleCallbackQuery, LoginReq, LoginRes, LogoutAllReq,
+    LogoutRes, /* RefreshReq, */ ResetPwReq, ResetPwRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::api::auth::service::AuthService;
@@ -279,4 +281,94 @@ pub async fn logout_all(
     let jar = jar.add(refresh_cookie);
 
     Ok((jar, Json(logout_res)))
+}
+
+// =========================================================================
+// Google OAuth Handlers
+// =========================================================================
+
+/// Google OAuth 시작 - 인증 URL 반환
+#[utoipa::path(
+    get,
+    path = "/auth/google",
+    tag = "auth",
+    responses(
+        (status = 200, description = "Google OAuth URL", body = GoogleAuthUrlRes),
+        (status = 500, description = "Internal Server Error", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn google_auth_start(
+    State(st): State<AppState>,
+) -> Result<Json<GoogleAuthUrlRes>, AppError> {
+    let auth_url = AuthService::google_auth_start(&st).await?;
+    Ok(Json(GoogleAuthUrlRes { auth_url }))
+}
+
+/// Google OAuth 콜백 처리
+/// 성공 시 프론트엔드로 리다이렉트 (쿠키에 토큰 포함)
+#[utoipa::path(
+    get,
+    path = "/auth/google/callback",
+    tag = "auth",
+    params(
+        ("code" = Option<String>, Query, description = "Authorization code"),
+        ("state" = String, Query, description = "State parameter for CSRF protection"),
+        ("error" = Option<String>, Query, description = "Error code if authorization failed"),
+        ("error_description" = Option<String>, Query, description = "Error description")
+    ),
+    responses(
+        (status = 302, description = "Redirect to frontend"),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn google_auth_callback(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    jar: CookieJar,
+    Query(query): Query<GoogleCallbackQuery>,
+) -> Result<(CookieJar, Redirect), AppError> {
+    // 에러 처리 (사용자 취소 등)
+    if let Some(error) = query.error {
+        let desc = query.error_description.unwrap_or_default();
+        // 에러 시 프론트엔드 로그인 페이지로 리다이렉트 (에러 정보 포함)
+        let error_url = format!(
+            "{}/login?error=oauth_error&error_description={}",
+            st.cfg.frontend_url,
+            urlencoding::encode(&format!("{}: {}", error, desc))
+        );
+        return Ok((jar, Redirect::temporary(&error_url)));
+    }
+
+    // Authorization Code 확인
+    let code = query.code
+        .ok_or_else(|| AppError::BadRequest("Missing authorization code".into()))?;
+
+    let ip = extract_client_ip(&headers);
+    let ua = extract_user_agent(&headers);
+
+    // OAuth 콜백 처리
+    let result = AuthService::google_auth_callback(&st, &code, &query.state, ip, ua).await;
+
+    match result {
+        Ok((login_res, cookie, _, is_new_user)) => {
+            // 성공: 프론트엔드 로그인 페이지로 리다이렉트 (콜백 처리)
+            let success_url = format!(
+                "{}/login?login=success&user_id={}&is_new_user={}",
+                st.cfg.frontend_url,
+                login_res.user_id,
+                is_new_user
+            );
+            let jar = jar.add(cookie);
+            Ok((jar, Redirect::temporary(&success_url)))
+        }
+        Err(e) => {
+            // 실패: 프론트엔드 로그인 페이지로 에러 리다이렉트
+            let error_url = format!(
+                "{}/login?error=oauth_failed&error_description={}",
+                st.cfg.frontend_url,
+                urlencoding::encode(&e.to_string())
+            );
+            Ok((jar, Redirect::temporary(&error_url)))
+        }
+    }
 }

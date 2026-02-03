@@ -17,7 +17,32 @@ const statusMessageMap: Record<number, string> = {
   500: "서버 오류가 발생했습니다.",
 };
 
+export interface SocialOnlyError {
+  isSocialOnly: true;
+  providers: string[];
+}
+
+// 소셜 전용 계정 에러 파싱
+const parseSocialOnlyError = (error: unknown): SocialOnlyError | null => {
+  if (error instanceof ApiError && error.status === 401) {
+    // 에러 메시지 형식: "AUTH_401_SOCIAL_ONLY_ACCOUNT:google,apple"
+    if (error.message.startsWith("AUTH_401_SOCIAL_ONLY_ACCOUNT:")) {
+      const providers = error.message
+        .replace("AUTH_401_SOCIAL_ONLY_ACCOUNT:", "")
+        .split(",")
+        .filter(Boolean);
+      return { isSocialOnly: true, providers };
+    }
+  }
+  return null;
+};
+
 const getErrorMessage = (error: unknown) => {
+  // 소셜 전용 계정 에러는 별도 처리 (toast 표시 안함)
+  if (parseSocialOnlyError(error)) {
+    return null;
+  }
+
   if (error instanceof ApiError) {
     return statusMessageMap[error.status] ?? error.message;
   }
@@ -32,15 +57,28 @@ const getErrorMessage = (error: unknown) => {
 export const useLogin = () => {
   const navigate = useNavigate();
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: (data: LoginReq) => login(data),
     onSuccess: (data) => {
       useAuthStore.getState().login(data);
       toast.success("로그인 성공!");
-      navigate("/");
+      navigate("/about");
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error));
+      const message = getErrorMessage(error);
+      if (message) {
+        toast.error(message);
+      }
     },
   });
+
+  // 소셜 전용 계정 에러 상태
+  const socialOnlyError = mutation.error
+    ? parseSocialOnlyError(mutation.error)
+    : null;
+
+  return {
+    ...mutation,
+    socialOnlyError,
+  };
 };

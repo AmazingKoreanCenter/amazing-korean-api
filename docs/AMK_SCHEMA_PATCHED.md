@@ -140,7 +140,7 @@ CREATE TABLE login (
   login_method login_method_enum NOT NULL DEFAULT 'email',      -- 로그인 방법 : 구글(소셜), 애플(소셜), 이메일(자체)로 진행 예정
   login_session_id uuid UNIQUE NOT NULL,                        -- 로그인 세션 id : Redis ak:session:<sid> 의 <sid>
   login_refresh_hash varchar(128) UNIQUE,                       -- 로그인 새로고침 해쉬 : Redis ak:refresh:<hash> 의 <hash> — UNIQUE 권장(Null 허용)
-  login_user_agent text,                                        -- 로그인 사용자 에이전트 : 찾아보기!
+  login_user_agent text,                                        -- 로그인 사용자 에이전트 : 로그인 사용자 접속 브라우저/앱 정보
   login_begin_at timestamptz NOT NULL DEFAULT (now()),          -- 로그인 시작 시간 : 로그인 시작 시간
   login_active_at timestamptz,                                  -- 로그인 적용 시간 : 로그인 적용 시간
   login_expire_at timestamptz,                                  -- 로그인 만료 시간 : 로그인 만료 시간
@@ -168,7 +168,7 @@ CREATE TABLE login_log (
   login_method_log login_method_enum,                               -- 로그인 방법 기록 : 구글(소셜), 애플(소셜), 이메일(자체)로 진행 예정
   login_session_id_log uuid,                                        -- 로그인 세션 id 기록 : Redis ak:session:<sid> 의 <sid> 로그
   login_refresh_hash_log varchar(128),                              -- 로그인 새로고침 해쉬 기록 : Redis ak:refresh:<hash> 의 <hash> — UNIQUE 권장(Null 허용)의 로그
-  login_user_agent_log text,                                        -- 로그인 사용자 에이전트 기록 : 찾아보기!
+  login_user_agent_log text,                                        -- 로그인 사용자 에이전트 기록 : 로그인 사용자 접속 브라우저/앱 정보 기록
   login_begin_at_log timestamptz NOT NULL DEFAULT (now()),          -- 로그인 시작 시간 기록 : 로그인 시작 시간 기록
   login_expire_at_log timestamptz,                                  -- 로그인 적용 시간 기록 : 로그인 적용 시간 기록
   login_token_id_log varchar,                                       -- 로그인 토근 id 기록 : 로그인 토근 id 기록

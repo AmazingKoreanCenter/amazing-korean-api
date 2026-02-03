@@ -162,3 +162,33 @@ pub struct ResetPwRes {
 pub struct LogoutRes {
     pub ok: bool,
 }
+
+// =====================================================================
+// Google OAuth DTOs
+// =====================================================================
+
+/// Google OAuth 시작 응답 (인증 URL 반환)
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "auth_url": "https://accounts.google.com/o/oauth2/v2/auth?client_id=..."
+}))]
+pub struct GoogleAuthUrlRes {
+    pub auth_url: String,
+}
+
+/// Google OAuth 콜백 쿼리 파라미터
+#[derive(Deserialize, Validate)]
+pub struct GoogleCallbackQuery {
+    /// Authorization Code (성공 시)
+    pub code: Option<String>,
+
+    /// State 파라미터 (CSRF 방지)
+    pub state: String,
+
+    /// 에러 코드 (사용자 취소 등)
+    pub error: Option<String>,
+
+    /// 에러 상세 설명
+    pub error_description: Option<String>,
+}

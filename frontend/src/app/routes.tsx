@@ -9,8 +9,8 @@ import { SignupPage } from "@/category/auth/page/signup_page";
 import { LoginPage } from "@/category/auth/page/login_page";
 import { FindIdPage } from "@/category/auth/page/find_id_page";
 import { ResetPasswordPage } from "@/category/auth/page/reset_password_page";
+import { RequestResetPasswordPage } from "@/category/auth/page/request_reset_password_page";
 import { MyPage } from "@/category/user/page/my_page";
-import { EditProfilePage } from "@/category/user/page/edit_profile_page";
 import { SettingsPage } from "@/category/user/page/settings_page";
 import { VideoListPage } from "@/category/video/page/video_list_page";
 import { VideoDetailPage } from "@/category/video/page/video_detail_page";
@@ -74,8 +74,8 @@ export function AppRoutes() {
         {/* 로그인한 사람만 접근 가능 (Private) */}
         <Route element={<PrivateRoute />}>
           <Route path="/user/me" element={<MyPage />} />
-          <Route path="/user/edit" element={<EditProfilePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/user/settings" element={<SettingsPage />} />
+          <Route path="/request-reset-password" element={<RequestResetPasswordPage />} />
         </Route>
       </Route>
 

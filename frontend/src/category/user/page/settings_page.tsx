@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import type { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
@@ -268,6 +269,16 @@ export function SettingsPage() {
                   "저장하기"
                 )}
               </Button>
+
+              <div className="flex items-center justify-center text-sm pt-2">
+                <Link
+                  to="/user/me"
+                  className="text-muted-foreground underline-offset-4 hover:underline flex items-center gap-1"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  마이페이지로 돌아가기
+                </Link>
+              </div>
             </form>
           </Form>
         </CardContent>
