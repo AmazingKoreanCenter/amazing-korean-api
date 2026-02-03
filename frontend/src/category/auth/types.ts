@@ -128,3 +128,12 @@ export const logoutResSchema = z.object({
   ok: z.boolean(),
 });
 export type LogoutRes = z.infer<typeof logoutResSchema>;
+
+// ==========================================
+// 8. Google OAuth
+// ==========================================
+
+export const googleAuthUrlResSchema = z.object({
+  auth_url: z.string().url(),
+});
+export type GoogleAuthUrlRes = z.infer<typeof googleAuthUrlResSchema>;

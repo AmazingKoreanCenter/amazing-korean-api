@@ -151,20 +151,23 @@ pub struct ProfileRes {
     pub email: String,
     pub name: String,
     pub nickname: Option<String>,
-    
+
     /// 학습 모국어 (Native Language)
     pub language: Option<String>,
     pub country: Option<String>,
-    
+
     #[schema(value_type = String, format = "date")]
     pub birthday: Option<NaiveDate>,
     pub gender: UserGender,
-    
+
     pub user_state: bool,
     pub user_auth: UserAuth,
-    
+
     #[schema(value_type = String, format = "date-time")]
     pub created_at: DateTime<Utc>,
+
+    /// 비밀번호 설정 여부 (OAuth 전용 계정은 false)
+    pub has_password: bool,
 }
 
 /// 사용자 환경설정 정보

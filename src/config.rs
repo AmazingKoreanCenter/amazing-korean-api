@@ -31,6 +31,12 @@ pub struct Config {
     pub cors_origins: Vec<String>,
     pub vimeo_access_token: Option<String>,
     pub admin_ip_allowlist: Vec<String>,  // Admin 접근 허용 IP 목록 (비어있으면 모든 IP 허용)
+    // Google OAuth
+    pub google_client_id: Option<String>,
+    pub google_client_secret: Option<String>,
+    pub google_redirect_uri: Option<String>,
+    pub oauth_state_ttl_sec: i64,         // OAuth state 유효시간 (초, 기본 300)
+    pub frontend_url: String,             // OAuth 콜백 후 리다이렉트할 프론트엔드 URL
 }
 
 impl Config {
@@ -121,6 +127,17 @@ impl Config {
             .filter(|s| !s.is_empty())
             .collect();
 
+        // Google OAuth (optional)
+        let google_client_id = env::var("GOOGLE_CLIENT_ID").ok();
+        let google_client_secret = env::var("GOOGLE_CLIENT_SECRET").ok();
+        let google_redirect_uri = env::var("GOOGLE_REDIRECT_URI").ok();
+        let oauth_state_ttl_sec = env::var("OAUTH_STATE_TTL_SEC")
+            .unwrap_or_else(|_| "300".into())
+            .parse::<i64>()
+            .expect("OAUTH_STATE_TTL_SEC must be a number");
+        let frontend_url = env::var("FRONTEND_URL")
+            .unwrap_or_else(|_| "http://localhost:5173".into());
+
         Self {
             database_url,
             bind_addr,
@@ -144,6 +161,11 @@ impl Config {
             cors_origins,
             vimeo_access_token,
             admin_ip_allowlist,
+            google_client_id,
+            google_client_secret,
+            google_redirect_uri,
+            oauth_state_ttl_sec,
+            frontend_url,
         }
     }
 

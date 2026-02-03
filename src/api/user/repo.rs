@@ -25,28 +25,29 @@ pub async fn signup_tx(
     let res = sqlx::query_as::<_, ProfileRes>(r#"
         INSERT INTO users (
             user_email, user_password, user_name,
-            user_nickname, user_language, user_country, 
+            user_nickname, user_language, user_country,
             user_birthday, user_gender,
             user_terms_service, user_terms_personal
         )
         VALUES (
-            $1, $2, $3, 
-            $4, $5::user_language_enum, $6, 
-            $7, $8::user_gender_enum, 
+            $1, $2, $3,
+            $4, $5::user_language_enum, $6,
+            $7, $8::user_gender_enum,
             $9, $10
         )
         RETURNING
-            user_id as id, 
-            user_email as email, 
+            user_id as id,
+            user_email as email,
             user_name as name,
-            user_nickname as nickname, 
+            user_nickname as nickname,
             user_language::TEXT as language, -- DB Enum -> Rust String
             user_country as country,
-            user_birthday as birthday, 
+            user_birthday as birthday,
             user_gender as gender,           -- DB Enum -> Rust Enum (sqlx::Type)
             user_state,
             user_auth,
-            user_created_at as created_at
+            user_created_at as created_at,
+            (user_password IS NOT NULL) as has_password
     "#)
     .bind(email)
     .bind(password_hash)
@@ -80,24 +81,25 @@ pub async fn find_user_id_by_email(pool: &PgPool, email: &str) -> AppResult<Opti
 pub async fn find_user(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileRes>> {
     let row = sqlx::query_as::<_, ProfileRes>(r#"
         SELECT
-            user_id as id, 
-            user_email as email, 
+            user_id as id,
+            user_email as email,
             user_name as name,
-            user_nickname as nickname, 
-            user_language::TEXT as language, 
+            user_nickname as nickname,
+            user_language::TEXT as language,
             user_country as country,
-            user_birthday as birthday, 
+            user_birthday as birthday,
             user_gender as gender,
-            user_state, 
-            user_auth, 
-            user_created_at as created_at
+            user_state,
+            user_auth,
+            user_created_at as created_at,
+            (user_password IS NOT NULL) as has_password
         FROM users
         WHERE user_id = $1
     "#)
     .bind(user_id)
     .fetch_optional(pool)
     .await?;
-    
+
     Ok(row)
 }
 
@@ -127,17 +129,18 @@ pub async fn update_profile_tx(
             user_gender   = COALESCE($6::user_gender_enum, user_gender)
         WHERE user_id = $1
         RETURNING
-            user_id as id, 
-            user_email as email, 
+            user_id as id,
+            user_email as email,
             user_name as name,
-            user_nickname as nickname, 
-            user_language::TEXT as language, 
+            user_nickname as nickname,
+            user_language::TEXT as language,
             user_country as country,
-            user_birthday as birthday, 
+            user_birthday as birthday,
             user_gender as gender,
-            user_state, 
-            user_auth, 
-            user_created_at as created_at
+            user_state,
+            user_auth,
+            user_created_at as created_at,
+            (user_password IS NOT NULL) as has_password
     "#)
     .bind(user_id)
     .bind(req.nickname.as_ref())

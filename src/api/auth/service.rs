@@ -16,7 +16,9 @@ use crate::{
     api::auth::{dto::*, jwt, repo::AuthRepo},
     api::user::repo as user_repo,
     error::{AppError, AppResult},
+    external::google::{GoogleOAuthClient, GoogleUserInfo},
     state::AppState,
+    types::UserAuth,
 };
 
 pub struct AuthService;
@@ -134,8 +136,25 @@ impl AuthService {
         // [Step 3] User Verification (Timing Attack Protected)
         let user_info = AuthRepo::find_user_by_email(&st.db, &email).await?;
 
+        // 소셜 전용 계정 체크 (비밀번호가 NULL인 경우)
+        if let Some(ref user) = user_info {
+            if user.user_password.is_none() {
+                // OAuth 연결 정보 조회
+                let providers = AuthRepo::find_oauth_providers_by_user_id(&st.db, user.user_id).await?;
+                let provider_list = if providers.is_empty() {
+                    "social".to_string()
+                } else {
+                    providers.join(",")
+                };
+                return Err(AppError::Unauthorized(format!(
+                    "AUTH_401_SOCIAL_ONLY_ACCOUNT:{}",
+                    provider_list
+                )));
+            }
+        }
+
         let parsed_hash = match &user_info {
-            Some(user) => PasswordHash::new(&user.user_password)
+            Some(user) => PasswordHash::new(user.user_password.as_ref().unwrap())
                 .map_err(|_| AppError::Internal("Failed to parse password hash".into()))?,
             None => Self::dummy_password_hash()?,
         };
@@ -574,5 +593,321 @@ impl AuthService {
         }
 
         Ok(LogoutRes { ok: true })
+    }
+
+    // =========================================================================
+    // Google OAuth
+    // =========================================================================
+
+    /// Google OAuth 인증 URL 생성
+    pub async fn google_auth_start(st: &AppState) -> AppResult<String> {
+        // Google OAuth 설정 확인
+        let client_id = st.cfg.google_client_id.as_ref()
+            .ok_or_else(|| AppError::Internal("GOOGLE_CLIENT_ID not configured".into()))?;
+        let client_secret = st.cfg.google_client_secret.as_ref()
+            .ok_or_else(|| AppError::Internal("GOOGLE_CLIENT_SECRET not configured".into()))?;
+        let redirect_uri = st.cfg.google_redirect_uri.as_ref()
+            .ok_or_else(|| AppError::Internal("GOOGLE_REDIRECT_URI not configured".into()))?;
+
+        // State와 Nonce 생성 (CSRF/Replay 방지)
+        let state = Uuid::new_v4().to_string();
+        let nonce = Uuid::new_v4().to_string();
+
+        // Redis에 state -> nonce 저장
+        let mut redis_conn = st.redis.get().await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let state_key = format!("ak:oauth_state:{}", state);
+        let _: () = redis_conn.set_ex(
+            &state_key,
+            &nonce,
+            st.cfg.oauth_state_ttl_sec as u64,
+        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // Auth URL 생성
+        let client = GoogleOAuthClient::new(
+            client_id.clone(),
+            client_secret.clone(),
+            redirect_uri.clone(),
+        );
+
+        let auth_url = client.build_auth_url(&state, &nonce);
+
+        Ok(auth_url)
+    }
+
+    /// Google OAuth 콜백 처리
+    /// 반환: (LoginRes, Cookie, refresh_ttl, is_new_user)
+    pub async fn google_auth_callback(
+        st: &AppState,
+        code: &str,
+        state: &str,
+        login_ip: String,
+        user_agent: Option<String>,
+    ) -> AppResult<(LoginRes, Cookie<'static>, i64, bool)> {
+        // Google OAuth 설정 확인
+        let client_id = st.cfg.google_client_id.as_ref()
+            .ok_or_else(|| AppError::Internal("GOOGLE_CLIENT_ID not configured".into()))?;
+        let client_secret = st.cfg.google_client_secret.as_ref()
+            .ok_or_else(|| AppError::Internal("GOOGLE_CLIENT_SECRET not configured".into()))?;
+        let redirect_uri = st.cfg.google_redirect_uri.as_ref()
+            .ok_or_else(|| AppError::Internal("GOOGLE_REDIRECT_URI not configured".into()))?;
+
+        // [Step 1] State 검증 (CSRF 방지)
+        let mut redis_conn = st.redis.get().await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let state_key = format!("ak:oauth_state:{}", state);
+        let stored_nonce: Option<String> = redis_conn.get(&state_key).await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let Some(nonce) = stored_nonce else {
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_OAUTH_STATE".into()));
+        };
+
+        // State 사용 후 즉시 삭제 (일회용)
+        let _: () = redis_conn.del(&state_key).await.unwrap_or(());
+
+        // [Step 2] Authorization Code → Token 교환
+        let client = GoogleOAuthClient::new(
+            client_id.clone(),
+            client_secret.clone(),
+            redirect_uri.clone(),
+        );
+
+        let token_response = client.exchange_code(code).await?;
+
+        // [Step 3] ID Token 검증 및 사용자 정보 추출
+        let claims = client.decode_id_token(&token_response.id_token)?;
+
+        // Nonce 검증
+        if claims.nonce.as_deref() != Some(&nonce) {
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_NONCE".into()));
+        }
+
+        // Audience 검증
+        if claims.aud != *client_id {
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_AUDIENCE".into()));
+        }
+
+        let user_info = client.extract_user_info(&claims);
+
+        // [Step 4] 사용자 조회 또는 생성
+        let (user_id, user_auth, is_new_user) = Self::find_or_create_oauth_user(st, &user_info, "google").await?;
+
+        // [Step 5] 세션 생성
+        let (login_res, cookie, refresh_ttl) = Self::create_oauth_session(st, user_id, user_auth, "google", login_ip, user_agent).await?;
+
+        Ok((login_res, cookie, refresh_ttl, is_new_user))
+    }
+
+    /// OAuth 사용자 조회 또는 생성
+    /// 반환: (user_id, user_auth, is_new_user)
+    async fn find_or_create_oauth_user(
+        st: &AppState,
+        user_info: &GoogleUserInfo,
+        provider: &str,
+    ) -> AppResult<(i64, UserAuth, bool)> {
+        // 1. OAuth 연결 정보로 기존 계정 조회
+        if let Some(oauth) = AuthRepo::find_oauth_by_provider_subject(
+            &st.db, provider, &user_info.sub
+        ).await? {
+            // 이미 연결된 계정 존재 - 마지막 로그인 시간 업데이트
+            AuthRepo::update_oauth_last_login(&st.db, oauth.user_oauth_id).await?;
+
+            let user = user_repo::find_user(&st.db, oauth.user_id).await?
+                .ok_or_else(|| AppError::Internal("OAuth linked user not found".into()))?;
+
+            info!("OAuth login: existing user {} via {}", oauth.user_id, provider);
+            return Ok((user.id, user.user_auth, false));
+        }
+
+        // 2. 이메일로 기존 계정 조회 (자동 연결)
+        if let Some(existing_user) = AuthRepo::find_user_by_email(&st.db, &user_info.email).await? {
+            // 기존 계정에 OAuth 연결
+            let mut tx = st.db.begin().await?;
+
+            AuthRepo::insert_oauth_link_tx(
+                &mut tx,
+                existing_user.user_id,
+                provider,
+                &user_info.sub,
+                Some(&user_info.email),
+                user_info.name.as_deref(),
+                user_info.picture.as_deref(),
+            ).await?;
+
+            tx.commit().await?;
+
+            info!("OAuth account linked to existing user: {} ({})", existing_user.user_id, user_info.email);
+            return Ok((existing_user.user_id, existing_user.user_auth, false));
+        }
+
+        // 3. 신규 사용자 생성 (자동 회원가입)
+        let (user_id, user_auth) = Self::create_oauth_user(st, user_info, provider).await?;
+        Ok((user_id, user_auth, true))
+    }
+
+    /// OAuth 신규 사용자 생성
+    async fn create_oauth_user(
+        st: &AppState,
+        user_info: &GoogleUserInfo,
+        provider: &str,
+    ) -> AppResult<(i64, UserAuth)> {
+        let mut tx = st.db.begin().await?;
+
+        // 닉네임 생성 (이름 또는 이메일 앞부분)
+        let nickname = user_info.name.clone()
+            .unwrap_or_else(|| user_info.email.split('@').next().unwrap_or("User").to_string());
+
+        // 사용자 생성 (비밀번호 없이, user_check_email = true)
+        let user_id = sqlx::query_scalar::<_, i64>(r#"
+            INSERT INTO users (
+                user_email, user_password, user_name,
+                user_nickname, user_language, user_country,
+                user_birthday, user_gender,
+                user_terms_service, user_terms_personal,
+                user_check_email
+            )
+            VALUES (
+                $1, NULL, $2,
+                $3, 'ko'::user_language_enum, 'Unknown',
+                CURRENT_DATE, 'none'::user_gender_enum,
+                true, true,
+                true
+            )
+            RETURNING user_id
+        "#)
+        .bind(&user_info.email)
+        .bind(&nickname)
+        .bind(&nickname)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        // OAuth 연결 정보 생성
+        AuthRepo::insert_oauth_link_tx(
+            &mut tx,
+            user_id,
+            provider,
+            &user_info.sub,
+            Some(&user_info.email),
+            user_info.name.as_deref(),
+            user_info.picture.as_deref(),
+        ).await?;
+
+        // 회원가입 로그
+        user_repo::insert_user_log_after_tx(&mut tx, None, user_id, "signup", true).await?;
+
+        tx.commit().await?;
+
+        info!("New OAuth user created: {} ({}) via {}", user_id, user_info.email, provider);
+        Ok((user_id, UserAuth::Learner))
+    }
+
+    /// OAuth 세션 생성
+    async fn create_oauth_session(
+        st: &AppState,
+        user_id: i64,
+        user_auth: UserAuth,
+        login_method: &str,
+        login_ip: String,
+        user_agent: Option<String>,
+    ) -> AppResult<(LoginRes, Cookie<'static>, i64)> {
+        let session_id = Uuid::new_v4().to_string();
+        let (refresh_token_value, refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
+        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user_auth) * 24 * 3600;
+
+        // Access Token 생성
+        let access_token_res = jwt::create_token(
+            user_id,
+            &session_id,
+            user_auth,
+            st.cfg.jwt_access_ttl_min,
+            &st.cfg.jwt_secret,
+        )?;
+
+        // DB 기록
+        let mut tx = st.db.begin().await?;
+
+        AuthRepo::insert_login_record_oauth_tx(
+            &mut tx,
+            user_id,
+            &session_id,
+            &refresh_hash,
+            &login_ip,
+            login_method,
+            None,  // device (User-Agent에서 파싱 가능)
+            None,  // browser
+            None,  // os
+            user_agent.as_deref(),
+        ).await?;
+
+        AuthRepo::insert_login_log_oauth_tx(
+            &mut tx,
+            user_id,
+            "login",
+            true,
+            &session_id,
+            &refresh_hash,
+            &login_ip,
+            login_method,
+            None,
+            None,
+            None,
+            user_agent.as_deref(),
+        ).await?;
+
+        tx.commit().await?;
+
+        // Redis 캐싱
+        let mut redis_conn = st.redis.get().await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // 1. Session ID -> User ID
+        let _: () = redis_conn.set_ex(
+            format!("ak:session:{}", session_id),
+            user_id,
+            st.cfg.jwt_access_ttl_min as u64 * 60,
+        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // 2. Refresh Hash -> Session ID
+        let _: () = redis_conn.set_ex(
+            format!("ak:refresh:{}", refresh_hash),
+            &session_id,
+            refresh_ttl_secs as u64,
+        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // 3. User Sessions Set
+        let _: () = redis_conn.sadd(
+            format!("ak:user_sessions:{}", user_id),
+            &session_id,
+        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // Cookie 생성
+        let mut refresh_cookie = Cookie::new(st.cfg.refresh_cookie_name.clone(), refresh_token_value);
+        refresh_cookie.set_path("/");
+        refresh_cookie.set_http_only(true);
+        refresh_cookie.set_secure(st.cfg.refresh_cookie_secure);
+        refresh_cookie.set_same_site(match st.cfg.refresh_cookie_samesite_or("Lax") {
+            "Strict" => SameSite::Strict,
+            "Lax" => SameSite::Lax,
+            "None" => SameSite::None,
+            _ => SameSite::Lax,
+        });
+        refresh_cookie.set_expires(OffsetDateTime::now_utc() + time::Duration::seconds(refresh_ttl_secs));
+
+        if let Some(domain) = &st.cfg.refresh_cookie_domain {
+            refresh_cookie.set_domain(domain.clone());
+        }
+
+        Ok((
+            LoginRes {
+                user_id,
+                access: access_token_res,
+                session_id,
+            },
+            refresh_cookie.into_owned(),
+            refresh_ttl_secs,
+        ))
     }
 }

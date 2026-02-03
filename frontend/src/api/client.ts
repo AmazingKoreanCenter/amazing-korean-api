@@ -5,7 +5,9 @@ import { useAuthStore } from "@/hooks/use_auth_store";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
-type RequestOptions = Omit<AxiosRequestConfig, "url">;
+type RequestOptions = Omit<AxiosRequestConfig, "url"> & {
+  skipAuthRefresh?: boolean;
+};
 
 type RetryableRequestConfig = AxiosRequestConfig & {
   _retry?: boolean;
