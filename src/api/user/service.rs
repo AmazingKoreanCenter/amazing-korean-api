@@ -143,13 +143,30 @@ impl UserService {
             warn!(error = ?e, user_id = user.id, "Failed to insert signup log");
         }
 
-        // 6-3. Auto Login Record
+        // 6-3. IP Geolocation (best-effort, non-blocking)
+        let geo = st.ipgeo.lookup(&ip).await.unwrap_or_default();
+
+        // 6-4. Auto Login Record
         AuthRepo::insert_login_record_tx(
-            &mut tx, user.id, &session_id, &refresh_hash, &ip, None, None, None, ua.as_deref()
+            &mut tx, user.id, &session_id, &refresh_hash, &ip, None, None, None, ua.as_deref(),
+            geo.country_code.as_deref(), geo.asn, geo.org.as_deref(),
         ).await?;
 
         AuthRepo::insert_login_log_tx(
-            &mut tx, user.id, "login", true, &session_id, &refresh_hash, &ip, None, None, None, ua.as_deref()
+            &mut tx,
+            user.id,
+            "login",
+            true,
+            &session_id,
+            &refresh_hash,
+            &ip,
+            None,
+            None,
+            None,
+            ua.as_deref(),
+            geo.country_code.as_deref(),
+            geo.asn,
+            geo.org.as_deref(),
         ).await?;
 
         tx.commit().await?;

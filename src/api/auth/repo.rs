@@ -136,24 +136,28 @@ impl AuthRepo {
         browser: Option<&str>,
         os: Option<&str>,
         user_agent: Option<&str>,
+        // Geolocation fields (from ip-api.com)
+        country_code: Option<&str>,
+        asn: Option<i64>,
+        org: Option<&str>,
     ) -> AppResult<()> {
         sqlx::query(r#"
             INSERT INTO public.login (
-                user_id, 
-                login_ip, 
-                login_device, 
-                login_browser, 
+                user_id,
+                login_ip,
+                login_device,
+                login_browser,
                 login_os,
-                login_method, 
-                login_session_id, 
-                login_refresh_hash, 
-                login_user_agent, 
-                login_begin_at, 
+                login_method,
+                login_session_id,
+                login_refresh_hash,
+                login_user_agent,
+                login_begin_at,
                 login_state,
                 login_country, login_asn, login_org
             )
             VALUES (
-                $1, 
+                $1,
                 CAST($2 AS inet),
                 CASE lower($3)
                     WHEN 'mobile'  THEN 'mobile'::login_device_enum
@@ -163,15 +167,15 @@ impl AuthRepo {
                     WHEN 'browser' THEN 'desktop'::login_device_enum
                     ELSE 'other'::login_device_enum
                 END,
-                $4, 
+                $4,
                 $5,
-                'email'::login_method_enum, 
-                CAST($6 AS uuid), 
-                $7, 
-                $8, 
-                NOW(), 
+                'email'::login_method_enum,
+                CAST($6 AS uuid),
+                $7,
+                $8,
+                NOW(),
                 'active'::login_state_enum,
-                'ZZ', 0, 'Unknown'
+                COALESCE($9, 'ZZ'), COALESCE($10, 0), COALESCE($11, 'Unknown')
             )
         "#)
         .bind(user_id)
@@ -182,9 +186,12 @@ impl AuthRepo {
         .bind(session_id)
         .bind(refresh_hash)
         .bind(user_agent)
+        .bind(country_code)
+        .bind(asn)
+        .bind(org)
         .execute(&mut **tx)
         .await?;
-        
+
         Ok(())
     }
 
@@ -202,26 +209,33 @@ impl AuthRepo {
         browser: Option<&str>,
         os: Option<&str>,
         user_agent: Option<&str>,
+        // Geolocation fields (from ip-api.com)
+        country_code: Option<&str>,
+        asn: Option<i64>,
+        org: Option<&str>,
     ) -> AppResult<()> {
         sqlx::query(r#"
             INSERT INTO public.login_log (
-                user_id, 
-                login_event_log, 
-                login_success_log, 
-                login_ip_log, 
+                user_id,
+                login_event_log,
+                login_success_log,
+                login_ip_log,
                 login_device_log,
-                login_browser_log, 
-                login_os_log, 
-                login_method_log, 
-                login_session_id_log, 
-                login_refresh_hash_log, 
+                login_browser_log,
+                login_os_log,
+                login_method_log,
+                login_session_id_log,
+                login_refresh_hash_log,
                 login_user_agent_log,
-                login_begin_at_log, 
+                login_country_log,
+                login_asn_log,
+                login_org_log,
+                login_begin_at_log,
                 login_created_at_log
             )
             VALUES (
-                $1, 
-                CAST($2 AS login_event_enum), 
+                $1,
+                CAST($2 AS login_event_enum),
                 $3,
                 CAST($4 AS inet),
                 CASE lower($5)
@@ -232,13 +246,16 @@ impl AuthRepo {
                     WHEN 'browser' THEN 'desktop'::login_device_enum
                     ELSE 'other'::login_device_enum
                 END,
-                $6, 
-                $7, 
-                'email'::login_method_enum, 
-                CAST($8 AS uuid), 
-                $9, 
-                $10, 
-                NOW(), 
+                $6,
+                $7,
+                'email'::login_method_enum,
+                CAST($8 AS uuid),
+                $9,
+                $10,
+                $11,
+                $12,
+                $13,
+                NOW(),
                 NOW()
             )
         "#)
@@ -252,9 +269,12 @@ impl AuthRepo {
         .bind(session_id)
         .bind(refresh_hash)
         .bind(user_agent)
+        .bind(country_code)
+        .bind(asn)
+        .bind(org)
         .execute(&mut **tx)
         .await?;
-        
+
         Ok(())
     }
 
@@ -585,6 +605,10 @@ impl AuthRepo {
         browser: Option<&str>,
         os: Option<&str>,
         user_agent: Option<&str>,
+        // Geolocation fields (from ip-api.com)
+        country_code: Option<&str>,
+        asn: Option<i64>,
+        org: Option<&str>,
     ) -> AppResult<()> {
         sqlx::query(r#"
             INSERT INTO public.login (
@@ -620,7 +644,7 @@ impl AuthRepo {
                 $9,
                 NOW(),
                 'active'::login_state_enum,
-                'ZZ', 0, 'Unknown'
+                COALESCE($10, 'ZZ'), COALESCE($11, 0), COALESCE($12, 'Unknown')
             )
         "#)
         .bind(user_id)
@@ -632,6 +656,9 @@ impl AuthRepo {
         .bind(session_id)
         .bind(refresh_hash)
         .bind(user_agent)
+        .bind(country_code)
+        .bind(asn)
+        .bind(org)
         .execute(&mut **tx)
         .await?;
 
@@ -653,6 +680,10 @@ impl AuthRepo {
         browser: Option<&str>,
         os: Option<&str>,
         user_agent: Option<&str>,
+        // Geolocation fields (from ip-api.com)
+        country_code: Option<&str>,
+        asn: Option<i64>,
+        org: Option<&str>,
     ) -> AppResult<()> {
         sqlx::query(r#"
             INSERT INTO public.login_log (
@@ -667,6 +698,9 @@ impl AuthRepo {
                 login_session_id_log,
                 login_refresh_hash_log,
                 login_user_agent_log,
+                login_country_log,
+                login_asn_log,
+                login_org_log,
                 login_begin_at_log,
                 login_created_at_log
             )
@@ -689,6 +723,9 @@ impl AuthRepo {
                 CAST($9 AS uuid),
                 $10,
                 $11,
+                $12,
+                $13,
+                $14,
                 NOW(),
                 NOW()
             )
@@ -704,6 +741,9 @@ impl AuthRepo {
         .bind(session_id)
         .bind(refresh_hash)
         .bind(user_agent)
+        .bind(country_code)
+        .bind(asn)
+        .bind(org)
         .execute(&mut **tx)
         .await?;
 
