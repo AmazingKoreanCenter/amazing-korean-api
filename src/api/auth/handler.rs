@@ -11,6 +11,7 @@ use axum::{extract::Query, response::Redirect};
 use crate::api::auth::dto::{
     FindIdReq, FindIdRes, GoogleAuthUrlRes, GoogleCallbackQuery, LoginReq, LoginRes, LogoutAllReq,
     LogoutRes, /* RefreshReq, */ ResetPwReq, ResetPwRes,
+    RequestResetReq, RequestResetRes, VerifyResetReq, VerifyResetRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::api::auth::service::AuthService;
@@ -177,6 +178,8 @@ pub async fn find_id(
     responses(
         (status = 200, description = "Reset password success", body = ResetPwRes),
         (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Invalid or expired token", body = crate::error::ErrorBody),
+        (status = 422, description = "Password policy violation", body = crate::error::ErrorBody),
         (status = 429, description = "Too Many Requests", body = crate::error::ErrorBody)
     )
 )]
@@ -186,7 +189,8 @@ pub async fn reset_password(
     Json(req): Json<ResetPwReq>,
 ) -> Result<Json<ResetPwRes>, AppError> {
     let ip = extract_client_ip(&headers);
-    let res = AuthService::reset_password(&st, req, ip).await?;
+    // 새 서비스 메서드 사용 (JWT 토큰 + Redis 토큰 모두 지원)
+    let res = AuthService::reset_password_with_token(&st, &req.reset_token, &req.new_password, ip).await?;
     Ok(Json(res))
 }
 
@@ -281,6 +285,56 @@ pub async fn logout_all(
     let jar = jar.add(refresh_cookie);
 
     Ok((jar, Json(logout_res)))
+}
+
+// =========================================================================
+// Password Reset Handlers (이메일 인증 기반)
+// =========================================================================
+
+/// 비밀번호 재설정 요청 - 이메일로 인증코드 발송
+#[utoipa::path(
+    post,
+    path = "/auth/request-reset",
+    tag = "auth",
+    request_body = RequestResetReq,
+    responses(
+        (status = 200, description = "Reset request accepted", body = RequestResetRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 429, description = "Too Many Requests", body = crate::error::ErrorBody),
+        (status = 500, description = "Internal Server Error", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn request_reset(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<RequestResetReq>,
+) -> Result<Json<RequestResetRes>, AppError> {
+    let ip = extract_client_ip(&headers);
+    let res = AuthService::request_password_reset(&st, &req.email, ip).await?;
+    Ok(Json(res))
+}
+
+/// 인증코드 검증 - reset_token 발급
+#[utoipa::path(
+    post,
+    path = "/auth/verify-reset",
+    tag = "auth",
+    request_body = VerifyResetReq,
+    responses(
+        (status = 200, description = "Code verified, token issued", body = VerifyResetRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Invalid or expired code", body = crate::error::ErrorBody),
+        (status = 429, description = "Too Many Requests", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn verify_reset(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<VerifyResetReq>,
+) -> Result<Json<VerifyResetRes>, AppError> {
+    let ip = extract_client_ip(&headers);
+    let res = AuthService::verify_reset_code(&st, &req.email, &req.code, ip).await?;
+    Ok(Json(res))
 }
 
 // =========================================================================

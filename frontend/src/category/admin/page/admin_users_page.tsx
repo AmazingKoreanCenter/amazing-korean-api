@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, ChevronUp, ChevronDown, Upload, Users, BarChart3, LogIn } from "lucide-react";
+import { Search, Plus, ChevronUp, ChevronDown, Upload, Users, BarChart3, LogIn, UserPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,10 +35,19 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 import { useAdminUsers } from "../hook/use_admin_users";
-import { updateAdminUsersBulk } from "../admin_api";
-import type { AdminListReq, AdminUserSummary } from "../types";
+import { updateAdminUsersBulk, createAdminInvite } from "../admin_api";
+import type { AdminListReq, AdminUserSummary, UpgradeInviteReq } from "../types";
+import { upgradeInviteReqSchema } from "../types";
 
 // 백엔드가 허용하는 정렬 필드: id, created_at, email, nickname, role
 type SortField = "id" | "email" | "nickname" | "role" | "created_at";
@@ -58,6 +70,35 @@ export function AdminUsersPage() {
   const [bulkRole, setBulkRole] = useState<string>("");
   const [bulkState, setBulkState] = useState<string>("");
   const [bulkUpdating, setBulkUpdating] = useState(false);
+
+  // 관리자 초대 다이얼로그
+  const [inviteOpen, setInviteOpen] = useState(false);
+
+  // 초대 폼
+  const inviteForm = useForm<UpgradeInviteReq>({
+    resolver: zodResolver(upgradeInviteReqSchema),
+    defaultValues: {
+      email: "",
+      role: "manager",
+    },
+  });
+
+  // 초대 뮤테이션
+  const inviteMutation = useMutation({
+    mutationFn: createAdminInvite,
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setInviteOpen(false);
+      inviteForm.reset();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "초대 발송에 실패했습니다.");
+    },
+  });
+
+  const handleInviteSubmit = (values: UpgradeInviteReq) => {
+    inviteMutation.mutate(values);
+  };
 
   const { data, isLoading, isError, refetch } = useAdminUsers({
     ...params,
@@ -180,6 +221,10 @@ export function AdminUsersPage() {
               <Upload className="mr-2 h-4 w-4" />
               Bulk Create
             </Link>
+          </Button>
+          <Button variant="outline" onClick={() => setInviteOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Invite Admin
           </Button>
           <Button asChild>
             <Link to="/admin/users/new">
@@ -438,6 +483,85 @@ export function AdminUsersPage() {
               {bulkUpdating ? "Updating..." : "Update"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Invite Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>관리자 초대</DialogTitle>
+            <DialogDescription>
+              새로운 관리자를 초대합니다. 초대 이메일이 발송되며, 10분간 유효합니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...inviteForm}>
+            <form onSubmit={inviteForm.handleSubmit(handleInviteSubmit)} className="space-y-4 py-4">
+              <FormField
+                control={inviteForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>이메일</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="admin@example.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={inviteForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>역할</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="역할을 선택하세요" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin (관리자)</SelectItem>
+                        <SelectItem value="manager">Manager (매니저)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter className="pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setInviteOpen(false);
+                    inviteForm.reset();
+                  }}
+                >
+                  취소
+                </Button>
+                <Button type="submit" disabled={inviteMutation.isPending}>
+                  {inviteMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      발송 중...
+                    </>
+                  ) : (
+                    "초대 발송"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

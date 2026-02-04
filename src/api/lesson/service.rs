@@ -118,7 +118,7 @@ impl LessonService {
         match access_info.lesson_access {
             LessonAccess::Private => {
                 // private: 비공개 - 접근 불가 (admin은 별도 엔드포인트 사용)
-                return Err(AppError::Forbidden);
+                return Err(AppError::Forbidden("Forbidden".to_string()));
             }
             LessonAccess::Paid => {
                 // paid: 유료 - 로그인 필수 + 수강권 확인
@@ -138,7 +138,7 @@ impl LessonService {
                                 lesson_id,
                                 "User attempted to access paid content without subscription"
                             );
-                            return Err(AppError::Forbidden);
+                            return Err(AppError::Forbidden("Forbidden".to_string()));
                         }
                     }
                 }

@@ -37,6 +37,13 @@ pub struct Config {
     pub google_redirect_uri: Option<String>,
     pub oauth_state_ttl_sec: i64,         // OAuth state 유효시간 (초, 기본 300)
     pub frontend_url: String,             // OAuth 콜백 후 리다이렉트할 프론트엔드 URL
+    // AWS SES (Email)
+    pub aws_region: String,               // AWS 리전 (기본: ap-northeast-2)
+    pub ses_from_address: Option<String>, // 발신자 이메일 (없으면 이메일 기능 비활성)
+    pub ses_reply_to: Option<String>,     // 회신 이메일 (선택)
+    // Password Reset (비밀번호 재설정)
+    pub verification_code_ttl_sec: i64,   // 인증코드 유효시간 (초, 기본 600 = 10분)
+    pub reset_token_ttl_sec: i64,         // reset_token 유효시간 (초, 기본 1800 = 30분)
 }
 
 impl Config {
@@ -138,6 +145,26 @@ impl Config {
         let frontend_url = env::var("FRONTEND_URL")
             .unwrap_or_else(|_| "http://localhost:5173".into());
 
+        // AWS SES (Email) - optional
+        let aws_region = env::var("AWS_REGION")
+            .unwrap_or_else(|_| "ap-northeast-2".into());
+        let ses_from_address = env::var("SES_FROM_ADDRESS")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let ses_reply_to = env::var("SES_REPLY_TO")
+            .ok()
+            .filter(|s| !s.is_empty());
+
+        // Password Reset
+        let verification_code_ttl_sec = env::var("VERIFICATION_CODE_TTL_SEC")
+            .unwrap_or_else(|_| "600".into())
+            .parse::<i64>()
+            .expect("VERIFICATION_CODE_TTL_SEC must be a number");
+        let reset_token_ttl_sec = env::var("RESET_TOKEN_TTL_SEC")
+            .unwrap_or_else(|_| "1800".into())
+            .parse::<i64>()
+            .expect("RESET_TOKEN_TTL_SEC must be a number");
+
         Self {
             database_url,
             bind_addr,
@@ -166,6 +193,11 @@ impl Config {
             google_redirect_uri,
             oauth_state_ttl_sec,
             frontend_url,
+            aws_region,
+            ses_from_address,
+            ses_reply_to,
+            verification_code_ttl_sec,
+            reset_token_ttl_sec,
         }
     }
 

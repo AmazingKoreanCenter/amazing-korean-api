@@ -29,7 +29,7 @@ async fn check_admin_rbac(pool: &sqlx::PgPool, actor_user_id: i64) -> AppResult<
 
     match actor.user_auth {
         UserAuth::Hymn | UserAuth::Admin | UserAuth::Manager => Ok(actor.user_auth),
-        _ => Err(AppError::Forbidden),
+        _ => Err(AppError::Forbidden("Forbidden".to_string())),
     }
 }
 
@@ -354,7 +354,7 @@ pub async fn admin_bulk_create_studies(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 
@@ -989,7 +989,7 @@ pub async fn admin_bulk_create_task_explains(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 
@@ -1125,7 +1125,7 @@ pub async fn admin_bulk_update_task_explains(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 
@@ -1248,7 +1248,7 @@ pub async fn admin_bulk_update_task_status(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 
@@ -1556,7 +1556,7 @@ pub async fn admin_bulk_create_study_tasks(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 
@@ -1702,7 +1702,7 @@ pub async fn admin_bulk_update_study_tasks(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 
@@ -1925,7 +1925,7 @@ pub async fn admin_bulk_update_studies(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 

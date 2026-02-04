@@ -72,6 +72,13 @@ import type {
   StudyStatsSummaryRes,
   TopStudiesRes,
   StudyDailyStatsRes,
+  TestEmailReq,
+  TestEmailRes,
+  UpgradeInviteReq,
+  UpgradeInviteRes,
+  UpgradeVerifyRes,
+  UpgradeAcceptReq,
+  UpgradeAcceptRes,
 } from "./types";
 
 import type {
@@ -552,5 +559,41 @@ export const updateAdminLessonProgress = (lessonId: number, data: LessonProgress
 export const updateAdminLessonProgressBulk = (data: LessonProgressBulkUpdateReq) =>
   request<LessonProgressBulkUpdateRes>("/admin/lessons/bulk/progress", {
     method: "PATCH",
+    data,
+  });
+
+// ==========================================
+// 8. Admin Email
+// ==========================================
+
+// 8-1: Test Email
+export const sendTestEmail = (data: TestEmailReq) =>
+  request<TestEmailRes>("/admin/email/test", {
+    method: "POST",
+    data,
+  });
+
+// ==========================================
+// 9. Admin Upgrade (관리자 초대)
+// ==========================================
+
+// 9-1: 관리자 초대 (POST /admin/upgrade)
+export const createAdminInvite = (data: UpgradeInviteReq) =>
+  request<UpgradeInviteRes>("/admin/upgrade", {
+    method: "POST",
+    data,
+  });
+
+// 9-2: 초대 코드 검증 (GET /admin/upgrade/verify?code=xxx)
+export const verifyAdminInvite = (code: string) =>
+  request<UpgradeVerifyRes>("/admin/upgrade/verify", {
+    method: "GET",
+    params: { code },
+  });
+
+// 9-3: 관리자 계정 생성 (POST /admin/upgrade/accept)
+export const acceptAdminInvite = (data: UpgradeAcceptReq) =>
+  request<UpgradeAcceptRes>("/admin/upgrade/accept", {
+    method: "POST",
     data,
   });

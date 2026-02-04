@@ -90,7 +90,7 @@ async fn check_admin_rbac(pool: &sqlx::PgPool, actor_user_id: i64) -> AppResult<
     let actor_auth: UserAuth = actor.user_auth;
     match actor_auth {
         UserAuth::Hymn | UserAuth::Admin | UserAuth::Manager => Ok(actor_auth),
-        _ => Err(AppError::Forbidden),
+        _ => Err(AppError::Forbidden("Forbidden".to_string())),
     }
 }
 
@@ -314,7 +314,7 @@ pub async fn admin_bulk_create_videos(
                     AppError::BadRequest(m) => (400, m),
                     AppError::Unprocessable(m) => (422, m),
                     AppError::Conflict(m) => (409, m),
-                    AppError::Forbidden => (403, "Forbidden".to_string()),
+                    AppError::Forbidden(_) => (403, "Forbidden".to_string()),
                     _ => (500, "Internal Server Error".to_string()),
                 };
 
@@ -594,7 +594,7 @@ pub async fn admin_bulk_update_videos(
                     AppError::BadRequest(m) => (400, m),
                     AppError::Unprocessable(m) => (422, m),
                     AppError::Conflict(m) => (409, m),
-                    AppError::Forbidden => (403, "Forbidden".to_string()),
+                    AppError::Forbidden(_) => (403, "Forbidden".to_string()),
                     _ => (500, "Internal Server Error".to_string()),
                 };
 
@@ -756,7 +756,7 @@ pub async fn admin_bulk_update_video_tags(
                     AppError::BadRequest(m) => (400, m),
                     AppError::Unprocessable(m) => (422, m),
                     AppError::Conflict(m) => (409, m),
-                    AppError::Forbidden => (403, "Forbidden".to_string()),
+                    AppError::Forbidden(_) => (403, "Forbidden".to_string()),
                     _ => (500, "Internal Server Error".to_string()),
                 };
 
