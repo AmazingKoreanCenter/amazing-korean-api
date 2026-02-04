@@ -11,6 +11,7 @@ use crate::state::AppState;
 use deadpool_redis::Pool as RedisPool;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::net::TcpListener;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -73,16 +74,21 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
-    // 6) AppState 생성
+    // 6) IpGeoClient 생성
+    let ipgeo = Arc::new(external::ipgeo::IpGeoClient::new());
+    tracing::info!("🌍 IP Geolocation client enabled (ip-api.com)");
+
+    // 7) AppState 생성
     let app_state = AppState {
         db: pool,
         redis,
         cfg: cfg.clone(),
         started_at: Instant::now(),
         email,
+        ipgeo,
     };
 
-    // 7) [CORS] 설정 정의
+    // 8) [CORS] 설정 정의
     // 환경변수 CORS_ORIGINS에서 허용할 origin 목록을 읽음
     // 예: CORS_ORIGINS=http://localhost:5173,https://amazing-korean-api.pages.dev
     let origins: Vec<HeaderValue> = cfg

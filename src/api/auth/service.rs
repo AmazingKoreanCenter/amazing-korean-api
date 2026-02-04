@@ -191,10 +191,13 @@ impl AuthService {
             &st.cfg.jwt_secret,
         )?;
 
-        // [Step 5] DB Transaction (Login Record)
+        // [Step 5] IP Geolocation (best-effort, non-blocking)
+        let geo = st.ipgeo.lookup(&login_ip).await.unwrap_or_default();
+
+        // [Step 6] DB Transaction (Login Record)
         let mut tx = st.db.begin().await?;
         let mapped_device = Self::map_device_for_db(req.device.as_deref());
-        
+
         AuthRepo::insert_login_record_tx(
             &mut tx,
             user_info.user_id,
@@ -205,6 +208,9 @@ impl AuthService {
             req.browser.as_deref(),
             req.os.as_deref(),
             user_agent.as_deref(),
+            geo.country_code.as_deref(),
+            geo.asn,
+            geo.org.as_deref(),
         ).await?;
 
         AuthRepo::insert_login_log_tx(
@@ -219,11 +225,14 @@ impl AuthService {
             req.browser.as_deref(),
             req.os.as_deref(),
             user_agent.as_deref(),
+            geo.country_code.as_deref(),
+            geo.asn,
+            geo.org.as_deref(),
         ).await?;
-        
+
         tx.commit().await?;
 
-        // [Step 6] Redis Caching (After DB Commit)
+        // [Step 7] Redis Caching (After DB Commit)
         // 1. Session ID -> User ID
         let _: () = redis_conn.set_ex(
             format!("ak:session:{}", session_id),
@@ -310,6 +319,9 @@ impl AuthService {
                 login_record.login_browser.as_deref(),
                 login_record.login_os.as_deref(),
                 user_agent.as_deref(),
+                None, // geolocation: use original login data
+                None,
+                None,
             ).await?;
             tx.commit().await?;
 
@@ -342,6 +354,9 @@ impl AuthService {
             login_record.login_browser.as_deref(),
             login_record.login_os.as_deref(),
             user_agent.as_deref(),
+            None, // geolocation: use original login data
+            None,
+            None,
         ).await?;
         
         tx.commit().await?;
@@ -1060,6 +1075,9 @@ impl AuthService {
             &st.cfg.jwt_secret,
         )?;
 
+        // IP Geolocation (best-effort, non-blocking)
+        let geo = st.ipgeo.lookup(&login_ip).await.unwrap_or_default();
+
         // DB 기록
         let mut tx = st.db.begin().await?;
 
@@ -1074,6 +1092,9 @@ impl AuthService {
             None,  // browser
             None,  // os
             user_agent.as_deref(),
+            geo.country_code.as_deref(),
+            geo.asn,
+            geo.org.as_deref(),
         ).await?;
 
         AuthRepo::insert_login_log_oauth_tx(
@@ -1089,6 +1110,9 @@ impl AuthService {
             None,
             None,
             user_agent.as_deref(),
+            geo.country_code.as_deref(),
+            geo.asn,
+            geo.org.as_deref(),
         ).await?;
 
         tx.commit().await?;
