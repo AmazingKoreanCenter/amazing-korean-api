@@ -45,6 +45,8 @@ import { AdminLessonsPage } from "@/category/admin/page/admin_lessons_page";
 import { AdminLessonDetail } from "@/category/admin/page/admin_lesson_detail";
 import { AdminLessonCreate } from "@/category/admin/page/admin_lesson_create";
 import { AdminLessonBulkCreate } from "@/category/admin/page/admin_lesson_bulk_create";
+import { AdminEmailTest } from "@/category/admin/page/admin_email_test";
+import { AdminUpgradeJoin } from "@/category/admin/page/admin_upgrade_join";
 
 // Error pages
 import { AccessDeniedPage, NotFoundPage, ErrorPage } from "@/category/error/page";
@@ -70,6 +72,9 @@ export function AppRoutes() {
         <Route path="/studies/tasks/:taskId" element={<StudyTaskPage />} />
         <Route path="/lessons" element={<LessonListPage />} />
         <Route path="/lessons/:lessonId" element={<LessonDetailPage />} />
+
+        {/* 관리자 초대 페이지 (Public - 초대 코드로 접근) */}
+        <Route path="/admin/upgrade/join" element={<AdminUpgradeJoin />} />
 
         {/* 로그인한 사람만 접근 가능 (Private) */}
         <Route element={<PrivateRoute />}>
@@ -103,6 +108,7 @@ export function AppRoutes() {
           <Route path="lessons/new" element={<AdminLessonCreate />} />
           <Route path="lessons/bulk-create" element={<AdminLessonBulkCreate />} />
           <Route path="lessons/:lessonId" element={<AdminLessonDetail />} />
+          <Route path="email" element={<AdminEmailTest />} />
         </Route>
       </Route>
 

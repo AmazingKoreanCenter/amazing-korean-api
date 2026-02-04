@@ -1,5 +1,8 @@
 use super::dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq};
-use crate::{error::AppResult, types::UserGender};
+use crate::{
+    error::AppResult,
+    types::{UserAuth, UserGender, UserLanguage},
+};
 use chrono::{NaiveDate, Utc};
 use sqlx::{PgPool, Postgres, Transaction};
 
@@ -73,7 +76,59 @@ pub async fn find_user_id_by_email(pool: &PgPool, email: &str) -> AppResult<Opti
     .bind(email)
     .fetch_optional(pool)
     .await?;
-    
+
+    Ok(row)
+}
+
+/// 이메일로 사용자 전체 정보 조회
+pub async fn find_user_by_email(pool: &PgPool, email: &str) -> AppResult<Option<ProfileRes>> {
+    let row = sqlx::query_as::<_, ProfileRes>(r#"
+        SELECT
+            user_id as id,
+            user_email as email,
+            user_name as name,
+            user_nickname as nickname,
+            user_language::TEXT as language,
+            user_country as country,
+            user_birthday as birthday,
+            user_gender as gender,
+            user_state,
+            user_auth,
+            user_created_at as created_at,
+            (user_password IS NOT NULL) as has_password
+        FROM users
+        WHERE user_email = $1
+    "#)
+    .bind(email)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row)
+}
+
+/// 닉네임으로 사용자 조회
+pub async fn find_user_by_nickname(pool: &PgPool, nickname: &str) -> AppResult<Option<ProfileRes>> {
+    let row = sqlx::query_as::<_, ProfileRes>(r#"
+        SELECT
+            user_id as id,
+            user_email as email,
+            user_name as name,
+            user_nickname as nickname,
+            user_language::TEXT as language,
+            user_country as country,
+            user_birthday as birthday,
+            user_gender as gender,
+            user_state,
+            user_auth,
+            user_created_at as created_at,
+            (user_password IS NOT NULL) as has_password
+        FROM users
+        WHERE user_nickname = $1
+    "#)
+    .bind(nickname)
+    .fetch_optional(pool)
+    .await?;
+
     Ok(row)
 }
 
@@ -286,4 +341,66 @@ pub async fn insert_user_log_after(
     insert_user_log_after_tx(&mut tx, actor_user_id, user_id, action, success).await?;
     tx.commit().await?;
     Ok(())
+}
+
+// =========================================================================
+// Admin User Creation (for invite system)
+// =========================================================================
+
+/// 관리자 계정 생성 (초대 시스템용)
+#[allow(clippy::too_many_arguments)]
+pub async fn create_admin_user(
+    pool: &PgPool,
+    email: &str,
+    password_hash: &str,
+    name: &str,
+    nickname: &str,
+    country: &str,
+    birthday: NaiveDate,
+    gender: UserGender,
+    language: UserLanguage,
+    user_auth: UserAuth,
+) -> AppResult<i64> {
+    // UserLanguage와 UserAuth를 문자열로 변환
+    let language_str = match language {
+        UserLanguage::Ko => "ko",
+        UserLanguage::En => "en",
+    };
+    let user_auth_str = match user_auth {
+        UserAuth::Hymn => "HYMN",
+        UserAuth::Admin => "admin",
+        UserAuth::Manager => "manager",
+        UserAuth::Learner => "learner",
+    };
+
+    let user_id = sqlx::query_scalar::<_, i64>(
+        r#"
+        INSERT INTO users (
+            user_email, user_password, user_name,
+            user_nickname, user_language, user_country,
+            user_birthday, user_gender, user_auth,
+            user_check_email, user_terms_service, user_terms_personal
+        )
+        VALUES (
+            $1, $2, $3,
+            $4, $5::user_language_enum, $6,
+            $7, $8::user_gender_enum, $9::user_auth_enum,
+            true, true, true
+        )
+        RETURNING user_id
+    "#,
+    )
+    .bind(email)
+    .bind(password_hash)
+    .bind(name)
+    .bind(nickname)
+    .bind(language_str)
+    .bind(country)
+    .bind(birthday)
+    .bind(gender)
+    .bind(user_auth_str)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(user_id)
 }

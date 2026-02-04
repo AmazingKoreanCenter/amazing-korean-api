@@ -29,7 +29,7 @@ async fn check_admin_rbac(pool: &sqlx::PgPool, actor_user_id: i64) -> AppResult<
 
     match actor.user_auth {
         UserAuth::Hymn | UserAuth::Admin | UserAuth::Manager => Ok(actor.user_auth),
-        _ => Err(AppError::Forbidden),
+        _ => Err(AppError::Forbidden("Forbidden".to_string())),
     }
 }
 
@@ -418,7 +418,7 @@ pub async fn admin_bulk_update_lesson_progress(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 
@@ -673,7 +673,7 @@ pub async fn admin_bulk_create_lesson_items(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 
@@ -1075,7 +1075,7 @@ pub async fn admin_bulk_update_lesson_items(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 
@@ -1275,7 +1275,7 @@ pub async fn admin_bulk_delete_lesson_items(
                 let msg = match e {
                     AppError::NotFound => "Lesson item not found".to_string(),
                     AppError::BadRequest(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 
@@ -1519,7 +1519,7 @@ pub async fn admin_bulk_create_lessons(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 
@@ -1688,7 +1688,7 @@ pub async fn admin_bulk_update_lessons(
                     AppError::BadRequest(m) => m,
                     AppError::Unprocessable(m) => m,
                     AppError::Conflict(m) => m,
-                    AppError::Forbidden => "Forbidden".to_string(),
+                    AppError::Forbidden(_) => "Forbidden".to_string(),
                     _ => "Internal Server Error".to_string(),
                 };
 

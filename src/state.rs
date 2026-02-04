@@ -4,6 +4,7 @@ use sqlx::PgPool;
 use std::time::Instant;
 
 use crate::config::Config;
+use crate::external::email::EmailClient;
 
 #[derive(Clone, FromRef)]
 pub struct AppState {
@@ -11,6 +12,8 @@ pub struct AppState {
     pub redis: RedisPool,
     pub cfg: Config,
     pub started_at: Instant,
+    /// AWS SES 이메일 클라이언트 (SES_FROM_ADDRESS 설정 시 활성화)
+    pub email: Option<EmailClient>,
 }
 
 impl AsRef<AppState> for AppState {

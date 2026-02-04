@@ -14,6 +14,10 @@ pub fn auth_router() -> Router<AppState> {
         .route("/find-id", post(handler::find_id))
         .route("/reset-pw", post(handler::reset_password))
 
+        // 비밀번호 재설정 (이메일 인증 기반)
+        .route("/request-reset", post(handler::request_reset))
+        .route("/verify-reset", post(handler::verify_reset))
+
         // Google OAuth
         .route("/google", get(handler::google_auth_start))
         .route("/google/callback", get(handler::google_auth_callback))

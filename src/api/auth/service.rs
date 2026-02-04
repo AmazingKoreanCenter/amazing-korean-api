@@ -4,6 +4,7 @@ use argon2::{
 };
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use base64::engine::{general_purpose::URL_SAFE_NO_PAD, Engine};
+use rand::Rng;
 use redis::AsyncCommands;
 use sha2::{Digest, Sha256};
 use time::OffsetDateTime;
@@ -11,6 +12,8 @@ use std::sync::OnceLock;
 use uuid::Uuid;
 use validator::Validate;
 use tracing::{info, warn};
+
+use crate::external::email::EmailTemplate;
 
 use crate::{
     api::auth::{dto::*, jwt, repo::AuthRepo},
@@ -170,7 +173,7 @@ impl AuthService {
         let user_info = user_info.expect("checked above");
 
         if !user_info.user_state {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("Forbidden".to_string()));
         }
 
         // [Step 4] Token & Session Generation
@@ -593,6 +596,237 @@ impl AuthService {
         }
 
         Ok(LogoutRes { ok: true })
+    }
+
+    // =========================================================================
+    // Password Reset (이메일 인증 기반)
+    // =========================================================================
+
+    /// 6자리 숫자 인증코드 생성
+    fn generate_verification_code() -> String {
+        let mut rng = rand::thread_rng();
+        let code: u32 = rng.gen_range(100000..1000000);
+        format!("{:06}", code)
+    }
+
+    /// 비밀번호 재설정 요청 (인증코드 발송)
+    pub async fn request_password_reset(
+        st: &AppState,
+        email: &str,
+        client_ip: String,
+    ) -> AppResult<RequestResetRes> {
+        let email = email.trim().to_lowercase();
+
+        // [Step 1] Rate Limiting (이메일당 5회/시간)
+        let rl_key = format!("rl:request_reset:{}", email);
+        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        if attempts == 1 {
+            let _: () = redis_conn.expire(&rl_key, 3600).await?; // 1시간 윈도우
+        }
+        if attempts > 5 {
+            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_RESET_REQUESTS".into()));
+        }
+
+        // [Step 2] 사용자 존재 확인 (타이밍 공격 방지를 위해 항상 성공 응답)
+        let user = AuthRepo::find_user_by_email(&st.db, &email).await?;
+
+        // 사용자가 없거나 OAuth 전용 계정이면 이메일 발송 없이 성공 응답
+        if user.is_none() {
+            info!("Password reset requested for non-existent email");
+            return Ok(RequestResetRes {
+                message: "If the email exists, a verification code has been sent.".to_string(),
+            });
+        }
+
+        let user_info = user.unwrap();
+
+        // OAuth 전용 계정 (비밀번호가 NULL)이면 이메일 발송 없이 성공 응답
+        if user_info.user_password.is_none() {
+            info!("Password reset requested for OAuth-only account: {}", user_info.user_id);
+            return Ok(RequestResetRes {
+                message: "If the email exists, a verification code has been sent.".to_string(),
+            });
+        }
+
+        // [Step 3] 이메일 클라이언트 확인
+        let email_client = st.email.as_ref()
+            .ok_or_else(|| AppError::Internal("Email service not configured".into()))?;
+
+        // [Step 4] 인증코드 생성 및 Redis 저장
+        let code = Self::generate_verification_code();
+        let code_key = format!("ak:reset_code:{}", email);
+        let ttl_sec = st.cfg.verification_code_ttl_sec;
+
+        let _: () = redis_conn.set_ex(
+            &code_key,
+            &code,
+            ttl_sec as u64,
+        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // [Step 5] 이메일 발송
+        let expires_in_min = (ttl_sec / 60) as i32;
+        email_client.send_templated(
+            &email,
+            EmailTemplate::PasswordResetCode { code: code.clone(), expires_in_min },
+        ).await?;
+
+        info!(
+            user_id = user_info.user_id,
+            ip = %client_ip,
+            "Password reset code sent"
+        );
+
+        Ok(RequestResetRes {
+            message: "If the email exists, a verification code has been sent.".to_string(),
+        })
+    }
+
+    /// 인증코드 검증 및 reset_token 발급
+    pub async fn verify_reset_code(
+        st: &AppState,
+        email: &str,
+        code: &str,
+        client_ip: String,
+    ) -> AppResult<VerifyResetRes> {
+        let email = email.trim().to_lowercase();
+        let code = code.trim();
+
+        // [Step 1] Rate Limiting (이메일당 10회/시간 - brute force 방지)
+        let rl_key = format!("rl:verify_reset:{}", email);
+        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        if attempts == 1 {
+            let _: () = redis_conn.expire(&rl_key, 3600).await?; // 1시간 윈도우
+        }
+        if attempts > 10 {
+            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_VERIFY_ATTEMPTS".into()));
+        }
+
+        // [Step 2] Redis에서 저장된 코드 조회
+        let code_key = format!("ak:reset_code:{}", email);
+        let stored_code: Option<String> = redis_conn.get(&code_key).await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let Some(expected_code) = stored_code else {
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
+        };
+
+        // [Step 3] 코드 검증
+        if code != expected_code {
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
+        }
+
+        // [Step 4] 코드 삭제 (일회용)
+        let _: () = redis_conn.del(&code_key).await.unwrap_or(());
+
+        // [Step 5] 사용자 조회 (user_id 필요)
+        let user = AuthRepo::find_user_by_email(&st.db, &email).await?
+            .ok_or_else(|| AppError::Unauthorized("AUTH_401_USER_NOT_FOUND".into()))?;
+
+        // [Step 6] reset_token 생성 (Redis에 저장, JWT 대신 단순 토큰 사용)
+        let reset_token = format!("ak_reset_{}", Uuid::new_v4());
+        let token_key = format!("ak:reset_token:{}", reset_token);
+        let token_ttl = st.cfg.reset_token_ttl_sec;
+
+        let _: () = redis_conn.set_ex(
+            &token_key,
+            user.user_id,
+            token_ttl as u64,
+        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        info!(
+            user_id = user.user_id,
+            ip = %client_ip,
+            "Password reset code verified, token issued"
+        );
+
+        Ok(VerifyResetRes {
+            reset_token,
+            expires_in: token_ttl,
+        })
+    }
+
+    /// 비밀번호 재설정 (새 비밀번호 설정) - 기존 reset_password와 통합
+    pub async fn reset_password_with_token(
+        st: &AppState,
+        reset_token: &str,
+        new_password: &str,
+        client_ip: String,
+    ) -> AppResult<ResetPwRes> {
+        // [Step 1] 비밀번호 정책 검증
+        if !Self::validate_password_policy(new_password) {
+            return Err(AppError::Unprocessable("AUTH_422_PASSWORD_POLICY_VIOLATION".into()));
+        }
+
+        // [Step 2] Rate Limiting
+        let rl_key = format!("rl:reset_pw:{}", client_ip);
+        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        if attempts == 1 {
+            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
+        }
+        if attempts > st.cfg.rate_limit_login_max {
+            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
+        }
+
+        // [Step 3] reset_token 검증 (Redis 기반 or JWT)
+        let user_id = if reset_token.starts_with("ak_reset_") {
+            // Redis 기반 토큰 (새 flow)
+            let token_key = format!("ak:reset_token:{}", reset_token);
+            let stored_user_id: Option<i64> = redis_conn.get(&token_key).await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+
+            let uid = stored_user_id
+                .ok_or_else(|| AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_TOKEN".into()))?;
+
+            // 토큰 삭제 (일회용)
+            let _: () = redis_conn.del(&token_key).await.unwrap_or(());
+            uid
+        } else {
+            // JWT 기반 토큰 (기존 flow - 하위 호환)
+            let claims = jwt::decode_token(reset_token, &st.cfg.jwt_secret)
+                .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_RESET_TOKEN".into()))?;
+            claims.sub
+        };
+
+        // [Step 4] 새 비밀번호 해싱
+        let salt = SaltString::generate(&mut OsRng);
+        let params = argon2::Params::new(19_456, 2, 1, None).unwrap();
+        let argon2 = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params);
+        let new_password_hash = argon2
+            .hash_password(new_password.as_bytes(), &salt)
+            .map_err(|e| AppError::Internal(format!("password hash error: {e}")))?
+            .to_string();
+
+        // [Step 5] DB 업데이트 (비밀번호 + 세션 무효화)
+        let mut tx = st.db.begin().await?;
+        AuthRepo::update_user_password_tx(&mut tx, user_id, &new_password_hash).await?;
+        user_repo::insert_user_log_after_tx(&mut tx, Some(user_id), user_id, "reset_pw", true).await?;
+        AuthRepo::update_login_state_by_user_tx(&mut tx, user_id, "revoked").await?;
+        tx.commit().await?;
+
+        // [Step 6] Redis 세션 정리
+        let session_key = format!("ak:user_sessions:{}", user_id);
+        let session_ids: Vec<String> = redis_conn.smembers(&session_key).await.unwrap_or_default();
+
+        for sid in session_ids.iter() {
+            if let Some(login_record) = AuthRepo::find_login_by_session_id(&st.db, sid).await? {
+                let _: () = redis_conn.del(format!("ak:refresh:{}", login_record.refresh_hash)).await.unwrap_or(());
+            }
+            let _: () = redis_conn.del(format!("ak:session:{}", sid)).await.unwrap_or(());
+            let _: () = redis_conn.srem(&session_key, sid).await.unwrap_or(());
+        }
+        let _: () = redis_conn.del(&session_key).await.unwrap_or(());
+
+        info!(user_id = user_id, ip = %client_ip, "Password reset successful");
+
+        Ok(ResetPwRes {
+            message: "Password has been reset. All active sessions are invalidated.".to_string(),
+        })
     }
 
     // =========================================================================

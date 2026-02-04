@@ -41,3 +41,6 @@ reqwest = { version = "0.12", features = ["json"] }
 regex = "1"
 urlencoding = "2.1.3"
 serde_urlencoded = "0.7.1"
+# AWS SES for email sending (pinned for rustc 1.85 compatibility)
+aws-config = { version = "1.5", features = ["behavior-version-latest"] }
+aws-sdk-sesv2 = "1.56"

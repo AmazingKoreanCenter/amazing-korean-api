@@ -656,3 +656,7 @@ amazing-korean-server/public/images/certification_Online-Marketing_Business.png
 amazing-korean-server/public/images/eps-topik.png
 amazing-korean-server/public/images/topik.png
 amazing-korean-server/routes/auth.js
+
+# AWS CLI installer (not project code)
+aws/
+awscliv2.zip

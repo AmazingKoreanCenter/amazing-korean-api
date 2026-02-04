@@ -19,14 +19,16 @@ pub enum AppError {
     Unprocessable(String),
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
-    #[error("Forbidden")]
-    Forbidden,
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
     #[error("Not found")]
     NotFound,
     #[error("Conflict: {0}")]
     Conflict(String),
     #[error("Too many requests: {0}")]
     TooManyRequests(String),
+    #[error("Service unavailable: {0}")]
+    ServiceUnavailable(String),
     #[error("External service error: {0}")]
     External(String),
 
@@ -94,10 +96,10 @@ impl IntoResponse for AppError {
                 None,
                 None,
             ),
-            AppError::Forbidden => (
+            AppError::Forbidden(msg) => (
                 StatusCode::FORBIDDEN,
                 "FORBIDDEN".to_string(),
-                "Forbidden".to_string(),
+                msg.clone(),
                 None,
                 None,
             ),
@@ -121,6 +123,13 @@ impl IntoResponse for AppError {
                 msg.clone(),
                 None,
                 Some(60),
+            ),
+            AppError::ServiceUnavailable(msg) => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                "SERVICE_UNAVAILABLE".to_string(),
+                msg.clone(),
+                None,
+                None,
             ),
             AppError::External(msg) => {
                 tracing::error!("External service error: {}", msg);

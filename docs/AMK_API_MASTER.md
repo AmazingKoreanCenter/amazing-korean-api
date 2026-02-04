@@ -31,6 +31,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
   - [2.1 런타임 / 스택](#21-런타임--스택)
   - [2.2 라우팅 & OpenAPI](#22-라우팅--openapi)
   - [2.3 로컬 개발 & 실행](#23-로컬-개발--실행)
+  - [2.4 외부 서비스 연동](#24-외부-서비스-연동)
 
 - [3. 공통 규칙 (전역 컨벤션)](#3-공통-규칙-전역-컨벤션)
   - [3.1 시간/타임존](#31-시간타임존)
@@ -383,6 +384,69 @@ audience: server / database / backend / frontend / lead / LLM assistant
   - `cargo run`
 - Swagger 문서 확인:
   - 브라우저에서 `http://localhost:3000/docs`
+
+[⬆️ 목차로 돌아가기](#-목차-table-of-contents)
+
+---
+
+### 2.4 외부 서비스 연동
+
+#### 2.4.1 AWS SES (이메일 발송)
+
+> Transactional Email 전용. 마케팅 이메일 미사용.
+
+**설정 정보**
+| 항목 | 값 |
+|------|-----|
+| Region | `ap-northeast-2` (서울) |
+| 인증된 도메인 | `amazingkorean.net` |
+| 발신 주소 | `noreply@amazingkorean.net` |
+
+**환경변수**
+```env
+AWS_ACCESS_KEY_ID=xxx
+AWS_SECRET_ACCESS_KEY=xxx
+AWS_REGION=ap-northeast-2
+AWS_SES_FROM_EMAIL=noreply@amazingkorean.net
+```
+
+**코드 구조**
+- `src/external/email.rs`: EmailClient, EmailTemplate 정의
+- `src/state.rs`: AppState에 EmailClient 포함
+
+**EmailTemplate 종류**
+| 템플릿 | 용도 | 사용처 |
+|--------|------|--------|
+| `PasswordReset` | 비밀번호 재설정 인증코드 (6자리) | Phase 3 - `POST /auth/request-reset` |
+| `AdminInvite` | 관리자 초대 코드 | Phase 7 - `POST /admin/upgrade` |
+
+**이메일 발송 제한**
+- Rate Limit: 이메일당 5회/시간 (비밀번호 재설정)
+- TTL: 인증코드 10분 만료
+
+#### 2.4.2 Google OAuth
+
+> Google OAuth 2.0 Authorization Code Flow
+
+**환경변수**
+```env
+GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=xxx
+GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
+```
+
+**관련 엔드포인트**: Phase 3 - `GET /auth/google`, `GET /auth/google/callback`
+
+#### 2.4.3 Vimeo (동영상 스트리밍)
+
+> 동영상 호스팅 및 스트리밍
+
+**환경변수**
+```env
+VIMEO_ACCESS_TOKEN=xxx
+```
+
+**관련 엔드포인트**: Phase 7 - `GET /admin/videos/vimeo/preview`, `POST /admin/videos/vimeo/upload-ticket`
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
@@ -2028,6 +2092,129 @@ Location: http://localhost:5173/login?error=oauth_failed&error_description=...
 | 7-65 | `GET /admin/logins/stats/summary` | `/admin/logins/stats?from=&to=` | 로그인 요약 통계 | ***총 로그인/성공/실패/고유사용자/활성세션, 기간 검증(max 366일), RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
 | 7-66 | `GET /admin/logins/stats/daily` | `/admin/logins/stats?from=&to=` | 일별 로그인 통계 | ***일별 성공/실패/고유사용자, 제로필, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
 | 7-67 | `GET /admin/logins/stats/devices` | `/admin/logins/stats?from=&to=` | 디바이스별 로그인 통계 | ***디바이스별 성공횟수/비율, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
+
+| 7-68 | `POST /admin/upgrade` | `/admin/upgrade` | 관리자 초대 | ***초대 코드 생성 + 이메일 발송, RBAC(HYMN→Admin/Manager, Admin→Manager), Redis TTL 10분***<br>성공: **200**<br>실패: **401/403/400/422/409**(이미 가입된 이메일) | [✅🆗] |
+| 7-69 | `GET /admin/upgrade/verify` | `/admin/upgrade/join?code=xxx` | 초대 코드 검증 | ***Public, 코드 유효성 검증, 이메일/역할 정보 반환***<br>성공: **200**<br>실패: **400/401**(만료/무효 코드) | [✅🆗] |
+| 7-70 | `POST /admin/upgrade/accept` | `/admin/upgrade/join?code=xxx` | 관리자 계정 생성 | ***Public(코드 필수), 관리자 계정 생성(OAuth 불가), 코드 삭제***<br>성공: **201**<br>실패: **400/401/409/422** | [✅🆗] |
+
+---
+
+<details>
+  <summary>5.7 Phase 7 — admin 관리자 초대 시나리오 (7-68 ~ 7-70)</summary>
+
+#### 관리자 초대 시스템 개요
+
+> 관리자 계정은 **오직 초대를 통해서만** 생성 가능. 일반 회원가입 후 승격 불가.
+
+**보안 정책**
+- 관리자 계정: OAuth 로그인 비허용 (이메일/비밀번호만)
+- 초대 코드: Redis 저장, TTL 10분, 일회용
+- 기존 이메일로 초대 시: 거부 (이미 가입된 이메일)
+- 권한별 초대 가능 범위:
+  | 요청자 | 초대 가능 권한 |
+  |--------|---------------|
+  | HYMN | Admin, Manager |
+  | Admin | Manager |
+  | Manager | 불가 (403) |
+
+---
+
+#### 7-68: `POST /admin/upgrade` (관리자 초대)
+
+**요청**
+```json
+{
+  "email": "new-admin@example.com",
+  "role": "admin"  // admin | manager
+}
+```
+
+**응답 (성공 200)**
+```json
+{
+  "message": "Invitation sent successfully",
+  "expires_at": "2026-02-04T12:10:00Z"
+}
+```
+
+**처리 흐름**
+1. 요청자 권한 검증 (HYMN/Admin만)
+2. 초대 가능 role 검증 (HYMN→Admin/Manager, Admin→Manager)
+3. 이메일 중복 체크 (기존 가입자면 409)
+4. 초대 코드 생성: `ak_upgrade_{uuid}`
+5. Redis 저장: `ak:upgrade:{code}` → `{email, role, invited_by, created_at}`, TTL 10분
+6. 이메일 발송 (AWS SES)
+7. 초대 로그 기록
+
+**실패 케이스**
+- **401**: 미인증
+- **403**: 권한 부족 (Manager가 초대 시도, Admin이 Admin 초대 시도)
+- **409**: 이미 가입된 이메일
+- **422**: 유효하지 않은 role
+
+---
+
+#### 7-69: `GET /admin/upgrade/verify` (초대 코드 검증)
+
+**요청**: `GET /admin/upgrade/verify?code=ak_upgrade_xxx`
+
+**응답 (성공 200)**
+```json
+{
+  "email": "new-admin@example.com",
+  "role": "admin",
+  "invited_by": "hymn@amazingkorean.net",
+  "expires_at": "2026-02-04T12:10:00Z"
+}
+```
+
+**실패 케이스**
+- **400**: 코드 파라미터 누락
+- **401**: 만료/무효 코드
+
+---
+
+#### 7-70: `POST /admin/upgrade/accept` (관리자 계정 생성)
+
+**요청**
+```json
+{
+  "code": "ak_upgrade_xxx",
+  "password": "SecureP@ss123",
+  "name": "홍길동",
+  "nickname": "admin_hong",
+  "country": "KR",
+  "birthday": "1990-01-01",
+  "gender": "male",
+  "language": "ko"
+}
+```
+
+**응답 (성공 201)**
+```json
+{
+  "user_id": 123,
+  "email": "new-admin@example.com",
+  "user_auth": "admin",
+  "message": "Admin account created successfully"
+}
+```
+
+**처리 흐름**
+1. 코드 검증 (Redis 조회)
+2. 비밀번호 해싱 (Argon2id)
+3. 사용자 생성 (user_auth = 초대 시 지정된 role)
+4. 초대 코드 삭제 (일회용)
+5. 초대 수락 로그 기록
+6. (선택) 자동 로그인 토큰 발급
+
+**실패 케이스**
+- **400**: 필수 필드 누락, 형식 오류
+- **401**: 만료/무효 코드
+- **409**: 코드 이미 사용됨
+- **422**: 비밀번호 정책 위반, 닉네임 중복
+
+</details>
 
 ---
 
@@ -7902,6 +8089,29 @@ ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
     - URL/함수명 통일 ✅ 완료
     - Login 정보/로그 추가 — 외부 API 연동 시 진행 예정
     - Lesson 통계 기능 — 추후 구현 예정
+- **2026-02-04 — Admin Upgrade (관리자 초대) 시스템 구현**
+  - **백엔드 (7-68 ~ 7-70)**
+    - `POST /admin/upgrade` — 관리자 초대 코드 생성 + AWS SES 이메일 발송
+    - `GET /admin/upgrade/verify` — 초대 코드 검증 (Public)
+    - `POST /admin/upgrade/accept` — 관리자 계정 생성 (Public, OAuth 불가)
+    - RBAC 정책: HYMN→Admin/Manager, Admin→Manager, Manager→불가
+    - Redis TTL 10분, 일회용 코드 (ak_upgrade_{uuid})
+    - `EmailTemplate::AdminInvite` 추가 (invite_url, role, invited_by, expires_in_min)
+  - **프론트엔드**
+    - `types.ts` — Upgrade 타입 추가 (UpgradeInviteReq/Res, UpgradeVerifyRes, UpgradeAcceptReq/Res)
+    - `admin_api.ts` — API 함수 추가 (createAdminInvite, verifyAdminInvite, acceptAdminInvite)
+    - `/admin/upgrade/join` — 초대 수락 페이지 (Public 라우트)
+    - `/admin/users` — "Invite Admin" 버튼 및 초대 다이얼로그 추가
+  - **파일 변경 목록**
+    - `src/api/admin/upgrade/` — dto.rs, service.rs, handler.rs, router.rs, mod.rs (신규)
+    - `src/api/admin/mod.rs`, `src/api/admin/router.rs` — upgrade 모듈 등록
+    - `src/api/user/repo.rs` — find_user_by_email, find_user_by_nickname, create_admin_user 추가
+    - `src/external/email.rs` — AdminInvite 템플릿 추가
+    - `frontend/src/category/admin/types.ts` — Section 9 (Upgrade 타입)
+    - `frontend/src/category/admin/admin_api.ts` — Section 9 (Upgrade API)
+    - `frontend/src/category/admin/page/admin_upgrade_join.tsx` — 신규
+    - `frontend/src/category/admin/page/admin_users_page.tsx` — 초대 다이얼로그 추가
+    - `frontend/src/app/routes.tsx` — /admin/upgrade/join 라우트 추가
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 

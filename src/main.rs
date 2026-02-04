@@ -57,15 +57,32 @@ async fn main() -> anyhow::Result<()> {
         .create_pool(Some(deadpool_redis::Runtime::Tokio1))
         .expect("Failed to create Redis pool");
 
-    // 5) AppState 생성
+    // 5) EmailClient 생성 (SES_FROM_ADDRESS 설정 시 활성화)
+    let email = if let Some(ref from_address) = cfg.ses_from_address {
+        tracing::info!("📧 Email client enabled (from: {})", from_address);
+        Some(
+            external::email::EmailClient::new(
+                &cfg.aws_region,
+                from_address.clone(),
+                cfg.ses_reply_to.clone(),
+            )
+            .await,
+        )
+    } else {
+        tracing::info!("📧 Email client disabled (SES_FROM_ADDRESS not set)");
+        None
+    };
+
+    // 6) AppState 생성
     let app_state = AppState {
         db: pool,
         redis,
         cfg: cfg.clone(),
         started_at: Instant::now(),
+        email,
     };
 
-    // [CORS] 설정 정의
+    // 7) [CORS] 설정 정의
     // 환경변수 CORS_ORIGINS에서 허용할 origin 목록을 읽음
     // 예: CORS_ORIGINS=http://localhost:5173,https://amazing-korean-api.pages.dev
     let origins: Vec<HeaderValue> = cfg
@@ -89,10 +106,10 @@ async fn main() -> anyhow::Result<()> {
         .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT])
         .allow_credentials(true); // 쿠키(Refresh Token) 교환을 위해 필수
 
-    // [CORS] 라우터에 레이어 적용 (.layer(cors) 추가)
+    // 8) 라우터에 CORS 레이어 적용
     let app = api::app_router(app_state).layer(cors);
 
-    // 6) 서버 시작
+    // 9) 서버 시작
     let listener = TcpListener::bind(&cfg.bind_addr).await?;
     tracing::info!(
         "✅ Server listening on http://{} (pid={})",

@@ -233,7 +233,7 @@ impl UserService {
 
     pub async fn get_settings(st: &AppState, user_id: i64) -> AppResult<SettingsRes> {
         let user = repo::find_user(&st.db, user_id).await?.ok_or(AppError::NotFound)?;
-        if !user.user_state { return Err(AppError::Forbidden); }
+        if !user.user_state { return Err(AppError::Forbidden("Forbidden".to_string())); }
 
         let settings = repo::find_users_setting(&st.db, user_id).await?;
         
@@ -250,7 +250,7 @@ impl UserService {
         req.validate().map_err(|e| AppError::BadRequest(e.to_string()))?;
 
         let user = repo::find_user(&st.db, user_id).await?.ok_or(AppError::NotFound)?;
-        if !user.user_state { return Err(AppError::Forbidden); }
+        if !user.user_state { return Err(AppError::Forbidden("Forbidden".to_string())); }
 
         if let Some(lang) = &req.user_set_language {
             if !["en", "ko"].contains(&lang.as_str()) {

@@ -30,6 +30,11 @@ pub async fn admin_ip_guard(
     request: Request<Body>,
     next: Next,
 ) -> Response {
+    // allowlist가 비어있으면 IP 체크 없이 모든 요청 허용 (개발 환경)
+    if state.cfg.admin_ip_allowlist.is_empty() {
+        return next.run(request).await;
+    }
+
     // X-Forwarded-For 헤더에서 첫 번째 IP 추출 (프록시/로드밸런서 환경)
     // 없으면 X-Real-IP 확인
     let client_ip = request

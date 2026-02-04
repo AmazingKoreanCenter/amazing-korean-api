@@ -336,7 +336,7 @@ impl StudyService {
 
         let try_count = StudyRepo::get_try_count(&st.db, claims.sub, task_id).await?;
         if try_count < 1 {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("Forbidden".to_string()));
         }
 
         let row = StudyRepo::find_task_explain(&st.db, task_id).await?;

@@ -39,6 +39,8 @@ impl Modify for SecurityAddon {
         crate::api::auth::handler::refresh,
         crate::api::auth::handler::find_id,
         crate::api::auth::handler::reset_password,
+        crate::api::auth::handler::request_reset,
+        crate::api::auth::handler::verify_reset,
 
         // user (me/settings)
         crate::api::user::handler::signup,
@@ -123,6 +125,11 @@ impl Modify for SecurityAddon {
 
         // admin - video stats
         crate::api::admin::video::stats::handler::admin_get_video_daily_stats,
+
+        // admin - upgrade (관리자 초대)
+        crate::api::admin::upgrade::handler::create_invite,
+        crate::api::admin::upgrade::handler::verify_invite,
+        crate::api::admin::upgrade::handler::accept_invite,
     ),
     components(
         schemas(
@@ -145,6 +152,10 @@ impl Modify for SecurityAddon {
             crate::api::auth::dto::FindIdRes,
             crate::api::auth::dto::ResetPwReq,
             crate::api::auth::dto::ResetPwRes,
+            crate::api::auth::dto::RequestResetReq,
+            crate::api::auth::dto::RequestResetRes,
+            crate::api::auth::dto::VerifyResetReq,
+            crate::api::auth::dto::VerifyResetRes,
 
             // user dto
             crate::api::user::dto::SignupReq,
@@ -319,6 +330,14 @@ impl Modify for SecurityAddon {
             crate::api::admin::video::stats::dto::DailyStatsQuery,
             crate::api::admin::video::stats::dto::DailyStatItem,
             crate::api::admin::video::stats::dto::DailyStatsRes,
+
+            // admin - upgrade dto (관리자 초대)
+            crate::api::admin::upgrade::dto::UpgradeInviteReq,
+            crate::api::admin::upgrade::dto::UpgradeInviteRes,
+            crate::api::admin::upgrade::dto::UpgradeVerifyReq,
+            crate::api::admin::upgrade::dto::UpgradeVerifyRes,
+            crate::api::admin::upgrade::dto::UpgradeAcceptReq,
+            crate::api::admin::upgrade::dto::UpgradeAcceptRes,
         )
     ),
     modifiers(&SecurityAddon),

@@ -68,7 +68,7 @@ impl AdminUserService {
             GlobalUserAuth::Hymn | GlobalUserAuth::Admin | GlobalUserAuth::Manager => {
                 Ok(actor_auth)
             }
-            _ => Err(AppError::Forbidden),
+            _ => Err(AppError::Forbidden("Forbidden".to_string())),
         }
     }
 
@@ -80,10 +80,10 @@ impl AdminUserService {
             && (target_user_auth == GlobalUserAuth::Admin
                 || target_user_auth == GlobalUserAuth::Hymn)
         {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("Forbidden".to_string()));
         }
         if actor_auth == GlobalUserAuth::Admin && target_user_auth == GlobalUserAuth::Hymn {
-            return Err(AppError::Forbidden);
+            return Err(AppError::Forbidden("Forbidden".to_string()));
         }
         Ok(())
     }
@@ -555,7 +555,7 @@ impl AdminUserService {
     
         match actor.user_auth.to_string().as_str() {
             "admin" | "hymn" | "manager" => {} 
-            _ => return Err(AppError::Forbidden), 
+            _ => return Err(AppError::Forbidden("Forbidden".to_string())), 
         }
     
         let mut results = Vec::new();
@@ -575,7 +575,7 @@ impl AdminUserService {
                 let actor_role = actor.user_auth.to_string();
                 let target_role = target_user.user_auth.to_string();
                 if actor_role == "manager" && (target_role == "admin" || target_role == "hymn") {
-                     return Err(AppError::Forbidden);
+                     return Err(AppError::Forbidden("Forbidden".to_string()));
                 }
     
                 // 이메일 중복 체크 (Pool 사용)
@@ -643,7 +643,7 @@ impl AdminUserService {
                     failure_count += 1;
                     let (status, msg) = match e {
                         AppError::NotFound => (404, "User not found".to_string()),
-                        AppError::Forbidden => (403, "Forbidden".to_string()),
+                        AppError::Forbidden(_) => (403, "Forbidden".to_string()),
                         AppError::Conflict(m) => (409, m),
                         AppError::BadRequest(m) => (400, m),
                         _ => (500, "Internal Server Error".to_string()),

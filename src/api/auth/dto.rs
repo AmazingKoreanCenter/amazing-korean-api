@@ -192,3 +192,54 @@ pub struct GoogleCallbackQuery {
     /// 에러 상세 설명
     pub error_description: Option<String>,
 }
+
+// =====================================================================
+// Password Reset DTOs (비밀번호 재설정 - 이메일 인증 기반)
+// =====================================================================
+
+/// 비밀번호 재설정 요청 (인증코드 발송)
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "email": "user@example.com"
+}))]
+pub struct RequestResetReq {
+    #[validate(email)]
+    pub email: String,
+}
+
+/// 비밀번호 재설정 요청 응답
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "message": "If the email exists, a verification code has been sent."
+}))]
+pub struct RequestResetRes {
+    pub message: String,
+}
+
+/// 인증코드 검증 요청
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "email": "user@example.com",
+    "code": "123456"
+}))]
+pub struct VerifyResetReq {
+    #[validate(email)]
+    pub email: String,
+    #[validate(length(equal = 6, message = "Code must be 6 digits"))]
+    pub code: String,
+}
+
+/// 인증코드 검증 응답 (reset_token 발급)
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "reset_token": "ak_reset_xxxxxx",
+    "expires_in": 1800
+}))]
+pub struct VerifyResetRes {
+    pub reset_token: String,
+    pub expires_in: i64,  // 초 단위
+}

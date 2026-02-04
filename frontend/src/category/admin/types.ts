@@ -697,3 +697,96 @@ export const userLogsResSchema = z.object({
   meta: adminListMetaSchema,
 });
 export type UserLogsRes = z.infer<typeof userLogsResSchema>;
+
+// ==========================================
+// 8. Admin Email 타입
+// ==========================================
+
+// 이메일 템플릿 종류
+export const emailTemplateTypeSchema = z.enum([
+  "password_reset",
+  "email_verification",
+  "welcome",
+]);
+export type EmailTemplateType = z.infer<typeof emailTemplateTypeSchema>;
+
+// 테스트 이메일 발송 요청
+export const testEmailReqSchema = z.object({
+  to: z.string().email("유효한 이메일 주소를 입력하세요"),
+  template: emailTemplateTypeSchema,
+});
+export type TestEmailReq = z.infer<typeof testEmailReqSchema>;
+
+// 테스트 이메일 발송 응답
+export const testEmailResSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  to: z.string(),
+  template: emailTemplateTypeSchema,
+});
+export type TestEmailRes = z.infer<typeof testEmailResSchema>;
+
+// ==========================================
+// 9. Admin Upgrade (관리자 초대) 타입
+// ==========================================
+
+// 초대 가능한 역할
+export const upgradeRoleSchema = z.enum(["admin", "manager"]);
+export type UpgradeRole = z.infer<typeof upgradeRoleSchema>;
+
+// 9-1: 관리자 초대 요청 (POST /admin/upgrade)
+export const upgradeInviteReqSchema = z.object({
+  email: z.string().email("유효한 이메일 주소를 입력하세요"),
+  role: upgradeRoleSchema,
+});
+export type UpgradeInviteReq = z.infer<typeof upgradeInviteReqSchema>;
+
+// 9-2: 관리자 초대 응답
+export const upgradeInviteResSchema = z.object({
+  message: z.string(),
+  expires_at: z.string().datetime(),
+});
+export type UpgradeInviteRes = z.infer<typeof upgradeInviteResSchema>;
+
+// 9-3: 초대 코드 검증 요청 (GET /admin/upgrade/verify?code=xxx)
+export const upgradeVerifyReqSchema = z.object({
+  code: z.string().min(1, "초대 코드가 필요합니다"),
+});
+export type UpgradeVerifyReq = z.infer<typeof upgradeVerifyReqSchema>;
+
+// 9-4: 초대 코드 검증 응답
+export const upgradeVerifyResSchema = z.object({
+  email: z.string(),
+  role: z.string(),
+  invited_by: z.string(),
+  expires_at: z.string().datetime(),
+});
+export type UpgradeVerifyRes = z.infer<typeof upgradeVerifyResSchema>;
+
+// 9-5: 관리자 계정 생성 요청 (POST /admin/upgrade/accept)
+export const upgradeAcceptReqSchema = z.object({
+  code: z.string().min(1, "초대 코드가 필요합니다"),
+  password: z
+    .string()
+    .min(8, "비밀번호는 8자 이상이어야 합니다")
+    .refine(
+      (val) => /[a-zA-Z]/.test(val) && /[0-9]/.test(val),
+      "비밀번호는 영문과 숫자를 포함해야 합니다"
+    ),
+  name: z.string().min(1, "이름을 입력하세요").max(100),
+  nickname: z.string().min(1, "닉네임을 입력하세요").max(100),
+  country: z.string().min(1, "국가를 선택하세요").max(50),
+  birthday: z.string().min(1, "생년월일을 입력하세요"), // YYYY-MM-DD
+  gender: userGenderSchema,
+  language: userLanguageSchema,
+});
+export type UpgradeAcceptReq = z.infer<typeof upgradeAcceptReqSchema>;
+
+// 9-6: 관리자 계정 생성 응답
+export const upgradeAcceptResSchema = z.object({
+  user_id: z.number().int(),
+  email: z.string(),
+  user_auth: userAuthSchema,
+  message: z.string(),
+});
+export type UpgradeAcceptRes = z.infer<typeof upgradeAcceptResSchema>;
