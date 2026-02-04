@@ -79,7 +79,7 @@ export function AdminUpgradeJoin() {
   // 계정 생성 뮤테이션
   const acceptMutation = useMutation({
     mutationFn: acceptAdminInvite,
-    onSuccess: (data) => {
+    onSuccess: () => {
       setIsSuccess(true);
       toast.success("관리자 계정이 생성되었습니다. 로그인해주세요.");
       setTimeout(() => navigate("/login"), 2000);
