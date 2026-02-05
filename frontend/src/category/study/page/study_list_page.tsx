@@ -199,7 +199,7 @@ export function StudyListPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <BookOpen className="h-4 w-4" />
                 <span>
-                  {t("study.totalProblems", { count: (meta.total_count ?? 0).toLocaleString() })}
+                  {t("study.totalProblems", { count: meta.total_count ?? 0 })}
                 </span>
                 <span className="text-border">|</span>
                 <span>{currentPage} / {totalPages} {t("common.page")}</span>

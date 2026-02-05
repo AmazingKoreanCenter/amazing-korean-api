@@ -2923,6 +2923,14 @@ export function AppRouter() {
     1.  `tsc -b` (TypeScript 컴파일 검사)가 먼저 실행되어야 한다. **타입 에러 발생 시 빌드는 실패해야 한다.**
     2.  Vite가 프로덕션용 최적화(Minify, Tree Shaking)를 수행하고 `dist/` 폴더를 생성한다.
 
+- **번들 크기 최적화 (TODO)**
+  - 현재 메인 번들 크기: **~1,273 KB** (gzip ~350 KB) — Vite 권장 기준 500 KB 초과
+  - 개선 방안:
+    1. `React.lazy()` + `Suspense`를 활용한 **라우트 기반 코드 스플리팅**
+    2. `vite.config.ts`의 `build.rollupOptions.output.manualChunks`로 vendor 청크 분리 (react, react-dom, i18next 등)
+    3. 대형 라이브러리의 동적 import (`import()`) 전환
+  - 현재 단일 번들이 기능상 문제는 없으나, 페이지/기능이 늘어날수록 초기 로딩 속도에 영향을 줄 수 있다.
+
 - **SPA 서빙 전략 (SPA Fallback)**
   - 프론트엔드는 **Single Page Application**이므로, **모든 404 요청을 `index.html`로 리다이렉트**해야 한다.
   - **Nginx 배포 시**: `try_files $uri $uri/ /index.html;` 설정 필수.

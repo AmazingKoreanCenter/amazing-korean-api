@@ -146,7 +146,7 @@ export function LessonListPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <BookMarked className="h-4 w-4" />
                 <span>
-                  {t("lesson.totalLessons", { count: (meta.total_count ?? 0).toLocaleString() })}
+                  {t("lesson.totalLessons", { count: meta.total_count ?? 0 })}
                 </span>
                 <span className="text-border">|</span>
                 <span>{currentPage} / {totalPages} {t("common.page")}</span>
