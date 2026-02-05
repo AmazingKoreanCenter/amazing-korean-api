@@ -57,9 +57,10 @@ pub async fn signup(
 ) -> AppResult<(CookieJar, (StatusCode, HeaderMap, Json<SignupRes>))> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
+    let parsed_ua = crate::api::auth::handler::parse_user_agent(&headers);
 
     // Service 호출
-    let (res, refresh_token, refresh_ttl_secs) = UserService::signup(&st, req, ip, ua).await?;
+    let (res, refresh_token, refresh_ttl_secs) = UserService::signup(&st, req, ip, ua, parsed_ua).await?;
 
     // Refresh Token 쿠키 설정
     let refresh_cookie = Cookie::build(Cookie::new(

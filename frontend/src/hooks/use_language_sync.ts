@@ -13,7 +13,7 @@ import { useUserSettings } from "@/category/user/hook/use_user_settings";
  */
 export function useLanguageSync() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const { data: settings } = useUserSettings();
+  const { data: settings } = useUserSettings({ enabled: isLoggedIn });
   const appliedRef = useRef(false);
 
   useEffect(() => {

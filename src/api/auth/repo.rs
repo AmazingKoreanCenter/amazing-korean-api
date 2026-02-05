@@ -136,6 +136,7 @@ impl AuthRepo {
         browser: Option<&str>,
         os: Option<&str>,
         user_agent: Option<&str>,
+        refresh_ttl_secs: i64,
         // Geolocation fields (from ip-api.com)
         country_code: Option<&str>,
         asn: Option<i64>,
@@ -154,7 +155,10 @@ impl AuthRepo {
                 login_user_agent,
                 login_begin_at,
                 login_state,
-                login_country, login_asn, login_org
+                login_expire_at,
+                login_active_at,
+                login_country, login_asn, login_org,
+                login_revoked_reason
             )
             VALUES (
                 $1,
@@ -175,7 +179,10 @@ impl AuthRepo {
                 $8,
                 NOW(),
                 'active'::login_state_enum,
-                COALESCE($9, 'ZZ'), COALESCE($10, 0), COALESCE($11, 'Unknown')
+                NOW() + make_interval(secs => $9),
+                NOW(),
+                COALESCE($10, 'LC'), COALESCE($11, 0), COALESCE($12, 'local'),
+                'none'
             )
         "#)
         .bind(user_id)
@@ -186,6 +193,7 @@ impl AuthRepo {
         .bind(session_id)
         .bind(refresh_hash)
         .bind(user_agent)
+        .bind(refresh_ttl_secs as f64)
         .bind(country_code)
         .bind(asn)
         .bind(org)
@@ -213,6 +221,12 @@ impl AuthRepo {
         country_code: Option<&str>,
         asn: Option<i64>,
         org: Option<&str>,
+        // Audit fields
+        access_log: Option<&str>,
+        token_id_log: Option<&str>,
+        fail_reason_log: Option<&str>,
+        // Session expire (refresh TTL seconds, None for failures)
+        expire_secs: Option<i64>,
     ) -> AppResult<()> {
         sqlx::query(r#"
             INSERT INTO public.login_log (
@@ -230,6 +244,10 @@ impl AuthRepo {
                 login_country_log,
                 login_asn_log,
                 login_org_log,
+                login_access_log,
+                login_token_id_log,
+                login_fail_reason_log,
+                login_expire_at_log,
                 login_begin_at_log,
                 login_created_at_log
             )
@@ -252,9 +270,13 @@ impl AuthRepo {
                 CAST($8 AS uuid),
                 $9,
                 $10,
-                $11,
-                $12,
-                $13,
+                COALESCE($11, 'LC'),
+                COALESCE($12, 0),
+                COALESCE($13, 'local'),
+                $14,
+                $15,
+                $16,
+                CASE WHEN $17::float8 IS NOT NULL THEN NOW() + make_interval(secs => $17) ELSE NULL END,
                 NOW(),
                 NOW()
             )
@@ -272,6 +294,10 @@ impl AuthRepo {
         .bind(country_code)
         .bind(asn)
         .bind(org)
+        .bind(access_log)
+        .bind(token_id_log)
+        .bind(fail_reason_log)
+        .bind(expire_secs.map(|s| s as f64))
         .execute(&mut **tx)
         .await?;
 
@@ -289,33 +315,43 @@ impl AuthRepo {
     ) -> AppResult<()> {
         sqlx::query(r#"
             INSERT INTO public.login_log (
-                user_id, 
-                login_event_log, 
-                login_success_log, 
-                login_ip_log, 
+                user_id,
+                login_event_log,
+                login_success_log,
+                login_ip_log,
                 login_device_log,
-                login_browser_log, 
-                login_os_log, 
-                login_method_log, 
-                login_session_id_log, 
-                login_refresh_hash_log, 
+                login_browser_log,
+                login_os_log,
+                login_method_log,
+                login_session_id_log,
+                login_refresh_hash_log,
                 login_user_agent_log,
-                login_begin_at_log, 
+                login_country_log,
+                login_asn_log,
+                login_org_log,
+                login_fail_reason_log,
+                login_expire_at_log,
+                login_begin_at_log,
                 login_created_at_log
             )
             SELECT
-                $1, 
-                'logout'::login_event_enum, 
+                $1,
+                'logout'::login_event_enum,
                 TRUE,
                 COALESCE(CAST($4 AS inet), l.login_ip),
                 COALESCE(l.login_device, 'other'::login_device_enum),
                 COALESCE(l.login_browser, NULL),
                 COALESCE(l.login_os, NULL),
-                'email'::login_method_enum, 
-                CAST($2 AS uuid), 
+                'email'::login_method_enum,
+                CAST($2 AS uuid),
                 $3,
                 COALESCE($5, l.login_user_agent),
-                NOW(), 
+                COALESCE(l.login_country, 'LC'),
+                COALESCE(l.login_asn, 0),
+                COALESCE(l.login_org, 'local'),
+                'none',
+                l.login_expire_at,
+                NOW(),
                 NOW()
             FROM public.login l
             WHERE l.login_session_id = CAST($2 AS uuid)
@@ -327,7 +363,7 @@ impl AuthRepo {
         .bind(user_agent)
         .execute(&mut **tx)
         .await?;
-        
+
         Ok(())
     }
 
@@ -423,22 +459,26 @@ impl AuthRepo {
         Ok(row)
     }
 
-    /// 리프레시 토큰 갱신
+    /// 리프레시 토큰 갱신 (+ expire_at, active_at 업데이트)
     pub async fn update_login_refresh_hash_tx(
         tx: &mut Transaction<'_, Postgres>,
         session_id: &str,
         new_refresh_hash: &str,
+        refresh_ttl_secs: i64,
     ) -> AppResult<()> {
         sqlx::query(r#"
             UPDATE public.login
-            SET login_refresh_hash = $2
+            SET login_refresh_hash = $2,
+                login_expire_at = NOW() + make_interval(secs => $3),
+                login_active_at = NOW()
             WHERE login_session_id = CAST($1 AS uuid)
         "#)
         .bind(session_id)
         .bind(new_refresh_hash)
+        .bind(refresh_ttl_secs as f64)
         .execute(&mut **tx)
         .await?;
-        
+
         Ok(())
     }
 
@@ -447,17 +487,20 @@ impl AuthRepo {
         tx: &mut Transaction<'_, Postgres>,
         session_id: &str,
         state: &str,
+        revoked_reason: Option<&str>,
     ) -> AppResult<()> {
         sqlx::query(r#"
             UPDATE public.login
-            SET login_state = CAST($2 AS login_state_enum)
+            SET login_state = CAST($2 AS login_state_enum),
+                login_revoked_reason = $3
             WHERE login_session_id = CAST($1 AS uuid)
         "#)
         .bind(session_id)
         .bind(state)
+        .bind(revoked_reason)
         .execute(&mut **tx)
         .await?;
-        
+
         Ok(())
     }
 
@@ -466,17 +509,20 @@ impl AuthRepo {
         tx: &mut Transaction<'_, Postgres>,
         user_id: i64,
         state: &str,
+        revoked_reason: Option<&str>,
     ) -> AppResult<()> {
         sqlx::query(r#"
             UPDATE public.login
-            SET login_state = CAST($2 AS login_state_enum)
+            SET login_state = CAST($2 AS login_state_enum),
+                login_revoked_reason = $3
             WHERE user_id = $1 AND login_state = 'active'::login_state_enum
         "#)
         .bind(user_id)
         .bind(state)
+        .bind(revoked_reason)
         .execute(&mut **tx)
         .await?;
-        
+
         Ok(())
     }
 
@@ -605,6 +651,7 @@ impl AuthRepo {
         browser: Option<&str>,
         os: Option<&str>,
         user_agent: Option<&str>,
+        refresh_ttl_secs: i64,
         // Geolocation fields (from ip-api.com)
         country_code: Option<&str>,
         asn: Option<i64>,
@@ -623,7 +670,10 @@ impl AuthRepo {
                 login_user_agent,
                 login_begin_at,
                 login_state,
-                login_country, login_asn, login_org
+                login_expire_at,
+                login_active_at,
+                login_country, login_asn, login_org,
+                login_revoked_reason
             )
             VALUES (
                 $1,
@@ -644,7 +694,10 @@ impl AuthRepo {
                 $9,
                 NOW(),
                 'active'::login_state_enum,
-                COALESCE($10, 'ZZ'), COALESCE($11, 0), COALESCE($12, 'Unknown')
+                NOW() + make_interval(secs => $10),
+                NOW(),
+                COALESCE($11, 'LC'), COALESCE($12, 0), COALESCE($13, 'local'),
+                'none'
             )
         "#)
         .bind(user_id)
@@ -656,6 +709,7 @@ impl AuthRepo {
         .bind(session_id)
         .bind(refresh_hash)
         .bind(user_agent)
+        .bind(refresh_ttl_secs as f64)
         .bind(country_code)
         .bind(asn)
         .bind(org)
@@ -684,6 +738,12 @@ impl AuthRepo {
         country_code: Option<&str>,
         asn: Option<i64>,
         org: Option<&str>,
+        // Audit fields
+        access_log: Option<&str>,
+        token_id_log: Option<&str>,
+        fail_reason_log: Option<&str>,
+        // Session expire (refresh TTL seconds, None for failures)
+        expire_secs: Option<i64>,
     ) -> AppResult<()> {
         sqlx::query(r#"
             INSERT INTO public.login_log (
@@ -701,6 +761,10 @@ impl AuthRepo {
                 login_country_log,
                 login_asn_log,
                 login_org_log,
+                login_access_log,
+                login_token_id_log,
+                login_fail_reason_log,
+                login_expire_at_log,
                 login_begin_at_log,
                 login_created_at_log
             )
@@ -723,9 +787,13 @@ impl AuthRepo {
                 CAST($9 AS uuid),
                 $10,
                 $11,
-                $12,
-                $13,
-                $14,
+                COALESCE($12, 'LC'),
+                COALESCE($13, 0),
+                COALESCE($14, 'local'),
+                $15,
+                $16,
+                $17,
+                CASE WHEN $18::float8 IS NOT NULL THEN NOW() + make_interval(secs => $18) ELSE NULL END,
                 NOW(),
                 NOW()
             )
@@ -744,6 +812,10 @@ impl AuthRepo {
         .bind(country_code)
         .bind(asn)
         .bind(org)
+        .bind(access_log)
+        .bind(token_id_log)
+        .bind(fail_reason_log)
+        .bind(expire_secs.map(|s| s as f64))
         .execute(&mut **tx)
         .await?;
 

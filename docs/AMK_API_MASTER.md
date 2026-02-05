@@ -474,6 +474,26 @@ VIMEO_ACCESS_TOKEN=xxx
 - `127.0.0.1`, `10.x.x.x`, `192.168.x.x`, `172.16-31.x.x` 등 사설 IP는 조회 skip
 - 기본값: `country='ZZ'`, `asn=0`, `org='Unknown'`
 
+### 2.8.2 User-Agent 서버사이드 파싱 (woothee)
+
+로그인/회원가입 시 HTTP `User-Agent` 헤더를 서버에서 파싱하여 `login_os`, `login_browser`, `login_device`를 자동으로 채운다.
+
+**라이브러리**: `woothee` (Cargo.toml)
+
+**파싱 매핑**
+| woothee 필드 | DB 컬럼 | 설명 | 예시 |
+|-------------|---------|------|------|
+| `os` | `login_os` | 운영체제 | "Windows 10", "Mac OS X", "Linux" |
+| `name` | `login_browser` | 브라우저 | "Chrome", "Firefox", "Safari" |
+| `category` | `login_device` | 기기 유형 매핑 | "pc"→desktop, "smartphone"→mobile |
+
+**기기 유형 매핑 규칙**
+- `pc` → `desktop`
+- `smartphone`, `mobilephone` → `mobile`
+- 그 외 (`crawler`, `appliance`, `misc`, `UNKNOWN`) → `other`
+
+**적용 범위**: 로그인, 회원가입, OAuth 콜백 (프론트엔드에서 device/browser/os를 전송하지 않음)
+
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
 ---
@@ -1112,11 +1132,18 @@ VIMEO_ACCESS_TOKEN=xxx
   - `login_device_enum` ('mobile', 'tablet', 'desktop', 'other') 로그인 기기
   - `login_method_enum` ('email', 'google', 'apple') 로그인 방법
   - `login_state_enum` ('active', 'revoked', 'expired', 'logged_out', 'compromised') 로그인 상태
+  - `login_os`, `login_browser`, `login_device`: 서버사이드 User-Agent 파싱(`woothee`)으로 자동 채움
+  - `login_expire_at`: 로그인 시 `NOW() + refresh_ttl` 기록, 토큰 갱신 시 갱신
+  - `login_active_at`: 토큰 갱신(refresh) 시 `NOW()` 업데이트
+  - `login_revoked_reason`: 세션 revoke 시 사유 기록 (`admin_action`, `password_changed`, `security_concern`, `account_disabled`)
 - `login_log`
   - 로그인 정보 활동 이력(로그인 이벤트, 세부 지역, 세부 방식)
   - `login_event_enum` ('login', 'logout', 'refresh', 'rotate', 'fail', 'reuse_detected') 로그인 활동 이력
   - `login_device_enum` ('mobile', 'tablet', 'desktop', 'other') 로그인 기기 이력
   - `login_method_enum` ('email', 'google', 'apple') 로그인 방법 이력
+  - `login_access_log` (char(64)): access token SHA-256 해시 (감사 추적용)
+  - `login_token_id_log` (varchar): JWT `jti` claim 값 (토큰 식별용)
+  - `login_fail_reason_log` (text): 실패 사유 (`invalid_credentials`, `account_disabled`, `token_reuse`)
 - `redis_session`
   - Key: ak:session:< sid >
   - TTL은 expire_at 기준. 세션 본문은 직렬화(JSON 등)하되, 운영 상 조회 필드는 컬럼으로 문서화.

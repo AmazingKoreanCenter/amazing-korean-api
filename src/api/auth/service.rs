@@ -51,15 +51,6 @@ impl AuthService {
             .map_err(|_| AppError::Internal("Failed to parse dummy password hash".into()))
     }
 
-    fn map_device_for_db(dev: Option<&str>) -> &'static str {
-        match dev.unwrap_or("").to_ascii_lowercase().as_str() {
-            "mobile" => "mobile",
-            "tablet" => "tablet",
-            "desktop" | "web" | "browser" => "desktop",
-            _ => "other",
-        }
-    }
-
     // 리프레시 토큰 생성 (Token, Hash)
     fn generate_refresh_token_and_hash(session_id: &str) -> (String, String) {
         let random_uuid = Uuid::new_v4().to_string();
@@ -117,6 +108,7 @@ impl AuthService {
         req: LoginReq,
         login_ip: String,
         user_agent: Option<String>,
+        parsed_ua: crate::api::auth::handler::ParsedUa,
     ) -> AppResult<(LoginRes, Cookie<'static>, i64)> {
         // [Step 1] Input Validation
         let email = req.email.trim().to_lowercase();
@@ -167,12 +159,40 @@ impl AuthService {
             .is_ok();
 
         if user_info.is_none() || !password_ok {
+            // 로그인 실패 로그 (사용자가 존재하는 경우만 기록)
+            if let Some(ref user) = user_info {
+                let fail_session = Uuid::new_v4().to_string();
+                let mut tx = st.db.begin().await?;
+                let _ = AuthRepo::insert_login_log_tx(
+                    &mut tx, user.user_id, "login", false,
+                    &fail_session, "", &login_ip,
+                    Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(),
+                    parsed_ua.os.as_deref(), user_agent.as_deref(),
+                    None, None, None,
+                    None, None, Some("invalid_credentials"),
+                    None,
+                ).await;
+                let _ = tx.commit().await;
+            }
             return Err(AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()));
         }
 
         let user_info = user_info.expect("checked above");
 
         if !user_info.user_state {
+            // 비활성 계정 실패 로그
+            let fail_session = Uuid::new_v4().to_string();
+            let mut tx = st.db.begin().await?;
+            let _ = AuthRepo::insert_login_log_tx(
+                &mut tx, user_info.user_id, "login", false,
+                &fail_session, "", &login_ip,
+                Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(),
+                parsed_ua.os.as_deref(), user_agent.as_deref(),
+                None, None, None,
+                None, None, Some("account_disabled"),
+                None,
+            ).await;
+            let _ = tx.commit().await;
             return Err(AppError::Forbidden("Forbidden".to_string()));
         }
 
@@ -183,7 +203,7 @@ impl AuthService {
         let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user_info.user_auth) * 24 * 3600;
 
         // JWT Access Token (role 포함)
-        let access_token_res = jwt::create_token(
+        let (access_token_res, jti) = jwt::create_token(
             user_info.user_id,
             &session_id,
             user_info.user_auth,
@@ -191,12 +211,15 @@ impl AuthService {
             &st.cfg.jwt_secret,
         )?;
 
+        // Access token SHA-256 hash (audit log용)
+        let access_hash: String = Sha256::digest(access_token_res.access_token.as_bytes())
+            .iter().map(|b| format!("{:02x}", b)).collect();
+
         // [Step 5] IP Geolocation (best-effort, non-blocking)
         let geo = st.ipgeo.lookup(&login_ip).await.unwrap_or_default();
 
         // [Step 6] DB Transaction (Login Record)
         let mut tx = st.db.begin().await?;
-        let mapped_device = Self::map_device_for_db(req.device.as_deref());
 
         AuthRepo::insert_login_record_tx(
             &mut tx,
@@ -204,10 +227,11 @@ impl AuthService {
             &session_id,
             &refresh_hash,
             &login_ip,
-            Some(mapped_device),
-            req.browser.as_deref(),
-            req.os.as_deref(),
+            Some(parsed_ua.device.as_str()),
+            parsed_ua.browser.as_deref(),
+            parsed_ua.os.as_deref(),
             user_agent.as_deref(),
+            refresh_ttl_secs,
             geo.country_code.as_deref(),
             geo.asn,
             geo.org.as_deref(),
@@ -221,13 +245,17 @@ impl AuthService {
             &session_id,
             &refresh_hash,
             &login_ip,
-            Some(mapped_device),
-            req.browser.as_deref(),
-            req.os.as_deref(),
+            Some(parsed_ua.device.as_str()),
+            parsed_ua.browser.as_deref(),
+            parsed_ua.os.as_deref(),
             user_agent.as_deref(),
             geo.country_code.as_deref(),
             geo.asn,
             geo.org.as_deref(),
+            Some(&access_hash),
+            Some(&jti),
+            Some("none"),
+            Some(refresh_ttl_secs),
         ).await?;
 
         tx.commit().await?;
@@ -306,7 +334,7 @@ impl AuthService {
             warn!("Refresh token reuse detected! Session: {}", session_id);
             
             // 2-1. Mark session compromised
-            AuthRepo::update_login_state_by_session_tx(&mut tx, &session_id, "compromised").await?;
+            AuthRepo::update_login_state_by_session_tx(&mut tx, &session_id, "compromised", Some("security_concern")).await?;
             AuthRepo::insert_login_log_tx(
                 &mut tx,
                 login_record.user_id,
@@ -319,8 +347,9 @@ impl AuthService {
                 login_record.login_browser.as_deref(),
                 login_record.login_os.as_deref(),
                 user_agent.as_deref(),
-                None, // geolocation: use original login data
-                None,
+                None, None, None,
+                None, None,
+                Some("token_reuse"),
                 None,
             ).await?;
             tx.commit().await?;
@@ -338,10 +367,25 @@ impl AuthService {
             return Err(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()));
         }
 
-        // [Step 4] Rotate Token
-        let (new_refresh_token_value, new_refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
+        // [Step 4] Fetch user role for TTL calculation (before rotate)
+        let user = user_repo::find_user(&st.db, login_record.user_id)
+            .await?
+            .ok_or(AppError::Unauthorized("User not found".into()))?;
+        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;
 
-        AuthRepo::update_login_refresh_hash_tx(&mut tx, &session_id, &new_refresh_hash).await?;
+        // [Step 5] Rotate Token & Issue new Access Token
+        let (new_refresh_token_value, new_refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
+        let (access_token_res, jti) = jwt::create_token(
+            login_record.user_id,
+            &session_id,
+            user.user_auth,
+            st.cfg.jwt_access_ttl_min,
+            &st.cfg.jwt_secret,
+        )?;
+        let access_hash: String = Sha256::digest(access_token_res.access_token.as_bytes())
+            .iter().map(|b| format!("{:02x}", b)).collect();
+
+        AuthRepo::update_login_refresh_hash_tx(&mut tx, &session_id, &new_refresh_hash, refresh_ttl_secs).await?;
         AuthRepo::insert_login_log_tx(
             &mut tx,
             login_record.user_id,
@@ -354,39 +398,24 @@ impl AuthService {
             login_record.login_browser.as_deref(),
             login_record.login_os.as_deref(),
             user_agent.as_deref(),
-            None, // geolocation: use original login data
-            None,
-            None,
+            None, None, None,
+            Some(&access_hash),
+            Some(&jti),
+            Some("none"),
+            Some(refresh_ttl_secs),
         ).await?;
-        
-        tx.commit().await?;
 
-        // [Step 5] Fetch user role for JWT and TTL calculation
-        let user = user_repo::find_user(&st.db, login_record.user_id)
-            .await?
-            .ok_or(AppError::Unauthorized("User not found".into()))?;
+        tx.commit().await?;
 
         // [Step 6] Redis Sync
         // Delete old hash
         let _: () = redis_conn.del(format!("ak:refresh:{}", login_record.refresh_hash))
             .await.map_err(|e| AppError::Internal(e.to_string()))?;
-
-        // Set new hash (역할별 TTL 적용)
-        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;
         let _: () = redis_conn.set_ex(
             format!("ak:refresh:{}", new_refresh_hash),
             &session_id,
             refresh_ttl_secs as u64,
         ).await.map_err(|e| AppError::Internal(e.to_string()))?;
-
-        // Issue new Access Token (role 포함)
-        let access_token_res = jwt::create_token(
-            login_record.user_id,
-            &session_id,
-            user.user_auth,
-            st.cfg.jwt_access_ttl_min,
-            &st.cfg.jwt_secret,
-        )?;
 
         Ok((
             LoginRes {
@@ -474,7 +503,7 @@ impl AuthService {
         let mut tx = st.db.begin().await?;
         AuthRepo::update_user_password_tx(&mut tx, user_id, &new_password_hash).await?;
         user_repo::insert_user_log_after_tx(&mut tx, Some(user_id), user_id, "reset_pw", true).await?;
-        AuthRepo::update_login_state_by_user_tx(&mut tx, user_id, "revoked").await?;
+        AuthRepo::update_login_state_by_user_tx(&mut tx, user_id, "revoked", Some("password_changed")).await?;
         tx.commit().await?;
 
         // Redis Session Cleanup
@@ -511,7 +540,7 @@ impl AuthService {
         let login_record = AuthRepo::find_login_by_session_id_tx(&mut tx, session_id).await?;
         
         if let Some(record) = &login_record {
-            AuthRepo::update_login_state_by_session_tx(&mut tx, session_id, "logged_out").await?;
+            AuthRepo::update_login_state_by_session_tx(&mut tx, session_id, "logged_out", Some("none")).await?;
             AuthRepo::insert_logout_log_tx(
                 &mut tx,
                 user_id,
@@ -572,11 +601,11 @@ impl AuthService {
             sessions_to_invalidate.extend(session_ids);
             
             // DB 상태 일괄 업데이트
-            AuthRepo::update_login_state_by_user_tx(&mut tx, uid, "logged_out").await?;
+            AuthRepo::update_login_state_by_user_tx(&mut tx, uid, "logged_out", Some("none")).await?;
         } else if let Some(sid) = current_session_id {
             // 현재 세션만
             sessions_to_invalidate.push(sid.clone());
-            AuthRepo::update_login_state_by_session_tx(&mut tx, &sid, "logged_out").await?;
+            AuthRepo::update_login_state_by_session_tx(&mut tx, &sid, "logged_out", Some("none")).await?;
         }
 
         // 로그 기록 (Loop)
@@ -821,7 +850,7 @@ impl AuthService {
         let mut tx = st.db.begin().await?;
         AuthRepo::update_user_password_tx(&mut tx, user_id, &new_password_hash).await?;
         user_repo::insert_user_log_after_tx(&mut tx, Some(user_id), user_id, "reset_pw", true).await?;
-        AuthRepo::update_login_state_by_user_tx(&mut tx, user_id, "revoked").await?;
+        AuthRepo::update_login_state_by_user_tx(&mut tx, user_id, "revoked", Some("password_changed")).await?;
         tx.commit().await?;
 
         // [Step 6] Redis 세션 정리
@@ -893,6 +922,7 @@ impl AuthService {
         state: &str,
         login_ip: String,
         user_agent: Option<String>,
+        parsed_ua: crate::api::auth::handler::ParsedUa,
     ) -> AppResult<(LoginRes, Cookie<'static>, i64, bool)> {
         // Google OAuth 설정 확인
         let client_id = st.cfg.google_client_id.as_ref()
@@ -945,7 +975,7 @@ impl AuthService {
         let (user_id, user_auth, is_new_user) = Self::find_or_create_oauth_user(st, &user_info, "google").await?;
 
         // [Step 5] 세션 생성
-        let (login_res, cookie, refresh_ttl) = Self::create_oauth_session(st, user_id, user_auth, "google", login_ip, user_agent).await?;
+        let (login_res, cookie, refresh_ttl) = Self::create_oauth_session(st, user_id, user_auth, "google", login_ip, user_agent, parsed_ua).await?;
 
         Ok((login_res, cookie, refresh_ttl, is_new_user))
     }
@@ -1061,19 +1091,22 @@ impl AuthService {
         login_method: &str,
         login_ip: String,
         user_agent: Option<String>,
+        parsed_ua: crate::api::auth::handler::ParsedUa,
     ) -> AppResult<(LoginRes, Cookie<'static>, i64)> {
         let session_id = Uuid::new_v4().to_string();
         let (refresh_token_value, refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
         let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user_auth) * 24 * 3600;
 
         // Access Token 생성
-        let access_token_res = jwt::create_token(
+        let (access_token_res, jti) = jwt::create_token(
             user_id,
             &session_id,
             user_auth,
             st.cfg.jwt_access_ttl_min,
             &st.cfg.jwt_secret,
         )?;
+        let access_hash: String = Sha256::digest(access_token_res.access_token.as_bytes())
+            .iter().map(|b| format!("{:02x}", b)).collect();
 
         // IP Geolocation (best-effort, non-blocking)
         let geo = st.ipgeo.lookup(&login_ip).await.unwrap_or_default();
@@ -1088,10 +1121,11 @@ impl AuthService {
             &refresh_hash,
             &login_ip,
             login_method,
-            None,  // device (User-Agent에서 파싱 가능)
-            None,  // browser
-            None,  // os
+            Some(parsed_ua.device.as_str()),
+            parsed_ua.browser.as_deref(),
+            parsed_ua.os.as_deref(),
             user_agent.as_deref(),
+            refresh_ttl_secs,
             geo.country_code.as_deref(),
             geo.asn,
             geo.org.as_deref(),
@@ -1106,13 +1140,17 @@ impl AuthService {
             &refresh_hash,
             &login_ip,
             login_method,
-            None,
-            None,
-            None,
+            Some(parsed_ua.device.as_str()),
+            parsed_ua.browser.as_deref(),
+            parsed_ua.os.as_deref(),
             user_agent.as_deref(),
             geo.country_code.as_deref(),
             geo.asn,
             geo.org.as_deref(),
+            Some(&access_hash),
+            Some(&jti),
+            Some("none"),
+            Some(refresh_ttl_secs),
         ).await?;
 
         tx.commit().await?;

@@ -10,11 +10,7 @@ use validator::Validate;
 #[serde(rename_all = "snake_case")]
 #[schema(example = json!({
     "email": "front@front.com",
-    "password": "front123!",
-    "device": "web",
-    "browser": "chrome",
-    "os": "linux",
-    "user_agent": "Mozilla/5.0..."
+    "password": "front123!"
 }))]
 pub struct LoginReq {
     #[validate(email)]
@@ -22,17 +18,6 @@ pub struct LoginReq {
 
     #[validate(length(min = 6, max = 72))]
     pub password: String,
-
-    // 아래 정보는 보통 User-Agent 헤더로 분석하지만, 
-    // 클라이언트가 명시적으로 보낼 경우를 위해 유지 (Option)
-    #[serde(default)]
-    pub device: Option<String>,
-    #[serde(default)]
-    pub browser: Option<String>,
-    #[serde(default)]
-    pub os: Option<String>,
-    /*#[serde(default)]
-    pub user_agent: Option<String>,*/
 }
 
 #[derive(Serialize, Deserialize, Validate, ToSchema)]

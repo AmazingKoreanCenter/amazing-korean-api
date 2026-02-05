@@ -65,6 +65,7 @@ impl UserService {
         mut req: SignupReq,
         ip: String,
         ua: Option<String>,
+        parsed_ua: crate::api::auth::handler::ParsedUa,
     ) -> AppResult<(SignupRes, String, i64)> {
         // [Step 1] Input Validation
         req.email = req.email.trim().to_lowercase();
@@ -147,8 +148,19 @@ impl UserService {
         let geo = st.ipgeo.lookup(&ip).await.unwrap_or_default();
 
         // 6-4. Auto Login Record
+        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;
+
+        // 6-5. JWT Access Token (tx 안에서 생성하여 login_log에 기록)
+        let (access_token, jti) = jwt::create_token(
+            user.id, &session_id, user.user_auth, st.cfg.jwt_access_ttl_min, &st.cfg.jwt_secret
+        )?;
+        let access_hash: String = sha2::Sha256::digest(access_token.access_token.as_bytes())
+            .iter().map(|b| format!("{:02x}", b)).collect();
+
         AuthRepo::insert_login_record_tx(
-            &mut tx, user.id, &session_id, &refresh_hash, &ip, None, None, None, ua.as_deref(),
+            &mut tx, user.id, &session_id, &refresh_hash, &ip,
+            Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(), parsed_ua.os.as_deref(),
+            ua.as_deref(), refresh_ttl_secs,
             geo.country_code.as_deref(), geo.asn, geo.org.as_deref(),
         ).await?;
 
@@ -160,22 +172,22 @@ impl UserService {
             &session_id,
             &refresh_hash,
             &ip,
-            None,
-            None,
-            None,
+            Some(parsed_ua.device.as_str()),
+            parsed_ua.browser.as_deref(),
+            parsed_ua.os.as_deref(),
             ua.as_deref(),
             geo.country_code.as_deref(),
             geo.asn,
             geo.org.as_deref(),
+            Some(&access_hash),
+            Some(&jti),
+            Some("none"),
+            Some(refresh_ttl_secs),
         ).await?;
 
         tx.commit().await?;
 
-        // [Step 7] Calculate role-based refresh TTL
-        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;
-
-        // [Step 8] Redis Session Caching
-        // 8-1. Session Mapping (SessionID -> UserID)
+        // [Step 7] Redis Session Caching
         let _: () = redis.set_ex(
             format!("ak:session:{}", session_id), 
             user.id, 
@@ -195,12 +207,7 @@ impl UserService {
             &session_id
         ).await.map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // [Step 9] JWT Access Token Generation (role 포함)
-        let access_token = jwt::create_token(
-            user.id, &session_id, user.user_auth, st.cfg.jwt_access_ttl_min, &st.cfg.jwt_secret
-        )?;
-
-        // [Step 10] Response Construction
+        // [Step 8] Response Construction
         let res = SignupRes {
             user_id: user.id,
             email: user.email.clone(),
