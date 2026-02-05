@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, BookOpen, ClipboardList, Keyboard, Mic } from "lucide-react";
 
@@ -23,21 +24,6 @@ const ELLIPSIS = "ellipsis" as const;
 
 type PageItem = number | typeof ELLIPSIS;
 
-const PROGRAM_LABELS: Record<StudyProgram, string> = {
-  basic_pronunciation: "기초 발음",
-  basic_word: "기초 단어",
-  basic_900: "기초 900",
-  topik_read: "TOPIK 읽기",
-  topik_listen: "TOPIK 듣기",
-  topik_write: "TOPIK 쓰기",
-  tbc: "TBC",
-};
-
-const KIND_LABELS: Record<StudyTaskKind, string> = {
-  choice: "객관식",
-  typing: "입력형",
-  voice: "음성형",
-};
 
 const KIND_ICONS: Record<StudyTaskKind, typeof ClipboardList> = {
   choice: ClipboardList,
@@ -71,7 +57,24 @@ const getPageItems = (currentPage: number, totalPages: number): PageItem[] => {
 };
 
 export function StudyDetailPage() {
+  const { t } = useTranslation();
   const { studyId: studyIdParam } = useParams<{ studyId: string }>();
+
+  const PROGRAM_LABELS: Record<StudyProgram, string> = {
+    basic_pronunciation: t("study.programBasicPronunciation"),
+    basic_word: t("study.programBasicWord"),
+    basic_900: t("study.programBasic900"),
+    topik_read: t("study.programTopikRead"),
+    topik_listen: t("study.programTopikListen"),
+    topik_write: t("study.programTopikWrite"),
+    tbc: t("study.programTbc"),
+  };
+
+  const KIND_LABELS: Record<StudyTaskKind, string> = {
+    choice: t("study.kindChoice"),
+    typing: t("study.kindTyping"),
+    voice: t("study.kindVoice"),
+  };
   const studyId = studyIdParam ? Number(studyIdParam) : undefined;
 
   const [page, setPage] = useState(1);
@@ -115,9 +118,9 @@ export function StudyDetailPage() {
             <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">😕</span>
             </div>
-            <CardTitle className="text-xl">잘못된 접근입니다</CardTitle>
+            <CardTitle className="text-xl">{t("study.invalidAccess")}</CardTitle>
             <p className="text-sm text-muted-foreground mt-2">
-              올바르지 않은 Study ID입니다.
+              {t("study.invalidStudyId")}
             </p>
           </CardHeader>
           <CardContent>
@@ -125,7 +128,7 @@ export function StudyDetailPage() {
               to="/studies"
               className="inline-flex items-center justify-center gap-2 gradient-primary text-white rounded-full px-6 py-2.5 text-sm font-medium hover:opacity-90 transition"
             >
-              목록으로 돌아가기
+              {t("common.backToList")}
             </Link>
           </CardContent>
         </Card>
@@ -151,7 +154,7 @@ export function StudyDetailPage() {
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
-                목록으로
+                {t("common.backToListShort")}
               </Link>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -161,7 +164,7 @@ export function StudyDetailPage() {
               </div>
 
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-                {data.title ?? "제목 없음"}
+                {data.title ?? t("common.noTitle")}
               </h1>
 
               {data.subtitle && (
@@ -185,15 +188,15 @@ export function StudyDetailPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <BookOpen className="h-4 w-4" />
                 <span>
-                  총 <strong className="text-foreground">{(meta.total_count ?? 0).toLocaleString()}</strong>개 문제
+                  {t("study.totalProblems", { count: meta.total_count ?? 0 })}
                 </span>
                 <span className="text-border">|</span>
-                <span>{currentPage} / {totalPages} 페이지</span>
+                <span>{currentPage} / {totalPages} {t("common.page")}</span>
               </div>
               {isFetching && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
-                  불러오는 중
+                  {t("common.loading")}
                 </div>
               )}
             </div>
@@ -223,9 +226,9 @@ export function StudyDetailPage() {
               <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
                 <BookOpen className="h-10 w-10 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">등록된 문제가 없습니다</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("study.emptyTitle")}</h3>
               <p className="text-sm text-muted-foreground">
-                이 학습에는 아직 문제가 등록되지 않았습니다.
+                {t("study.emptyDetailDescription")}
               </p>
             </div>
           ) : (
@@ -250,7 +253,7 @@ export function StudyDetailPage() {
                         </CardHeader>
                         <CardContent className="pt-0">
                           <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                            문제 {task.seq}
+                            {t("study.problemNumber", { seq: task.seq })}
                           </CardTitle>
                           <p className="text-xs text-muted-foreground/60 mt-2">
                             Task ID: {task.task_id}

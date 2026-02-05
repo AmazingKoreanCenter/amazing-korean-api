@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { BookMarked, Layers, Lock, Crown } from "lucide-react";
 
@@ -48,38 +49,39 @@ const getPageItems = (currentPage: number, totalPages: number): PageItem[] => {
   return items;
 };
 
-const getAccessBadge = (access: LessonAccess) => {
-  switch (access) {
-    case "public":
-      return null; // Don't show badge for public (free) content
-    case "paid":
-      return (
-        <Badge className="absolute top-3 right-3 bg-amber-500 hover:bg-amber-500 text-white border-0 gap-1">
-          <Crown className="h-3 w-3" />
-          유료
-        </Badge>
-      );
-    case "private":
-      return (
-        <Badge className="absolute top-3 right-3 bg-gray-500 hover:bg-gray-500 text-white border-0 gap-1">
-          <Lock className="h-3 w-3" />
-          비공개
-        </Badge>
-      );
-    case "promote":
-      return (
-        <Badge className="absolute top-3 right-3 bg-green-500 hover:bg-green-500 text-white border-0">
-          무료체험
-        </Badge>
-      );
-    default:
-      return null;
-  }
-};
-
 export function LessonListPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const sort = undefined;
+
+  const getAccessBadge = (access: LessonAccess) => {
+    switch (access) {
+      case "public":
+        return null; // Don't show badge for public (free) content
+      case "paid":
+        return (
+          <Badge className="absolute top-3 right-3 bg-amber-500 hover:bg-amber-500 text-white border-0 gap-1">
+            <Crown className="h-3 w-3" />
+            {t("lesson.accessPaid")}
+          </Badge>
+        );
+      case "private":
+        return (
+          <Badge className="absolute top-3 right-3 bg-gray-500 hover:bg-gray-500 text-white border-0 gap-1">
+            <Lock className="h-3 w-3" />
+            {t("lesson.accessPrivate")}
+          </Badge>
+        );
+      case "promote":
+        return (
+          <Badge className="absolute top-3 right-3 bg-green-500 hover:bg-green-500 text-white border-0">
+            {t("lesson.accessPromote")}
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
 
   const params = useMemo<LessonListReq>(() => {
     return {
@@ -122,15 +124,14 @@ export function LessonListPage() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border">
               <Layers className="h-5 w-5 text-secondary" />
               <span className="text-sm font-medium text-muted-foreground">
-                단계별 커리큘럼
+                {t("lesson.heroBadge")}
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-              수업 목록
+              {t("lesson.listTitle")}
             </h1>
             <p className="text-muted-foreground max-w-lg">
-              체계적으로 구성된 수업을 통해 한국어를 단계별로 학습하세요.
-              영상, 문제, 과제가 통합된 수업을 제공합니다.
+              {t("lesson.listDescription")}
             </p>
           </div>
         </div>
@@ -145,15 +146,15 @@ export function LessonListPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <BookMarked className="h-4 w-4" />
                 <span>
-                  총 <strong className="text-foreground">{(meta.total_count ?? 0).toLocaleString()}</strong>개 수업
+                  {t("lesson.totalLessons", { count: meta.total_count ?? 0 })}
                 </span>
                 <span className="text-border">|</span>
-                <span>{currentPage} / {totalPages} 페이지</span>
+                <span>{currentPage} / {totalPages} {t("common.page")}</span>
               </div>
               {isFetching && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
-                  불러오는 중
+                  {t("common.loading")}
                 </div>
               )}
             </div>
@@ -181,9 +182,9 @@ export function LessonListPage() {
               <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
                 <BookMarked className="h-10 w-10 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">등록된 수업이 없습니다</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("lesson.emptyTitle")}</h3>
               <p className="text-sm text-muted-foreground">
-                새로운 수업이 곧 추가될 예정입니다.
+                {t("lesson.emptyDescription")}
               </p>
             </div>
           ) : (

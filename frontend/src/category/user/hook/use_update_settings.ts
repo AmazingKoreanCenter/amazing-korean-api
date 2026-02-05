@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { ApiError } from "@/api/client";
+import i18n from "@/i18n";
 import type { SettingsUpdateReq } from "@/category/user/types";
 
 import { updateUserSettings } from "../user_api";
@@ -19,7 +20,7 @@ const getErrorMessage = (error: unknown) => {
     return error.message;
   }
 
-  return "요청에 실패했습니다. 잠시 후 다시 시도해주세요.";
+  return i18n.t("common.requestFailed");
 };
 
 export const useUpdateSettings = (options: UseUpdateSettingsOptions = {}) => {
@@ -29,11 +30,11 @@ export const useUpdateSettings = (options: UseUpdateSettingsOptions = {}) => {
     mutationFn: (values: SettingsUpdateReq) => updateUserSettings(values),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ["user", "settings"] });
-      toast.success("설정이 저장되었습니다.");
+      toast.success(i18n.t("user.toastSettingsSaved"));
       options.onSuccess?.(variables);
     },
     onError: (error) => {
-      toast.error(`설정 저장 실패: ${getErrorMessage(error)}`);
+      toast.error(i18n.t("user.toastSettingsSaveFailed", { message: getErrorMessage(error) }));
     },
   });
 };

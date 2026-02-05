@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, BookMarked, CheckCircle2, ClipboardList, Play, ChevronRight, Crown, Lock } from "lucide-react";
 
@@ -13,43 +14,9 @@ import type { LessonItemRes, LessonAccess } from "@/category/lesson/types";
 import { useLessonDetail } from "../hook/use_lesson_detail";
 import { useLessonProgress, useUpdateLessonProgress } from "../hook/use_lesson_progress";
 
-const KIND_LABELS: Record<string, string> = {
-  video: "영상",
-  task: "문제",
-};
-
 const KIND_ICONS: Record<string, typeof Play> = {
   video: Play,
   task: ClipboardList,
-};
-
-const getAccessBadge = (access: LessonAccess) => {
-  switch (access) {
-    case "public":
-      return null;
-    case "paid":
-      return (
-        <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-0 gap-1">
-          <Crown className="h-3 w-3" />
-          유료
-        </Badge>
-      );
-    case "private":
-      return (
-        <Badge className="bg-gray-500 hover:bg-gray-500 text-white border-0 gap-1">
-          <Lock className="h-3 w-3" />
-          비공개
-        </Badge>
-      );
-    case "promote":
-      return (
-        <Badge className="bg-green-500 hover:bg-green-500 text-white border-0">
-          무료체험
-        </Badge>
-      );
-    default:
-      return null;
-  }
 };
 
 interface LessonItemCardProps {
@@ -60,8 +27,14 @@ interface LessonItemCardProps {
 }
 
 function LessonItemCard({ item, lessonId, totalItems, lastSeq }: LessonItemCardProps) {
+  const { t } = useTranslation();
   const isCompleted = lastSeq !== undefined && item.seq <= lastSeq;
   const KindIcon = KIND_ICONS[item.kind] || ClipboardList;
+
+  const KIND_LABELS: Record<string, string> = {
+    video: t("lesson.kindVideo"),
+    task: t("lesson.kindTask"),
+  };
 
   const getItemLink = () => {
     const params = new URLSearchParams({
@@ -102,11 +75,11 @@ function LessonItemCard({ item, lessonId, totalItems, lastSeq }: LessonItemCardP
               {KIND_LABELS[item.kind] || item.kind}
             </Badge>
             {isCompleted && (
-              <span className="text-xs text-green-600 font-medium">완료</span>
+              <span className="text-xs text-green-600 font-medium">{t("lesson.completedBadge")}</span>
             )}
           </div>
           <p className="text-sm text-muted-foreground truncate">
-            {item.kind === "video" ? `영상 #${item.video_id}` : `문제 #${item.task_id}`}
+            {item.kind === "video" ? t("lesson.videoId", { id: item.video_id }) : t("lesson.taskId", { id: item.task_id })}
           </p>
         </div>
         {link && (
@@ -124,12 +97,42 @@ function LessonItemCard({ item, lessonId, totalItems, lastSeq }: LessonItemCardP
 }
 
 export function LessonDetailPage() {
+  const { t } = useTranslation();
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
 
   const id = useMemo(() => Number(lessonId), [lessonId]);
   const isValidId = Number.isFinite(id);
+
+  const getAccessBadge = (access: LessonAccess) => {
+    switch (access) {
+      case "public":
+        return null;
+      case "paid":
+        return (
+          <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-0 gap-1">
+            <Crown className="h-3 w-3" />
+            {t("lesson.accessPaid")}
+          </Badge>
+        );
+      case "private":
+        return (
+          <Badge className="bg-gray-500 hover:bg-gray-500 text-white border-0 gap-1">
+            <Lock className="h-3 w-3" />
+            {t("lesson.accessPrivate")}
+          </Badge>
+        );
+      case "promote":
+        return (
+          <Badge className="bg-green-500 hover:bg-green-500 text-white border-0">
+            {t("lesson.accessPromote")}
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
 
   const { data, isPending, isError, error } = useLessonDetail(isValidId ? id : undefined);
   const { data: progressData } = useLessonProgress(isValidId ? id : undefined);
@@ -182,17 +185,17 @@ export function LessonDetailPage() {
               <span className="text-3xl">😕</span>
             </div>
             <CardTitle className="text-xl">
-              {isNotFound ? "수업을 찾을 수 없습니다" : "오류 발생"}
+              {isNotFound ? t("lesson.notFoundTitle") : t("common.errorOccurred")}
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-2">
               {isNotFound
-                ? "존재하지 않거나 삭제된 수업입니다."
-                : "일시적인 오류입니다. 다시 시도해주세요."}
+                ? t("lesson.notFoundDescription")
+                : t("common.temporaryError")}
             </p>
           </CardHeader>
           <CardContent>
             <Button asChild className="gradient-primary text-white rounded-full">
-              <Link to="/lessons">목록으로 돌아가기</Link>
+              <Link to="/lessons">{t("common.backToList")}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -213,7 +216,7 @@ export function LessonDetailPage() {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
-            목록으로
+            {t("common.backToListShort")}
           </Link>
 
           <div className="space-y-4">
@@ -237,7 +240,7 @@ export function LessonDetailPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">학습 진도</span>
+                      <span className="text-sm font-medium">{t("lesson.learningProgress")}</span>
                       <span className="text-2xl font-bold text-primary">{progressPercent}%</span>
                     </div>
                     <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
@@ -248,7 +251,7 @@ export function LessonDetailPage() {
                     </div>
                     {lastSeq && (
                       <p className="text-xs text-muted-foreground">
-                        마지막 학습: {lastSeq}번째 항목
+                        {t("lesson.lastLearning", { seq: lastSeq })}
                       </p>
                     )}
                   </div>
@@ -261,13 +264,13 @@ export function LessonDetailPage() {
                       disabled={updateProgress.isPending}
                       className="gradient-primary text-white rounded-full shrink-0"
                     >
-                      {updateProgress.isPending ? "저장 중..." : "수업 완료하기"}
+                      {updateProgress.isPending ? t("common.saving") : t("lesson.completeLesson")}
                     </Button>
                   )}
                   {progressPercent >= 100 && (
                     <Badge className="bg-green-100 text-green-700 border-0 px-4 py-2 text-sm shrink-0">
                       <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                      수업 완료
+                      {t("lesson.lessonCompleted")}
                     </Badge>
                   )}
                 </div>
@@ -283,10 +286,10 @@ export function LessonDetailPage() {
           <div className="flex items-center gap-2 mb-6">
             <BookMarked className="h-5 w-5 text-primary" />
             <h2 className="text-xl font-semibold">
-              학습 항목
+              {t("lesson.learningItems")}
             </h2>
             <Badge variant="secondary" className="ml-2 rounded-full">
-              {data.items.length}개
+              {t("lesson.itemCount", { count: data.items.length })}
             </Badge>
           </div>
 
@@ -295,9 +298,9 @@ export function LessonDetailPage() {
               <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
                 <BookMarked className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">등록된 학습 항목이 없습니다</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("lesson.emptyItemsTitle")}</h3>
               <p className="text-sm text-muted-foreground">
-                이 수업에는 아직 학습 항목이 등록되지 않았습니다.
+                {t("lesson.emptyItemsDescription")}
               </p>
             </div>
           ) : (
@@ -319,7 +322,7 @@ export function LessonDetailPage() {
             <Button variant="outline" asChild className="rounded-full">
               <Link to="/lessons">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                목록으로 돌아가기
+                {t("common.backToList")}
               </Link>
             </Button>
           </div>

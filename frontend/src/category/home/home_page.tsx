@@ -1,9 +1,11 @@
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Play, BookOpen, Users, ArrowRight, CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -20,22 +22,28 @@ export default function HomePage() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border mb-8">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-sm text-muted-foreground">
-                전 세계 한국어 학습자와 함께
+                {t("home.heroBadge")}
               </span>
             </div>
 
             {/* Main Heading */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-              <span className="text-gradient">한국어 학습</span>의
-              <br className="hidden sm:block" />
-              새로운 시작
+              {t("home.heroTitle").split("\n").map((line, i) => (
+                <span key={i}>
+                  {i > 0 && <br className="hidden sm:block" />}
+                  {line}
+                </span>
+              ))}
             </h1>
 
             {/* Description */}
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-              영상, 학습 자료, 1:1 수업까지
-              <br className="hidden sm:block" />
-              효과적이고 즐거운 한국어 학습을 경험하세요.
+              {t("home.heroDescription").split("\n").map((line, i) => (
+                <span key={i}>
+                  {i > 0 && <br className="hidden sm:block" />}
+                  {line}
+                </span>
+              ))}
             </p>
 
             {/* CTA Buttons */}
@@ -46,7 +54,7 @@ export default function HomePage() {
                 className="gradient-primary hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all rounded-full px-8 h-14 text-base"
               >
                 <Link to="/signup">
-                  무료로 시작하기
+                  {t("home.ctaStart")}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
@@ -56,7 +64,7 @@ export default function HomePage() {
                 asChild
                 className="rounded-full px-8 h-14 text-base border-2 hover:bg-muted/50"
               >
-                <Link to="/about">서비스 알아보기</Link>
+                <Link to="/about">{t("home.ctaAbout")}</Link>
               </Button>
             </div>
 
@@ -64,15 +72,15 @@ export default function HomePage() {
             <div className="flex flex-wrap justify-center gap-8 mt-12 pt-12 border-t">
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">1,000+</div>
-                <div className="text-sm text-muted-foreground">학습 영상</div>
+                <div className="text-sm text-muted-foreground">{t("home.statVideos")}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">50+</div>
-                <div className="text-sm text-muted-foreground">전문 강사</div>
+                <div className="text-sm text-muted-foreground">{t("home.statInstructors")}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">10,000+</div>
-                <div className="text-sm text-muted-foreground">수강생</div>
+                <div className="text-sm text-muted-foreground">{t("home.statStudents")}</div>
               </div>
             </div>
           </div>
@@ -85,11 +93,10 @@ export default function HomePage() {
           {/* Section Header */}
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Amazing Korean의 학습 방법
+              {t("home.featureTitle")}
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              체계적인 커리큘럼과 다양한 학습 도구로
-              한국어 실력을 효과적으로 향상시킵니다.
+              {t("home.featureDescription")}
             </p>
           </div>
 
@@ -100,22 +107,22 @@ export default function HomePage() {
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Play className="h-7 w-7 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">영상 학습</h3>
+              <h3 className="text-xl font-semibold mb-3">{t("home.videoLearningTitle")}</h3>
               <p className="text-muted-foreground mb-6 leading-relaxed">
-                다양한 주제의 한국어 영상을 통해 자연스럽게 듣기와 말하기 실력을 향상시킵니다.
+                {t("home.videoLearningDescription")}
               </p>
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>자막 지원</span>
+                  <span>{t("home.videoFeature1")}</span>
                 </li>
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>반복 재생 기능</span>
+                  <span>{t("home.videoFeature2")}</span>
                 </li>
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>진도 관리</span>
+                  <span>{t("home.videoFeature3")}</span>
                 </li>
               </ul>
               <Button
@@ -124,7 +131,7 @@ export default function HomePage() {
                 className="p-0 h-auto text-primary hover:text-primary/80 group-hover:translate-x-1 transition-transform"
               >
                 <Link to="/videos" className="flex items-center gap-1">
-                  영상 보기 <ArrowRight className="h-4 w-4" />
+                  {t("home.videoLink")} <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
             </div>
@@ -134,22 +141,22 @@ export default function HomePage() {
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <BookOpen className="h-7 w-7 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">체계적 학습</h3>
+              <h3 className="text-xl font-semibold mb-3">{t("home.structuredLearningTitle")}</h3>
               <p className="text-muted-foreground mb-6 leading-relaxed">
-                단계별 커리큘럼으로 문법, 어휘, 표현을 체계적으로 학습할 수 있습니다.
+                {t("home.structuredLearningDescription")}
               </p>
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>레벨별 커리큘럼</span>
+                  <span>{t("home.studyFeature1")}</span>
                 </li>
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>연습 문제</span>
+                  <span>{t("home.studyFeature2")}</span>
                 </li>
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>학습 기록</span>
+                  <span>{t("home.studyFeature3")}</span>
                 </li>
               </ul>
               <Button
@@ -158,7 +165,7 @@ export default function HomePage() {
                 className="p-0 h-auto text-primary hover:text-primary/80 group-hover:translate-x-1 transition-transform"
               >
                 <Link to="/studies" className="flex items-center gap-1">
-                  학습하기 <ArrowRight className="h-4 w-4" />
+                  {t("home.studyLink")} <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
             </div>
@@ -168,22 +175,22 @@ export default function HomePage() {
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Users className="h-7 w-7 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">1:1 수업</h3>
+              <h3 className="text-xl font-semibold mb-3">{t("home.lessonTitle")}</h3>
               <p className="text-muted-foreground mb-6 leading-relaxed">
-                전문 강사와 함께하는 맞춤형 수업으로 빠르게 실력을 향상시킵니다.
+                {t("home.lessonDescription")}
               </p>
               <ul className="space-y-2 mb-6">
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>전문 강사진</span>
+                  <span>{t("home.lessonFeature1")}</span>
                 </li>
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>맞춤형 피드백</span>
+                  <span>{t("home.lessonFeature2")}</span>
                 </li>
                 <li className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>유연한 스케줄</span>
+                  <span>{t("home.lessonFeature3")}</span>
                 </li>
               </ul>
               <Button
@@ -192,7 +199,7 @@ export default function HomePage() {
                 className="p-0 h-auto text-primary hover:text-primary/80 group-hover:translate-x-1 transition-transform"
               >
                 <Link to="/lessons" className="flex items-center gap-1">
-                  수업 보기 <ArrowRight className="h-4 w-4" />
+                  {t("home.lessonLink")} <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
             </div>
@@ -204,12 +211,15 @@ export default function HomePage() {
       <section className="py-20 lg:py-28 bg-[#051D55]">
         <div className="max-w-[1350px] mx-auto px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            지금 바로 시작하세요
+            {t("home.ctaSectionTitle")}
           </h2>
           <p className="text-white/70 text-lg max-w-xl mx-auto mb-10">
-            회원가입하고 무료 콘텐츠를 체험해보세요.
-            <br />
-            한국어 학습의 새로운 경험이 기다리고 있습니다.
+            {t("home.ctaSectionDescription").split("\n").map((line, i) => (
+              <span key={i}>
+                {i > 0 && <br />}
+                {line}
+              </span>
+            ))}
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button
@@ -218,7 +228,7 @@ export default function HomePage() {
               className="gradient-primary hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all rounded-full px-8 h-14 text-base"
             >
               <Link to="/signup">
-                무료로 시작하기
+                {t("home.ctaStart")}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -228,7 +238,7 @@ export default function HomePage() {
               asChild
               className="rounded-full px-8 h-14 text-base border-2 border-white/30 text-black hover:bg-white/10 hover:border-white/50"
             >
-              <Link to="/login">이미 계정이 있으신가요?</Link>
+              <Link to="/login">{t("home.ctaAlreadyHaveAccount")}</Link>
             </Button>
           </div>
         </div>

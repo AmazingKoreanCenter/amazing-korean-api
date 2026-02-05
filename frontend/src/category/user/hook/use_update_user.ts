@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { ApiError } from "@/api/client";
+import i18n from "@/i18n";
 import type { UpdateUserReq } from "@/category/user/types";
 
 import { updateUserMe } from "../user_api";
@@ -20,7 +21,7 @@ const getErrorMessage = (error: unknown) => {
     return error.message;
   }
 
-  return "요청에 실패했습니다. 잠시 후 다시 시도해주세요.";
+  return i18n.t("common.requestFailed");
 };
 
 export const useUpdateUser = (options: UseUpdateUserOptions = {}) => {
@@ -31,7 +32,7 @@ export const useUpdateUser = (options: UseUpdateUserOptions = {}) => {
     mutationFn: (data: UpdateUserReq) => updateUserMe(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["user", "me"] });
-      toast.success("정보가 수정되었습니다");
+      toast.success(i18n.t("user.toastUpdateSuccess"));
       navigate("/user/me");
     },
     onError: (error) => {
