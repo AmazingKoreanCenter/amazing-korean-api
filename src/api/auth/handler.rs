@@ -62,6 +62,35 @@ fn extract_user_agent(headers: &HeaderMap) -> Option<String> {
         .map(|s| s.to_string())
 }
 
+/// User-Agent 서버사이드 파싱 결과
+pub struct ParsedUa {
+    pub os: Option<String>,
+    pub browser: Option<String>,
+    pub device: String,  // "desktop", "mobile", "other"
+}
+
+pub fn parse_user_agent(headers: &HeaderMap) -> ParsedUa {
+    let ua_str = headers.get("user-agent").and_then(|v| v.to_str().ok());
+
+    let Some(ua) = ua_str else {
+        return ParsedUa { os: None, browser: None, device: "other".into() };
+    };
+
+    let parser = woothee::parser::Parser::new();
+    match parser.parse(ua) {
+        Some(result) => ParsedUa {
+            os: if result.os != "UNKNOWN" { Some(result.os.to_string()) } else { None },
+            browser: if result.name != "UNKNOWN" { Some(result.name.to_string()) } else { None },
+            device: match result.category {
+                "pc" => "desktop",
+                "smartphone" | "mobilephone" => "mobile",
+                _ => "other",
+            }.into(),
+        },
+        None => ParsedUa { os: None, browser: None, device: "other".into() },
+    }
+}
+
 // =========================================================================
 // Handlers
 // =========================================================================
@@ -86,9 +115,10 @@ pub async fn login(
 ) -> Result<(CookieJar, Json<LoginRes>), AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
-    
+    let parsed_ua = parse_user_agent(&headers);
+
     // Service returns (LoginRes, Cookie, ttl)
-    let (login_res, cookie, _) = AuthService::login(&st, req, ip, ua).await?;
+    let (login_res, cookie, _) = AuthService::login(&st, req, ip, ua, parsed_ua).await?;
 
     // Add the fully constructed cookie from Service
     let jar = jar.add(cookie);
@@ -399,9 +429,10 @@ pub async fn google_auth_callback(
 
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
+    let parsed_ua = parse_user_agent(&headers);
 
     // OAuth 콜백 처리
-    let result = AuthService::google_auth_callback(&st, &code, &query.state, ip, ua).await;
+    let result = AuthService::google_auth_callback(&st, &code, &query.state, ip, ua, parsed_ua).await;
 
     match result {
         Ok((login_res, cookie, _, is_new_user)) => {

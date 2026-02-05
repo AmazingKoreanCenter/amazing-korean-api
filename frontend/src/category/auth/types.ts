@@ -55,11 +55,6 @@ export type SignupRes = z.infer<typeof signupResSchema>;
 export const loginReqSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6).max(72),
-  // 필요 시 유지, 불필요 시 삭제 가능
-  device: z.string().optional(),
-  browser: z.string().optional(),
-  os: z.string().optional(),
-  user_agent: z.string().optional(),
 });
 export type LoginReq = z.infer<typeof loginReqSchema>;
 
