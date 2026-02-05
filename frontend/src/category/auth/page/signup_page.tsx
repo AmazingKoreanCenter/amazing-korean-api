@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form";
 import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 
 import {
   Card,
@@ -47,7 +49,7 @@ const signupFormSchema = signupReqSchema.superRefine((data, ctx) => {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["terms_service"],
-      message: "이용약관에 동의해야 합니다.",
+      message: i18n.t("auth.termsServiceRequired"),
     });
   }
 
@@ -55,16 +57,10 @@ const signupFormSchema = signupReqSchema.superRefine((data, ctx) => {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["terms_personal"],
-      message: "개인정보 처리방침에 동의해야 합니다.",
+      message: i18n.t("auth.termsPersonalRequired"),
     });
   }
 });
-
-const genderOptions = [
-  { value: "male", label: "남성" },
-  { value: "female", label: "여성" },
-  { value: "other", label: "기타" },
-];
 
 const countryOptions = [
   { value: "KR", label: "대한민국 (KR)" },
@@ -78,10 +74,17 @@ const languageOptions = [
 ];
 
 export function SignupPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const signupMutation = useSignup();
   const googleLoginMutation = useGoogleLogin();
   const [showEmailForm, setShowEmailForm] = useState(false);
+
+  const genderOptions = [
+    { value: "male", label: t("auth.genderMale") },
+    { value: "female", label: t("auth.genderFemale") },
+    { value: "other", label: t("auth.genderOther") },
+  ];
 
   const form = useForm<SignupReq>({
     resolver: zodResolver(signupFormSchema),
@@ -103,7 +106,7 @@ export function SignupPage() {
   const onSubmit = (values: SignupReq) => {
     signupMutation.mutate(values, {
       onSuccess: () => {
-        toast.success("회원가입을 축하합니다! 로그인해주세요.");
+        toast.success(t("auth.signupSuccess"));
         navigate("/login");
       },
     });
@@ -117,9 +120,9 @@ export function SignupPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-2xl">회원가입</CardTitle>
+          <CardTitle className="text-2xl">{t("auth.signupTitle")}</CardTitle>
           <CardDescription>
-            Amazing Korean과 함께 한국어 학습을 시작하세요
+            {t("auth.signupDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -136,7 +139,7 @@ export function SignupPage() {
               {googleLoginMutation.isPending ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin mr-3" />
-                  Google 계정 연결 중...
+                  {t("auth.signupWithGoogleLoading")}
                 </>
               ) : (
                 <>
@@ -158,7 +161,7 @@ export function SignupPage() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Google로 가입하기
+                  {t("auth.signupWithGoogle")}
                 </>
               )}
             </Button>
@@ -173,15 +176,13 @@ export function SignupPage() {
               <svg className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
               </svg>
-              Apple로 가입하기 (준비 중)
+              {t("auth.signupWithApple")}
             </Button>
           </div>
 
           {/* 소셜 가입 안내 */}
-          <p className="text-center text-xs text-muted-foreground">
-            소셜 계정으로 가입 시 자동으로 회원가입이 완료되며,
-            <br />
-            이후 추가 정보를 입력하실 수 있습니다.
+          <p className="text-center text-xs text-muted-foreground whitespace-pre-line">
+            {t("auth.socialSignupNotice")}
           </p>
 
           {/* 구분선 */}
@@ -191,7 +192,7 @@ export function SignupPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                또는
+                {t("common.or")}
               </span>
             </div>
           </div>
@@ -203,7 +204,7 @@ export function SignupPage() {
                 variant="ghost"
                 className="w-full justify-between text-muted-foreground hover:text-foreground"
               >
-                이메일로 회원가입
+                {t("auth.signupWithEmailButton")}
                 {showEmailForm ? (
                   <ChevronUp className="h-4 w-4" />
                 ) : (
@@ -223,11 +224,11 @@ export function SignupPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>이메일</FormLabel>
+                        <FormLabel>{t("auth.emailLabel")}</FormLabel>
                         <FormControl>
                           <Input
                             type="email"
-                            placeholder="email@example.com"
+                            placeholder={t("auth.emailPlaceholder")}
                             autoComplete="email"
                             {...field}
                           />
@@ -243,11 +244,11 @@ export function SignupPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>비밀번호</FormLabel>
+                        <FormLabel>{t("auth.passwordLabel")}</FormLabel>
                         <FormControl>
                           <Input
                             type="password"
-                            placeholder="8자 이상 입력하세요"
+                            placeholder={t("auth.passwordMinPlaceholder")}
                             autoComplete="new-password"
                             {...field}
                           />
@@ -263,10 +264,10 @@ export function SignupPage() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>이름</FormLabel>
+                        <FormLabel>{t("auth.nameLabel")}</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="홍길동"
+                            placeholder={t("auth.namePlaceholder")}
                             autoComplete="name"
                             {...field}
                           />
@@ -282,9 +283,9 @@ export function SignupPage() {
                     name="nickname"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>닉네임</FormLabel>
+                        <FormLabel>{t("auth.nicknameLabel")}</FormLabel>
                         <FormControl>
-                          <Input placeholder="닉네임" {...field} />
+                          <Input placeholder={t("auth.nicknamePlaceholder")} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -297,7 +298,7 @@ export function SignupPage() {
                     name="birthday"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>생년월일</FormLabel>
+                        <FormLabel>{t("auth.birthdayLabel")}</FormLabel>
                         <FormControl>
                           <Input type="date" placeholder="YYYY-MM-DD" {...field} />
                         </FormControl>
@@ -312,14 +313,14 @@ export function SignupPage() {
                     name="gender"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>성별</FormLabel>
+                        <FormLabel>{t("auth.genderLabel")}</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="성별을 선택하세요" />
+                              <SelectValue placeholder={t("auth.genderPlaceholder")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -341,14 +342,14 @@ export function SignupPage() {
                     name="country"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>국가</FormLabel>
+                        <FormLabel>{t("auth.countryLabel")}</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="국가를 선택하세요" />
+                              <SelectValue placeholder={t("auth.countryPlaceholder")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -370,14 +371,14 @@ export function SignupPage() {
                     name="language"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>언어</FormLabel>
+                        <FormLabel>{t("auth.languageLabel")}</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="언어를 선택하세요" />
+                              <SelectValue placeholder={t("auth.languagePlaceholder")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -408,7 +409,7 @@ export function SignupPage() {
                             />
                           </FormControl>
                           <FormLabel className="text-sm font-normal cursor-pointer">
-                            이용약관에 동의합니다.
+                            {t("auth.termsServiceAgree")}
                           </FormLabel>
                         </div>
                         <FormMessage />
@@ -431,7 +432,7 @@ export function SignupPage() {
                             />
                           </FormControl>
                           <FormLabel className="text-sm font-normal cursor-pointer">
-                            개인정보 처리방침에 동의합니다.
+                            {t("auth.termsPersonalAgree")}
                           </FormLabel>
                         </div>
                         <FormMessage />
@@ -447,10 +448,10 @@ export function SignupPage() {
                     {signupMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        가입하는 중...
+                        {t("auth.signingUp")}
                       </>
                     ) : (
-                      "가입하기"
+                      t("auth.signupButton")
                     )}
                   </Button>
                 </form>
@@ -460,12 +461,12 @@ export function SignupPage() {
 
           {/* 로그인 안내 */}
           <p className="text-center text-sm text-muted-foreground pt-4">
-            이미 계정이 있으신가요?{" "}
+            {t("auth.haveAccount")}{" "}
             <a
               href="/login"
               className="text-primary underline-offset-4 hover:underline font-medium"
             >
-              로그인
+              {t("auth.loginTitle")}
             </a>
           </p>
         </CardContent>

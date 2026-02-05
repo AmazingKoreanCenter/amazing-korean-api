@@ -1,27 +1,40 @@
 import { Link, NavLink } from "react-router-dom";
-import { Menu, X, User } from "lucide-react";
+import { Menu, X, User, Globe } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/hooks/use_auth_store";
 import { LogoutButton } from "@/category/auth/components/logout_button";
+import { useUpdateSettings } from "@/category/user/hook/use_update_settings";
+import { changeLanguage } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { label: "소개", path: "/about" },
-  { label: "영상", path: "/videos" },
-  { label: "학습", path: "/studies" },
-  { label: "수업", path: "/lessons" },
+  { labelKey: "nav.about", path: "/about" },
+  { labelKey: "nav.videos", path: "/videos" },
+  { labelKey: "nav.studies", path: "/studies" },
+  { labelKey: "nav.lessons", path: "/lessons" },
 ] as const;
 
 export function Header() {
+  const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const updateSettings = useUpdateSettings();
 
   const closeMobileMenu = useCallback(() => {
     setMobileMenuOpen(false);
   }, []);
+
+  const handleLanguageToggle = useCallback(() => {
+    const newLang = i18n.language === "ko" ? "en" : "ko";
+    changeLanguage(newLang);
+    if (isLoggedIn) {
+      updateSettings.mutate({ user_set_language: newLang });
+    }
+  }, [i18n.language, isLoggedIn, updateSettings]);
 
   // Handle scroll effect
   useEffect(() => {
@@ -67,13 +80,23 @@ export function Header() {
                 )
               }
             >
-              {item.label}
+              {t(item.labelKey)}
             </NavLink>
           ))}
         </nav>
 
         {/* Desktop Auth Buttons */}
         <div className="hidden lg:flex items-center gap-3">
+          {/* Language Switcher */}
+          <button
+            type="button"
+            onClick={handleLanguageToggle}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-primary rounded-lg hover:bg-muted/50 transition-colors"
+          >
+            <Globe className="h-4 w-4" />
+            {i18n.language === "ko" ? "EN" : "KO"}
+          </button>
+
           {isLoggedIn ? (
             <>
               <Button
@@ -84,7 +107,7 @@ export function Header() {
               >
                 <Link to="/user/me">
                   <User className="h-4 w-4" />
-                  마이페이지
+                  {t("nav.myPage")}
                 </Link>
               </Button>
               <LogoutButton />
@@ -97,14 +120,14 @@ export function Header() {
                 asChild
                 className="text-muted-foreground hover:text-primary"
               >
-                <Link to="/login">로그인</Link>
+                <Link to="/login">{t("nav.login")}</Link>
               </Button>
               <Button
                 size="sm"
                 asChild
                 className="gradient-primary hover:opacity-90 text-white shadow-md hover:shadow-lg transition-all rounded-full px-6"
               >
-                <Link to="/signup">회원가입</Link>
+                <Link to="/signup">{t("nav.signup")}</Link>
               </Button>
             </>
           )}
@@ -147,9 +170,19 @@ export function Header() {
                 )
               }
             >
-              {item.label}
+              {t(item.labelKey)}
             </NavLink>
           ))}
+
+          {/* Mobile Language Switcher */}
+          <button
+            type="button"
+            onClick={handleLanguageToggle}
+            className="flex items-center gap-2 px-4 py-3 text-[15px] font-medium text-muted-foreground hover:text-primary hover:bg-muted/50 rounded-lg transition-colors"
+          >
+            <Globe className="h-4 w-4" />
+            {i18n.language === "ko" ? "English" : "한국어"}
+          </button>
 
           <div className="border-t my-3" />
 
@@ -159,7 +192,7 @@ export function Header() {
                 <Button variant="ghost" asChild className="justify-start gap-2" onClick={closeMobileMenu}>
                   <Link to="/user/me">
                     <User className="h-4 w-4" />
-                    마이페이지
+                    {t("nav.myPage")}
                   </Link>
                 </Button>
                 <LogoutButton />
@@ -167,14 +200,14 @@ export function Header() {
             ) : (
               <>
                 <Button variant="ghost" asChild className="justify-start" onClick={closeMobileMenu}>
-                  <Link to="/login">로그인</Link>
+                  <Link to="/login">{t("nav.login")}</Link>
                 </Button>
                 <Button
                   asChild
                   className="gradient-primary text-white rounded-full"
                   onClick={closeMobileMenu}
                 >
-                  <Link to="/signup">회원가입</Link>
+                  <Link to="/signup">{t("nav.signup")}</Link>
                 </Button>
               </>
             )}

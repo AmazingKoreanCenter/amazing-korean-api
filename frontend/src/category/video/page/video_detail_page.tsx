@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Calendar, CheckCircle2, ArrowRight } from "lucide-react";
 
@@ -38,6 +39,7 @@ const clampProgressRate = (value: number) => {
 };
 
 export function VideoDetailPage() {
+  const { t } = useTranslation();
   const { videoId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -177,16 +179,16 @@ export function VideoDetailPage() {
               <span className="text-3xl">😕</span>
             </div>
             <CardTitle className="text-xl">
-              {isNotFound ? "영상을 찾을 수 없습니다" : "오류 발생"}
+              {isNotFound ? t("video.notFoundTitle") : t("common.errorOccurred")}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {isNotFound ? "존재하지 않거나 삭제된 영상입니다." : "일시적인 오류입니다. 다시 시도해주세요."}
+              {isNotFound ? t("video.notFoundDescription") : t("common.temporaryError")}
             </p>
           </CardHeader>
           <CardContent>
             <Button asChild className="gradient-primary text-white rounded-full">
               <Link to={lessonId ? `/lessons/${lessonId}` : "/videos"}>
-                {lessonId ? "수업으로 돌아가기" : "목록으로 돌아가기"}
+                {lessonId ? t("video.backToLesson") : t("common.backToList")}
               </Link>
             </Button>
           </CardContent>
@@ -208,7 +210,7 @@ export function VideoDetailPage() {
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          {isInLessonContext ? "수업으로" : "목록으로"}
+          {isInLessonContext ? t("video.backToLessonShort") : t("common.backToListShort")}
         </Link>
 
         {/* Video Player */}
@@ -234,7 +236,7 @@ export function VideoDetailPage() {
 
           <div className="space-y-2">
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              {data.title ?? "제목 없음"}
+              {data.title ?? t("common.noTitle")}
             </h1>
             {data.subtitle && (
               <p className="text-lg text-muted-foreground">{data.subtitle}</p>
@@ -265,10 +267,10 @@ export function VideoDetailPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-green-700 mb-2">
-                  영상 시청을 완료했습니다!
+                  {t("video.completionTitle")}
                 </h2>
                 <p className="text-sm text-green-600/80">
-                  수고하셨습니다. 학습을 계속해보세요.
+                  {t("video.completionDescription")}
                 </p>
               </div>
 
@@ -277,7 +279,7 @@ export function VideoDetailPage() {
                   {isLastLessonItem ? (
                     <>
                       <p className="text-sm text-muted-foreground">
-                        "{lessonData?.title ?? "수업"}"의 모든 항목을 완료했습니다!
+                        {t("video.allItemsCompleted", { title: lessonData?.title ?? t("common.noTitle") })}
                       </p>
                       <Button
                         className="gradient-primary text-white rounded-full"
@@ -291,7 +293,7 @@ export function VideoDetailPage() {
                           navigate(`/lessons/${lessonId}`);
                         }}
                       >
-                        수업 완료하기
+                        {t("lesson.completeLesson")}
                       </Button>
                     </>
                   ) : nextLessonItem ? (
@@ -318,23 +320,23 @@ export function VideoDetailPage() {
                                 : `/lessons/${lessonId}`
                           }
                         >
-                          다음 항목으로
+                          {t("video.nextItem")}
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Link>
                       </Button>
                       <Button variant="outline" asChild className="rounded-full">
-                        <Link to={`/lessons/${lessonId}`}>수업으로 돌아가기</Link>
+                        <Link to={`/lessons/${lessonId}`}>{t("video.backToLesson")}</Link>
                       </Button>
                     </>
                   ) : (
                     <Button asChild className="gradient-primary text-white rounded-full">
-                      <Link to={`/lessons/${lessonId}`}>수업으로 돌아가기</Link>
+                      <Link to={`/lessons/${lessonId}`}>{t("video.backToLesson")}</Link>
                     </Button>
                   )}
                 </div>
               ) : (
                 <Button asChild className="gradient-primary text-white rounded-full">
-                  <Link to="/videos">목록으로 돌아가기</Link>
+                  <Link to="/videos">{t("common.backToList")}</Link>
                 </Button>
               )}
             </CardContent>

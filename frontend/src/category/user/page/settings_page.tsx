@@ -4,7 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
+import { changeLanguage } from "@/i18n";
 import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +56,7 @@ const languageOptions: Array<{
 ];
 
 export function SettingsPage() {
+  const { t, i18n } = useTranslation();
   const { data, isLoading, error } = useUserSettings();
   const isNotFound = error instanceof ApiError && error.status === 404;
 
@@ -75,6 +78,9 @@ export function SettingsPage() {
         user_set_timezone:
           values.user_set_timezone ?? defaultSettings.user_set_timezone,
       });
+      if (values.user_set_language) {
+        changeLanguage(values.user_set_language);
+      }
     },
   });
 
@@ -94,6 +100,14 @@ export function SettingsPage() {
     }
   }, [data, form, isNotFound]);
 
+  // 헤더 언어 토글 변경 시 form에 즉시 반영
+  useEffect(() => {
+    const lang = i18n.language;
+    if ((lang === "ko" || lang === "en") && form.getValues("user_set_language") !== lang) {
+      form.setValue("user_set_language", lang, { shouldDirty: false });
+    }
+  }, [i18n.language, form]);
+
   const controlsDisabled = updateMutation.isPending;
 
   const onSubmit = (values: SettingsForm) => {
@@ -105,7 +119,7 @@ export function SettingsPage() {
       <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle>환경 설정</CardTitle>
+            <CardTitle>{t("user.settingsTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
@@ -134,11 +148,11 @@ export function SettingsPage() {
       <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle>환경 설정</CardTitle>
+            <CardTitle>{t("user.settingsTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-destructive">
-              설정 정보를 불러오지 못했습니다.
+              {t("user.settingsLoadFailed")}
             </p>
           </CardContent>
         </Card>
@@ -150,7 +164,7 @@ export function SettingsPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
       <Card className="w-full max-w-lg">
         <CardHeader>
-          <CardTitle>환경 설정</CardTitle>
+          <CardTitle>{t("user.settingsTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -162,9 +176,9 @@ export function SettingsPage() {
                   <FormItem className="space-y-4 rounded-lg border p-4">
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <FormLabel>Email Marketing</FormLabel>
+                        <FormLabel>{t("user.emailMarketing")}</FormLabel>
                         <FormDescription>
-                          새로운 소식과 혜택을 이메일로 받아보세요.
+                          {t("user.emailMarketingDescription")}
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -187,9 +201,9 @@ export function SettingsPage() {
                   <FormItem className="space-y-4 rounded-lg border p-4">
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <FormLabel>Push Notifications</FormLabel>
+                        <FormLabel>{t("user.pushNotifications")}</FormLabel>
                         <FormDescription>
-                          중요 알림을 푸시 메시지로 받아보세요.
+                          {t("user.pushNotificationsDescription")}
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -210,7 +224,7 @@ export function SettingsPage() {
                 name="user_set_language"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>언어</FormLabel>
+                    <FormLabel>{t("user.languageLabel")}</FormLabel>
                     <Select
                       value={field.value ?? "ko"}
                       onValueChange={field.onChange}
@@ -218,7 +232,7 @@ export function SettingsPage() {
                     >
                       <FormControl>
                         <SelectTrigger>
-                        <SelectValue placeholder="언어를 선택하세요" />
+                        <SelectValue placeholder={t("user.languageDescription")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -239,7 +253,7 @@ export function SettingsPage() {
                 name="user_set_timezone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>타임존</FormLabel>
+                    <FormLabel>{t("user.timezoneLabel")}</FormLabel>
                     <FormControl>
                       <Input
                         value={field.value ?? ""}
@@ -248,7 +262,7 @@ export function SettingsPage() {
                       />
                     </FormControl>
                     <FormDescription>
-                      현재 설정된 타임존입니다.
+                      {t("user.timezoneDescription")}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -263,10 +277,10 @@ export function SettingsPage() {
                 {updateMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    저장 중...
+                    {t("common.saving")}
                   </>
                 ) : (
-                  "저장하기"
+                  t("common.save")
                 )}
               </Button>
 
@@ -276,7 +290,7 @@ export function SettingsPage() {
                   className="text-muted-foreground underline-offset-4 hover:underline flex items-center gap-1"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  마이페이지로 돌아가기
+                  {t("auth.backToMyPage")}
                 </Link>
               </div>
             </form>

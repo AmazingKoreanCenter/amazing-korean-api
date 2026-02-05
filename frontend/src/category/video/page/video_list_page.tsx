@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Play, Film } from "lucide-react";
 
 import {
@@ -47,6 +48,7 @@ const getPageItems = (currentPage: number, totalPages: number): PageItem[] => {
 };
 
 export function VideoListPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
 
   const params = useMemo<VideoListReq>(
@@ -90,15 +92,14 @@ export function VideoListPage() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border">
               <Play className="h-5 w-5 text-secondary" />
               <span className="text-sm font-medium text-muted-foreground">
-                영상으로 배우는 한국어
+                {t("video.heroBadge")}
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-              영상 학습
+              {t("video.listTitle")}
             </h1>
             <p className="text-muted-foreground max-w-lg">
-              다양한 주제의 한국어 영상으로 자연스럽게 학습하세요.
-              원어민의 발음과 표현을 직접 보고 들으며 실력을 향상시킬 수 있습니다.
+              {t("video.listDescription")}
             </p>
           </div>
         </div>
@@ -113,15 +114,15 @@ export function VideoListPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Film className="h-4 w-4" />
                 <span>
-                  총 <strong className="text-foreground">{(meta.total_count ?? 0).toLocaleString()}</strong>개 영상
+                  {t("video.totalVideos", { count: (meta.total_count ?? 0).toLocaleString() })}
                 </span>
                 <span className="text-border">|</span>
-                <span>{currentPage} / {totalPages} 페이지</span>
+                <span>{currentPage} / {totalPages} {t("common.page")}</span>
               </div>
               {isFetching && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
-                  불러오는 중
+                  {t("common.loading")}
                 </div>
               )}
             </div>
@@ -142,7 +143,7 @@ export function VideoListPage() {
               <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
                 <Film className="h-8 w-8 text-muted-foreground" />
               </div>
-              <p className="text-muted-foreground">등록된 영상이 없습니다.</p>
+              <p className="text-muted-foreground">{t("video.emptyTitle")}</p>
             </div>
           ) : (
             <>

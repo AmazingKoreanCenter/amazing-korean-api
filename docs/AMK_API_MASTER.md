@@ -1,6 +1,6 @@
 ---
 title: AMK_API_MASTER — Amazing Korean API  Master Spec
-updated: 2026-02-03
+updated: 2026-02-05
 owner: HYMN Co., Ltd. (Amazing Korean)
 audience: server / database / backend / frontend / lead / LLM assistant
 ---
@@ -64,6 +64,7 @@ audience: server / database / backend / frontend / lead / LLM assistant
 - [6. 프론트엔드 구조 & 규칙](#6-프론트엔드-구조--규칙)
   - [6.1 프론트엔드 스택 & 기본 원칙](#61-프론트엔드-스택--기본-원칙)
   - [6.2 프론트 디렉터리 구조 & 컴포넌트 계층](#62-프론트-디렉터리-구조--컴포넌트-계층)
+    - [6.2.4 다국어(i18n) 아키텍처](#624-다국어i18n-아키텍처)
   - [6.3 라우팅 & 접근 제어](#63-라우팅--접근-제어)
   - [6.4 상태 관리 & API 연동 패턴](#64-상태-관리--api-연동-패턴)
   - [6.5 UI/UX & Tailwind 규칙 (shadcn/ui System)](#65-uiux--tailwind-규칙-shadcnui-system)
@@ -448,6 +449,31 @@ VIMEO_ACCESS_TOKEN=xxx
 
 **관련 엔드포인트**: Phase 7 - `GET /admin/videos/vimeo/preview`, `POST /admin/videos/vimeo/upload-ticket`
 
+#### 2.4.4 IP Geolocation (ip-api.com)
+
+> 로그인 시 IP 기반 지리정보 자동 조회
+
+**서비스**: [ip-api.com](http://ip-api.com) (무료 티어: 45 req/min)
+
+**코드 구조**
+- `src/external/ipgeo.rs`: IpGeoClient 구현
+- `src/state.rs`: AppState에 `Arc<IpGeoClient>` 포함
+
+**조회 데이터**
+| 필드 | DB 컬럼 | 설명 | 예시 |
+|------|---------|------|------|
+| `countryCode` | `login_country` | ISO 3166-1 alpha-2 국가 코드 | "KR", "US" |
+| `as` | `login_asn` | AS 번호 (Autonomous System Number) | 4766 |
+| `org` | `login_org` | ISP/조직명 | "Korea Telecom" |
+
+**적용 범위**
+- `login` 테이블: 활성 세션 정보
+- `login_log` 테이블: 로그인 이력 (감사 로그)
+
+**Private IP 처리**
+- `127.0.0.1`, `10.x.x.x`, `192.168.x.x`, `172.16-31.x.x` 등 사설 IP는 조회 skip
+- 기본값: `country='ZZ'`, `asn=0`, `org='Unknown'`
+
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
 ---
@@ -460,6 +486,16 @@ VIMEO_ACCESS_TOKEN=xxx
   - 타입: `TIMESTAMPTZ`
   - 기본값: `DEFAULT now()` (UTC)
 - 클라이언트(웹/앱)에선 KST or 로컬 타임존으로 변환하여 표시.
+
+#### 사용자 타임존 (`user_set_timezone`) 정책
+
+> 목적: 알람, 학습 리마인더, 콘텐츠 예고 등 시간 기반 서비스를 위한 사용자별 시간대 관리
+
+- **자동 감지**: 회원가입 또는 로그인 시 브라우저/기기에서 `Intl.DateTimeFormat().resolvedOptions().timeZone`으로 자동 감지하여 DB에 저장
+- **수동 변경 허용**: 사용자가 설정 페이지에서 직접 타임존을 변경할 수 있도록 지원 (VPN/여행 등으로 감지값이 실제 생활 시간대와 다를 수 있음)
+- **자동 갱신 안 함**: 로그인 시 감지된 값으로 자동 덮어쓰지 않음 (사용자가 설정한 값을 존중)
+  - 최초 가입 시에만 자동 저장, 이후에는 사용자가 직접 변경해야 함
+- **활용 예정**: 알람/푸시 알림 발송 시간, 학습 리마인더, 콘텐츠 공개 시각 표시 등
 
 ### 3.2 네이밍 & 스키마 규칙 (요약)
 
@@ -1060,8 +1096,9 @@ VIMEO_ACCESS_TOKEN=xxx
   - `user_language_enum` ('ko', 'en') 사용자 구사 언어 이력
   - `user_gender_enum` ('none', 'male', 'female', 'other') 사용자 성별 이력
 - `users_setting`
-  - 사용자 관련 UI 언어, 알림 등 개인 설정
+  - 사용자 관련 UI 언어, 타임존, 알림 등 개인 설정
   - `user_set_language_enum` ('ko', 'en') 사용자 설정 언어
+  - `user_set_timezone` (VARCHAR) 사용자 타임존 (예: "Asia/Seoul", "America/New_York") — 최초 가입 시 자동 감지, 이후 수동 변경만 허용 (→ 3.1 참고)
 - `admin_users_log`
   - 사용자 관련 관리자 활동 기록
   - `admin_action_enum` ('create', 'update', 'banned', 'reorder', 'publish', 'unpublish') 관리자 활동 이력
@@ -2324,6 +2361,7 @@ Location: http://localhost:5173/login?error=oauth_failed&error_description=...
     - **Global Client State**: **Zustand** (로그인 세션 등 최소한의 전역 상태)
     - **Form**: **React Hook Form** + **Zod** (렌더링 최적화 및 스키마 검증)
   - **Routing**: React Router (v6)
+  - **i18n (다국어)**: **react-i18next** + **i18next** (ko/en 지원, 수동 전환 방식)
   - **HTTP**: `fetch` API 래퍼 (Axios 사용 지양, `src/api/client.ts`로 통일)
 
 - **설계 기본 원칙**
@@ -2398,8 +2436,15 @@ src/
     layout/              # Header, Footer, Sidebar 등 레이아웃 조각
     shared/              # 도메인에 종속되지 않는 재사용 컴포넌트 (LoadingSpinner 등)
 
+  i18n/                  # ★ 다국어(i18n) 모듈
+    index.ts             # i18next 초기화, changeLanguage/getSavedLanguage 헬퍼
+    locales/
+      ko.json            # 한국어 번역 (기본 언어)
+      en.json            # 영어 번역
+
   hooks/                 # 전역 Custom Hook
     use_auth.ts          # 인증 상태 관리 (Zustand + Logic)
+    use_language_sync.ts # DB 언어 설정 ↔ i18n 동기화
     use_toast.ts         # 알림 UI 제어
     use_mobile.ts        # 모바일 감지 및 반응형 처리
 
@@ -2458,6 +2503,81 @@ src/
   - UI 상태(Form, Modal open/close)와 사용자 인터랙션 핸들러를 캡슐화.
   - Page 컴포넌트가 "Controller" 역할을 하지 않도록 로직을 분리해내는 핵심 계층.
   - 예: `useSignupForm`, `useVideoPlayerController`
+
+#### 6.2.4 다국어(i18n) 아키텍처
+
+> 목적: 한국어(ko)와 영어(en)를 지원하며, **사용자 수동 전환** 방식으로 동작한다. 브라우저 언어 자동 감지는 사용하지 않는다.
+
+##### 지원 언어 & 기본값
+
+| 코드 | 언어 | 비고 |
+|------|------|------|
+| `ko` | 한국어 | **기본 언어 (fallback)** |
+| `en` | English | |
+
+##### 언어 결정 우선순위
+
+```
+1. DB user_set_language (로그인 상태)
+2. localStorage "language" 키
+3. 기본값 "ko"
+```
+
+- **로그인 시**: `useLanguageSync` 훅이 DB의 `user_set_language`를 가져와 i18n + localStorage에 적용 (최초 1회)
+- **비로그인 시**: localStorage에 저장된 언어를 유지
+- **로그아웃 시**: 마지막 선택한 언어를 localStorage에서 유지
+
+##### 번역 파일 구조
+
+- 경로: `src/i18n/locales/{ko,en}.json`
+- 네임스페이스 구조 (플랫 JSON, 도메인별 prefix):
+
+```json
+{
+  "common": { "loading": "...", "save": "..." },
+  "nav":    { "about": "...", "login": "..." },
+  "footer": { "brandDescription": "...", "copyright": "..." },
+  "auth":   { "loginTitle": "...", "signupButton": "..." },
+  "user":   { "myPageTitle": "...", "settingsTitle": "..." },
+  "home":   { "heroTitle": "...", "ctaStart": "..." },
+  "about":  { "badge": "...", "missionTitle": "..." },
+  "study":  { "listTitle": "...", "kindChoice": "..." },
+  "lesson": { "listTitle": "...", "accessPaid": "..." },
+  "video":  { "listTitle": "...", "emptyTitle": "..." },
+  "error":  { "notFoundTitle": "...", "accessDeniedTitle": "..." }
+}
+```
+
+- **규칙**: ko.json과 en.json의 키 구조는 **반드시 1:1 일치**해야 한다.
+- **보간(Interpolation)**: `{{variable}}` 문법 사용 (예: `"총 {{count}}개"`)
+
+##### 코드 사용 패턴
+
+| 컨텍스트 | 패턴 | 예시 |
+|----------|------|------|
+| React 컴포넌트 내부 | `useTranslation` 훅 | `const { t } = useTranslation();` → `t("auth.loginTitle")` |
+| React 컴포넌트 외부 (Hook, Zod 스키마 등) | `i18n.t()` 직접 호출 | `import i18n from "@/i18n";` → `i18n.t("common.requestFailed")` |
+| 언어 변경 | `changeLanguage` 헬퍼 | `import { changeLanguage } from "@/i18n";` → `changeLanguage("en")` |
+
+##### 언어 전환 UI & 동기화
+
+- **헤더 토글**: Globe 아이콘 버튼으로 ko↔en 전환
+  - 데스크톱: `"EN"` / `"KO"` 약어 표시
+  - 모바일: `"English"` / `"한국어"` 전체 표시 (전환 대상 언어를 해당 언어로 표기)
+  - 로그인 상태일 경우 `useUpdateSettings`로 DB에도 저장
+- **설정 페이지**: Select 드롭다운으로 언어 선택 → 저장 시 DB + i18n 동시 적용
+- **동기화**: 헤더 토글 변경 시 `i18n.language` 변경 감지를 통해 설정 페이지 form에 즉시 반영
+
+##### 적용 범위
+
+| 대상 | i18n 적용 | 비고 |
+|------|-----------|------|
+| 사용자 대면 페이지 (홈, 로그인, 학습 등) | O | 모든 UI 텍스트 `t()` 처리 |
+| 레이아웃 (헤더, 푸터) | O | |
+| 에러 페이지 (404, 403, 500) | O | |
+| 관리자(Admin) 페이지 | X | 한국어 전용 (관리자가 한국어 사용자) |
+| Zod 유효성 검증 메시지 | O | `i18n.t()` 패턴 사용 |
+| Toast 알림 메시지 | O | Hook 내에서 `i18n.t()` 사용 |
 
 ---
 
@@ -7907,7 +8027,7 @@ export function AppRoutes() {
 |------|:----:|------|
 | 학습 문제 동적 생성/전달 | 보류 | 커리큘럼 데이터 완비 후, 사용자 요구 시 구현 |
 | Lesson 통계 기능 | 보류 | `/admin/lessons/stats` — 기본 progress 데이터 있음, 추후 구현 예정 |
-| Login 정보/로그 추가 | 보류 | `login_country`, `login_asn`, `login_org` — 외부 API 연동 시 IP Geolocation 적용 |
+| Login 정보/로그 추가 | ✅ | `login_country`, `login_asn`, `login_org` — ip-api.com 연동으로 IP Geolocation 적용 완료 |
 | 통계 비동기/배치 분리 | 보류 | 집계/통계 복잡해지면 검토 |
 | URL/함수명 통일 | ✅ | 2026-02-02 완료 — handler/service/repo 네이밍 패턴 통일 |
 
@@ -8087,7 +8207,7 @@ ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
     - `upsert_progress` → `update_progress`
   - **Section 9.7 "보류/낮음 우선순위" 업데이트**
     - URL/함수명 통일 ✅ 완료
-    - Login 정보/로그 추가 — 외부 API 연동 시 진행 예정
+    - Login 정보/로그 추가 ✅ — ip-api.com 연동 완료
     - Lesson 통계 기능 — 추후 구현 예정
 - **2026-02-04 — Admin Upgrade (관리자 초대) 시스템 구현**
   - **백엔드 (7-68 ~ 7-70)**
@@ -8112,6 +8232,18 @@ ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
     - `frontend/src/category/admin/page/admin_upgrade_join.tsx` — 신규
     - `frontend/src/category/admin/page/admin_users_page.tsx` — 초대 다이얼로그 추가
     - `frontend/src/app/routes.tsx` — /admin/upgrade/join 라우트 추가
+- **2026-02-04 — IP Geolocation 기능 구현**
+  - **기능**: 로그인 시 IP 기반 지리정보 자동 조회 (ip-api.com 연동)
+  - **저장 필드**: `login_country`, `login_asn`, `login_org`
+  - **적용 테이블**: `login` (활성 세션), `login_log` (이력)
+  - **파일 변경 목록**
+    - `src/external/ipgeo.rs` — IpGeoClient 구현 (신규)
+    - `src/external/mod.rs` — ipgeo 모듈 등록
+    - `src/state.rs` — AppState에 `Arc<IpGeoClient>` 추가
+    - `src/main.rs` — IpGeoClient 초기화
+    - `src/api/auth/repo.rs` — insert_login_record_tx, insert_login_record_oauth_tx에 지리정보 파라미터 추가
+    - `src/api/auth/service.rs` — 로그인/OAuth 세션 생성 시 geo 데이터 전달
+    - `src/api/user/service.rs` — 회원가입 자동 로그인에 geo 데이터 전달
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 

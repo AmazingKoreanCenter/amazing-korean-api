@@ -3,6 +3,7 @@ import { Loader2, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import {
   Card,
@@ -33,17 +34,8 @@ import { useLogin } from "../hook/use_login";
 import { useGoogleLogin } from "../hook/use_google_login";
 import { useOAuthCallback } from "../hook/use_oauth_callback";
 
-// Provider 이름 한글화
-const providerNameMap: Record<string, string> = {
-  google: "Google",
-  apple: "Apple",
-  social: "소셜",
-};
-
-const getProviderDisplayName = (provider: string) =>
-  providerNameMap[provider.toLowerCase()] ?? provider;
-
 export function LoginPage() {
+  const { t } = useTranslation();
   const loginMutation = useLogin();
   const googleLoginMutation = useGoogleLogin();
   const navigate = useNavigate();
@@ -85,7 +77,13 @@ export function LoginPage() {
     if (!loginMutation.socialOnlyError) return null;
 
     const { providers } = loginMutation.socialOnlyError;
-    const providerNames = providers.map(getProviderDisplayName).join(", ");
+    const providerNames = providers
+      .map((p) => {
+        if (p.toLowerCase() === "google") return t("auth.socialProviderGoogle");
+        if (p.toLowerCase() === "apple") return t("auth.socialProviderApple");
+        return t("auth.socialProviderSocial");
+      })
+      .join(", ");
 
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 mb-4">
@@ -93,12 +91,10 @@ export function LoginPage() {
           <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
           <div className="space-y-2">
             <p className="text-sm font-medium text-amber-800">
-              소셜 계정으로 가입된 이메일입니다
+              {t("auth.socialOnlyTitle")}
             </p>
             <p className="text-sm text-amber-700">
-              이 이메일은 <strong>{providerNames}</strong> 계정으로 가입되었습니다.
-              <br />
-              아래 버튼을 눌러 소셜 로그인을 이용해주세요.
+              {t("auth.socialOnlyDescription", { providers: providerNames })}
             </p>
             {providers.includes("google") && (
               <Button
@@ -111,7 +107,7 @@ export function LoginPage() {
                 {googleLoginMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Google 로그인 중...
+                    {t("auth.loginWithGoogleLoading")}
                   </>
                 ) : (
                   <>
@@ -121,7 +117,7 @@ export function LoginPage() {
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                     </svg>
-                    Google로 로그인
+                    {t("auth.loginWithGoogleAlert")}
                   </>
                 )}
               </Button>
@@ -136,9 +132,9 @@ export function LoginPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-2xl">로그인</CardTitle>
+          <CardTitle className="text-2xl">{t("auth.loginTitle")}</CardTitle>
           <CardDescription>
-            Amazing Korean에 오신 것을 환영합니다
+            {t("auth.loginWelcome")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -155,7 +151,7 @@ export function LoginPage() {
               {googleLoginMutation.isPending ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin mr-3" />
-                  Google 로그인 중...
+                  {t("auth.loginWithGoogleLoading")}
                 </>
               ) : (
                 <>
@@ -177,7 +173,7 @@ export function LoginPage() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Google로 계속하기
+                  {t("auth.loginWithGoogle")}
                 </>
               )}
             </Button>
@@ -192,7 +188,7 @@ export function LoginPage() {
               <svg className="h-5 w-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
               </svg>
-              Apple로 계속하기 (준비 중)
+              {t("auth.loginWithApple")}
             </Button>
           </div>
 
@@ -213,7 +209,7 @@ export function LoginPage() {
                 variant="ghost"
                 className="w-full justify-between text-muted-foreground hover:text-foreground"
               >
-                이메일로 로그인
+                {t("auth.loginWithEmail")}
                 {showEmailForm ? (
                   <ChevronUp className="h-4 w-4" />
                 ) : (
@@ -236,11 +232,11 @@ export function LoginPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>이메일</FormLabel>
+                        <FormLabel>{t("auth.emailLabel")}</FormLabel>
                         <FormControl>
                           <Input
                             type="email"
-                            placeholder="email@example.com"
+                            placeholder={t("auth.emailPlaceholder")}
                             autoComplete="email"
                             {...field}
                           />
@@ -256,11 +252,11 @@ export function LoginPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>비밀번호</FormLabel>
+                        <FormLabel>{t("auth.passwordLabel")}</FormLabel>
                         <FormControl>
                           <Input
                             type="password"
-                            placeholder="비밀번호를 입력하세요"
+                            placeholder={t("auth.passwordPlaceholder")}
                             autoComplete="current-password"
                             {...field}
                           />
@@ -278,10 +274,10 @@ export function LoginPage() {
                     {loginMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        로그인 중...
+                        {t("auth.loggingIn")}
                       </>
                     ) : (
-                      "로그인"
+                      t("auth.loginButton")
                     )}
                   </Button>
                 </form>
@@ -293,13 +289,13 @@ export function LoginPage() {
                   to="/signup"
                   className="text-primary underline-offset-4 hover:underline"
                 >
-                  이메일로 회원가입
+                  {t("auth.signupWithEmail")}
                 </Link>
                 <Link
                   to="/find-id"
                   className="text-muted-foreground underline-offset-4 hover:underline"
                 >
-                  아이디/비밀번호 찾기
+                  {t("auth.findIdPassword")}
                 </Link>
               </div>
             </CollapsibleContent>
@@ -307,12 +303,12 @@ export function LoginPage() {
 
           {/* 회원가입 안내 */}
           <p className="text-center text-sm text-muted-foreground pt-4">
-            계정이 없으신가요?{" "}
+            {t("auth.noAccount")}{" "}
             <Link
               to="/signup"
               className="text-primary underline-offset-4 hover:underline font-medium"
             >
-              회원가입
+              {t("nav.signup")}
             </Link>
           </p>
         </CardContent>

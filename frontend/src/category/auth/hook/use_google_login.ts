@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import i18n from "@/i18n";
 import { ApiError } from "@/api/client";
 
 import { getGoogleAuthUrl } from "../auth_api";
@@ -14,7 +15,7 @@ const getErrorMessage = (error: unknown) => {
     return error.message;
   }
 
-  return "Google 로그인을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.";
+  return i18n.t("auth.toastGoogleLoginUnavailable");
 };
 
 export const useGoogleLogin = () => {

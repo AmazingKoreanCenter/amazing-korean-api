@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { BookOpen, Calendar, GraduationCap, Filter } from "lucide-react";
 
@@ -31,26 +32,6 @@ const ELLIPSIS = "ellipsis" as const;
 
 type PageItem = number | typeof ELLIPSIS;
 
-const PROGRAM_LABELS: Record<StudyProgram, string> = {
-  basic_pronunciation: "기초 발음",
-  basic_word: "기초 단어",
-  basic_900: "기초 900",
-  topik_read: "TOPIK 읽기",
-  topik_listen: "TOPIK 듣기",
-  topik_write: "TOPIK 쓰기",
-  tbc: "TBC",
-};
-
-const PROGRAM_OPTIONS: Array<{ value: StudyProgram | "all"; label: string }> = [
-  { value: "all", label: "전체 프로그램" },
-  { value: "basic_pronunciation", label: PROGRAM_LABELS.basic_pronunciation },
-  { value: "basic_word", label: PROGRAM_LABELS.basic_word },
-  { value: "basic_900", label: PROGRAM_LABELS.basic_900 },
-  { value: "topik_read", label: PROGRAM_LABELS.topik_read },
-  { value: "topik_listen", label: PROGRAM_LABELS.topik_listen },
-  { value: "topik_write", label: PROGRAM_LABELS.topik_write },
-  { value: "tbc", label: PROGRAM_LABELS.tbc },
-];
 
 const getPageItems = (currentPage: number, totalPages: number): PageItem[] => {
   if (totalPages <= 7) {
@@ -89,8 +70,30 @@ const formatDate = (value: string) => {
 };
 
 export function StudyListPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [program, setProgram] = useState<StudyProgram | "all">("all");
+
+  const PROGRAM_LABELS: Record<StudyProgram, string> = {
+    basic_pronunciation: t("study.programBasicPronunciation"),
+    basic_word: t("study.programBasicWord"),
+    basic_900: t("study.programBasic900"),
+    topik_read: t("study.programTopikRead"),
+    topik_listen: t("study.programTopikListen"),
+    topik_write: t("study.programTopikWrite"),
+    tbc: t("study.programTbc"),
+  };
+
+  const PROGRAM_OPTIONS: Array<{ value: StudyProgram | "all"; label: string }> = [
+    { value: "all", label: t("study.filterAll") },
+    { value: "basic_pronunciation", label: PROGRAM_LABELS.basic_pronunciation },
+    { value: "basic_word", label: PROGRAM_LABELS.basic_word },
+    { value: "basic_900", label: PROGRAM_LABELS.basic_900 },
+    { value: "topik_read", label: PROGRAM_LABELS.topik_read },
+    { value: "topik_listen", label: PROGRAM_LABELS.topik_listen },
+    { value: "topik_write", label: PROGRAM_LABELS.topik_write },
+    { value: "tbc", label: PROGRAM_LABELS.tbc },
+  ];
   const sort = undefined;
 
   const params = useMemo<StudyListReq>(() => {
@@ -151,15 +154,14 @@ export function StudyListPage() {
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border">
                 <GraduationCap className="h-5 w-5 text-secondary" />
                 <span className="text-sm font-medium text-muted-foreground">
-                  체계적인 한국어 학습
+                  {t("study.heroBadge")}
                 </span>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-                학습 문제
+                {t("study.listTitle")}
               </h1>
               <p className="text-muted-foreground max-w-lg">
-                프로그램별 학습 문제를 통해 한국어 실력을 체계적으로 향상시켜 보세요.
-                발음부터 TOPIK까지 다양한 학습 콘텐츠를 제공합니다.
+                {t("study.listDescription")}
               </p>
             </div>
 
@@ -168,11 +170,11 @@ export function StudyListPage() {
               <div className="bg-white rounded-2xl shadow-card p-4 space-y-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                   <Filter className="h-4 w-4" />
-                  프로그램 필터
+                  {t("study.filterLabel")}
                 </div>
                 <Select value={program} onValueChange={handleProgramChange}>
                   <SelectTrigger className="bg-muted/30 border-0 rounded-xl">
-                    <SelectValue placeholder="전체 프로그램" />
+                    <SelectValue placeholder={t("study.filterAll")} />
                   </SelectTrigger>
                   <SelectContent>
                     {PROGRAM_OPTIONS.map((option) => (
@@ -197,15 +199,15 @@ export function StudyListPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <BookOpen className="h-4 w-4" />
                 <span>
-                  총 <strong className="text-foreground">{(meta.total_count ?? 0).toLocaleString()}</strong>개 문제
+                  {t("study.totalProblems", { count: (meta.total_count ?? 0).toLocaleString() })}
                 </span>
                 <span className="text-border">|</span>
-                <span>{currentPage} / {totalPages} 페이지</span>
+                <span>{currentPage} / {totalPages} {t("common.page")}</span>
               </div>
               {isFetching && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-secondary" />
-                  불러오는 중
+                  {t("common.loading")}
                 </div>
               )}
             </div>
@@ -236,9 +238,9 @@ export function StudyListPage() {
               <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
                 <BookOpen className="h-10 w-10 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">등록된 문제가 없습니다</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("study.emptyTitle")}</h3>
               <p className="text-sm text-muted-foreground">
-                선택한 프로그램에 해당하는 학습 문제가 아직 없습니다.
+                {t("study.emptyDescription")}
               </p>
             </div>
           ) : (
@@ -259,7 +261,7 @@ export function StudyListPage() {
                           </div>
                         </div>
                         <CardTitle className="text-lg leading-snug group-hover:text-primary transition-colors">
-                          {study.title ?? "제목 없음"}
+                          {study.title ?? t("common.noTitle")}
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="pt-0">

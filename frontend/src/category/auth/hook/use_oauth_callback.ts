@@ -6,22 +6,22 @@
  * ## 전체 OAuth 플로우
  *
  * 1단계: 사용자가 "Google로 계속하기" 클릭
- *   → useGoogleLogin hook이 GET /auth/google 호출
- *   → 백엔드가 auth_url 반환
- *   → window.location.href = auth_url (Google 로그인 페이지로 이동)
+ *   -> useGoogleLogin hook이 GET /auth/google 호출
+ *   -> 백엔드가 auth_url 반환
+ *   -> window.location.href = auth_url (Google 로그인 페이지로 이동)
  *
  * 2단계: Google에서 계정 선택 및 동의
- *   → 사용자가 Google 계정 선택 후 동의
- *   → Google이 백엔드 콜백 URL로 리다이렉트 (GET /auth/google/callback)
+ *   -> 사용자가 Google 계정 선택 후 동의
+ *   -> Google이 백엔드 콜백 URL로 리다이렉트 (GET /auth/google/callback)
  *
  * 3단계: 백엔드에서 OAuth 처리 후 프론트엔드로 리다이렉트
- *   → 백엔드: 토큰 교환 → 사용자 조회/생성 → 세션 생성 → 쿠키에 refresh_token 설정
- *   → 프론트엔드로 리다이렉트: /login?login=success&user_id=xxx&is_new_user=true|false
+ *   -> 백엔드: 토큰 교환 -> 사용자 조회/생성 -> 세션 생성 -> 쿠키에 refresh_token 설정
+ *   -> 프론트엔드로 리다이렉트: /login?login=success&user_id=xxx&is_new_user=true|false
  *
  * 4단계: 이 Hook이 처리 (LoginPage에서 호출)
- *   → URL 파라미터 확인 (login=success, is_new_user, error 등)
- *   → refreshToken() 호출하여 access_token 획득
- *   → 로그인 상태 저장 후 적절한 페이지로 리다이렉트
+ *   -> URL 파라미터 확인 (login=success, is_new_user, error 등)
+ *   -> refreshToken() 호출하여 access_token 획득
+ *   -> 로그인 상태 저장 후 적절한 페이지로 리다이렉트
  *     - 신규 사용자: /user/me?welcome=true (마이페이지 + 환영 메시지)
  *     - 기존 사용자: /about (소개 페이지)
  *
@@ -29,7 +29,7 @@
  *
  * 페이지 로드 시 다음 두 가지가 동시에 발생할 수 있습니다:
  * - [A] 이 Hook의 refreshToken() 호출
- * - [B] Header 등 다른 컴포넌트의 API 호출 → 401 → axios interceptor의 refreshToken() 호출
+ * - [B] Header 등 다른 컴포넌트의 API 호출 -> 401 -> axios interceptor의 refreshToken() 호출
  *
  * [B]가 먼저 완료되면 refresh token rotation으로 인해 [A]가 409 Conflict로 실패합니다.
  * 이 경우에도 interceptor가 이미 로그인 처리를 완료했으므로, isLoggedIn 상태를 확인하여 리다이렉트합니다.
@@ -39,6 +39,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import i18n from "@/i18n";
 import { useAuthStore } from "@/hooks/use_auth_store";
 
 import { refreshToken } from "../auth_api";
@@ -87,7 +88,7 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
       processedRef.current = true;
       const message = errorDescription
         ? decodeURIComponent(errorDescription)
-        : "Google 로그인에 실패했습니다.";
+        : i18n.t("auth.toastGoogleLoginFailed");
       toast.error(message);
       setSearchParams({});
       return;
@@ -102,11 +103,11 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
 
       // ─────────────────────────────────────────────────────────────────────
       // Step 3-1: 리다이렉트 목적지 결정 함수
-      // 신규 사용자 → 마이페이지 (프로필 완성 유도)
-      // 기존 사용자 → 소개 페이지
+      // 신규 사용자 -> 마이페이지 (프로필 완성 유도)
+      // 기존 사용자 -> 소개 페이지
       // ─────────────────────────────────────────────────────────────────────
       const redirectAfterLogin = () => {
-        toast.success("Google 로그인 성공!");
+        toast.success(i18n.t("auth.toastGoogleLoginSuccess"));
         setSearchParams({});
 
         if (isNewUser === "true") {
@@ -140,7 +141,7 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
             redirectAfterLogin();
           } else {
             // 실제 실패: 에러 메시지 표시
-            toast.error("로그인 세션을 가져오는데 실패했습니다.");
+            toast.error(i18n.t("auth.toastSessionFailed"));
             processedRef.current = false; // 재시도 허용
             setSearchParams({});
           }

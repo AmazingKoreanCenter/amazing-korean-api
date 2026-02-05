@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import {
   Card,
@@ -20,13 +21,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { findIdReqSchema, type FindIdReq } from "@/category/auth/types"; // ✅ 경로 정확함
+import { findIdReqSchema, type FindIdReq } from "@/category/auth/types";
 
 import { useFindId } from "../hook/use_find_id";
 
 export function FindIdPage() {
+  const { t } = useTranslation();
   const findIdMutation = useFindId();
-  
+
   const form = useForm<FindIdReq>({
     resolver: zodResolver(findIdReqSchema),
     mode: "onChange",
@@ -44,9 +46,9 @@ export function FindIdPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2">
-          <CardTitle>아이디 찾기</CardTitle>
+          <CardTitle>{t("auth.findIdTitle")}</CardTitle>
           <CardDescription>
-            등록된 이름과 이메일을 입력하시면 안내 메일을 발송해드립니다.
+            {t("auth.findIdDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -58,10 +60,10 @@ export function FindIdPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>이름</FormLabel>
+                    <FormLabel>{t("auth.nameLabel")}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="홍길동"
+                        placeholder={t("auth.namePlaceholder")}
                         autoComplete="name"
                         {...field}
                       />
@@ -77,11 +79,11 @@ export function FindIdPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>이메일</FormLabel>
+                    <FormLabel>{t("auth.emailLabel")}</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="email@example.com"
+                        placeholder={t("auth.emailPlaceholder")}
                         autoComplete="email"
                         {...field}
                       />
@@ -96,11 +98,8 @@ export function FindIdPage() {
                   to="/login"
                   className="text-primary underline-offset-4 hover:underline"
                 >
-                  로그인으로 돌아가기
+                  {t("auth.backToLogin")}
                 </Link>
-                {/* 🚨 [삭제됨] 작동하지 않는 '비밀번호 찾기' 링크 제거
-                  추후 '비밀번호 재설정 요청 API'가 구현되면 다시 추가하세요.
-                */}
               </div>
 
               <Button
@@ -111,10 +110,10 @@ export function FindIdPage() {
                 {findIdMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    요청 중...
+                    {t("auth.requesting")}
                   </>
                 ) : (
-                  "아이디 찾기"
+                  t("auth.findIdButton")
                 )}
               </Button>
             </form>

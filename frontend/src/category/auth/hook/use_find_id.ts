@@ -1,12 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import i18n from "@/i18n";
 import { ApiError } from "@/api/client";
 import type { FindIdReq } from "@/category/auth/types";
 
 import { findId } from "../auth_api";
-
-const successMessage = "If the account exists, an email has been sent.";
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof ApiError) {
@@ -17,18 +16,18 @@ const getErrorMessage = (error: unknown) => {
     return error.message;
   }
 
-  return "요청에 실패했습니다. 잠시 후 다시 시도해주세요.";
+  return i18n.t("common.requestFailed");
 };
 
 export const useFindId = () => {
   return useMutation({
     mutationFn: (data: FindIdReq) => findId(data),
     onSuccess: () => {
-      toast.success(successMessage);
+      toast.success(i18n.t("auth.toastFindIdSuccess"));
     },
     onError: (error) => {
       if (error instanceof ApiError && error.status === 429) {
-        toast.warning("너무 많은 시도가 감지되었습니다. 잠시 후 다시 시도해주세요.");
+        toast.warning(i18n.t("auth.toastTooManyAttempts"));
         return;
       }
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -24,12 +25,6 @@ import { useSubmitAnswer } from "../hook/use_submit_answer";
 import { useTaskStatus } from "../hook/use_task_status";
 import { useTaskExplain } from "../hook/use_task_explain";
 
-const KIND_LABELS: Record<StudyTaskKind, string> = {
-  choice: "객관식",
-  typing: "주관식",
-  voice: "음성",
-};
-
 const formatDate = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -49,6 +44,7 @@ interface ChoiceTaskProps {
 }
 
 function ChoiceTask({ payload, selectedChoice, onSelect, disabled }: ChoiceTaskProps) {
+  const { t } = useTranslation();
   const choices = [
     payload.choice_1,
     payload.choice_2,
@@ -62,7 +58,7 @@ function ChoiceTask({ payload, selectedChoice, onSelect, disabled }: ChoiceTaskP
       {payload.image_url && (
         <img
           src={payload.image_url}
-          alt="문제 이미지"
+          alt={t("study.questionImage")}
           className="max-w-full rounded-lg"
         />
       )}
@@ -97,19 +93,20 @@ interface TypingTaskProps {
 }
 
 function TypingTask({ payload, text, onChange, disabled }: TypingTaskProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="text-lg font-medium">{payload.question}</div>
       {payload.image_url && (
         <img
           src={payload.image_url}
-          alt="문제 이미지"
+          alt={t("study.questionImage")}
           className="max-w-full rounded-lg"
         />
       )}
       <textarea
         className="w-full min-h-[120px] p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-muted"
-        placeholder="답을 입력하세요..."
+        placeholder={t("study.typingPlaceholder")}
         value={text}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
@@ -126,13 +123,14 @@ interface VoiceTaskProps {
 }
 
 function VoiceTask({ payload, text, onChange, disabled }: VoiceTaskProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="text-lg font-medium">{payload.question}</div>
       {payload.image_url && (
         <img
           src={payload.image_url}
-          alt="문제 이미지"
+          alt={t("study.questionImage")}
           className="max-w-full rounded-lg"
         />
       )}
@@ -143,11 +141,11 @@ function VoiceTask({ payload, text, onChange, disabled }: VoiceTaskProps) {
       )}
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">
-          음성 입력 대신 텍스트로 답변해주세요.
+          {t("study.voiceNotice")}
         </p>
         <textarea
           className="w-full min-h-[80px] p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-muted"
-          placeholder="답을 입력하세요..."
+          placeholder={t("study.typingPlaceholder")}
           value={text}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
@@ -158,17 +156,18 @@ function VoiceTask({ payload, text, onChange, disabled }: VoiceTaskProps) {
 }
 
 function ResultCard({ result }: { result: SubmitAnswerRes }) {
+  const { t } = useTranslation();
   return (
     <Card className={result.is_correct ? "border-green-500" : "border-red-500"}>
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-2">
           <span className={`text-lg font-bold ${result.is_correct ? "text-green-600" : "text-red-600"}`}>
-            {result.is_correct ? "정답입니다!" : "오답입니다."}
+            {result.is_correct ? t("study.correct") : t("study.incorrect")}
           </span>
         </div>
         {result.correct_answer && (
           <p className="text-sm text-muted-foreground">
-            정답: {result.correct_answer}
+            {t("study.correctAnswer", { answer: result.correct_answer })}
           </p>
         )}
         {result.explanation && (
@@ -180,11 +179,12 @@ function ResultCard({ result }: { result: SubmitAnswerRes }) {
 }
 
 function ExplainCard({ explain }: { explain: TaskExplainRes }) {
+  const { t } = useTranslation();
   return (
     <Card className="border-blue-500">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-blue-600">해설</span>
+          <span className="text-lg font-bold text-blue-600">{t("study.explanation")}</span>
         </div>
         {explain.title && (
           <h4 className="font-medium">{explain.title}</h4>
@@ -196,7 +196,7 @@ function ExplainCard({ explain }: { explain: TaskExplainRes }) {
         )}
         {explain.resources.length > 0 && (
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">참고 자료</p>
+            <p className="text-xs font-medium text-muted-foreground">{t("study.references")}</p>
             <ul className="text-sm space-y-1">
               {explain.resources.map((resource, index) => (
                 <li key={index}>
@@ -219,18 +219,20 @@ function ExplainCard({ explain }: { explain: TaskExplainRes }) {
 }
 
 function StatusBadge({ tryCount, isSolved }: { tryCount: number; isSolved: boolean }) {
+  const { t } = useTranslation();
   if (tryCount === 0) return null;
 
   return (
     <div className="flex items-center gap-2">
       <Badge variant={isSolved ? "default" : "secondary"}>
-        {isSolved ? "풀이 완료" : `${tryCount}회 시도`}
+        {isSolved ? t("study.solvedBadge") : t("study.tryCount", { count: tryCount })}
       </Badge>
     </div>
   );
 }
 
 export function StudyTaskPage() {
+  const { t } = useTranslation();
   const { taskId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -238,6 +240,12 @@ export function StudyTaskPage() {
 
   const id = useMemo(() => Number(taskId), [taskId]);
   const isValidId = Number.isFinite(id);
+
+  const KIND_LABELS: Record<StudyTaskKind, string> = {
+    choice: t("study.kindChoice"),
+    typing: t("study.kindTypingAlt"),
+    voice: t("study.kindVoiceAlt"),
+  };
 
   // Lesson 컨텍스트 파싱 (쿼리 파라미터)
   const lessonId = useMemo(() => {
@@ -391,17 +399,17 @@ export function StudyTaskPage() {
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <CardTitle>
-              {isNotFound ? "문제를 찾을 수 없습니다." : "오류 발생"}
+              {isNotFound ? t("study.notFoundTitle") : t("common.errorOccurred")}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               {isNotFound
-                ? "존재하지 않거나 삭제된 문제입니다."
-                : "일시적인 오류입니다. 다시 시도해주세요."}
+                ? t("study.notFoundDescription")
+                : t("common.temporaryError")}
             </p>
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link to="/studies/:studyId">목록으로 돌아가기</Link>
+              <Link to="/studies/:studyId">{t("common.backToList")}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -451,7 +459,7 @@ export function StudyTaskPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              문제 #{data.seq}
+              {t("study.problemHashNumber", { seq: data.seq })}
             </h1>
             <p className="text-sm text-muted-foreground">
               {formatDate(data.created_at)}
@@ -481,7 +489,7 @@ export function StudyTaskPage() {
                 className="w-full"
                 onClick={() => setShowExplain(true)}
               >
-                해설 보기
+                {t("study.viewExplanation")}
               </Button>
             ) : isExplainFetching ? (
               <Card>
@@ -503,13 +511,13 @@ export function StudyTaskPage() {
             <CardContent className="p-6 text-center space-y-4">
               <div className="text-4xl">🎉</div>
               <h2 className="text-xl font-bold text-green-700">
-                "{studyData.title ?? "학습"}"을(를) 완료했습니다!
+                {t("study.completionTitle", { title: studyData.title ?? t("common.noTitle") })}
               </h2>
               <p className="text-sm text-muted-foreground">
-                모든 문제를 풀어주셔서 감사합니다.
+                {t("study.completionDescription")}
               </p>
               <Button asChild>
-                <Link to="/studies">학습 목록으로 돌아가기</Link>
+                <Link to="/studies">{t("study.backToStudyList")}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -519,13 +527,13 @@ export function StudyTaskPage() {
           <div className="flex justify-between gap-2">
             <Button variant="outline" asChild>
               <Link to={isInLessonContext ? `/lessons/${lessonId}` : (studyId ? `/studies/${studyId}` : "/studies")}>
-                {isInLessonContext ? "수업으로" : "목록으로"}
+                {isInLessonContext ? t("study.toLesson") : t("common.backToListShort")}
               </Link>
             </Button>
             <div className="flex gap-2">
               {!isLoggedIn ? (
                 <Button asChild>
-                  <Link to="/login">로그인하고 제출하기</Link>
+                  <Link to="/login">{t("auth.loginAndSubmit")}</Link>
                 </Button>
               ) : submitMutation.isSuccess ? (
                 <>
@@ -538,7 +546,7 @@ export function StudyTaskPage() {
                       submitMutation.reset();
                     }}
                   >
-                    다시 풀기
+                    {t("study.retryButton")}
                   </Button>
 
                   {/* Lesson 컨텍스트: 다음 아이템 또는 수업 완료 */}
@@ -555,7 +563,7 @@ export function StudyTaskPage() {
                           navigate(`/lessons/${lessonId}`);
                         }}
                       >
-                        수업 완료하기
+                        {t("study.completeLesson")}
                       </Button>
                     ) : nextLessonItem ? (
                       <Button
@@ -579,7 +587,7 @@ export function StudyTaskPage() {
                                 : `/lessons/${lessonId}`
                           }
                         >
-                          다음 항목으로 ({nextLessonItem.kind === "video" ? "영상" : "문제"})
+                          {nextLessonItem.kind === "video" ? t("study.nextItemVideo") : t("study.nextItemTask")}
                         </Link>
                       </Button>
                     ) : null
@@ -587,12 +595,12 @@ export function StudyTaskPage() {
                     /* Study 컨텍스트: 기존 로직 */
                     isLastTask ? (
                       <Button onClick={() => setShowCompletion(true)}>
-                        학습 완료하기
+                        {t("study.completeLearning")}
                       </Button>
                     ) : nextTask ? (
                       <Button asChild>
                         <Link to={`/studies/tasks/${nextTask.task_id}`}>
-                          다음 문제 풀기
+                          {t("study.nextProblem")}
                         </Link>
                       </Button>
                     ) : null
@@ -603,7 +611,7 @@ export function StudyTaskPage() {
                   onClick={handleSubmit}
                   disabled={!canSubmit()}
                 >
-                  {submitMutation.isPending ? "제출 중..." : "제출하기"}
+                  {submitMutation.isPending ? t("study.submitting") : t("study.submitButton")}
                 </Button>
               )}
             </div>

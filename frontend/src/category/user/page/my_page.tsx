@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -63,18 +64,6 @@ const formatDate = (value: string | null) => {
   });
 };
 
-const genderLabels: Record<string, string> = {
-  male: "남성",
-  female: "여성",
-  other: "기타",
-};
-
-const genderOptions = [
-  { value: "male", label: "남성" },
-  { value: "female", label: "여성" },
-  { value: "other", label: "기타" },
-];
-
 const languageOptions = [
   { value: "ko", label: "한국어" },
   { value: "en", label: "English" },
@@ -89,25 +78,38 @@ const countryOptions = [
   { value: "CN", label: "China" },
 ];
 
-const authLabels: Record<string, string> = {
-  learner: "학습자",
-  manager: "매니저",
-  admin: "관리자",
-  hymn: "HYMN",
-};
-
 export function MyPage() {
+  const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useUserMe();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
+
+  const genderLabels: Record<string, string> = {
+    male: t("auth.genderMale"),
+    female: t("auth.genderFemale"),
+    other: t("auth.genderOther"),
+  };
+
+  const genderOptions = [
+    { value: "male", label: t("auth.genderMale") },
+    { value: "female", label: t("auth.genderFemale") },
+    { value: "other", label: t("auth.genderOther") },
+  ];
+
+  const authLabels: Record<string, string> = {
+    learner: t("user.authLearner"),
+    manager: t("user.authManager"),
+    admin: t("user.authAdmin"),
+    hymn: t("user.authHymn"),
+  };
 
   // 신규 OAuth 사용자 환영 메시지
   const isNewUser = searchParams.get("welcome") === "true";
 
   const updateUserMutation = useUpdateUser({
     onConflict: () => {
-      form.setError("nickname", { message: "이미 사용 중인 닉네임입니다." });
+      form.setError("nickname", { message: t("user.nicknameConflict") });
     },
   });
 
@@ -145,10 +147,10 @@ export function MyPage() {
   // 인증 에러 처리
   useEffect(() => {
     if (error instanceof ApiError && error.status === 401) {
-      toast.error("로그인이 필요합니다");
+      toast.error(t("common.loginRequired"));
       navigate("/login", { replace: true });
     }
-  }, [error, navigate]);
+  }, [error, navigate, t]);
 
   const dismissWelcome = () => {
     setSearchParams({});
@@ -185,7 +187,7 @@ export function MyPage() {
       <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
         <Card className="w-full max-w-2xl">
           <CardHeader>
-            <CardTitle>마이페이지</CardTitle>
+            <CardTitle>{t("user.myPageTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center gap-4">
@@ -219,11 +221,11 @@ export function MyPage() {
       <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
         <Card className="w-full max-w-2xl">
           <CardHeader>
-            <CardTitle>마이페이지</CardTitle>
+            <CardTitle>{t("user.myPageTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-destructive">
-              사용자 정보를 찾을 수 없습니다.
+              {t("user.userNotFound")}
             </p>
           </CardContent>
         </Card>
@@ -236,11 +238,11 @@ export function MyPage() {
       <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
         <Card className="w-full max-w-2xl">
           <CardHeader>
-            <CardTitle>마이페이지</CardTitle>
+            <CardTitle>{t("user.myPageTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              사용자 정보를 불러오지 못했습니다.
+              {t("user.userLoadFailed")}
             </p>
           </CardContent>
         </Card>
@@ -254,14 +256,14 @@ export function MyPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl">마이페이지</CardTitle>
-              <CardDescription>내 프로필 정보를 확인하고 수정하세요</CardDescription>
+              <CardTitle className="text-2xl">{t("user.myPageTitle")}</CardTitle>
+              <CardDescription>{t("user.myPageDescription")}</CardDescription>
             </div>
             {!isEditing && (
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleEdit}>
                   <Pencil className="h-4 w-4 mr-2" />
-                  수정
+                  {t("common.edit")}
                 </Button>
                 <Button
                   variant="outline"
@@ -269,7 +271,7 @@ export function MyPage() {
                   onClick={() => navigate("/user/settings")}
                 >
                   <Settings className="h-4 w-4 mr-2" />
-                  환경 설정
+                  {t("user.settingsButton")}
                 </Button>
               </div>
             )}
@@ -283,10 +285,10 @@ export function MyPage() {
                 <PartyPopper className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
                 <div className="flex-1 space-y-1">
                   <p className="text-sm font-medium text-emerald-800">
-                    환영합니다! 회원가입이 완료되었습니다.
+                    {t("user.welcomeTitle")}
                   </p>
                   <p className="text-sm text-emerald-700">
-                    아래 정보를 입력하시면 Amazing Korean을 더 잘 이용하실 수 있습니다.
+                    {t("user.welcomeDescription")}
                   </p>
                 </div>
                 <button
@@ -308,7 +310,7 @@ export function MyPage() {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-semibold">
-                  {data.nickname || data.name || "사용자"}
+                  {data.nickname || data.name || t("user.defaultUser")}
                 </h2>
               </div>
               <Badge variant="secondary">
@@ -328,9 +330,9 @@ export function MyPage() {
                   name="nickname"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>닉네임</FormLabel>
+                      <FormLabel>{t("user.fieldNickname")}</FormLabel>
                       <FormControl>
-                        <Input placeholder="닉네임을 입력하세요" {...field} />
+                        <Input placeholder={t("user.nicknamePlaceholder")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -342,7 +344,7 @@ export function MyPage() {
                   name="birthday"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>생년월일</FormLabel>
+                      <FormLabel>{t("user.fieldBirthday")}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -356,11 +358,11 @@ export function MyPage() {
                   name="gender"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>성별</FormLabel>
+                      <FormLabel>{t("user.fieldGender")}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="성별을 선택하세요" />
+                            <SelectValue placeholder={t("auth.genderPlaceholder")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -381,11 +383,11 @@ export function MyPage() {
                   name="country"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>국가</FormLabel>
+                      <FormLabel>{t("user.fieldCountry")}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="국가를 선택하세요" />
+                            <SelectValue placeholder={t("auth.countryPlaceholder")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -406,11 +408,11 @@ export function MyPage() {
                   name="language"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>언어</FormLabel>
+                      <FormLabel>{t("user.fieldLanguage")}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="언어를 선택하세요" />
+                            <SelectValue placeholder={t("auth.languagePlaceholder")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -435,10 +437,10 @@ export function MyPage() {
                     {updateUserMutation.isPending ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        저장 중...
+                        {t("common.saving")}
                       </>
                     ) : (
-                      "저장하기"
+                      t("common.save")
                     )}
                   </Button>
                   <Button
@@ -448,7 +450,7 @@ export function MyPage() {
                     onClick={handleCancel}
                     disabled={updateUserMutation.isPending}
                   >
-                    취소
+                    {t("common.cancel")}
                   </Button>
                 </div>
               </form>
@@ -461,7 +463,7 @@ export function MyPage() {
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <AtSign className="h-5 w-5 text-muted-foreground" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">닉네임</p>
+                    <p className="text-sm text-muted-foreground">{t("user.fieldNickname")}</p>
                     <p className="font-medium">{data.nickname || "-"}</p>
                   </div>
                 </div>
@@ -470,7 +472,7 @@ export function MyPage() {
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <User className="h-5 w-5 text-muted-foreground" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">이름</p>
+                    <p className="text-sm text-muted-foreground">{t("user.fieldName")}</p>
                     <p className="font-medium">{data.name}</p>
                   </div>
                 </div>
@@ -479,7 +481,7 @@ export function MyPage() {
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <Mail className="h-5 w-5 text-muted-foreground" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">이메일</p>
+                    <p className="text-sm text-muted-foreground">{t("user.fieldEmail")}</p>
                     <p className="font-medium">{data.email}</p>
                   </div>
                 </div>
@@ -488,7 +490,7 @@ export function MyPage() {
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <Calendar className="h-5 w-5 text-muted-foreground" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">가입일</p>
+                    <p className="text-sm text-muted-foreground">{t("user.fieldJoinDate")}</p>
                     <p className="font-medium">{formatDate(data.created_at)}</p>
                   </div>
                 </div>
@@ -497,7 +499,7 @@ export function MyPage() {
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <Calendar className="h-5 w-5 text-muted-foreground" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">생년월일</p>
+                    <p className="text-sm text-muted-foreground">{t("user.fieldBirthday")}</p>
                     <p className="font-medium">{formatDate(data.birthday)}</p>
                   </div>
                 </div>
@@ -506,7 +508,7 @@ export function MyPage() {
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <Languages className="h-5 w-5 text-muted-foreground" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">언어</p>
+                    <p className="text-sm text-muted-foreground">{t("user.fieldLanguage")}</p>
                     <p className="font-medium">
                       {languageOptions.find((l) => l.value === data.language)?.label ||
                         data.language ||
@@ -519,7 +521,7 @@ export function MyPage() {
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <Globe className="h-5 w-5 text-muted-foreground" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">국가</p>
+                    <p className="text-sm text-muted-foreground">{t("user.fieldCountry")}</p>
                     <p className="font-medium">
                       {countryOptions.find((c) => c.value === data.country)?.label ||
                         data.country ||
@@ -532,7 +534,7 @@ export function MyPage() {
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <Shield className="h-5 w-5 text-muted-foreground" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">성별</p>
+                    <p className="text-sm text-muted-foreground">{t("user.fieldGender")}</p>
                     <p className="font-medium">
                       {genderLabels[data.gender] || data.gender}
                     </p>
@@ -550,7 +552,7 @@ export function MyPage() {
                     onClick={() => navigate("/request-reset-password")}
                   >
                     <KeyRound className="h-4 w-4 mr-2" />
-                    비밀번호 재설정
+                    {t("user.resetPassword")}
                   </Button>
                 </>
               )}
