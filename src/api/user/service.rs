@@ -145,7 +145,7 @@ impl UserService {
         }
 
         // 6-3. IP Geolocation (best-effort, non-blocking)
-        let geo = st.ipgeo.lookup(&ip).await.unwrap_or_default();
+        let geo = st.ipgeo.lookup(&ip).await;
 
         // 6-4. Auto Login Record
         let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;

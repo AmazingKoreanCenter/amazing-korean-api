@@ -1,4 +1,3 @@
-use base64::engine::{general_purpose::URL_SAFE_NO_PAD, Engine};
 use reqwest::Client;
 use serde::Deserialize;
 
@@ -6,6 +5,7 @@ use crate::error::{AppError, AppResult};
 
 const GOOGLE_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+const GOOGLE_JWKS_URL: &str = "https://www.googleapis.com/oauth2/v3/certs";
 
 /// Google OAuth 클라이언트
 pub struct GoogleOAuthClient {
@@ -27,13 +27,29 @@ pub struct GoogleTokenResponse {
     pub refresh_token: Option<String>,
 }
 
+/// Google JWKS response
+#[derive(Debug, Deserialize)]
+struct GoogleJwks {
+    keys: Vec<GoogleJwk>,
+}
+
+/// Single JWK from Google's JWKS endpoint
+#[derive(Debug, Deserialize)]
+struct GoogleJwk {
+    kid: String,
+    n: String,
+    e: String,
+}
+
 /// Google ID Token Claims
 #[derive(Debug, Deserialize)]
 pub struct GoogleIdTokenClaims {
-    pub iss: String,              // "https://accounts.google.com"
+    #[allow(dead_code)]
+    pub iss: String,              // "https://accounts.google.com" (jsonwebtoken이 검증)
     #[allow(dead_code)]
     pub azp: String,              // authorized party (client_id)
-    pub aud: String,              // audience (client_id)
+    #[allow(dead_code)]
+    pub aud: String,              // audience (client_id) (jsonwebtoken이 검증)
     pub sub: String,              // Google 고유 사용자 ID (핵심!)
     pub email: String,
     pub email_verified: bool,
@@ -47,7 +63,8 @@ pub struct GoogleIdTokenClaims {
     pub locale: Option<String>,
     #[allow(dead_code)]
     pub iat: i64,
-    pub exp: i64,
+    #[allow(dead_code)]
+    pub exp: i64,                 // jsonwebtoken이 검증
     pub nonce: Option<String>,    // CSRF/Replay 방지용
 }
 
@@ -125,36 +142,44 @@ impl GoogleOAuthClient {
             .map_err(|e| AppError::External(format!("Google token parse error: {}", e)))
     }
 
-    /// 3단계: ID Token 디코딩
-    /// 주의: 이 함수는 서명 검증을 수행하지 않음 (Google에서 직접 받은 토큰이므로)
-    /// 프로덕션에서는 Google Public Keys로 서명 검증 추가 권장
-    pub fn decode_id_token(&self, id_token: &str) -> AppResult<GoogleIdTokenClaims> {
-        // JWT 형식: header.payload.signature
-        let parts: Vec<&str> = id_token.split('.').collect();
-        if parts.len() != 3 {
-            return Err(AppError::External("Invalid ID token format".into()));
-        }
+    /// 3단계: ID Token 디코딩 + Google JWKS 서명 검증
+    pub async fn decode_id_token(&self, id_token: &str) -> AppResult<GoogleIdTokenClaims> {
+        // JWT 헤더에서 kid 추출 (서명 검증에 사용할 키 식별)
+        let header = jsonwebtoken::decode_header(id_token)
+            .map_err(|e| AppError::External(format!("Invalid ID token header: {}", e)))?;
 
-        // payload 디코딩 (Base64 URL-safe)
-        let payload = URL_SAFE_NO_PAD
-            .decode(parts[1])
-            .map_err(|_| AppError::External("Failed to decode ID token payload".into()))?;
+        let kid = header.kid
+            .ok_or_else(|| AppError::External("ID token missing kid in header".into()))?;
 
-        let claims: GoogleIdTokenClaims = serde_json::from_slice(&payload)
-            .map_err(|e| AppError::External(format!("Failed to parse ID token: {}", e)))?;
+        // Google JWKS에서 공개키 가져오기
+        let jwks: GoogleJwks = self.client
+            .get(GOOGLE_JWKS_URL)
+            .send()
+            .await
+            .map_err(|e| AppError::External(format!("Failed to fetch Google JWKS: {}", e)))?
+            .json()
+            .await
+            .map_err(|e| AppError::External(format!("Failed to parse Google JWKS: {}", e)))?;
 
-        // 기본 검증: issuer
-        if claims.iss != "https://accounts.google.com" && claims.iss != "accounts.google.com" {
-            return Err(AppError::External("Invalid ID token issuer".into()));
-        }
+        // kid에 매칭되는 키 찾기
+        let jwk = jwks.keys.iter()
+            .find(|k| k.kid == kid)
+            .ok_or_else(|| AppError::External("No matching key found in Google JWKS".into()))?;
 
-        // 기본 검증: 만료
-        let now = chrono::Utc::now().timestamp();
-        if claims.exp < now {
-            return Err(AppError::External("ID token expired".into()));
-        }
+        // RSA 공개키로 디코딩 키 생성
+        let decoding_key = jsonwebtoken::DecodingKey::from_rsa_components(&jwk.n, &jwk.e)
+            .map_err(|e| AppError::External(format!("Failed to create decoding key: {}", e)))?;
 
-        Ok(claims)
+        // 검증 설정: issuer + audience + 서명
+        let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);
+        validation.set_issuer(&["https://accounts.google.com", "accounts.google.com"]);
+        validation.set_audience(&[&self.client_id]);
+
+        // 서명 검증 + 디코딩
+        let token_data = jsonwebtoken::decode::<GoogleIdTokenClaims>(id_token, &decoding_key, &validation)
+            .map_err(|e| AppError::External(format!("ID token verification failed: {}", e)))?;
+
+        Ok(token_data.claims)
     }
 
     /// ID Token Claims에서 사용자 정보 추출

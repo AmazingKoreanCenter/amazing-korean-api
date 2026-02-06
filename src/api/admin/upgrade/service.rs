@@ -4,10 +4,7 @@
 //! - 초대 코드 검증
 //! - 관리자 계정 생성
 
-use argon2::{
-    password_hash::{rand_core::OsRng, SaltString},
-    Argon2, PasswordHasher,
-};
+use crate::api::auth::password;
 use chrono::{Duration, Utc};
 use redis::AsyncCommands;
 use tracing::{info, warn};
@@ -43,15 +40,6 @@ impl UpgradeService {
         password.len() >= 8 && has_letter && has_digit
     }
 
-    /// 비밀번호 해싱 (Argon2id)
-    fn hash_password(password: &str) -> AppResult<String> {
-        let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::default();
-        let hash = argon2
-            .hash_password(password.as_bytes(), &salt)
-            .map_err(|e| AppError::Internal(format!("Password hashing failed: {}", e)))?;
-        Ok(hash.to_string())
-    }
 
     /// 초대 코드 생성
     fn generate_invite_code() -> String {
@@ -166,7 +154,7 @@ impl UpgradeService {
                 )
                 .await?;
         } else {
-            warn!("Email client not configured, skipping invite email");
+            return Err(AppError::ServiceUnavailable("Email service not configured".into()));
         }
 
         info!(
@@ -264,7 +252,7 @@ impl UpgradeService {
         }
 
         // [Step 6] 비밀번호 해싱
-        let password_hash = Self::hash_password(&req.password)?;
+        let password_hash = password::hash_password(&req.password)?;
 
         // [Step 7] 사용자 생성
         let user_auth = Self::role_to_user_auth(&invite_data.role)?;
