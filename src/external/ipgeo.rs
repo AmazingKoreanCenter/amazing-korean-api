@@ -45,7 +45,7 @@ impl IpGeoClient {
             client: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(5))
                 .build()
-                .unwrap_or_default(),
+                .expect("Failed to build reqwest Client for IpGeoClient"),
             // ip-api.com free tier is HTTP only
             base_url: "http://ip-api.com/json".to_string(),
         }
@@ -54,11 +54,11 @@ impl IpGeoClient {
     /// Lookup geolocation for an IP address
     ///
     /// Returns None if lookup fails (non-blocking, best-effort)
-    pub async fn lookup(&self, ip: &str) -> Option<GeoLocation> {
+    pub async fn lookup(&self, ip: &str) -> GeoLocation {
         // Skip private/local IPs
         if Self::is_private_ip(ip) {
             debug!(ip = %ip, "Skipping geolocation for private IP");
-            return Some(GeoLocation::default());
+            return GeoLocation::default();
         }
 
         let url = format!("{}/{}?fields=status,countryCode,as,org,isp", self.base_url, ip);
@@ -68,21 +68,21 @@ impl IpGeoClient {
                 match response.json::<IpApiResponse>().await {
                     Ok(data) => {
                         if data.status == "success" {
-                            Some(self.parse_response(data))
+                            self.parse_response(data)
                         } else {
                             warn!(ip = %ip, "ip-api.com returned failure status");
-                            None
+                            GeoLocation::default()
                         }
                     }
                     Err(e) => {
                         warn!(ip = %ip, error = %e, "Failed to parse ip-api.com response");
-                        None
+                        GeoLocation::default()
                     }
                 }
             }
             Err(e) => {
                 warn!(ip = %ip, error = %e, "Failed to call ip-api.com");
-                None
+                GeoLocation::default()
             }
         }
     }
@@ -108,28 +108,12 @@ impl IpGeoClient {
 
     /// Check if IP is private/local (RFC 1918, loopback, etc.)
     fn is_private_ip(ip: &str) -> bool {
-        // Simple check for common private ranges
-        ip.starts_with("127.")
-            || ip.starts_with("10.")
-            || ip.starts_with("192.168.")
-            || ip.starts_with("172.16.")
-            || ip.starts_with("172.17.")
-            || ip.starts_with("172.18.")
-            || ip.starts_with("172.19.")
-            || ip.starts_with("172.20.")
-            || ip.starts_with("172.21.")
-            || ip.starts_with("172.22.")
-            || ip.starts_with("172.23.")
-            || ip.starts_with("172.24.")
-            || ip.starts_with("172.25.")
-            || ip.starts_with("172.26.")
-            || ip.starts_with("172.27.")
-            || ip.starts_with("172.28.")
-            || ip.starts_with("172.29.")
-            || ip.starts_with("172.30.")
-            || ip.starts_with("172.31.")
-            || ip == "::1"
-            || ip == "localhost"
+        use std::net::IpAddr;
+        match ip.parse::<IpAddr>() {
+            Ok(IpAddr::V4(v4)) => v4.is_private() || v4.is_loopback(),
+            Ok(IpAddr::V6(v6)) => v6.is_loopback(),
+            Err(_) => ip == "localhost",
+        }
     }
 }
 

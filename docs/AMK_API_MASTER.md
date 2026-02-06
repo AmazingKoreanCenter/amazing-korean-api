@@ -438,6 +438,11 @@ GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
 
 **관련 엔드포인트**: Phase 3 - `GET /auth/google`, `GET /auth/google/callback`
 
+**ID Token 서명 검증 (JWKS)**
+- Google JWKS 엔드포인트(`https://www.googleapis.com/oauth2/v3/certs`)에서 RSA 공개키 조회
+- JWT 헤더의 `kid`로 매칭되는 키 선택 → `DecodingKey::from_rsa_components(n, e)` 생성
+- 검증 항목: RS256 서명, Issuer (`accounts.google.com`), Audience (`client_id`), 만료시간
+
 #### 2.4.3 Vimeo (동영상 스트리밍)
 
 > 동영상 호스팅 및 스트리밍
@@ -471,8 +476,11 @@ VIMEO_ACCESS_TOKEN=xxx
 - `login_log` 테이블: 로그인 이력 (감사 로그)
 
 **Private IP 처리**
-- `127.0.0.1`, `10.x.x.x`, `192.168.x.x`, `172.16-31.x.x` 등 사설 IP는 조회 skip
-- 기본값: `country='ZZ'`, `asn=0`, `org='Unknown'`
+- `std::net::IpAddr` 파싱 후 표준 라이브러리 메서드로 판별
+  - IPv4: `is_private()` || `is_loopback()` (127.x, 10.x, 192.168.x, 172.16-31.x)
+  - IPv6: `is_loopback()`
+  - 파싱 실패 시: `"localhost"` 문자열 매칭
+- 사설 IP는 외부 API 조회 skip, 기본값: `country='LC'` (Local), `asn=0`, `org='local'`
 
 ### 2.8.2 User-Agent 서버사이드 파싱 (woothee)
 
@@ -1135,7 +1143,7 @@ VIMEO_ACCESS_TOKEN=xxx
   - `login_os`, `login_browser`, `login_device`: 서버사이드 User-Agent 파싱(`woothee`)으로 자동 채움
   - `login_expire_at`: 로그인 시 `NOW() + refresh_ttl` 기록, 토큰 갱신 시 갱신
   - `login_active_at`: 토큰 갱신(refresh) 시 `NOW()` 업데이트
-  - `login_revoked_reason`: 세션 revoke 시 사유 기록 (`admin_action`, `password_changed`, `security_concern`, `account_disabled`)
+  - `login_revoked_reason`: 세션 상태 변경 사유 기록 (기본값 `none`, revoke 시: `password_changed`, `security_concern`, `admin_action`, `account_disabled`)
 - `login_log`
   - 로그인 정보 활동 이력(로그인 이벤트, 세부 지역, 세부 방식)
   - `login_event_enum` ('login', 'logout', 'refresh', 'rotate', 'fail', 'reuse_detected') 로그인 활동 이력
@@ -1143,7 +1151,7 @@ VIMEO_ACCESS_TOKEN=xxx
   - `login_method_enum` ('email', 'google', 'apple') 로그인 방법 이력
   - `login_access_log` (char(64)): access token SHA-256 해시 (감사 추적용)
   - `login_token_id_log` (varchar): JWT `jti` claim 값 (토큰 식별용)
-  - `login_fail_reason_log` (text): 실패 사유 (`invalid_credentials`, `account_disabled`, `token_reuse`)
+  - `login_fail_reason_log` (text): 실패 사유 (기본값 `none`, 실패 시: `invalid_credentials`, `account_disabled`, `token_reuse`)
 - `redis_session`
   - Key: ak:session:< sid >
   - TTL은 expire_at 기준. 세션 본문은 직렬화(JSON 등)하되, 운영 상 조회 필드는 컬럼으로 문서화.
@@ -1517,7 +1525,7 @@ VIMEO_ACCESS_TOKEN=xxx
   - 헤더: `Retry-After: <seconds>`
 - **실패(소셜 전용 계정) → 401** (별도 에러 코드)
   - When: 이메일/비밀번호 로그인 시도, 해당 이메일이 소셜 로그인 전용 계정인 경우
-  - Then: **401**, `{ "error": { "code": "AUTH_401_SOCIAL_ONLY_ACCOUNT", "providers": ["google"] } }`
+  - Then: **401**, `{ "error": { "code": "UNAUTHORIZED", "message": "AUTH_401_SOCIAL_ONLY_ACCOUNT:google" } }`
   - 프론트엔드 처리: 소셜 로그인 유도 UI 표시 (amber 색상 안내 박스 + Google 로그인 버튼)
   - 상태축: Auth=stop / Form error.client / Data error (socialOnlyError)
 
@@ -1594,7 +1602,9 @@ VIMEO_ACCESS_TOKEN=xxx
 **보안 정책**:
 - **State 파라미터**: Redis에 저장, 일회용 (CSRF 방지)
 - **Nonce**: ID Token에 포함, Replay Attack 방지
+- **JWKS 서명 검증**: Google JWKS 공개키로 RS256 서명 검증 (kid 매칭)
 - **Audience 검증**: ID Token의 aud가 client_id와 일치해야 함
+- **Issuer 검증**: `accounts.google.com` 확인
 
 ---
 
@@ -1616,7 +1626,7 @@ VIMEO_ACCESS_TOKEN=xxx
   - 처리 순서:
     1. State 검증 (Redis 조회 → 삭제)
     2. Authorization Code → Token 교환 (Google API)
-    3. ID Token 디코딩 및 검증 (nonce, aud, exp)
+    3. ID Token 디코딩 및 검증 (JWKS RS256 서명, nonce, aud, iss, exp)
     4. 사용자 조회/생성:
        - OAuth subject로 기존 연결 조회 → 있으면 로그인 (`is_new_user=false`)
        - 없으면 이메일로 기존 계정 조회 → 있으면 자동 연결 (`is_new_user=false`)
@@ -4044,34 +4054,38 @@ pub enum AppError {
     // 비즈니스 에러
     #[error("Internal server error")]
     Internal(String),
-    #[error("{0}")]
+    #[error("Health check failed: {0}")]
+    HealthInternal(String),
+    #[error("Bad request: {0}")]
     BadRequest(String),
-    #[error("{0}")]
+    #[error("Unprocessable entity: {0}")]
     Unprocessable(String),         // 422
-    #[error("{0}")]
+    #[error("Unauthorized: {0}")]
     Unauthorized(String),
-    #[error("Forbidden")]
-    Forbidden,
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
     #[error("Not found")]
     NotFound,
-    #[error("{0}")]
+    #[error("Conflict: {0}")]
     Conflict(String),              // 409
-    #[error("{0}")]
+    #[error("Too many requests: {0}")]
     TooManyRequests(String),       // 429
+    #[error("Service unavailable: {0}")]
+    ServiceUnavailable(String),    // 503
+    #[error("External service error: {0}")]
+    External(String),              // 502
 
     // 인프라 에러 (자동 변환)
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
-    Redis(#[from] deadpool_redis::redis::RedisError),
+    Anyhow(#[from] anyhow::Error),
     #[error(transparent)]
-    RedisPool(#[from] deadpool_redis::PoolError),
+    Redis(#[from] deadpool_redis::redis::RedisError),
     #[error(transparent)]
     Jsonwebtoken(#[from] jsonwebtoken::errors::Error),
     #[error(transparent)]
     Validation(#[from] validator::ValidationErrors),
-    #[error(transparent)]
-    Anyhow(#[from] anyhow::Error),
 }
 
 // 전역 Result 타입
@@ -8015,6 +8029,7 @@ export function AppRoutes() {
 - 동시 세션 수 제한 — RDS 이전 후
 - 토큰 재사용 탐지 (Refresh Token Replay Attack 방지) — RDS 이전 후
 - step-up MFA (민감한 작업 시 추가 인증) — MFA 도입 후
+- 토큰 재발급 Redis 캐싱 — 동시 접속자 10K+ 시 재검토 (캐시 무효화 복잡도 고려)
 
 ### 9.6 코드 일관성 (Technical Debt) ✅
 
@@ -8055,6 +8070,36 @@ export function AppRoutes() {
 | 2 | 이메일 인증 (AWS SES) | 📋 | 일반 가입 시 이메일 인증 필수화 (Phase 2 예정) |
 | 3 | 결제 시스템 | 📋 | Stripe, Polar 연동 (수강권과 연계) |
 | 4 | RDS/ElastiCache 이전 | 📋 | EC2 → AWS RDS + ElastiCache (TLS, maxmemory 자동 적용) |
+| 5 | 다중 서버 구성 (HA) | 📋 | 단계적 확장: ①nginx+컨테이너 복제(비용0) → ②ALB+EC2 다중화+RDS → ③ECS Fargate+Auto Scaling |
+| 6 | GeoIP 서비스 전환 | 보류 | ip-api.com(HTTP) → MaxMind GeoLite2(로컬 DB) 또는 HTTPS 지원 서비스, 트래픽 증가 시 |
+
+#### 보안 & 데이터 보호
+
+| 순서 | 항목 | 상태 | 설명 |
+|------|------|:----:|------|
+| 1 | DB 필드 암호화 | 📋 | AES-256-GCM 애플리케이션 레벨 암호화 + Blind Index (HMAC-SHA256) |
+| 2 | 암호화 모듈 구현 | 📋 | `src/crypto/` — encrypt/decrypt, blind index 생성 함수 |
+| 3 | 기존 데이터 마이그레이션 | 📋 | Phase 1: 호환 모드 → Phase 2: 일괄 암호화 → Phase 3: 정리 |
+
+> **암호화 대상**: `user_email`, `user_name`, `user_birthday`, `oauth_email`, `oauth_subject`, `login_ip`, 각종 로그 테이블 PII
+> **키 관리**: `ENCRYPTION_KEY` (AES-256) + `HMAC_KEY` (blind index), 환경변수, AppState 로드
+> **보안 로드맵**: 1단계 앱 레벨 AES → 2단계 AWS KMS envelope → 3단계 HSM
+
+#### 다국어 콘텐츠 확장
+
+| 순서 | 항목 | 상태 | 설명 |
+|------|------|:----:|------|
+| 1 | 번역 테이블 설계 | 📋 | `content_translations` 테이블 (content_type, content_id, field_name, lang, status) |
+| 2 | 폰트 동적 로딩 | 📋 | Noto Sans 패밀리, 사용자 언어별 로드 (전체 50MB+ → 필요한 것만) |
+| 3 | RTL 지원 | 📋 | 아랍어 대응 — CSS Logical Properties, direction: rtl, 아이콘 반전 |
+| 4 | 번역 API 연동 | 📋 | AI 자동 초안 생성 → 관리자 검수 → 승인 파이프라인 |
+| 5 | 핵심 5개 언어 | 📋 | en, ja, zh-CN, zh-TW, vi (Phase 2) |
+| 6 | 나머지 17개 언어 | 📋 | id, th, my, km, mn, ru, uz, kk, tg, ne, si, hi, es, pt, fr, de, ar (Phase 3) |
+| 7 | i18n 동적 로딩 + async | 📋 | 22개 언어 확장 시 번들 분리(dynamic import) + changeLanguage async 처리 |
+
+> **지원 언어 (22개)**: en, zh-CN, zh-TW, ja, vi, id, th, my, km, mn, ru, uz, kk, tg, ne, si, hi, es, pt, fr, de, ar
+> **번역 대상**: video title/description, category name, study_task title/description, achievement (UI 메타데이터만, 학습 본문 제외)
+> **Fallback**: 사용자 언어 → ko (한국어 원본)
 
 #### 보류/낮음 우선순위
 
@@ -8062,9 +8107,11 @@ export function AppRoutes() {
 |------|:----:|------|
 | 학습 문제 동적 생성/전달 | 보류 | 커리큘럼 데이터 완비 후, 사용자 요구 시 구현 |
 | Lesson 통계 기능 | 보류 | `/admin/lessons/stats` — 기본 progress 데이터 있음, 추후 구현 예정 |
-| Login 정보/로그 추가 | ✅ | `login_country`, `login_asn`, `login_org` — ip-api.com 연동으로 IP Geolocation 적용 완료 |
+| Login/Login_log 테이블 개선 | ✅ | UA 서버파싱(woothee), expire_at/active_at, revoked_reason, login_log 감사 컬럼, JWT jti, geo 기본값(LC/local/none) |
 | 통계 비동기/배치 분리 | 보류 | 집계/통계 복잡해지면 검토 |
 | URL/함수명 통일 | ✅ | 2026-02-02 완료 — handler/service/repo 네이밍 패턴 통일 |
+| OAuth repo/service 중복 통합 | 보류 | Apple OAuth 등 세 번째 인증 수단 추가 시 리팩토링 |
+| enum sqlx::Type 매핑 전환 | 보류 | 다국어 콘텐츠 확장 + 결제 연동 완료 후 진행 (수동 match → `#[sqlx(type_name)]`) |
 
 ### 9.8 데이터 모니터링 & 접근
 
@@ -8089,6 +8136,16 @@ ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
 
 **TODO**: 브랜딩, 타이포그래피, 반응형 점검
 
+#### 다국어 UI 대응 (22개 언어)
+
+| 항목 | 설명 |
+|------|------|
+| **폰트** | Noto Sans 패밀리 동적 로딩 (Latin/Cyrillic/CJK/Thai/Myanmar/Khmer/Sinhala/Devanagari/Arabic) |
+| **RTL** | 아랍어(ar) — `direction: rtl`, CSS Logical Properties (`margin-inline-start` 등), 아이콘 방향 반전 |
+| **텍스트 길이** | 독일어 등 60%+ 길어질 수 있음 → 고정 폭 금지, flex/grid 사용, `text-overflow: ellipsis` |
+| **줄 높이** | Thai/Myanmar/Khmer/Sinhala 결합 문자 → `line-height: 1.6~1.8` |
+| **레이아웃** | 모든 스크립트 공통 대응 가능한 유연한 컴포넌트 설계 |
+
 ### 9.10 마케팅 & 데이터 분석
 
 **현재 상태**: login_log, video_log, study_task_log로 기본 데이터 수집 중
@@ -8100,6 +8157,80 @@ ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
 ---
 
 ## 10. 변경 이력 (요약)
+
+- **2026-02-06 — Gemini 코드 리뷰 반영**
+  - **백엔드 — 코드 수정 (8건)**
+    - `google.rs`: ID Token 서명 검증을 Google JWKS 공개키 기반으로 변경 (RS256, kid 매칭)
+    - `ipgeo.rs`: `lookup()` 반환 타입 `Option<GeoLocation>` → `GeoLocation`, `is_private_ip()`를 `std::net::IpAddr` 파싱으로 개선
+    - `auth/service.rs`: 이메일 미설정 시 `AppError::ServiceUnavailable` 반환, 인라인 Argon2 해싱 → `password::hash_password()` 통합, 실패 로깅 `let _ =` → `if let Err(e)` + `warn!`
+    - `admin/upgrade/service.rs`: 로컬 `hash_password()` 제거 → `password::hash_password()` 사용, 이메일 미설정 시 `ServiceUnavailable` 반환
+    - `lesson/repo.rs`: DB 에러 `.unwrap_or(false)` → `?` 전파
+    - `user/service.rs`: ipgeo `.unwrap_or_default()` 제거
+  - **문서 정리**
+    - Section 9.5/9.7에 추후 작업 항목 5건 추가 (토큰 캐싱, GeoIP 전환, i18n async, OAuth 중복 통합, enum 매핑)
+    - 불일치 문서 4건 삭제: `AMK_BACKEND_STATUS.md`, `AMK_FRONTEND_STATUS.md`, `homepage_layout_design.md`, `login_table_plan.md`
+    - `.gitignore`에 `.aws/` 추가
+    - Section 5.3-1 소셜 전용 계정 에러 응답 형식 수정
+
+- **2026-02-05 — Login/Login_log 테이블 개선**
+  - **백엔드 — User-Agent 서버사이드 파싱**
+    - `woothee` 라이브러리 추가, `ParsedUa` 구조체 및 `parse_user_agent()` 함수 구현
+    - `login_os`, `login_browser`, `login_device`를 서버에서 자동 채움 (프론트엔드 전송 제거)
+    - OAuth/일반 로그인/회원가입 모두 동일하게 처리
+  - **백엔드 — login 테이블 컬럼 활성화**
+    - `login_expire_at`: `NOW() + refresh_ttl_secs` 기록, 토큰 갱신 시 갱신
+    - `login_active_at`: 토큰 갱신(refresh) 시 `NOW()` 업데이트
+    - `login_revoked_reason`: 상태 변경 시 사유 기록 (기본값 `none`, revoke 시 `password_changed`/`security_concern` 등)
+  - **백엔드 — login_log 테이블 감사 컬럼 활성화**
+    - `login_access_log`: access token SHA-256 해시 (64자)
+    - `login_token_id_log`: JWT `jti` claim (UUID v4)
+    - `login_fail_reason_log`: 실패 사유 (기본값 `none`, 실패 시 `invalid_credentials`/`account_disabled`/`token_reuse`)
+    - `login_expire_at_log`: 세션 만료 시각 기록
+    - login_log geo 컬럼에 COALESCE 기본값 추가 (`LC`/`0`/`local`)
+  - **백엔드 — JWT jti claim 추가**
+    - `jwt::create_token()`에서 UUID v4 기반 `jti` 생성, `Claims` 구조체에 `jti` 필드 추가
+  - **백엔드 — Geo/NULL 기본값 정책 변경**
+    - Private IP 기본값: `ZZ`→`LC`, `Unknown`→`local` (login/login_log 모든 COALESCE)
+    - `login_revoked_reason` NULL→`none`, `login_fail_reason_log` NULL→`none`
+  - **프론트엔드 — 버그 수정**
+    - `client.ts`: request interceptor 추가 (zustand → axios Authorization 헤더 자동 설정)
+    - `use_user_settings.ts`: `enabled` 옵션 + `staleTime: 5분` 추가 (미로그인 시 401 루프 방지)
+    - `use_language_sync.ts`: `{ enabled: isLoggedIn }` 전달
+    - `types.ts`: `LoginReq`에서 불필요 필드(`device`/`browser`/`os`) 제거
+  - **파일 변경 목록**
+    - `Cargo.toml` — `woothee` 의존성 추가
+    - `src/api/auth/handler.rs` — `ParsedUa`, `parse_user_agent()` 추가
+    - `src/api/auth/dto.rs` — `LoginReq` 간소화
+    - `src/api/auth/jwt.rs` — `jti` claim 추가
+    - `src/api/auth/repo.rs` — INSERT/UPDATE 쿼리에 신규 컬럼 반영, COALESCE 기본값 변경
+    - `src/api/auth/service.rs` — UA/geo/audit 파라미터 전달, revoked_reason/fail_reason 기본값
+    - `src/api/user/handler.rs` — UA 파싱 호출
+    - `src/api/user/service.rs` — 회원가입 로그에 audit 파라미터 추가
+    - `frontend/src/api/client.ts` — request interceptor 추가
+    - `frontend/src/category/auth/types.ts` — LoginReq 필드 제거
+    - `frontend/src/category/user/hook/use_user_settings.ts` — enabled/staleTime 추가
+    - `frontend/src/hooks/use_language_sync.ts` — enabled 조건 추가
+
+- **2026-02-05 — DB 보안 강화 계획 수립**
+  - 애플리케이션 레벨 AES-256-GCM 암호화 방식 결정 (pgcrypto, AWS KMS 비교 후)
+  - 암호화 대상 필드 식별: `user_email`, `user_name`, `user_birthday`, `oauth_email`, `oauth_subject`, `login_ip` 등
+  - Blind Index (HMAC-SHA256) 설계: 검색 필요 필드(email, oauth_subject)는 같은 테이블에 `_idx` 컬럼 추가
+  - 키 관리: `ENCRYPTION_KEY` + `HMAC_KEY` (환경변수, 각 32바이트)
+  - 마이그레이션 전략: 3단계 점진적 (호환 모드 → 일괄 암호화 → 정리)
+  - 보안 로드맵: 1단계 앱 레벨 AES → 2단계 AWS KMS → 3단계 HSM
+  - Section 9.7 로드맵에 "보안 & 데이터 보호" 섹션 추가
+
+- **2026-02-05 — 다국어 콘텐츠 확장 계획 수립**
+  - 22개 언어 지원 계획: en, zh-CN, zh-TW, ja, vi, id, th, my, km, mn, ru, uz, kk, tg, ne, si, hi, es, pt, fr, de, ar
+  - `content_translations` 번역 테이블 설계 (정규화, fallback 패턴)
+  - 폰트 전략: Noto Sans 패밀리 동적 로딩 (50MB+ → 언어별 선택 로드)
+  - RTL 대응 (아랍어): CSS Logical Properties, direction: rtl
+  - 번역 파이프라인: AI 자동 초안 → 관리자 검수 → 승인
+  - 단계적 접근: Phase 1 기반 → Phase 2 핵심 5개(en,ja,zh-CN,zh-TW,vi) → Phase 3 나머지 17개
+  - Section 9.7 로드맵에 "다국어 콘텐츠 확장" 섹션 추가, Section 9.9에 다국어 UI 대응 추가
+
+- **2026-02-05 — 다국어 지원 (i18n) 구현**
+  - 상세: Section 6.2.4 참조
 
 - **2026-02-03 — MyPage UI 리디자인 & 비밀번호 재설정 플로우**
   - **백엔드**

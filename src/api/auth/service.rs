@@ -163,7 +163,7 @@ impl AuthService {
             if let Some(ref user) = user_info {
                 let fail_session = Uuid::new_v4().to_string();
                 let mut tx = st.db.begin().await?;
-                let _ = AuthRepo::insert_login_log_tx(
+                if let Err(e) = AuthRepo::insert_login_log_tx(
                     &mut tx, user.user_id, "login", false,
                     &fail_session, "", &login_ip,
                     Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(),
@@ -171,8 +171,12 @@ impl AuthService {
                     None, None, None,
                     None, None, Some("invalid_credentials"),
                     None,
-                ).await;
-                let _ = tx.commit().await;
+                ).await {
+                    warn!(error = %e, "Failed to insert login failure log");
+                }
+                if let Err(e) = tx.commit().await {
+                    warn!(error = %e, "Failed to commit login failure log transaction");
+                }
             }
             return Err(AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()));
         }
@@ -183,7 +187,7 @@ impl AuthService {
             // 비활성 계정 실패 로그
             let fail_session = Uuid::new_v4().to_string();
             let mut tx = st.db.begin().await?;
-            let _ = AuthRepo::insert_login_log_tx(
+            if let Err(e) = AuthRepo::insert_login_log_tx(
                 &mut tx, user_info.user_id, "login", false,
                 &fail_session, "", &login_ip,
                 Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(),
@@ -191,8 +195,12 @@ impl AuthService {
                 None, None, None,
                 None, None, Some("account_disabled"),
                 None,
-            ).await;
-            let _ = tx.commit().await;
+            ).await {
+                warn!(error = %e, "Failed to insert login failure log");
+            }
+            if let Err(e) = tx.commit().await {
+                warn!(error = %e, "Failed to commit login failure log transaction");
+            }
             return Err(AppError::Forbidden("Forbidden".to_string()));
         }
 
@@ -216,7 +224,7 @@ impl AuthService {
             .iter().map(|b| format!("{:02x}", b)).collect();
 
         // [Step 5] IP Geolocation (best-effort, non-blocking)
-        let geo = st.ipgeo.lookup(&login_ip).await.unwrap_or_default();
+        let geo = st.ipgeo.lookup(&login_ip).await;
 
         // [Step 6] DB Transaction (Login Record)
         let mut tx = st.db.begin().await?;
@@ -491,13 +499,7 @@ impl AuthService {
         let user_id = claims.sub;
 
         // Hash New Password
-        let salt = SaltString::generate(&mut OsRng);
-        let params = argon2::Params::new(19_456, 2, 1, None).unwrap();
-        let argon2 = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params);
-        let new_password_hash = argon2
-            .hash_password(req.new_password.as_bytes(), &salt)
-            .map_err(|e| AppError::Internal(format!("password hash error: {e}")))?
-            .to_string();
+        let new_password_hash = super::password::hash_password(&req.new_password)?;
 
         // DB Update (Password + Revoke Sessions)
         let mut tx = st.db.begin().await?;
@@ -696,7 +698,7 @@ impl AuthService {
 
         // [Step 3] 이메일 클라이언트 확인
         let email_client = st.email.as_ref()
-            .ok_or_else(|| AppError::Internal("Email service not configured".into()))?;
+            .ok_or_else(|| AppError::ServiceUnavailable("Email service not configured".into()))?;
 
         // [Step 4] 인증코드 생성 및 Redis 저장
         let code = Self::generate_verification_code();
@@ -838,13 +840,7 @@ impl AuthService {
         };
 
         // [Step 4] 새 비밀번호 해싱
-        let salt = SaltString::generate(&mut OsRng);
-        let params = argon2::Params::new(19_456, 2, 1, None).unwrap();
-        let argon2 = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params);
-        let new_password_hash = argon2
-            .hash_password(new_password.as_bytes(), &salt)
-            .map_err(|e| AppError::Internal(format!("password hash error: {e}")))?
-            .to_string();
+        let new_password_hash = super::password::hash_password(new_password)?;
 
         // [Step 5] DB 업데이트 (비밀번호 + 세션 무효화)
         let mut tx = st.db.begin().await?;
@@ -957,7 +953,7 @@ impl AuthService {
         let token_response = client.exchange_code(code).await?;
 
         // [Step 3] ID Token 검증 및 사용자 정보 추출
-        let claims = client.decode_id_token(&token_response.id_token)?;
+        let claims = client.decode_id_token(&token_response.id_token).await?;
 
         // Nonce 검증
         if claims.nonce.as_deref() != Some(&nonce) {
@@ -1109,7 +1105,7 @@ impl AuthService {
             .iter().map(|b| format!("{:02x}", b)).collect();
 
         // IP Geolocation (best-effort, non-blocking)
-        let geo = st.ipgeo.lookup(&login_ip).await.unwrap_or_default();
+        let geo = st.ipgeo.lookup(&login_ip).await;
 
         // DB 기록
         let mut tx = st.db.begin().await?;

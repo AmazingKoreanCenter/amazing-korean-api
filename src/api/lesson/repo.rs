@@ -130,8 +130,7 @@ impl LessonRepo {
         .bind(user_id)
         .bind(lesson_id)
         .fetch_one(pool)
-        .await
-        .unwrap_or(false);  // 테이블이 없으면 false 반환
+        .await?;
 
         Ok(has_access)
     }

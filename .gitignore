@@ -657,6 +657,7 @@ amazing-korean-server/public/images/eps-topik.png
 amazing-korean-server/public/images/topik.png
 amazing-korean-server/routes/auth.js
 
-# AWS CLI installer (not project code)
+# AWS CLI installer & config (not project code)
 aws/
+.aws/
 awscliv2.zip
