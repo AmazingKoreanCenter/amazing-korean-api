@@ -41,7 +41,7 @@
 ## 2. 도메인 및 DNS 설정 (Route 53)
 
 - **도메인**: `amazingkorean.net`
-- **DNS 관리**: AWS Route 53
+- **DNS 관리**: AWS Route 53 -> Cloudflare로 수정
 
 ##### DNS 레코드 설정
 
