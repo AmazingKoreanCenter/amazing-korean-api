@@ -5,6 +5,7 @@
 //! - 관리자 계정 생성
 
 use crate::api::auth::password;
+use crate::crypto::CryptoService;
 use chrono::{Duration, Utc};
 use redis::AsyncCommands;
 use tracing::{info, warn};
@@ -102,12 +103,18 @@ impl UpgradeService {
             ));
         }
 
-        // [Step 4] 이메일 중복 체크 (이미 가입된 사용자)
-        if let Some(_existing) = user_repo::find_user_by_email(&st.db, &email).await? {
+        // [Step 4] 이메일 중복 체크
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let email_idx_check = crypto.blind_index(&email)?;
+        let existing = user_repo::find_user_by_email_idx(&st.db, &email_idx_check).await?;
+        if existing.is_some() {
             return Err(AppError::Conflict(
                 "UPGRADE_409_EMAIL_ALREADY_EXISTS".into(),
             ));
         }
+
+        // Decrypt actor email for display
+        let actor_email_plain = crypto.decrypt(&actor.email, "users.user_email")?;
 
         // [Step 5] 초대 코드 생성
         let invite_code = Self::generate_invite_code();
@@ -118,7 +125,7 @@ impl UpgradeService {
             email: email.clone(),
             role: role.clone(),
             invited_by_id: actor_user_id,
-            invited_by_email: actor.email.clone(),
+            invited_by_email: actor_email_plain.clone(),
             created_at: Utc::now(),
         };
         let invite_json = serde_json::to_string(&invite_data)
@@ -148,7 +155,7 @@ impl UpgradeService {
                     EmailTemplate::AdminInvite {
                         invite_url,
                         role: role.clone(),
-                        invited_by: actor.email.clone(),
+                        invited_by: actor_email_plain.clone(),
                         expires_in_min: (INVITE_CODE_TTL_SEC / 60) as i32,
                     },
                 )
@@ -236,8 +243,10 @@ impl UpgradeService {
             .map_err(|_| AppError::Internal("Failed to parse invite data".into()))?;
 
         // [Step 4] 이메일 중복 체크 (레이스 컨디션 방지)
-        if let Some(_existing) = user_repo::find_user_by_email(&st.db, &invite_data.email).await? {
-            // 초대 코드 삭제
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let email_idx_check = crypto.blind_index(&invite_data.email)?;
+        let existing = user_repo::find_user_by_email_idx(&st.db, &email_idx_check).await?;
+        if existing.is_some() {
             let _: () = redis_conn.del(&redis_key).await?;
             return Err(AppError::Conflict(
                 "UPGRADE_409_EMAIL_ALREADY_EXISTS".into(),
@@ -257,17 +266,26 @@ impl UpgradeService {
         // [Step 7] 사용자 생성
         let user_auth = Self::role_to_user_auth(&invite_data.role)?;
 
+        // Field Encryption
+        let email_enc = crypto.encrypt(&invite_data.email, "users.user_email")?;
+        let email_idx = crypto.blind_index(&invite_data.email)?;
+        let name_enc = crypto.encrypt(&req.name, "users.user_name")?;
+        let name_idx = crypto.blind_index(&req.name)?;
+        let birthday_enc = crypto.encrypt(&req.birthday.to_string(), "users.user_birthday")?;
+
         let user_id = user_repo::create_admin_user(
             &st.db,
-            &invite_data.email,
+            &email_enc,
             &password_hash,
-            &req.name,
+            &name_enc,
             &req.nickname,
             &req.country,
-            req.birthday,
+            &birthday_enc,
             req.gender,
             req.language,
             user_auth.clone(),
+            &email_idx,
+            &name_idx,
         )
         .await?;
 

@@ -13,6 +13,7 @@ use uuid::Uuid;
 use validator::Validate;
 use tracing::{info, warn};
 
+use crate::crypto::CryptoService;
 use crate::external::email::EmailTemplate;
 
 use crate::{
@@ -129,7 +130,9 @@ impl AuthService {
         }
 
         // [Step 3] User Verification (Timing Attack Protected)
-        let user_info = AuthRepo::find_user_by_email(&st.db, &email).await?;
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let idx = crypto.blind_index(&email)?;
+        let user_info = AuthRepo::find_user_by_email_idx(&st.db, &idx).await?;
 
         // 소셜 전용 계정 체크 (비밀번호가 NULL인 경우)
         if let Some(ref user) = user_info {
@@ -161,11 +164,12 @@ impl AuthService {
         if user_info.is_none() || !password_ok {
             // 로그인 실패 로그 (사용자가 존재하는 경우만 기록)
             if let Some(ref user) = user_info {
+                let login_ip_log_enc_fail = crypto.encrypt(&login_ip, "login_log.login_ip_log")?;
                 let fail_session = Uuid::new_v4().to_string();
                 let mut tx = st.db.begin().await?;
                 if let Err(e) = AuthRepo::insert_login_log_tx(
                     &mut tx, user.user_id, "login", false,
-                    &fail_session, "", &login_ip,
+                    &fail_session, "", &login_ip_log_enc_fail,
                     Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(),
                     parsed_ua.os.as_deref(), user_agent.as_deref(),
                     None, None, None,
@@ -185,11 +189,12 @@ impl AuthService {
 
         if !user_info.user_state {
             // 비활성 계정 실패 로그
+            let login_ip_log_enc_fail = crypto.encrypt(&login_ip, "login_log.login_ip_log")?;
             let fail_session = Uuid::new_v4().to_string();
             let mut tx = st.db.begin().await?;
             if let Err(e) = AuthRepo::insert_login_log_tx(
                 &mut tx, user_info.user_id, "login", false,
-                &fail_session, "", &login_ip,
+                &fail_session, "", &login_ip_log_enc_fail,
                 Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(),
                 parsed_ua.os.as_deref(), user_agent.as_deref(),
                 None, None, None,
@@ -226,6 +231,9 @@ impl AuthService {
         // [Step 5] IP Geolocation (best-effort, non-blocking)
         let geo = st.ipgeo.lookup(&login_ip).await;
 
+        let login_ip_enc = crypto.encrypt(&login_ip, "login.login_ip")?;
+        let login_ip_log_enc = crypto.encrypt(&login_ip, "login_log.login_ip_log")?;
+
         // [Step 6] DB Transaction (Login Record)
         let mut tx = st.db.begin().await?;
 
@@ -234,7 +242,7 @@ impl AuthService {
             user_info.user_id,
             &session_id,
             &refresh_hash,
-            &login_ip,
+            &login_ip_enc,
             Some(parsed_ua.device.as_str()),
             parsed_ua.browser.as_deref(),
             parsed_ua.os.as_deref(),
@@ -252,7 +260,7 @@ impl AuthService {
             true,
             &session_id,
             &refresh_hash,
-            &login_ip,
+            &login_ip_log_enc,
             Some(parsed_ua.device.as_str()),
             parsed_ua.browser.as_deref(),
             parsed_ua.os.as_deref(),
@@ -323,7 +331,7 @@ impl AuthService {
     pub async fn refresh(
         st: &AppState,
         old_refresh_token: &str,
-        login_ip: String,
+        _login_ip: String,
         user_agent: Option<String>,
     ) -> AppResult<(LoginRes, String, i64)> {
         let (session_id, incoming_hash) = Self::parse_refresh_token(old_refresh_token)?;
@@ -337,10 +345,14 @@ impl AuthService {
             None => return Err(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into())),
         };
 
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let record_ip_plain = crypto.decrypt(login_record.login_ip.as_deref().unwrap_or(""), "login.login_ip")?;
+        let login_ip_log_enc = crypto.encrypt(&record_ip_plain, "login_log.login_ip_log")?;
+
         // [Step 2] Reuse Detection (Security Critical)
         if login_record.refresh_hash != incoming_hash {
             warn!("Refresh token reuse detected! Session: {}", session_id);
-            
+
             // 2-1. Mark session compromised
             AuthRepo::update_login_state_by_session_tx(&mut tx, &session_id, "compromised", Some("security_concern")).await?;
             AuthRepo::insert_login_log_tx(
@@ -350,7 +362,7 @@ impl AuthService {
                 false,
                 &session_id,
                 &login_record.refresh_hash,
-                login_record.login_ip.as_deref().unwrap_or(&login_ip),
+                &login_ip_log_enc,
                 Some(&login_record.login_device),
                 login_record.login_browser.as_deref(),
                 login_record.login_os.as_deref(),
@@ -401,7 +413,7 @@ impl AuthService {
             true,
             &session_id,
             &new_refresh_hash,
-            login_record.login_ip.as_deref().unwrap_or(&login_ip),
+            &login_ip_log_enc,
             Some(&login_record.login_device),
             login_record.login_browser.as_deref(),
             login_record.login_os.as_deref(),
@@ -453,11 +465,14 @@ impl AuthService {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
         }
 
-        let user = AuthRepo::find_user_by_name_and_email(&st.db, &req.name, &req.email).await?;
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let name_idx = crypto.blind_index(&req.name)?;
+        let email_idx = crypto.blind_index(&req.email)?;
+        let user = AuthRepo::find_user_by_name_idx_and_email_idx(&st.db, &name_idx, &email_idx).await?;
         
         if let Some(found) = user {
             // 실제로는 여기서 이메일 발송 로직이 수행되어야 함
-            let _ = user_repo::insert_user_log_after(&st.db, Some(found.user_id), found.user_id, "find_id", true).await;
+            let _ = user_repo::insert_user_log_after(&st.db, &crypto, Some(found.user_id), found.user_id, "find_id", true).await;
             info!("Find ID email simulated for user_id={}", found.user_id);
         } else {
             // Security: Don't log the actual email to prevent enumeration via logs
@@ -502,16 +517,17 @@ impl AuthService {
         let new_password_hash = super::password::hash_password(&req.new_password)?;
 
         // DB Update (Password + Revoke Sessions)
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let mut tx = st.db.begin().await?;
         AuthRepo::update_user_password_tx(&mut tx, user_id, &new_password_hash).await?;
-        user_repo::insert_user_log_after_tx(&mut tx, Some(user_id), user_id, "reset_pw", true).await?;
+        user_repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user_id), user_id, "reset_pw", true).await?;
         AuthRepo::update_login_state_by_user_tx(&mut tx, user_id, "revoked", Some("password_changed")).await?;
         tx.commit().await?;
 
         // Redis Session Cleanup
         let session_key = format!("ak:user_sessions:{}", user_id);
         let session_ids: Vec<String> = redis_conn.smembers(&session_key).await.unwrap_or_default();
-        
+
         for sid in session_ids.iter() {
             // Find hash to delete refresh token mapping
             if let Some(login_record) = AuthRepo::find_login_by_session_id(&st.db, sid).await? {
@@ -532,23 +548,27 @@ impl AuthService {
         st: &AppState,
         user_id: i64,
         session_id: &str,
-        login_ip: String,
+        _login_ip: String,
         user_agent: Option<String>,
     ) -> AppResult<()> {
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
 
         // 1) DB Update
         let mut tx = st.db.begin().await?;
         let login_record = AuthRepo::find_login_by_session_id_tx(&mut tx, session_id).await?;
-        
+
         if let Some(record) = &login_record {
+            let ip_plain = crypto.decrypt(record.login_ip.as_deref().unwrap_or(""), "login.login_ip")?;
+            let login_ip_log_enc = crypto.encrypt(&ip_plain, "login_log.login_ip_log")?;
+
             AuthRepo::update_login_state_by_session_tx(&mut tx, session_id, "logged_out", Some("none")).await?;
             AuthRepo::insert_logout_log_tx(
                 &mut tx,
                 user_id,
                 session_id,
                 &record.refresh_hash,
-                &login_ip,
+                &login_ip_log_enc,
                 user_agent.as_deref(),
             ).await?;
         }
@@ -569,7 +589,7 @@ impl AuthService {
         st: &AppState,
         refresh_token: Option<&str>,
         req: LogoutAllReq,
-        login_ip: String,
+        _login_ip: String,
         user_agent: Option<String>,
     ) -> AppResult<LogoutRes> {
         // Find User from Refresh Token
@@ -610,15 +630,18 @@ impl AuthService {
             AuthRepo::update_login_state_by_session_tx(&mut tx, &sid, "logged_out", Some("none")).await?;
         }
 
-        // 로그 기록 (Loop)
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         for sid in &sessions_to_invalidate {
              if let Some(record) = AuthRepo::find_login_by_session_id_tx(&mut tx, sid).await? {
+                let ip_plain = crypto.decrypt(record.login_ip.as_deref().unwrap_or(""), "login.login_ip")?;
+                let login_ip_log_enc = crypto.encrypt(&ip_plain, "login_log.login_ip_log")?;
+
                 AuthRepo::insert_logout_log_tx(
                     &mut tx,
                     uid,
                     sid,
                     &record.refresh_hash,
-                    &login_ip,
+                    &login_ip_log_enc,
                     user_agent.as_deref(),
                 ).await?;
              }
@@ -676,7 +699,9 @@ impl AuthService {
         }
 
         // [Step 2] 사용자 존재 확인 (타이밍 공격 방지를 위해 항상 성공 응답)
-        let user = AuthRepo::find_user_by_email(&st.db, &email).await?;
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let idx = crypto.blind_index(&email)?;
+        let user = AuthRepo::find_user_by_email_idx(&st.db, &idx).await?;
 
         // 사용자가 없거나 OAuth 전용 계정이면 이메일 발송 없이 성공 응답
         if user.is_none() {
@@ -769,7 +794,9 @@ impl AuthService {
         let _: () = redis_conn.del(&code_key).await.unwrap_or(());
 
         // [Step 5] 사용자 조회 (user_id 필요)
-        let user = AuthRepo::find_user_by_email(&st.db, &email).await?
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let idx = crypto.blind_index(&email)?;
+        let user = AuthRepo::find_user_by_email_idx(&st.db, &idx).await?
             .ok_or_else(|| AppError::Unauthorized("AUTH_401_USER_NOT_FOUND".into()))?;
 
         // [Step 6] reset_token 생성 (Redis에 저장, JWT 대신 단순 토큰 사용)
@@ -843,9 +870,10 @@ impl AuthService {
         let new_password_hash = super::password::hash_password(new_password)?;
 
         // [Step 5] DB 업데이트 (비밀번호 + 세션 무효화)
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let mut tx = st.db.begin().await?;
         AuthRepo::update_user_password_tx(&mut tx, user_id, &new_password_hash).await?;
-        user_repo::insert_user_log_after_tx(&mut tx, Some(user_id), user_id, "reset_pw", true).await?;
+        user_repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user_id), user_id, "reset_pw", true).await?;
         AuthRepo::update_login_state_by_user_tx(&mut tx, user_id, "revoked", Some("password_changed")).await?;
         tx.commit().await?;
 
@@ -983,10 +1011,13 @@ impl AuthService {
         user_info: &GoogleUserInfo,
         provider: &str,
     ) -> AppResult<(i64, UserAuth, bool)> {
-        // 1. OAuth 연결 정보로 기존 계정 조회
-        if let Some(oauth) = AuthRepo::find_oauth_by_provider_subject(
-            &st.db, provider, &user_info.sub
-        ).await? {
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+
+        // 1. OAuth subject blind index 검색 (case-sensitive: preserve_case)
+        let sub_idx = crypto.blind_index_preserve_case(&user_info.sub)?;
+        let oauth = AuthRepo::find_oauth_by_provider_subject_idx(&st.db, provider, &sub_idx).await?;
+
+        if let Some(oauth) = oauth {
             // 이미 연결된 계정 존재 - 마지막 로그인 시간 업데이트
             AuthRepo::update_oauth_last_login(&st.db, oauth.user_oauth_id).await?;
 
@@ -998,18 +1029,26 @@ impl AuthService {
         }
 
         // 2. 이메일로 기존 계정 조회 (자동 연결)
-        if let Some(existing_user) = AuthRepo::find_user_by_email(&st.db, &user_info.email).await? {
+        let email_idx = crypto.blind_index(&user_info.email)?;
+        let existing_user = AuthRepo::find_user_by_email_idx(&st.db, &email_idx).await?;
+
+        if let Some(existing_user) = existing_user {
             // 기존 계정에 OAuth 연결
+            let oauth_email_enc = crypto.encrypt(&user_info.email, "user_oauth.oauth_email")?;
+            let oauth_subject_enc = crypto.encrypt(&user_info.sub, "user_oauth.oauth_subject")?;
+            let oauth_subject_idx = crypto.blind_index_preserve_case(&user_info.sub)?;
+
             let mut tx = st.db.begin().await?;
 
             AuthRepo::insert_oauth_link_tx(
                 &mut tx,
                 existing_user.user_id,
                 provider,
-                &user_info.sub,
-                Some(&user_info.email),
+                &oauth_subject_enc,
+                Some(oauth_email_enc.as_str()),
                 user_info.name.as_deref(),
                 user_info.picture.as_deref(),
+                &oauth_subject_idx,
             ).await?;
 
             tx.commit().await?;
@@ -1035,6 +1074,13 @@ impl AuthService {
         let nickname = user_info.name.clone()
             .unwrap_or_else(|| user_info.email.split('@').next().unwrap_or("User").to_string());
 
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let email_enc = crypto.encrypt(&user_info.email, "users.user_email")?;
+        let email_idx = crypto.blind_index(&user_info.email)?;
+        let name_enc = crypto.encrypt(&nickname, "users.user_name")?;
+        let name_idx = crypto.blind_index(&nickname)?;
+        let default_birthday = crypto.encrypt(&chrono::Utc::now().format("%Y-%m-%d").to_string(), "users.user_birthday")?;
+
         // 사용자 생성 (비밀번호 없이, user_check_email = true)
         let user_id = sqlx::query_scalar::<_, i64>(r#"
             INSERT INTO users (
@@ -1042,36 +1088,46 @@ impl AuthService {
                 user_nickname, user_language, user_country,
                 user_birthday, user_gender,
                 user_terms_service, user_terms_personal,
-                user_check_email
+                user_check_email,
+                user_email_idx, user_name_idx
             )
             VALUES (
                 $1, NULL, $2,
                 $3, 'ko'::user_language_enum, 'Unknown',
-                CURRENT_DATE, 'none'::user_gender_enum,
+                $6, 'none'::user_gender_enum,
                 true, true,
-                true
+                true,
+                $4, $5
             )
             RETURNING user_id
         "#)
-        .bind(&user_info.email)
+        .bind(&email_enc)
+        .bind(&name_enc)
         .bind(&nickname)
-        .bind(&nickname)
+        .bind(&email_idx)
+        .bind(&name_idx)
+        .bind(&default_birthday)
         .fetch_one(&mut *tx)
         .await?;
+
+        let oauth_email_enc = crypto.encrypt(&user_info.email, "user_oauth.oauth_email")?;
+        let oauth_subject_enc = crypto.encrypt(&user_info.sub, "user_oauth.oauth_subject")?;
+        let oauth_subject_idx = crypto.blind_index_preserve_case(&user_info.sub)?;
 
         // OAuth 연결 정보 생성
         AuthRepo::insert_oauth_link_tx(
             &mut tx,
             user_id,
             provider,
-            &user_info.sub,
-            Some(&user_info.email),
+            &oauth_subject_enc,
+            Some(oauth_email_enc.as_str()),
             user_info.name.as_deref(),
             user_info.picture.as_deref(),
+            &oauth_subject_idx,
         ).await?;
 
         // 회원가입 로그
-        user_repo::insert_user_log_after_tx(&mut tx, None, user_id, "signup", true).await?;
+        user_repo::insert_user_log_after_tx(&mut tx, &crypto, None, user_id, "signup", true).await?;
 
         tx.commit().await?;
 
@@ -1107,6 +1163,10 @@ impl AuthService {
         // IP Geolocation (best-effort, non-blocking)
         let geo = st.ipgeo.lookup(&login_ip).await;
 
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let login_ip_enc = crypto.encrypt(&login_ip, "login.login_ip")?;
+        let login_ip_log_enc = crypto.encrypt(&login_ip, "login_log.login_ip_log")?;
+
         // DB 기록
         let mut tx = st.db.begin().await?;
 
@@ -1115,7 +1175,7 @@ impl AuthService {
             user_id,
             &session_id,
             &refresh_hash,
-            &login_ip,
+            &login_ip_enc,
             login_method,
             Some(parsed_ua.device.as_str()),
             parsed_ua.browser.as_deref(),
@@ -1134,7 +1194,7 @@ impl AuthService {
             true,
             &session_id,
             &refresh_hash,
-            &login_ip,
+            &login_ip_log_enc,
             login_method,
             Some(parsed_ua.device.as_str()),
             parsed_ua.browser.as_deref(),

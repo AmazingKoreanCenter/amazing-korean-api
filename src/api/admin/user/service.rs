@@ -5,6 +5,7 @@ use validator::Validate;
 
 use crate::{
     api::auth::password,
+    crypto::CryptoService,
     error::{AppError, AppResult},
     state::AppState,
     types::{UserAuth as GlobalUserAuth, UserGender},
@@ -128,6 +129,11 @@ impl AdminUserService {
             "order": order
         });
 
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let ip_enc = ip_address
+            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+            .transpose()?;
+
         repo::create_audit_log(
             &st.db,
             actor_user_id,
@@ -135,13 +141,27 @@ impl AdminUserService {
             Some("users"),
             None,
             &details,
-            ip_address,
+            ip_enc.as_deref(),
             user_agent.as_deref(),
         )
         .await?;
+        let email_idx = if let Some(ref keyword) = req.q {
+            if keyword.contains('@') {
+                Some(crypto.blind_index(keyword)?)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
 
-        let (total_count, items) =
-            repo::admin_list_users(&st.db, req.q.as_deref(), page, size, sort, order).await?;
+        let (total_count, mut items) =
+            repo::admin_list_users(&st.db, req.q.as_deref(), email_idx.as_deref(), page, size, sort, order).await?;
+
+        // 이메일 복호화
+        for item in &mut items {
+            item.email = crypto.decrypt(&item.email, "users.user_email")?;
+        }
 
         let total_pages = if total_count == 0 {
             0
@@ -173,6 +193,11 @@ impl AdminUserService {
             "target_user_id": user_id
         });
 
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let ip_enc = ip_address
+            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+            .transpose()?;
+
         repo::create_audit_log(
             &st.db,
             actor_user_id,
@@ -180,14 +205,21 @@ impl AdminUserService {
             Some("users"),
             Some(user_id),
             &details,
-            ip_address,
+            ip_enc.as_deref(),
             user_agent.as_deref(),
         )
         .await?;
 
-        let user = repo::admin_get_user(&st.db, user_id)
+        let mut user = repo::admin_get_user(&st.db, user_id)
             .await?
             .ok_or(AppError::NotFound)?;
+
+        // Decrypt encrypted fields
+        user.email = crypto.decrypt(&user.email, "users.user_email")?;
+        user.name = crypto.decrypt(&user.name, "users.user_name")?;
+        if let Some(ref bday) = user.birthday {
+            user.birthday = Some(crypto.decrypt(bday, "users.user_birthday")?);
+        }
 
         Ok(user)
     }
@@ -207,7 +239,16 @@ impl AdminUserService {
 
         req.email = req.email.trim().to_lowercase();
 
-        if repo::exists_email(&st.db, &req.email).await? {
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let birthday = req.birthday.unwrap_or_else(|| NaiveDate::from_ymd_opt(1900, 1, 1).unwrap());
+        let email_enc = crypto.encrypt(&req.email, "users.user_email")?;
+        let email_idx = crypto.blind_index(&req.email)?;
+        let name_enc = crypto.encrypt(&req.name, "users.user_name")?;
+        let name_idx = crypto.blind_index(&req.name)?;
+        let birthday_enc = crypto.encrypt(&birthday.to_string(), "users.user_birthday")?;
+
+        // 이메일 중복 체크
+        if repo::exists_email_idx(&st.db, &email_idx).await? {
             return Err(AppError::Conflict("email already exists".into()));
         }
 
@@ -225,26 +266,31 @@ impl AdminUserService {
         // DTO에서 받은 값 또는 기본값 사용
         let language = req.language.as_deref().unwrap_or("ko");
         let country = req.country.as_deref().unwrap_or("KR");
-        let birthday = req.birthday.unwrap_or_else(|| NaiveDate::from_ymd_opt(1900, 1, 1).unwrap());
         let gender = req.gender.unwrap_or(UserGender::None);
+
+        let ip_enc = ip_address
+            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+            .transpose()?;
 
         let res = repo::admin_create_user(
             &st.db,
-            &req.email,
+            &email_enc,
             &password_hash,
-            &req.name,
+            &name_enc,
             &req.nickname,
             &user_auth_str,
             language,
             country,
-            birthday,
+            &birthday_enc,
             gender,
             false,
             false,
             actor_user_id,
-            ip_address,
+            ip_enc.as_deref(),
             user_agent.as_deref(),
             true,
+            &email_idx,
+            &name_idx,
         )
         .await;
 
@@ -322,6 +368,11 @@ impl AdminUserService {
             "failure": summary.failure
         });
 
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let ip_enc = ip_address
+            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+            .transpose()?;
+
         repo::create_audit_log(
             &st.db,
             actor_user_id,
@@ -329,7 +380,7 @@ impl AdminUserService {
             Some("users"),
             None,
             &details,
-            ip_address,
+            ip_enc.as_deref(),
             user_agent.as_deref(),
         )
         .await?;
@@ -358,22 +409,26 @@ impl AdminUserService {
 
         req.email = req.email.trim().to_lowercase();
 
-        match repo::exists_email(&st.db, &req.email).await {
-            Ok(true) => {
-                return Err((
-                    409,
-                    "CONFLICT".to_string(),
-                    "email already exists".to_string(),
-                ));
-            }
-            Ok(false) => {}
-            Err(e) => {
-                return Err((
-                    500,
-                    "INTERNAL_SERVER_ERROR".to_string(),
-                    e.to_string(),
-                ));
-            }
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let birthday = NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
+        let email_enc = crypto.encrypt(&req.email, "users.user_email")
+            .map_err(|e| (500, "INTERNAL_SERVER_ERROR".into(), e.to_string()))?;
+        let email_idx = crypto.blind_index(&req.email)
+            .map_err(|e| (500, "INTERNAL_SERVER_ERROR".into(), e.to_string()))?;
+        let name_enc = crypto.encrypt(&req.name, "users.user_name")
+            .map_err(|e| (500, "INTERNAL_SERVER_ERROR".into(), e.to_string()))?;
+        let name_idx = crypto.blind_index(&req.name)
+            .map_err(|e| (500, "INTERNAL_SERVER_ERROR".into(), e.to_string()))?;
+        let birthday_enc = crypto.encrypt(&birthday.to_string(), "users.user_birthday")
+            .map_err(|e| (500, "INTERNAL_SERVER_ERROR".into(), e.to_string()))?;
+
+        // 이메일 중복 체크
+        let idx_exists = match repo::exists_email_idx(&st.db, &email_idx).await {
+            Ok(v) => v,
+            Err(e) => return Err((500, "INTERNAL_SERVER_ERROR".to_string(), e.to_string())),
+        };
+        if idx_exists {
+            return Err((409, "CONFLICT".to_string(), "email already exists".to_string()));
         }
 
         if !Self::validate_password_policy(&req.password) {
@@ -405,26 +460,32 @@ impl AdminUserService {
 
         let language = "ko";
         let country = "KR";
-        let birthday = NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
         let gender = UserGender::None;
+
+        let ip_enc = ip_address
+            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+            .transpose()
+            .map_err(|e| (500, "INTERNAL_SERVER_ERROR".to_string(), e.to_string()))?;
 
         match repo::admin_create_user(
             &st.db,
-            &req.email,
+            &email_enc,
             &password_hash,
-            &req.name,
+            &name_enc,
             &req.nickname,
             &user_auth_str,
             language,
             country,
-            birthday,
+            &birthday_enc,
             gender,
             false,
             false,
             actor_user_id,
-            ip_address,
+            ip_enc.as_deref(),
             user_agent,
             false,
+            &email_idx,
+            &name_idx,
         )
         .await
         {
@@ -460,12 +521,16 @@ impl AdminUserService {
             return Err(AppError::BadRequest(e.to_string()));
         }
 
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+
         if let Some(email) = &mut req.email {
             *email = email.trim().to_lowercase();
-            if email != &current_target_user.email.to_lowercase()
-                && repo::exists_email(&st.db, email).await?
-            {
-                return Err(AppError::Conflict("email already exists".into()));
+            let current_email = crypto.decrypt(&current_target_user.email, "users.user_email")?;
+            if email.to_lowercase() != current_email.to_lowercase() {
+                let check_idx = crypto.blind_index(email)?;
+                if repo::exists_email_idx(&st.db, &check_idx).await? {
+                    return Err(AppError::Conflict("email already exists".into()));
+                }
             }
         }
 
@@ -480,6 +545,16 @@ impl AdminUserService {
             None
         };
 
+        let (email_enc, email_idx) = if let Some(ref email) = req.email {
+            (Some(crypto.encrypt(email, "users.user_email")?), Some(crypto.blind_index(email)?))
+        } else { (None, None) };
+        let (name_enc, name_idx) = if let Some(ref name) = req.name {
+            (Some(crypto.encrypt(name, "users.user_name")?), Some(crypto.blind_index(name)?))
+        } else { (None, None) };
+        let birthday_enc = req.birthday
+            .map(|b| crypto.encrypt(&b.to_string(), "users.user_birthday"))
+            .transpose()?;
+
         let details = serde_json::json!({
             "target_user_id": user_id
         });
@@ -491,6 +566,11 @@ impl AdminUserService {
             user_id,
             &req,
             password_hash.as_deref(),
+            email_enc.as_deref(),
+            email_idx.as_deref(),
+            name_enc.as_deref(),
+            name_idx.as_deref(),
+            birthday_enc.as_deref(),
         )
         .await?;
 
@@ -507,6 +587,10 @@ impl AdminUserService {
         )
         .await?;
 
+        let ip_enc = ip_address
+            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+            .transpose()?;
+
         repo::create_audit_log_tx(
             &mut tx,
             actor_user_id,
@@ -514,7 +598,7 @@ impl AdminUserService {
             Some("users"),
             Some(updated.id),
             &details,
-            ip_address,
+            ip_enc.as_deref(),
             user_agent.as_deref(),
         )
         .await?;
@@ -525,6 +609,7 @@ impl AdminUserService {
             if new_state != current_target_user.user_state {
                 if let Err(le) = crate::api::user::repo::insert_user_log_after(
                     &st.db,
+                    &crypto,
                     Some(actor_user_id),
                     updated.id,
                     "update",
@@ -578,24 +663,40 @@ impl AdminUserService {
                      return Err(AppError::Forbidden("Forbidden".to_string()));
                 }
     
-                // 이메일 중복 체크 (Pool 사용)
+                let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+                let (email_enc, email_idx) = if let Some(ref email) = item.email {
+                    let enc = crypto.encrypt(email, "users.user_email")?;
+                    let idx = crypto.blind_index(email)?;
+                    (Some(enc), Some(idx))
+                } else { (None, None) };
+                let (name_enc, name_idx) = if let Some(ref name) = item.name {
+                    let enc = crypto.encrypt(name, "users.user_name")?;
+                    let idx = crypto.blind_index(name)?;
+                    (Some(enc), Some(idx))
+                } else { (None, None) };
+                let birthday_enc = if let Some(birthday) = item.birthday {
+                    Some(crypto.encrypt(&birthday.to_string(), "users.user_birthday")?)
+                } else { None };
+
                 if let Some(new_email) = &item.email {
-                    let new_email = new_email.trim().to_lowercase();
-                    if new_email != target_user.email.to_lowercase() {
-                        let exists = super::repo::exists_email(&st.db, &new_email).await?;
-                        if exists {
-                            return Err(AppError::Conflict("Email exists".into()));
+                    let new_email_lower = new_email.trim().to_lowercase();
+                    let current_email = crypto.decrypt(&target_user.email, "users.user_email")?;
+                    if new_email_lower != current_email.to_lowercase() {
+                        if let Some(ref idx) = email_idx {
+                            if super::repo::exists_email_idx(&st.db, idx).await? {
+                                return Err(AppError::Conflict("Email exists".into()));
+                            }
                         }
                     }
                 }
-    
+
                 // [수정] 2-2. 비밀번호 해싱
                 let password_hash = if let Some(pw) = &item.password {
                     Some(crate::api::auth::password::hash_password(pw)?)
                 } else {
                     None
                 };
-    
+
                 // 2-3. DTO 생성
                 // [수정] password는 None으로 설정 (해시값은 별도 인자로 전달하므로 중복 방지)
                 let update_req = AdminUpdateUserReq {
@@ -607,20 +708,23 @@ impl AdminUserService {
                     country: item.country.clone(),
                     birthday: item.birthday,
                     gender: item.gender.clone(),
-                    user_state: item.user_state, 
+                    user_state: item.user_state,
                     user_auth: item.user_auth.clone(),
                 };
-    
+
                 // 2-4. 쓰기 작업: Transaction 시작
                 let mut tx = st.db.begin().await?;
-    
-                // [핵심 수정] Repo 호출 시그니처 맞춤
-                // fn(tx, user_id, req, password_hash) -> 인자 4개
+
                 let updated_user = super::repo::admin_update_user(
-                    &mut tx,                 // 1. Transaction
-                    item.id,                 // 2. Target User ID (Actor ID 아님!)
-                    &update_req,             // 3. Request DTO
-                    password_hash.as_deref() // 4. Password Hash
+                    &mut tx,
+                    item.id,
+                    &update_req,
+                    password_hash.as_deref(),
+                    email_enc.as_deref(),
+                    email_idx.as_deref(),
+                    name_enc.as_deref(),
+                    name_idx.as_deref(),
+                    birthday_enc.as_deref(),
                 ).await?;
     
                 // 2-5. 커밋
@@ -672,6 +776,11 @@ impl AdminUserService {
             "failure": summary.failure
         });
     
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let ip_enc = ip_address
+            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+            .transpose()?;
+
         super::repo::create_audit_log(
             &st.db,
             actor_user_id,
@@ -679,7 +788,7 @@ impl AdminUserService {
             Some("users"),
             None,
             &details,
-            ip_address,
+            ip_enc.as_deref(),
             user_agent.as_deref(),
         ).await?;
     
@@ -706,8 +815,16 @@ impl AdminUserService {
         let page = page.unwrap_or(1).max(1);
         let size = size.unwrap_or(20).clamp(1, 100);
 
-        let (items, total_count) =
+        let (mut items, total_count) =
             repo::admin_get_user_logs(&st.db, target_user_id, page, size).await?;
+
+        // Decrypt admin_email
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        for item in &mut items {
+            if let Some(ref email) = item.admin_email {
+                item.admin_email = Some(crypto.decrypt(email, "users.user_email")?);
+            }
+        }
 
         let total_pages = (total_count as f64 / size as f64).ceil() as i64;
 

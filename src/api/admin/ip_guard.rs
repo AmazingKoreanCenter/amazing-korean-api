@@ -20,7 +20,7 @@ use crate::state::AppState;
 /// - 허용되지 않은 IP는 403 Forbidden 반환
 ///
 /// # 사용법
-/// ```rust
+/// ```ignore
 /// // app_router에서 admin 라우트에 적용
 /// .nest("/admin", admin_router()
 ///     .layer(middleware::from_fn_with_state(state.clone(), admin_ip_guard)))

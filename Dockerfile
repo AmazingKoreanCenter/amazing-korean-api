@@ -15,8 +15,11 @@ RUN apt-get update && apt-get install -y \
 # Copy manifests
 COPY Cargo.toml Cargo.lock ./
 
-# Create dummy main.rs for dependency caching
-RUN mkdir src && echo "fn main() {}" > src/main.rs
+# Create dummy sources for dependency caching
+RUN mkdir -p src/bin && \
+    echo "fn main() {}" > src/main.rs && \
+    echo "fn main() {}" > src/bin/rekey_encryption.rs && \
+    echo "" > src/lib.rs
 
 # Build dependencies only (cache layer)
 RUN cargo build --release && rm -rf src
@@ -27,7 +30,7 @@ COPY migrations ./migrations
 COPY .sqlx ./.sqlx
 
 # Build the application
-RUN touch src/main.rs && cargo build --release
+RUN touch src/main.rs src/lib.rs src/bin/rekey_encryption.rs && cargo build --release
 
 # Stage 2: Runtime
 FROM debian:bookworm-slim

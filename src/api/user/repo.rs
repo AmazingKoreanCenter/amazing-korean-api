@@ -1,9 +1,10 @@
 use super::dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq};
 use crate::{
+    crypto::CryptoService,
     error::AppResult,
     types::{UserAuth, UserGender, UserLanguage},
 };
-use chrono::{NaiveDate, Utc};
+use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use sqlx::{PgPool, Postgres, Transaction};
 
 // =========================================================================
@@ -20,33 +21,37 @@ pub async fn signup_tx(
     nickname: &str,
     language: &str,
     country: &str,
-    birthday: NaiveDate,
+    birthday: &str,
     gender: UserGender,
     terms_service: bool,
     terms_personal: bool,
+    email_idx: &str,
+    name_idx: &str,
 ) -> AppResult<ProfileRes> {
     let res = sqlx::query_as::<_, ProfileRes>(r#"
         INSERT INTO users (
             user_email, user_password, user_name,
             user_nickname, user_language, user_country,
             user_birthday, user_gender,
-            user_terms_service, user_terms_personal
+            user_terms_service, user_terms_personal,
+            user_email_idx, user_name_idx
         )
         VALUES (
             $1, $2, $3,
             $4, $5::user_language_enum, $6,
             $7, $8::user_gender_enum,
-            $9, $10
+            $9, $10,
+            $11, $12
         )
         RETURNING
             user_id as id,
             user_email as email,
             user_name as name,
             user_nickname as nickname,
-            user_language::TEXT as language, -- DB Enum -> Rust String
+            user_language::TEXT as language,
             user_country as country,
             user_birthday as birthday,
-            user_gender as gender,           -- DB Enum -> Rust Enum (sqlx::Type)
+            user_gender as gender,
             user_state,
             user_auth,
             user_created_at as created_at,
@@ -62,26 +67,27 @@ pub async fn signup_tx(
     .bind(gender)
     .bind(terms_service)
     .bind(terms_personal)
+    .bind(email_idx)
+    .bind(name_idx)
     .fetch_one(&mut **tx)
     .await?;
-    
+
     Ok(res)
 }
 
-/// 이메일 중복 확인용 (ID 조회)
-pub async fn find_user_id_by_email(pool: &PgPool, email: &str) -> AppResult<Option<i64>> {
-    let row = sqlx::query_scalar::<_, i64>(r#"
-        SELECT user_id FROM users WHERE user_email = $1
-    "#)
-    .bind(email)
+/// Blind index로 이메일 중복 확인용 (ID 조회)
+pub async fn find_user_id_by_email_idx(pool: &PgPool, email_idx: &str) -> AppResult<Option<i64>> {
+    let row = sqlx::query_scalar::<_, i64>(
+        "SELECT user_id FROM users WHERE user_email_idx = $1"
+    )
+    .bind(email_idx)
     .fetch_optional(pool)
     .await?;
-
     Ok(row)
 }
 
-/// 이메일로 사용자 전체 정보 조회
-pub async fn find_user_by_email(pool: &PgPool, email: &str) -> AppResult<Option<ProfileRes>> {
+/// Blind index로 이메일로 사용자 전체 정보 조회
+pub async fn find_user_by_email_idx(pool: &PgPool, email_idx: &str) -> AppResult<Option<ProfileRes>> {
     let row = sqlx::query_as::<_, ProfileRes>(r#"
         SELECT
             user_id as id,
@@ -97,12 +103,11 @@ pub async fn find_user_by_email(pool: &PgPool, email: &str) -> AppResult<Option<
             user_created_at as created_at,
             (user_password IS NOT NULL) as has_password
         FROM users
-        WHERE user_email = $1
+        WHERE user_email_idx = $1
     "#)
-    .bind(email)
+    .bind(email_idx)
     .fetch_optional(pool)
     .await?;
-
     Ok(row)
 }
 
@@ -173,6 +178,7 @@ pub async fn update_profile_tx(
     tx: &mut Transaction<'_, Postgres>,
     user_id: i64,
     req: &ProfileUpdateReq,
+    birthday_encrypted: Option<&str>,
 ) -> AppResult<Option<ProfileRes>> {
     let res = sqlx::query_as::<_, ProfileRes>(r#"
         UPDATE users
@@ -201,11 +207,11 @@ pub async fn update_profile_tx(
     .bind(req.nickname.as_ref())
     .bind(req.language.as_ref())
     .bind(req.country.as_ref())
-    .bind(req.birthday)
+    .bind(birthday_encrypted)
     .bind(req.gender)
     .fetch_optional(&mut **tx)
     .await?;
-    
+
     Ok(res)
 }
 
@@ -282,13 +288,79 @@ pub async fn upsert_settings_tx(
 // Logging (Audit)
 // =========================================================================
 
+/// 이메일 마스킹: "abcdef@example.com" → "ab***@example.com"
+fn mask_email(email: &str) -> String {
+    if let Some(at_pos) = email.find('@') {
+        let local = &email[..at_pos];
+        let domain = &email[at_pos..];
+        let visible = if local.len() <= 2 { local } else { &local[..2] };
+        format!("{visible}***{domain}")
+    } else {
+        "***".to_string()
+    }
+}
+
+/// users_log 내부 조회용 (users 테이블에서 로그에 필요한 데이터 로드)
+#[derive(sqlx::FromRow)]
+struct UserLogSource {
+    user_auth: String,
+    user_state: bool,
+    user_email: String,
+    user_nickname: String,
+    user_language: String,
+    user_country: String,
+    user_birthday: String,
+    user_gender: String,
+    user_terms_service: bool,
+    user_terms_personal: bool,
+    user_created_at: DateTime<Utc>,
+    user_quit_at: Option<DateTime<Utc>>,
+}
+
+/// users_log 적재 (App 레벨 마스킹).
+///
+/// - 이메일: 복호화 → Rust에서 마스킹 (ab***@example.com)
+/// - 생년월일: 복호화 → 연도만 추출 (YYYY-**-**)
 pub async fn insert_user_log_after_tx(
     tx: &mut Transaction<'_, Postgres>,
+    crypto: &CryptoService<'_>,
     actor_user_id: Option<i64>,
     user_id: i64,
     action: &str,
     success: bool,
 ) -> AppResult<()> {
+    let row = sqlx::query_as::<_, UserLogSource>(r#"
+        SELECT
+            user_auth::text as user_auth,
+            user_state,
+            user_email,
+            user_nickname,
+            user_language::text as user_language,
+            user_country,
+            user_birthday,
+            user_gender::text as user_gender,
+            user_terms_service,
+            user_terms_personal,
+            user_created_at,
+            user_quit_at
+        FROM users
+        WHERE user_id = $1
+    "#)
+    .bind(user_id)
+    .fetch_optional(&mut **tx)
+    .await?;
+
+    let Some(u) = row else { return Ok(()); };
+
+    // Decrypt and mask
+    let email_plain = crypto.decrypt(&u.user_email, "users.user_email")?;
+    let masked_email = mask_email(&email_plain);
+
+    let decrypted_birthday = crypto.decrypt(&u.user_birthday, "users.user_birthday")?;
+    let birthday_masked: Option<String> = NaiveDate::parse_from_str(&decrypted_birthday, "%Y-%m-%d")
+        .ok()
+        .map(|d| format!("{}-**-**", d.year()));
+
     sqlx::query(r#"
         INSERT INTO public.users_log (
             updated_by_user_id, user_action_log, user_action_success, user_id,
@@ -297,32 +369,30 @@ pub async fn insert_user_log_after_tx(
             user_gender_log, user_terms_service_log, user_terms_personal_log,
             user_log_created_at, user_log_quit_at, user_log_updated_at
         )
-        SELECT
-            $1, 
-            CAST($2 AS user_action_log_enum), 
-            $3, 
-            u.user_id,
-            u.user_auth,      
-            u.user_state,    
-            u.user_email, 
-            false,            
-            u.user_nickname, 
-            u.user_language, 
-            u.user_country, 
-            u.user_birthday,
-            u.user_gender,   
-            u.user_terms_service, 
-            u.user_terms_personal,
-            u.user_created_at, 
-            u.user_quit_at, 
-            now()
-        FROM public.users u
-        WHERE u.user_id = $4
+        VALUES (
+            $1, CAST($2 AS user_action_log_enum), $3, $4,
+            $5::user_auth_enum, $6, $7, false,
+            $8, $9::user_language_enum, $10, $11,
+            $12::user_gender_enum, $13, $14,
+            $15, $16, now()
+        )
     "#)
     .bind(actor_user_id)
     .bind(action)
     .bind(success)
     .bind(user_id)
+    .bind(&u.user_auth)
+    .bind(u.user_state)
+    .bind(&masked_email)
+    .bind(&u.user_nickname)
+    .bind(&u.user_language)
+    .bind(&u.user_country)
+    .bind(birthday_masked.as_deref())
+    .bind(&u.user_gender)
+    .bind(u.user_terms_service)
+    .bind(u.user_terms_personal)
+    .bind(u.user_created_at)
+    .bind(u.user_quit_at)
     .execute(&mut **tx)
     .await?;
 
@@ -332,13 +402,14 @@ pub async fn insert_user_log_after_tx(
 /// (Utility) 트랜잭션 없이 로그를 남겨야 할 때 사용
 pub async fn insert_user_log_after(
     pool: &PgPool,
+    crypto: &CryptoService<'_>,
     actor_user_id: Option<i64>,
     user_id: i64,
     action: &str,
     success: bool,
 ) -> AppResult<()> {
     let mut tx = pool.begin().await?;
-    insert_user_log_after_tx(&mut tx, actor_user_id, user_id, action, success).await?;
+    insert_user_log_after_tx(&mut tx, crypto, actor_user_id, user_id, action, success).await?;
     tx.commit().await?;
     Ok(())
 }
@@ -356,12 +427,13 @@ pub async fn create_admin_user(
     name: &str,
     nickname: &str,
     country: &str,
-    birthday: NaiveDate,
+    birthday: &str,
     gender: UserGender,
     language: UserLanguage,
     user_auth: UserAuth,
+    email_idx: &str,
+    name_idx: &str,
 ) -> AppResult<i64> {
-    // UserLanguage와 UserAuth를 문자열로 변환
     let language_str = match language {
         UserLanguage::Ko => "ko",
         UserLanguage::En => "en",
@@ -379,13 +451,15 @@ pub async fn create_admin_user(
             user_email, user_password, user_name,
             user_nickname, user_language, user_country,
             user_birthday, user_gender, user_auth,
-            user_check_email, user_terms_service, user_terms_personal
+            user_check_email, user_terms_service, user_terms_personal,
+            user_email_idx, user_name_idx
         )
         VALUES (
             $1, $2, $3,
             $4, $5::user_language_enum, $6,
             $7, $8::user_gender_enum, $9::user_auth_enum,
-            true, true, true
+            true, true, true,
+            $10, $11
         )
         RETURNING user_id
     "#,
@@ -399,6 +473,8 @@ pub async fn create_admin_user(
     .bind(birthday)
     .bind(gender)
     .bind(user_auth_str)
+    .bind(email_idx)
+    .bind(name_idx)
     .fetch_one(pool)
     .await?;
 
