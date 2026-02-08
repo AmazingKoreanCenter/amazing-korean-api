@@ -657,6 +657,11 @@ amazing-korean-server/public/images/eps-topik.png
 amazing-korean-server/public/images/topik.png
 amazing-korean-server/routes/auth.js
 
+# Database dumps (절대 커밋 금지)
+db_backup.sql
+*.dump
+*.pgdump
+
 # AWS CLI installer & config (not project code)
 aws/
 .aws/

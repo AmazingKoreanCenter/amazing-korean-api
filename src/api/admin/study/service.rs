@@ -70,6 +70,11 @@ pub async fn admin_list_studies(
         "state": req.study_state
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     // [수정] 인자 개수 8개로 맞춤 (trace_id 제거)
     // 순서: (db, actor, action, target_id, target_sub_id, details, ip, ua)
     crate::api::admin::user::repo::create_audit_log(
@@ -79,7 +84,7 @@ pub async fn admin_list_studies(
         Some("STUDY"), // target_id
         None, // target_sub_id (5번째 인자)
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -124,6 +129,11 @@ pub async fn admin_get_study(
         "study_id": study_id
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -131,7 +141,7 @@ pub async fn admin_get_study(
         Some("STUDY"),
         Some(study_id),
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -180,6 +190,11 @@ pub async fn admin_create_study(
         .map(str::trim)
         .filter(|v| !v.is_empty());
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -187,7 +202,7 @@ pub async fn admin_create_study(
         Some("STUDY"),
         None,
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -250,6 +265,11 @@ pub async fn admin_bulk_create_studies(
         "total": req.items.len()
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -257,7 +277,7 @@ pub async fn admin_bulk_create_studies(
         Some("study"),
         None,
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -390,6 +410,11 @@ pub async fn admin_update_study(
 ) -> AppResult<AdminStudyRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -397,7 +422,7 @@ pub async fn admin_update_study(
         Some("STUDY"),
         Some(study_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -490,6 +515,11 @@ pub async fn admin_list_study_tasks(
         "study_id": req.study_id
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -497,7 +527,7 @@ pub async fn admin_list_study_tasks(
         Some("STUDY_TASK"),
         Some(req.study_id as i64),
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -534,6 +564,11 @@ pub async fn admin_get_study_task(
         "task_id": task_id
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -541,7 +576,7 @@ pub async fn admin_get_study_task(
         Some("STUDY_TASK"),
         Some(task_id),
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -585,6 +620,11 @@ pub async fn admin_list_task_explains(
         "size": size
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -592,7 +632,7 @@ pub async fn admin_list_task_explains(
         Some("STUDY_TASK_EXPLAIN"),
         Some(req.task_id as i64),
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -647,6 +687,11 @@ pub async fn admin_list_task_status(
         "user_id": req.user_id
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -654,7 +699,7 @@ pub async fn admin_list_task_status(
         Some("STUDY_TASK_STATUS"),
         req.task_id.map(|id| id as i64),
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -687,6 +732,11 @@ pub async fn admin_update_task_status(
 ) -> AppResult<AdminTaskStatusRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -694,7 +744,7 @@ pub async fn admin_update_task_status(
         Some("STUDY_TASK_STATUS"),
         Some(task_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -759,6 +809,11 @@ pub async fn admin_create_task_explain(
 ) -> AppResult<AdminTaskExplainRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -766,7 +821,7 @@ pub async fn admin_create_task_explain(
         Some("STUDY_TASK_EXPLAIN"),
         Some(task_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -824,6 +879,11 @@ pub async fn admin_update_task_explain(
 ) -> AppResult<AdminTaskExplainRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -831,7 +891,7 @@ pub async fn admin_update_task_explain(
         Some("STUDY_TASK_EXPLAIN"),
         Some(task_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -904,6 +964,11 @@ pub async fn admin_bulk_create_task_explains(
         "count": req.items.len()
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -911,7 +976,7 @@ pub async fn admin_bulk_create_task_explains(
         Some("STUDY_TASK_EXPLAIN"),
         None,
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -1033,6 +1098,11 @@ pub async fn admin_bulk_update_task_explains(
         "count": req.items.len()
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -1040,7 +1110,7 @@ pub async fn admin_bulk_update_task_explains(
         Some("STUDY_TASK_EXPLAIN"),
         None,
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -1169,6 +1239,11 @@ pub async fn admin_bulk_update_task_status(
         "count": req.items.len()
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -1176,7 +1251,7 @@ pub async fn admin_bulk_update_task_status(
         Some("STUDY_TASK_STATUS"),
         None,
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -1285,6 +1360,11 @@ pub async fn admin_create_study_task(
 
     // ✅ [추가 필요 1] API 요청 로그 (admin_action_log) 기록
     // 이 부분이 빠져 있어서 ACTION LOG에 남지 않았던 것입니다.
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -1292,7 +1372,7 @@ pub async fn admin_create_study_task(
         Some("STUDY_TASK"),      // target_table
         Some(req.study_id as i64), // target_id (생성 전이라 부모 ID 기록)
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null), // ✅ [수정 후] 변환 실패 시 Null을 사용하고, 참조(&)를 전달
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     ).await?;
 
@@ -1414,6 +1494,11 @@ pub async fn admin_bulk_create_study_tasks(
         "total": req.items.len()
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -1421,7 +1506,7 @@ pub async fn admin_bulk_create_study_tasks(
         Some("study_task"),
         None,
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -1600,6 +1685,11 @@ pub async fn admin_bulk_update_study_tasks(
         "count": req.items.len()
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -1607,7 +1697,7 @@ pub async fn admin_bulk_update_study_tasks(
         Some("STUDY_TASK"),
         None,
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -1739,6 +1829,11 @@ pub async fn admin_update_study_task(
 
     // ✅ [추가] API 요청 로그 (admin_action_log) 기록
     // 이 부분이 없어서 API 호출 기록이 안 남았던 것입니다.
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -1746,7 +1841,7 @@ pub async fn admin_update_study_task(
         Some("STUDY_TASK"),      // target_table
         Some(study_task_id as i64),    // target_id
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null), // details
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     ).await?;
 
@@ -1823,6 +1918,11 @@ pub async fn admin_bulk_update_studies(
         "total": req.items.len()
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -1830,7 +1930,7 @@ pub async fn admin_bulk_update_studies(
         Some("study"),
         None,
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;

@@ -1,15 +1,16 @@
 use crate::error::AppResult;
-use chrono::NaiveDate;
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, Transaction};
-use std::net::IpAddr;
+
 
 use crate::types::UserGender;
 use super::dto::{AdminUpdateUserReq, AdminUserRes, AdminUserSummary};
 
+/// 검색어에 @ 포함 → email blind index exact match, 그 외 → nickname LIKE
 pub async fn admin_list_users(
     pool: &PgPool,
     q: Option<&str>,
+    email_idx: Option<&str>,
     page: i64,
     size: i64,
     sort: &str,
@@ -33,21 +34,34 @@ pub async fn admin_list_users(
     let mut bind_idx = 1;
 
     if let Some(keyword) = q {
-        let search_query = format!("%{}%", keyword.to_lowercase());
-        count_sql.push_str(&format!(
-            "
-            AND (LOWER(user_email) LIKE ${0} OR LOWER(user_nickname) LIKE ${0})
-        ",
-            bind_idx
-        ));
-        select_sql.push_str(&format!(
-            "
-            AND (LOWER(user_email) LIKE ${0} OR LOWER(user_nickname) LIKE ${0})
-        ",
-            bind_idx
-        ));
-        query_args.push(search_query);
-        bind_idx += 1;
+        if keyword.contains('@') {
+            // 이메일 검색: blind index exact match
+            if let Some(idx) = email_idx {
+                count_sql.push_str(&format!(
+                    " AND user_email_idx = ${0}",
+                    bind_idx
+                ));
+                select_sql.push_str(&format!(
+                    " AND user_email_idx = ${0}",
+                    bind_idx
+                ));
+                query_args.push(idx.to_string());
+                bind_idx += 1;
+            }
+        } else {
+            // 닉네임 검색: LIKE
+            let search_query = format!("%{}%", keyword.to_lowercase());
+            count_sql.push_str(&format!(
+                " AND LOWER(user_nickname) LIKE ${0}",
+                bind_idx
+            ));
+            select_sql.push_str(&format!(
+                " AND LOWER(user_nickname) LIKE ${0}",
+                bind_idx
+            ));
+            query_args.push(search_query);
+            bind_idx += 1;
+        }
     }
 
     let sort_column = match sort {
@@ -127,14 +141,16 @@ pub async fn admin_create_user(
     user_auth: &str,
     language: &str,
     country: &str,
-    birthday: NaiveDate,
+    birthday: &str,
     gender: UserGender,
     terms_service: bool,
     terms_personal: bool,
     actor_user_id: i64,
-    ip_address: Option<IpAddr>,
+    ip_address: Option<&str>,
     user_agent: Option<&str>,
     audit: bool,
+    email_idx: &str,
+    name_idx: &str,
 ) -> AppResult<AdminUserRes> {
     let mut tx = pool.begin().await?;
 
@@ -151,7 +167,9 @@ pub async fn admin_create_user(
             user_gender,
             user_terms_service,
             user_terms_personal,
-            user_auth
+            user_auth,
+            user_email_idx,
+            user_name_idx
         )
         VALUES (
             $1, $2, $3, $4,
@@ -159,7 +177,8 @@ pub async fn admin_create_user(
             $6, $7,
             $8::user_gender_enum,
             $9, $10,
-            $11::user_auth_enum
+            $11::user_auth_enum,
+            $12, $13
         )
         RETURNING
             user_id as id,
@@ -187,6 +206,8 @@ pub async fn admin_create_user(
     .bind(terms_service)
     .bind(terms_personal)
     .bind(user_auth)
+    .bind(email_idx)
+    .bind(name_idx)
     .fetch_one(&mut *tx)
     .await?;
 
@@ -223,6 +244,11 @@ pub async fn admin_update_user(
     user_id: i64,
     req: &AdminUpdateUserReq,
     password_hash: Option<&str>,
+    email_encrypted: Option<&str>,
+    email_idx: Option<&str>,
+    name_encrypted: Option<&str>,
+    name_idx: Option<&str>,
+    birthday_encrypted: Option<&str>,
 ) -> AppResult<AdminUserRes> {
     let updated = sqlx::query_as::<_, AdminUserRes>(
         r#"
@@ -239,12 +265,12 @@ pub async fn admin_update_user(
             user_state = COALESCE($10, user_state),
             user_auth = COALESCE($11::user_auth_enum, user_auth),
             user_quit_at = CASE
-                -- $10(입력)가 FALSE(정지)이고, 기존이 TRUE(활성)면 -> 탈퇴일 기록
                 WHEN $10 IS NOT NULL AND $10 IS FALSE AND user_state IS TRUE THEN NOW()
-                -- $10(입력)가 TRUE(활성)이고, 기존이 FALSE(정지)면 -> 탈퇴일 초기화
                 WHEN $10 IS NOT NULL AND $10 IS TRUE AND user_state IS FALSE THEN NULL
                 ELSE user_quit_at
-            END
+            END,
+            user_email_idx = COALESCE($12, user_email_idx),
+            user_name_idx = COALESCE($13, user_name_idx)
         WHERE user_id = $1
         RETURNING
             user_id as id,
@@ -262,36 +288,37 @@ pub async fn admin_update_user(
         "#,
     )
     .bind(user_id)
-    .bind(req.email.as_ref().map(|e| e.to_lowercase()))
+    .bind(email_encrypted)
     .bind(password_hash)
-    .bind(req.name.as_ref())
+    .bind(name_encrypted)
     .bind(req.nickname.as_ref())
     .bind(req.language.as_ref())
     .bind(req.country.as_ref())
-    .bind(req.birthday)
+    .bind(birthday_encrypted)
     .bind(req.gender)
     .bind(req.user_state)
     .bind(req.user_auth.map(|a| a.to_string()))
+    .bind(email_idx)
+    .bind(name_idx)
     .fetch_one(&mut **tx)
     .await?;
 
     Ok(updated)
 }
 
-pub async fn exists_email(pool: &PgPool, email: &str) -> AppResult<bool> {
+pub async fn exists_email_idx(pool: &PgPool, email_idx: &str) -> AppResult<bool> {
     let exists = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
             SELECT 1
             FROM users
-            WHERE user_email = $1
+            WHERE user_email_idx = $1
         )
         "#,
     )
-    .bind(email)
+    .bind(email_idx)
     .fetch_one(pool)
     .await?;
-
     Ok(exists)
 }
 
@@ -302,7 +329,7 @@ pub async fn create_audit_log(
     target_table: Option<&str>,
     target_id: Option<i64>,
     details: &Value,
-    ip_address: Option<IpAddr>,
+    ip_address: Option<&str>,
     user_agent: Option<&str>,
 ) -> AppResult<()> {
     sqlx::query(
@@ -311,7 +338,7 @@ pub async fn create_audit_log(
             admin_id, action_type, target_table, target_id,
             details, ip_address, user_agent
         )
-        VALUES ($1, $2, $3, $4, $5, $6::inet, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         "#,
     )
     .bind(admin_id)
@@ -319,7 +346,7 @@ pub async fn create_audit_log(
     .bind(target_table)
     .bind(target_id)
     .bind(details)
-    .bind(ip_address.map(|ip| ip.to_string()))
+    .bind(ip_address)
     .bind(user_agent)
     .execute(pool)
     .await?;
@@ -334,7 +361,7 @@ pub async fn create_audit_log_tx(
     target_table: Option<&str>,
     target_id: Option<i64>,
     details: &Value,
-    ip_address: Option<IpAddr>,
+    ip_address: Option<&str>,
     user_agent: Option<&str>,
 ) -> AppResult<()> {
     sqlx::query(
@@ -343,7 +370,7 @@ pub async fn create_audit_log_tx(
             admin_id, action_type, target_table, target_id,
             details, ip_address, user_agent
         )
-        VALUES ($1, $2, $3, $4, $5, $6::inet, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         "#,
     )
     .bind(admin_id)
@@ -351,7 +378,7 @@ pub async fn create_audit_log_tx(
     .bind(target_table)
     .bind(target_id)
     .bind(details)
-    .bind(ip_address.map(|ip| ip.to_string()))
+    .bind(ip_address)
     .bind(user_agent)
     .execute(&mut **tx)
     .await?;

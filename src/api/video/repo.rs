@@ -218,6 +218,7 @@ impl VideoRepo {
     /// 학습 진도 업데이트 (Upsert) - 확장 버전
     /// is_new_view: true면 watch_count++, first_watched_at 설정
     /// watch_duration_sec: 이번 세션에서 시청한 시간 (누적됨)
+    // TODO: video_last_ip_log는 현재 항상 NULL. IP 수집 시 암호화 필수 (Phase 3 참조)
     pub async fn update_progress(
         pool: &PgPool,
         user_id: i64,

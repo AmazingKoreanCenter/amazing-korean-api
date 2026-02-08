@@ -128,9 +128,9 @@ pub struct SignupRes {
     pub language: String,
     pub country: String,
     #[schema(value_type = String, format = "date")]
-    pub birthday: NaiveDate,
+    pub birthday: String,
     pub gender: UserGender,
-    
+
     pub user_state: bool,     // true(on), false(off/ban)
     pub user_auth: UserAuth,  // admin, manager, learner
 
@@ -157,7 +157,7 @@ pub struct ProfileRes {
     pub country: Option<String>,
 
     #[schema(value_type = String, format = "date")]
-    pub birthday: Option<NaiveDate>,
+    pub birthday: Option<String>,
     pub gender: UserGender,
 
     pub user_state: bool,

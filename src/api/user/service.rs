@@ -12,6 +12,7 @@ use tracing::warn;
 
 use crate::{
     api::auth::{jwt, repo::AuthRepo},
+    crypto::CryptoService,
     error::{AppError, AppResult},
     state::AppState,
 };
@@ -109,8 +110,16 @@ impl UserService {
             return Err(AppError::TooManyRequests("Too many signup attempts".into()));
         }
 
+        // Field Encryption
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let email_enc = crypto.encrypt(&req.email, "users.user_email")?;
+        let email_idx = crypto.blind_index(&req.email)?;
+        let name_enc = crypto.encrypt(&req.name, "users.user_name")?;
+        let name_idx = crypto.blind_index(&req.name)?;
+        let birthday_enc = crypto.encrypt(&req.birthday.to_string(), "users.user_birthday")?;
+
         // [Step 3] Pre-check Email Duplication
-        if repo::find_user_id_by_email(&st.db, &req.email).await?.is_some() {
+        if repo::find_user_id_by_email_idx(&st.db, &email_idx).await?.is_some() {
             return Err(AppError::Conflict("Email already exists".into()));
         }
 
@@ -130,9 +139,10 @@ impl UserService {
 
         // 6-1. Insert User
         let user = match repo::signup_tx(
-            &mut tx, &req.email, &password_hash, &req.name, &req.nickname,
-            &req.language, &req.country, req.birthday, req.gender,
-            req.terms_service, req.terms_personal
+            &mut tx, &email_enc, &password_hash, &name_enc, &req.nickname,
+            &req.language, &req.country, &birthday_enc, req.gender,
+            req.terms_service, req.terms_personal,
+            &email_idx, &name_idx,
         ).await {
             Ok(u) => u,
             Err(e) if Self::is_unique_violation(&e) => return Err(AppError::Conflict("Email exists".into())),
@@ -140,7 +150,7 @@ impl UserService {
         };
 
         // 6-2. Audit Log (Signup)
-        if let Err(e) = repo::insert_user_log_after_tx(&mut tx, Some(user.id), user.id, "signup", true).await {
+        if let Err(e) = repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user.id), user.id, "signup", true).await {
             warn!(error = ?e, user_id = user.id, "Failed to insert signup log");
         }
 
@@ -157,8 +167,12 @@ impl UserService {
         let access_hash: String = sha2::Sha256::digest(access_token.access_token.as_bytes())
             .iter().map(|b| format!("{:02x}", b)).collect();
 
+        // IP 암호화
+        let login_ip_encrypted = crypto.encrypt(&ip, "login.login_ip")?;
+        let login_ip_log_encrypted = crypto.encrypt(&ip, "login_log.login_ip_log")?;
+
         AuthRepo::insert_login_record_tx(
-            &mut tx, user.id, &session_id, &refresh_hash, &ip,
+            &mut tx, user.id, &session_id, &refresh_hash, &login_ip_encrypted,
             Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(), parsed_ua.os.as_deref(),
             ua.as_deref(), refresh_ttl_secs,
             geo.country_code.as_deref(), geo.asn, geo.org.as_deref(),
@@ -171,7 +185,7 @@ impl UserService {
             true,
             &session_id,
             &refresh_hash,
-            &ip,
+            &login_ip_log_encrypted,
             Some(parsed_ua.device.as_str()),
             parsed_ua.browser.as_deref(),
             parsed_ua.os.as_deref(),
@@ -210,12 +224,12 @@ impl UserService {
         // [Step 8] Response Construction
         let res = SignupRes {
             user_id: user.id,
-            email: user.email.clone(),
-            name: user.name.clone(),
+            email: req.email.clone(),
+            name: req.name.clone(),
             nickname: user.nickname.clone().unwrap_or_default(),
             language: user.language.clone().unwrap_or_else(|| "ko".to_string()),
             country: user.country.clone().unwrap_or_default(),
-            birthday: user.birthday.unwrap_or_else(|| chrono::NaiveDate::from_ymd_opt(1970, 1, 1).unwrap()),
+            birthday: req.birthday.to_string(),
             gender: user.gender,
             user_state: user.user_state,
             user_auth: user.user_auth,
@@ -228,14 +242,23 @@ impl UserService {
     }
 
     pub async fn get_me(st: &AppState, user_id: i64) -> AppResult<ProfileRes> {
-        let user = repo::find_profile_by_id(&st.db, user_id).await?.ok_or(AppError::NotFound)?;
+        let mut user = repo::find_profile_by_id(&st.db, user_id).await?.ok_or(AppError::NotFound)?;
         if !user.user_state { return Err(AppError::NotFound); }
+
+        // Decrypt encrypted fields
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        user.email = crypto.decrypt(&user.email, "users.user_email")?;
+        user.name = crypto.decrypt(&user.name, "users.user_name")?;
+        if let Some(ref bday) = user.birthday {
+            user.birthday = Some(crypto.decrypt(bday, "users.user_birthday")?);
+        }
+
         Ok(user)
     }
 
     pub async fn update_me(st: &AppState, user_id: i64, req: ProfileUpdateReq) -> AppResult<ProfileRes> {
         req.validate().map_err(|e| AppError::Unprocessable(e.to_string()))?;
-        
+
         if let Some(birthday) = req.birthday {
             if birthday > chrono::Utc::now().date_naive() {
                 return Err(AppError::Unprocessable("Invalid birthday".into()));
@@ -245,12 +268,25 @@ impl UserService {
         let user = repo::find_profile_by_id(&st.db, user_id).await?.ok_or(AppError::NotFound)?;
         if !user.user_state { return Err(AppError::NotFound); }
 
+        // Encrypt birthday if updated
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let birthday_enc = req.birthday
+            .map(|b| crypto.encrypt(&b.to_string(), "users.user_birthday"))
+            .transpose()?;
+
         let mut tx = st.db.begin().await?;
-        
-        let updated = repo::update_profile_tx(&mut tx, user_id, &req).await?.ok_or(AppError::NotFound)?;
-        repo::insert_user_log_after_tx(&mut tx, Some(user_id), user_id, "update", true).await?;
-        
+
+        let mut updated = repo::update_profile_tx(&mut tx, user_id, &req, birthday_enc.as_deref()).await?.ok_or(AppError::NotFound)?;
+        repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user_id), user_id, "update", true).await?;
+
         tx.commit().await?;
+
+        // Decrypt encrypted fields for response
+        updated.email = crypto.decrypt(&updated.email, "users.user_email")?;
+        updated.name = crypto.decrypt(&updated.name, "users.user_name")?;
+        if let Some(ref bday) = updated.birthday {
+            updated.birthday = Some(crypto.decrypt(bday, "users.user_birthday")?);
+        }
 
         Ok(updated)
     }
@@ -282,11 +318,12 @@ impl UserService {
             }
         }
 
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let mut tx = st.db.begin().await?;
-        
+
         let settings = repo::upsert_settings_tx(&mut tx, user_id, &req).await?;
-        repo::insert_user_log_after_tx(&mut tx, Some(user_id), user_id, "update", true).await?;
-        
+        repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user_id), user_id, "update", true).await?;
+
         tx.commit().await?;
 
         Ok(settings)

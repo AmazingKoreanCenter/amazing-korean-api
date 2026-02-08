@@ -367,7 +367,7 @@ pub struct AdminLessonItemListRes {
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, FromRow)]
 pub struct AdminLessonRes {
     pub lesson_id: i32,
-    pub updated_by_user_id: i64,
+    pub updated_by_user_id: Option<i64>,
     pub lesson_idx: String,
     pub lesson_title: String,
     pub lesson_subtitle: Option<String>,

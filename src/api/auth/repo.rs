@@ -54,51 +54,6 @@ impl AuthRepo {
     // User Core Lookups
     // ---------------------------------------------------------------------
 
-    /// 이메일로 로그인에 필요한 최소 정보 조회
-    pub async fn find_user_by_email(
-        pool: &PgPool,
-        email: &str,
-    ) -> AppResult<Option<UserLoginInfo>> {
-        let row = sqlx::query_as::<_, UserLoginInfo>(r#"
-            SELECT
-                user_id,
-                user_email,
-                user_password,
-                user_state,
-                user_auth
-            FROM users
-            WHERE user_email = $1
-        "#)
-        .bind(email)
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(row)
-    }
-
-    pub async fn find_user_by_name_and_email(
-        pool: &PgPool,
-        name: &str,
-        email: &str,
-    ) -> AppResult<Option<UserFindIdInfo>> {
-        let row = sqlx::query_as::<_, UserFindIdInfo>(r#"
-            SELECT
-                user_id,
-                user_email,
-                user_name
-            FROM users
-            WHERE user_name = $1
-              AND user_email = $2
-              AND user_state = true
-        "#)
-        .bind(name)
-        .bind(email)
-        .fetch_optional(pool)
-        .await?;
-        
-        Ok(row)
-    }
-
     pub async fn update_user_password_tx(
         tx: &mut Transaction<'_, Postgres>,
         user_id: i64,
@@ -137,7 +92,6 @@ impl AuthRepo {
         os: Option<&str>,
         user_agent: Option<&str>,
         refresh_ttl_secs: i64,
-        // Geolocation fields (from ip-api.com)
         country_code: Option<&str>,
         asn: Option<i64>,
         org: Option<&str>,
@@ -162,7 +116,7 @@ impl AuthRepo {
             )
             VALUES (
                 $1,
-                CAST($2 AS inet),
+                $2,
                 CASE lower($3)
                     WHEN 'mobile'  THEN 'mobile'::login_device_enum
                     WHEN 'tablet'  THEN 'tablet'::login_device_enum
@@ -212,20 +166,17 @@ impl AuthRepo {
         login_success_log: bool,
         session_id: &str,
         refresh_hash: &str,
-        login_ip: &str,
+        login_ip_log: &str,
         device: Option<&str>,
         browser: Option<&str>,
         os: Option<&str>,
         user_agent: Option<&str>,
-        // Geolocation fields (from ip-api.com)
         country_code: Option<&str>,
         asn: Option<i64>,
         org: Option<&str>,
-        // Audit fields
         access_log: Option<&str>,
         token_id_log: Option<&str>,
         fail_reason_log: Option<&str>,
-        // Session expire (refresh TTL seconds, None for failures)
         expire_secs: Option<i64>,
     ) -> AppResult<()> {
         sqlx::query(r#"
@@ -255,7 +206,7 @@ impl AuthRepo {
                 $1,
                 CAST($2 AS login_event_enum),
                 $3,
-                CAST($4 AS inet),
+                $4,
                 CASE lower($5)
                     WHEN 'mobile'  THEN 'mobile'::login_device_enum
                     WHEN 'tablet'  THEN 'tablet'::login_device_enum
@@ -284,7 +235,7 @@ impl AuthRepo {
         .bind(user_id)
         .bind(event)
         .bind(login_success_log)
-        .bind(login_ip)
+        .bind(login_ip_log)
         .bind(device)
         .bind(browser)
         .bind(os)
@@ -310,7 +261,7 @@ impl AuthRepo {
         user_id: i64,
         session_id: &str,
         refresh_hash: &str,
-        login_ip: &str,
+        login_ip_log: &str,
         user_agent: Option<&str>,
     ) -> AppResult<()> {
         sqlx::query(r#"
@@ -338,7 +289,7 @@ impl AuthRepo {
                 $1,
                 'logout'::login_event_enum,
                 TRUE,
-                COALESCE(CAST($4 AS inet), l.login_ip),
+                $4,
                 COALESCE(l.login_device, 'other'::login_device_enum),
                 COALESCE(l.login_browser, NULL),
                 COALESCE(l.login_os, NULL),
@@ -359,7 +310,7 @@ impl AuthRepo {
         .bind(user_id)
         .bind(session_id)
         .bind(refresh_hash)
-        .bind(login_ip)
+        .bind(login_ip_log)
         .bind(user_agent)
         .execute(&mut **tx)
         .await?;
@@ -381,7 +332,7 @@ impl AuthRepo {
                 user_id,
                 login_session_id::text as session_id,
                 login_refresh_hash as refresh_hash,
-                login_ip::text as login_ip,
+                login_ip,
                 login_device::text as login_device,
                 login_browser,
                 login_os,
@@ -410,7 +361,7 @@ impl AuthRepo {
                 user_id,
                 login_session_id::text as session_id,
                 login_refresh_hash as refresh_hash,
-                login_ip::text as login_ip,
+                login_ip,
                 login_device::text as login_device,
                 login_browser,
                 login_os,
@@ -439,7 +390,7 @@ impl AuthRepo {
                 user_id,
                 login_session_id::text as session_id,
                 login_refresh_hash as refresh_hash,
-                login_ip::text as login_ip,
+                login_ip,
                 login_device::text as login_device,
                 login_browser,
                 login_os,
@@ -547,31 +498,6 @@ impl AuthRepo {
     // OAuth Related
     // ---------------------------------------------------------------------
 
-    /// OAuth subject로 연결된 계정 조회
-    pub async fn find_oauth_by_provider_subject(
-        pool: &PgPool,
-        provider: &str,
-        subject: &str,
-    ) -> AppResult<Option<UserOAuthInfo>> {
-        let row = sqlx::query_as::<_, UserOAuthInfo>(r#"
-            SELECT
-                user_oauth_id,
-                user_id,
-                oauth_provider::text as oauth_provider,
-                oauth_subject,
-                oauth_email
-            FROM user_oauth
-            WHERE oauth_provider = $1::login_method_enum
-              AND oauth_subject = $2
-        "#)
-        .bind(provider)
-        .bind(subject)
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(row)
-    }
-
     /// 사용자의 연결된 OAuth Provider 목록 조회
     pub async fn find_oauth_providers_by_user_id(
         pool: &PgPool,
@@ -595,26 +521,29 @@ impl AuthRepo {
         tx: &mut Transaction<'_, Postgres>,
         user_id: i64,
         provider: &str,
-        subject: &str,
-        email: Option<&str>,
+        oauth_subject: &str,
+        oauth_email: Option<&str>,
         name: Option<&str>,
         picture_url: Option<&str>,
+        oauth_subject_idx: &str,
     ) -> AppResult<i64> {
         let oauth_id = sqlx::query_scalar::<_, i64>(r#"
             INSERT INTO user_oauth (
                 user_id, oauth_provider, oauth_subject,
                 oauth_email, oauth_name, oauth_picture_url,
-                oauth_last_login_at
+                oauth_last_login_at,
+                oauth_subject_idx
             )
-            VALUES ($1, $2::login_method_enum, $3, $4, $5, $6, NOW())
+            VALUES ($1, $2::login_method_enum, $3, $4, $5, $6, NOW(), $7)
             RETURNING user_oauth_id
         "#)
         .bind(user_id)
         .bind(provider)
-        .bind(subject)
-        .bind(email)
+        .bind(oauth_subject)
+        .bind(oauth_email)
         .bind(name)
         .bind(picture_url)
+        .bind(oauth_subject_idx)
         .fetch_one(&mut **tx)
         .await?;
 
@@ -646,13 +575,12 @@ impl AuthRepo {
         session_id: &str,
         refresh_hash: &str,
         login_ip: &str,
-        login_method: &str,  // 'google' or 'apple'
+        login_method: &str,
         device: Option<&str>,
         browser: Option<&str>,
         os: Option<&str>,
         user_agent: Option<&str>,
         refresh_ttl_secs: i64,
-        // Geolocation fields (from ip-api.com)
         country_code: Option<&str>,
         asn: Option<i64>,
         org: Option<&str>,
@@ -677,7 +605,7 @@ impl AuthRepo {
             )
             VALUES (
                 $1,
-                CAST($2 AS inet),
+                $2,
                 CASE lower($3)
                     WHEN 'mobile'  THEN 'mobile'::login_device_enum
                     WHEN 'tablet'  THEN 'tablet'::login_device_enum
@@ -728,21 +656,18 @@ impl AuthRepo {
         login_success_log: bool,
         session_id: &str,
         refresh_hash: &str,
-        login_ip: &str,
-        login_method: &str,  // 'google' or 'apple'
+        login_ip_log: &str,
+        login_method: &str,
         device: Option<&str>,
         browser: Option<&str>,
         os: Option<&str>,
         user_agent: Option<&str>,
-        // Geolocation fields (from ip-api.com)
         country_code: Option<&str>,
         asn: Option<i64>,
         org: Option<&str>,
-        // Audit fields
         access_log: Option<&str>,
         token_id_log: Option<&str>,
         fail_reason_log: Option<&str>,
-        // Session expire (refresh TTL seconds, None for failures)
         expire_secs: Option<i64>,
     ) -> AppResult<()> {
         sqlx::query(r#"
@@ -772,7 +697,7 @@ impl AuthRepo {
                 $1,
                 CAST($2 AS login_event_enum),
                 $3,
-                CAST($4 AS inet),
+                $4,
                 CASE lower($5)
                     WHEN 'mobile'  THEN 'mobile'::login_device_enum
                     WHEN 'tablet'  THEN 'tablet'::login_device_enum
@@ -801,7 +726,7 @@ impl AuthRepo {
         .bind(user_id)
         .bind(event)
         .bind(login_success_log)
-        .bind(login_ip)
+        .bind(login_ip_log)
         .bind(device)
         .bind(browser)
         .bind(os)
@@ -820,6 +745,77 @@ impl AuthRepo {
         .await?;
 
         Ok(())
+    }
+    // ---------------------------------------------------------------------
+    // Blind Index Lookups
+    // ---------------------------------------------------------------------
+
+    /// Blind index로 로그인용 사용자 조회
+    pub async fn find_user_by_email_idx(
+        pool: &PgPool,
+        email_idx: &str,
+    ) -> AppResult<Option<UserLoginInfo>> {
+        let row = sqlx::query_as::<_, UserLoginInfo>(r#"
+            SELECT
+                user_id,
+                user_email,
+                user_password,
+                user_state,
+                user_auth
+            FROM users
+            WHERE user_email_idx = $1
+        "#)
+        .bind(email_idx)
+        .fetch_optional(pool)
+        .await?;
+        Ok(row)
+    }
+
+    /// Blind index로 이름+이메일 조회 (아이디 찾기용)
+    pub async fn find_user_by_name_idx_and_email_idx(
+        pool: &PgPool,
+        name_idx: &str,
+        email_idx: &str,
+    ) -> AppResult<Option<UserFindIdInfo>> {
+        let row = sqlx::query_as::<_, UserFindIdInfo>(r#"
+            SELECT
+                user_id,
+                user_email,
+                user_name
+            FROM users
+            WHERE user_name_idx = $1
+              AND user_email_idx = $2
+              AND user_state = true
+        "#)
+        .bind(name_idx)
+        .bind(email_idx)
+        .fetch_optional(pool)
+        .await?;
+        Ok(row)
+    }
+
+    /// Blind index로 OAuth subject 조회
+    pub async fn find_oauth_by_provider_subject_idx(
+        pool: &PgPool,
+        provider: &str,
+        subject_idx: &str,
+    ) -> AppResult<Option<UserOAuthInfo>> {
+        let row = sqlx::query_as::<_, UserOAuthInfo>(r#"
+            SELECT
+                user_oauth_id,
+                user_id,
+                oauth_provider::text as oauth_provider,
+                oauth_subject,
+                oauth_email
+            FROM user_oauth
+            WHERE oauth_provider = $1::login_method_enum
+              AND oauth_subject_idx = $2
+        "#)
+        .bind(provider)
+        .bind(subject_idx)
+        .fetch_optional(pool)
+        .await?;
+        Ok(row)
     }
 }
 

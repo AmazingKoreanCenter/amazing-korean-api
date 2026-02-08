@@ -176,6 +176,11 @@ pub async fn admin_create_video(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -183,7 +188,7 @@ pub async fn admin_create_video(
         Some("VIDEO"),
         None,
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -251,6 +256,11 @@ pub async fn admin_bulk_create_videos(
         "count": req.items.len()
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -258,7 +268,7 @@ pub async fn admin_bulk_create_videos(
         Some("VIDEO"),
         None,
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -404,6 +414,11 @@ pub async fn admin_list_videos(
         "order": order
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -411,7 +426,7 @@ pub async fn admin_list_videos(
         Some("video"),
         None,
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -449,6 +464,11 @@ pub async fn admin_get_video(
         "video_id": video_id
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -456,7 +476,7 @@ pub async fn admin_get_video(
         Some("video"),
         Some(video_id),
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -485,6 +505,11 @@ pub async fn admin_bulk_update_videos(
         "count": req.items.len()
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -492,7 +517,7 @@ pub async fn admin_bulk_update_videos(
         Some("VIDEO"),
         None,
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -657,6 +682,11 @@ pub async fn admin_bulk_update_video_tags(
         "count": req.items.len()
     });
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -664,7 +694,7 @@ pub async fn admin_bulk_update_video_tags(
         Some("VIDEO"),
         None,
         &details,
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -816,6 +846,11 @@ pub async fn admin_update_video_tags(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -823,7 +858,7 @@ pub async fn admin_update_video_tags(
         Some("VIDEO"),
         Some(video_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;
@@ -903,6 +938,11 @@ pub async fn admin_update_video(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip_address
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
     crate::api::admin::user::repo::create_audit_log(
         &st.db,
         actor_user_id,
@@ -910,7 +950,7 @@ pub async fn admin_update_video(
         Some("VIDEO"),
         Some(video_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_address,
+        ip_enc.as_deref(),
         user_agent.as_deref(),
     )
     .await?;

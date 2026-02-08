@@ -27,7 +27,7 @@ use crate::types::UserAuth;
 /// - learner: 403 Forbidden
 ///
 /// # 사용법
-/// ```rust
+/// ```ignore
 /// .nest("/admin", admin_router()
 ///     .layer(middleware::from_fn_with_state(state.clone(), admin_role_guard))
 ///     .layer(middleware::from_fn_with_state(state.clone(), admin_ip_guard)))

@@ -30,7 +30,7 @@ pub struct AdminUserRes {
     pub language: Option<String>,
     pub country: Option<String>,
     #[schema(value_type = String, format = "date")]
-    pub birthday: Option<NaiveDate>,
+    pub birthday: Option<String>,
     pub gender: UserGender,
     pub user_state: bool,
     pub user_auth: UserAuth,
@@ -303,7 +303,7 @@ pub struct UserLogItem {
     pub language: Option<UserLanguage>,
     pub country: Option<String>,
     #[schema(value_type = String, format = "date")]
-    pub birthday: Option<NaiveDate>,
+    pub birthday: Option<String>,
     pub gender: Option<UserGender>,
     pub password_changed: bool,
     #[schema(value_type = String, format = "date-time")]

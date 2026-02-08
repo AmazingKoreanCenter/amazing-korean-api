@@ -1,4 +1,8 @@
+use std::collections::HashMap;
 use std::env;
+use std::fmt;
+
+use crate::crypto::KeyRing;
 
 #[derive(Clone)]
 pub struct Config {
@@ -44,6 +48,10 @@ pub struct Config {
     // Password Reset (비밀번호 재설정)
     pub verification_code_ttl_sec: i64,   // 인증코드 유효시간 (초, 기본 600 = 10분)
     pub reset_token_ttl_sec: i64,         // reset_token 유효시간 (초, 기본 1800 = 30분)
+    // Field Encryption (AES-256-GCM + HMAC-SHA256 Blind Index)
+    pub app_env: String,                         // "production" | "development" (기본)
+    pub encryption_ring: KeyRing,                // 다중 키 버전 (ENCRYPTION_KEY_V{n})
+    pub hmac_key: [u8; 32],                      // HMAC-SHA256 키 (blind index용, 필수)
 }
 
 impl Config {
@@ -165,6 +173,75 @@ impl Config {
             .parse::<i64>()
             .expect("RESET_TOKEN_TTL_SEC must be a number");
 
+        // Field Encryption (AES-256-GCM + HMAC-SHA256)
+        let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".into());
+
+        // HMAC 키 (필수, 로테이션 안 함)
+        let hmac_key = {
+            let b64 = env::var("HMAC_KEY")
+                .expect("HMAC_KEY must be set (base64-encoded 32-byte key)");
+            if b64.is_empty() {
+                panic!("HMAC_KEY must not be empty");
+            }
+            use base64::engine::{general_purpose::STANDARD, Engine};
+            let decoded = STANDARD.decode(&b64)
+                .unwrap_or_else(|e| panic!("HMAC_KEY must be valid base64: {e}"));
+            <[u8; 32]>::try_from(decoded.as_slice())
+                .unwrap_or_else(|_| panic!(
+                    "HMAC_KEY must be exactly 32 bytes (got {})", decoded.len()
+                ))
+        };
+
+        // 암호화 키 로딩: ENCRYPTION_KEY_V{n} 패턴 (n = 1~255)
+        // 하위 호환: ENCRYPTION_KEY (레거시) → v1으로 매핑
+        let encryption_ring = {
+            use base64::engine::{general_purpose::STANDARD, Engine};
+
+            let mut keys: HashMap<u8, [u8; 32]> = HashMap::new();
+
+            // ENCRYPTION_KEY_V1 ~ V255 순회
+            for ver in 1..=255u8 {
+                let env_name = format!("ENCRYPTION_KEY_V{}", ver);
+                if let Ok(b64) = env::var(&env_name) {
+                    if b64.is_empty() { continue; }
+                    let decoded = STANDARD.decode(&b64)
+                        .unwrap_or_else(|e| panic!("{env_name} must be valid base64: {e}"));
+                    let key = <[u8; 32]>::try_from(decoded.as_slice())
+                        .unwrap_or_else(|_| panic!(
+                            "{env_name} must be exactly 32 bytes (got {})", decoded.len()
+                        ));
+                    keys.insert(ver, key);
+                }
+            }
+
+            // 하위 호환: ENCRYPTION_KEY (레거시) → v1으로 매핑 (V1 미설정 시에만)
+            if !keys.contains_key(&1) {
+                if let Ok(b64) = env::var("ENCRYPTION_KEY") {
+                    if !b64.is_empty() {
+                        let decoded = STANDARD.decode(&b64)
+                            .unwrap_or_else(|e| panic!("ENCRYPTION_KEY must be valid base64: {e}"));
+                        let key = <[u8; 32]>::try_from(decoded.as_slice())
+                            .unwrap_or_else(|_| panic!(
+                                "ENCRYPTION_KEY must be exactly 32 bytes (got {})", decoded.len()
+                            ));
+                        keys.insert(1, key);
+                    }
+                }
+            }
+
+            if keys.is_empty() {
+                panic!("At least one encryption key must be set (ENCRYPTION_KEY_V1 or ENCRYPTION_KEY)");
+            }
+
+            let current_version = env::var("ENCRYPTION_CURRENT_VERSION")
+                .unwrap_or_else(|_| "1".into())
+                .parse::<u8>()
+                .expect("ENCRYPTION_CURRENT_VERSION must be a number (1-255)");
+
+            KeyRing::new(keys, current_version)
+                .unwrap_or_else(|e| panic!("Failed to create KeyRing: {e}"))
+        };
+
         Self {
             database_url,
             bind_addr,
@@ -198,6 +275,9 @@ impl Config {
             ses_reply_to,
             verification_code_ttl_sec,
             reset_token_ttl_sec,
+            app_env,
+            encryption_ring,
+            hmac_key,
         }
     }
 
@@ -299,5 +379,48 @@ impl Config {
             }
             _ => false, // IPv4/IPv6 mismatch
         }
+    }
+}
+
+// 민감 정보 마스킹을 위한 수동 Debug 구현
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Config")
+            .field("database_url", &"***")
+            .field("bind_addr", &self.bind_addr)
+            .field("redis_url", &"***")
+            .field("jwt_secret", &"***")
+            .field("jwt_expire_hours", &self.jwt_expire_hours)
+            .field("enable_docs", &self.enable_docs)
+            .field("skip_db", &self.skip_db)
+            .field("jwt_access_ttl_min", &self.jwt_access_ttl_min)
+            .field("refresh_ttl_days", &self.refresh_ttl_days)
+            .field("refresh_ttl_days_admin", &self.refresh_ttl_days_admin)
+            .field("refresh_ttl_days_hymn", &self.refresh_ttl_days_hymn)
+            .field("refresh_cookie_name", &self.refresh_cookie_name)
+            .field("refresh_cookie_domain", &self.refresh_cookie_domain)
+            .field("refresh_cookie_secure", &self.refresh_cookie_secure)
+            .field("refresh_cookie_samesite", &self.refresh_cookie_samesite)
+            .field("rate_limit_login_window_sec", &self.rate_limit_login_window_sec)
+            .field("rate_limit_login_max", &self.rate_limit_login_max)
+            .field("rate_limit_study_window_sec", &self.rate_limit_study_window_sec)
+            .field("rate_limit_study_max", &self.rate_limit_study_max)
+            .field("cors_origins", &self.cors_origins)
+            .field("vimeo_access_token", &self.vimeo_access_token.as_ref().map(|_| "***"))
+            .field("admin_ip_allowlist", &self.admin_ip_allowlist)
+            .field("google_client_id", &self.google_client_id.as_ref().map(|_| "***"))
+            .field("google_client_secret", &self.google_client_secret.as_ref().map(|_| "***"))
+            .field("google_redirect_uri", &self.google_redirect_uri)
+            .field("oauth_state_ttl_sec", &self.oauth_state_ttl_sec)
+            .field("frontend_url", &self.frontend_url)
+            .field("aws_region", &self.aws_region)
+            .field("ses_from_address", &self.ses_from_address)
+            .field("ses_reply_to", &self.ses_reply_to)
+            .field("verification_code_ttl_sec", &self.verification_code_ttl_sec)
+            .field("reset_token_ttl_sec", &self.reset_token_ttl_sec)
+            .field("app_env", &self.app_env)
+            .field("encryption_ring", &self.encryption_ring)
+            .field("hmac_key", &"***")
+            .finish()
     }
 }

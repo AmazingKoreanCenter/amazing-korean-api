@@ -2,6 +2,7 @@
 name = "amazing-korean-api"
 version = "1.0.0"
 edition = "2021"
+default-run = "amazing-korean-api"
 
 [dependencies]
 axum = { version = "0.8.4", features =  ["macros", "tokio", "http1", "http2"] }
@@ -43,6 +44,15 @@ urlencoding = "2.1.3"
 serde_urlencoded = "0.7.1"
 # User-Agent parsing (server-side)
 woothee = "0.13"
+# Field-level encryption (AES-256-GCM) + Blind Index (HMAC-SHA256)
+aes-gcm = "0.10"
+hmac = "0.12"
 # AWS SES for email sending
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-sesv2 = "1"
+# CLI tools (rekey binary)
+clap = { version = "4", features = ["derive"] }
+
+[[bin]]
+name = "rekey_encryption"
+path = "src/bin/rekey_encryption.rs"

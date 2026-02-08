@@ -51,7 +51,7 @@ CREATE TABLE users (
   user_email varchar(255) UNIQUE NOT NULL,                      -- 사용자 이메일 : 사용자 로그인 시 사용하는 아이디(변경불가)
   user_password text NOT NULL,                                  -- 사용자 비빌번호 : 암호화 후 DB 저장, 복호화를 통해 사용
   user_name varchar(100) NOT NULL,                              -- 사용자 이름 : 모든 언어로 저장 가능
-  user_nickname varchar(100) NOT NULL,                          -- 사용자 별명 : 모든 언어로 저장 가능
+  user_nickname varchar(100) NOT NULL,                          -- 사용자 별명 : 모든 언어로 저장 가능 **중복 검사 추가 필요**
   user_language user_language_enum NOT NULL DEFAULT 'ko',       -- 사용자 언어 : 서비스에서 사용할 언어 선택
   user_country varchar(50) NOT NULL,                            -- 사용자 국가 : 사용자가 속해 있는 국가
   user_birthday date NOT NULL,                                  -- 사용자 생년월일 : 사용자 기본 정보

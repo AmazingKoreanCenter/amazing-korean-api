@@ -1,13 +1,7 @@
-mod api;
-mod config;
-mod docs;
-mod error;
-mod external;
-mod state;
-mod types;
-
-use crate::config::Config;
-use crate::state::AppState;
+use amazing_korean_api::api;
+use amazing_korean_api::config::Config;
+use amazing_korean_api::external;
+use amazing_korean_api::state::AppState;
 use deadpool_redis::Pool as RedisPool;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
