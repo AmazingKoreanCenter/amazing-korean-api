@@ -1,6 +1,6 @@
 # AMK Deploy & Operations Guide
 
-> 규칙/스펙은 [AMK_API_MASTER.md](./AMK_API_MASTER.md), 코드 예시는 [AMK_CODE_PATTERNS.md](./AMK_CODE_PATTERNS.md)를 참조하세요.
+> 규칙/스펙은 [AMK_API_MASTER.md](./AMK_API_MASTER.md), 코드 예시는 [AMK_CODE_PATTERNS.md](./AMK_CODE_PATTERNS.md), 작업 흐름/역할 분리는 [AMK_PIPELINE.md](./AMK_PIPELINE.md)를 참조하세요.
 
 ---
 

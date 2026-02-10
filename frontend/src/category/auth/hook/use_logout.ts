@@ -12,9 +12,15 @@ export const useLogout = () => {
 
   return useMutation({
     mutationFn: () => logout(),
-    onSettled: () => {
+    onSuccess: () => {
       useAuthStore.getState().logout();
       toast.success(i18n.t("auth.toastLogoutSuccess"));
+      navigate("/login");
+    },
+    onError: () => {
+      // API 실패해도 로컬 상태는 정리 (보안상 로그아웃 유지)
+      useAuthStore.getState().logout();
+      toast.warning(i18n.t("auth.toastLogoutPartial"));
       navigate("/login");
     },
   });

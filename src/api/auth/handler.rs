@@ -28,20 +28,28 @@ use serde_json::json;
 // =========================================================================
 
 fn extract_client_ip(headers: &HeaderMap) -> String {
+    // 헤더에서 추출한 IP를 유효한 IP 주소로 파싱 검증
+    let try_parse_ip = |ip: &str| -> Option<String> {
+        let trimmed = ip.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+        // 유효한 IP 주소만 수용 (스푸핑된 임의 문자열 차단)
+        trimmed.parse::<std::net::IpAddr>().ok().map(|addr| addr.to_string())
+    };
+
     // 1. x-forwarded-for
     if let Some(v) = headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()) {
         if let Some(first) = v.split(',').next() {
-            let ip = first.trim();
-            if !ip.is_empty() {
-                return ip.to_string();
+            if let Some(ip) = try_parse_ip(first) {
+                return ip;
             }
         }
     }
     // 2. x-real-ip
     if let Some(v) = headers.get("x-real-ip").and_then(|v| v.to_str().ok()) {
-        let ip = v.trim();
-        if !ip.is_empty() {
-            return ip.to_string();
+        if let Some(ip) = try_parse_ip(v) {
+            return ip;
         }
     }
 

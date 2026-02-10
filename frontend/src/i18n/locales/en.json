@@ -145,6 +145,7 @@
     "toastGoogleLoginFailed": "Google login failed.",
     "toastGoogleLoginUnavailable": "Unable to start Google login. Please try again later.",
     "toastLogoutSuccess": "You have been logged out.",
+    "toastLogoutPartial": "An error occurred during logout. Please log in again.",
     "toastSignupFailed": "Sign up failed.",
     "toastResetPasswordSuccess": "Password has been changed successfully.",
     "toastResetPasswordPageSuccess": "Password changed. Please log in again.",

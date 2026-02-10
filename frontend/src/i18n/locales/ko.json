@@ -145,6 +145,7 @@
     "toastGoogleLoginFailed": "Google 로그인에 실패했습니다.",
     "toastGoogleLoginUnavailable": "Google 로그인을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.",
     "toastLogoutSuccess": "로그아웃 되었습니다.",
+    "toastLogoutPartial": "로그아웃 처리 중 일부 오류가 발생했습니다. 다시 로그인해주세요.",
     "toastSignupFailed": "회원가입 요청에 실패했습니다.",
     "toastResetPasswordSuccess": "비밀번호가 성공적으로 변경되었습니다.",
     "toastResetPasswordPageSuccess": "비밀번호가 변경되었습니다. 다시 로그인해주세요.",

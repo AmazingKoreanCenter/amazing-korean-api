@@ -117,8 +117,10 @@ impl AuthService {
             return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
         }
 
-        // [Step 2] Rate Limiting
-        let rl_key = format!("rl:login:{}:{}", email, login_ip);
+        // [Step 2] Rate Limiting (blind index 사용 — Redis에 평문 이메일 저장 방지)
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let idx = crypto.blind_index(&email)?;
+        let rl_key = format!("rl:login:{}:{}", idx, login_ip);
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
@@ -130,8 +132,6 @@ impl AuthService {
         }
 
         // [Step 3] User Verification (Timing Attack Protected)
-        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let idx = crypto.blind_index(&email)?;
         let user_info = AuthRepo::find_user_by_email_idx(&st.db, &idx).await?;
 
         // 소셜 전용 계정 체크 (비밀번호가 NULL인 경우)
