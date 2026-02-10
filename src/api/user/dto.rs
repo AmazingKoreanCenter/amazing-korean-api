@@ -1,4 +1,3 @@
-use crate::api::auth::dto::AccessTokenRes;
 use crate::types::{UserAuth, UserGender};
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
@@ -117,30 +116,12 @@ pub struct SettingsUpdateReq {
 // Response DTOs (응답)
 // =====================================================================
 
-/// 회원가입 완료 응답 (자동 로그인 처리됨)
+/// 회원가입 완료 응답 (이메일 인증 필요)
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct SignupRes {
-    pub user_id: i64,
-    pub email: String,
-    pub name: String,
-    pub nickname: String,
-    pub language: String,
-    pub country: String,
-    #[schema(value_type = String, format = "date")]
-    pub birthday: String,
-    pub gender: UserGender,
-
-    pub user_state: bool,     // true(on), false(off/ban)
-    pub user_auth: UserAuth,  // admin, manager, learner
-
-    #[schema(value_type = String, format = "date-time")]
-    pub created_at: DateTime<Utc>,
-    
-    /// 자동 발급된 액세스 토큰
-    pub access: AccessTokenRes,
-    /// 현재 세션 ID
-    pub session_id: String,
+    pub message: String,
+    pub requires_verification: bool,
 }
 
 /// 사용자 프로필 정보

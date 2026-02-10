@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::config::Config;
-use crate::external::email::EmailClient;
+use crate::external::email::EmailSender;
 use crate::external::ipgeo::IpGeoClient;
 
 #[derive(Clone, FromRef)]
@@ -14,8 +14,8 @@ pub struct AppState {
     pub redis: RedisPool,
     pub cfg: Config,
     pub started_at: Instant,
-    /// AWS SES 이메일 클라이언트 (SES_FROM_ADDRESS 설정 시 활성화)
-    pub email: Option<EmailClient>,
+    /// 이메일 클라이언트 (EMAIL_PROVIDER 설정에 따라 Resend 사용)
+    pub email: Option<Arc<dyn EmailSender>>,
     /// IP Geolocation 클라이언트
     pub ipgeo: Arc<IpGeoClient>,
 }

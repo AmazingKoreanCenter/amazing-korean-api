@@ -53,11 +53,23 @@ jobs:
 
             # Update .env.prod
             cat > .env.prod << 'EOF'
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            DOMAIN=api.amazingkorean.net
-            CORS_ORIGINS=https://amazingkorean.net,https://www.amazingkorean.net
             DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            DOMAIN=amazingkorean.net
+            CORS_ORIGINS=https://amazingkorean.net,https://www.amazingkorean.net
+            FRONTEND_URL=https://amazingkorean.net
+            ENCRYPTION_KEY_V1=${{ secrets.ENCRYPTION_KEY_V1 }}
+            HMAC_KEY=${{ secrets.HMAC_KEY }}
+            ENCRYPTION_CURRENT_VERSION=1
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            GOOGLE_REDIRECT_URI=https://api.amazingkorean.net/auth/google/callback
+            EMAIL_FROM_ADDRESS=noreply@amazingkorean.net
+            ADMIN_IP_ALLOWLIST=
+            EMAIL_PROVIDER=resend
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
             EOF
 
             # Restart containers

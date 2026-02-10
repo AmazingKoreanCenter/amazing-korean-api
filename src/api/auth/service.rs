@@ -209,6 +209,34 @@ impl AuthService {
             return Err(AppError::Forbidden("Forbidden".to_string()));
         }
 
+        // [Step 3-B] 이메일 미인증 차단
+        if !user_info.user_check_email {
+            let login_ip_log_enc_fail = crypto.encrypt(&login_ip, "login_log.login_ip_log")?;
+            let fail_session = Uuid::new_v4().to_string();
+            let mut tx = st.db.begin().await?;
+            if let Err(e) = AuthRepo::insert_login_log_tx(
+                &mut tx, user_info.user_id, "login", false,
+                &fail_session, "", &login_ip_log_enc_fail,
+                Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(),
+                parsed_ua.os.as_deref(), user_agent.as_deref(),
+                None, None, None,
+                None, None, Some("email_not_verified"),
+                None,
+            ).await {
+                warn!(error = %e, "Failed to insert login failure log");
+            }
+            if let Err(e) = tx.commit().await {
+                warn!(error = %e, "Failed to commit login failure log transaction");
+            }
+            // 프론트엔드에서 재발송 버튼을 위해 email 포함
+            let decrypted_email = crypto.decrypt(&user_info.user_email, "users.user_email")
+                .unwrap_or_else(|_| email.clone());
+            return Err(AppError::Forbidden(format!(
+                "AUTH_403_EMAIL_NOT_VERIFIED:{}",
+                decrypted_email
+            )));
+        }
+
         // [Step 4] Token & Session Generation
         let session_id = Uuid::new_v4().to_string();
         let (refresh_token_value, refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
@@ -448,7 +476,7 @@ impl AuthService {
         ))
     }
 
-    /// 아이디 찾기
+    /// 아이디 찾기 (이름 + 생년월일 → 마스킹된 이메일 반환)
     pub async fn find_id(st: &AppState, req: FindIdReq, client_ip: String) -> AppResult<FindIdRes> {
         if let Err(e) = req.validate() {
             return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
@@ -467,21 +495,147 @@ impl AuthService {
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let name_idx = crypto.blind_index(&req.name)?;
-        let email_idx = crypto.blind_index(&req.email)?;
-        let user = AuthRepo::find_user_by_name_idx_and_email_idx(&st.db, &name_idx, &email_idx).await?;
-        
-        if let Some(found) = user {
-            // 실제로는 여기서 이메일 발송 로직이 수행되어야 함
-            let _ = user_repo::insert_user_log_after(&st.db, &crypto, Some(found.user_id), found.user_id, "find_id", true).await;
-            info!("Find ID email simulated for user_id={}", found.user_id);
-        } else {
-            // Security: Don't log the actual email to prevent enumeration via logs
-            info!("Find ID request processed");
+
+        // name blind index로 검색 (복수 결과 가능)
+        let users = AuthRepo::find_users_by_name_idx(&st.db, &name_idx).await?;
+
+        // 각 사용자의 birthday 복호화 → 입력 생년월일과 비교
+        let mut matched: Vec<String> = Vec::new();
+        for user in &users {
+            if let Some(ref bday_enc) = user.user_birthday {
+                if let Ok(bday) = crypto.decrypt(bday_enc, "users.user_birthday") {
+                    if bday == req.birthday {
+                        if let Ok(email) = crypto.decrypt(&user.user_email, "users.user_email") {
+                            matched.push(Self::mask_email(&email));
+                        }
+                    }
+                }
+            }
         }
 
+        let message = if matched.is_empty() {
+            "No matching account found.".to_string()
+        } else {
+            format!("{} account(s) found.", matched.len())
+        };
+
+        info!("Find ID request processed: {} match(es)", matched.len());
+
         Ok(FindIdRes {
-            message: "If the account exists, the ID has been sent to your email.".to_string(),
+            message,
+            masked_emails: matched,
         })
+    }
+
+    /// 이메일 마스킹 (test@example.com → te***@example.com)
+    fn mask_email(email: &str) -> String {
+        let parts: Vec<&str> = email.splitn(2, '@').collect();
+        if parts.len() != 2 {
+            return "***".to_string();
+        }
+        let local = parts[0];
+        let domain = parts[1];
+        let visible = std::cmp::min(2, local.len());
+        format!("{}***@{}", &local[..visible], domain)
+    }
+
+    /// 비밀번호 찾기 (이름 + 생년월일 + 이메일 본인 확인 후 인증코드 발송)
+    pub async fn find_password(
+        st: &AppState,
+        req: FindPasswordReq,
+        client_ip: String,
+    ) -> AppResult<FindPasswordRes> {
+        if let Err(e) = req.validate() {
+            return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
+        }
+
+        let email = req.email.trim().to_lowercase();
+        let generic_msg = "If the information matches, a verification code has been sent.".to_string();
+
+        // [Step 1] Rate Limiting (IP 기반)
+        let rl_key = format!("rl:find_password:{}", client_ip);
+        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        if attempts == 1 {
+            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
+        }
+        if attempts > st.cfg.rate_limit_email_max {
+            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
+        }
+        let remaining = std::cmp::max(0, st.cfg.rate_limit_email_max - attempts);
+
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+
+        // [Step 2] name blind index로 검색
+        let name_idx = crypto.blind_index(&req.name)?;
+        let users = AuthRepo::find_users_by_name_idx(&st.db, &name_idx).await?;
+
+        // [Step 3] birthday + email 매칭
+        let mut matched_user: Option<&crate::api::auth::repo::UserFindIdInfo> = None;
+        for user in &users {
+            if let Some(ref bday_enc) = user.user_birthday {
+                if let Ok(bday) = crypto.decrypt(bday_enc, "users.user_birthday") {
+                    if bday == req.birthday {
+                        if let Ok(user_email) = crypto.decrypt(&user.user_email, "users.user_email") {
+                            if user_email.to_lowercase() == email {
+                                matched_user = Some(user);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let Some(user) = matched_user else {
+            // 불일치 시 동일 성공 메시지 반환 (타이밍 공격 방지)
+            info!("Find password: no matching user found");
+            return Ok(FindPasswordRes { message: generic_msg, remaining_attempts: remaining });
+        };
+
+        // [Step 4] OAuth 전용 계정 체크
+        if user.user_password.is_none() {
+            info!("Find password: OAuth-only account, user_id={}", user.user_id);
+            return Ok(FindPasswordRes { message: generic_msg, remaining_attempts: remaining });
+        }
+
+        // [Step 5] 이메일 클라이언트 확인
+        let email_sender = st.email.as_ref()
+            .ok_or_else(|| AppError::ServiceUnavailable("Email service not configured".into()))?;
+
+        // [Step 6] 인증코드 생성 → HMAC 해시 → Redis 저장
+        let code = Self::generate_verification_code();
+        let idx = crypto.blind_index(&email)?;
+        let code_key = format!("ak:reset_code:{}", idx);
+        let ttl_sec = st.cfg.verification_code_ttl_sec;
+        let code_hash = crate::api::user::service::UserService::hmac_verification_code(
+            &st.cfg.hmac_key, &email, &code,
+        );
+
+        let _: () = redis_conn.set_ex(
+            &code_key,
+            &code_hash,
+            ttl_sec as u64,
+        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // [Step 7] 이메일 발송 (실패 시 rate limit 롤백)
+        let expires_in_min = (ttl_sec / 60) as i32;
+        if let Err(e) = crate::external::email::send_templated(
+            email_sender.as_ref(),
+            &email,
+            EmailTemplate::PasswordResetCode { code: code.clone(), expires_in_min },
+        ).await {
+            let _: () = redis_conn.decr(&rl_key, 1).await.unwrap_or(());
+            return Err(e);
+        }
+
+        info!(
+            user_id = user.user_id,
+            ip = %client_ip,
+            "Find password: verification code sent"
+        );
+
+        Ok(FindPasswordRes { message: generic_msg, remaining_attempts: remaining })
     }
 
     /// 비밀번호 재설정
@@ -672,7 +826,7 @@ impl AuthService {
     // =========================================================================
 
     /// 6자리 숫자 인증코드 생성
-    fn generate_verification_code() -> String {
+    pub fn generate_verification_code() -> String {
         let mut rng = rand::thread_rng();
         let code: u32 = rng.gen_range(100000..1000000);
         format!("{:06}", code)
@@ -686,21 +840,22 @@ impl AuthService {
     ) -> AppResult<RequestResetRes> {
         let email = email.trim().to_lowercase();
 
-        // [Step 1] Rate Limiting (이메일당 5회/시간)
-        let rl_key = format!("rl:request_reset:{}", email);
+        // [Step 1] Rate Limiting (blind index + IP 기반)
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let idx = crypto.blind_index(&email)?;
+        let rl_key = format!("rl:request_reset:{}:{}", idx, client_ip);
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
         if attempts == 1 {
-            let _: () = redis_conn.expire(&rl_key, 3600).await?; // 1시간 윈도우
+            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
         }
-        if attempts > 5 {
+        if attempts > st.cfg.rate_limit_email_max {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_RESET_REQUESTS".into()));
         }
+        let remaining = std::cmp::max(0, st.cfg.rate_limit_email_max - attempts);
 
         // [Step 2] 사용자 존재 확인 (타이밍 공격 방지를 위해 항상 성공 응답)
-        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let idx = crypto.blind_index(&email)?;
         let user = AuthRepo::find_user_by_email_idx(&st.db, &idx).await?;
 
         // 사용자가 없거나 OAuth 전용 계정이면 이메일 발송 없이 성공 응답
@@ -708,6 +863,7 @@ impl AuthService {
             info!("Password reset requested for non-existent email");
             return Ok(RequestResetRes {
                 message: "If the email exists, a verification code has been sent.".to_string(),
+                remaining_attempts: remaining,
             });
         }
 
@@ -718,30 +874,38 @@ impl AuthService {
             info!("Password reset requested for OAuth-only account: {}", user_info.user_id);
             return Ok(RequestResetRes {
                 message: "If the email exists, a verification code has been sent.".to_string(),
+                remaining_attempts: remaining,
             });
         }
 
         // [Step 3] 이메일 클라이언트 확인
-        let email_client = st.email.as_ref()
+        let email_sender = st.email.as_ref()
             .ok_or_else(|| AppError::ServiceUnavailable("Email service not configured".into()))?;
 
-        // [Step 4] 인증코드 생성 및 Redis 저장
+        // [Step 4] 인증코드 생성 및 Redis 저장 (HMAC 해시 + blind index 키)
         let code = Self::generate_verification_code();
-        let code_key = format!("ak:reset_code:{}", email);
+        let code_key = format!("ak:reset_code:{}", idx);
         let ttl_sec = st.cfg.verification_code_ttl_sec;
+        let code_hash = crate::api::user::service::UserService::hmac_verification_code(
+            &st.cfg.hmac_key, &email, &code,
+        );
 
         let _: () = redis_conn.set_ex(
             &code_key,
-            &code,
+            &code_hash,
             ttl_sec as u64,
         ).await.map_err(|e| AppError::Internal(e.to_string()))?;
 
-        // [Step 5] 이메일 발송
+        // [Step 5] 이메일 발송 (실패 시 rate limit 롤백)
         let expires_in_min = (ttl_sec / 60) as i32;
-        email_client.send_templated(
+        if let Err(e) = crate::external::email::send_templated(
+            email_sender.as_ref(),
             &email,
             EmailTemplate::PasswordResetCode { code: code.clone(), expires_in_min },
-        ).await?;
+        ).await {
+            let _: () = redis_conn.decr(&rl_key, 1).await.unwrap_or(());
+            return Err(e);
+        }
 
         info!(
             user_id = user_info.user_id,
@@ -751,6 +915,7 @@ impl AuthService {
 
         Ok(RequestResetRes {
             message: "If the email exists, a verification code has been sent.".to_string(),
+            remaining_attempts: remaining,
         })
     }
 
@@ -764,8 +929,10 @@ impl AuthService {
         let email = email.trim().to_lowercase();
         let code = code.trim();
 
-        // [Step 1] Rate Limiting (이메일당 10회/시간 - brute force 방지)
-        let rl_key = format!("rl:verify_reset:{}", email);
+        // [Step 1] Rate Limiting (blind index + IP당 10회/시간 - brute force 방지)
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let idx = crypto.blind_index(&email)?;
+        let rl_key = format!("rl:verify_reset:{}:{}", idx, client_ip);
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
@@ -776,26 +943,25 @@ impl AuthService {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_VERIFY_ATTEMPTS".into()));
         }
 
-        // [Step 2] Redis에서 저장된 코드 조회
-        let code_key = format!("ak:reset_code:{}", email);
-        let stored_code: Option<String> = redis_conn.get(&code_key).await
+        // [Step 2] Redis에서 저장된 HMAC 해시 조회
+        let code_key = format!("ak:reset_code:{}", idx);
+        let stored_hash: Option<String> = redis_conn.get(&code_key).await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        let Some(expected_code) = stored_code else {
+        let Some(expected_hash) = stored_hash else {
             return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
         };
 
-        // [Step 3] 코드 검증
-        if code != expected_code {
+        // [Step 3] HMAC 해시 비교 (constant-time)
+        let computed_hash = crate::api::user::service::UserService::hmac_verification_code(
+            &st.cfg.hmac_key, &email, code,
+        );
+        if !Self::constant_time_eq(computed_hash.as_bytes(), expected_hash.as_bytes()) {
             return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
         }
 
         // [Step 4] 코드 삭제 (일회용)
         let _: () = redis_conn.del(&code_key).await.unwrap_or(());
-
-        // [Step 5] 사용자 조회 (user_id 필요)
-        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let idx = crypto.blind_index(&email)?;
         let user = AuthRepo::find_user_by_email_idx(&st.db, &idx).await?
             .ok_or_else(|| AppError::Unauthorized("AUTH_401_USER_NOT_FOUND".into()))?;
 
@@ -894,6 +1060,159 @@ impl AuthService {
 
         Ok(ResetPwRes {
             message: "Password has been reset. All active sessions are invalidated.".to_string(),
+        })
+    }
+
+    // =========================================================================
+    // Email Verification (회원가입 이메일 인증)
+    // =========================================================================
+
+    /// Constant-time string comparison (for HMAC hex digests)
+    fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+        if a.len() != b.len() {
+            return false;
+        }
+        a.iter().zip(b.iter()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+    }
+
+    /// 이메일 인증코드 검증
+    pub async fn verify_email(
+        st: &AppState,
+        req: VerifyEmailReq,
+        client_ip: String,
+    ) -> AppResult<VerifyEmailRes> {
+        let email = req.email.trim().to_lowercase();
+        if let Err(e) = req.validate() {
+            return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
+        }
+
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let email_idx = crypto.blind_index(&email)?;
+
+        // [Step 1] Rate Limiting
+        let rl_key = format!("rl:verify_email:{}:{}", email_idx, client_ip);
+        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        if attempts == 1 {
+            let _: () = redis_conn.expire(&rl_key, 3600).await?; // 1시간 윈도우
+        }
+        if attempts > 10 {
+            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_VERIFY_ATTEMPTS".into()));
+        }
+
+        // [Step 2] Redis에서 HMAC 해시 조회
+        let code_key = format!("ak:email_verify:{}", email_idx);
+        let stored_hash: Option<String> = redis_conn.get(&code_key).await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let Some(expected_hash) = stored_hash else {
+            // 계정 열거 방지: 코드 없음과 코드 불일치 동일 메시지
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
+        };
+
+        // [Step 3] HMAC 해시 비교 (constant-time)
+        let computed_hash = crate::api::user::service::UserService::hmac_verification_code(
+            &st.cfg.hmac_key, &email, &req.code,
+        );
+        if !Self::constant_time_eq(computed_hash.as_bytes(), expected_hash.as_bytes()) {
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
+        }
+
+        // [Step 4] DB 업데이트 먼저 (user_check_email = true)
+        let user_row = user_repo::find_user_id_and_check_email_by_email_idx(&st.db, &email_idx).await?;
+        let Some((user_id, check_email)) = user_row else {
+            // 계정 열거 방지
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
+        };
+
+        if !check_email {
+            AuthRepo::update_user_check_email(&st.db, user_id, true).await?;
+            info!(user_id = user_id, "Email verified successfully");
+        }
+
+        // [Step 5] Redis 코드 삭제 (DB 성공 후 — 실패해도 TTL로 자동 만료)
+        let _: () = redis_conn.del(&code_key).await.unwrap_or(());
+
+        Ok(VerifyEmailRes {
+            message: "Email verified successfully.".to_string(),
+            verified: true,
+        })
+    }
+
+    /// 이메일 인증코드 재발송
+    pub async fn resend_verification(
+        st: &AppState,
+        req: ResendVerificationReq,
+        client_ip: String,
+    ) -> AppResult<ResendVerificationRes> {
+        let email = req.email.trim().to_lowercase();
+        if let Err(e) = req.validate() {
+            return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
+        }
+
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let email_idx = crypto.blind_index(&email)?;
+
+        // [Step 1] Rate Limiting
+        let rl_key = format!("rl:resend_verify:{}:{}", email_idx, client_ip);
+        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        if attempts == 1 {
+            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
+        }
+        if attempts > st.cfg.rate_limit_email_max {
+            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_RESEND_REQUESTS".into()));
+        }
+        let remaining = std::cmp::max(0, st.cfg.rate_limit_email_max - attempts);
+
+        // [Step 2] 미인증 사용자 확인 (타이밍 공격 방지: 항상 성공 메시지)
+        let user_row = user_repo::find_user_id_and_check_email_by_email_idx(&st.db, &email_idx).await?;
+
+        let success_msg = ResendVerificationRes {
+            message: "If the email needs verification, a new code has been sent.".to_string(),
+            remaining_attempts: remaining,
+        };
+
+        let Some((_user_id, check_email)) = user_row else {
+            return Ok(success_msg); // 계정 열거 방지
+        };
+
+        if check_email {
+            return Ok(success_msg); // 이미 인증됨 — 동일 메시지
+        }
+
+        // [Step 3] 새 인증코드 생성 → HMAC 해시 → Redis 저장 → 이메일 발송
+        let code = Self::generate_verification_code();
+        let code_hash = crate::api::user::service::UserService::hmac_verification_code(
+            &st.cfg.hmac_key, &email, &code,
+        );
+        let ttl_sec = st.cfg.verification_code_ttl_sec;
+
+        let redis_key = format!("ak:email_verify:{}", email_idx);
+        let _: () = redis_conn.set_ex(&redis_key, &code_hash, ttl_sec as u64)
+            .await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // 이메일 발송 (실패 시 rate limit 롤백)
+        let email_sender = st.email.as_ref()
+            .ok_or_else(|| AppError::ServiceUnavailable("Email service not configured".into()))?;
+
+        let expires_in_min = (ttl_sec / 60) as i32;
+        if let Err(e) = crate::external::email::send_templated(
+            email_sender.as_ref(),
+            &email,
+            EmailTemplate::EmailVerification { code, expires_in_min },
+        ).await {
+            let _: () = redis_conn.decr(&rl_key, 1).await.unwrap_or(());
+            return Err(e);
+        }
+
+        info!(email_idx = %email_idx, "Verification code resent");
+
+        Ok(ResendVerificationRes {
+            message: "If the email needs verification, a new code has been sent.".to_string(),
+            remaining_attempts: remaining,
         })
     }
 
@@ -1052,6 +1371,12 @@ impl AuthService {
             ).await?;
 
             tx.commit().await?;
+
+            // OAuth 이메일 검증 완료 → 미인증 일반 가입도 자동 인증
+            if !existing_user.user_check_email {
+                AuthRepo::update_user_check_email(&st.db, existing_user.user_id, true).await?;
+                info!("Auto-verified email via OAuth for user: {}", existing_user.user_id);
+            }
 
             info!("OAuth account linked to existing user: {} ({})", existing_user.user_id, user_info.email);
             return Ok((existing_user.user_id, existing_user.user_auth, false));

@@ -12,7 +12,6 @@ import { login } from "../auth_api";
 const statusMessageMap: Record<number, string> = {
   400: "auth.statusBadRequest",
   401: "auth.statusUnauthorized",
-  403: "auth.statusForbidden",
   423: "auth.statusLocked",
   429: "auth.statusTooMany",
   500: "auth.statusServerError",
@@ -21,6 +20,11 @@ const statusMessageMap: Record<number, string> = {
 export interface SocialOnlyError {
   isSocialOnly: true;
   providers: string[];
+}
+
+export interface EmailNotVerifiedError {
+  isEmailNotVerified: true;
+  email: string;
 }
 
 // 소셜 전용 계정 에러 파싱
@@ -38,11 +42,22 @@ const parseSocialOnlyError = (error: unknown): SocialOnlyError | null => {
   return null;
 };
 
-const getErrorMessage = (error: unknown) => {
-  // 소셜 전용 계정 에러는 별도 처리 (toast 표시 안함)
-  if (parseSocialOnlyError(error)) {
-    return null;
+// 이메일 미인증 에러 파싱
+const parseEmailNotVerifiedError = (error: unknown): EmailNotVerifiedError | null => {
+  if (error instanceof ApiError && error.status === 403) {
+    // 에러 메시지 형식: "AUTH_403_EMAIL_NOT_VERIFIED:user@example.com"
+    if (error.message.startsWith("AUTH_403_EMAIL_NOT_VERIFIED:")) {
+      const email = error.message.replace("AUTH_403_EMAIL_NOT_VERIFIED:", "");
+      return { isEmailNotVerified: true, email };
+    }
   }
+  return null;
+};
+
+const getErrorMessage = (error: unknown) => {
+  // 소셜 전용 계정 / 이메일 미인증 에러는 별도 처리 (toast 표시 안함)
+  if (parseSocialOnlyError(error)) return null;
+  if (parseEmailNotVerifiedError(error)) return null;
 
   if (error instanceof ApiError) {
     const key = statusMessageMap[error.status];
@@ -67,6 +82,17 @@ export const useLogin = () => {
       navigate("/about");
     },
     onError: (error) => {
+      // 이메일 미인증 → 인증 페이지로 이동
+      const emailError = parseEmailNotVerifiedError(error);
+      if (emailError) {
+        toast.warning(i18n.t("auth.toastEmailNotVerified"));
+        navigate("/verify-email", {
+          state: { email: emailError.email },
+          replace: true,
+        });
+        return;
+      }
+
       const message = getErrorMessage(error);
       if (message) {
         toast.error(message);

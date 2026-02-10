@@ -2,24 +2,26 @@ use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
     Algorithm, Argon2, Params, PasswordHasher, Version,
 };
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use hmac::{Hmac, Mac};
 use redis::AsyncCommands;
-use sha2::{Digest, Sha256};
-use uuid::Uuid;
+use sha2::Sha256;
 use validator::Validate;
 use std::collections::HashSet;
-use tracing::warn;
+use tracing::{info, warn};
 
 use crate::{
-    api::auth::{jwt, repo::AuthRepo},
+    api::auth::service::AuthService,
     crypto::CryptoService,
     error::{AppError, AppResult},
+    external::email::{self, EmailTemplate},
     state::AppState,
 };
 use super::{
     dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes},
     repo,
 };
+
+type HmacSha256 = Hmac<Sha256>;
 
 pub struct UserService;
 
@@ -39,38 +41,33 @@ impl UserService {
         }
     }
 
-    /// 리프레시 토큰 생성 (auth/service.rs와 동일한 포맷: session_id:uuid)
-    fn generate_refresh_token_and_hash(session_id: &str) -> (String, String) {
-        let random_uuid = Uuid::new_v4().to_string();
-        let payload = format!("{session_id}:{random_uuid}");
-
-        let refresh_token = URL_SAFE_NO_PAD.encode(payload.as_bytes());
-        let refresh_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(payload.as_bytes()));
-
-        (refresh_token, refresh_hash)
-    }
-
     fn validate_password_policy(password: &str) -> bool {
         let has_letter = password.chars().any(|c| c.is_ascii_alphabetic());
         let has_digit = password.chars().any(|c| c.is_ascii_digit());
         password.len() >= 8 && has_letter && has_digit
     }
 
+    /// 인증 코드를 HMAC-SHA256 해시 (Redis에 평문 저장 금지)
+    pub fn hmac_verification_code(hmac_key: &[u8; 32], email: &str, code: &str) -> String {
+        let mut mac = HmacSha256::new_from_slice(hmac_key)
+            .expect("HMAC key length is always 32");
+        mac.update(format!("{}:{}", email, code).as_bytes());
+        hex::encode(mac.finalize().into_bytes())
+    }
+
     // =========================================================================
     // Main Business Logic
     // =========================================================================
 
-    /// 회원가입 (RateLimit -> Validation -> DB Insert -> Token Issuance)
+    /// 회원가입 (RateLimit -> Validation -> DB Insert -> 인증코드 발송)
     pub async fn signup(
         st: &AppState,
         mut req: SignupReq,
         ip: String,
-        ua: Option<String>,
-        parsed_ua: crate::api::auth::handler::ParsedUa,
-    ) -> AppResult<(SignupRes, String, i64)> {
+    ) -> AppResult<SignupRes> {
         // [Step 1] Input Validation
         req.email = req.email.trim().to_lowercase();
-        
+
         // 1-1. Basic Validation (Format)
         if let Err(e) = req.validate() {
             return Err(AppError::BadRequest(e.to_string()));
@@ -89,7 +86,7 @@ impl UserService {
         if req.birthday < min_birth || req.birthday > today {
             return Err(AppError::Unprocessable("Invalid birthday".into()));
         }
-        
+
         let allowed_langs: HashSet<&str> = ["ko", "en"].into();
         let lang = req.language.to_lowercase();
         if !allowed_langs.contains(lang.as_str()) {
@@ -97,11 +94,12 @@ impl UserService {
         }
         req.language = lang;
 
-        // [Step 2] Rate Limiting (Redis)
-        // 키 형식: rl:signup:{email}:{ip}
-        let rl_key = format!("rl:signup:{}:{}", req.email, ip);
+        // [Step 2] Rate Limiting (Redis) — blind index로 키 생성 (이메일 PII 노출 방지)
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let email_idx = crypto.blind_index(&req.email)?;
+        let rl_key = format!("rl:signup:{}:{}", email_idx, ip);
         let mut redis = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
-        
+
         let attempts: i64 = redis.incr(&rl_key, 1).await?;
         if attempts == 1 {
             let _: () = redis.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
@@ -111,16 +109,37 @@ impl UserService {
         }
 
         // Field Encryption
-        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let email_enc = crypto.encrypt(&req.email, "users.user_email")?;
-        let email_idx = crypto.blind_index(&req.email)?;
         let name_enc = crypto.encrypt(&req.name, "users.user_name")?;
         let name_idx = crypto.blind_index(&req.name)?;
         let birthday_enc = crypto.encrypt(&req.birthday.to_string(), "users.user_birthday")?;
 
-        // [Step 3] Pre-check Email Duplication
-        if repo::find_user_id_by_email_idx(&st.db, &email_idx).await?.is_some() {
-            return Err(AppError::Conflict("Email already exists".into()));
+        // [Step 3] Pre-check Email Duplication (+ 미인증 재가입 처리)
+        let existing = repo::find_user_id_and_check_email_by_email_idx(&st.db, &email_idx).await?;
+
+        if let Some((existing_id, check_email)) = existing {
+            if check_email {
+                // 이미 인증 완료된 계정 → 409
+                return Err(AppError::Conflict("Email already exists".into()));
+            }
+
+            // 미인증 계정 → 비밀번호/프로필 덮어쓰기 + 새 인증코드 발송
+            let salt = SaltString::generate(&mut OsRng);
+            let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, Params::new(19_456, 2, 1, None).unwrap());
+            let password_hash = argon2.hash_password(req.password.as_bytes(), &salt)
+                .map_err(|e| AppError::Internal(format!("Hash error: {e}")))?
+                .to_string();
+
+            repo::overwrite_unverified_user(
+                &st.db, existing_id, &email_enc, &password_hash,
+                &name_enc, &req.nickname, &req.language, &req.country,
+                &birthday_enc, req.gender, &name_idx,
+            ).await?;
+
+            info!(user_id = existing_id, "Overwritten unverified user data");
+
+            // 인증코드 발송
+            return Self::send_verification_code(st, &req.email, &email_idx, &mut redis).await;
         }
 
         // [Step 4] Password Hashing (Argon2)
@@ -130,14 +149,9 @@ impl UserService {
             .map_err(|e| AppError::Internal(format!("Hash error: {e}")))?
             .to_string();
 
-        // [Step 5] Prepare Session & Tokens
-        let session_id = Uuid::new_v4().to_string();
-        let (refresh_token, refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
-
-        // [Step 6] DB Transaction (Insert User -> Log -> Login Record)
+        // [Step 5] DB Transaction (Insert User)
         let mut tx = st.db.begin().await?;
 
-        // 6-1. Insert User
         let user = match repo::signup_tx(
             &mut tx, &email_enc, &password_hash, &name_enc, &req.nickname,
             &req.language, &req.country, &birthday_enc, req.gender,
@@ -149,96 +163,60 @@ impl UserService {
             Err(e) => return Err(e),
         };
 
-        // 6-2. Audit Log (Signup)
+        // Audit Log (Signup)
         if let Err(e) = repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user.id), user.id, "signup", true).await {
             warn!(error = ?e, user_id = user.id, "Failed to insert signup log");
         }
 
-        // 6-3. IP Geolocation (best-effort, non-blocking)
-        let geo = st.ipgeo.lookup(&ip).await;
-
-        // 6-4. Auto Login Record
-        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;
-
-        // 6-5. JWT Access Token (tx 안에서 생성하여 login_log에 기록)
-        let (access_token, jti) = jwt::create_token(
-            user.id, &session_id, user.user_auth, st.cfg.jwt_access_ttl_min, &st.cfg.jwt_secret
-        )?;
-        let access_hash: String = sha2::Sha256::digest(access_token.access_token.as_bytes())
-            .iter().map(|b| format!("{:02x}", b)).collect();
-
-        // IP 암호화
-        let login_ip_encrypted = crypto.encrypt(&ip, "login.login_ip")?;
-        let login_ip_log_encrypted = crypto.encrypt(&ip, "login_log.login_ip_log")?;
-
-        AuthRepo::insert_login_record_tx(
-            &mut tx, user.id, &session_id, &refresh_hash, &login_ip_encrypted,
-            Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(), parsed_ua.os.as_deref(),
-            ua.as_deref(), refresh_ttl_secs,
-            geo.country_code.as_deref(), geo.asn, geo.org.as_deref(),
-        ).await?;
-
-        AuthRepo::insert_login_log_tx(
-            &mut tx,
-            user.id,
-            "login",
-            true,
-            &session_id,
-            &refresh_hash,
-            &login_ip_log_encrypted,
-            Some(parsed_ua.device.as_str()),
-            parsed_ua.browser.as_deref(),
-            parsed_ua.os.as_deref(),
-            ua.as_deref(),
-            geo.country_code.as_deref(),
-            geo.asn,
-            geo.org.as_deref(),
-            Some(&access_hash),
-            Some(&jti),
-            Some("none"),
-            Some(refresh_ttl_secs),
-        ).await?;
-
         tx.commit().await?;
 
-        // [Step 7] Redis Session Caching
-        let _: () = redis.set_ex(
-            format!("ak:session:{}", session_id), 
-            user.id, 
-            st.cfg.jwt_access_ttl_min as u64 * 60
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        // [Step 6] 이메일 인증코드 발송
+        // 개발 환경에서 EMAIL_PROVIDER=none이면 자동 인증
+        if st.cfg.email_provider == "none" {
+            warn!("EMAIL_PROVIDER=none: auto-verifying email for user {}", user.id);
+            crate::api::auth::repo::AuthRepo::update_user_check_email(&st.db, user.id, true).await?;
+            return Ok(SignupRes {
+                message: "Account created (email auto-verified in development mode).".to_string(),
+                requires_verification: false,
+            });
+        }
 
-        // 8-2. Refresh Token Mapping (RefreshHash -> SessionID)
-        let _: () = redis.set_ex(
-            format!("ak:refresh:{}", refresh_hash), 
-            &session_id, 
-            refresh_ttl_secs as u64
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        Self::send_verification_code(st, &req.email, &email_idx, &mut redis).await
+    }
 
-        // 8-3. User Sessions Set (UserID -> Set<SessionID>) - For 'Logout All'
-        let _: () = redis.sadd(
-            format!("ak:user_sessions:{}", user.id), 
-            &session_id
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+    /// 인증코드 생성 → HMAC 해시 → Redis 저장 → 이메일 발송
+    async fn send_verification_code(
+        st: &AppState,
+        email_plain: &str,
+        email_idx: &str,
+        redis: &mut deadpool_redis::Connection,
+    ) -> AppResult<SignupRes> {
+        let code = AuthService::generate_verification_code();
+        let code_hash = Self::hmac_verification_code(&st.cfg.hmac_key, email_plain, &code);
+        let ttl_sec = st.cfg.verification_code_ttl_sec;
 
-        // [Step 8] Response Construction
-        let res = SignupRes {
-            user_id: user.id,
-            email: req.email.clone(),
-            name: req.name.clone(),
-            nickname: user.nickname.clone().unwrap_or_default(),
-            language: user.language.clone().unwrap_or_else(|| "ko".to_string()),
-            country: user.country.clone().unwrap_or_default(),
-            birthday: req.birthday.to_string(),
-            gender: user.gender,
-            user_state: user.user_state,
-            user_auth: user.user_auth,
-            created_at: user.created_at,
-            access: access_token,
-            session_id,
-        };
+        // Redis에 HMAC 해시 저장 (blind index 키)
+        let redis_key = format!("ak:email_verify:{}", email_idx);
+        let _: () = redis.set_ex(&redis_key, &code_hash, ttl_sec as u64)
+            .await.map_err(|e| AppError::Internal(e.to_string()))?;
 
-        Ok((res, refresh_token, refresh_ttl_secs))
+        // 이메일 발송
+        let email_sender = st.email.as_ref()
+            .ok_or_else(|| AppError::ServiceUnavailable("Email service not configured".into()))?;
+
+        let expires_in_min = (ttl_sec / 60) as i32;
+        email::send_templated(
+            email_sender.as_ref(),
+            email_plain,
+            EmailTemplate::EmailVerification { code, expires_in_min },
+        ).await?;
+
+        info!(email_idx = %email_idx, "Verification code sent");
+
+        Ok(SignupRes {
+            message: "Verification code sent to your email.".to_string(),
+            requires_verification: true,
+        })
     }
 
     pub async fn get_me(st: &AppState, user_id: i64) -> AppResult<ProfileRes> {
@@ -296,7 +274,7 @@ impl UserService {
         if !user.user_state { return Err(AppError::Forbidden("Forbidden".to_string())); }
 
         let settings = repo::find_users_setting(&st.db, user_id).await?;
-        
+
         Ok(settings.unwrap_or_else(|| SettingsRes {
             user_set_language: "ko".to_string(),
             user_set_timezone: "UTC".to_string(),

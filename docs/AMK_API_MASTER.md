@@ -1,6 +1,6 @@
 ---
 title: AMK_API_MASTER — Amazing Korean API  Master Spec
-updated: 2026-02-08
+updated: 2026-02-09
 owner: HYMN Co., Ltd. (Amazing Korean)
 audience: server / database / backend / frontend / lead / AI agent
 ---
@@ -291,40 +291,51 @@ audience: server / database / backend / frontend / lead / AI agent
 
 ### 2.4 외부 서비스 연동
 
-#### 2.4.1 AWS SES (이메일 발송)
+#### 2.4.1 이메일 발송 (EmailSender trait 추상화)
 
 > Transactional Email 전용. 마케팅 이메일 미사용.
+> `EMAIL_PROVIDER` 환경변수로 Provider 설정. 현재 Resend 사용.
 
-**설정 정보**
+**Provider 설정**
+| Provider | 환경변수 | 설명 |
+|----------|----------|------|
+| `resend` | `RESEND_API_KEY` | Resend API (기본, 즉시 사용 가능, 무료 3,000통/월) |
+| `none` | — | 이메일 미발송 (로컬 개발용, 프로덕션에서 사용 시 서버 부팅 실패) |
+
+**공통 설정**
 | 항목 | 값 |
 |------|-----|
-| Region | `ap-northeast-2` (서울) |
 | 인증된 도메인 | `amazingkorean.net` |
 | 발신 주소 | `noreply@amazingkorean.net` |
 
 **환경변수**
 ```env
-AWS_ACCESS_KEY_ID=xxx
-AWS_SECRET_ACCESS_KEY=xxx
-AWS_REGION=ap-northeast-2
-AWS_SES_FROM_EMAIL=noreply@amazingkorean.net
+EMAIL_PROVIDER=resend          # resend | none
+RESEND_API_KEY=re_xxx          # Resend 사용 시 필수
+EMAIL_FROM_ADDRESS=noreply@amazingkorean.net  # 발신 주소
 ```
 
 **코드 구조**
-- `src/external/email.rs`: EmailClient, EmailTemplate 정의
-- `src/state.rs`: AppState에 EmailClient 포함
+- `src/external/email.rs`: `EmailSender` trait + `ResendEmailSender` 구현
+- `src/state.rs`: `AppState.email: Option<Arc<dyn EmailSender>>`
+- `src/config.rs`: `email_provider`, `resend_api_key` + 프로덕션 fail-fast 검증
 
 **EmailTemplate 종류**
 | 템플릿 | 용도 | 사용처 |
 |--------|------|--------|
 | `PasswordResetCode` | 비밀번호 재설정 인증코드 (6자리) | Phase 3 - `POST /auth/request-reset` |
-| `EmailVerification` | 이메일 인증 코드 (회원가입 시) | Phase 2 - `POST /users` (예정) |
+| `EmailVerification` | 이메일 인증 코드 (회원가입 시) | Phase 2 - `POST /users` ✅ |
 | `Welcome` | 가입 환영 이메일 | Phase 2 - 회원가입 완료 시 |
 | `AdminInvite` | 관리자 초대 코드 + URL | Phase 7 - `POST /admin/upgrade` |
 
 **이메일 발송 제한**
-- Rate Limit: 이메일당 5회/시간 (비밀번호 재설정)
+- Rate Limit: 이메일당 5회/5시간 (기본값, 환경변수로 조정 가능)
+  - 환경변수: `RATE_LIMIT_EMAIL_WINDOW_SEC` (기본: 18000초=5시간), `RATE_LIMIT_EMAIL_MAX` (기본: 5, **1 이상 필수** — 0 이하 시 서버 부팅 실패)
+  - 적용 대상: 비밀번호 재설정 요청, 비밀번호 찾기, 이메일 인증코드 재발송
+  - 응답에 `remaining_attempts` 포함 (잔여 발송 횟수, 프론트엔드 표시)
+  - 이메일 발송 실패 시 rate limit 카운터 자동 롤백 (`DECR`) — 사용자 시도 낭비 방지
 - TTL: 인증코드 10분 만료
+- 프로덕션 fail-fast: `APP_ENV=production` + `EMAIL_PROVIDER=none` → 서버 부팅 실패
 
 #### 2.4.2 Google OAuth
 
@@ -1300,23 +1311,27 @@ VIMEO_ACCESS_TOKEN=xxx
 #### 5.2-1 : `POST /users` (회원가입)
 - **성공 → 201 Created**
   - When: `/signup` 폼 입력 후 제출이 서버 검증을 통과한다
-  - Then: **201**, `Location: /users/{id}`(권장)
-    - **Body**: `SignupRes` (안전한 유저 정보 + **Access Token**, `session_id`)
-    - **Cookie**: `ak_refresh` (**Refresh Token**, HttpOnly, Secure)
+  - Then: **201**
+    - **Body**: `SignupRes { message, requires_verification }`
+    - `requires_verification: true` → 이메일 인증코드 발송됨, 프론트엔드에서 `/verify-email` 페이지로 이동
+    - `requires_verification: false` → 개발 환경(`EMAIL_PROVIDER=none`) 자동 인증, 즉시 로그인 가능
+    - **자동 로그인 제거**: 회원가입 시 토큰/세션 발급 없음 (이메일 인증 후 로그인 필요)
   - 상태축: Auth=pass / Page=`signup` init→ready / **Form=`signup` pristine→dirty→validating→submitting→success** / Request=`signup` pending→success / Data=`signup` present
   - 로그: USERS insert 후 **USERS_LOG(성공 스냅샷)** 기록(민감정보 제외)
+  - **미인증 재가입**: 동일 이메일로 `user_check_email=false`인 기존 레코드 존재 시 비밀번호/프로필 **덮어쓰기** + 새 인증코드 발송 (409 대신)
+  - **인증코드 보안**: Redis에 HMAC-SHA256 해시 저장 (평문 저장 금지), blind index 키 사용
 - **실패(형식/누락) → 400 Bad Request**
   - 예: 이메일 형식 불일치, 필수 항목 누락, JSON 파싱 오류
   - 상태축: Auth=pass / Page=`signup` init→ready / **Form=`signup` … → error.client** / Request=`signup` pending→error / **Data=`signup` empty**
   - 에러 바디: `{ "error": { "http_status": 400, "code": "BAD_REQUEST", "message": "...", "trace_id": "..." } }`
   - 로그: **USERS_LOG(실패 이벤트)** 기록(에러코드/사유, 민감값 마스킹)
 - **실패(도메인 제약) → 422 Unprocessable Entity**
-  - 예: birthday 범위 위반, 금지값, 정책 규칙 위반
+  - 예: birthday 범위 위반, 금지값, 정책 규칙 위반, 약한 비밀번호
   - 상태축: Auth=pass / Page=`signup` init→ready / **Form=`signup` … → error.client** / Request=`signup` pending→error / **Data=`signup` error**
   - 에러 바디: `http_status:422, code:"UNPROCESSABLE_ENTITY"`
   - 로그: 실패 이벤트 기록
 - **실패(중복/충돌) → 409 Conflict**
-  - 예: 이메일 UNIQUE 충돌
+  - 예: 이메일 UNIQUE 충돌 (인증 완료된 기존 계정)
   - 상태축: Auth=pass / Page=`signup` init→ready / **Form=`signup` … → error.conflict** / Request=`signup` pending→error / **Data=`signup` error**
   - 에러 바디: `http_status:409, code:"CONFLICT"`
   - 로그: 실패 이벤트 기록
@@ -1327,7 +1342,7 @@ VIMEO_ACCESS_TOKEN=xxx
   - 로그: 실패 이벤트 + 차단 지표
 - **중복 제출 방지(정책)**
   - 프론트: **Form=submitting** 동안 버튼/Enter 비활성
-  - 백엔드: 시간/조건 기반 중복 생성 방지(최근 N분 동일 이메일 재시도 시 409 또는 200 재응답 정책 중 택1)
+  - 백엔드: 미인증 재가입 시 덮어쓰기 + 새 코드 발송, 인증 완료 계정은 409
 
 ---
 
@@ -1406,10 +1421,13 @@ VIMEO_ACCESS_TOKEN=xxx
 | 3-2a | `POST /auth/logout/all` | (전역처리) | 전체 로그아웃 | ***사용자의 모든 세션/리프레시 키 일괄 제거, LOGIN_LOG 저장***<br>성공: Auth pass / Request logout_all pending→success → **204**<br>실패(미인증): Auth stop → **401** | [✅] |
 | 3-3 | `POST /auth/refresh` | (전역처리) | 토큰 재발급 | ***리프레시 로테이션/검증/재사용탐지 + 로그(rotate)***<br>성공: Auth pass / Page app ready / Request refresh pending→success / Data refresh present → **200**<br>실패(형식/누락): Auth pass / Page app ready / Request refresh pending→error / Data refresh empty → **400**<br>실패(도메인 제약): Auth pass / Page app ready / Request refresh pending→error / Data refresh error → **422**<br>실패(리프레시 무효/만료): Auth stop / Page app ready / Request refresh pending→error / Data refresh error → **401**<br>실패(재사용탐지/위조): Auth forbid / Page app ready / Request refresh pending→error / Data refresh error → **409**(또는 **403**) | [✅🆗] |
 | 3-4 | `POST /auth/find-id` | `/find-id` | 회원 아이디 찾기 | ***개인정보 보호: 결과 폭로 금지(Enumeration Safe), USERS_LOG 저장***<br>성공(요청 수락/존재 여부와 무관):<br> Auth pass / Page find_id init→ready / Form find_id pristine→dirty→validating→submitting→success / Request find_id pending→success / Data find_id present → **200**(항상 동일 메시지)<br>실패(형식/누락): Auth pass / Page find_id init→ready / Form find_id pristine→dirty→validating→error.client / Request find_id pending→error / Data find_id empty → **400**<br>실패(도메인 제약): Auth pass / Page find_id init→ready / Form find_id pristine→dirty→validating→error.client / Request find_id pending→error / Data find_id error → **422**<br>실패(레이트리밋): Auth pass / Page find_id ready / Form find_id error.client / Request find_id pending→error / Data find_id error → **429** | [✅🆗] |
-| 3-5a | `POST /auth/request-reset` | `/reset-password` | 비밀번호 재설정 요청 | ***이메일 기반 인증코드 발송 (AWS SES), Redis 코드 저장 (TTL 10분)***<br>성공(항상 동일 응답): Auth pass / Request pending→success → **200**<br>실패(형식/누락): **400** / 실패(레이트리밋): **429** | [✅🆗] |
+| 3-5a | `POST /auth/request-reset` | `/reset-password` | 비밀번호 재설정 요청 | ***이메일 기반 인증코드 발송 (Resend), Redis 코드 저장 (TTL 10분)***<br>성공(항상 동일 응답): Auth pass / Request pending→success → **200** `{ message, remaining_attempts }`<br>실패(형식/누락): **400** / 실패(레이트리밋): **429** | [✅🆗] |
 | 3-5b | `POST /auth/verify-reset` | `/reset-password` | 비밀번호 재설정 검증 | ***인증코드 검증 + 새 비밀번호 설정, 관련 세션 전부 무효화***<br>성공: Auth pass / Request pending→success → **200**<br>실패(코드 만료/무효): **401** / 실패(형식): **400** / 실패(레이트리밋): **429** | [✅🆗] |
 | 3-5 | `POST /auth/reset-pw` | `/reset-password` | 회원 비밀번호 재설정 (legacy) | ***요청→검증→재설정의 단일 엔드포인트(토큰/코드 포함), USERS_LOG 저장***<br>성공(재설정 완료):<br> Auth pass / Page reset_pw init→ready / Form reset_pw pristine→dirty→validating→submitting→success / Request reset_pw pending→success / Data reset_pw present → **200**(또는 **204**)<br>실패(형식/누락): Auth pass / Page reset_pw init→ready / Form reset_pw pristine→dirty→validating→error.client / Request reset_pw pending→error / Data reset_pw empty → **400**<br>실패(도메인 제약): Auth pass / Page reset_pw init→ready / Form reset_pw pristine→dirty→validating→error.client / Request reset_pw pending→error / Data reset_pw error → **422**<br>실패(토큰/코드 무효·만료): Auth stop / Page reset_pw ready / Form reset_pw error.client / Request reset_pw pending→error / Data reset_pw error → **401**<br>실패(레이트리밋): Auth pass / Page reset_pw ready / Form reset_pw error.client / Request reset_pw pending→error / Data reset_pw error → **429** | [✅🆗] |
 | 3-6 | `GET /auth/google`<br>`GET /auth/google/callback` | `/login` | Google OAuth 로그인 | ***Google OAuth 2.0 Authorization Code Flow, 자동 계정 연결/생성, USER_OAUTH/LOGIN/LOGIN_LOG 저장***<br>성공(OAuth 시작): Auth pass / Page login ready / Request google pending→success / Data google_auth_url present → **200**<br>성공(OAuth 콜백): Auth pass / Page login redirect→ready / Request callback pending→success / Data login present → **302**(프론트엔드 리다이렉트)<br>실패(OAuth 설정 누락): Auth pass / Page login ready / Request google pending→error / Data google error → **500**<br>실패(State 검증 실패/CSRF): Auth stop / Page login ready / Request callback pending→error / Data callback error → **401**<br>실패(사용자 취소): Auth pass / Page login ready / Request callback pending→error / Data callback error → **302**(에러 정보와 함께 리다이렉트) | [✅🆗] |
+| 3-7 | `POST /auth/verify-email` | `/verify-email` | 이메일 인증코드 확인 | ***회원가입 이메일 인증, HMAC-SHA256 해시 비교 (constant-time), user_check_email=true 업데이트***<br>성공: **200** `{ message, verified: true }`<br>실패(코드 무효/만료): **401** / 실패(형식): **400** / 실패(레이트리밋): **429** (10회/시간) | [✅] |
+| 3-8 | `POST /auth/resend-verification` | `/verify-email` | 이메일 인증코드 재발송 | ***미인증 사용자에게 새 인증코드 발송 (Enumeration Safe — 항상 동일 메시지)***<br>성공: **200** `{ message, remaining_attempts }` (항상 성공 메시지)<br>실패(형식): **400** / 실패(레이트리밋): **429** (5회/5시간) / 실패(이메일 서비스): **503** | [✅] |
+| 3-9 | `POST /auth/find-password` | `/account-recovery` | 비밀번호 찾기 (통합) | ***본인확인(이름+생일+이메일) → 인증코드 발송, Enumeration Safe, OAuth 전용 계정도 동일 응답***<br>성공: **200** `{ message, remaining_attempts }` (항상 동일 메시지)<br>실패(형식): **400** / 실패(레이트리밋): **429** (5회/5시간) | [✅] |
 
 ---
 
@@ -1449,6 +1467,12 @@ VIMEO_ACCESS_TOKEN=xxx
   - Then: **401**, `{ "error": { "code": "UNAUTHORIZED", "message": "AUTH_401_SOCIAL_ONLY_ACCOUNT:google" } }`
   - 프론트엔드 처리: 소셜 로그인 유도 UI 표시 (amber 색상 안내 박스 + Google 로그인 버튼)
   - 상태축: Auth=stop / Form error.client / Data error (socialOnlyError)
+- **실패(이메일 미인증) → 403** (별도 에러 코드)
+  - When: 이메일/비밀번호 검증 성공했으나, `user_check_email=false`인 경우
+  - Then: **403**, `{ "error": { "code": "FORBIDDEN", "message": "AUTH_403_EMAIL_NOT_VERIFIED:user@example.com" } }`
+  - 프론트엔드 처리: `/verify-email` 페이지로 이동 (state에 email 전달), 재발송 버튼 사용 가능
+  - 상태축: Auth=stop / Form error.client / Data error (emailNotVerifiedError)
+  - **OAuth 자동 인증**: 미인증 이메일로 OAuth 로그인 시 `user_check_email=true` 자동 업데이트
 
 ---
 
@@ -1628,6 +1652,61 @@ Location: http://localhost:5173/login?error=oauth_failed&error_description=...
 - axios interceptor와 OAuth 콜백 처리가 동시에 `refreshToken()`을 호출할 수 있음
 - Refresh Token Rotation으로 인해 후자가 409 Conflict 발생 가능
 - 해결: `refreshToken()` 실패 시 `isLoggedIn` 상태 확인 → true면 리다이렉트 진행
+
+---
+
+#### 5.3-7 : `POST /auth/verify-email` (이메일 인증코드 확인)
+
+> **개요**: 회원가입 시 발송된 이메일 인증코드를 검증하여 `user_check_email=true`로 업데이트
+
+- **성공 → 200 OK**
+  - When: `/verify-email` 페이지에서 6자리 인증코드 입력
+  - Then: **200**, `{ message, verified: true }`, `user_check_email=true` 업데이트
+  - 보안: HMAC-SHA256 해시 비교 (constant-time), Redis 일회용 코드 삭제
+- **실패(코드 무효/만료) → 401**
+  - 예: 잘못된 코드, Redis TTL 만료 (10분), 이미 사용된 코드
+- **실패(형식/누락) → 400**
+  - 예: 이메일 형식 불일치, 코드 길이 불일치
+- **실패(레이트리밋) → 429**
+  - 조건: 10회/시간 초과
+
+---
+
+#### 5.3-8 : `POST /auth/resend-verification` (이메일 인증코드 재발송)
+
+> **개요**: 미인증 사용자에게 새 이메일 인증코드 발송 (Enumeration Safe)
+
+- **성공 → 200 OK**
+  - When: `/verify-email` 페이지에서 "재전송" 버튼 클릭
+  - Then: **200**, `{ message, remaining_attempts }` (이메일 존재 여부와 무관하게 항상 동일 메시지)
+  - 동작: 미인증 사용자만 실제 이메일 발송, 이미 인증된/미존재 이메일은 발송 없이 성공 응답
+- **실패(레이트리밋) → 429**
+  - 조건: 5회/5시간 초과 (`RATE_LIMIT_EMAIL_WINDOW_SEC`, `RATE_LIMIT_EMAIL_MAX`)
+- **실패(이메일 서비스) → 503**
+  - 예: 이메일 프로바이더 연결 실패
+
+---
+
+#### 5.3-9 : `POST /auth/find-password` (비밀번호 찾기 — 통합 계정 복구)
+
+> **개요**: 본인확인(이름+생일+이메일) 후 비밀번호 재설정 인증코드 발송. `/account-recovery` 페이지의 "비밀번호 찾기" 탭에서 사용.
+
+- **성공 → 200 OK**
+  - When: `/account-recovery` "비밀번호 찾기" 탭에서 이름, 생일, 이메일 입력
+  - Then: **200**, `{ message, remaining_attempts }` (항상 동일 메시지, Enumeration Safe)
+  - 본인확인: 이름(blind index) + 생일 + 이메일(blind index) 3중 매칭
+  - OAuth 전용 계정(`user_password=NULL`): 동일 성공 응답 반환, 이메일 미발송
+  - 매칭 실패: 동일 성공 응답 반환, 이메일 미발송 (타이밍 공격 방지)
+- **실패(형식/누락) → 400**
+  - 예: 필수 필드 누락, 이메일 형식 불일치
+- **실패(레이트리밋) → 429**
+  - 조건: 5회/5시간 초과 (IP 기반)
+
+##### 프론트엔드 처리
+- `/account-recovery` 탭 UI: "아이디 찾기" / "비밀번호 찾기"
+- 비밀번호 찾기 탭에 OAuth 경고 문구 표시 (warning 스타일)
+- Step 1(본인확인) → Step 2(인증코드 입력) → `POST /auth/verify-reset` → `/reset-password?token=xxx`
+- 잔여 발송 횟수 표시, 한도 도달 시 재전송 버튼 비활성화
 
 </details>
 
@@ -2088,7 +2167,7 @@ Location: http://localhost:5173/login?error=oauth_failed&error_description=...
 | 7-66 | `GET /admin/logins/stats/daily` | `/admin/logins/stats?from=&to=` | 일별 로그인 통계 | ***일별 성공/실패/고유사용자, 제로필, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
 | 7-67 | `GET /admin/logins/stats/devices` | `/admin/logins/stats?from=&to=` | 디바이스별 로그인 통계 | ***디바이스별 성공횟수/비율, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅🆗] |
 
-| 7-71 | `POST /admin/email/test` | (관리자 전용) | 테스트 이메일 발송 | ***AWS SES 설정 검증용, RBAC(HYMN/Admin)***<br>성공: **200**<br>실패: **401/403/500** | [✅] |
+| 7-71 | `POST /admin/email/test` | (관리자 전용) | 테스트 이메일 발송 | ***이메일 설정 검증용, RBAC(HYMN/Admin)***<br>성공: **200**<br>실패: **401/403/500** | [✅] |
 
 | 7-68 | `POST /admin/upgrade` | `/admin/upgrade` | 관리자 초대 | ***초대 코드 생성 + 이메일 발송, RBAC(HYMN→Admin/Manager, Admin→Manager), Redis TTL 10분***<br>성공: **200**<br>실패: **401/403/400/422/409**(이미 가입된 이메일) | [✅🆗] |
 | 7-69 | `GET /admin/upgrade/verify` | `/admin/upgrade/join?code=xxx` | 초대 코드 검증 | ***Public, 코드 유효성 검증, 이메일/역할 정보 반환***<br>성공: **200**<br>실패: **400/401**(만료/무효 코드) | [✅🆗] |
@@ -2140,7 +2219,7 @@ Location: http://localhost:5173/login?error=oauth_failed&error_description=...
 3. 이메일 중복 체크 (기존 가입자면 409)
 4. 초대 코드 생성: `ak_upgrade_{uuid}`
 5. Redis 저장: `ak:upgrade:{code}` → `{email, role, invited_by, created_at}`, TTL 10분
-6. 이메일 발송 (AWS SES)
+6. 이메일 발송 (Resend)
 7. 초대 로그 기록
 
 **실패 케이스**
@@ -2593,6 +2672,8 @@ export function AppRouter() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/account-recovery" element={<AccountRecoveryPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/videos" element={<VideoListPage />} />
             <Route path="/videos/:video_id" element={<VideoDetailPage />} />
             <Route path="/studies" element={<StudyListPage />} />
@@ -3381,11 +3462,12 @@ export function AppRouter() {
 |------|------|:----:|------|
 | 1-1 | Google OAuth | ✅ | Google OAuth 2.0 Authorization Code Flow 구현 완료 |
 | 1-2 | Apple OAuth | 보류 | 개발 환경 및 비용 문제로 보류 |
-| 2 | 이메일 인증 (AWS SES) | 📋 | 일반 가입 시 이메일 인증 필수화 (Phase 2 예정) |
+| 2 | 이메일 발송 (Resend) | ✅ | `EmailSender` trait 추상화 + Resend 구현 (2026-02-09), `EMAIL_PROVIDER` 환경변수로 전환, 회원가입 이메일 인증 플로우 완료. ~~AWS SES 검토 → 프로덕션 승인 3회 거절로 폐기~~ |
 | 3 | 결제 시스템 | 📋 | Stripe, Polar 연동 (수강권과 연계) |
 | 4 | RDS/ElastiCache 이전 | 📋 | EC2 → AWS RDS + ElastiCache (TLS, maxmemory 자동 적용) |
 | 5 | 다중 서버 구성 (HA) | 📋 | 단계적 확장: ①nginx+컨테이너 복제(비용0) → ②ALB+EC2 다중화+RDS → ③ECS Fargate+Auto Scaling |
 | 6 | GeoIP 서비스 전환 | 보류 | ip-api.com(HTTP) → MaxMind GeoLite2(로컬 DB) 또는 HTTPS 지원 서비스, 트래픽 증가 시 |
+| 7 | 이메일 수신 | 검토 | `support@amazingkorean.net` 등 수신 필요 시 — Cloudflare Email Routing(무료, 개인 메일 전달) 또는 Google Workspace 검토 |
 
 #### 보안 & 데이터 보호
 
@@ -3396,6 +3478,7 @@ export function AppRouter() {
 | 3 | 기존 데이터 마이그레이션 | ✅ | backfill + 평문 컬럼 제거 완료 (Phase 2B~2C) |
 | 4 | 키 로테이션 인프라 | ✅ | KeyRing 다중 키 지원, `src/bin/rekey_encryption.rs` (Phase 2D, 2026-02-08) |
 | 5 | admin_action_log IP 암호화 | ✅ | INET→TEXT 변환 + 55+ call sites 암호화 적용 (Phase 3, 2026-02-08) |
+| 6 | 프로덕션 클린 배포 | ✅ | 통합 마이그레이션 + 시드 데이터 + Dockerfile 멀티바이너리 + 암호화 검증 (2026-02-08) |
 
 > **암호화 대상**: `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address` 등 PII
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), 환경변수, AppState KeyRing 로드
@@ -3416,7 +3499,7 @@ export function AppRouter() {
 > **지원 언어 (22개)**: en, zh-CN, zh-TW, ja, vi, id, th, my, km, mn, ru, uz, kk, tg, ne, si, hi, es, pt, fr, de, ar
 > **번역 대상**: video title/description, category name, study_task title/description, achievement (UI 메타데이터만, 학습 본문 제외)
 > **Fallback**: 사용자 언어 → ko (한국어 원본)
-> ***DB 확정 후 리셋해서 서버 배포 진행 필요***
+> ~~DB 확정 후 리셋해서 서버 배포 진행 필요~~ → **완료** (2026-02-08 프로덕션 클린 배포)
 
 #### 보류/낮음 우선순위
 
@@ -3474,6 +3557,58 @@ ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
 ---
 
 ## 9. 변경 이력 (요약)
+
+- **2026-02-09 — 이메일 인증 + 계정 복구 + Rate Limiting 강화**
+  - **이메일 인증 시스템**
+    - 회원가입 → 인증코드 발송 → 검증 → 로그인 가능 플로우 구현
+    - `POST /auth/verify-email` (3-7): HMAC-SHA256 해시 비교, `user_check_email=true` 업데이트
+    - `POST /auth/resend-verification` (3-8): Enumeration Safe, 잔여 횟수 반환
+    - 로그인 시 `user_check_email=false` → **403** 차단 (`AUTH_403_EMAIL_NOT_VERIFIED:email`)
+    - OAuth 자동 인증: 미인증 이메일로 OAuth 로그인 시 `user_check_email=true` 자동 업데이트
+    - Redis 저장: HMAC-SHA256 해시 (평문 코드 저장 금지), TTL 10분
+    - 프로덕션 fail-fast: `EMAIL_PROVIDER=none` + `APP_ENV=production` → 서버 부팅 실패
+    - EmailSender trait: Resend (`src/external/email.rs`)
+  - **계정 복구 (아이디/비밀번호 찾기) 통합**
+    - `POST /auth/find-password` (3-9): 본인확인(이름+생일+이메일) → 인증코드 발송
+    - `/account-recovery` 페이지: 탭 UI (아이디 찾기 / 비밀번호 찾기)
+    - OAuth 전용 계정 경고 문구 (warning 스타일, 비밀번호 찾기 탭)
+  - **Rate Limiting 강화**
+    - 이메일 발송 제한: 5회/1시간 → 5회/5시간 (환경변수 조정 가능)
+    - 환경변수: `RATE_LIMIT_EMAIL_WINDOW_SEC` (기본 18000초), `RATE_LIMIT_EMAIL_MAX` (기본 5)
+    - 응답에 `remaining_attempts` 필드 추가 (FindPasswordRes, RequestResetRes, ResendVerificationRes)
+    - 프론트: 잔여 발송 횟수 표시 + 한도 도달 시 재전송 버튼 비활성화
+  - **프론트엔드 변경**
+    - `verify_email_page.tsx` 신규 — 이메일 인증코드 확인 페이지
+    - `account_recovery_page.tsx` 신규 — 아이디/비밀번호 찾기 통합 (Tabs)
+    - `signup_page.tsx` — 가입 성공 시 `/verify-email`로 이동
+    - `use_login.ts` — 403 이메일 미인증 시 `/verify-email`로 이동
+    - i18n: 이메일 인증, 계정 복구, Rate Limiting 관련 키 추가 (ko.json, en.json)
+
+- **2026-02-08 — 프로덕션 클린 배포 (DB 보안 Phase 2D+3 반영)**
+  - **마이그레이션 통합**
+    - 기존 11개 마이그레이션 파일 → 단일 `20260208_AMK_V1.sql` 통합 (22 ENUMs, 35 Tables, FKs, Indexes)
+    - 암호화 컬럼 직접 포함 (`user_email` TEXT, `user_email_idx` TEXT 등), `ip_address` INET→TEXT 반영
+  - **시드 데이터**
+    - `20260208_AMK_V1_SEED.sql` 생성 (콘텐츠 10개 테이블, ~200행)
+    - 컬럼 순서 불일치 수정: `lesson`, `video`, `study` 테이블에 명시적 컬럼명 추가
+  - **Dockerfile 수정**
+    - 멀티바이너리 빌드 지원 (`amazing-korean-api` + `rekey_encryption`)
+    - `--bin` 플래그로 개별 바이너리 빌드
+  - **docker-compose.prod.yml 환경변수 추가**
+    - `ENCRYPTION_KEY_V1`, `ENCRYPTION_CURRENT_VERSION`, `HMAC_KEY`, `APP_ENV`
+    - `GOOGLE_CLIENT_ID/SECRET`, `GOOGLE_REDIRECT_URI`, `OAUTH_STATE_TTL_SEC`
+    - `FRONTEND_URL`, `ADMIN_IP_ALLOWLIST`
+  - **EC2 배포 완료**
+    - DB 볼륨 삭제 → 스키마 마이그레이션 → 시드 데이터 투입 → 전체 서비스 시작
+    - `.env.prod` 완전 구성 (프로덕션 전용 암호화 키 생성)
+    - Google OAuth redirect URI 프로덕션 설정 (`https://api.amazingkorean.net/auth/google/callback`)
+  - **배포 검증 완료**
+    - healthz: `{"status":"live","version":"v1.0.0"}`
+    - DB 암호화 확인: `user_email` = `enc:v1:...` 형태 정상 저장
+    - 시드 데이터: video=16, lesson=8 정상
+  - **문서 업데이트**
+    - Section 8.7: 프로덕션 클린 배포 항목 추가, 이메일 인증 상태 변경 (📋→보류)
+    - `AMK_DEPLOY_OPS.md`: .env.prod 전체 변수 목록, 클린 배포 절차, 트러블슈팅 추가
 
 - **2026-02-08 — 문서 구조 재편 (3파일 분할 + 불일치 수정)**
   - **구조 변경**
@@ -3719,7 +3854,7 @@ ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
     - Lesson 통계 기능 — 추후 구현 예정
 - **2026-02-04 — Admin Upgrade (관리자 초대) 시스템 구현**
   - **백엔드 (7-68 ~ 7-70)**
-    - `POST /admin/upgrade` — 관리자 초대 코드 생성 + AWS SES 이메일 발송
+    - `POST /admin/upgrade` — 관리자 초대 코드 생성 + 이메일 발송
     - `GET /admin/upgrade/verify` — 초대 코드 검증 (Public)
     - `POST /admin/upgrade/accept` — 관리자 계정 생성 (Public, OAuth 불가)
     - RBAC 정책: HYMN→Admin/Manager, Admin→Manager, Manager→불가

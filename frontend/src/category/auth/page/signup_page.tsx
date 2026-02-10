@@ -39,28 +39,42 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-import { signupReqSchema, type SignupReq } from "@/category/auth/types";
+import { signupReqSchema } from "@/category/auth/types";
 import { useSignup } from "../hook/use_signup";
 import { useGoogleLogin } from "../hook/use_google_login";
 
-// Form Schema Refinement (약관 동의 검증)
-const signupFormSchema = signupReqSchema.superRefine((data, ctx) => {
-  if (!data.terms_service) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["terms_service"],
-      message: i18n.t("auth.termsServiceRequired"),
-    });
-  }
+// Form Schema: confirm_password 추가 + 약관 동의 검증
+const signupFormSchema = signupReqSchema
+  .extend({
+    confirm_password: z.string().min(1, i18n.t("auth.validationConfirmPasswordRequired")),
+  })
+  .superRefine((data, ctx) => {
+    if (data.password !== data.confirm_password) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["confirm_password"],
+        message: i18n.t("auth.validationPasswordMismatch"),
+      });
+    }
 
-  if (!data.terms_personal) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["terms_personal"],
-      message: i18n.t("auth.termsPersonalRequired"),
-    });
-  }
-});
+    if (!data.terms_service) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["terms_service"],
+        message: i18n.t("auth.termsServiceRequired"),
+      });
+    }
+
+    if (!data.terms_personal) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["terms_personal"],
+        message: i18n.t("auth.termsPersonalRequired"),
+      });
+    }
+  });
+
+type SignupFormValues = z.infer<typeof signupFormSchema>;
 
 const countryOptions = [
   { value: "KR", label: "대한민국 (KR)" },
@@ -86,12 +100,13 @@ export function SignupPage() {
     { value: "other", label: t("auth.genderOther") },
   ];
 
-  const form = useForm<SignupReq>({
+  const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
     mode: "onChange",
     defaultValues: {
       email: "",
       password: "",
+      confirm_password: "",
       name: "",
       nickname: "",
       birthday: "",
@@ -103,11 +118,20 @@ export function SignupPage() {
     },
   });
 
-  const onSubmit = (values: SignupReq) => {
-    signupMutation.mutate(values, {
-      onSuccess: () => {
-        toast.success(t("auth.signupSuccess"));
-        navigate("/login");
+  const onSubmit = (values: SignupFormValues) => {
+    const { confirm_password: _, ...apiData } = values;
+    signupMutation.mutate(apiData, {
+      onSuccess: (data) => {
+        if (data.requires_verification) {
+          toast.success(t("auth.toastVerificationCodeSent"));
+          navigate("/verify-email", {
+            state: { email: values.email },
+            replace: true,
+          });
+        } else {
+          toast.success(t("auth.signupSuccess"));
+          navigate("/login");
+        }
       },
     });
   };
@@ -249,6 +273,26 @@ export function SignupPage() {
                           <Input
                             type="password"
                             placeholder={t("auth.passwordMinPlaceholder")}
+                            autoComplete="new-password"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* 비밀번호 확인 */}
+                  <FormField
+                    control={form.control}
+                    name="confirm_password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("auth.confirmPasswordLabel")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder={t("auth.confirmPasswordPlaceholder")}
                             autoComplete="new-password"
                             {...field}
                           />

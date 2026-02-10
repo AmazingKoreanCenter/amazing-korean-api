@@ -75,7 +75,7 @@ pub async fn signup_tx(
     Ok(res)
 }
 
-/// Blind index로 이메일 중복 확인용 (ID 조회)
+/// Blind index로 이메일 중복 확인용 (ID + 인증 상태 조회)
 pub async fn find_user_id_by_email_idx(pool: &PgPool, email_idx: &str) -> AppResult<Option<i64>> {
     let row = sqlx::query_scalar::<_, i64>(
         "SELECT user_id FROM users WHERE user_email_idx = $1"
@@ -84,6 +84,63 @@ pub async fn find_user_id_by_email_idx(pool: &PgPool, email_idx: &str) -> AppRes
     .fetch_optional(pool)
     .await?;
     Ok(row)
+}
+
+/// Blind index로 이메일 중복 확인 + user_check_email 상태 조회
+pub async fn find_user_id_and_check_email_by_email_idx(
+    pool: &PgPool,
+    email_idx: &str,
+) -> AppResult<Option<(i64, bool)>> {
+    let row = sqlx::query_as::<_, (i64, bool)>(
+        "SELECT user_id, user_check_email FROM users WHERE user_email_idx = $1"
+    )
+    .bind(email_idx)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row)
+}
+
+/// 미인증 사용자 정보 덮어쓰기 (재가입 시)
+#[allow(clippy::too_many_arguments)]
+pub async fn overwrite_unverified_user(
+    pool: &PgPool,
+    user_id: i64,
+    email_enc: &str,
+    password_hash: &str,
+    name_enc: &str,
+    nickname: &str,
+    language: &str,
+    country: &str,
+    birthday_enc: &str,
+    gender: UserGender,
+    name_idx: &str,
+) -> AppResult<()> {
+    sqlx::query(r#"
+        UPDATE users SET
+            user_email = $2,
+            user_password = $3,
+            user_name = $4,
+            user_nickname = $5,
+            user_language = $6::user_language_enum,
+            user_country = $7,
+            user_birthday = $8,
+            user_gender = $9::user_gender_enum,
+            user_name_idx = $10
+        WHERE user_id = $1 AND user_check_email = false
+    "#)
+    .bind(user_id)
+    .bind(email_enc)
+    .bind(password_hash)
+    .bind(name_enc)
+    .bind(nickname)
+    .bind(language)
+    .bind(country)
+    .bind(birthday_enc)
+    .bind(gender)
+    .bind(name_idx)
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 /// Blind index로 이메일로 사용자 전체 정보 조회

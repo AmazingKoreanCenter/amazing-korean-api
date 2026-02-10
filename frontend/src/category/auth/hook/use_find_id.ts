@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 import i18n from "@/i18n";
 import { ApiError } from "@/api/client";
-import type { FindIdReq } from "@/category/auth/types";
+import type { FindIdReq, FindIdRes } from "@/category/auth/types";
 
 import { findId } from "../auth_api";
 
@@ -20,11 +20,8 @@ const getErrorMessage = (error: unknown) => {
 };
 
 export const useFindId = () => {
-  return useMutation({
+  return useMutation<FindIdRes, Error, FindIdReq>({
     mutationFn: (data: FindIdReq) => findId(data),
-    onSuccess: () => {
-      toast.success(i18n.t("auth.toastFindIdSuccess"));
-    },
     onError: (error) => {
       if (error instanceof ApiError && error.status === 429) {
         toast.warning(i18n.t("auth.toastTooManyAttempts"));

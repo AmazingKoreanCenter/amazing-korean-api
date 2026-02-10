@@ -93,11 +93,52 @@
 ##### 환경 변수 (.env.prod)
 
 ```env
-POSTGRES_PASSWORD=your-secure-password
-JWT_SECRET=your-32-byte-minimum-secret-key
+# ─── Docker ───
+DOCKER_IMAGE=amazingkorean/amazing-korean-api
+
+# ─── Application ───
+APP_ENV=production                 # production | development (production + EMAIL_PROVIDER=none → 부팅 실패)
+
+# ─── Database ───
+POSTGRES_PASSWORD=<secure-password>
+
+# ─── Redis ───
+REDIS_PASSWORD=<secure-password>
+
+# ─── JWT ───
+JWT_SECRET=<min-32-bytes-secret>
 DOMAIN=api.amazingkorean.net
-CORS_ORIGINS=http://localhost:5173,https://amazingkorean.net,https://www.amazingkorean.net
+
+# ─── Domain & CORS ───
+CORS_ORIGINS=https://amazingkorean.net,https://www.amazingkorean.net
+
+# ─── Field Encryption (AES-256-GCM + HMAC Blind Index) ───
+# 키 생성: openssl rand -base64 32
+# 프로덕션 키 ≠ 로컬 키 (반드시 다른 키 사용)
+# 키 분실 시 암호화된 데이터 복구 불가 — 안전한 곳에 별도 백업 필수
+ENCRYPTION_KEY_V1=<base64-encoded-32-bytes>
+HMAC_KEY=<base64-encoded-32-bytes>
+ENCRYPTION_CURRENT_VERSION=1
+
+# ─── Google OAuth ───
+GOOGLE_CLIENT_ID=<google-client-id>
+GOOGLE_CLIENT_SECRET=<google-client-secret>
+GOOGLE_REDIRECT_URI=https://api.amazingkorean.net/auth/google/callback
+FRONTEND_URL=https://amazingkorean.net
+
+# ─── Email (Resend) ───
+EMAIL_PROVIDER=resend              # resend | none (프로덕션에서 none 사용 시 서버 부팅 실패)
+RESEND_API_KEY=re_xxx              # 필수 (Resend 대시보드에서 발급)
+
+# ─── Rate Limiting (이메일 발송) ───
+# RATE_LIMIT_EMAIL_WINDOW_SEC=18000  # 기본: 18000초 (5시간)
+# RATE_LIMIT_EMAIL_MAX=5             # 기본: 5회/윈도우
+
+# ─── Admin ───
+# ADMIN_IP_ALLOWLIST=1.2.3.4,10.0.0.0/8
 ```
+
+> **Google OAuth 설정 시 주의**: Google Cloud Console → 사용자 인증 정보 → 승인된 리디렉션 URI에 `https://api.amazingkorean.net/auth/google/callback`을 반드시 추가해야 합니다.
 
 ##### 0. SQLx 오프라인 모드 준비 (Docker 빌드 전 필수)
 
@@ -208,19 +249,8 @@ git clone https://github.com/AmazingKoreanCenter/amazing-korean-api.git
 cd amazing-korean-api
 git checkout KKRYOUN  # 또는 배포할 브랜치
 
-# 2. 환경 변수 설정
-cat > .env.prod << 'EOF'
-POSTGRES_PASSWORD=your-secure-password
-JWT_SECRET=your-32-byte-minimum-secret-key
-DOMAIN=api.amazingkorean.net
-CORS_ORIGINS=http://localhost:5173,https://amazingkorean.net,https://www.amazingkorean.net
-
-# Field Encryption (프로덕션 필수)
-APP_ENV=production
-ENCRYPTION_KEY=<base64-encoded-32-bytes>
-HMAC_KEY=<base64-encoded-32-bytes>
-# 키 생성: openssl rand -base64 32
-EOF
+# 2. 환경 변수 설정 (위의 ".env.prod" 전체 변수 목록 참조)
+nano .env.prod
 ```
 
 ```bash
@@ -258,36 +288,81 @@ docker compose -f docker-compose.prod.yml restart nginx
 ##### 4. 데이터베이스 마이그레이션
 
 ```bash
-# SQLx CLI 설치 (로컬 또는 EC2에서)
-cargo install sqlx-cli --no-default-features --features postgres
+# 방법 A: 통합 마이그레이션 (클린 배포 — DB 볼륨 삭제 후)
+# DB만 먼저 시작
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d db
+sleep 5
 
-# 마이그레이션 실행
+# 스키마 마이그레이션
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db < migrations/20260208_AMK_V1.sql
+
+# 시드 데이터 투입 (콘텐츠 테이블)
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db < migrations/20260208_AMK_V1_SEED.sql
+
+# 방법 B: SQLx CLI (점진적 마이그레이션)
+cargo install sqlx-cli --no-default-features --features postgres
 DATABASE_URL=postgres://postgres:your-password@localhost:5432/amazing_korean_db \
   sqlx migrate run
 ```
 
+##### 4-1. 클린 배포 절차 (DB 초기화)
+
+```bash
+# 1) 전체 중지 + DB 볼륨 삭제 (모든 데이터 초기화됨!)
+docker compose -f docker-compose.prod.yml down
+docker volume rm amazing-korean-api_postgres_data
+
+# 2) DB만 시작
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d db
+sleep 5
+
+# 3) 최신 마이그레이션 가져오기
+git pull origin KKRYOUN
+
+# 4) 스키마 + 시드 실행
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db < migrations/20260208_AMK_V1.sql
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db < migrations/20260208_AMK_V1_SEED.sql
+
+# 5) .env.prod 확인 후 전체 시작
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+```
+
+> **주의**: `docker volume rm`은 PostgreSQL 전체 데이터를 삭제합니다 (users, video, study, lesson 등 모든 테이블).
+
 ##### 5. 배포 후 확인
 
 ```bash
-# API 헬스체크
-curl http://your-ec2-ip/health
+# API 헬스체크 (nginx 프록시 경유)
+curl http://localhost:80/healthz -H "Host: api.amazingkorean.net"
+# 또는 외부에서: curl https://api.amazingkorean.net/healthz
 
-# 컨테이너 상태 확인
-docker compose -f docker-compose.prod.yml ps
+# 컨테이너 상태 확인 (5개: api, pg, redis, nginx, certbot)
+docker ps
 
-# 로그 확인
-docker compose -f docker-compose.prod.yml logs api
+# API 로그 확인
+docker logs amk-api --tail 30
+# → "Server listening on http://0.0.0.0:3000" 확인
+
+# DB 시드 데이터 확인
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "SELECT count(*) FROM video;"
+# → 16
+
+# 암호화 동작 확인 (회원가입 후)
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "SELECT user_email FROM users LIMIT 3;"
+# → enc:v1:... 형태
 ```
 
 ##### 6. 관련 파일
 
 | 파일 | 설명 |
 |------|------|
-| `Dockerfile` | Rust 백엔드 멀티스테이지 빌드 (rust:1.85, SQLx offline mode) |
-| `docker-compose.prod.yml` | 프로덕션 구성 (API + DB + Redis + Nginx) |
-| `nginx/nginx.conf` | 리버스 프록시 + SSL + CORS 설정 |
+| `Dockerfile` | Rust 백엔드 멀티스테이지 빌드 (rust:1.85, 멀티바이너리: api + rekey_encryption) |
+| `docker-compose.prod.yml` | 프로덕션 구성 (API + DB + Redis + Nginx + Certbot) |
+| `nginx/nginx.conf` | 리버스 프록시 (`api.amazingkorean.net` → api:3000), SSL은 Cloudflare Flexible |
 | `.sqlx/` | SQLx 오프라인 캐시 (Docker 빌드 시 필수) |
-| `.env.prod` | 프로덕션 환경 변수 (Git에 포함하지 않음) |
+| `.env.prod` | 프로덕션 환경 변수 (Git에 포함하지 않음) — 전체 변수 목록은 위 "환경 변수" 섹션 참조 |
+| `migrations/20260208_AMK_V1.sql` | 통합 스키마 마이그레이션 (22 ENUMs, 35 Tables) |
+| `migrations/20260208_AMK_V1_SEED.sql` | 시드 데이터 (콘텐츠 10개 테이블, ~200행) |
 
 ##### 7. 유용한 명령어
 
@@ -322,6 +397,9 @@ docker stats
 | `divergent branches` (git pull) | 브랜치 충돌 | `git fetch origin && git reset --hard origin/BRANCH` |
 | `address already in use` (443) | 포트 충돌 | `sudo fuser -k 443/tcp` 후 재시작 |
 | `database is being accessed` | DB 연결 중 | API 중지 후 `pg_terminate_backend()` 실행 |
+| `pull access denied for amazing-korean-api` | `.env.prod`의 `DOCKER_IMAGE` 값 누락/오타 | `DOCKER_IMAGE=amazingkorean/amazing-korean-api` (org/repo 형식) |
+| `400: redirect_uri_mismatch` (Google OAuth) | redirect URI 불일치 | `.env.prod` GOOGLE_REDIRECT_URI + Google Cloud Console 승인 URI 모두 `https://api.amazingkorean.net/auth/google/callback`으로 설정 |
+| INSERT 시 컬럼 순서 에러 | 통합 마이그레이션과 pg_dump 컬럼 순서 불일치 | INSERT문에 명시적 컬럼명 추가 (`INSERT INTO table (col1, col2, ...) VALUES (...)`) |
 
 ##### 9. Cloudflare SSL 설정 (Let's Encrypt 대안)
 
@@ -613,6 +691,8 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 | 경로 | 관리 방법 |
 |------|----------|
-| `migrations/*.sql` | `sqlx migrate run` 으로 실행. 오프라인 빌드 시 `.sqlx/` 폴더 필요 |
+| `migrations/20260208_AMK_V1.sql` | 통합 스키마 — 클린 배포 시 `docker exec -i amk-pg psql ...` 로 실행 |
+| `migrations/20260208_AMK_V1_SEED.sql` | 시드 데이터 — 스키마 적용 후 실행 (콘텐츠 테이블만, 사용자 데이터 없음) |
+| `migrations/*.sql` (기타) | `sqlx migrate run` 으로 점진적 마이그레이션. 오프라인 빌드 시 `.sqlx/` 폴더 필요 |
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)

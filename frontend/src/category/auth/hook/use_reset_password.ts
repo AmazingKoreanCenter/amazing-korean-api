@@ -6,6 +6,7 @@ import i18n from "@/i18n";
 import { ApiError } from "@/api/client";
 import type { ResetPasswordReq } from "@/category/auth/types";
 
+import { useAuthStore } from "@/hooks/use_auth_store";
 import { resetPassword } from "../auth_api";
 
 const getErrorMessage = (error: unknown) => {
@@ -24,6 +25,7 @@ export const useResetPassword = () => {
   return useMutation({
     mutationFn: (data: ResetPasswordReq) => resetPassword(data),
     onSuccess: () => {
+      useAuthStore.getState().logout();
       toast.success(i18n.t("auth.toastResetPasswordSuccess"));
       navigate("/login", { replace: true });
     },

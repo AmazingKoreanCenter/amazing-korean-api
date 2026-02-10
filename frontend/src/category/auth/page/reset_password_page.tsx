@@ -31,10 +31,14 @@ import { useResetPassword } from "../hook/use_reset_password";
 // Form Schema: UI 검증용 (비밀번호 확인 포함)
 const resetPasswordFormSchema = z
   .object({
-    new_password: z.string().min(6, i18n.t("auth.validationPasswordMin")),
+    new_password: z.string()
+      .min(8, i18n.t("auth.validationPasswordMin"))
+      .max(72)
+      .regex(/[a-zA-Z]/, i18n.t("auth.validationPasswordLetter"))
+      .regex(/[0-9]/, i18n.t("auth.validationPasswordDigit")),
     confirm_password: z
       .string()
-      .min(6, i18n.t("auth.validationPasswordMin")),
+      .min(1, i18n.t("auth.validationConfirmPasswordRequired")),
   })
   .refine((data) => data.new_password === data.confirm_password, {
     message: i18n.t("auth.validationPasswordMismatch"),
@@ -77,7 +81,7 @@ export function ResetPasswordPage() {
 
     resetPasswordMutation.mutate(
       {
-        token,
+        reset_token: token,
         new_password: values.new_password,
       },
       {

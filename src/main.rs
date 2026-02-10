@@ -52,20 +52,23 @@ async fn main() -> anyhow::Result<()> {
         .create_pool(Some(deadpool_redis::Runtime::Tokio1))
         .expect("Failed to create Redis pool");
 
-    // 5) EmailClient 생성 (SES_FROM_ADDRESS 설정 시 활성화)
-    let email = if let Some(ref from_address) = cfg.ses_from_address {
-        tracing::info!("📧 Email client enabled (from: {})", from_address);
-        Some(
-            external::email::EmailClient::new(
-                &cfg.aws_region,
-                from_address.clone(),
-                cfg.ses_reply_to.clone(),
-            )
-            .await,
-        )
-    } else {
-        tracing::info!("📧 Email client disabled (SES_FROM_ADDRESS not set)");
-        None
+    // 5) EmailSender 생성 (EMAIL_PROVIDER 설정에 따라 분기)
+    let email: Option<Arc<dyn external::email::EmailSender>> = match cfg.email_provider.as_str() {
+        "resend" => {
+            let api_key = cfg.resend_api_key.clone()
+                .expect("RESEND_API_KEY required for resend provider");
+            let from = cfg.email_from_address.clone()
+                .expect("EMAIL_FROM_ADDRESS required for resend provider");
+            tracing::info!("Email client enabled: Resend (from: {})", from);
+            Some(Arc::new(external::email::ResendEmailSender::new(api_key, from)))
+        }
+        "none" => {
+            tracing::info!("Email client disabled (EMAIL_PROVIDER=none)");
+            None
+        }
+        other => {
+            panic!("Unknown EMAIL_PROVIDER '{}'. Must be 'resend' or 'none'.", other);
+        }
     };
 
     // 6) IpGeoClient 생성
