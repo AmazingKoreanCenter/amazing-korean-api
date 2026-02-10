@@ -3,7 +3,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
@@ -49,12 +49,12 @@ type ResetPasswordForm = z.infer<typeof resetPasswordFormSchema>;
 
 export function ResetPasswordPage() {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const resetPasswordMutation = useResetPassword();
 
-  // URL에서 토큰 추출
-  const token = searchParams.get("token");
+  // state에서 토큰 추출 (URL 노출 방지)
+  const token = (location.state as { token?: string } | null)?.token ?? null;
 
   // 토큰 유효성 검사 (페이지 진입 시)
   useEffect(() => {

@@ -117,7 +117,7 @@ export function RequestResetPasswordPage() {
     setIsVerifying(true);
     try {
       const res = await verifyResetCode({ email: submittedEmail, code: values.code });
-      navigate(`/reset-password?token=${res.reset_token}`);
+      navigate("/reset-password", { state: { token: res.reset_token }, replace: true });
     } catch (error) {
       if (error instanceof ApiError && error.status === 429) {
         toast.warning(t("auth.toastTooManyAttempts"));

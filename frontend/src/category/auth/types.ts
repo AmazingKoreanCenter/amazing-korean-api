@@ -55,7 +55,7 @@ export type SignupRes = z.infer<typeof signupResSchema>;
 
 export const loginReqSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6).max(72),
+  password: z.string().min(8).max(72),
 });
 export type LoginReq = z.infer<typeof loginReqSchema>;
 
