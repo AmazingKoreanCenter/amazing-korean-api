@@ -123,6 +123,7 @@ audience: server / database / backend / frontend / lead / AI agent
 - **데이터베이스 스키마**: [`docs/AMK_SCHEMA_PATCHED.md`](./AMK_SCHEMA_PATCHED.md) - 전체 DDL 정의
 - **코드 예시 (Best Practices)**: [`docs/AMK_CODE_PATTERNS.md`](./AMK_CODE_PATTERNS.md) - 백엔드/프론트엔드 검증된 코드 패턴
 - **배포 & 운영 가이드**: [`docs/AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md) - 빌드, 배포, CI/CD, 유지보수
+- **개발 파이프라인**: [`docs/AMK_PIPELINE.md`](./AMK_PIPELINE.md) - 멀티 AI 오케스트레이션, 작업 흐름, 역할 분리
 - 이 문서는 레포 내 `docs/AMK_API_MASTER.md` 경로에 위치하는 것을 기본으로 한다.
 
 ### 0.4 AI 에이전트 협업 규칙
@@ -130,7 +131,7 @@ audience: server / database / backend / frontend / lead / AI agent
 > Claude Code, Gemini (OpenClaw), Codex 등 코딩 에이전트 공통 규칙
 
 1. **SSOT 우선순위**: 이 문서(`AMK_API_MASTER.md`)가 최우선 참조. 코드와 문서가 다를 경우 이 문서 기준으로 코드 수정
-2. **문서 구조**: 스펙/규칙은 이 파일, 코드 예시는 [`AMK_CODE_PATTERNS.md`](./AMK_CODE_PATTERNS.md), 배포/운영은 [`AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md)
+2. **문서 구조**: 스펙/규칙은 이 파일, 코드 예시는 [`AMK_CODE_PATTERNS.md`](./AMK_CODE_PATTERNS.md), 배포/운영은 [`AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md), 작업 흐름/역할 분리는 [`AMK_PIPELINE.md`](./AMK_PIPELINE.md)
 3. **네이밍/패턴 준수**: Section 3 규칙 + `AMK_CODE_PATTERNS.md` 패턴을 따를 것
 4. **에러 처리 필수**: Silent Failure 금지, 사용자에게 명확한 피드백 제공 (toast, 에러 페이지 등)
 5. **타입 일관성**: 프론트엔드는 `types.ts` 정의 타입만 사용, 백엔드 DTO는 DB 스키마와 일치
@@ -3462,7 +3463,7 @@ export function AppRouter() {
 |------|------|:----:|------|
 | 1-1 | Google OAuth | ✅ | Google OAuth 2.0 Authorization Code Flow 구현 완료 |
 | 1-2 | Apple OAuth | 보류 | 개발 환경 및 비용 문제로 보류 |
-| 2 | 이메일 발송 (Resend) | ✅ | `EmailSender` trait 추상화 + Resend 구현 (2026-02-09), `EMAIL_PROVIDER` 환경변수로 전환, 회원가입 이메일 인증 플로우 완료. ~~AWS SES 검토 → 프로덕션 승인 3회 거절로 폐기~~ |
+| 2 | 이메일 발송 (Resend) | ✅ | `EmailSender` trait 추상화 + Resend 구현 (2026-02-09), `EMAIL_PROVIDER` 환경변수로 전환, 회원가입 이메일 인증 플로우 완료. 프로덕션 설정 완료 (2026-02-10): API Key (GitHub Secrets), 도메인 검증(DKIM/SPF), SES 코드 완전 제거. ~~AWS SES → 프로덕션 승인 3회 거절로 폐기~~ |
 | 3 | 결제 시스템 | 📋 | Stripe, Polar 연동 (수강권과 연계) |
 | 4 | RDS/ElastiCache 이전 | 📋 | EC2 → AWS RDS + ElastiCache (TLS, maxmemory 자동 적용) |
 | 5 | 다중 서버 구성 (HA) | 📋 | 단계적 확장: ①nginx+컨테이너 복제(비용0) → ②ALB+EC2 다중화+RDS → ③ECS Fargate+Auto Scaling |
