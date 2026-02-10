@@ -148,21 +148,19 @@ impl UpgradeService {
             st.cfg.frontend_url, invite_code
         );
 
-        if let Some(ref email_client) = st.email {
-            email_client
-                .send_templated(
-                    &email,
-                    EmailTemplate::AdminInvite {
-                        invite_url,
-                        role: role.clone(),
-                        invited_by: actor_email_plain.clone(),
-                        expires_in_min: (INVITE_CODE_TTL_SEC / 60) as i32,
-                    },
-                )
-                .await?;
-        } else {
-            return Err(AppError::ServiceUnavailable("Email service not configured".into()));
-        }
+        let email_sender = st.email.as_ref()
+            .ok_or_else(|| AppError::ServiceUnavailable("Email service not configured".into()))?;
+        crate::external::email::send_templated(
+            email_sender.as_ref(),
+            &email,
+            EmailTemplate::AdminInvite {
+                invite_url,
+                role: role.clone(),
+                invited_by: actor_email_plain.clone(),
+                expires_in_min: (INVITE_CODE_TTL_SEC / 60) as i32,
+            },
+        )
+        .await?;
 
         info!(
             actor_id = actor_user_id,

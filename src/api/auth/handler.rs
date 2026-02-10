@@ -9,9 +9,11 @@ use cookie::time::{Duration, OffsetDateTime};
 use axum::{extract::Query, response::Redirect};
 
 use crate::api::auth::dto::{
-    FindIdReq, FindIdRes, GoogleAuthUrlRes, GoogleCallbackQuery, LoginReq, LoginRes, LogoutAllReq,
+    FindIdReq, FindIdRes, FindPasswordReq, FindPasswordRes,
+    GoogleAuthUrlRes, GoogleCallbackQuery, LoginReq, LoginRes, LogoutAllReq,
     LogoutRes, /* RefreshReq, */ ResetPwReq, ResetPwRes,
     RequestResetReq, RequestResetRes, VerifyResetReq, VerifyResetRes,
+    VerifyEmailReq, VerifyEmailRes, ResendVerificationReq, ResendVerificationRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::api::auth::service::AuthService;
@@ -200,6 +202,28 @@ pub async fn find_id(
     Ok(Json(res))
 }
 
+/// 비밀번호 찾기 (본인 확인 후 인증코드 발송)
+#[utoipa::path(
+    post,
+    path = "/auth/find-password",
+    tag = "auth",
+    request_body = FindPasswordReq,
+    responses(
+        (status = 200, description = "Request processed", body = FindPasswordRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 429, description = "Too Many Requests", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn find_password(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<FindPasswordReq>,
+) -> Result<Json<FindPasswordRes>, AppError> {
+    let ip = extract_client_ip(&headers);
+    let res = AuthService::find_password(&st, req, ip).await?;
+    Ok(Json(res))
+}
+
 #[utoipa::path(
     post,
     path = "/auth/reset-pw",
@@ -364,6 +388,56 @@ pub async fn verify_reset(
 ) -> Result<Json<VerifyResetRes>, AppError> {
     let ip = extract_client_ip(&headers);
     let res = AuthService::verify_reset_code(&st, &req.email, &req.code, ip).await?;
+    Ok(Json(res))
+}
+
+// =========================================================================
+// Email Verification Handlers (회원가입 이메일 인증)
+// =========================================================================
+
+/// 이메일 인증코드 확인
+#[utoipa::path(
+    post,
+    path = "/auth/verify-email",
+    tag = "auth",
+    request_body = VerifyEmailReq,
+    responses(
+        (status = 200, description = "Email verified", body = VerifyEmailRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Invalid or expired code", body = crate::error::ErrorBody),
+        (status = 429, description = "Too Many Requests", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn verify_email(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<VerifyEmailReq>,
+) -> Result<Json<VerifyEmailRes>, AppError> {
+    let ip = extract_client_ip(&headers);
+    let res = AuthService::verify_email(&st, req, ip).await?;
+    Ok(Json(res))
+}
+
+/// 이메일 인증코드 재발송
+#[utoipa::path(
+    post,
+    path = "/auth/resend-verification",
+    tag = "auth",
+    request_body = ResendVerificationReq,
+    responses(
+        (status = 200, description = "Verification code resent", body = ResendVerificationRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 429, description = "Too Many Requests", body = crate::error::ErrorBody),
+        (status = 503, description = "Email service unavailable", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn resend_verification(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<ResendVerificationReq>,
+) -> Result<Json<ResendVerificationRes>, AppError> {
+    let ip = extract_client_ip(&headers);
+    let res = AuthService::resend_verification(&st, req, ip).await?;
     Ok(Json(res))
 }
 

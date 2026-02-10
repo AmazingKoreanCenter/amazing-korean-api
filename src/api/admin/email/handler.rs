@@ -52,9 +52,9 @@ pub async fn send_test_email(
     req.validate()?;
 
     // 3. 이메일 클라이언트 확인
-    let email_client = st.email.as_ref().ok_or_else(|| {
+    let email_sender = st.email.as_ref().ok_or_else(|| {
         AppError::ServiceUnavailable(
-            "이메일 서비스가 비활성화되어 있습니다. SES_FROM_ADDRESS 환경변수를 설정하세요."
+            "이메일 서비스가 비활성화되어 있습니다. EMAIL_PROVIDER 환경변수를 설정하세요."
                 .to_string(),
         )
     })?;
@@ -75,7 +75,7 @@ pub async fn send_test_email(
     };
 
     // 5. 이메일 발송
-    email_client.send_templated(&req.to, template).await?;
+    crate::external::email::send_templated(email_sender.as_ref(), &req.to, template).await?;
 
     tracing::info!(
         admin_id = auth_user.sub,

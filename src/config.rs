@@ -32,6 +32,8 @@ pub struct Config {
     pub rate_limit_login_max: i64,
     pub rate_limit_study_window_sec: i64,  // Study 답안 제출 레이트리밋 윈도우 (초)
     pub rate_limit_study_max: i64,         // Study 답안 제출 최대 횟수/윈도우
+    pub rate_limit_email_window_sec: i64,  // 이메일 발송 레이트리밋 윈도우 (초, 기본: 18000 = 5시간)
+    pub rate_limit_email_max: i64,         // 이메일 발송 최대 횟수/윈도우 (기본: 5)
     pub cors_origins: Vec<String>,
     pub vimeo_access_token: Option<String>,
     pub admin_ip_allowlist: Vec<String>,  // Admin 접근 허용 IP 목록 (비어있으면 모든 IP 허용)
@@ -41,10 +43,10 @@ pub struct Config {
     pub google_redirect_uri: Option<String>,
     pub oauth_state_ttl_sec: i64,         // OAuth state 유효시간 (초, 기본 300)
     pub frontend_url: String,             // OAuth 콜백 후 리다이렉트할 프론트엔드 URL
-    // AWS SES (Email)
-    pub aws_region: String,               // AWS 리전 (기본: ap-northeast-2)
-    pub ses_from_address: Option<String>, // 발신자 이메일 (없으면 이메일 기능 비활성)
-    pub ses_reply_to: Option<String>,     // 회신 이메일 (선택)
+    // Email Provider
+    pub email_provider: String,           // "resend" | "none" (기본: "none")
+    pub resend_api_key: Option<String>,   // Resend API 키 (email_provider=resend 시 필수)
+    pub email_from_address: Option<String>, // 발신자 이메일 (noreply@amazingkorean.net)
     // Password Reset (비밀번호 재설정)
     pub verification_code_ttl_sec: i64,   // 인증코드 유효시간 (초, 기본 600 = 10분)
     pub reset_token_ttl_sec: i64,         // reset_token 유효시간 (초, 기본 1800 = 30분)
@@ -120,6 +122,19 @@ impl Config {
             .parse::<i64>()
             .expect("RATE_LIMIT_STUDY_MAX must be a number");
 
+        // Email Rate Limit: 이메일 발송(인증코드 등) 과도한 요청 방지
+        let rate_limit_email_window_sec = env::var("RATE_LIMIT_EMAIL_WINDOW_SEC")
+            .unwrap_or_else(|_| "18000".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_EMAIL_WINDOW_SEC must be a number");
+        let rate_limit_email_max = env::var("RATE_LIMIT_EMAIL_MAX")
+            .unwrap_or_else(|_| "5".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_EMAIL_MAX must be a number");
+        if rate_limit_email_max < 1 {
+            panic!("RATE_LIMIT_EMAIL_MAX must be >= 1, got {}", rate_limit_email_max);
+        }
+
         // CORS_ORIGINS: 쉼표로 구분된 origin 목록
         // 예: "http://localhost:5173,https://amazing-korean-api.pages.dev"
         let cors_origins = env::var("CORS_ORIGINS")
@@ -153,13 +168,14 @@ impl Config {
         let frontend_url = env::var("FRONTEND_URL")
             .unwrap_or_else(|_| "http://localhost:5173".into());
 
-        // AWS SES (Email) - optional
-        let aws_region = env::var("AWS_REGION")
-            .unwrap_or_else(|_| "ap-northeast-2".into());
-        let ses_from_address = env::var("SES_FROM_ADDRESS")
+        // Email Provider: "resend" | "none"
+        let email_provider = env::var("EMAIL_PROVIDER")
+            .unwrap_or_else(|_| "none".into())
+            .to_lowercase();
+        let resend_api_key = env::var("RESEND_API_KEY")
             .ok()
             .filter(|s| !s.is_empty());
-        let ses_reply_to = env::var("SES_REPLY_TO")
+        let email_from_address = env::var("EMAIL_FROM_ADDRESS")
             .ok()
             .filter(|s| !s.is_empty());
 
@@ -175,6 +191,26 @@ impl Config {
 
         // Field Encryption (AES-256-GCM + HMAC-SHA256)
         let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".into());
+
+        // Production fail-fast: 이메일 서비스 미설정 시 서버 부팅 실패
+        if app_env == "production" {
+            match email_provider.as_str() {
+                "none" => panic!(
+                    "EMAIL_PROVIDER=none is not allowed in production. Set to 'resend'."
+                ),
+                "resend" => {
+                    if resend_api_key.is_none() {
+                        panic!("RESEND_API_KEY must be set when EMAIL_PROVIDER=resend");
+                    }
+                    if email_from_address.is_none() {
+                        panic!("EMAIL_FROM_ADDRESS must be set when EMAIL_PROVIDER=resend");
+                    }
+                }
+                other => panic!(
+                    "Unknown EMAIL_PROVIDER '{}'. Must be 'resend' or 'none'.", other
+                ),
+            }
+        }
 
         // HMAC 키 (필수, 로테이션 안 함)
         let hmac_key = {
@@ -262,6 +298,8 @@ impl Config {
             rate_limit_login_max,
             rate_limit_study_window_sec,
             rate_limit_study_max,
+            rate_limit_email_window_sec,
+            rate_limit_email_max,
             cors_origins,
             vimeo_access_token,
             admin_ip_allowlist,
@@ -270,9 +308,9 @@ impl Config {
             google_redirect_uri,
             oauth_state_ttl_sec,
             frontend_url,
-            aws_region,
-            ses_from_address,
-            ses_reply_to,
+            email_provider,
+            resend_api_key,
+            email_from_address,
             verification_code_ttl_sec,
             reset_token_ttl_sec,
             app_env,
@@ -405,6 +443,8 @@ impl fmt::Debug for Config {
             .field("rate_limit_login_max", &self.rate_limit_login_max)
             .field("rate_limit_study_window_sec", &self.rate_limit_study_window_sec)
             .field("rate_limit_study_max", &self.rate_limit_study_max)
+            .field("rate_limit_email_window_sec", &self.rate_limit_email_window_sec)
+            .field("rate_limit_email_max", &self.rate_limit_email_max)
             .field("cors_origins", &self.cors_origins)
             .field("vimeo_access_token", &self.vimeo_access_token.as_ref().map(|_| "***"))
             .field("admin_ip_allowlist", &self.admin_ip_allowlist)
@@ -413,9 +453,9 @@ impl fmt::Debug for Config {
             .field("google_redirect_uri", &self.google_redirect_uri)
             .field("oauth_state_ttl_sec", &self.oauth_state_ttl_sec)
             .field("frontend_url", &self.frontend_url)
-            .field("aws_region", &self.aws_region)
-            .field("ses_from_address", &self.ses_from_address)
-            .field("ses_reply_to", &self.ses_reply_to)
+            .field("email_provider", &self.email_provider)
+            .field("resend_api_key", &self.resend_api_key.as_ref().map(|_| "***"))
+            .field("email_from_address", &self.email_from_address)
             .field("verification_code_ttl_sec", &self.verification_code_ttl_sec)
             .field("reset_token_ttl_sec", &self.reset_token_ttl_sec)
             .field("app_env", &self.app_env)

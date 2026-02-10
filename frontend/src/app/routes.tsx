@@ -7,9 +7,10 @@ import { AboutPage } from "@/category/about/page/about_page";
 import { HealthPage } from "@/category/health/page/health_page";
 import { SignupPage } from "@/category/auth/page/signup_page";
 import { LoginPage } from "@/category/auth/page/login_page";
-import { FindIdPage } from "@/category/auth/page/find_id_page";
+import { AccountRecoveryPage } from "@/category/auth/page/account_recovery_page";
 import { ResetPasswordPage } from "@/category/auth/page/reset_password_page";
 import { RequestResetPasswordPage } from "@/category/auth/page/request_reset_password_page";
+import { VerifyEmailPage } from "@/category/auth/page/verify_email_page";
 import { MyPage } from "@/category/user/page/my_page";
 import { SettingsPage } from "@/category/user/page/settings_page";
 import { VideoListPage } from "@/category/video/page/video_list_page";
@@ -60,11 +61,13 @@ export function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/intro" element={<Navigate to="/about" replace />} />
-        <Route path="/find-id" element={<FindIdPage />} />
+        <Route path="/find-id" element={<AccountRecoveryPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/health" element={<HealthPage />} />
+        <Route path="/request-reset-password" element={<RequestResetPasswordPage />} />
         <Route path="/videos" element={<VideoListPage />} />
         <Route path="/videos/:videoId" element={<VideoDetailPage />} />
         <Route path="/studies" element={<StudyListPage />} />
@@ -80,7 +83,6 @@ export function AppRoutes() {
         <Route element={<PrivateRoute />}>
           <Route path="/user/me" element={<MyPage />} />
           <Route path="/user/settings" element={<SettingsPage />} />
-          <Route path="/request-reset-password" element={<RequestResetPasswordPage />} />
         </Route>
       </Route>
 

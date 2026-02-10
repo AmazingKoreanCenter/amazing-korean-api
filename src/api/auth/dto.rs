@@ -35,13 +35,13 @@ pub struct RefreshReq {
 #[serde(rename_all = "snake_case")]
 #[schema(example = json!({
     "name": "홍길동",
-    "email": "test@example.com"
+    "birthday": "1990-01-15"
 }))]
 pub struct FindIdReq {
     #[validate(length(min = 1, max = 100))]
     pub name: String,
-    #[validate(email)]
-    pub email: String,
+    #[validate(length(equal = 10, message = "Birthday must be YYYY-MM-DD format"))]
+    pub birthday: String,
 }
 
 #[derive(Serialize, Deserialize, Validate, ToSchema)]
@@ -126,10 +126,12 @@ pub struct RefreshRes {
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 #[schema(example = json!({
-    "message": "If the account exists, the ID has been sent to your email."
+    "message": "1 account(s) found.",
+    "masked_emails": ["ho***@gmail.com"]
 }))]
 pub struct FindIdRes {
     pub message: String,
+    pub masked_emails: Vec<String>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -179,6 +181,39 @@ pub struct GoogleCallbackQuery {
 }
 
 // =====================================================================
+// Find Password DTOs (비밀번호 찾기 - 본인 확인 + 코드 발송)
+// =====================================================================
+
+/// 비밀번호 찾기 요청 (이름 + 생년월일 + 이메일로 본인 확인 후 인증코드 발송)
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "name": "홍길동",
+    "birthday": "1990-01-15",
+    "email": "user@example.com"
+}))]
+pub struct FindPasswordReq {
+    #[validate(length(min = 1, max = 100))]
+    pub name: String,
+    #[validate(length(equal = 10, message = "Birthday must be YYYY-MM-DD format"))]
+    pub birthday: String,
+    #[validate(email)]
+    pub email: String,
+}
+
+/// 비밀번호 찾기 응답
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "message": "If the information matches, a verification code has been sent.",
+    "remaining_attempts": 4
+}))]
+pub struct FindPasswordRes {
+    pub message: String,
+    pub remaining_attempts: i64,
+}
+
+// =====================================================================
 // Password Reset DTOs (비밀번호 재설정 - 이메일 인증 기반)
 // =====================================================================
 
@@ -197,10 +232,12 @@ pub struct RequestResetReq {
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 #[schema(example = json!({
-    "message": "If the email exists, a verification code has been sent."
+    "message": "If the email exists, a verification code has been sent.",
+    "remaining_attempts": 4
 }))]
 pub struct RequestResetRes {
     pub message: String,
+    pub remaining_attempts: i64,
 }
 
 /// 인증코드 검증 요청
@@ -227,4 +264,57 @@ pub struct VerifyResetReq {
 pub struct VerifyResetRes {
     pub reset_token: String,
     pub expires_in: i64,  // 초 단위
+}
+
+// =====================================================================
+// Email Verification DTOs (회원가입 이메일 인증)
+// =====================================================================
+
+/// 이메일 인증코드 확인 요청
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "email": "user@example.com",
+    "code": "654321"
+}))]
+pub struct VerifyEmailReq {
+    #[validate(email)]
+    pub email: String,
+    #[validate(length(equal = 6, message = "Code must be 6 digits"))]
+    pub code: String,
+}
+
+/// 이메일 인증코드 확인 응답
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "message": "Email verified successfully.",
+    "verified": true
+}))]
+pub struct VerifyEmailRes {
+    pub message: String,
+    pub verified: bool,
+}
+
+/// 이메일 인증코드 재발송 요청
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "email": "user@example.com"
+}))]
+pub struct ResendVerificationReq {
+    #[validate(email)]
+    pub email: String,
+}
+
+/// 이메일 인증코드 재발송 응답
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "message": "If the email needs verification, a new code has been sent.",
+    "remaining_attempts": 4
+}))]
+pub struct ResendVerificationRes {
+    pub message: String,
+    pub remaining_attempts: i64,
 }

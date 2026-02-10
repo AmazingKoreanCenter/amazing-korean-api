@@ -47,11 +47,9 @@ woothee = "0.13"
 # Field-level encryption (AES-256-GCM) + Blind Index (HMAC-SHA256)
 aes-gcm = "0.10"
 hmac = "0.12"
-# AWS SES for email sending
-aws-config = { version = "1", features = ["behavior-version-latest"] }
-aws-sdk-sesv2 = "1"
 # CLI tools (rekey binary)
 clap = { version = "4", features = ["derive"] }
+hex = "0.4.3"
 
 [[bin]]
 name = "rekey_encryption"

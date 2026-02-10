@@ -15,6 +15,8 @@ pub struct UserFindIdInfo {
     pub user_id: i64,
     pub user_email: String,
     pub user_name: String,
+    pub user_birthday: Option<String>,
+    pub user_password: Option<String>,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -25,6 +27,7 @@ pub struct UserLoginInfo {
     pub user_password: Option<String>,  // NULL for social-only accounts
     pub user_state: bool,
     pub user_auth: UserAuth,
+    pub user_check_email: bool,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -761,7 +764,8 @@ impl AuthRepo {
                 user_email,
                 user_password,
                 user_state,
-                user_auth
+                user_auth,
+                user_check_email
             FROM users
             WHERE user_email_idx = $1
         "#)
@@ -771,27 +775,44 @@ impl AuthRepo {
         Ok(row)
     }
 
-    /// Blind index로 이름+이메일 조회 (아이디 찾기용)
-    pub async fn find_user_by_name_idx_and_email_idx(
+    /// user_check_email 상태 업데이트
+    pub async fn update_user_check_email(
+        pool: &PgPool,
+        user_id: i64,
+        check_email: bool,
+    ) -> AppResult<()> {
+        sqlx::query(r#"
+            UPDATE users
+            SET user_check_email = $2
+            WHERE user_id = $1
+        "#)
+        .bind(user_id)
+        .bind(check_email)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    /// Blind index로 이름 조회 (아이디 찾기용 — 복수 결과)
+    pub async fn find_users_by_name_idx(
         pool: &PgPool,
         name_idx: &str,
-        email_idx: &str,
-    ) -> AppResult<Option<UserFindIdInfo>> {
-        let row = sqlx::query_as::<_, UserFindIdInfo>(r#"
+    ) -> AppResult<Vec<UserFindIdInfo>> {
+        let rows = sqlx::query_as::<_, UserFindIdInfo>(r#"
             SELECT
                 user_id,
                 user_email,
-                user_name
+                user_name,
+                user_birthday,
+                user_password
             FROM users
             WHERE user_name_idx = $1
-              AND user_email_idx = $2
               AND user_state = true
         "#)
         .bind(name_idx)
-        .bind(email_idx)
-        .fetch_optional(pool)
+        .fetch_all(pool)
         .await?;
-        Ok(row)
+        Ok(rows)
     }
 
     /// Blind index로 OAuth subject 조회

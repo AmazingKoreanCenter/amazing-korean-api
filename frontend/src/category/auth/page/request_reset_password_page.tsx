@@ -8,7 +8,9 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 
+import { ApiError } from "@/api/client";
 import { useUserMe } from "@/category/user/hook/use_user_me";
+import { requestPasswordReset, verifyResetCode } from "../auth_api";
 
 import {
   Card,
@@ -49,10 +51,11 @@ export function RequestResetPasswordPage() {
   const [submittedEmail, setSubmittedEmail] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
 
-  // OAuth 전용 계정은 비밀번호 재설정 불가 -> 마이페이지로 리다이렉트
+  // OAuth 전용 계정은 비밀번호 재설정 불가 -> 마이페이지로 리다이렉트 (로그인 상태일 때만)
   useEffect(() => {
-    if (!isLoading && userData?.has_password === false) {
+    if (!isLoading && userData && userData.has_password === false) {
       toast.error(t("auth.toastSocialAccountNoPassword"));
       navigate("/user/me", { replace: true });
     }
@@ -74,11 +77,6 @@ export function RequestResetPasswordPage() {
     }
   }, [userData, emailForm]);
 
-  // 로딩 중이거나 OAuth 전용 계정이면 렌더링 안 함
-  if (isLoading || userData?.has_password === false) {
-    return null;
-  }
-
   // Step 2: 인증번호 입력 폼
   const verificationForm = useForm<VerificationForm>({
     resolver: zodResolver(verificationFormSchema),
@@ -88,21 +86,27 @@ export function RequestResetPasswordPage() {
     },
   });
 
+  // OAuth 전용 계정이면 렌더링 안 함 (로그인 상태일 때만 체크)
+  if (isLoading || (userData && userData.has_password === false)) {
+    return null;
+  }
+
   // 인증번호 전송
   const handleSendCode = async (values: EmailForm) => {
     setIsSending(true);
     try {
-      // TODO: 백엔드 API 연동 (POST /auth/request-reset-password)
-      // await requestResetPassword({ email: values.email });
-
-      // 임시: API 연동 전까지 알림만 표시
-      toast.info(t("auth.toastEmailSendPreparing"));
-
+      const res = await requestPasswordReset({ email: values.email });
+      setRemainingAttempts(res.remaining_attempts);
       setSubmittedEmail(values.email);
       setStep("verification");
       toast.success(t("auth.toastCodeSent", { email: values.email }));
-    } catch {
-      toast.error(t("auth.toastCodeSendFailed"));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 429) {
+        setRemainingAttempts(0);
+        toast.warning(t("auth.toastTooManyAttempts"));
+      } else {
+        toast.error(t("auth.toastCodeSendFailed"));
+      }
     } finally {
       setIsSending(false);
     }
@@ -112,15 +116,14 @@ export function RequestResetPasswordPage() {
   const handleVerifyCode = async (values: VerificationForm) => {
     setIsVerifying(true);
     try {
-      // TODO: 백엔드 API 연동 (POST /auth/verify-reset-code)
-      // const { token } = await verifyResetCode({ email: submittedEmail, code: values.code });
-      // navigate(`/reset-password?token=${token}`);
-
-      // 임시: API 연동 전까지 알림만 표시
-      toast.info(t("auth.toastCodeVerifyPreparing"));
-      console.log("Verification attempt:", { email: submittedEmail, code: values.code });
-    } catch {
-      toast.error(t("auth.toastCodeInvalid"));
+      const res = await verifyResetCode({ email: submittedEmail, code: values.code });
+      navigate(`/reset-password?token=${res.reset_token}`);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 429) {
+        toast.warning(t("auth.toastTooManyAttempts"));
+      } else {
+        toast.error(t("auth.toastCodeInvalid"));
+      }
     } finally {
       setIsVerifying(false);
     }
@@ -130,11 +133,16 @@ export function RequestResetPasswordPage() {
   const handleResendCode = async () => {
     setIsSending(true);
     try {
-      // TODO: 백엔드 API 연동
-      toast.info(t("auth.toastEmailSendPreparing"));
+      const res = await requestPasswordReset({ email: submittedEmail });
+      setRemainingAttempts(res.remaining_attempts);
       toast.success(t("auth.toastCodeResent"));
-    } catch {
-      toast.error(t("auth.toastResendFailed"));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 429) {
+        setRemainingAttempts(0);
+        toast.warning(t("auth.toastTooManyAttempts"));
+      } else {
+        toast.error(t("auth.toastResendFailed"));
+      }
     } finally {
       setIsSending(false);
     }
@@ -154,7 +162,7 @@ export function RequestResetPasswordPage() {
         <CardContent>
           {step === "email" ? (
             /* Step 1: 이메일 입력 */
-            <Form {...emailForm}>
+            <Form key="email" {...emailForm}>
               <form
                 onSubmit={emailForm.handleSubmit(handleSendCode)}
                 className="space-y-4"
@@ -199,18 +207,18 @@ export function RequestResetPasswordPage() {
 
                 <div className="flex items-center justify-center text-sm">
                   <Link
-                    to="/user/me"
+                    to="/login"
                     className="text-muted-foreground underline-offset-4 hover:underline flex items-center gap-1"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    {t("auth.backToMyPage")}
+                    {t("auth.backToLogin")}
                   </Link>
                 </div>
               </form>
             </Form>
           ) : (
             /* Step 2: 인증번호 입력 */
-            <Form {...verificationForm}>
+            <Form key="verification" {...verificationForm}>
               <form
                 onSubmit={verificationForm.handleSubmit(handleVerifyCode)}
                 className="space-y-4"
@@ -266,12 +274,19 @@ export function RequestResetPasswordPage() {
                   <button
                     type="button"
                     onClick={handleResendCode}
-                    disabled={isSending}
+                    disabled={isSending || remainingAttempts === 0}
                     className="text-primary underline-offset-4 hover:underline disabled:opacity-50"
                   >
                     {isSending ? t("auth.sending") : t("auth.resendCode")}
                   </button>
                 </div>
+                {remainingAttempts !== null && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    {remainingAttempts > 0
+                      ? t("auth.remainingAttempts", { count: remainingAttempts })
+                      : t("auth.noAttemptsRemaining")}
+                  </p>
+                )}
               </form>
             </Form>
           )}
