@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { Users, Video, BookOpen, GraduationCap, LayoutDashboard, Mail } from "lucide-react";
+import { Users, Video, BookOpen, GraduationCap, LayoutDashboard, Mail, Languages } from "lucide-react";
 
 const navItems = [
   { path: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -7,6 +7,7 @@ const navItems = [
   { path: "/admin/videos", label: "Videos", icon: Video },
   { path: "/admin/studies", label: "Studies", icon: BookOpen },
   { path: "/admin/lessons", label: "Lessons", icon: GraduationCap },
+  { path: "/admin/translations", label: "Translations", icon: Languages },
   { path: "/admin/email", label: "Email", icon: Mail },
 ];
 

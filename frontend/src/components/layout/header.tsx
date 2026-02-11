@@ -1,13 +1,20 @@
+import { Fragment, useState, useEffect, useCallback } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Menu, X, User, Globe } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { Menu, X, User, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/hooks/use_auth_store";
 import { LogoutButton } from "@/category/auth/components/logout_button";
 import { useUpdateSettings } from "@/category/user/hook/use_update_settings";
-import { changeLanguage } from "@/i18n";
+import { changeLanguage, SUPPORTED_LANGUAGES, TIER_BREAK_INDICES } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -28,13 +35,15 @@ export function Header() {
     setMobileMenuOpen(false);
   }, []);
 
-  const handleLanguageToggle = useCallback(() => {
-    const newLang = i18n.language === "ko" ? "en" : "ko";
-    changeLanguage(newLang);
-    if (isLoggedIn) {
-      updateSettings.mutate({ user_set_language: newLang });
-    }
-  }, [i18n.language, isLoggedIn, updateSettings]);
+  const handleLanguageChange = useCallback(
+    (code: string) => {
+      void changeLanguage(code);
+      if (isLoggedIn) {
+        updateSettings.mutate({ user_set_language: code });
+      }
+    },
+    [isLoggedIn, updateSettings],
+  );
 
   // Handle scroll effect
   useEffect(() => {
@@ -88,14 +97,31 @@ export function Header() {
         {/* Desktop Auth Buttons */}
         <div className="hidden lg:flex items-center gap-3">
           {/* Language Switcher */}
-          <button
-            type="button"
-            onClick={handleLanguageToggle}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-primary rounded-lg hover:bg-muted/50 transition-colors"
-          >
-            <Globe className="h-4 w-4" />
-            {i18n.language === "ko" ? "EN" : "KO"}
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-primary rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <span className="emoji-flag">{SUPPORTED_LANGUAGES.find((l) => l.code === i18n.language)?.flag ?? "🇰🇷"}</span>
+                <span>{SUPPORTED_LANGUAGES.find((l) => l.code === i18n.language)?.nativeName ?? "한국어"}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto w-48">
+              {SUPPORTED_LANGUAGES.map((lang, idx) => (
+                <Fragment key={lang.code}>
+                  {(TIER_BREAK_INDICES as readonly number[]).includes(idx) && (
+                    <DropdownMenuSeparator />
+                  )}
+                  <DropdownMenuItem onClick={() => handleLanguageChange(lang.code)}>
+                    <span className="emoji-flag mr-2">{lang.flag}</span>
+                    {lang.nativeName}
+                    {lang.code === i18n.language && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                </Fragment>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {isLoggedIn ? (
             <>
@@ -175,14 +201,31 @@ export function Header() {
           ))}
 
           {/* Mobile Language Switcher */}
-          <button
-            type="button"
-            onClick={handleLanguageToggle}
-            className="flex items-center gap-2 px-4 py-3 text-[15px] font-medium text-muted-foreground hover:text-primary hover:bg-muted/50 rounded-lg transition-colors"
-          >
-            <Globe className="h-4 w-4" />
-            {i18n.language === "ko" ? "English" : "한국어"}
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-2 px-4 py-3 text-[15px] font-medium text-muted-foreground hover:text-primary hover:bg-muted/50 rounded-lg transition-colors"
+              >
+                <span className="emoji-flag">{SUPPORTED_LANGUAGES.find((l) => l.code === i18n.language)?.flag ?? "🇰🇷"}</span>
+                <span>{SUPPORTED_LANGUAGES.find((l) => l.code === i18n.language)?.nativeName ?? "한국어"}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="max-h-60 overflow-y-auto w-48">
+              {SUPPORTED_LANGUAGES.map((lang, idx) => (
+                <Fragment key={lang.code}>
+                  {(TIER_BREAK_INDICES as readonly number[]).includes(idx) && (
+                    <DropdownMenuSeparator />
+                  )}
+                  <DropdownMenuItem onClick={() => handleLanguageChange(lang.code)}>
+                    <span className="emoji-flag mr-2">{lang.flag}</span>
+                    {lang.nativeName}
+                    {lang.code === i18n.language && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                </Fragment>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div className="border-t my-3" />
 

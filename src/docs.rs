@@ -126,6 +126,16 @@ impl Modify for SecurityAddon {
         // admin - video stats
         crate::api::admin::video::stats::handler::admin_get_video_daily_stats,
 
+        // admin - translations (번역 관리)
+        crate::api::admin::translation::handler::admin_list_translations,
+        crate::api::admin::translation::handler::admin_create_translation,
+        crate::api::admin::translation::handler::admin_bulk_create_translations,
+        crate::api::admin::translation::handler::admin_get_translation,
+        crate::api::admin::translation::handler::admin_update_translation,
+        crate::api::admin::translation::handler::admin_update_translation_status,
+        crate::api::admin::translation::handler::admin_delete_translation,
+        crate::api::admin::translation::handler::admin_auto_translate,
+
         // admin - upgrade (관리자 초대)
         crate::api::admin::upgrade::handler::create_invite,
         crate::api::admin::upgrade::handler::verify_invite,
@@ -137,6 +147,9 @@ impl Modify for SecurityAddon {
             crate::types::UserGender,
             crate::types::UserAuth,
             crate::types::UserSetLanguage,
+            crate::types::ContentType,
+            crate::types::TranslationStatus,
+            crate::types::SupportedLanguage,
             crate::error::ErrorBody,
             crate::types::LoginDevice,
 
@@ -165,6 +178,10 @@ impl Modify for SecurityAddon {
             crate::api::user::dto::SettingsRes,
             crate::api::user::dto::SettingsUpdateReq,
             /*crate::api::user::dto::StudyLangItem, // 향후 추가할 내용*/
+
+            // course dto
+            crate::api::course::dto::CourseListItem,
+            crate::api::course::dto::CreateCourseReq,
 
             // videos dto
             crate::api::video::dto::VideoListReq,
@@ -326,6 +343,21 @@ impl Modify for SecurityAddon {
             crate::api::admin::study::dto::StudyTaskBulkUpdateResult,
 
 
+            // admin - translations dto
+            crate::api::admin::translation::dto::TranslationListReq,
+            crate::api::admin::translation::dto::TranslationCreateReq,
+            crate::api::admin::translation::dto::TranslationBulkCreateReq,
+            crate::api::admin::translation::dto::TranslationUpdateReq,
+            crate::api::admin::translation::dto::TranslationStatusReq,
+            crate::api::admin::translation::dto::TranslationRes,
+            crate::api::admin::translation::dto::TranslationListRes,
+            crate::api::admin::translation::dto::TranslationListMeta,
+            crate::api::admin::translation::dto::TranslationBulkItemResult,
+            crate::api::admin::translation::dto::TranslationBulkCreateRes,
+            crate::api::admin::translation::dto::AutoTranslateReq,
+            crate::api::admin::translation::dto::AutoTranslateRes,
+            crate::api::admin::translation::dto::AutoTranslateItemResult,
+
             // admin - video stats dto
             crate::api::admin::video::stats::dto::DailyStatsQuery,
             crate::api::admin::video::stats::dto::DailyStatItem,
@@ -348,7 +380,8 @@ impl Modify for SecurityAddon {
         (name = "videos", description = "Video APIs"),
         (name = "study", description = "Study APIs"),
         (name = "lesson", description = "Lesson APIs"),
-        (name = "admin", description = "Admin user & content management")
+        (name = "admin", description = "Admin user & content management"),
+        (name = "admin_translation", description = "Admin translation management")
     )
 )]
 pub struct ApiDoc;

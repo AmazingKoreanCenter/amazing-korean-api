@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { ApiError } from "@/api/client";
+import { getContentLang } from "@/utils/content_lang";
 
 import { getLessonDetail } from "../lesson_api";
 
@@ -19,9 +20,11 @@ const getErrorMessage = (error: unknown) => {
 };
 
 export const useLessonDetail = (lessonId: number | undefined) => {
+  const lang = getContentLang();
+
   const query = useQuery({
-    queryKey: ["lesson", lessonId],
-    queryFn: () => getLessonDetail(lessonId!),
+    queryKey: ["lesson", lessonId, lang],
+    queryFn: () => getLessonDetail(lessonId!, lang),
     enabled: typeof lessonId === "number" && Number.isFinite(lessonId),
   });
 

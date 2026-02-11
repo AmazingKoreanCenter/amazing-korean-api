@@ -94,9 +94,9 @@ pub struct ProfileUpdateReq {
     "user_set_note_push": false
 }))]
 pub struct SettingsUpdateReq {
-    /// 앱 표시 언어 (ko, en)
+    /// 앱 표시 언어 (21개 언어: ko, en, ja, zh-CN, zh-TW, vi 등)
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[validate(length(min = 2, max = 2))]
+    #[validate(length(min = 2, max = 5))]
     pub user_set_language: Option<String>,
 
     /// 타임존 (예: "Asia/Seoul")

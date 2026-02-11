@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
-use crate::types::{StudyProgram, StudyState, StudyTaskKind};
+use crate::types::{StudyProgram, StudyState, StudyTaskKind, SupportedLanguage};
 
 // =========================================================================
 // Request DTOs (요청)
@@ -17,6 +17,8 @@ pub struct StudyListReq {
     pub per_page: Option<u32>,
     pub program: Option<String>,
     pub sort: Option<String>,
+    /// 번역 언어 (없으면 한국어 원본)
+    pub lang: Option<SupportedLanguage>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,6 +93,8 @@ pub struct StudyListResp {
 pub struct StudyDetailReq {
     pub page: Option<u32>,
     pub per_page: Option<u32>,
+    /// 번역 언어 (없으면 한국어 원본)
+    pub lang: Option<SupportedLanguage>,
 }
 
 /// Study 내 Task 요약 정보

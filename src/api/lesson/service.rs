@@ -1,9 +1,10 @@
 use sqlx::PgPool;
 use tracing::warn;
 
+use crate::api::admin::translation::repo::TranslationRepo;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
-use crate::types::{LessonAccess, LessonState};
+use crate::types::{ContentType, LessonAccess, LessonState};
 
 use super::dto::{
     LessonDetailReq, LessonDetailRes, LessonItemsReq, LessonItemsRes, LessonListMeta, LessonListReq,
@@ -39,7 +40,28 @@ impl LessonService {
         };
 
         let offset = (page - 1) * per_page;
-        let items = LessonRepo::find_all(pool, per_page, offset).await?;
+        let mut items = LessonRepo::find_all(pool, per_page, offset).await?;
+
+        // 번역 주입: lang 파라미터가 있고 ko가 아니면 번역 적용
+        if let Some(lang) = req.lang {
+            let ids: Vec<i64> = items.iter().map(|l| l.id).collect();
+            let translations = TranslationRepo::find_translations_for_contents(
+                pool,
+                ContentType::Lesson,
+                &ids,
+                lang,
+            )
+            .await?;
+
+            for item in items.iter_mut() {
+                if let Some(t) = translations.get(&(item.id, "title".to_string())) {
+                    item.title = t.text.clone();
+                }
+                if let Some(t) = translations.get(&(item.id, "description".to_string())) {
+                    item.description = Some(t.text.clone());
+                }
+            }
+        }
 
         Ok(LessonListRes {
             items,
@@ -82,10 +104,31 @@ impl LessonService {
         let offset = (page - 1) * per_page;
         let items = LessonRepo::find_items(pool, lesson_id, per_page, offset).await?;
 
+        // 번역 주입
+        let mut title = lesson.title;
+        let mut description = lesson.description;
+
+        if let Some(lang) = req.lang {
+            let translations = TranslationRepo::find_translations_for_contents(
+                pool,
+                ContentType::Lesson,
+                &[lesson.lesson_id],
+                lang,
+            )
+            .await?;
+
+            if let Some(t) = translations.get(&(lesson.lesson_id, "title".to_string())) {
+                title = t.text.clone();
+            }
+            if let Some(t) = translations.get(&(lesson.lesson_id, "description".to_string())) {
+                description = Some(t.text.clone());
+            }
+        }
+
         Ok(LessonDetailRes {
             lesson_id: lesson.lesson_id,
-            title: lesson.title,
-            description: lesson.description,
+            title,
+            description,
             lesson_state: lesson.lesson_state,
             lesson_access: lesson.lesson_access,
             items,

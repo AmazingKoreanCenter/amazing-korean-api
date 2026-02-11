@@ -38,10 +38,16 @@ pub async fn health(State(state): State<AppState>) -> AppResult<Json<HealthRes>>
     let uptime_ms = state.started_at.elapsed().as_millis();
     let uptime_ms = u64::try_from(uptime_ms).unwrap_or(u64::MAX);
 
+    let version = if state.cfg.app_env == "production" {
+        None
+    } else {
+        Some(format!("v{}", env!("CARGO_PKG_VERSION")))
+    };
+
     Ok(Json(HealthRes {
         status: "live".to_string(),
         uptime_ms,
-        version: format!("v{}", env!("CARGO_PKG_VERSION")),
+        version,
     }))
 }
 

@@ -1,5 +1,6 @@
 use validator::Validate;
 
+use crate::api::admin::translation::repo::TranslationRepo;
 use crate::api::video::dto::{
     VideoDetailRes, VideoListMeta, VideoListReq, VideoListRes, VideoProgressRes,
     VideoProgressUpdateReq,
@@ -7,6 +8,7 @@ use crate::api::video::dto::{
 use crate::api::video::repo::VideoRepo;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
+use crate::types::ContentType;
 
 pub struct VideoService;
 
@@ -19,7 +21,28 @@ impl VideoService {
         }
 
         // 2. Repo Call (Data + Total Count)
-        let (data, total_count) = VideoRepo::list_videos(&st.db, &req).await?;
+        let (mut data, total_count) = VideoRepo::list_videos(&st.db, &req).await?;
+
+        // 2-1. 번역 주입
+        if let Some(lang) = req.lang {
+            let ids: Vec<i64> = data.iter().map(|v| v.video_id).collect();
+            let translations = TranslationRepo::find_translations_for_contents(
+                &st.db,
+                ContentType::Video,
+                &ids,
+                lang,
+            )
+            .await?;
+
+            for item in data.iter_mut() {
+                if let Some(t) = translations.get(&(item.video_id, "title".to_string())) {
+                    item.title = Some(t.text.clone());
+                }
+                if let Some(t) = translations.get(&(item.video_id, "subtitle".to_string())) {
+                    item.subtitle = Some(t.text.clone());
+                }
+            }
+        }
 
         // 3. Calc Meta
         let total_pages = if total_count == 0 {

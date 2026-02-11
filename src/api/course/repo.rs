@@ -9,7 +9,7 @@ struct InsertedId {
 
 pub async fn list(pool: &PgPool) -> AppResult<Vec<CourseListItem>> {
     let rows = sqlx::query_as::<_, CourseListItem>(
-        r#"SELECT course_id, course_title, course_price, course_type, course_state
+        r#"SELECT course_id, course_title, course_subtitle, course_price, course_type, course_state
            FROM course
            WHERE course_state <> 'deleted'
            ORDER BY course_id DESC"#,
@@ -17,6 +17,18 @@ pub async fn list(pool: &PgPool) -> AppResult<Vec<CourseListItem>> {
     .fetch_all(pool)
     .await?;
     Ok(rows)
+}
+
+pub async fn find_by_id(pool: &PgPool, id: i64) -> AppResult<Option<CourseListItem>> {
+    let row = sqlx::query_as::<_, CourseListItem>(
+        r#"SELECT course_id, course_title, course_subtitle, course_price, course_type, course_state
+           FROM course
+           WHERE course_id = $1"#,
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row)
 }
 
 pub async fn create(

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { ApiError } from "@/api/client";
+import { getContentLang } from "@/utils/content_lang";
 import type { VideoListReq } from "@/category/video/types";
 
 import { getVideoList } from "../video_api";
@@ -20,9 +21,11 @@ const getErrorMessage = (error: unknown) => {
 };
 
 export const useVideoList = (params: VideoListReq) => {
+  const lang = getContentLang();
+
   const query = useQuery({
-    queryKey: ["videos", params],
-    queryFn: () => getVideoList(params),
+    queryKey: ["videos", params, lang],
+    queryFn: () => getVideoList(params, lang),
     staleTime: 1000 * 60 * 5,
   });
 

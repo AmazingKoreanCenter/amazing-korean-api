@@ -59,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
                 .expect("RESEND_API_KEY required for resend provider");
             let from = cfg.email_from_address.clone()
                 .expect("EMAIL_FROM_ADDRESS required for resend provider");
-            tracing::info!("Email client enabled: Resend (from: {})", from);
+            tracing::info!("📩 Email client enabled: Resend (from: {})", from);
             Some(Arc::new(external::email::ResendEmailSender::new(api_key, from)))
         }
         "none" => {
@@ -75,6 +75,35 @@ async fn main() -> anyhow::Result<()> {
     let ipgeo = Arc::new(external::ipgeo::IpGeoClient::new());
     tracing::info!("🌍 IP Geolocation client enabled (ip-api.com)");
 
+    // 6.5) TranslationProvider 생성 (TRANSLATE_PROVIDER 설정에 따라 분기)
+    let translator: Option<Arc<dyn external::translator::TranslationProvider>> =
+        match cfg.translate_provider.as_str() {
+            "google" => {
+                let api_key = cfg
+                    .google_translate_api_key
+                    .clone()
+                    .expect("GOOGLE_TRANSLATE_API_KEY required for google provider");
+                let project_id = cfg
+                    .google_translate_project_id
+                    .clone()
+                    .expect("GOOGLE_TRANSLATE_PROJECT_ID required for google provider");
+                tracing::info!("🔠 Translation provider enabled: Google Cloud Translation v2");
+                Some(Arc::new(
+                    external::translator::GoogleCloudTranslator::new(api_key, project_id),
+                ))
+            }
+            "none" => {
+                tracing::info!("Translation provider disabled (TRANSLATE_PROVIDER=none)");
+                None
+            }
+            other => {
+                panic!(
+                    "Unknown TRANSLATE_PROVIDER '{}'. Must be 'google' or 'none'.",
+                    other
+                );
+            }
+        };
+
     // 7) AppState 생성
     let app_state = AppState {
         db: pool,
@@ -83,6 +112,7 @@ async fn main() -> anyhow::Result<()> {
         started_at: Instant::now(),
         email,
         ipgeo,
+        translator,
     };
 
     // 8) [CORS] 설정 정의
@@ -109,8 +139,10 @@ async fn main() -> anyhow::Result<()> {
         .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT])
         .allow_credentials(true); // 쿠키(Refresh Token) 교환을 위해 필수
 
-    // 8) 라우터에 CORS 레이어 적용
-    let app = api::app_router(app_state).layer(cors);
+    // 8) 라우터에 CORS + 보안 헤더 레이어 적용
+    let app = api::app_router(app_state)
+        .layer(cors)
+        .layer(axum::middleware::from_fn(security_headers));
 
     // 9) 서버 시작
     let listener = TcpListener::bind(&cfg.bind_addr).await?;
@@ -126,4 +158,21 @@ async fn main() -> anyhow::Result<()> {
 
     axum::serve(listener, app).await?;
     Ok(())
+}
+
+/// PROD-4: 보안 헤더 미들웨어 — 모든 응답에 보안 헤더 추가
+async fn security_headers(
+    request: axum::http::Request<axum::body::Body>,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let mut response = next.run(request).await;
+    let headers = response.headers_mut();
+    headers.insert("x-content-type-options", "nosniff".parse().unwrap());
+    headers.insert("x-frame-options", "DENY".parse().unwrap());
+    headers.insert("x-xss-protection", "0".parse().unwrap());
+    headers.insert(
+        "permissions-policy",
+        "camera=(), microphone=(), geolocation=()".parse().unwrap(),
+    );
+    response
 }

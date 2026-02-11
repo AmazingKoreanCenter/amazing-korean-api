@@ -23,7 +23,7 @@ export function useLanguageSync() {
     }
 
     if (settings?.user_set_language && !appliedRef.current) {
-      changeLanguage(settings.user_set_language);
+      void changeLanguage(settings.user_set_language);
       appliedRef.current = true;
     }
   }, [isLoggedIn, settings]);

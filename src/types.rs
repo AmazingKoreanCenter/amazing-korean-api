@@ -20,13 +20,37 @@ pub enum UserAuth {
     Learner,
 }
 
-/// 사용자 언어 설정 (프로필용)
+/// 사용자 언어 설정 (프로필용) — 21개 언어 (아랍어 제외)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
 #[sqlx(type_name = "user_language_enum", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum UserLanguage {
     Ko,
     En,
+    Ja,
+    #[sqlx(rename = "zh_cn")]
+    #[serde(rename = "zh-CN")]
+    ZhCn,
+    #[sqlx(rename = "zh_tw")]
+    #[serde(rename = "zh-TW")]
+    ZhTw,
+    Vi,
+    Th,
+    Id,
+    My,
+    Mn,
+    Ru,
+    Es,
+    Pt,
+    Fr,
+    De,
+    Hi,
+    Ne,
+    Si,
+    Km,
+    Uz,
+    Kk,
+    Tg,
 }
 
 /// 사용자 성별
@@ -51,13 +75,53 @@ pub enum UserActionLog {
     Update,
 }
 
-/// 사용자 UI/설정 언어
+/// 사용자 UI/설정 언어 — 21개 언어 (아랍어 제외)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
 #[sqlx(type_name = "user_set_language_enum", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum UserSetLanguage {
     Ko,
     En,
+    Ja,
+    #[sqlx(rename = "zh_cn")]
+    #[serde(rename = "zh-CN")]
+    ZhCn,
+    #[sqlx(rename = "zh_tw")]
+    #[serde(rename = "zh-TW")]
+    ZhTw,
+    Vi,
+    Th,
+    Id,
+    My,
+    Mn,
+    Ru,
+    Es,
+    Pt,
+    Fr,
+    De,
+    Hi,
+    Ne,
+    Si,
+    Km,
+    Uz,
+    Kk,
+    Tg,
+}
+
+impl UserSetLanguage {
+    /// 프론트엔드 코드("zh-CN") → DB enum 문자열("zh_cn")로 변환
+    pub fn frontend_to_db(code: &str) -> String {
+        code.to_lowercase().replace('-', "_")
+    }
+
+    /// DB enum 문자열("zh_cn") → 프론트엔드 코드("zh-CN")로 변환
+    pub fn db_to_frontend(db_val: &str) -> String {
+        match db_val {
+            "zh_cn" => "zh-CN".to_string(),
+            "zh_tw" => "zh-TW".to_string(),
+            other => other.to_string(),
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -128,7 +192,100 @@ pub enum AdminAction {
 }
 
 // -----------------------------------------------------------------------------
-// 4. Content (Video, Study, Lesson) Enums
+// 4. Translation & i18n Enums
+// -----------------------------------------------------------------------------
+
+/// 번역 대상 콘텐츠 타입
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "content_type_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum ContentType {
+    Course,
+    Lesson,
+    Video,
+    VideoTag,
+    Study,
+    StudyTaskChoice,
+    StudyTaskTyping,
+    StudyTaskVoice,
+}
+
+/// 번역 상태 (draft → reviewed → approved)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "translation_status_enum", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum TranslationStatus {
+    Draft,
+    Reviewed,
+    Approved,
+}
+
+/// 번역 지원 언어 — 21개 (아랍어 제외)
+/// content_translations 테이블 전용 (user 테이블과 독립적으로 확장 가능)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "supported_language_enum", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum SupportedLanguage {
+    Ko,
+    En,
+    Ja,
+    #[sqlx(rename = "zh_cn")]
+    #[serde(rename = "zh-CN")]
+    ZhCn,
+    #[sqlx(rename = "zh_tw")]
+    #[serde(rename = "zh-TW")]
+    ZhTw,
+    Vi,
+    Th,
+    Id,
+    My,
+    Mn,
+    Ru,
+    Es,
+    Pt,
+    Fr,
+    De,
+    Hi,
+    Ne,
+    Si,
+    Km,
+    Uz,
+    Kk,
+    Tg,
+}
+
+impl SupportedLanguage {
+    /// Google Cloud Translation API용 언어 코드 반환
+    pub fn to_gcp_code(&self) -> &'static str {
+        match self {
+            Self::Ko => "ko",
+            Self::En => "en",
+            Self::Ja => "ja",
+            Self::ZhCn => "zh-CN",
+            Self::ZhTw => "zh-TW",
+            Self::Vi => "vi",
+            Self::Th => "th",
+            Self::Id => "id",
+            Self::My => "my",
+            Self::Mn => "mn",
+            Self::Ru => "ru",
+            Self::Es => "es",
+            Self::Pt => "pt",
+            Self::Fr => "fr",
+            Self::De => "de",
+            Self::Hi => "hi",
+            Self::Ne => "ne",
+            Self::Si => "si",
+            Self::Km => "km",
+            Self::Uz => "uz",
+            Self::Kk => "kk",
+            Self::Tg => "tg",
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// 5. Content (Video, Study, Lesson) Enums
 // -----------------------------------------------------------------------------
 
 /// 비디오 상태
