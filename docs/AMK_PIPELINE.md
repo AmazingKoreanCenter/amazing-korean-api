@@ -1,6 +1,6 @@
 ---
 title: AMK_PIPELINE — Amazing Korean Development Pipeline
-updated: 2026-02-10
+updated: 2026-02-11
 owner: HYMN Co., Ltd. (Amazing Korean)
 audience: AI agents / lead / developer
 ---
@@ -59,6 +59,13 @@ audience: AI agents / lead / developer
   - [9.1 평가 기준](#91-평가-기준)
   - [9.2 후보 도구 평가](#92-후보-도구-평가)
   - [9.3 도구 교체 프로세스](#93-도구-교체-프로세스)
+- [10. Git 브랜치 전략 (Git Branch Strategy)](#10-git-브랜치-전략-git-branch-strategy)
+  - [10.1 개요](#101-개요)
+  - [10.2 브랜치 모델](#102-브랜치-모델)
+  - [10.3 단일 태스크 브랜치 흐름](#103-단일-태스크-브랜치-흐름)
+  - [10.4 커밋 메시지 규칙](#104-커밋-메시지-규칙)
+  - [10.5 단계별 문서화](#105-단계별-문서화)
+  - [10.6 Phase 1 운영 (현행)](#106-phase-1-운영-현행)
 
 ---
 
@@ -630,5 +637,149 @@ AI가 사용자 개입이 필요한 상황:
 6. **문서 업데이트**: PIPELINE, DEPLOY_OPS 문서 동기화
 
 **원칙:** 도구 교체는 항상 **점진적**으로 한다. 한 번에 전면 교체하지 않는다.
+
+[맨 위로](#목차-table-of-contents)
+
+---
+
+## 10. Git 브랜치 전략 (Git Branch Strategy)
+
+### 10.1 개요
+
+> **Phase 2 (멀티 AI)부터 적용한다.** Phase 1에서는 [10.6](#106-phase-1-운영-현행) 참조.
+
+파이프라인의 각 단계(기획, 실행, 리뷰 등)를 **Git 브랜치로 구조화**한다.
+단계 간 핸드오프를 문서 전달이 아닌 **PR(Pull Request)**로 수행하여:
+
+- 역할 분리가 **구조적으로 강제**된다 (각 AI는 자기 브랜치에서만 작업)
+- 핸드오프가 **PR로 명시**된다 (누가 무엇을 넘겼는지 히스토리 보존)
+- 단계별 품질 게이트가 **PR 승인으로 작동**한다
+- 감사 추적(Audit Trail)이 **Git 히스토리에 완전 기록**된다
+
+### 10.2 브랜치 모델
+
+| 브랜치 | 용도 | 생성 시점 | 담당 |
+|--------|------|----------|------|
+| `main` | 프로덕션 코드. QA 통과 + 배포 완료된 코드만 존재 | 고정 | - |
+| `plan/{TXXX}-{task}` | 기획 단계 작업. 기획 문서 작성 | 기획 시작 시 (main에서 분기) | 기획 AI |
+| `verify/{TXXX}-{task}` | 검증 단계 작업. 검증 리포트 작성 | 검증 시작 시 (plan에서 분기) | 검증 AI |
+| `exec/{TXXX}-{task}` | 실행 단계 작업. 코드 구현 | 지시 확정 후 (verify에서 분기) | 실행 AI |
+| `hotfix/{설명}` | 긴급 프로덕션 버그 수정 | 장애 발생 시 (main에서 분기) | 실행 AI |
+
+**브랜치 네이밍 규칙:**
+- `{TXXX}`: 태스크 번호 (예: `T001`, `T002`)
+- `{task}`: 태스크 이름 kebab-case (예: `stripe-webhook`, `i18n-frontend`)
+- 예시: `plan/T001-stripe-webhook`, `exec/T001-stripe-webhook`
+
+### 10.3 단일 태스크 브랜치 흐름
+
+하나의 태스크(T001)가 파이프라인을 통과하는 전체 흐름:
+
+```
+main ──────────────────────────────────────────────────────── merge ←
+  │                                                              │
+  └─ plan/T001-stripe-webhook                                    │
+       │  (기획 AI: 계획 문서 작성)                                  │
+       │  → PR #1 생성 → 사용자 검토                                │
+       │                                                         │
+       └─ verify/T001-stripe-webhook                             │
+            │  (검증 AI: 검증 리포트 작성)                           │
+            │  → PR #2 생성 → 사용자 승인 (= 지시 단계)              │
+            │                                                    │
+            └─ exec/T001-stripe-webhook                          │
+                 │  (실행 AI: 코드 구현)                            │
+                 │  → PR #3 생성                                  │
+                 │  → 리뷰 AI: PR에서 코드 리뷰                     │
+                 │  → QA: PR 브랜치에서 테스트                       │
+                 │  → 사용자 최종 승인                               │
+                 └──────────────────────────────────────────────→─┘
+```
+
+**단계별 핸드오프:**
+
+| 전환 | 방법 | PR 대상 |
+|------|------|---------|
+| 기획 → 검증 | `plan/` 브랜치에서 PR 생성 | 검증 AI가 리뷰 |
+| 검증 → 지시 | 검증 완료 PR에 사용자가 승인 | 사용자 결정 |
+| 지시 → 실행 | `exec/` 브랜치 생성, 사용자 지시 확정 | 실행 AI 시작 |
+| 실행 → 리뷰 | `exec/` 브랜치에서 main 대상 PR 생성 | 리뷰 AI가 PR에서 코드 리뷰 |
+| 리뷰 → QA | 리뷰 승인 후 QA 진행 | PR 브랜치에서 테스트 |
+| QA → 배포 | QA 통과 + 사용자 승인 → main merge | CI/CD 자동 배포 |
+
+### 10.4 커밋 메시지 규칙
+
+**형식:**
+
+```
+[Stage] TXXX: 태스크명 - 설명
+```
+
+**단계별 예시 (T001: Stripe Webhook 처리):**
+
+| 단계 | 커밋 메시지 예시 |
+|------|-----------------|
+| 기획 | `[Plan] T001: Stripe Webhook 처리 - plan formulation completed` |
+| 검증 | `[Verify] T001: Stripe Webhook 처리 - plan verification completed` |
+| 지시 | `[Directive] T001: Stripe Webhook 처리 - 실행 승인 및 범위 확정` |
+| 실행 | `[Exec] T001: Stripe Webhook 처리 - code implementation completed` |
+| 리뷰 | `[Review] T001: Stripe Webhook 처리 - code review completed` |
+| QA | `[QA] T001: Stripe Webhook 처리 - QA test completed` |
+| 배포 | `[Deploy] T001: Stripe Webhook 처리 - deployment complete` |
+
+**규칙:**
+- `[Stage]` 접두사는 영문 대문자 (Git log 필터링 용도)
+- 태스크명은 **한국어 허용** (가독성 우선)
+- Directive(지시) 단계는 **사용자가 한국어로 작성**
+- 하나의 브랜치에 복수 커밋 가능 (작업 중간 커밋은 접두사 없이 자유)
+- **최종 커밋**(PR 생성 직전)에 위 형식을 적용
+
+### 10.5 단계별 문서화
+
+각 파이프라인 단계는 **별도 파일**로 산출물을 생성한다.
+이전 단계의 파일은 **읽기만** 하고 수정하지 않는다.
+
+**디렉터리 구조:**
+
+```
+docs/epics/{epic-name}/
+└── T001_stripe-webhook/              # 태스크 폴더
+    ├── 01_plan.md                    # 기획 AI 산출물
+    ├── 02_verify.md                  # 검증 AI 산출물
+    ├── 03_directive.md               # 사용자 승인/지시 기록
+    ├── 04_execute.md                 # 실행 AI 산출물 (변경 이력, 테스트 결과)
+    ├── 05_review.md                  # 리뷰 AI 산출물 (리뷰 피드백)
+    ├── 06_qa.md                      # QA 결과 (테스트 계획, 내역, 결과)
+    └── 07_deploy.md                  # 배포 결과 (배포 내역, 확인 사항)
+```
+
+**원칙:**
+- 각 AI는 **자기 번호의 파일만 생성**한다
+- 이전 단계 파일을 **참조(읽기)**하되 **수정하지 않는다**
+- 파일이 별도이므로 **브랜치 간 merge conflict가 발생하지 않는다**
+- 기존 4.3절 태스크 파일 템플릿은 Phase 1용으로 유지하며, Phase 2부터 이 구조로 전환한다
+
+**브랜치와 문서의 매핑:**
+
+| 브랜치 | 생성하는 파일 | 참조하는 파일 |
+|--------|-------------|-------------|
+| `plan/` | `01_plan.md` | - |
+| `verify/` | `02_verify.md` | `01_plan.md` |
+| `exec/` | `03_directive.md`, `04_execute.md` | `01_plan.md`, `02_verify.md` |
+| (PR 리뷰) | `05_review.md` | `04_execute.md` |
+| (QA) | `06_qa.md` | `04_execute.md`, `05_review.md` |
+| (배포 후) | `07_deploy.md` | 전체 |
+
+### 10.6 Phase 1 운영 (현행)
+
+Phase 1 (1인 개발 + 단일 AI)에서는 **단순화된 브랜치 전략**을 사용한다.
+
+| 항목 | Phase 1 (현행) | Phase 2 (전환 후) |
+|------|---------------|-----------------|
+| 브랜치 모델 | `main` + 작업 브랜치 1개 | `main` + 단계별 브랜치 |
+| 핸드오프 | 문서 기반 (세션 간 `MEMORY.md`) | PR 기반 |
+| 문서화 | 단일 태스크 파일 (4.3절 템플릿) | 단계별 별도 파일 (10.5절) |
+| 커밋 메시지 | `Phase V1-2 : 작업 내용` | `[Stage] TXXX: 태스크명 - 설명` |
+
+> Phase 2 전환 시, 기존 완료된 태스크는 변환하지 않는다. 새 태스크부터 적용한다.
 
 [맨 위로](#목차-table-of-contents)
