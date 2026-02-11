@@ -1,6 +1,7 @@
-use axum::{middleware, routing::get};
+use axum::{middleware, response::IntoResponse, routing::get};
 
 use crate::docs::ApiDoc;
+use crate::error::AppError;
 use crate::state::AppState;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -25,7 +26,7 @@ use self::user::router::user_router;
 use self::video::router::router as video_router;
 
 pub fn app_router(state: AppState) -> axum::Router {
-    axum::Router::new()
+    let router = axum::Router::new()
         .merge(course_router())
         .merge(user_router())
         .nest("/auth", auth_router())
@@ -43,6 +44,19 @@ pub fn app_router(state: AppState) -> axum::Router {
         .route("/healthz", get(health::handler::health))
         .route("/health", get(health::handler::health))
         .route("/ready", get(health::handler::ready))
-        .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .with_state(state)
+        .fallback(fallback_404);
+
+    // PROD-6: enable_docs=false(기본값)이면 Swagger UI 비활성화
+    let router = if state.cfg.enable_docs {
+        router.merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
+    } else {
+        router
+    };
+
+    router.with_state(state)
+}
+
+/// PROD-8: 존재하지 않는 라우트에 JSON 404 응답
+async fn fallback_404() -> impl IntoResponse {
+    AppError::NotFound.into_response()
 }

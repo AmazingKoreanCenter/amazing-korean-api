@@ -5,11 +5,12 @@
 use axum::{
     body::Body,
     extract::State,
-    http::{Request, StatusCode},
+    http::Request,
     middleware::Next,
     response::{IntoResponse, Response},
 };
 
+use crate::error::AppError;
 use crate::state::AppState;
 
 /// Admin IP allowlist 검사 미들웨어
@@ -54,10 +55,7 @@ pub async fn admin_ip_guard(
     // IP를 식별할 수 없으면 보안상 접근 거부
     let Some(ip) = client_ip else {
         tracing::warn!("Admin access denied: Could not determine client IP from headers");
-        return (
-            StatusCode::FORBIDDEN,
-            "Access denied: Client IP could not be determined",
-        )
+        return AppError::Forbidden("Access denied: Client IP could not be determined".into())
             .into_response();
     };
 
@@ -68,10 +66,7 @@ pub async fn admin_ip_guard(
             ip = %ip,
             "Admin access denied: IP not in allowlist"
         );
-        (
-            StatusCode::FORBIDDEN,
-            "Access denied: IP not allowed for admin access",
-        )
+        AppError::Forbidden("Access denied: IP not allowed for admin access".into())
             .into_response()
     }
 }

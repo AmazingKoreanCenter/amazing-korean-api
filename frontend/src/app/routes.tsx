@@ -46,6 +46,8 @@ import { AdminLessonsPage } from "@/category/admin/page/admin_lessons_page";
 import { AdminLessonDetail } from "@/category/admin/page/admin_lesson_detail";
 import { AdminLessonCreate } from "@/category/admin/page/admin_lesson_create";
 import { AdminLessonBulkCreate } from "@/category/admin/page/admin_lesson_bulk_create";
+import { AdminTranslationsPage } from "@/category/admin/page/admin_translations_page";
+import { AdminTranslationEdit } from "@/category/admin/page/admin_translation_edit";
 import { AdminEmailTest } from "@/category/admin/page/admin_email_test";
 import { AdminUpgradeJoin } from "@/category/admin/page/admin_upgrade_join";
 
@@ -110,6 +112,9 @@ export function AppRoutes() {
           <Route path="lessons/new" element={<AdminLessonCreate />} />
           <Route path="lessons/bulk-create" element={<AdminLessonBulkCreate />} />
           <Route path="lessons/:lessonId" element={<AdminLessonDetail />} />
+          <Route path="translations" element={<AdminTranslationsPage />} />
+          <Route path="translations/new" element={<AdminTranslationEdit />} />
+          <Route path="translations/:id/edit" element={<AdminTranslationEdit />} />
           <Route path="email" element={<AdminEmailTest />} />
         </Route>
       </Route>

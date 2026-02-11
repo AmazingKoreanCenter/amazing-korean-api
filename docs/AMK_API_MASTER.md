@@ -1,6 +1,6 @@
 ---
 title: AMK_API_MASTER — Amazing Korean API  Master Spec
-updated: 2026-02-09
+updated: 2026-02-10
 owner: HYMN Co., Ltd. (Amazing Korean)
 audience: server / database / backend / frontend / lead / AI agent
 ---
@@ -51,6 +51,7 @@ audience: server / database / backend / frontend / lead / AI agent
   - [4.5 수업 구성 도메인 (LESSON)](#45-수업-구성-도메인-lesson)
   - [4.6 코스 도메인 (COURSE)](#46-코스-도메인-course--구현-완료)
   - [4.7 향후 업데이트 도메인](#47-향후-업데이트-도메인)
+  - [4.8 번역 도메인 (TRANSLATION)](#48-번역-도메인-translation)
 
 - [5. 기능 & API 로드맵 (Phase / 화면 / 엔드포인트 / 상태 / DoD)](#5-기능--api-로드맵-phase--화면--엔드포인트--상태--dod)
   - [5.0 Phase 로드맵 체크박스 범례](#50-phase-로드맵-체크박스-범례)
@@ -62,6 +63,7 @@ audience: server / database / backend / frontend / lead / AI agent
   - [5.6 Phase 6 — lesson](#56-phase-6--lesson-)
   - [5.7 Phase 7 — admin](#57-phase-7--admin-)
   - [5.8 Phase 8 — course](#58-phase-8--course-)
+  - [5.9 Phase 9 — translation (i18n)](#59-phase-9--translation-i18n)
 
 - [6. 프론트엔드 구조 & 규칙](#6-프론트엔드-구조--규칙)
   - [6.1 프론트엔드 스택 & 기본 원칙](#61-프론트엔드-스택--기본-원칙)
@@ -271,7 +273,7 @@ audience: server / database / backend / frontend / lead / AI agent
   - `Claims.sub` = `user_id` (i64)
 - OpenAPI 루트:
   - `src/docs.rs` (예: `ApiDoc`)
-  - Swagger UI: `GET /docs`
+  - Swagger UI: `GET /docs` — **`ENABLE_DOCS=true`일 때만 활성화** (PROD-6, 프로덕션 기본 비활성화)
   - 태그/표시 순서 **고정**: `health → auth → user → videos → study → lesson → admin` (필요 시 추가 리소스는 뒤에)
 
 ### 2.3 로컬 개발 & 실행
@@ -671,12 +673,22 @@ VIMEO_ACCESS_TOKEN=xxx
 
 ### 3.3 공통 헤더 & 인증
 
-- HTTP 헤더:
+- **보안 응답 헤더** (PROD-4, 모든 응답에 자동 적용):
+  - `X-Content-Type-Options: nosniff` — MIME 타입 스니핑 방지
+  - `X-Frame-Options: DENY` — 클릭재킹 방지 (iframe 삽입 차단)
+  - `X-XSS-Protection: 0` — 브라우저 XSS 필터 비활성화 (CSP로 대체 권장)
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()` — 민감 API 사용 제한
+  - 구현: `src/main.rs` → `security_headers` 미들웨어 (가장 바깥 레이어)
+- HTTP 요청 헤더:
   - `Authorization: Bearer <ACCESS_TOKEN>`
     - 인증 필요한 모든 엔드포인트에 필수
   - `Content-Type: application/json`
     - 요청 본문이 JSON일 때
   - `Accept: application/json`
+- **Guard 응답 형식** (PROD-7):
+  - Admin IP Guard (`ip_guard.rs`): 403 → `AppError::Forbidden` JSON 응답
+  - Admin Role Guard (`role_guard.rs`): 401/403 → `AppError::Unauthorized/Forbidden` JSON 응답
+  - 모든 에러 응답은 Section 3.4 에러 응답 표준 형식 준수
 - 인증 플로우(기본):
   - `POST /auth/login` → 액세스 토큰(헤더), 리프레시 토큰(쿠키) 발급
   - 만료 시 `POST /auth/refresh`로 재발급 (리프레시 회전/검증/로그 기록)
@@ -1181,6 +1193,28 @@ VIMEO_ACCESS_TOKEN=xxx
 - `live_log`
   - 라이브 강의 참여 로그
 
+### 4.8 번역 도메인 (TRANSLATION)
+
+> 다국어 콘텐츠 번역을 관리하는 도메인. 모든 학습 콘텐츠(코스, 레슨, 비디오, 학습 문제 등)의 번역을 단일 테이블로 통합 관리한다.
+
+- `content_translations`
+  - 번역 데이터: content_type + content_id + field_name + lang 조합으로 번역 관리
+  - `translation_id` (PK, BIGSERIAL)
+  - `content_type` (content_type_enum): 번역 대상 콘텐츠 유형
+  - `content_id` (BIGINT): 대상 콘텐츠의 PK
+  - `field_name` (VARCHAR): 번역 대상 필드명 (예: title, description)
+  - `lang` (supported_language_enum): 번역 언어
+  - `translated_text` (TEXT): 번역된 텍스트
+  - `status` (translation_status_enum): 번역 상태 (draft → reviewed → approved)
+  - `created_at`, `updated_at` (TIMESTAMPTZ)
+  - **UNIQUE**: (content_type, content_id, field_name, lang)
+
+- **Enums**
+  - `content_type_enum`: `'course'`, `'lesson'`, `'video'`, `'video_tag'`, `'study'`, `'study_task_choice'`, `'study_task_typing'`, `'study_task_voice'`
+    - `'video'` = 비디오 제목/부제 번역, `'video_tag'` = 비디오 태그 번역 (향후 사용)
+  - `translation_status_enum`: `'draft'`, `'reviewed'`, `'approved'`
+  - `supported_language_enum`: `'en'`, `'zh-CN'`, `'zh-TW'`, `'ja'`, `'vi'`, `'id'`, `'th'`, `'my'`, `'km'`, `'mn'`, `'ru'`, `'uz'`, `'kk'`, `'tg'`, `'ne'`, `'si'`, `'hi'`, `'es'`, `'pt'`, `'fr'`, `'de'` (21개, 아랍어 제외 — RTL 별도 대응 필요)
+
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
 ---
@@ -1260,7 +1294,8 @@ VIMEO_ACCESS_TOKEN=xxx
 #### 5.1-1 : `GET /healthz` 시나리오
 - **성공**
   - When: 클라이언트가 `GET /healthz` 호출, Swagger에서만 실행
-  - Then: `200 OK`, JSON 바디 `{"status":"live","uptime_ms":..., "version":"v0.1.0"}`
+  - Then: `200 OK`, JSON 바디 `{"status":"live","uptime_ms":..., "version":"v1.0.0"}`
+  - **PROD-5**: `APP_ENV=production`이면 `version` 필드 생략 (`Option<String>`, `skip_serializing_if`)
   - 상태축: Auth=pass / Page=init→ready / Request=pending→success / Data=present
 - **실패**
   - When: 헬스 핸들러 내부 예외
@@ -1270,7 +1305,8 @@ VIMEO_ACCESS_TOKEN=xxx
 ---
 
 #### 5.1-2 : `GET /docs` 시나리오
-- **성공**
+- **PROD-6**: `ENABLE_DOCS=false` (프로덕션 기본)이면 Swagger UI 비활성화 → 404 반환
+- **성공** (`ENABLE_DOCS=true`일 때)
   - When: 클라이언트가 `GET /docs` 호출, Swagger에서만 실행
   - Then: `200 OK`, Swagger UI 렌더링, **태그 순서가 user→auth→videos→lesson→admin→health**로 보임
   - 상태축: Auth=pass / Page=init→ready / Request=pending→success / Data=present
@@ -2365,14 +2401,270 @@ Location: http://localhost:5173/login?error=oauth_failed&error_description=...
 ### 5.8 Phase 8 — course ✅
 | 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 |
 |---|---|---|---|---|---|
-| 8-1 | `GET /courses` | `/courses` | 코스 목록 조회 | ***페이지네이션, 접근 권한 체크***<br>성공: **200** | [✅] |
-| 8-2 | `POST /courses` | `/admin/courses/new` | 코스 생성 | ***ADMIN_COURSE_LOG, RBAC***<br>성공: **201**<br>실패: **401/403/400/422** | [✅] |
-| 8-3 | `GET /courses/{id}` | `/courses/{id}` | 코스 상세 조회 | ***코스 정보 + 레슨 목록***<br>성공: **200**<br>실패: **404** | [✅] |
+| 8-1 | `GET /courses` | `/courses` | 코스 목록 조회 | ***페이지네이션, 접근 권한 체크***<br>응답에 `course_subtitle` 필드 포함<br>DTO: `CourseListQuery`(IntoParams), `CourseListItem`(ToSchema)<br>성공: **200** | [✅] |
+| 8-2 | `POST /courses` | `/admin/courses/new` | 코스 생성 | ***ADMIN_COURSE_LOG, RBAC***<br>DTO: `CreateCourseReq`(ToSchema)<br>성공: **201**<br>실패: **401/403/400/422** | [✅] |
+| 8-3 | `GET /courses/{id}` | `/courses/{id}` | 코스 상세 조회 | ***코스 정보 + 레슨 목록, `?lang=` 쿼리 파라미터 지원***<br>성공: **200**<br>실패: **404** | [✅] |
 
 ---
 
 ### 비고
 - 모든 Phase는 "**백엔드 엔드포인트 구현 → 프론트 1화면 연동 → 스모크(성공+대표 에러)**" 순으로 완료 표시.
+
+---
+
+### 5.9 Phase 9 — translation (i18n)
+| 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 |
+|---|---|---|---|---|---|
+| 9-1 | `GET /admin/translations` | `/admin/translations?page=&size=&content_type=&content_id=&lang=&status=` | 번역 목록 조회 | ***필터(content_type, content_id, lang, status) + 페이지네이션, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅] |
+| 9-2 | `POST /admin/translations` | `/admin/translations/new` | 번역 단건 생성 (UPSERT) | ***content_type+content_id+field_name+lang 기준 UPSERT, 텍스트 변경 시에만 status 리셋, RBAC***<br>성공: **201**<br>실패: **401/403/400/422** | [✅] |
+| 9-3 | `POST /admin/translations/bulk` | `/admin/translations/bulk` | 번역 벌크 생성 | ***부분 성공, RBAC***<br>성공: **201** / 부분: **207**<br>실패: **401/403/400/422** | [✅] |
+| 9-4 | `GET /admin/translations/{id}` | `/admin/translations/{translation_id}` | 번역 상세 조회 | ***RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅] |
+| 9-5 | `PUT /admin/translations/{id}` | `/admin/translations/{translation_id}/edit` | 번역 수정 (텍스트/상태) | ***translated_text, status 변경 가능, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422** | [✅] |
+| 9-6 | `PATCH /admin/translations/{id}/status` | `/admin/translations/{translation_id}` | 번역 상태만 변경 | ***draft → reviewed → approved 상태 전이, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422** | [✅] |
+| 9-7 | `DELETE /admin/translations/{id}` | `/admin/translations/{translation_id}` | 번역 삭제 | ***RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅] |
+| 9-8 | `POST /admin/translations/auto` | `/admin/translations` | 자동 번역 (GCP) | ***Google Cloud Translation v2 Basic 연동, 원본 텍스트를 대상 언어로 자동 번역 후 draft 상태로 UPSERT, TRANSLATE_PROVIDER=none이면 503, RBAC***<br>성공: **200**<br>실패: **401/403/400/422/503** | [✅] |
+
+---
+
+<details>
+  <summary>5.9 Phase 9 — translation (i18n) 상세</summary>
+
+#### 다국어 콘텐츠 번역 시스템 개요
+
+> 모든 학습 콘텐츠의 번역을 `content_translations` 테이블에서 통합 관리한다. 관리자가 번역을 생성/검수/승인하며, 승인된(approved) 번역만 최종 사용자에게 제공된다.
+
+**핵심 정책**
+- **Fallback 순서**: 사용자 언어(`?lang=`) → `en` → `ko` (한국어 원본)
+- **공개 조건**: `status = 'approved'` 인 번역만 콘텐츠 API에서 제공
+- **기존 콘텐츠 API 확장**: 레슨, 코스, 학습, 비디오 등 기존 API에 `?lang=` 쿼리 파라미터 추가
+- **번역 API**: Google Cloud Translation v2 Basic 연동 완료 (AI 자동 초안 → 관리자 검수 → 승인)
+
+**지원 언어 (21개, 아랍어 RTL 별도)**
+
+| 그룹 | 언어 코드 |
+|------|-----------|
+| 핵심 5개 (Phase 2) | `en`, `ja`, `zh-CN`, `zh-TW`, `vi` |
+| 동남아시아 | `id`, `th`, `my`, `km` |
+| 중앙/북아시아 | `mn`, `ru`, `uz`, `kk`, `tg` |
+| 남아시아 | `ne`, `si`, `hi` |
+| 유럽/기타 | `es`, `pt`, `fr`, `de` |
+
+**번역 상태 전이**
+
+```
+draft → reviewed → approved
+  ↑        ↓
+  └────────┘  (검수 반려 시 draft로 되돌림)
+```
+
+---
+
+#### 9-1 : `GET /admin/translations` (번역 목록 조회)
+
+**Query Parameters**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `page` | i64 | N | 페이지 번호 (기본 1) |
+| `size` | i64 | N | 페이지 크기 (기본 20, max 100) |
+| `content_type` | string | N | 콘텐츠 유형 필터 (course, lesson, video, video_tag, study, ...) |
+| `content_id` | i64 | N | 콘텐츠 ID 필터 |
+| `lang` | string | N | 언어 코드 필터 (en, ja, zh-CN, ...) |
+| `status` | string | N | 상태 필터 (draft, reviewed, approved) |
+
+**응답 (성공 200)**
+```json
+{
+  "data": [
+    {
+      "translation_id": 1,
+      "content_type": "lesson",
+      "content_id": 42,
+      "field_name": "title",
+      "lang": "en",
+      "translated_text": "Introduction to Korean Alphabet",
+      "status": "approved",
+      "created_at": "2026-02-10T12:00:00Z",
+      "updated_at": "2026-02-10T14:30:00Z"
+    }
+  ],
+  "total": 150,
+  "page": 1,
+  "size": 20
+}
+```
+
+---
+
+#### 9-2 : `POST /admin/translations` (번역 단건 생성 — UPSERT)
+
+**요청 (TranslationCreateReq)**
+```json
+{
+  "content_type": "lesson",
+  "content_id": 42,
+  "field_name": "title",
+  "lang": "en",
+  "translated_text": "Introduction to Korean Alphabet"
+}
+```
+
+**응답 (성공 201)**
+```json
+{
+  "translation_id": 1,
+  "content_type": "lesson",
+  "content_id": 42,
+  "field_name": "title",
+  "lang": "en",
+  "translated_text": "Introduction to Korean Alphabet",
+  "status": "draft",
+  "created_at": "2026-02-10T12:00:00Z",
+  "updated_at": "2026-02-10T12:00:00Z"
+}
+```
+
+> **UPSERT 동작**: `(content_type, content_id, field_name, lang)` 조합이 이미 존재하면 `translated_text`와 `updated_at`을 갱신한다. `status`는 `translated_text`가 실제로 변경된 경우에만 `draft`로 리셋하며, 동일한 텍스트를 다시 제출하면 기존 `status`를 유지한다.
+
+---
+
+#### 9-3 : `POST /admin/translations/bulk` (번역 벌크 생성)
+
+**요청**
+```json
+{
+  "translations": [
+    { "content_type": "lesson", "content_id": 42, "field_name": "title", "lang": "en", "translated_text": "Introduction to Korean Alphabet" },
+    { "content_type": "lesson", "content_id": 42, "field_name": "description", "lang": "en", "translated_text": "Learn Hangul basics" },
+    { "content_type": "lesson", "content_id": 42, "field_name": "title", "lang": "ja", "translated_text": "韓国語アルファベット入門" }
+  ]
+}
+```
+
+**응답 (부분 성공 207 / 전체 성공 201)**
+```json
+{
+  "results": [
+    { "index": 0, "status": "created", "translation_id": 1 },
+    { "index": 1, "status": "created", "translation_id": 2 },
+    { "index": 2, "status": "error", "error": "Invalid content_id" }
+  ],
+  "total": 3,
+  "success": 2,
+  "failed": 1
+}
+```
+
+---
+
+#### 9-5 : `PUT /admin/translations/{id}` (번역 수정)
+
+**요청**
+```json
+{
+  "translated_text": "Introduction to the Korean Alphabet (Hangul)",
+  "status": "reviewed"
+}
+```
+
+**응답 (성공 200)**: TranslationRes 전체 반환
+
+---
+
+#### 9-6 : `PATCH /admin/translations/{id}/status` (번역 상태만 변경)
+
+**요청**
+```json
+{
+  "status": "approved"
+}
+```
+
+**응답 (성공 200)**: TranslationRes 전체 반환
+
+> **상태 전이 규칙**: `draft → reviewed → approved` 순서만 허용. 검수 반려 시 `reviewed → draft` 또는 `approved → draft`로 되돌림 가능.
+
+---
+
+#### 9-8 : `POST /admin/translations/auto` (자동 번역)
+
+> Google Cloud Translation v2 Basic를 사용하여 원본 텍스트를 지정 언어로 자동 번역한다. 번역 결과는 `draft` 상태로 `content_translations`에 UPSERT된다.
+
+**요청 Body (JSON)**
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `content_type` | string | ✅ | `course`, `lesson`, `video`, `video_tag`, `study` |
+| `content_id` | integer | ✅ | 콘텐츠 ID |
+| `field_name` | string | ✅ | 번역 대상 필드명 (예: `title`, `description`) |
+| `source_text` | string | ✅ | 원본 텍스트 (한국어) |
+| `target_langs` | string[] | ✅ | 대상 언어 코드 배열 (최대 20개, 예: `["en", "ja", "zh-CN"]`) |
+
+```json
+{
+  "content_type": "video",
+  "content_id": 1,
+  "field_name": "title",
+  "source_text": "한국어 초급 과정",
+  "target_langs": ["en", "ja", "zh-CN", "zh-TW", "vi"]
+}
+```
+
+**응답 (성공 200)**
+
+```json
+{
+  "total": 5,
+  "success_count": 5,
+  "results": [
+    {
+      "lang": "en",
+      "success": true,
+      "translation_id": 42,
+      "translated_text": "Korean Beginner Course",
+      "error": null
+    }
+  ]
+}
+```
+
+> **주의사항**:
+> - `TRANSLATE_PROVIDER=none`이면 `503 Service Unavailable` (Translation provider not configured) 반환
+> - 개별 언어 번역 실패 시 해당 항목만 `success: false` + `error` 메시지, 나머지는 정상 처리
+> - 번역 결과는 `draft` 상태로 UPSERT → 관리자가 검수(reviewed) → 승인(approved) 후 사용자에게 제공
+> - 환경변수: `TRANSLATE_PROVIDER=google`, `GOOGLE_TRANSLATE_API_KEY`, `GOOGLE_TRANSLATE_PROJECT_ID` 필요
+
+---
+
+#### 기존 콘텐츠 API `?lang=` 쿼리 파라미터 확장
+
+> 모든 기존 콘텐츠 조회 API(lessons, courses, studies, videos)에 `?lang=` 쿼리 파라미터가 추가된다.
+
+| 기존 엔드포인트 | 확장 예시 | 동작 |
+|----------------|-----------|------|
+| `GET /courses` | `GET /courses?lang=en` | 코스 목록에 영어 번역 포함 |
+| `GET /courses/{id}` | `GET /courses/{id}?lang=ja` | 코스 상세에 일본어 번역 포함 |
+| `GET /lessons/{id}` | `GET /lessons/{id}?lang=vi` | 레슨 상세에 베트남어 번역 포함 |
+| `GET /studies/tasks/{id}` | `GET /studies/tasks/{id}?lang=zh-CN` | 학습 Task에 중국어(간체) 번역 포함 |
+
+**Fallback 동작**:
+1. 요청된 `lang`의 `approved` 번역이 존재하면 → 번역된 텍스트 반환
+2. 요청된 `lang`의 번역이 없으면 → `en` (영어) `approved` 번역 시도
+3. `en` 번역도 없으면 → `ko` (한국어 원본) 반환
+
+**응답 확장 필드**: `?lang=` 지정 시 응답에 `_translated` 접미사 필드가 추가된다.
+```json
+{
+  "lesson_id": 42,
+  "lesson_title": "한글 소개",
+  "lesson_title_translated": "Introduction to Korean Alphabet",
+  "lesson_description": "한글 기초를 배워보세요",
+  "lesson_description_translated": "Learn Hangul basics",
+  "translation_lang": "en",
+  "translation_coverage": { "title": true, "description": true }
+}
+```
+
+</details>
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
@@ -3485,21 +3777,36 @@ export function AppRouter() {
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), 환경변수, AppState KeyRing 로드
 > **보안 로드맵**: ~~1단계 앱 레벨 AES~~ ✅ → 2단계 AWS KMS envelope → 3단계 HSM
 
-#### 다국어 콘텐츠 확장
+#### 프로덕션 하드닝
 
 | 순서 | 항목 | 상태 | 설명 |
 |------|------|:----:|------|
-| 1 | 번역 테이블 설계 | 📋 | `content_translations` 테이블 (content_type, content_id, field_name, lang, status) |
-| 2 | 폰트 동적 로딩 | 📋 | Noto Sans 패밀리, 사용자 언어별 로드 (전체 50MB+ → 필요한 것만) |
-| 3 | RTL 지원 | 📋 | 아랍어 대응 — CSS Logical Properties, direction: rtl, 아이콘 반전 |
-| 4 | 번역 API 연동 | 📋 | AI 자동 초안 생성 → 관리자 검수 → 승인 파이프라인 |
-| 5 | 핵심 5개 언어 | 📋 | en, ja, zh-CN, zh-TW, vi (Phase 2) |
-| 6 | 나머지 17개 언어 | 📋 | id, th, my, km, mn, ru, uz, kk, tg, ne, si, hi, es, pt, fr, de, ar (Phase 3) |
-| 7 | i18n 동적 로딩 + async | 📋 | 22개 언어 확장 시 번들 분리(dynamic import) + changeLanguage async 처리 |
+| PROD-4 | 보안 응답 헤더 | ✅ | `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Permissions-Policy` (2026-02-10) |
+| PROD-5 | Health version 숨김 | ✅ | `APP_ENV=production`이면 `version` 필드 생략 (2026-02-10) |
+| PROD-6 | Swagger UI 비활성화 | ✅ | `ENABLE_DOCS=false`(기본)이면 SwaggerUI 비활성화 (2026-02-10) |
+| PROD-7 | Guard JSON 통일 | ✅ | `ip_guard.rs`, `role_guard.rs` plain text → `AppError` JSON (2026-02-10) |
+| PROD-8 | 404 Fallback | ✅ | 존재하지 않는 라우트에 JSON `AppError::NotFound` 반환 (2026-02-10) |
 
-> **지원 언어 (22개)**: en, zh-CN, zh-TW, ja, vi, id, th, my, km, mn, ru, uz, kk, tg, ne, si, hi, es, pt, fr, de, ar
+#### 다국어 콘텐츠 확장
+
+> API 엔드포인트 상세는 [5.9 Phase 9 — translation (i18n)](#59-phase-9--translation-i18n), DB 스키마는 [4.8 번역 도메인 (TRANSLATION)](#48-번역-도메인-translation) 참조
+
+| 순서 | 항목 | 상태 | 설명 |
+|------|------|:----:|------|
+| 1 | 번역 테이블 설계 | ✅ | `content_translations` 테이블, 21개 언어 enum, `content_type_enum`에 `video` 추가 (Phase 1A, 2026-02-10) |
+| 2 | Admin 번역 CRUD API | ✅ | 7개 엔드포인트 구현 완료, UPSERT 조건부 status 리셋 (Phase 1A, 2026-02-10) — [5.9 참조](#59-phase-9--translation-i18n) |
+| 3 | 기존 콘텐츠 API `?lang=` 확장 | ✅ | courses, lessons, videos, studies에 `?lang=` 쿼리 파라미터 + fallback 주입 (Phase 1A, 2026-02-10) |
+| 4 | 프론트엔드 다국어 기반 | 📋 | Pretendard 폰트, i18next 21개 언어 동적 로딩, 언어 드롭다운 UI, 관리자 번역 UI (Phase 1B) |
+| 5 | RTL 지원 | 제외 | 아랍어(RTL) 제외 확정 — 지원 언어 21개 (LTR만) |
+| 6 | 번역 API 연동 | 📋 | Google Cloud Translation v2 Basic — AI 자동 초안 생성 → 관리자 검수 → 승인 파이프라인 (Phase 2) |
+| 7 | 핵심 5개 언어 | 📋 | en, ja, zh-CN, zh-TW, vi (Phase 2) |
+| 8 | 나머지 16개 언어 | 📋 | id, th, my, km, mn, ru, uz, kk, tg, ne, si, hi, es, pt, fr, de (Phase 3) |
+| 9 | i18n 동적 로딩 + async | 📋 | 21개 언어 확장 시 번들 분리(dynamic import) + changeLanguage async 처리 (Phase 1B) |
+
+> **지원 언어 (21개, 아랍어 제외)**: en, zh-CN, zh-TW, ja, vi, id, th, my, km, mn, ru, uz, kk, tg, ne, si, hi, es, pt, fr, de
 > **번역 대상**: video title/description, category name, study_task title/description, achievement (UI 메타데이터만, 학습 본문 제외)
-> **Fallback**: 사용자 언어 → ko (한국어 원본)
+> **Fallback**: 사용자 언어 → en → ko (한국어 원본)
+> **공개 조건**: `status = 'approved'` 번역만 콘텐츠 API에서 제공
 > ~~DB 확정 후 리셋해서 서버 배포 진행 필요~~ → **완료** (2026-02-08 프로덕션 클린 배포)
 
 #### 보류/낮음 우선순위
@@ -3558,6 +3865,39 @@ ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
 ---
 
 ## 9. 변경 이력 (요약)
+
+- **2026-02-10 — Phase 1A 다국어 인프라 + QA 수정 + 프로덕션 QA**
+  - **Phase 1A 다국어 인프라 (백엔드)**
+    - `content_translations` 테이블 + 21개 언어 enum (`SupportedLanguage`) 구현
+    - Admin 번역 CRUD API 7개 엔드포인트 (목록/생성UPSERT/벌크/상세/수정/상태변경/삭제)
+    - 기존 콘텐츠 API `?lang=` 확장: courses, lessons, videos, studies에 번역 fallback 주입
+    - Fallback 순서: 사용자 언어 → en → ko (서비스 계층 post-fetch merge)
+  - **Phase 1A QA 수정 (10개 이슈)**
+    - H-1: Course `GET /courses/{id}` 번역 지원 — handler→service 리팩토링, `?lang=` 파라미터 추가
+    - H-2: `ContentType::Video` 추가 — video title/subtitle 번역과 video_tag 번역 의미 분리, migration 추가
+    - M-1: `CourseListItem`에 `course_subtitle` 필드 추가 + 번역 주입
+    - M-2: Course DTO OpenAPI 스키마 등록 (`IntoParams`, `ToSchema` derive)
+    - M-3: UPSERT 정책 개선 — 텍스트 변경 시에만 `status='draft'` 리셋 (SQL CASE 조건)
+    - L-1~L-5: `CourseListQuery` derive 추가, Video DTO import 정리
+  - **프로덕션 QA 수정 (PROD-4 ~ PROD-8)**
+    - PROD-4: API 보안 헤더 미들웨어 추가 (`main.rs`) — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+    - PROD-5: Health `version` 필드 프로덕션 숨김 — `Option<String>` + `skip_serializing_if`, `APP_ENV=production`이면 None
+    - PROD-6: OpenAPI Swagger UI 프로덕션 비활성화 — `enable_docs` config에 따라 조건부 merge
+    - PROD-7: Guard 401/403 JSON 통일 — `ip_guard.rs`, `role_guard.rs` plain text → `AppError::Forbidden/Unauthorized` JSON 응답
+    - PROD-8: 404 Fallback 핸들러 추가 — 존재하지 않는 라우트에 JSON `AppError::NotFound` 반환
+  - **파일 변경 목록**
+    - `src/main.rs` — `security_headers` 미들웨어 함수 추가 + 레이어 적용
+    - `src/api/mod.rs` — 조건부 SwaggerUi merge + `fallback_404` 핸들러
+    - `src/api/health/handler.rs`, `dto.rs` — version `Option<String>`, 프로덕션 숨김
+    - `src/api/admin/ip_guard.rs` — `AppError::Forbidden` JSON 응답
+    - `src/api/admin/role_guard.rs` — `AppError::Unauthorized/Forbidden` JSON 응답
+    - `src/api/course/` — dto.rs, repo.rs, service.rs, handler.rs (H-1, M-1, M-2, L-1)
+    - `src/api/video/service.rs` — `ContentType::Video` 적용 (H-2)
+    - `src/api/video/dto.rs` — import 정리 (L-5)
+    - `src/types.rs` — `ContentType::Video` 추가 (H-2)
+    - `src/api/admin/translation/repo.rs` — UPSERT 조건부 status 리셋 (M-3)
+    - `src/docs.rs` — Course DTO 스키마 등록 (M-2)
+    - `migrations/20260210_i18n_add_video_content_type.sql` — 신규
 
 - **2026-02-09 — 이메일 인증 + 계정 복구 + Rate Limiting 강화**
   - **이메일 인증 시스템**

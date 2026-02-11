@@ -4,6 +4,8 @@ use sqlx::{types::Json, FromRow};
 use utoipa::ToSchema;
 use validator::Validate;
 
+use crate::types::SupportedLanguage;
+
 // =====================================================================
 // Request DTOs (요청)
 // =====================================================================
@@ -31,9 +33,12 @@ pub struct VideoListReq {
     pub q: Option<String>,          // 검색어
     pub tag: Option<String>,        // 태그 필터
     pub state: Option<String>,      // 상태 필터 (published, etc)
-    
+
     // 정렬 (latest, views, etc.)
     pub sort: Option<String>,
+
+    /// 번역 언어 (없으면 한국어 원본)
+    pub lang: Option<SupportedLanguage>,
 }
 
 fn default_page() -> u64 { 1 }

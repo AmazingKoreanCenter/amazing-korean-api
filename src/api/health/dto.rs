@@ -5,7 +5,8 @@ use utoipa::ToSchema;
 pub struct HealthRes {
     pub status: String,
     pub uptime_ms: u64,
-    pub version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

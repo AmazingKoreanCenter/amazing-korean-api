@@ -1,0 +1,199 @@
+use axum::extract::{Path, Query, State};
+use axum::http::StatusCode;
+use axum::Json;
+
+use crate::api::auth::extractor::AuthUser;
+use crate::error::{AppError, AppResult};
+use crate::state::AppState;
+
+use super::dto::{
+    AutoTranslateReq, AutoTranslateRes, TranslationBulkCreateReq, TranslationBulkCreateRes,
+    TranslationCreateReq, TranslationListReq, TranslationListRes, TranslationRes,
+    TranslationStatusReq, TranslationUpdateReq,
+};
+use super::service::TranslationService;
+
+#[utoipa::path(
+    get,
+    path = "/admin/translations",
+    tag = "admin_translation",
+    params(TranslationListReq),
+    responses(
+        (status = 200, description = "Translation list", body = TranslationListRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_list_translations(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Query(req): Query<TranslationListReq>,
+) -> AppResult<Json<TranslationListRes>> {
+    let res = TranslationService::list_translations(&st.db, req).await?;
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/translations",
+    tag = "admin_translation",
+    request_body(content = TranslationCreateReq, content_type = "application/json"),
+    responses(
+        (status = 201, description = "Translation created", body = TranslationRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_create_translation(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Json(req): Json<TranslationCreateReq>,
+) -> AppResult<(StatusCode, Json<TranslationRes>)> {
+    let res = TranslationService::create_translation(&st.db, req).await?;
+    Ok((StatusCode::CREATED, Json(res)))
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/translations/bulk",
+    tag = "admin_translation",
+    request_body(content = TranslationBulkCreateReq, content_type = "application/json"),
+    responses(
+        (status = 200, description = "Bulk creation result", body = TranslationBulkCreateRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_bulk_create_translations(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Json(req): Json<TranslationBulkCreateReq>,
+) -> AppResult<Json<TranslationBulkCreateRes>> {
+    let res = TranslationService::bulk_create_translations(&st.db, req).await?;
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    get,
+    path = "/admin/translations/{id}",
+    tag = "admin_translation",
+    params(("id" = i64, Path, description = "Translation ID")),
+    responses(
+        (status = 200, description = "Translation detail", body = TranslationRes),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_get_translation(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Path(id): Path<i64>,
+) -> AppResult<Json<TranslationRes>> {
+    let res = TranslationService::get_translation(&st.db, id).await?;
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    put,
+    path = "/admin/translations/{id}",
+    tag = "admin_translation",
+    params(("id" = i64, Path, description = "Translation ID")),
+    request_body(content = TranslationUpdateReq, content_type = "application/json"),
+    responses(
+        (status = 200, description = "Translation updated", body = TranslationRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_update_translation(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Path(id): Path<i64>,
+    Json(req): Json<TranslationUpdateReq>,
+) -> AppResult<Json<TranslationRes>> {
+    let res = TranslationService::update_translation(&st.db, id, req).await?;
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/admin/translations/{id}/status",
+    tag = "admin_translation",
+    params(("id" = i64, Path, description = "Translation ID")),
+    request_body(content = TranslationStatusReq, content_type = "application/json"),
+    responses(
+        (status = 200, description = "Translation status updated", body = TranslationRes),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_update_translation_status(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Path(id): Path<i64>,
+    Json(req): Json<TranslationStatusReq>,
+) -> AppResult<Json<TranslationRes>> {
+    let res = TranslationService::update_translation_status(&st.db, id, req).await?;
+    Ok(Json(res))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/admin/translations/{id}",
+    tag = "admin_translation",
+    params(("id" = i64, Path, description = "Translation ID")),
+    responses(
+        (status = 204, description = "Translation deleted"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 404, description = "Not found"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_delete_translation(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Path(id): Path<i64>,
+) -> AppResult<StatusCode> {
+    TranslationService::delete_translation(&st.db, id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    post,
+    path = "/admin/translations/auto",
+    tag = "admin_translation",
+    request_body(content = AutoTranslateReq, content_type = "application/json"),
+    responses(
+        (status = 200, description = "Auto translation result", body = AutoTranslateRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 500, description = "Translation provider not configured"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_auto_translate(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Json(req): Json<AutoTranslateReq>,
+) -> AppResult<Json<AutoTranslateRes>> {
+    let translator = st.translator.as_ref().ok_or_else(|| {
+        AppError::External("Translation provider not configured. Set TRANSLATE_PROVIDER=google.".to_string())
+    })?;
+    let res = TranslationService::auto_translate(&st.db, translator.as_ref(), req).await?;
+    Ok(Json(res))
+}

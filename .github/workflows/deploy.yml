@@ -82,6 +82,9 @@ jobs:
             ADMIN_IP_ALLOWLIST=
             EMAIL_PROVIDER=resend
             RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            TRANSLATE_PROVIDER=${{ secrets.TRANSLATE_PROVIDER }}
+            GOOGLE_TRANSLATE_API_KEY=${{ secrets.GOOGLE_TRANSLATE_API_KEY }}
+            GOOGLE_TRANSLATE_PROJECT_ID=${{ secrets.GOOGLE_TRANSLATE_PROJECT_ID }}
             EOF
 
             # Restart containers

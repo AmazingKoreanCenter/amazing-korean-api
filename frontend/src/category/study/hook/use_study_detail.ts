@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { ApiError } from "@/api/client";
+import { getContentLang } from "@/utils/content_lang";
 import type { StudyDetailReq } from "@/category/study/types";
 
 import { getStudyDetail } from "../study_api";
@@ -21,10 +22,11 @@ const getErrorMessage = (error: unknown) => {
 
 export const useStudyDetail = (studyId: number | undefined, params: StudyDetailReq = {}) => {
   const { page } = params;
+  const lang = getContentLang();
 
   const query = useQuery({
-    queryKey: ["study", studyId, { page }],
-    queryFn: () => getStudyDetail(studyId!, params),
+    queryKey: ["study", studyId, { page, lang }],
+    queryFn: () => getStudyDetail(studyId!, params, lang),
     enabled: typeof studyId === "number" && Number.isFinite(studyId),
     placeholderData: keepPreviousData,
   });

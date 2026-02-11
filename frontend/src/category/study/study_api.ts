@@ -17,15 +17,15 @@ const sanitizeParams = (params: StudyListReq) => {
   ) as StudyListReq;
 };
 
-export const getStudyList = (params: StudyListReq = {}) => {
+export const getStudyList = (params: StudyListReq = {}, lang?: string) => {
   return request<StudyListRes>("/studies", {
-    params: sanitizeParams(params),
+    params: sanitizeParams({ ...params, lang } as StudyListReq),
   });
 };
 
-export const getStudyDetail = (studyId: number, params: StudyDetailReq = {}) => {
+export const getStudyDetail = (studyId: number, params: StudyDetailReq = {}, lang?: string) => {
   return request<StudyDetailRes>(`/studies/${studyId}`, {
-    params: sanitizeParams(params as StudyListReq),
+    params: sanitizeParams({ ...params, lang } as StudyListReq),
   });
 };
 

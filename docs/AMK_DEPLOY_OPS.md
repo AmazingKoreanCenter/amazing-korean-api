@@ -130,9 +130,17 @@ FRONTEND_URL=https://amazingkorean.net
 EMAIL_PROVIDER=resend              # resend | none (프로덕션에서 none 사용 시 서버 부팅 실패)
 RESEND_API_KEY=re_xxx              # 필수 (Resend 대시보드에서 발급)
 
+# ─── Translation (Google Cloud Translation v2 Basic) ───
+TRANSLATE_PROVIDER=google          # google | none (프로덕션에서도 none 허용 — 번역은 선택적 기능)
+GOOGLE_TRANSLATE_API_KEY=<api-key> # Google Cloud Translation API Key
+GOOGLE_TRANSLATE_PROJECT_ID=<id>   # Google Cloud Project ID
+
 # ─── Rate Limiting (이메일 발송) ───
 # RATE_LIMIT_EMAIL_WINDOW_SEC=18000  # 기본: 18000초 (5시간)
 # RATE_LIMIT_EMAIL_MAX=5             # 기본: 5회/윈도우
+
+# ─── Swagger UI ───
+# ENABLE_DOCS=0                       # 기본: 0 (비활성화). 1로 설정 시 /docs Swagger UI 노출
 
 # ─── Admin ───
 # ADMIN_IP_ALLOWLIST=1.2.3.4,10.0.0.0/8
@@ -401,7 +409,7 @@ docker stats
 | `400: redirect_uri_mismatch` (Google OAuth) | redirect URI 불일치 | `.env.prod` GOOGLE_REDIRECT_URI + Google Cloud Console 승인 URI 모두 `https://api.amazingkorean.net/auth/google/callback`으로 설정 |
 | INSERT 시 컬럼 순서 에러 | 통합 마이그레이션과 pg_dump 컬럼 순서 불일치 | INSERT문에 명시적 컬럼명 추가 (`INSERT INTO table (col1, col2, ...) VALUES (...)`) |
 
-##### 9. Cloudflare SSL 설정 (Let's Encrypt 대안)
+##### 9. Cloudflare SSL & 보안 설정
 
 Cloudflare 프록시 사용 시 Let's Encrypt 없이 SSL 적용 가능:
 
@@ -410,6 +418,31 @@ Cloudflare 프록시 사용 시 Let's Encrypt 없이 SSL 적용 가능:
 3. **SSL/TLS** → **Overview** → 모드를 **Flexible**로 설정
 
 > **참고**: Flexible 모드는 Cloudflare ↔ 사용자 간 HTTPS, Cloudflare ↔ EC2 간 HTTP를 사용합니다.
+
+**HTTPS 강제 & HSTS (2026-02-10 적용)**
+
+| 설정 | 위치 | 값 |
+|------|------|-----|
+| Always Use HTTPS | SSL/TLS → Edge Certificates | **ON** — `http://` 요청을 301 → `https://`로 리다이렉트 |
+| HSTS | SSL/TLS → Edge Certificates → HSTS | **ON** |
+| HSTS Max Age | 〃 | `6 months` (15552000초) |
+| Include subdomains | 〃 | **ON** (`api.amazingkorean.net` 포함) |
+| No-Sniff | 〃 | **ON** (`X-Content-Type-Options: nosniff` 추가) |
+| Preload | 〃 | OFF (향후 검토) |
+
+> **주의**: HSTS를 활성화하면 브라우저가 HTTPS를 강제합니다. SSL 인증서가 만료되면 사이트 접근이 불가능해지므로 인증서 갱신에 주의하세요.
+
+**백엔드 보안 강화 (2026-02-10 적용)**
+
+코드 레벨에서 적용된 프로덕션 보안 설정:
+
+| ID | 변경 사항 | 파일 | 설명 |
+|---|---|---|---|
+| PROD-4 | 보안 헤더 미들웨어 | `src/main.rs` | 모든 응답에 `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, `Permissions-Policy` 헤더 추가 |
+| PROD-5 | 버전 정보 숨김 | `src/api/health/handler.rs` | `APP_ENV=production`일 때 `/healthz` 응답에서 `version` 필드 제거 |
+| PROD-6 | Swagger UI 조건부 노출 | `src/api/mod.rs` | `ENABLE_DOCS=1`일 때만 `/docs` 경로 활성화 (기본: 비활성화) |
+| PROD-7 | Guard 401/403 JSON 통일 | `src/api/admin/ip_guard.rs`, `src/api/admin/role_guard.rs` | IP/역할 Guard 거부 시 text/plain 대신 `AppError` JSON 응답 반환 |
+| PROD-8 | 404 JSON 응답 | `src/api/mod.rs` | 존재하지 않는 라우트 요청 시 text/plain 대신 JSON `{"error":{"code":"NOT_FOUND",...}}` 반환 |
 
 ##### 10. 로컬 → EC2 데이터 이전
 
@@ -481,6 +514,8 @@ GitHub repo → **Settings** → **Secrets and variables** → **Actions**에서
 | `EC2_SSH_KEY` | .pem 파일 내용 전체 | `-----BEGIN` ~ `END-----` |
 | `POSTGRES_PASSWORD` | DB 비밀번호 | |
 | `JWT_SECRET` | JWT 시크릿 키 | |
+| `GOOGLE_TRANSLATE_API_KEY` | Google Cloud Translation API Key | 선택 (TRANSLATE_PROVIDER=google일 때 필수) |
+| `GOOGLE_TRANSLATE_PROJECT_ID` | Google Cloud Project ID | 선택 (TRANSLATE_PROVIDER=google일 때 필수) |
 
 ##### Workflow 파일 (.github/workflows/deploy.yml)
 
@@ -644,6 +679,9 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
     2.  **인증**: 로그인(토큰 발급) → 새로고침 시 로그인 유지 확인.
     3.  **영상**: 비디오 목록 로딩 → 상세 페이지 진입 → 플레이어 재생 확인.
     4.  **라우팅**: 잘못된 URL 입력 시 404 페이지(또는 리다이렉트) 동작 확인.
+    5.  **보안 헤더**: `curl -I https://api.amazingkorean.net/healthz`로 `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security` 확인.
+    6.  **404 JSON**: `curl https://api.amazingkorean.net/nonexistent`로 JSON `{"error":{"code":"NOT_FOUND",...}}` 응답 확인.
+    7.  **Swagger 비활성화**: `curl https://api.amazingkorean.net/docs`가 404 JSON 반환 확인 (`ENABLE_DOCS=0` 시).
 
 ## 8. 향후 확장 계획 (Roadmap)
 

@@ -82,6 +82,17 @@ import type {
 } from "./types";
 
 import type {
+  TranslationListReq,
+  TranslationCreateReq,
+  TranslationUpdateReq,
+  TranslationStatusUpdateReq,
+  TranslationRes,
+  TranslationListRes,
+  AutoTranslateReq,
+  AutoTranslateRes,
+} from "./translation/types";
+
+import type {
   LessonListReq,
   AdminLessonListRes,
   AdminLessonRes,
@@ -594,6 +605,50 @@ export const verifyAdminInvite = (code: string) =>
 // 9-3: 관리자 계정 생성 (POST /admin/upgrade/accept)
 export const acceptAdminInvite = (data: UpgradeAcceptReq) =>
   request<UpgradeAcceptRes>("/admin/upgrade/accept", {
+    method: "POST",
+    data,
+  });
+
+// ==========================================
+// 10. Admin Translations API
+// ==========================================
+
+export const getAdminTranslations = (params: TranslationListReq) =>
+  request<TranslationListRes>("/admin/translations", {
+    method: "GET",
+    params,
+  });
+
+export const getAdminTranslation = (id: number) =>
+  request<TranslationRes>(`/admin/translations/${id}`, {
+    method: "GET",
+  });
+
+export const createAdminTranslation = (data: TranslationCreateReq) =>
+  request<TranslationRes>("/admin/translations", {
+    method: "POST",
+    data,
+  });
+
+export const updateAdminTranslation = (id: number, data: TranslationUpdateReq) =>
+  request<TranslationRes>(`/admin/translations/${id}`, {
+    method: "PUT",
+    data,
+  });
+
+export const updateAdminTranslationStatus = (id: number, data: TranslationStatusUpdateReq) =>
+  request<TranslationRes>(`/admin/translations/${id}/status`, {
+    method: "PATCH",
+    data,
+  });
+
+export const deleteAdminTranslation = (id: number) =>
+  request<void>(`/admin/translations/${id}`, {
+    method: "DELETE",
+  });
+
+export const autoTranslateContent = (data: AutoTranslateReq) =>
+  request<AutoTranslateRes>("/admin/translations/auto", {
     method: "POST",
     data,
   });

@@ -7,12 +7,13 @@
 use axum::{
     body::Body,
     extract::State,
-    http::{header::AUTHORIZATION, Request, StatusCode},
+    http::{header::AUTHORIZATION, Request},
     middleware::Next,
     response::{IntoResponse, Response},
 };
 
 use crate::api::auth::jwt;
+use crate::error::AppError;
 use crate::state::AppState;
 use crate::types::UserAuth;
 
@@ -41,10 +42,7 @@ pub async fn admin_role_guard(
     let token = match extract_bearer_token(&request) {
         Some(t) => t,
         None => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                "Missing or invalid Authorization header",
-            )
+            return AppError::Unauthorized("Missing or invalid Authorization header".into())
                 .into_response();
         }
     };
@@ -54,7 +52,7 @@ pub async fn admin_role_guard(
         Ok(c) => c,
         Err(e) => {
             tracing::warn!("Admin role guard: JWT decode failed: {}", e);
-            return (StatusCode::UNAUTHORIZED, "Invalid token").into_response();
+            return AppError::Unauthorized("Invalid token".into()).into_response();
         }
     };
 
@@ -70,11 +68,10 @@ pub async fn admin_role_guard(
                 role = ?claims.role,
                 "Admin access denied: Manager role not allowed (class feature not implemented yet)"
             );
-            (
-                StatusCode::FORBIDDEN,
-                "Access denied: Manager role requires class-based access (coming soon)",
+            AppError::Forbidden(
+                "Access denied: Manager role requires class-based access (coming soon)".into(),
             )
-                .into_response()
+            .into_response()
         }
         UserAuth::Learner => {
             tracing::warn!(
@@ -82,11 +79,10 @@ pub async fn admin_role_guard(
                 role = ?claims.role,
                 "Admin access denied: Learner role not allowed"
             );
-            (
-                StatusCode::FORBIDDEN,
-                "Access denied: Insufficient permissions for admin access",
+            AppError::Forbidden(
+                "Access denied: Insufficient permissions for admin access".into(),
             )
-                .into_response()
+            .into_response()
         }
     }
 }

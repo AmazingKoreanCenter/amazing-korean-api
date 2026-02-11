@@ -1,10 +1,11 @@
 use redis::AsyncCommands;
 use tracing::warn;
 
+use crate::api::admin::translation::repo::TranslationRepo;
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
-use crate::types::{StudyProgram, StudyTaskKind, StudyTaskLogAction};
+use crate::types::{ContentType, StudyProgram, StudyTaskKind, StudyTaskLogAction};
 
 // [Strict Mode] Import DTOs and Repo directly from the verified files
 use super::dto::{
@@ -64,7 +65,7 @@ impl StudyService {
             }
         };
 
-        let (list, total_count) =
+        let (mut list, total_count) =
             StudyRepo::find_open_studies(&st.db, page, per_page, program, sort).await?;
 
         let per_page_i64 = i64::from(per_page);
@@ -76,6 +77,28 @@ impl StudyService {
 
         if total_pages_i64 > u32::MAX as i64 {
             return Err(AppError::Internal("total_pages overflow".into()));
+        }
+
+        // 번역 주입
+        if let Some(lang) = req.lang {
+            let ids: Vec<i64> = list.iter().map(|s| i64::from(s.study_id)).collect();
+            let translations = TranslationRepo::find_translations_for_contents(
+                &st.db,
+                ContentType::Study,
+                &ids,
+                lang,
+            )
+            .await?;
+
+            for item in list.iter_mut() {
+                let id = i64::from(item.study_id);
+                if let Some(t) = translations.get(&(id, "title".to_string())) {
+                    item.title = Some(t.text.clone());
+                }
+                if let Some(t) = translations.get(&(id, "subtitle".to_string())) {
+                    item.subtitle = Some(t.text.clone());
+                }
+            }
         }
 
         Ok(StudyListResp {
@@ -134,12 +157,34 @@ impl StudyService {
             return Err(AppError::Internal("total_pages overflow".into()));
         }
 
+        // 번역 주입
+        let mut title = study.title;
+        let mut subtitle = study.subtitle;
+
+        if let Some(lang) = req.lang {
+            let translations = TranslationRepo::find_translations_for_contents(
+                &st.db,
+                ContentType::Study,
+                &[i64::from(study.study_id)],
+                lang,
+            )
+            .await?;
+
+            let id = i64::from(study.study_id);
+            if let Some(t) = translations.get(&(id, "title".to_string())) {
+                title = Some(t.text.clone());
+            }
+            if let Some(t) = translations.get(&(id, "subtitle".to_string())) {
+                subtitle = Some(t.text.clone());
+            }
+        }
+
         Ok(StudyDetailRes {
             study_id: study.study_id,
             study_idx: study.study_idx,
             program: study.program,
-            title: study.title,
-            subtitle: study.subtitle,
+            title,
+            subtitle,
             state: study.state,
             tasks,
             meta: StudyListMeta {

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { ApiError } from "@/api/client";
+import { getContentLang } from "@/utils/content_lang";
 
 import { getVideoDetail } from "../video_api";
 
@@ -19,9 +20,11 @@ const getErrorMessage = (error: unknown) => {
 };
 
 export const useVideoDetail = (id: number) => {
+  const lang = getContentLang();
+
   const query = useQuery({
-    queryKey: ["videos", "detail", id],
-    queryFn: () => getVideoDetail(id),
+    queryKey: ["videos", "detail", id, lang],
+    queryFn: () => getVideoDetail(id, lang),
     enabled: Number.isFinite(id),
     retry: (failureCount, error) => {
       if (error instanceof ApiError && error.status === 404) {

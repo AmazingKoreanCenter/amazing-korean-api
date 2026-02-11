@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { ApiError } from "@/api/client";
+import { getContentLang } from "@/utils/content_lang";
 import type { LessonListReq } from "@/category/lesson/types";
 
 import { getLessonList } from "../lesson_api";
@@ -21,10 +22,11 @@ const getErrorMessage = (error: unknown) => {
 
 export const useLessonList = (params: LessonListReq) => {
   const { page, sort } = params;
+  const lang = getContentLang();
 
   const query = useQuery({
-    queryKey: ["lessons", { page, sort }],
-    queryFn: () => getLessonList(params),
+    queryKey: ["lessons", { page, sort, lang }],
+    queryFn: () => getLessonList(params, lang),
     placeholderData: keepPreviousData,
   });
 

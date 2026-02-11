@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
-import { changeLanguage } from "@/i18n";
+import { changeLanguage, SUPPORTED_LANGUAGES } from "@/i18n";
 import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,14 +46,6 @@ const defaultSettings: SettingsForm = {
   user_set_note_push: false,
   user_set_timezone: getDefaultTimezone(),
 };
-
-const languageOptions: Array<{
-  value: NonNullable<SettingsForm["user_set_language"]>;
-  label: string;
-}> = [
-  { value: "ko", label: "Korean" },
-  { value: "en", label: "English" },
-];
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
@@ -100,10 +92,10 @@ export function SettingsPage() {
     }
   }, [data, form, isNotFound]);
 
-  // 헤더 언어 토글 변경 시 form에 즉시 반영
+  // 헤더 언어 드롭다운 변경 시 form에 즉시 반영
   useEffect(() => {
     const lang = i18n.language;
-    if ((lang === "ko" || lang === "en") && form.getValues("user_set_language") !== lang) {
+    if (form.getValues("user_set_language") !== lang) {
       form.setValue("user_set_language", lang, { shouldDirty: false });
     }
   }, [i18n.language, form]);
@@ -235,10 +227,11 @@ export function SettingsPage() {
                         <SelectValue placeholder={t("user.languageDescription")} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {languageOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                      <SelectContent className="max-h-60">
+                        {SUPPORTED_LANGUAGES.map((lang) => (
+                          <SelectItem key={lang.code} value={lang.code}>
+                            <span className="emoji-flag mr-2">{lang.flag}</span>
+                            {lang.nativeName} ({lang.name})
                           </SelectItem>
                         ))}
                       </SelectContent>

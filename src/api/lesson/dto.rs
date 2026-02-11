@@ -2,13 +2,15 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
-use crate::types::{LessonAccess, LessonState};
+use crate::types::{LessonAccess, LessonState, SupportedLanguage};
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
 pub struct LessonListReq {
     pub page: Option<i64>,
     pub per_page: Option<i64>,
     pub sort: Option<String>,
+    /// 번역 언어 (없으면 한국어 원본, 예: en, ja, zh-CN)
+    pub lang: Option<SupportedLanguage>,
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]
@@ -40,6 +42,8 @@ pub struct LessonListRes {
 pub struct LessonDetailReq {
     pub page: Option<i64>,
     pub per_page: Option<i64>,
+    /// 번역 언어 (없으면 한국어 원본)
+    pub lang: Option<SupportedLanguage>,
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]

@@ -7,6 +7,9 @@ export default {
 ],
 theme: {
   extend: {
+    fontFamily: {
+      sans: ['"Pretendard Variable"', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'Helvetica Neue', 'sans-serif'],
+    },
     colors: {
       background: 'hsl(var(--background))',
       foreground: 'hsl(var(--foreground))',

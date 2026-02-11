@@ -92,7 +92,7 @@ export type SettingsRes = z.infer<typeof settingsResSchema>;
 
 // [Settings Update] - 환경 설정 수정 (POST) - 어제 수정 완료된 부분 ✅
 export const settingsUpdateReqSchema = z.object({
-  user_set_language: z.string().min(2).max(2).optional(),
+  user_set_language: z.string().min(2).max(5).optional(),
   user_set_timezone: z.string().min(1).optional(),
   user_set_note_email: z.boolean().optional(),
   user_set_note_push: z.boolean().optional(),

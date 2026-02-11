@@ -14,14 +14,16 @@ const sanitizeParams = <T extends Record<string, unknown>>(params: T) => {
   ) as T;
 };
 
-export const getLessonList = (params: LessonListReq = {}) => {
+export const getLessonList = (params: LessonListReq = {}, lang?: string) => {
   return request<LessonListRes>("/lessons", {
-    params: sanitizeParams(params),
+    params: sanitizeParams({ ...params, lang }),
   });
 };
 
-export const getLessonDetail = (lessonId: number) => {
-  return request<LessonDetailRes>(`/lessons/${lessonId}`);
+export const getLessonDetail = (lessonId: number, lang?: string) => {
+  return request<LessonDetailRes>(`/lessons/${lessonId}`, {
+    params: lang ? { lang } : undefined,
+  });
 };
 
 export const getLessonItems = (lessonId: number, params: { page?: number; per_page?: number } = {}) => {

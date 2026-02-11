@@ -275,25 +275,31 @@ impl UserService {
 
         let settings = repo::find_users_setting(&st.db, user_id).await?;
 
-        Ok(settings.unwrap_or_else(|| SettingsRes {
+        let mut result = settings.unwrap_or_else(|| SettingsRes {
             user_set_language: "ko".to_string(),
             user_set_timezone: "UTC".to_string(),
             user_set_note_email: false,
             user_set_note_push: false,
             updated_at: chrono::Utc::now(),
-        }))
+        });
+        // DB enum("zh_cn") → 프론트엔드("zh-CN") 변환
+        result.user_set_language = crate::types::UserSetLanguage::db_to_frontend(&result.user_set_language);
+        Ok(result)
     }
 
-    pub async fn update_settings(st: &AppState, user_id: i64, req: SettingsUpdateReq) -> AppResult<SettingsRes> {
+    pub async fn update_settings(st: &AppState, user_id: i64, mut req: SettingsUpdateReq) -> AppResult<SettingsRes> {
         req.validate().map_err(|e| AppError::BadRequest(e.to_string()))?;
 
         let user = repo::find_user(&st.db, user_id).await?.ok_or(AppError::NotFound)?;
         if !user.user_state { return Err(AppError::Forbidden("Forbidden".to_string())); }
 
-        if let Some(lang) = &req.user_set_language {
-            if !["en", "ko"].contains(&lang.as_str()) {
-                return Err(AppError::BadRequest("Invalid language".into()));
-            }
+        if let Some(lang) = &mut req.user_set_language {
+            serde_json::from_value::<crate::types::UserSetLanguage>(
+                serde_json::Value::String(lang.clone()),
+            )
+            .map_err(|_| AppError::BadRequest("Invalid language".into()))?;
+            // 프론트엔드("zh-CN") → DB enum("zh_cn") 변환
+            *lang = crate::types::UserSetLanguage::frontend_to_db(lang);
         }
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
@@ -304,6 +310,9 @@ impl UserService {
 
         tx.commit().await?;
 
-        Ok(settings)
+        // DB enum("zh_cn") → 프론트엔드("zh-CN") 변환
+        let mut result = settings;
+        result.user_set_language = crate::types::UserSetLanguage::db_to_frontend(&result.user_set_language);
+        Ok(result)
     }
 }

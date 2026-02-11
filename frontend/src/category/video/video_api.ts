@@ -7,14 +7,16 @@ import type {
   VideoProgressRes,
 } from "@/category/video/types";
 
-export const getVideoList = (params: VideoListReq = {}) => {
+export const getVideoList = (params: VideoListReq = {}, lang?: string) => {
   return request<VideoListRes>("/videos", {
-    params,
+    params: { ...params, lang },
   });
 };
 
-export const getVideoDetail = (id: number) => {
-  return request<VideoDetail>(`/videos/${id}`);
+export const getVideoDetail = (id: number, lang?: string) => {
+  return request<VideoDetail>(`/videos/${id}`, {
+    params: lang ? { lang } : undefined,
+  });
 };
 
 export const getVideoProgress = (videoId: number) => {

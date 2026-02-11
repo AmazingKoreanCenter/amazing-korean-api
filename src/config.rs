@@ -50,6 +50,10 @@ pub struct Config {
     // Password Reset (비밀번호 재설정)
     pub verification_code_ttl_sec: i64,   // 인증코드 유효시간 (초, 기본 600 = 10분)
     pub reset_token_ttl_sec: i64,         // reset_token 유효시간 (초, 기본 1800 = 30분)
+    // Translation Provider
+    pub translate_provider: String,              // "google" | "none" (기본: "none")
+    pub google_translate_api_key: Option<String>,  // GCP Translation API 키
+    pub google_translate_project_id: Option<String>, // GCP 프로젝트 ID
     // Field Encryption (AES-256-GCM + HMAC-SHA256 Blind Index)
     pub app_env: String,                         // "production" | "development" (기본)
     pub encryption_ring: KeyRing,                // 다중 키 버전 (ENCRYPTION_KEY_V{n})
@@ -189,6 +193,32 @@ impl Config {
             .parse::<i64>()
             .expect("RESET_TOKEN_TTL_SEC must be a number");
 
+        // Translation Provider: "google" | "none"
+        let translate_provider = env::var("TRANSLATE_PROVIDER")
+            .unwrap_or_else(|_| "none".into())
+            .to_lowercase();
+        let google_translate_api_key = env::var("GOOGLE_TRANSLATE_API_KEY")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let google_translate_project_id = env::var("GOOGLE_TRANSLATE_PROJECT_ID")
+            .ok()
+            .filter(|s| !s.is_empty());
+
+        // Translation provider 검증 (google 선택 시 필수 값 확인)
+        if translate_provider == "google" {
+            if google_translate_api_key.is_none() {
+                panic!("GOOGLE_TRANSLATE_API_KEY must be set when TRANSLATE_PROVIDER=google");
+            }
+            if google_translate_project_id.is_none() {
+                panic!("GOOGLE_TRANSLATE_PROJECT_ID must be set when TRANSLATE_PROVIDER=google");
+            }
+        } else if translate_provider != "none" {
+            panic!(
+                "Unknown TRANSLATE_PROVIDER '{}'. Must be 'google' or 'none'.",
+                translate_provider
+            );
+        }
+
         // Field Encryption (AES-256-GCM + HMAC-SHA256)
         let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".into());
 
@@ -313,6 +343,9 @@ impl Config {
             email_from_address,
             verification_code_ttl_sec,
             reset_token_ttl_sec,
+            translate_provider,
+            google_translate_api_key,
+            google_translate_project_id,
             app_env,
             encryption_ring,
             hmac_key,
@@ -458,6 +491,9 @@ impl fmt::Debug for Config {
             .field("email_from_address", &self.email_from_address)
             .field("verification_code_ttl_sec", &self.verification_code_ttl_sec)
             .field("reset_token_ttl_sec", &self.reset_token_ttl_sec)
+            .field("translate_provider", &self.translate_provider)
+            .field("google_translate_api_key", &self.google_translate_api_key.as_ref().map(|_| "***"))
+            .field("google_translate_project_id", &self.google_translate_project_id)
             .field("app_env", &self.app_env)
             .field("encryption_ring", &self.encryption_ring)
             .field("hmac_key", &"***")
