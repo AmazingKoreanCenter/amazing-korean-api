@@ -11,7 +11,8 @@ use super::dto::{
     ContentRecordsRes, SourceFieldsReq, SourceFieldsRes, TranslationBulkCreateReq,
     TranslationBulkCreateRes, TranslationBulkItemResult, TranslationCreateReq,
     TranslationListMeta, TranslationListReq, TranslationListRes, TranslationRes,
-    TranslationSearchReq, TranslationSearchRes, TranslationStatusReq, TranslationUpdateReq,
+    TranslationSearchReq, TranslationSearchRes, TranslationStatsRes, TranslationStatusReq,
+    TranslationUpdateReq,
 };
 use super::repo::TranslationRepo;
 
@@ -217,6 +218,16 @@ impl TranslationService {
     ) -> AppResult<TranslationSearchRes> {
         let items = TranslationRepo::search_translations(pool, req.lang).await?;
         Ok(TranslationSearchRes { items })
+    }
+
+    /// 번역 통계 (content_type × lang × status 별 집계)
+    pub async fn get_translation_stats(pool: &PgPool) -> AppResult<TranslationStatsRes> {
+        let items = TranslationRepo::find_translation_stats(pool).await?;
+        let total_translations: i64 = items.iter().map(|i| i.count).sum();
+        Ok(TranslationStatsRes {
+            items,
+            total_translations,
+        })
     }
 
     // =========================================================================

@@ -135,6 +135,11 @@ impl Modify for SecurityAddon {
         crate::api::admin::translation::handler::admin_update_translation_status,
         crate::api::admin::translation::handler::admin_delete_translation,
         crate::api::admin::translation::handler::admin_auto_translate,
+        crate::api::admin::translation::handler::admin_list_content_records,
+        crate::api::admin::translation::handler::admin_get_source_fields,
+        crate::api::admin::translation::handler::admin_auto_translate_bulk,
+        crate::api::admin::translation::handler::admin_search_translations,
+        crate::api::admin::translation::handler::admin_get_translation_stats,
 
         // admin - upgrade (관리자 초대)
         crate::api::admin::upgrade::handler::create_invite,
@@ -357,6 +362,21 @@ impl Modify for SecurityAddon {
             crate::api::admin::translation::dto::AutoTranslateReq,
             crate::api::admin::translation::dto::AutoTranslateRes,
             crate::api::admin::translation::dto::AutoTranslateItemResult,
+            crate::api::admin::translation::dto::ContentRecordsReq,
+            crate::api::admin::translation::dto::ContentRecordItem,
+            crate::api::admin::translation::dto::ContentRecordsRes,
+            crate::api::admin::translation::dto::SourceFieldsReq,
+            crate::api::admin::translation::dto::SourceFieldItem,
+            crate::api::admin::translation::dto::SourceFieldsRes,
+            crate::api::admin::translation::dto::AutoTranslateBulkItem,
+            crate::api::admin::translation::dto::AutoTranslateBulkReq,
+            crate::api::admin::translation::dto::AutoTranslateBulkItemResult,
+            crate::api::admin::translation::dto::AutoTranslateBulkRes,
+            crate::api::admin::translation::dto::TranslationSearchReq,
+            crate::api::admin::translation::dto::TranslationSearchItem,
+            crate::api::admin::translation::dto::TranslationSearchRes,
+            crate::api::admin::translation::dto::TranslationStatItem,
+            crate::api::admin::translation::dto::TranslationStatsRes,
 
             // admin - video stats dto
             crate::api::admin::video::stats::dto::DailyStatsQuery,

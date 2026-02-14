@@ -609,6 +609,28 @@ impl TranslationRepo {
     }
 
     // =========================================================================
+    // 번역 통계 (Translation Stats)
+    // =========================================================================
+
+    /// content_type × lang × status 별 집계 통계
+    pub async fn find_translation_stats(
+        pool: &PgPool,
+    ) -> AppResult<Vec<super::dto::TranslationStatItem>> {
+        let rows = sqlx::query_as::<_, super::dto::TranslationStatItem>(
+            r#"
+            SELECT content_type, lang, status, COUNT(*) AS count
+            FROM content_translations
+            GROUP BY content_type, lang, status
+            ORDER BY content_type, lang, status
+            "#,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    // =========================================================================
     // 공용 번역 조회 (기존 도메인 API에서 fallback 패턴으로 사용)
     // =========================================================================
 

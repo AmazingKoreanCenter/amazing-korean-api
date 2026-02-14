@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Languages } from "lucide-react";
+import { Plus, Languages, BarChart3 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
-import { SUPPORTED_LANGUAGES } from "@/i18n";
+import { SUPPORTED_LANGUAGES, TIER_BREAK_INDICES } from "@/i18n";
 import { useTranslationList } from "../hook/use_translations";
 import {
   useUpdateTranslationStatus,
@@ -168,12 +168,20 @@ export function AdminTranslationsPage() {
             </span>
           )}
         </div>
-        <Button asChild>
-          <Link to="/admin/translations/new">
-            <Plus className="w-4 h-4 mr-2" />
-            New Translation
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/admin/translations/dashboard">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Dashboard
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link to="/admin/translations/new">
+              <Plus className="w-4 h-4 mr-2" />
+              New Translation
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -226,11 +234,20 @@ export function AdminTranslationsPage() {
           </SelectTrigger>
           <SelectContent className="max-h-60">
             <SelectItem value="all">All Languages</SelectItem>
-            {LANG_OPTIONS.map((lang) => (
-              <SelectItem key={lang.code} value={lang.code}>
-                {lang.nativeName} ({lang.code})
-              </SelectItem>
-            ))}
+            {LANG_OPTIONS.map((lang, idx) => {
+              // Tier 구분선 (TIER_BREAK_INDICES는 ko 포함 인덱스이므로 -1 보정)
+              const showSeparator = TIER_BREAK_INDICES.some((bi) => idx === bi - 1);
+              return (
+                <div key={lang.code}>
+                  {showSeparator && (
+                    <div className="my-1 border-t border-gray-200" />
+                  )}
+                  <SelectItem value={lang.code}>
+                    {lang.flag} {lang.nativeName} ({lang.code})
+                  </SelectItem>
+                </div>
+              );
+            })}
           </SelectContent>
         </Select>
 
