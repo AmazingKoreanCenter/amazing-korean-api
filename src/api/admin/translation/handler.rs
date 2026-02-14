@@ -184,7 +184,7 @@ pub async fn admin_delete_translation(
         (status = 400, description = "Bad request"),
         (status = 401, description = "Unauthorized"),
         (status = 403, description = "Forbidden"),
-        (status = 500, description = "Translation provider not configured"),
+        (status = 502, description = "Translation provider not configured"),
     ),
     security(("bearerAuth" = []))
 )]
@@ -266,7 +266,7 @@ pub async fn admin_get_source_fields(
         (status = 400, description = "Bad request"),
         (status = 401, description = "Unauthorized"),
         (status = 403, description = "Forbidden"),
-        (status = 500, description = "Translation provider not configured"),
+        (status = 502, description = "Translation provider not configured"),
     ),
     security(("bearerAuth" = []))
 )]

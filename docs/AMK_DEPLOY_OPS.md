@@ -49,7 +49,7 @@
 |------------|------|-----|-----|
 | CNAME | amazingkorean.net | amazing-korean-api.pages.dev | 300 |
 | CNAME | www | amazing-korean-api.pages.dev | 300 |
-| A | api | 3.39.234.157 | 300 |
+| A | api | `<EC2_PUBLIC_IP>` | 300 |
 
 ##### 서비스 URL
 
@@ -81,7 +81,7 @@
 - **EC2 인스턴스**: Amazon Linux 2023 또는 Ubuntu 22.04 LTS
 - **Instance Type**: t2.micro (1 vCPU, 1GB) - 빌드 시 t3.medium 권장
 - **Storage**: **최소 20GB gp3** (Rust 빌드에 필요, 8GB는 부족)
-- **Public IP**: `43.200.180.110` (인스턴스 중지/시작 시 변경됨)
+- **Public IP**: `<EC2_PUBLIC_IP>` (인스턴스 중지/시작 시 변경됨)
 - **도메인**: `api.amazingkorean.net`
 - **배포 방식**: Docker Compose
 - **Nginx 설정**: 리버스 프록시 (80/443 → API:3000)
@@ -510,7 +510,7 @@ GitHub repo → **Settings** → **Secrets and variables** → **Actions**에서
 |-------------|-----|------|
 | `DOCKERHUB_USERNAME` | Docker Hub 사용자명 | |
 | `DOCKERHUB_TOKEN` | Docker Hub Access Token | Read & Write 권한 |
-| `EC2_HOST` | EC2 Public IP | 예: `43.200.180.110` |
+| `EC2_HOST` | EC2 Public IP | 예: `<EC2_PUBLIC_IP>` |
 | `EC2_SSH_KEY` | .pem 파일 내용 전체 | `-----BEGIN` ~ `END-----` |
 | `POSTGRES_PASSWORD` | DB 비밀번호 | |
 | `JWT_SECRET` | JWT 시크릿 키 | |

@@ -26,9 +26,9 @@ export const translationStatusSchema = z.enum([
 ]);
 export type TranslationStatus = z.infer<typeof translationStatusSchema>;
 
-// SupportedLanguage enum (백엔드 21개 언어, ko 제외 — ko는 원본)
+// SupportedLanguage enum (백엔드 21개 언어 + ko)
 export const supportedLanguageSchema = z.enum([
-  "en", "ja", "zh-CN", "zh-TW", "vi", "th", "id", "my", "mn", "ru",
+  "ko", "en", "ja", "zh-CN", "zh-TW", "vi", "th", "id", "my", "mn", "ru",
   "es", "pt", "fr", "de", "hi", "ne", "si", "km", "uz", "kk", "tg",
 ]);
 export type SupportedLanguage = z.infer<typeof supportedLanguageSchema>;
@@ -87,6 +87,7 @@ export const CATEGORY_CONTENT_TYPES: Record<TopCategory, ContentType[]> = {
 // 번역 목록 조회 필터
 export const translationListReqSchema = z.object({
   content_type: contentTypeSchema.optional(),
+  content_types: z.string().optional(),
   content_id: z.number().int().optional(),
   lang: supportedLanguageSchema.optional(),
   status: translationStatusSchema.optional(),

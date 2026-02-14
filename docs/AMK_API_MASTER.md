@@ -1213,7 +1213,7 @@ VIMEO_ACCESS_TOKEN=xxx
   - `content_type_enum`: `'course'`, `'lesson'`, `'video'`, `'video_tag'`, `'study'`, `'study_task_choice'`, `'study_task_typing'`, `'study_task_voice'`, `'study_task_explain'`
     - `'video'` = 비디오 제목/부제 번역, `'video_tag'` = 비디오 태그 번역, `'study_task_explain'` = 학습 해설 번역
   - `translation_status_enum`: `'draft'`, `'reviewed'`, `'approved'`
-  - `supported_language_enum`: `'en'`, `'zh-CN'`, `'zh-TW'`, `'ja'`, `'vi'`, `'id'`, `'th'`, `'my'`, `'km'`, `'mn'`, `'ru'`, `'uz'`, `'kk'`, `'tg'`, `'ne'`, `'si'`, `'hi'`, `'es'`, `'pt'`, `'fr'`, `'de'` (21개, 아랍어 제외 — RTL 별도 대응 필요)
+  - `supported_language_enum`: `'ko'`, `'en'`, `'zh-CN'`, `'zh-TW'`, `'ja'`, `'vi'`, `'id'`, `'th'`, `'my'`, `'km'`, `'mn'`, `'ru'`, `'uz'`, `'kk'`, `'tg'`, `'ne'`, `'si'`, `'hi'`, `'es'`, `'pt'`, `'fr'`, `'de'` (22개, `ko`는 원본 언어, 아랍어 제외 — RTL 별도 대응 필요)
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
@@ -2415,7 +2415,7 @@ Location: http://localhost:5173/login?error=oauth_failed&error_description=...
 ### 5.9 Phase 9 — translation (i18n)
 | 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 |
 |---|---|---|---|---|---|
-| 9-1 | `GET /admin/translations` | `/admin/translations?page=&size=&content_type=&content_id=&lang=&status=` | 번역 목록 조회 | ***필터(content_type, content_id, lang, status) + 페이지네이션, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅] |
+| 9-1 | `GET /admin/translations` | `/admin/translations?page=&size=&content_type=&content_types=&content_id=&lang=&status=` | 번역 목록 조회 | ***필터(content_type/content_types, content_id, lang, status) + 페이지네이션, RBAC***<br>성공: **200**<br>실패: **401/403/400/422** | [✅] |
 | 9-2 | `POST /admin/translations` | `/admin/translations/new` | 번역 단건 생성 (UPSERT) | ***content_type+content_id+field_name+lang 기준 UPSERT, 텍스트 변경 시에만 status 리셋, RBAC***<br>성공: **201**<br>실패: **401/403/400/422** | [✅] |
 | 9-3 | `POST /admin/translations/bulk` | `/admin/translations/bulk` | 번역 벌크 생성 | ***부분 성공, RBAC***<br>성공: **201** / 부분: **207**<br>실패: **401/403/400/422** | [✅] |
 | 9-4 | `GET /admin/translations/{id}` | `/admin/translations/{translation_id}` | 번역 상세 조회 | ***RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅] |
@@ -2426,7 +2426,7 @@ Location: http://localhost:5173/login?error=oauth_failed&error_description=...
 | 9-9 | `GET /admin/translations/content-records` | - | 콘텐츠 목록 조회 (드롭다운용) | ***content_type별 레코드 목록 반환, RBAC***<br>성공: **200**<br>실패: **401/403/400** | [✅] |
 | 9-10 | `GET /admin/translations/source-fields` | - | 원본 텍스트 조회 | ***content_type+content_id로 한국어 원본 필드 조회, RBAC***<br>성공: **200**<br>실패: **401/403/400** | [✅] |
 | 9-11 | `POST /admin/translations/auto-bulk` | `/admin/translations/new` | 벌크 자동 번역 | ***복수 필드 × 복수 언어 일괄 자동 번역, 숫자 값 스킵, RBAC***<br>성공: **200**<br>실패: **401/403/400/422/503** | [✅] |
-| 9-12 | `GET /admin/translations/search` | - | 번역 검색 (재사용) | ***source_text+lang으로 기존 번역 검색, RBAC***<br>성공: **200**<br>실패: **401/403/400** | [✅] |
+| 9-12 | `GET /admin/translations/search` | - | 번역 검색 (재사용) | ***lang으로 최근 approved/reviewed 번역 조회, RBAC***<br>성공: **200**<br>실패: **401/403** | [✅] |
 
 ---
 
@@ -2470,7 +2470,8 @@ draft → reviewed → approved
 |----------|------|------|------|
 | `page` | i64 | N | 페이지 번호 (기본 1) |
 | `size` | i64 | N | 페이지 크기 (기본 20, max 100) |
-| `content_type` | string | N | 콘텐츠 유형 필터 (course, lesson, video, video_tag, study, ...) |
+| `content_type` | string | N | 콘텐츠 유형 필터 단일 (course, lesson, video, video_tag, study, ...) |
+| `content_types` | string | N | 콘텐츠 유형 필터 복수 (쉼표 구분, content_type보다 우선. e.g. `study,study_task_choice,study_task_typing`) |
 | `content_id` | i64 | N | 콘텐츠 ID 필터 |
 | `lang` | string | N | 언어 코드 필터 (en, ja, zh-CN, ...) |
 | `status` | string | N | 상태 필터 (draft, reviewed, approved) |
@@ -2718,13 +2719,12 @@ draft → reviewed → approved
 
 #### 9-12 : `GET /admin/translations/search` (번역 검색)
 
-> 동일 source_text의 기존 번역을 검색한다. 번역 재사용 시 활용.
+> 최근 approved/reviewed 상태의 번역을 조회한다. 언어별 필터 가능.
 
 **Query Parameters**
 | 파라미터 | 타입 | 필수 | 설명 |
 |----------|------|------|------|
-| `source_text` | string | ✅ | 검색할 원본 텍스트 |
-| `lang` | string | N | 언어 코드 필터 |
+| `lang` | string | N | 언어 코드 필터 (없으면 전체 언어) |
 
 **응답 (성공 200)**
 ```json

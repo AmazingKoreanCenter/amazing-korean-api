@@ -13,6 +13,7 @@ pub mod health;
 pub mod lesson;
 pub mod study;
 pub mod user;
+pub mod util;
 pub mod video;
 
 use self::admin::ip_guard::admin_ip_guard;

@@ -2,6 +2,16 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
 
+/// 생년월일(YYYY-MM-DD) 형식 및 유효성 검증
+fn validate_birthday(birthday: &str) -> Result<(), validator::ValidationError> {
+    if birthday.len() != 10 {
+        return Err(validator::ValidationError::new("invalid_date_format"));
+    }
+    chrono::NaiveDate::parse_from_str(birthday, "%Y-%m-%d")
+        .map_err(|_| validator::ValidationError::new("invalid_date_format"))?;
+    Ok(())
+}
+
 // =====================================================================
 // Request DTOs (요청)
 // =====================================================================
@@ -40,7 +50,7 @@ pub struct RefreshReq {
 pub struct FindIdReq {
     #[validate(length(min = 1, max = 100))]
     pub name: String,
-    #[validate(length(equal = 10, message = "Birthday must be YYYY-MM-DD format"))]
+    #[validate(custom(function = "validate_birthday"))]
     pub birthday: String,
 }
 
@@ -195,7 +205,7 @@ pub struct GoogleCallbackQuery {
 pub struct FindPasswordReq {
     #[validate(length(min = 1, max = 100))]
     pub name: String,
-    #[validate(length(equal = 10, message = "Birthday must be YYYY-MM-DD format"))]
+    #[validate(custom(function = "validate_birthday"))]
     pub birthday: String,
     #[validate(email)]
     pub email: String,

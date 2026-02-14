@@ -220,7 +220,7 @@ CREATE TABLE video_log (
   video_watch_duration_sec int NOT NULL DEFAULT 0,
   video_first_watched_at_log timestamptz,
   video_last_watched_at_log timestamptz,
-  video_last_ip_log inet,
+  video_last_ip_log TEXT,
   video_last_device_log login_device_enum,
   video_last_user_agent_log jsonb
 );

@@ -678,8 +678,8 @@ export const autoTranslateBulk = (data: AutoTranslateBulkReq) =>
     data,
   });
 
-export const searchTranslations = (sourceText: string, lang?: SupportedLanguage) =>
+export const searchTranslations = (lang?: SupportedLanguage) =>
   request<TranslationSearchRes>("/admin/translations/search", {
     method: "GET",
-    params: { source_text: sourceText, ...(lang ? { lang } : {}) },
+    params: { ...(lang ? { lang } : {}) },
   });

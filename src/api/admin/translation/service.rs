@@ -29,9 +29,13 @@ impl TranslationService {
         let per_page = req.per_page.unwrap_or(20).clamp(1, 100);
         let offset = (page - 1) * per_page;
 
+        // content_types(복수)가 있으면 우선, 없으면 content_type(단수) 사용
+        let content_types_csv = req.content_types.as_deref();
+
         let total_count = TranslationRepo::count_all(
             pool,
             req.content_type,
+            content_types_csv,
             req.content_id,
             req.lang,
             req.status,
@@ -41,6 +45,7 @@ impl TranslationService {
         let items = TranslationRepo::find_all(
             pool,
             req.content_type,
+            content_types_csv,
             req.content_id,
             req.lang,
             req.status,
@@ -205,13 +210,12 @@ impl TranslationService {
         Ok(SourceFieldsRes { fields })
     }
 
-    /// 번역 검색 (재사용용 — 동일 소스 텍스트 기존 번역 찾기)
+    /// 번역 검색 (언어 + 상태 기반 최근 번역 조회)
     pub async fn search_translations(
         pool: &PgPool,
         req: TranslationSearchReq,
     ) -> AppResult<TranslationSearchRes> {
-        req.validate().map_err(AppError::Validation)?;
-        let items = TranslationRepo::search_translations(pool, &req.source_text, req.lang).await?;
+        let items = TranslationRepo::search_translations(pool, req.lang).await?;
         Ok(TranslationSearchRes { items })
     }
 

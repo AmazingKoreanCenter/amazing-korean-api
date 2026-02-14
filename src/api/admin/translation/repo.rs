@@ -68,9 +68,12 @@ impl TranslationRepo {
     }
 
     /// 번역 목록 개수
+    /// content_types_csv: 쉼표 구분 복수 content_type (e.g. "study,study_task_choice")
+    /// content_type: 단일 content_type (content_types_csv가 없을 때 사용)
     pub async fn count_all(
         pool: &PgPool,
         content_type: Option<ContentType>,
+        content_types_csv: Option<&str>,
         content_id: Option<i64>,
         lang: Option<SupportedLanguage>,
         status: Option<TranslationStatus>,
@@ -79,7 +82,13 @@ impl TranslationRepo {
             r#"
             SELECT COUNT(*)
             FROM content_translations
-            WHERE ($1::content_type_enum IS NULL OR content_type = $1)
+            WHERE (
+                CASE
+                    WHEN $5::text IS NOT NULL THEN content_type::text = ANY(string_to_array($5, ','))
+                    WHEN $1::content_type_enum IS NOT NULL THEN content_type = $1
+                    ELSE true
+                END
+            )
               AND ($2::bigint IS NULL OR content_id = $2)
               AND ($3::supported_language_enum IS NULL OR lang = $3)
               AND ($4::translation_status_enum IS NULL OR status = $4)
@@ -89,6 +98,7 @@ impl TranslationRepo {
         .bind(content_id)
         .bind(lang)
         .bind(status)
+        .bind(content_types_csv)
         .fetch_one(pool)
         .await?;
 
@@ -96,9 +106,11 @@ impl TranslationRepo {
     }
 
     /// 번역 목록 조회 (필터 + 페이지네이션)
+    /// content_types_csv: 쉼표 구분 복수 content_type (content_type보다 우선)
     pub async fn find_all(
         pool: &PgPool,
         content_type: Option<ContentType>,
+        content_types_csv: Option<&str>,
         content_id: Option<i64>,
         lang: Option<SupportedLanguage>,
         status: Option<TranslationStatus>,
@@ -111,7 +123,13 @@ impl TranslationRepo {
                 translation_id, content_type, content_id, field_name,
                 lang, translated_text, status, created_at, updated_at
             FROM content_translations
-            WHERE ($1::content_type_enum IS NULL OR content_type = $1)
+            WHERE (
+                CASE
+                    WHEN $7::text IS NOT NULL THEN content_type::text = ANY(string_to_array($7, ','))
+                    WHEN $1::content_type_enum IS NOT NULL THEN content_type = $1
+                    ELSE true
+                END
+            )
               AND ($2::bigint IS NULL OR content_id = $2)
               AND ($3::supported_language_enum IS NULL OR lang = $3)
               AND ($4::translation_status_enum IS NULL OR status = $4)
@@ -126,6 +144,7 @@ impl TranslationRepo {
         .bind(status)
         .bind(limit)
         .bind(offset)
+        .bind(content_types_csv)
         .fetch_all(pool)
         .await?;
 
@@ -565,15 +584,11 @@ impl TranslationRepo {
     // 번역 검색 (Step 11 — 재사용)
     // =========================================================================
 
-    /// 기존 번역 검색 (translated_text 유사 매칭 — 재사용용)
-    /// source_text를 기반으로 동일 텍스트가 이미 번역된 레코드를 검색
+    /// 기존 번역 검색 (언어 + 상태 기반 최근 번역 조회)
     pub async fn search_translations(
         pool: &PgPool,
-        _source_text: &str,
         lang: Option<SupportedLanguage>,
     ) -> AppResult<Vec<TranslationSearchItem>> {
-        // content_translations에는 source_text가 저장되지 않으므로,
-        // 언어 + 상태 기반으로 최근 번역을 조회하여 재사용 후보 제공
         let rows = sqlx::query_as::<_, TranslationSearchItem>(
             r#"
             SELECT

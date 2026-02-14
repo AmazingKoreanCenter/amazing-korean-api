@@ -86,11 +86,10 @@ export const useSourceFields = (contentType: ContentType | undefined, contentId:
   return query;
 };
 
-export const useSearchTranslations = (sourceText: string | undefined, lang?: SupportedLanguage) => {
+export const useSearchTranslations = (lang?: SupportedLanguage) => {
   const query = useQuery({
-    queryKey: ["admin", "translations", "search", sourceText, lang],
-    queryFn: () => searchTranslations(sourceText!, lang),
-    enabled: !!sourceText && sourceText.trim().length > 0,
+    queryKey: ["admin", "translations", "search", lang],
+    queryFn: () => searchTranslations(lang),
   });
 
   useEffect(() => {

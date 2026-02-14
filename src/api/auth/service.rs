@@ -206,7 +206,7 @@ impl AuthService {
             if let Err(e) = tx.commit().await {
                 warn!(error = %e, "Failed to commit login failure log transaction");
             }
-            return Err(AppError::Forbidden("Forbidden".to_string()));
+            return Err(AppError::Forbidden("ACCOUNT_DISABLED".to_string()));
         }
 
         // [Step 3-B] 이메일 미인증 차단

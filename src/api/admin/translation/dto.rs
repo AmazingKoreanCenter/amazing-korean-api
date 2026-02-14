@@ -14,6 +14,8 @@ use crate::types::{ContentType, SupportedLanguage, TranslationStatus};
 #[derive(Debug, Deserialize, IntoParams, Validate, ToSchema)]
 pub struct TranslationListReq {
     pub content_type: Option<ContentType>,
+    /// 복수 content_type 필터 (쉼표 구분, content_type보다 우선)
+    pub content_types: Option<String>,
     pub content_id: Option<i64>,
     pub lang: Option<SupportedLanguage>,
     pub status: Option<TranslationStatus>,
@@ -260,11 +262,9 @@ pub struct AutoTranslateBulkRes {
 // 번역 검색 (Translation Search — 재사용용)
 // =============================================================================
 
-/// 번역 검색 요청 (동일 소스 텍스트 기존 번역 찾기)
-#[derive(Debug, Deserialize, IntoParams, Validate, ToSchema)]
+/// 번역 검색 요청 (언어 + 상태 기반 최근 번역 조회)
+#[derive(Debug, Deserialize, IntoParams, ToSchema)]
 pub struct TranslationSearchReq {
-    #[validate(length(min = 1))]
-    pub source_text: String,
     pub lang: Option<SupportedLanguage>,
 }
 

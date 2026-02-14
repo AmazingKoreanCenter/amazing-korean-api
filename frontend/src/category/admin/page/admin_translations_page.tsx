@@ -90,20 +90,24 @@ export function AdminTranslationsPage() {
   const statusMutation = useUpdateTranslationStatus();
   const deleteMutation = useDeleteTranslation();
 
-  // 카테고리 필터 변경 → content_type 파라미터에 반영
+  // 카테고리 필터 변경 → content_type / content_types 파라미터에 반영
   const handleCategoryChange = (value: string) => {
     const cat = value as TopCategory | "all";
     setTopCategory(cat);
     setStudySubType("all");
 
     if (cat === "all") {
-      setParams((prev) => ({ ...prev, content_type: undefined, page: 1 }));
+      setParams((prev) => ({ ...prev, content_type: undefined, content_types: undefined, page: 1 }));
     } else if (cat === "study") {
-      // Study 전체 선택 시 — content_type 필터 없이 (하위 타입에서 선택)
-      setParams((prev) => ({ ...prev, content_type: undefined, page: 1 }));
+      // Study 전체 선택 시 — content_types(복수)로 서버 필터링
+      setParams((prev) => ({
+        ...prev,
+        content_type: undefined,
+        content_types: CATEGORY_CONTENT_TYPES["study"].join(","),
+        page: 1,
+      }));
     } else {
-      // video, lesson — 첫 번째 content_type 사용 (필터링은 API에서 처리)
-      setParams((prev) => ({ ...prev, content_type: cat as ContentType, page: 1 }));
+      setParams((prev) => ({ ...prev, content_type: cat as ContentType, content_types: undefined, page: 1 }));
     }
   };
 
@@ -111,9 +115,15 @@ export function AdminTranslationsPage() {
   const handleStudySubChange = (value: string) => {
     setStudySubType(value);
     if (value === "all") {
-      setParams((prev) => ({ ...prev, content_type: undefined, page: 1 }));
+      // Study 전체 — content_types(복수)로 서버 필터링
+      setParams((prev) => ({
+        ...prev,
+        content_type: undefined,
+        content_types: CATEGORY_CONTENT_TYPES["study"].join(","),
+        page: 1,
+      }));
     } else {
-      setParams((prev) => ({ ...prev, content_type: value as ContentType, page: 1 }));
+      setParams((prev) => ({ ...prev, content_type: value as ContentType, content_types: undefined, page: 1 }));
     }
   };
 
@@ -142,19 +152,8 @@ export function AdminTranslationsPage() {
   const truncate = (text: string, max: number) =>
     text.length > max ? text.slice(0, max) + "..." : text;
 
-  // 현재 선택된 카테고리에 해당하는 content_type 필터 목록 (테이블 로컬 필터링용)
-  const activeContentTypes: ContentType[] | null =
-    topCategory === "all"
-      ? null
-      : topCategory === "study" && studySubType === "all"
-        ? CATEGORY_CONTENT_TYPES["study"]
-        : null;
-
-  // 데이터 필터링 (Study "전체" 선택 시 클라이언트 필터링)
-  const filteredItems =
-    activeContentTypes && data?.items
-      ? data.items.filter((item) => activeContentTypes.includes(item.content_type))
-      : data?.items;
+  // 서버에서 필터링된 결과를 그대로 사용
+  const filteredItems = data?.items;
 
   return (
     <div>
