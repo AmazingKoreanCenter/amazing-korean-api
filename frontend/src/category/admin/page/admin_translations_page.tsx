@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Languages, Wand2, Loader2 } from "lucide-react";
+import { Plus, Languages } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,41 +20,26 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { useTranslationList } from "../hook/use_translations";
 import {
   useUpdateTranslationStatus,
   useDeleteTranslation,
-  useAutoTranslate,
 } from "../hook/use_translation_mutations";
 import type {
   TranslationListReq,
   ContentType,
   TranslationStatus,
   TranslationRes,
-  SupportedLanguage,
-  AutoTranslateRes,
+  TopCategory,
 } from "../translation/types";
-
-const CONTENT_TYPE_OPTIONS: { value: ContentType; label: string }[] = [
-  { value: "course", label: "Course" },
-  { value: "lesson", label: "Lesson" },
-  { value: "video", label: "Video" },
-  { value: "video_tag", label: "Video Tag" },
-  { value: "study", label: "Study" },
-];
+import {
+  TOP_CATEGORIES,
+  STUDY_SUB_TYPES,
+  CONTENT_TYPE_LABELS,
+  CATEGORY_CONTENT_TYPES,
+} from "../translation/types";
 
 const STATUS_OPTIONS: { value: TranslationStatus; label: string; color: string }[] = [
   { value: "draft", label: "Draft", color: "bg-yellow-100 text-yellow-800" },
@@ -91,207 +76,11 @@ function StatusSelect({
   );
 }
 
-// ── Auto Translate Dialog ──────────────────────────
-
-function AutoTranslateDialog() {
-  const [open, setOpen] = useState(false);
-  const [contentType, setContentType] = useState<ContentType>("video");
-  const [contentId, setContentId] = useState("");
-  const [fieldName, setFieldName] = useState("");
-  const [sourceText, setSourceText] = useState("");
-  const [selectedLangs, setSelectedLangs] = useState<Set<string>>(new Set());
-  const [result, setResult] = useState<AutoTranslateRes | null>(null);
-
-  const autoTranslate = useAutoTranslate();
-
-  const toggleLang = (code: string) => {
-    setSelectedLangs((prev) => {
-      const next = new Set(prev);
-      if (next.has(code)) {
-        next.delete(code);
-      } else {
-        next.add(code);
-      }
-      return next;
-    });
-  };
-
-  const selectAllLangs = () => {
-    if (selectedLangs.size === LANG_OPTIONS.length) {
-      setSelectedLangs(new Set());
-    } else {
-      setSelectedLangs(new Set(LANG_OPTIONS.map((l) => l.code)));
-    }
-  };
-
-  const handleSubmit = () => {
-    const id = parseInt(contentId, 10);
-    if (!id || !fieldName.trim() || !sourceText.trim() || selectedLangs.size === 0) return;
-
-    setResult(null);
-    autoTranslate.mutate(
-      {
-        content_type: contentType,
-        content_id: id,
-        field_name: fieldName.trim(),
-        source_text: sourceText.trim(),
-        target_langs: Array.from(selectedLangs) as SupportedLanguage[],
-      },
-      {
-        onSuccess: (res) => {
-          setResult(res);
-        },
-      },
-    );
-  };
-
-  const handleClose = (isOpen: boolean) => {
-    setOpen(isOpen);
-    if (!isOpen) {
-      setResult(null);
-    }
-  };
-
-  const isValid =
-    contentId && parseInt(contentId, 10) > 0 && fieldName.trim() && sourceText.trim() && selectedLangs.size > 0;
-
-  return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <Wand2 className="w-4 h-4 mr-2" />
-          Auto Translate
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Auto Translate</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4 mt-2">
-          {/* Content Type */}
-          <div className="space-y-1.5">
-            <Label>Content Type</Label>
-            <Select value={contentType} onValueChange={(v) => setContentType(v as ContentType)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CONTENT_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Content ID */}
-          <div className="space-y-1.5">
-            <Label>Content ID</Label>
-            <Input
-              type="number"
-              placeholder="e.g. 1"
-              value={contentId}
-              onChange={(e) => setContentId(e.target.value)}
-            />
-          </div>
-
-          {/* Field Name */}
-          <div className="space-y-1.5">
-            <Label>Field Name</Label>
-            <Input
-              placeholder="e.g. title, description"
-              value={fieldName}
-              onChange={(e) => setFieldName(e.target.value)}
-            />
-          </div>
-
-          {/* Source Text (ko) */}
-          <div className="space-y-1.5">
-            <Label>Source Text (Korean)</Label>
-            <Textarea
-              rows={3}
-              placeholder="번역할 원본 텍스트를 입력하세요..."
-              value={sourceText}
-              onChange={(e) => setSourceText(e.target.value)}
-            />
-          </div>
-
-          {/* Target Languages */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Target Languages ({selectedLangs.size})</Label>
-              <Button type="button" variant="ghost" size="sm" onClick={selectAllLangs}>
-                {selectedLangs.size === LANG_OPTIONS.length ? "Deselect All" : "Select All"}
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
-              {LANG_OPTIONS.map((lang) => (
-                <label key={lang.code} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <Checkbox
-                    checked={selectedLangs.has(lang.code)}
-                    onCheckedChange={() => toggleLang(lang.code)}
-                  />
-                  <span>
-                    {lang.nativeName}{" "}
-                    <span className="text-gray-400">({lang.code})</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Submit */}
-          <Button
-            className="w-full"
-            disabled={!isValid || autoTranslate.isPending}
-            onClick={handleSubmit}
-          >
-            {autoTranslate.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {autoTranslate.isPending
-              ? "번역 중..."
-              : `${selectedLangs.size}개 언어로 번역`}
-          </Button>
-
-          {/* Result */}
-          {result && (
-            <div className="border rounded-md p-3 space-y-2">
-              <p className="text-sm font-medium">
-                결과: {result.success_count}/{result.total} 성공
-              </p>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {result.results.map((r) => (
-                  <div
-                    key={r.lang}
-                    className={`text-xs px-2 py-1 rounded ${
-                      r.success ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                    }`}
-                  >
-                    <span className="font-mono font-medium">{r.lang}</span>
-                    {r.success ? (
-                      <span className="ml-2 text-gray-600">
-                        {r.translated_text && r.translated_text.length > 50
-                          ? r.translated_text.slice(0, 50) + "..."
-                          : r.translated_text}
-                      </span>
-                    ) : (
-                      <span className="ml-2">{r.error}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ── Main Page ──────────────────────────────────────
 
 export function AdminTranslationsPage() {
+  const [topCategory, setTopCategory] = useState<TopCategory | "all">("all");
+  const [studySubType, setStudySubType] = useState<string>("all");
   const [params, setParams] = useState<TranslationListReq>({
     page: 1,
     per_page: 20,
@@ -300,6 +89,43 @@ export function AdminTranslationsPage() {
   const { data, isLoading, isError } = useTranslationList(params);
   const statusMutation = useUpdateTranslationStatus();
   const deleteMutation = useDeleteTranslation();
+
+  // 카테고리 필터 변경 → content_type / content_types 파라미터에 반영
+  const handleCategoryChange = (value: string) => {
+    const cat = value as TopCategory | "all";
+    setTopCategory(cat);
+    setStudySubType("all");
+
+    if (cat === "all") {
+      setParams((prev) => ({ ...prev, content_type: undefined, content_types: undefined, page: 1 }));
+    } else if (cat === "study") {
+      // Study 전체 선택 시 — content_types(복수)로 서버 필터링
+      setParams((prev) => ({
+        ...prev,
+        content_type: undefined,
+        content_types: CATEGORY_CONTENT_TYPES["study"].join(","),
+        page: 1,
+      }));
+    } else {
+      setParams((prev) => ({ ...prev, content_type: cat as ContentType, content_types: undefined, page: 1 }));
+    }
+  };
+
+  // Study 하위 타입 필터 변경
+  const handleStudySubChange = (value: string) => {
+    setStudySubType(value);
+    if (value === "all") {
+      // Study 전체 — content_types(복수)로 서버 필터링
+      setParams((prev) => ({
+        ...prev,
+        content_type: undefined,
+        content_types: CATEGORY_CONTENT_TYPES["study"].join(","),
+        page: 1,
+      }));
+    } else {
+      setParams((prev) => ({ ...prev, content_type: value as ContentType, content_types: undefined, page: 1 }));
+    }
+  };
 
   const handleFilterChange = (key: keyof TranslationListReq, value: string) => {
     setParams((prev) => ({
@@ -326,6 +152,9 @@ export function AdminTranslationsPage() {
   const truncate = (text: string, max: number) =>
     text.length > max ? text.slice(0, max) + "..." : text;
 
+  // 서버에서 필터링된 결과를 그대로 사용
+  const filteredItems = data?.items;
+
   return (
     <div>
       {/* Header */}
@@ -339,36 +168,55 @@ export function AdminTranslationsPage() {
             </span>
           )}
         </div>
-        <div className="flex gap-2">
-          <AutoTranslateDialog />
-          <Button asChild>
-            <Link to="/admin/translations/new">
-              <Plus className="w-4 h-4 mr-2" />
-              New Translation
-            </Link>
-          </Button>
-        </div>
+        <Button asChild>
+          <Link to="/admin/translations/new">
+            <Plus className="w-4 h-4 mr-2" />
+            New Translation
+          </Link>
+        </Button>
       </div>
 
       {/* Filters */}
       <div className="flex gap-3 mb-4 flex-wrap">
+        {/* Category Filter (Video / Study / Lesson) */}
         <Select
-          value={params.content_type ?? "all"}
-          onValueChange={(v) => handleFilterChange("content_type", v)}
+          value={topCategory}
+          onValueChange={handleCategoryChange}
         >
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="Content Type" />
+            <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {CONTENT_TYPE_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
+            <SelectItem value="all">All Categories</SelectItem>
+            {TOP_CATEGORIES.map((cat) => (
+              <SelectItem key={cat.value} value={cat.value}>
+                {cat.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
+        {/* Study Sub-type Filter (Study 선택 시만 표시) */}
+        {topCategory === "study" && (
+          <Select
+            value={studySubType}
+            onValueChange={handleStudySubChange}
+          >
+            <SelectTrigger className="w-52">
+              <SelectValue placeholder="Study Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Study Types</SelectItem>
+              {STUDY_SUB_TYPES.map((sub) => (
+                <SelectItem key={sub.value} value={sub.value}>
+                  {sub.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {/* Language Filter */}
         <Select
           value={params.lang ?? "all"}
           onValueChange={(v) => handleFilterChange("lang", v)}
@@ -386,6 +234,7 @@ export function AdminTranslationsPage() {
           </SelectContent>
         </Select>
 
+        {/* Status Filter */}
         <Select
           value={params.status ?? "all"}
           onValueChange={(v) => handleFilterChange("status", v)}
@@ -437,20 +286,22 @@ export function AdminTranslationsPage() {
                     Failed to load translations.
                   </td>
                 </tr>
-              ) : data && data.items.length === 0 ? (
+              ) : filteredItems && filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                     No translations found.
                   </td>
                 </tr>
               ) : (
-                data?.items.map((item) => (
+                filteredItems?.map((item) => (
                   <tr key={item.translation_id} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-3 text-gray-900 font-mono text-xs">
                       {item.translation_id}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant="outline">{item.content_type}</Badge>
+                      <Badge variant="outline">
+                        {CONTENT_TYPE_LABELS[item.content_type] ?? item.content_type}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">{item.content_id}</td>
                     <td className="px-4 py-3 font-mono text-xs">{item.field_name}</td>

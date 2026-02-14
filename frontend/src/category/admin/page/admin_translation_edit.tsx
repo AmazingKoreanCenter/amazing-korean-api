@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Check, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +13,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -23,29 +22,39 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { SUPPORTED_LANGUAGES } from "@/i18n";
-import { useTranslationDetail } from "../hook/use_translations";
+import {
+  useTranslationDetail,
+  useContentRecords,
+  useSourceFields,
+} from "../hook/use_translations";
 import {
   useCreateTranslation,
   useUpdateTranslation,
+  useAutoTranslateBulk,
 } from "../hook/use_translation_mutations";
 import {
-  translationCreateReqSchema,
   translationUpdateReqSchema,
-  type TranslationCreateReq,
   type TranslationUpdateReq,
   type ContentType,
   type TranslationStatus,
+  type SupportedLanguage,
+  type TopCategory,
+  type StudySubType,
+  type SourceFieldItem,
+  type AutoTranslateBulkReq,
+  type AutoTranslateBulkRes,
 } from "../translation/types";
-
-const CONTENT_TYPE_OPTIONS: { value: ContentType; label: string }[] = [
-  { value: "course", label: "Course" },
-  { value: "lesson", label: "Lesson" },
-  { value: "video", label: "Video" },
-  { value: "video_tag", label: "Video Tag" },
-  { value: "study", label: "Study" },
-];
+import {
+  TOP_CATEGORIES,
+  STUDY_SUB_TYPES,
+  CONTENT_TYPE_LABELS,
+} from "../translation/types";
 
 const STATUS_OPTIONS: { value: TranslationStatus; label: string }[] = [
   { value: "draft", label: "Draft" },
@@ -55,141 +64,539 @@ const STATUS_OPTIONS: { value: TranslationStatus; label: string }[] = [
 
 const LANG_OPTIONS = SUPPORTED_LANGUAGES.filter((l) => l.code !== "ko");
 
-// ── 생성 모드 ──────────────────────────────
+// ── Step Indicator ──────────────────────────
 
-function TranslationCreateForm() {
+function StepIndicator({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) {
+  const labels = ["Content Type", "Record", "Fields", "Translate"];
+  return (
+    <div className="flex items-center gap-2 mb-6">
+      {labels.slice(0, totalSteps).map((label, i) => {
+        const step = i + 1;
+        const isActive = step === currentStep;
+        const isDone = step < currentStep;
+        return (
+          <div key={step} className="flex items-center gap-2">
+            {i > 0 && <ChevronRight className="w-4 h-4 text-gray-300" />}
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${
+                isActive
+                  ? "bg-blue-100 text-blue-700"
+                  : isDone
+                    ? "bg-green-100 text-green-700"
+                    : "bg-gray-100 text-gray-400"
+              }`}
+            >
+              {isDone ? <Check className="w-3.5 h-3.5" /> : <span>{step}</span>}
+              <span>{label}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── 생성 모드 — 위저드 ──────────────────────
+
+function TranslationCreateWizard() {
   const navigate = useNavigate();
-  const createMutation = useCreateTranslation();
+  const [step, setStep] = useState(1);
 
-  const form = useForm<TranslationCreateReq>({
-    resolver: zodResolver(translationCreateReqSchema),
-    defaultValues: {
-      content_type: "video",
-      content_id: 0,
-      field_name: "",
-      lang: "en",
-      translated_text: "",
-    },
-  });
+  // Step 1: Content Type
+  const [topCategory, setTopCategory] = useState<TopCategory | null>(null);
+  const [studySubType, setStudySubType] = useState<StudySubType | null>(null);
 
-  const onSubmit = (values: TranslationCreateReq) => {
-    createMutation.mutate(values, {
-      onSuccess: () => {
-        navigate("/admin/translations");
-      },
+  // Step 2: Content Record
+  const [selectedRecordId, setSelectedRecordId] = useState<number | null>(null);
+
+  // Step 3: Field selection
+  const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
+
+  // Step 4: Translation mode + langs
+  const [translateMode, setTranslateMode] = useState<"auto" | "manual">("auto");
+  const [selectedLangs, setSelectedLangs] = useState<Set<string>>(new Set());
+  const [manualLang, setManualLang] = useState<string>("en");
+  const [manualTexts, setManualTexts] = useState<Record<string, string>>({});
+  const [bulkResult, setBulkResult] = useState<AutoTranslateBulkRes | null>(null);
+
+  // Derived content_type
+  const contentType: ContentType | undefined =
+    topCategory === "study"
+      ? studySubType ?? undefined
+      : topCategory ?? undefined;
+
+  // Hooks
+  const contentRecords = useContentRecords(contentType);
+  const sourceFields = useSourceFields(contentType, selectedRecordId ?? undefined);
+  const autoTranslateBulk = useAutoTranslateBulk();
+  const createTranslation = useCreateTranslation();
+
+  // Reset downstream state when upstream changes
+  const resetFromStep = (fromStep: number) => {
+    if (fromStep <= 2) {
+      setSelectedRecordId(null);
+      setSelectedFields(new Set());
+      setBulkResult(null);
+    }
+    if (fromStep <= 3) {
+      setSelectedFields(new Set());
+      setBulkResult(null);
+    }
+    if (fromStep <= 4) {
+      setBulkResult(null);
+    }
+  };
+
+  // ── Step 1: Content Type ──
+  const handleTopCategory = (cat: TopCategory) => {
+    setTopCategory(cat);
+    setStudySubType(null);
+    resetFromStep(2);
+    if (cat !== "study") {
+      setStep(2);
+    }
+  };
+
+  const handleStudySubType = (sub: StudySubType) => {
+    setStudySubType(sub);
+    resetFromStep(2);
+    setStep(2);
+  };
+
+  // ── Step 2: Record Selection ──
+  const handleRecordSelect = (id: number) => {
+    setSelectedRecordId(id);
+    resetFromStep(3);
+    setStep(3);
+  };
+
+  // ── Step 3: Field Toggle ──
+  const toggleField = (key: string) => {
+    setSelectedFields((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
     });
   };
 
+  const selectAllFields = () => {
+    if (!sourceFields.data) return;
+    if (selectedFields.size === sourceFields.data.fields.length) {
+      setSelectedFields(new Set());
+    } else {
+      setSelectedFields(new Set(sourceFields.data.fields.map(fieldKey)));
+    }
+  };
+
+  // ── Step 4: Translation ──
+  const toggleLang = (code: string) => {
+    setSelectedLangs((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  };
+
+  const selectAllLangs = () => {
+    if (selectedLangs.size === LANG_OPTIONS.length) {
+      setSelectedLangs(new Set());
+    } else {
+      setSelectedLangs(new Set(LANG_OPTIONS.map((l) => l.code)));
+    }
+  };
+
+  const fieldKey = (f: SourceFieldItem) =>
+    `${f.content_type}:${f.content_id}:${f.field_name}`;
+
+  const getSelectedSourceFields = (): SourceFieldItem[] => {
+    if (!sourceFields.data) return [];
+    return sourceFields.data.fields.filter((f) => selectedFields.has(fieldKey(f)));
+  };
+
+  const handleAutoTranslate = () => {
+    const fields = getSelectedSourceFields();
+    if (fields.length === 0 || selectedLangs.size === 0) return;
+
+    const req: AutoTranslateBulkReq = {
+      items: fields.map((f) => ({
+        content_type: f.content_type,
+        content_id: f.content_id,
+        field_name: f.field_name,
+        source_text: f.source_text ?? "",
+      })),
+      target_langs: Array.from(selectedLangs) as SupportedLanguage[],
+    };
+
+    setBulkResult(null);
+    autoTranslateBulk.mutate(req, {
+      onSuccess: (res) => setBulkResult(res),
+    });
+  };
+
+  const handleManualSave = () => {
+    const fields = getSelectedSourceFields();
+    if (fields.length === 0 || !manualLang) return;
+
+    // 순차적으로 각 필드 저장
+    let saved = 0;
+    for (const f of fields) {
+      const text = manualTexts[fieldKey(f)];
+      if (!text?.trim()) continue;
+      createTranslation.mutate(
+        {
+          content_type: f.content_type,
+          content_id: f.content_id,
+          field_name: f.field_name,
+          lang: manualLang as SupportedLanguage,
+          translated_text: text.trim(),
+        },
+        {
+          onSuccess: () => {
+            saved++;
+            if (saved === fields.filter((ff) => manualTexts[fieldKey(ff)]?.trim()).length) {
+              navigate("/admin/translations");
+            }
+          },
+        },
+      );
+    }
+  };
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
-        <FormField
-          control={form.control}
-          name="content_type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Content Type</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select content type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {CONTENT_TYPE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <div className="max-w-3xl">
+      <StepIndicator currentStep={step} totalSteps={4} />
 
-        <FormField
-          control={form.control}
-          name="content_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Content ID</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  value={field.value || ""}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      {/* ── Step 1: Content Type ── */}
+      {step >= 1 && (
+        <Card className={step === 1 ? "" : "opacity-75"}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Step 1 — Content Type</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2 mb-3">
+              {TOP_CATEGORIES.map((cat) => (
+                <Button
+                  key={cat.value}
+                  variant={topCategory === cat.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleTopCategory(cat.value)}
+                >
+                  {cat.label}
+                </Button>
+              ))}
+            </div>
 
-        <FormField
-          control={form.control}
-          name="field_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Field Name</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g. title, description" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            {topCategory === "study" && (
+              <div className="flex flex-wrap gap-2">
+                {STUDY_SUB_TYPES.map((sub) => (
+                  <Button
+                    key={sub.value}
+                    variant={studySubType === sub.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleStudySubType(sub.value)}
+                  >
+                    {sub.label}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-        <FormField
-          control={form.control}
-          name="lang"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Language</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="max-h-60">
-                  {LANG_OPTIONS.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.nativeName} ({lang.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      {/* ── Step 2: Content Record ── */}
+      {step >= 2 && contentType && (
+        <Card className={`mt-4 ${step === 2 ? "" : "opacity-75"}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">
+              Step 2 — Select {CONTENT_TYPE_LABELS[contentType] ?? contentType} Record
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {contentRecords.isLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            ) : contentRecords.data && contentRecords.data.items.length === 0 ? (
+              <p className="text-sm text-gray-500">No records found.</p>
+            ) : (
+              <div className="max-h-64 overflow-y-auto space-y-1">
+                {contentRecords.data?.items.map((rec) => (
+                  <button
+                    key={rec.id}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      selectedRecordId === rec.id
+                        ? "bg-blue-50 border border-blue-200"
+                        : "hover:bg-gray-50 border border-transparent"
+                    }`}
+                    onClick={() => handleRecordSelect(rec.id)}
+                  >
+                    <span className="font-mono text-xs text-gray-500">#{rec.id}</span>
+                    <span className="ml-2 font-medium">{rec.label}</span>
+                    {rec.detail && (
+                      <span className="ml-2 text-gray-500">{rec.detail}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-        <FormField
-          control={form.control}
-          name="translated_text"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Translated Text</FormLabel>
-              <FormControl>
-                <Textarea rows={5} placeholder="Enter translated text..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      {/* ── Step 3: Field Selection + Source Text ── */}
+      {step >= 3 && selectedRecordId !== null && (
+        <Card className={`mt-4 ${step === 3 ? "" : "opacity-75"}`}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">
+                Step 3 — Select Fields ({selectedFields.size})
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={selectAllFields}>
+                {sourceFields.data && selectedFields.size === sourceFields.data.fields.length
+                  ? "Deselect All"
+                  : "Select All"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {sourceFields.isLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : sourceFields.data && sourceFields.data.fields.length === 0 ? (
+              <p className="text-sm text-gray-500">No translatable fields found.</p>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {sourceFields.data?.fields.map((f) => {
+                  const key = fieldKey(f);
+                  const isNumeric = f.source_text ? !isNaN(Number(f.source_text.trim())) : false;
+                  return (
+                    <label
+                      key={key}
+                      className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors ${
+                        selectedFields.has(key)
+                          ? "border-blue-200 bg-blue-50"
+                          : "border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={selectedFields.has(key)}
+                        onCheckedChange={() => toggleField(key)}
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{f.field_name}</span>
+                          {f.content_type !== contentType && (
+                            <Badge variant="outline" className="text-xs">
+                              {CONTENT_TYPE_LABELS[f.content_type] ?? f.content_type}
+                            </Badge>
+                          )}
+                          {isNumeric && (
+                            <Badge variant="secondary" className="text-xs">
+                              Numeric
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 truncate">
+                          {f.source_text || <span className="italic">No source text</span>}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={createMutation.isPending}>
-            {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Create Translation
-          </Button>
-          <Button type="button" variant="outline" onClick={() => navigate("/admin/translations")}>
-            Cancel
-          </Button>
-        </div>
-      </form>
-    </Form>
+            {selectedFields.size > 0 && step === 3 && (
+              <Button className="mt-4" onClick={() => setStep(4)}>
+                Next — Choose Translation Mode
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Step 4: Translation Mode ── */}
+      {step >= 4 && (
+        <Card className="mt-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Step 4 — Translate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Mode Tabs */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={translateMode === "auto" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTranslateMode("auto")}
+              >
+                Auto Translate
+              </Button>
+              <Button
+                variant={translateMode === "manual" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTranslateMode("manual")}
+              >
+                Manual Input
+              </Button>
+            </div>
+
+            {/* ── Auto Translate ── */}
+            {translateMode === "auto" && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Target Languages ({selectedLangs.size})</Label>
+                    <Button type="button" variant="ghost" size="sm" onClick={selectAllLangs}>
+                      {selectedLangs.size === LANG_OPTIONS.length ? "Deselect All" : "Select All"}
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
+                    {LANG_OPTIONS.map((lang) => (
+                      <label key={lang.code} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={selectedLangs.has(lang.code)}
+                          onCheckedChange={() => toggleLang(lang.code)}
+                        />
+                        <span>
+                          {lang.nativeName}{" "}
+                          <span className="text-gray-400 text-xs">({lang.code})</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-md p-3 text-sm text-gray-600">
+                  {selectedFields.size} field(s) x {selectedLangs.size} language(s) ={" "}
+                  <strong>{selectedFields.size * selectedLangs.size}</strong> translation(s)
+                </div>
+
+                <Button
+                  className="w-full"
+                  disabled={selectedLangs.size === 0 || autoTranslateBulk.isPending}
+                  onClick={handleAutoTranslate}
+                >
+                  {autoTranslateBulk.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {autoTranslateBulk.isPending
+                    ? "Translating..."
+                    : `Auto Translate ${selectedFields.size * selectedLangs.size} items`}
+                </Button>
+
+                {/* Result */}
+                {bulkResult && (
+                  <div className="border rounded-md p-3 space-y-2">
+                    <p className="text-sm font-medium">
+                      Result: {bulkResult.success_count}/{bulkResult.total} success
+                      {bulkResult.fail_count > 0 && (
+                        <span className="text-red-600 ml-2">({bulkResult.fail_count} failed)</span>
+                      )}
+                    </p>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {bulkResult.results.map((r, i) => (
+                        <div
+                          key={i}
+                          className={`text-xs px-2 py-1 rounded ${
+                            r.success ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                          }`}
+                        >
+                          <span className="font-mono font-medium">{r.lang}</span>
+                          <span className="mx-1 text-gray-400">|</span>
+                          <span>{r.field_name}</span>
+                          {r.success ? (
+                            <span className="ml-2 text-gray-600">
+                              {r.translated_text && r.translated_text.length > 40
+                                ? r.translated_text.slice(0, 40) + "..."
+                                : r.translated_text}
+                            </span>
+                          ) : (
+                            <span className="ml-2">{r.error}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full mt-2"
+                      onClick={() => navigate("/admin/translations")}
+                    >
+                      Done — Back to List
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Manual Input ── */}
+            {translateMode === "manual" && (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Target Language</Label>
+                  <Select value={manualLang} onValueChange={setManualLang}>
+                    <SelectTrigger className="w-56">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {LANG_OPTIONS.map((lang) => (
+                        <SelectItem key={lang.code} value={lang.code}>
+                          {lang.nativeName} ({lang.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                  {getSelectedSourceFields().map((f) => {
+                    const key = fieldKey(f);
+                    return (
+                      <div key={key} className="border rounded-md p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{f.field_name}</span>
+                          {f.content_type !== contentType && (
+                            <Badge variant="outline" className="text-xs">
+                              {CONTENT_TYPE_LABELS[f.content_type] ?? f.content_type}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Source: {f.source_text || "N/A"}
+                        </p>
+                        <Textarea
+                          rows={2}
+                          placeholder="Enter translation..."
+                          value={manualTexts[key] ?? ""}
+                          onChange={(e) =>
+                            setManualTexts((prev) => ({ ...prev, [key]: e.target.value }))
+                          }
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  className="w-full"
+                  disabled={createTranslation.isPending}
+                  onClick={handleManualSave}
+                >
+                  {createTranslation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Save Translations
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
 
@@ -248,7 +655,9 @@ function TranslationEditForm({ id }: { id: number }) {
       <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-2 text-sm">
         <div className="flex gap-8">
           <span className="text-gray-500">Type:</span>
-          <span className="font-medium">{data.content_type}</span>
+          <span className="font-medium">
+            {CONTENT_TYPE_LABELS[data.content_type] ?? data.content_type}
+          </span>
         </div>
         <div className="flex gap-8">
           <span className="text-gray-500">Content ID:</span>
@@ -339,7 +748,7 @@ export function AdminTranslationEdit() {
         </h2>
       </div>
 
-      {isCreateMode ? <TranslationCreateForm /> : <TranslationEditForm id={Number(id)} />}
+      {isCreateMode ? <TranslationCreateWizard /> : <TranslationEditForm id={Number(id)} />}
     </div>
   );
 }

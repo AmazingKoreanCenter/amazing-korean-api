@@ -208,6 +208,7 @@ pub enum ContentType {
     StudyTaskChoice,
     StudyTaskTyping,
     StudyTaskVoice,
+    StudyTaskExplain,
 }
 
 /// 번역 상태 (draft → reviewed → approved)

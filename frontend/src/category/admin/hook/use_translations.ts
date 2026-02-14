@@ -3,8 +3,14 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { ApiError } from "@/api/client";
-import type { TranslationListReq } from "@/category/admin/translation/types";
-import { getAdminTranslations, getAdminTranslation } from "../admin_api";
+import type { TranslationListReq, ContentType, SupportedLanguage } from "@/category/admin/translation/types";
+import {
+  getAdminTranslations,
+  getAdminTranslation,
+  getContentRecords,
+  getSourceFields,
+  searchTranslations,
+} from "../admin_api";
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof ApiError) {
@@ -37,6 +43,53 @@ export const useTranslationDetail = (id: number | undefined) => {
     queryKey: ["admin", "translation", id],
     queryFn: () => getAdminTranslation(id!),
     enabled: typeof id === "number" && Number.isFinite(id),
+  });
+
+  useEffect(() => {
+    if (query.isError) {
+      toast.error(getErrorMessage(query.error));
+    }
+  }, [query.error, query.isError]);
+
+  return query;
+};
+
+export const useContentRecords = (contentType: ContentType | undefined) => {
+  const query = useQuery({
+    queryKey: ["admin", "translations", "content-records", contentType],
+    queryFn: () => getContentRecords(contentType!),
+    enabled: !!contentType,
+  });
+
+  useEffect(() => {
+    if (query.isError) {
+      toast.error(getErrorMessage(query.error));
+    }
+  }, [query.error, query.isError]);
+
+  return query;
+};
+
+export const useSourceFields = (contentType: ContentType | undefined, contentId: number | undefined) => {
+  const query = useQuery({
+    queryKey: ["admin", "translations", "source-fields", contentType, contentId],
+    queryFn: () => getSourceFields(contentType!, contentId!),
+    enabled: !!contentType && typeof contentId === "number" && Number.isFinite(contentId),
+  });
+
+  useEffect(() => {
+    if (query.isError) {
+      toast.error(getErrorMessage(query.error));
+    }
+  }, [query.error, query.isError]);
+
+  return query;
+};
+
+export const useSearchTranslations = (lang?: SupportedLanguage) => {
+  const query = useQuery({
+    queryKey: ["admin", "translations", "search", lang],
+    queryFn: () => searchTranslations(lang),
   });
 
   useEffect(() => {

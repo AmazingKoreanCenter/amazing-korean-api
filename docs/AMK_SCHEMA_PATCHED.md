@@ -250,7 +250,7 @@ CREATE TABLE video_log (
   video_watch_duration_sec int NOT NULL DEFAULT 0,                  -- 영상 누적 시청 시간 : 초 단위 누적 시청 시간 (분석/통계용)
   video_first_watched_at_log timestamptz,                           -- 영상 시청 시작 시간 기록 : 영상 시청 시작 시간 기록
   video_last_watched_at_log timestamptz,                            -- 영상 시청 종료 시간 기록 : 영상 시청 종료 시간 기록
-  video_last_ip_log inet,                                           -- 영상 시청 IP 기록 : 영상 시청 IP 기록
+  video_last_ip_log TEXT,                                            -- 영상 시청 IP 기록 : 암호화된 IP (AES-256-GCM)
   video_last_device_log login_device_enum,                          -- 영상 시청 기기 기록 : 영상 시청 기기 기록
   video_last_user_agent_log jsonb                                   -- 영상 시청 사용자 기록 : 영상 시청 사용자 기록
 );

@@ -90,6 +90,13 @@ import type {
   TranslationListRes,
   AutoTranslateReq,
   AutoTranslateRes,
+  ContentType,
+  ContentRecordsRes,
+  SourceFieldsRes,
+  AutoTranslateBulkReq,
+  AutoTranslateBulkRes,
+  SupportedLanguage,
+  TranslationSearchRes,
 } from "./translation/types";
 
 import type {
@@ -632,7 +639,7 @@ export const createAdminTranslation = (data: TranslationCreateReq) =>
 
 export const updateAdminTranslation = (id: number, data: TranslationUpdateReq) =>
   request<TranslationRes>(`/admin/translations/${id}`, {
-    method: "PUT",
+    method: "PATCH",
     data,
   });
 
@@ -651,4 +658,28 @@ export const autoTranslateContent = (data: AutoTranslateReq) =>
   request<AutoTranslateRes>("/admin/translations/auto", {
     method: "POST",
     data,
+  });
+
+export const getContentRecords = (contentType: ContentType) =>
+  request<ContentRecordsRes>("/admin/translations/content-records", {
+    method: "GET",
+    params: { content_type: contentType },
+  });
+
+export const getSourceFields = (contentType: ContentType, contentId: number) =>
+  request<SourceFieldsRes>("/admin/translations/source-fields", {
+    method: "GET",
+    params: { content_type: contentType, content_id: contentId },
+  });
+
+export const autoTranslateBulk = (data: AutoTranslateBulkReq) =>
+  request<AutoTranslateBulkRes>("/admin/translations/auto-bulk", {
+    method: "POST",
+    data,
+  });
+
+export const searchTranslations = (lang?: SupportedLanguage) =>
+  request<TranslationSearchRes>("/admin/translations/search", {
+    method: "GET",
+    params: { ...(lang ? { lang } : {}) },
   });

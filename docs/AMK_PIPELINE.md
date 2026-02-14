@@ -404,7 +404,7 @@ docs/epics/
 | 도구 | 역할 | 갱신 시점 |
 |------|------|----------|
 | `docs/epics/` | 작업 상세 기록 (Epic/Task/Subtask) | 매 파이프라인 단계마다 |
-| `MEMORY.md` (Claude 메모리) | 세션 간 요약/참조. 완료/대기 작업 목록 | 매 세션 종료 시 |
+| `MEMORY.md` (에이전트 메모리) | 세션 간 요약/참조. 완료/대기 작업 목록 | 매 세션 종료 시 |
 | `CLAUDE.md` (프로젝트 루트) | 매 세션 자동 로딩. 프로젝트 구조, 핵심 규칙 | 구조적 변경 시 |
 | `docs/AMK_API_MASTER.md` | 스펙/규칙의 SSoT | 스펙 변경 시 |
 | `docs/AMK_DEPLOY_OPS.md` | 배포/운영 가이드 | 인프라 변경 시 |
@@ -764,7 +764,8 @@ docs/epics/{epic-name}/
 |--------|-------------|-------------|
 | `plan/` | `01_plan.md` | - |
 | `verify/` | `02_verify.md` | `01_plan.md` |
-| `exec/` | `03_directive.md`, `04_execute.md` | `01_plan.md`, `02_verify.md` |
+| (지시 단계) | `03_directive.md` | `01_plan.md`, `02_verify.md` |
+| `exec/` | `04_execute.md` | `01_plan.md`, `02_verify.md`, `03_directive.md` |
 | (PR 리뷰) | `05_review.md` | `04_execute.md` |
 | (QA) | `06_qa.md` | `04_execute.md`, `05_review.md` |
 | (배포 후) | `07_deploy.md` | 전체 |
