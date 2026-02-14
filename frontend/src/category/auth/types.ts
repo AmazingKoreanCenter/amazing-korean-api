@@ -209,3 +209,34 @@ export const resendVerificationResSchema = z.object({
   remaining_attempts: z.number(),
 });
 export type ResendVerificationRes = z.infer<typeof resendVerificationResSchema>;
+
+// ==========================================
+// 10. MFA (Multi-Factor Authentication)
+// ==========================================
+
+// MFA 챌린지 응답 (로그인 시 MFA 필요한 경우)
+export interface MfaChallengeRes {
+  mfa_required: boolean;
+  mfa_token: string;
+  user_id: number;
+}
+
+// MFA 로그인 요청 (2단계 인증)
+export const mfaLoginReqSchema = z.object({
+  mfa_token: z.string().min(1),
+  code: z.string().min(6).max(8),
+});
+export type MfaLoginReq = z.infer<typeof mfaLoginReqSchema>;
+
+// MFA 설정 시작 응답
+export interface MfaSetupRes {
+  secret: string;
+  qr_code_data_uri: string;
+  otpauth_uri: string;
+}
+
+// MFA 설정 확인 응답
+export interface MfaVerifySetupRes {
+  enabled: boolean;
+  backup_codes: string[];
+}

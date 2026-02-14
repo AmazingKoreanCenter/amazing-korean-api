@@ -35,13 +35,14 @@
  * 이 경우에도 interceptor가 이미 로그인 처리를 완료했으므로, isLoggedIn 상태를 확인하여 리다이렉트합니다.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import i18n from "@/i18n";
 import { useAuthStore } from "@/hooks/use_auth_store";
 
+import type { MfaPending } from "./use_login";
 import { refreshToken } from "../auth_api";
 
 interface UseOAuthCallbackReturn {
@@ -49,11 +50,14 @@ interface UseOAuthCallbackReturn {
   isProcessing: boolean;
   /** URL에 OAuth 관련 파라미터가 있는지 여부 */
   hasOAuthParams: boolean;
+  /** OAuth MFA 챌린지 정보 (MFA 필요 시) */
+  oauthMfaPending: MfaPending | null;
 }
 
 export function useOAuthCallback(): UseOAuthCallbackReturn {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [oauthMfaPending, setOauthMfaPending] = useState<MfaPending | null>(null);
 
   // ─────────────────────────────────────────────────────────────────────────
   // 중복 처리 방지용 Ref
@@ -68,8 +72,11 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
   const isNewUser = searchParams.get("is_new_user");
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
+  const mfaRequired = searchParams.get("mfa_required");
+  const mfaToken = searchParams.get("mfa_token");
+  const mfaUserId = searchParams.get("user_id");
 
-  const hasOAuthParams = !!(loginSuccess || error);
+  const hasOAuthParams = !!(loginSuccess || error || mfaRequired);
 
   useEffect(() => {
     // ───────────────────────────────────────────────────────────────────────
@@ -80,7 +87,22 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
     }
 
     // ───────────────────────────────────────────────────────────────────────
-    // Step 2: OAuth 에러 처리
+    // Step 2: OAuth MFA 챌린지 처리
+    // MFA가 필요한 사용자의 OAuth 로그인 시 백엔드가 MFA 토큰과 함께 리다이렉트
+    // URL 예시: /login?mfa_required=true&mfa_token=xxx&user_id=123
+    // ───────────────────────────────────────────────────────────────────────
+    if (mfaRequired === "true" && mfaToken && mfaUserId) {
+      processedRef.current = true;
+      setOauthMfaPending({
+        mfa_token: mfaToken,
+        user_id: Number(mfaUserId),
+      });
+      setSearchParams({});
+      return;
+    }
+
+    // ───────────────────────────────────────────────────────────────────────
+    // Step 3: OAuth 에러 처리
     // 백엔드에서 에러와 함께 리다이렉트된 경우 (예: 사용자가 동의 취소)
     // URL 예시: /login?error=access_denied&error_description=User%20cancelled
     // ───────────────────────────────────────────────────────────────────────
@@ -152,6 +174,9 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
     isNewUser,
     error,
     errorDescription,
+    mfaRequired,
+    mfaToken,
+    mfaUserId,
     navigate,
     setSearchParams,
   ]);
@@ -159,5 +184,6 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
   return {
     isProcessing: processedRef.current,
     hasOAuthParams,
+    oauthMfaPending,
   };
 }

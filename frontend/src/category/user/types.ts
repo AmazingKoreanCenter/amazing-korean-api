@@ -43,6 +43,8 @@ export const userDetailSchema = z.object({
   created_at: z.string().datetime(),
   // OAuth 전용 계정 여부 판단용 (비밀번호가 설정되어 있으면 true)
   has_password: z.boolean().optional(),
+  // MFA (2단계 인증) 활성화 여부
+  mfa_enabled: z.boolean().optional(),
 });
 
 export type UserDetail = z.infer<typeof userDetailSchema>;

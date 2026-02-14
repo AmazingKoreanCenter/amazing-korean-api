@@ -26,4 +26,10 @@ pub fn auth_router() -> Router<AppState> {
         // Google OAuth
         .route("/google", get(handler::google_auth_start))
         .route("/google/callback", get(handler::google_auth_callback))
+
+        // MFA (Multi-Factor Authentication)
+        .route("/mfa/setup", post(handler::mfa_setup))
+        .route("/mfa/verify-setup", post(handler::mfa_verify_setup))
+        .route("/mfa/login", post(handler::mfa_login))
+        .route("/mfa/disable", post(handler::mfa_disable))
 }

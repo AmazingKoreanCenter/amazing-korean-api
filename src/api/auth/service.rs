@@ -13,6 +13,8 @@ use uuid::Uuid;
 use validator::Validate;
 use tracing::{info, warn};
 
+use totp_rs::{Algorithm, TOTP, Secret};
+
 use crate::crypto::CryptoService;
 use crate::external::email::EmailTemplate;
 
@@ -24,6 +26,33 @@ use crate::{
     state::AppState,
     types::UserAuth,
 };
+
+/// 로그인 결과 (일반 성공 vs MFA 챌린지)
+pub enum LoginOutcome {
+    Success {
+        login_res: LoginRes,
+        cookie: Cookie<'static>,
+        ttl: i64,
+    },
+    MfaChallenge {
+        mfa_token: String,
+        user_id: i64,
+    },
+}
+
+/// OAuth 로그인 결과 (일반 성공 vs MFA 챌린지)
+pub enum OAuthLoginOutcome {
+    Success {
+        login_res: LoginRes,
+        cookie: Cookie<'static>,
+        ttl: i64,
+        is_new_user: bool,
+    },
+    MfaChallenge {
+        mfa_token: String,
+        user_id: i64,
+    },
+}
 
 pub struct AuthService;
 
@@ -110,7 +139,7 @@ impl AuthService {
         login_ip: String,
         user_agent: Option<String>,
         parsed_ua: crate::api::auth::handler::ParsedUa,
-    ) -> AppResult<(LoginRes, Cookie<'static>, i64)> {
+    ) -> AppResult<LoginOutcome> {
         // [Step 1] Input Validation
         let email = req.email.trim().to_lowercase();
         if let Err(e) = req.validate() {
@@ -237,6 +266,35 @@ impl AuthService {
             )));
         }
 
+        // [Step 3-C] MFA 체크 (Admin/HYMN MFA 활성화 시 챌린지 반환)
+        if user_info.user_mfa_enabled {
+            let mfa_token = Uuid::new_v4().to_string();
+            let pending_data = serde_json::json!({
+                "user_id": user_info.user_id,
+                "user_auth": format!("{:?}", user_info.user_auth),
+                "login_ip": login_ip,
+                "user_agent": user_agent,
+                "device": parsed_ua.device,
+                "browser": parsed_ua.browser,
+                "os": parsed_ua.os,
+                "login_method": "email"
+            });
+            let mfa_key = format!("ak:mfa_pending:{}", mfa_token);
+            let _: () = redis_conn.set_ex(
+                &mfa_key,
+                pending_data.to_string(),
+                st.cfg.mfa_token_ttl_sec as u64,
+            ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+            // Rate limit 초기화 (MFA 챌린지까지 도달했으므로 성공적 인증)
+            let _: () = redis_conn.del(&rl_key).await.unwrap_or(());
+
+            return Ok(LoginOutcome::MfaChallenge {
+                mfa_token,
+                user_id: user_info.user_id,
+            });
+        }
+
         // [Step 4] Token & Session Generation
         let session_id = Uuid::new_v4().to_string();
         let (refresh_token_value, refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
@@ -344,15 +402,15 @@ impl AuthService {
             refresh_cookie.set_domain(domain.clone());
         }
 
-        Ok((
-            LoginRes {
+        Ok(LoginOutcome::Success {
+            login_res: LoginRes {
                 user_id: user_info.user_id,
                 access: access_token_res,
                 session_id,
             },
-            refresh_cookie.into_owned(),
-            refresh_ttl_secs,
-        ))
+            cookie: refresh_cookie.into_owned(),
+            ttl: refresh_ttl_secs,
+        })
     }
 
     /// 토큰 갱신 (Rotation 적용)
@@ -1258,7 +1316,6 @@ impl AuthService {
     }
 
     /// Google OAuth 콜백 처리
-    /// 반환: (LoginRes, Cookie, refresh_ttl, is_new_user)
     pub async fn google_auth_callback(
         st: &AppState,
         code: &str,
@@ -1266,7 +1323,7 @@ impl AuthService {
         login_ip: String,
         user_agent: Option<String>,
         parsed_ua: crate::api::auth::handler::ParsedUa,
-    ) -> AppResult<(LoginRes, Cookie<'static>, i64, bool)> {
+    ) -> AppResult<OAuthLoginOutcome> {
         // Google OAuth 설정 확인
         let client_id = st.cfg.google_client_id.as_ref()
             .ok_or_else(|| AppError::Internal("GOOGLE_CLIENT_ID not configured".into()))?;
@@ -1317,10 +1374,46 @@ impl AuthService {
         // [Step 4] 사용자 조회 또는 생성
         let (user_id, user_auth, is_new_user) = Self::find_or_create_oauth_user(st, &user_info, "google").await?;
 
-        // [Step 5] 세션 생성
+        // [Step 5] MFA 체크 (기존 사용자 + MFA 활성화 시 챌린지 반환)
+        if !is_new_user {
+            let mfa_enabled = AuthRepo::find_user_mfa_enabled(&st.db, user_id).await?;
+            if mfa_enabled {
+                let mfa_token = Uuid::new_v4().to_string();
+                let pending_data = serde_json::json!({
+                    "user_id": user_id,
+                    "user_auth": format!("{:?}", user_auth),
+                    "login_ip": login_ip,
+                    "user_agent": user_agent,
+                    "device": parsed_ua.device,
+                    "browser": parsed_ua.browser,
+                    "os": parsed_ua.os,
+                    "login_method": "google"
+                });
+                let mut redis_conn = st.redis.get().await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
+                let mfa_key = format!("ak:mfa_pending:{}", mfa_token);
+                let _: () = redis_conn.set_ex(
+                    &mfa_key,
+                    pending_data.to_string(),
+                    st.cfg.mfa_token_ttl_sec as u64,
+                ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+                return Ok(OAuthLoginOutcome::MfaChallenge {
+                    mfa_token,
+                    user_id,
+                });
+            }
+        }
+
+        // [Step 6] 세션 생성 (MFA 미활성화 시)
         let (login_res, cookie, refresh_ttl) = Self::create_oauth_session(st, user_id, user_auth, "google", login_ip, user_agent, parsed_ua).await?;
 
-        Ok((login_res, cookie, refresh_ttl, is_new_user))
+        Ok(OAuthLoginOutcome::Success {
+            login_res,
+            cookie,
+            ttl: refresh_ttl,
+            is_new_user,
+        })
     }
 
     /// OAuth 사용자 조회 또는 생성
@@ -1586,5 +1679,291 @@ impl AuthService {
             refresh_cookie.into_owned(),
             refresh_ttl_secs,
         ))
+    }
+
+    // =========================================================================
+    // MFA (Multi-Factor Authentication)
+    // =========================================================================
+
+    /// MFA 설정 시작 — TOTP 비밀키 + QR 코드 생성
+    pub async fn mfa_setup(
+        st: &AppState,
+        user_id: i64,
+        user_email_enc: &str,
+    ) -> AppResult<MfaSetupRes> {
+        // 이미 MFA 활성화된 경우 에러
+        let mfa_enabled = AuthRepo::find_user_mfa_enabled(&st.db, user_id).await?;
+        if mfa_enabled {
+            return Err(AppError::Conflict("MFA_ALREADY_ENABLED".into()));
+        }
+
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let email = crypto.decrypt(user_email_enc, "users.user_email")
+            .unwrap_or_else(|_| format!("user_{}", user_id));
+
+        // TOTP 비밀키 생성
+        let secret = Secret::generate_secret();
+        let secret_base32 = secret.to_encoded().to_string();
+
+        let totp = TOTP::new(
+            Algorithm::SHA1,
+            6,      // digits
+            1,      // skew (±1 step = 90초 허용)
+            30,     // step (30초)
+            secret.to_bytes().map_err(|e| AppError::Internal(format!("TOTP secret error: {}", e)))?,
+            Some("AmazingKorean".to_string()),
+            email.clone(),
+        ).map_err(|e| AppError::Internal(format!("TOTP creation error: {}", e)))?;
+
+        // QR 코드 data URI 생성
+        let qr_code_data_uri = totp.get_qr_base64()
+            .map_err(|e| AppError::Internal(format!("QR generation error: {}", e)))?;
+
+        let otpauth_uri = totp.get_url();
+
+        // 비밀키 암호화 후 DB 저장 (enabled=false 상태)
+        let encrypted_secret = crypto.encrypt(&secret_base32, "users.user_mfa_secret")?;
+        AuthRepo::update_mfa_secret(&st.db, user_id, &encrypted_secret).await?;
+
+        Ok(MfaSetupRes {
+            secret: secret_base32,
+            qr_code_data_uri: format!("data:image/png;base64,{}", qr_code_data_uri),
+            otpauth_uri,
+        })
+    }
+
+    /// MFA 설정 확인 — 첫 코드 검증 후 활성화 + 백업 코드 발급
+    pub async fn mfa_verify_setup(
+        st: &AppState,
+        user_id: i64,
+        code: &str,
+    ) -> AppResult<MfaVerifySetupRes> {
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+
+        // DB에서 MFA secret 조회 + 복호화
+        let encrypted_secret = AuthRepo::find_mfa_secret(&st.db, user_id).await?
+            .ok_or_else(|| AppError::BadRequest("MFA_SETUP_NOT_STARTED".into()))?;
+        let secret_base32 = crypto.decrypt(&encrypted_secret, "users.user_mfa_secret")?;
+
+        // TOTP 검증
+        let secret_bytes = Secret::Encoded(secret_base32)
+            .to_bytes()
+            .map_err(|e| AppError::Internal(format!("TOTP secret decode error: {}", e)))?;
+        let totp = TOTP::new(Algorithm::SHA1, 6, 1, 30, secret_bytes, None, String::new())
+            .map_err(|e| AppError::Internal(format!("TOTP creation error: {}", e)))?;
+
+        if !totp.check_current(code).map_err(|e| AppError::Internal(format!("TOTP check error: {}", e)))? {
+            return Err(AppError::Unauthorized("MFA_INVALID_CODE".into()));
+        }
+
+        // 백업 코드 10개 생성 (8자 영숫자) — rng를 블록 내에서 드롭하여 Send 보장
+        let backup_codes: Vec<String> = {
+            let mut rng = rand::thread_rng();
+            (0..10)
+                .map(|_| {
+                    (0..8)
+                        .map(|_| {
+                            let idx: u32 = rng.gen_range(0..36);
+                            if idx < 10 { (b'0' + idx as u8) as char }
+                            else { (b'a' + (idx - 10) as u8) as char }
+                        })
+                        .collect()
+                })
+                .collect()
+        };
+
+        // 백업 코드 해시 → JSON → 암호화
+        let backup_hashes: Vec<String> = backup_codes.iter()
+            .map(|c| {
+                let hash = Sha256::digest(c.as_bytes());
+                URL_SAFE_NO_PAD.encode(hash)
+            })
+            .collect();
+        let hashes_json = serde_json::to_string(&backup_hashes)
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let encrypted_backup = crypto.encrypt(&hashes_json, "users.user_mfa_backup_codes")?;
+
+        // MFA 활성화
+        AuthRepo::enable_mfa(&st.db, user_id, &encrypted_backup).await?;
+
+        info!("MFA enabled for user {}", user_id);
+
+        Ok(MfaVerifySetupRes {
+            enabled: true,
+            backup_codes,
+        })
+    }
+
+    /// MFA 로그인 (2단계 인증 — TOTP 또는 백업 코드)
+    pub async fn mfa_login(
+        st: &AppState,
+        req: MfaLoginReq,
+        login_ip: String,
+    ) -> AppResult<(LoginRes, Cookie<'static>, i64)> {
+        let mut redis_conn = st.redis.get().await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // [Step 1] Redis에서 MFA pending 데이터 조회 + 삭제 (일회용)
+        let mfa_key = format!("ak:mfa_pending:{}", req.mfa_token);
+        let pending_json: Option<String> = redis_conn.get(&mfa_key).await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let Some(pending_json) = pending_json else {
+            return Err(AppError::Unauthorized("MFA_TOKEN_EXPIRED".into()));
+        };
+
+        // 즉시 삭제 (일회용)
+        let _: () = redis_conn.del(&mfa_key).await.unwrap_or(());
+
+        let pending: serde_json::Value = serde_json::from_str(&pending_json)
+            .map_err(|e| AppError::Internal(format!("MFA pending parse error: {}", e)))?;
+
+        let user_id = pending["user_id"].as_i64()
+            .ok_or_else(|| AppError::Internal("MFA pending missing user_id".into()))?;
+        let user_auth_str = pending["user_auth"].as_str().unwrap_or("Learner");
+        let user_auth: UserAuth = match user_auth_str {
+            "HYMN" => UserAuth::Hymn,
+            "Admin" => UserAuth::Admin,
+            "Manager" => UserAuth::Manager,
+            _ => UserAuth::Learner,
+        };
+        let pending_ip = pending["login_ip"].as_str().unwrap_or("").to_string();
+        let pending_ua = pending["user_agent"].as_str().map(|s| s.to_string());
+        let pending_device = pending["device"].as_str().unwrap_or("other").to_string();
+        let pending_browser = pending["browser"].as_str().map(|s| s.to_string());
+        let pending_os = pending["os"].as_str().map(|s| s.to_string());
+        let pending_method = pending["login_method"].as_str().unwrap_or("login").to_string();
+
+        // [Step 2] Rate limit: MFA 코드 검증
+        let rl_key = format!("rl:mfa:{}:{}", user_id, login_ip);
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        if attempts == 1 {
+            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_mfa_window_sec).await?;
+        }
+        if attempts > st.cfg.rate_limit_mfa_max {
+            return Err(AppError::TooManyRequests("MFA_429_TOO_MANY_ATTEMPTS".into()));
+        }
+
+        // [Step 3] TOTP 코드 또는 백업 코드 검증
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let encrypted_secret = AuthRepo::find_mfa_secret(&st.db, user_id).await?
+            .ok_or_else(|| AppError::Internal("MFA secret not found".into()))?;
+        let secret_base32 = crypto.decrypt(&encrypted_secret, "users.user_mfa_secret")?;
+
+        let secret_bytes = Secret::Encoded(secret_base32)
+            .to_bytes()
+            .map_err(|e| AppError::Internal(format!("TOTP secret decode error: {}", e)))?;
+        let totp = TOTP::new(Algorithm::SHA1, 6, 1, 30, secret_bytes, None, String::new())
+            .map_err(|e| AppError::Internal(format!("TOTP creation error: {}", e)))?;
+
+        let code_valid = if req.code.len() == 6 && req.code.chars().all(|c| c.is_ascii_digit()) {
+            // TOTP 코드 (6자리 숫자)
+            totp.check_current(&req.code)
+                .map_err(|e| AppError::Internal(format!("TOTP check error: {}", e)))?
+        } else {
+            false
+        };
+
+        if !code_valid {
+            // 백업 코드 시도 (8자 영숫자)
+            let backup_valid = Self::try_backup_code(st, user_id, &req.code, &crypto).await?;
+            if !backup_valid {
+                return Err(AppError::Unauthorized("MFA_INVALID_CODE".into()));
+            }
+        }
+
+        // [Step 4] 코드 검증 성공 → Rate limit 초기화
+        let _: () = redis_conn.del(&rl_key).await.unwrap_or(());
+
+        // [Step 5] 세션 생성 (pending 데이터 기반)
+        let parsed_ua = crate::api::auth::handler::ParsedUa {
+            os: pending_os,
+            browser: pending_browser,
+            device: pending_device,
+        };
+
+        // 세션 생성 (pending_method에 저장된 login_method 그대로 사용)
+        let (login_res, cookie, ttl) = Self::create_oauth_session(
+            st, user_id, user_auth, &pending_method, pending_ip, pending_ua, parsed_ua,
+        ).await?;
+        Ok((login_res, cookie, ttl))
+    }
+
+    /// 백업 코드 검증 (일치 시 해당 코드 해시 제거)
+    async fn try_backup_code(
+        st: &AppState,
+        user_id: i64,
+        code: &str,
+        crypto: &CryptoService<'_>,
+    ) -> AppResult<bool> {
+        let encrypted_codes = AuthRepo::find_mfa_backup_codes(&st.db, user_id).await?;
+        let Some(encrypted_codes) = encrypted_codes else {
+            return Ok(false);
+        };
+
+        let hashes_json = crypto.decrypt(&encrypted_codes, "users.user_mfa_backup_codes")?;
+        let mut hashes: Vec<String> = serde_json::from_str(&hashes_json)
+            .map_err(|e| AppError::Internal(format!("Backup codes parse error: {}", e)))?;
+
+        // 입력 코드 해시 계산
+        let input_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(code.as_bytes()));
+
+        // 매치하는 해시 찾기
+        if let Some(pos) = hashes.iter().position(|h| h == &input_hash) {
+            // 사용된 코드 제거
+            hashes.remove(pos);
+
+            // 갱신된 해시 목록 저장
+            let updated_json = serde_json::to_string(&hashes)
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+            let encrypted_updated = crypto.encrypt(&updated_json, "users.user_mfa_backup_codes")?;
+            AuthRepo::update_mfa_backup_codes(&st.db, user_id, &encrypted_updated).await?;
+
+            info!("MFA backup code used for user {} ({} remaining)", user_id, hashes.len());
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// MFA 비활성화 (HYMN 전용 — 다른 사용자의 MFA 해제)
+    pub async fn mfa_disable(
+        st: &AppState,
+        auth_user_id: i64,
+        auth_user_auth: UserAuth,
+        target_user_id: i64,
+    ) -> AppResult<MfaDisableRes> {
+        // HYMN만 가능
+        if auth_user_auth != UserAuth::Hymn {
+            return Err(AppError::Forbidden("MFA_DISABLE_HYMN_ONLY".into()));
+        }
+
+        // 자기 자신 비활성화 불가
+        if auth_user_id == target_user_id {
+            return Err(AppError::BadRequest("MFA_CANNOT_DISABLE_SELF".into()));
+        }
+
+        // 대상 사용자 MFA 비활성화
+        AuthRepo::disable_mfa(&st.db, target_user_id).await?;
+
+        // 대상 사용자의 모든 세션 무효화 (보안)
+        let mut tx = st.db.begin().await?;
+        let session_ids = AuthRepo::find_user_session_ids_tx(&mut tx, target_user_id).await?;
+        AuthRepo::update_login_state_by_user_tx(&mut tx, target_user_id, "revoked", Some("mfa_disabled")).await?;
+        tx.commit().await?;
+
+        // Redis 세션 정리
+        let mut redis_conn = st.redis.get().await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        for sid in &session_ids {
+            let _: () = redis_conn.del(format!("ak:session:{}", sid)).await.unwrap_or(());
+        }
+        let _: () = redis_conn.del(format!("ak:user_sessions:{}", target_user_id)).await.unwrap_or(());
+
+        info!("MFA disabled for user {} by HYMN user {}", target_user_id, auth_user_id);
+
+        Ok(MfaDisableRes {
+            message: format!("MFA disabled for user {}. All sessions invalidated.", target_user_id),
+        })
     }
 }

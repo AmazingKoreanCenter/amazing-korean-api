@@ -54,6 +54,10 @@ pub struct Config {
     pub translate_provider: String,              // "google" | "none" (기본: "none")
     pub google_translate_api_key: Option<String>,  // GCP Translation API 키
     pub google_translate_project_id: Option<String>, // GCP 프로젝트 ID
+    // MFA (Multi-Factor Authentication)
+    pub mfa_token_ttl_sec: i64,                  // MFA 토큰 유효시간 (초, 기본: 300 = 5분)
+    pub rate_limit_mfa_max: i64,                 // MFA 코드 검증 최대 시도 횟수 (기본: 5)
+    pub rate_limit_mfa_window_sec: i64,          // MFA 코드 검증 레이트리밋 윈도우 (초, 기본: 300)
     // Field Encryption (AES-256-GCM + HMAC-SHA256 Blind Index)
     pub app_env: String,                         // "production" | "development" (기본)
     pub encryption_ring: KeyRing,                // 다중 키 버전 (ENCRYPTION_KEY_V{n})
@@ -219,6 +223,20 @@ impl Config {
             );
         }
 
+        // MFA (Multi-Factor Authentication)
+        let mfa_token_ttl_sec = env::var("MFA_TOKEN_TTL_SEC")
+            .unwrap_or_else(|_| "300".into())
+            .parse::<i64>()
+            .expect("MFA_TOKEN_TTL_SEC must be a number");
+        let rate_limit_mfa_max = env::var("RATE_LIMIT_MFA_MAX")
+            .unwrap_or_else(|_| "5".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_MFA_MAX must be a number");
+        let rate_limit_mfa_window_sec = env::var("RATE_LIMIT_MFA_WINDOW_SEC")
+            .unwrap_or_else(|_| "300".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_MFA_WINDOW_SEC must be a number");
+
         // Field Encryption (AES-256-GCM + HMAC-SHA256)
         let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".into());
 
@@ -346,6 +364,9 @@ impl Config {
             translate_provider,
             google_translate_api_key,
             google_translate_project_id,
+            mfa_token_ttl_sec,
+            rate_limit_mfa_max,
+            rate_limit_mfa_window_sec,
             app_env,
             encryption_ring,
             hmac_key,
@@ -494,6 +515,9 @@ impl fmt::Debug for Config {
             .field("translate_provider", &self.translate_provider)
             .field("google_translate_api_key", &self.google_translate_api_key.as_ref().map(|_| "***"))
             .field("google_translate_project_id", &self.google_translate_project_id)
+            .field("mfa_token_ttl_sec", &self.mfa_token_ttl_sec)
+            .field("rate_limit_mfa_max", &self.rate_limit_mfa_max)
+            .field("rate_limit_mfa_window_sec", &self.rate_limit_mfa_window_sec)
             .field("app_env", &self.app_env)
             .field("encryption_ring", &self.encryption_ring)
             .field("hmac_key", &"***")

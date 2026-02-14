@@ -8,15 +8,19 @@ use cookie::time::{Duration, OffsetDateTime};
 
 use axum::{extract::Query, response::Redirect};
 
+use axum::response::IntoResponse;
+
 use crate::api::auth::dto::{
     FindIdReq, FindIdRes, FindPasswordReq, FindPasswordRes,
     GoogleAuthUrlRes, GoogleCallbackQuery, LoginReq, LoginRes, LogoutAllReq,
     LogoutRes, /* RefreshReq, */ ResetPwReq, ResetPwRes,
     RequestResetReq, RequestResetRes, VerifyResetReq, VerifyResetRes,
     VerifyEmailReq, VerifyEmailRes, ResendVerificationReq, ResendVerificationRes,
+    MfaChallengeRes, MfaLoginReq, MfaSetupRes, MfaVerifySetupReq,
+    MfaVerifySetupRes, MfaDisableReq, MfaDisableRes,
 };
 use crate::api::auth::extractor::AuthUser;
-use crate::api::auth::service::AuthService;
+use crate::api::auth::service::{AuthService, LoginOutcome, OAuthLoginOutcome};
 use crate::error::AppError;
 use crate::state::AppState;
 
@@ -82,18 +86,24 @@ pub async fn login(
     headers: HeaderMap,
     jar: CookieJar,
     Json(req): Json<LoginReq>,
-) -> Result<(CookieJar, Json<LoginRes>), AppError> {
+) -> Result<axum::response::Response, AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
     let parsed_ua = parse_user_agent(&headers);
 
-    // Service returns (LoginRes, Cookie, ttl)
-    let (login_res, cookie, _) = AuthService::login(&st, req, ip, ua, parsed_ua).await?;
-
-    // Add the fully constructed cookie from Service
-    let jar = jar.add(cookie);
-
-    Ok((jar, Json(login_res)))
+    match AuthService::login(&st, req, ip, ua, parsed_ua).await? {
+        LoginOutcome::Success { login_res, cookie, .. } => {
+            let jar = jar.add(cookie);
+            Ok((jar, Json(login_res)).into_response())
+        }
+        LoginOutcome::MfaChallenge { mfa_token, user_id } => {
+            Ok(Json(MfaChallengeRes {
+                mfa_required: true,
+                mfa_token,
+                user_id,
+            }).into_response())
+        }
+    }
 }
 
 #[utoipa::path(
@@ -477,8 +487,7 @@ pub async fn google_auth_callback(
     let result = AuthService::google_auth_callback(&st, &code, &query.state, ip, ua, parsed_ua).await;
 
     match result {
-        Ok((login_res, cookie, _, is_new_user)) => {
-            // 성공: 프론트엔드 로그인 페이지로 리다이렉트 (콜백 처리)
+        Ok(OAuthLoginOutcome::Success { login_res, cookie, is_new_user, .. }) => {
             let success_url = format!(
                 "{}/login?login=success&user_id={}&is_new_user={}",
                 st.cfg.frontend_url,
@@ -488,8 +497,15 @@ pub async fn google_auth_callback(
             let jar = jar.add(cookie);
             Ok((jar, Redirect::temporary(&success_url)))
         }
+        Ok(OAuthLoginOutcome::MfaChallenge { mfa_token, user_id }) => {
+            // MFA 챌린지: 프론트엔드 로그인 페이지로 MFA 토큰과 함께 리다이렉트
+            let mfa_url = format!(
+                "{}/login?mfa_required=true&mfa_token={}&user_id={}",
+                st.cfg.frontend_url, mfa_token, user_id
+            );
+            Ok((jar, Redirect::temporary(&mfa_url)))
+        }
         Err(e) => {
-            // 실패: 프론트엔드 로그인 페이지로 에러 리다이렉트
             let error_url = format!(
                 "{}/login?error=oauth_failed&error_description={}",
                 st.cfg.frontend_url,
@@ -498,4 +514,102 @@ pub async fn google_auth_callback(
             Ok((jar, Redirect::temporary(&error_url)))
         }
     }
+}
+
+// =========================================================================
+// MFA Handlers
+// =========================================================================
+
+/// MFA 설정 시작 — QR 코드 + 비밀키 반환
+#[utoipa::path(
+    post,
+    path = "/auth/mfa/setup",
+    tag = "auth",
+    responses(
+        (status = 200, description = "MFA setup initiated", body = MfaSetupRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 409, description = "MFA already enabled", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn mfa_setup(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+) -> Result<Json<MfaSetupRes>, AppError> {
+    // 사용자 이메일 조회 (QR 코드에 표시용)
+    let user = crate::api::user::repo::find_user(&st.db, auth_user.sub).await?
+        .ok_or_else(|| AppError::Internal("User not found".into()))?;
+
+    let res = AuthService::mfa_setup(&st, auth_user.sub, &user.email).await?;
+    Ok(Json(res))
+}
+
+/// MFA 설정 확인 — TOTP 코드 검증 후 활성화 + 백업 코드 발급
+#[utoipa::path(
+    post,
+    path = "/auth/mfa/verify-setup",
+    tag = "auth",
+    request_body = MfaVerifySetupReq,
+    responses(
+        (status = 200, description = "MFA enabled", body = MfaVerifySetupRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Invalid code", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn mfa_verify_setup(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Json(req): Json<MfaVerifySetupReq>,
+) -> Result<Json<MfaVerifySetupRes>, AppError> {
+    let res = AuthService::mfa_verify_setup(&st, auth_user.sub, &req.code).await?;
+    Ok(Json(res))
+}
+
+/// MFA 로그인 (2단계 인증 — TOTP 코드 또는 백업 코드)
+#[utoipa::path(
+    post,
+    path = "/auth/mfa/login",
+    tag = "auth",
+    request_body = MfaLoginReq,
+    responses(
+        (status = 200, description = "MFA login successful", body = LoginRes),
+        (status = 401, description = "Invalid code or expired token", body = crate::error::ErrorBody),
+        (status = 429, description = "Too many attempts", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn mfa_login(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    jar: CookieJar,
+    Json(req): Json<MfaLoginReq>,
+) -> Result<(CookieJar, Json<LoginRes>), AppError> {
+    let ip = extract_client_ip(&headers);
+
+    let (login_res, cookie, _) = AuthService::mfa_login(&st, req, ip).await?;
+    let jar = jar.add(cookie);
+
+    Ok((jar, Json(login_res)))
+}
+
+/// MFA 비활성화 (HYMN 전용 — 다른 사용자의 MFA 해제)
+#[utoipa::path(
+    post,
+    path = "/auth/mfa/disable",
+    tag = "auth",
+    request_body = MfaDisableReq,
+    responses(
+        (status = 200, description = "MFA disabled", body = MfaDisableRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 403, description = "HYMN only", body = crate::error::ErrorBody)
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn mfa_disable(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Json(req): Json<MfaDisableReq>,
+) -> Result<Json<MfaDisableRes>, AppError> {
+    let res = AuthService::mfa_disable(&st, auth_user.sub, auth_user.role, req.target_user_id).await?;
+    Ok(Json(res))
 }

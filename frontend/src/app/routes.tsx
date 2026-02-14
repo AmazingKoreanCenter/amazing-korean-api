@@ -50,6 +50,7 @@ import { AdminTranslationsPage } from "@/category/admin/page/admin_translations_
 import { AdminTranslationDashboard } from "@/category/admin/page/admin_translation_dashboard";
 import { AdminTranslationEdit } from "@/category/admin/page/admin_translation_edit";
 import { AdminEmailTest } from "@/category/admin/page/admin_email_test";
+import { AdminMfaSetupPage } from "@/category/admin/page/admin_mfa_setup_page";
 import { AdminUpgradeJoin } from "@/category/admin/page/admin_upgrade_join";
 
 // Error pages
@@ -91,6 +92,8 @@ export function AppRoutes() {
 
       {/* Admin 라우트 (admin/HYMN 권한 필요) */}
       <Route element={<AdminRoute />}>
+        {/* MFA 설정 페이지 (AdminLayout 밖 — MFA 미설정 시 강제 이동) */}
+        <Route path="/admin/mfa/setup" element={<AdminMfaSetupPage />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsersPage />} />
