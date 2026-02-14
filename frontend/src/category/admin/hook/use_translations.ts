@@ -10,6 +10,7 @@ import {
   getContentRecords,
   getSourceFields,
   searchTranslations,
+  getTranslationStats,
 } from "../admin_api";
 
 const getErrorMessage = (error: unknown) => {
@@ -90,6 +91,21 @@ export const useSearchTranslations = (lang?: SupportedLanguage) => {
   const query = useQuery({
     queryKey: ["admin", "translations", "search", lang],
     queryFn: () => searchTranslations(lang),
+  });
+
+  useEffect(() => {
+    if (query.isError) {
+      toast.error(getErrorMessage(query.error));
+    }
+  }, [query.error, query.isError]);
+
+  return query;
+};
+
+export const useTranslationStats = () => {
+  const query = useQuery({
+    queryKey: ["admin", "translations", "stats"],
+    queryFn: () => getTranslationStats(),
   });
 
   useEffect(() => {

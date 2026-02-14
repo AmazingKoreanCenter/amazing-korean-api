@@ -97,6 +97,7 @@ import type {
   AutoTranslateBulkRes,
   SupportedLanguage,
   TranslationSearchRes,
+  TranslationStatsRes,
 } from "./translation/types";
 
 import type {
@@ -682,4 +683,9 @@ export const searchTranslations = (lang?: SupportedLanguage) =>
   request<TranslationSearchRes>("/admin/translations/search", {
     method: "GET",
     params: { ...(lang ? { lang } : {}) },
+  });
+
+export const getTranslationStats = () =>
+  request<TranslationStatsRes>("/admin/translations/stats", {
+    method: "GET",
   });

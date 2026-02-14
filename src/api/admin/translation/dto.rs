@@ -287,6 +287,26 @@ pub struct TranslationSearchRes {
 }
 
 // =============================================================================
+// 번역 통계 (Translation Stats)
+// =============================================================================
+
+/// 번역 통계 개별 항목 (content_type × lang × status 별 집계)
+#[derive(Debug, Serialize, FromRow, ToSchema)]
+pub struct TranslationStatItem {
+    pub content_type: ContentType,
+    pub lang: SupportedLanguage,
+    pub status: TranslationStatus,
+    pub count: i64,
+}
+
+/// 번역 통계 응답
+#[derive(Debug, Serialize, ToSchema)]
+pub struct TranslationStatsRes {
+    pub items: Vec<TranslationStatItem>,
+    pub total_translations: i64,
+}
+
+// =============================================================================
 // 공용 번역 조회 (기존 도메인 API에서 사용)
 // =============================================================================
 

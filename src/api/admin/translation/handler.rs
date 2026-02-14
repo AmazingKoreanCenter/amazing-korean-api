@@ -11,7 +11,7 @@ use super::dto::{
     ContentRecordsReq, ContentRecordsRes, SourceFieldsReq, SourceFieldsRes,
     TranslationBulkCreateReq, TranslationBulkCreateRes, TranslationCreateReq,
     TranslationListReq, TranslationListRes, TranslationRes, TranslationSearchReq,
-    TranslationSearchRes, TranslationStatusReq, TranslationUpdateReq,
+    TranslationSearchRes, TranslationStatsRes, TranslationStatusReq, TranslationUpdateReq,
 };
 use super::service::TranslationService;
 
@@ -305,5 +305,28 @@ pub async fn admin_search_translations(
     Query(req): Query<TranslationSearchReq>,
 ) -> AppResult<Json<TranslationSearchRes>> {
     let res = TranslationService::search_translations(&st.db, req).await?;
+    Ok(Json(res))
+}
+
+// =============================================================================
+// 번역 통계 (Step 5A)
+// =============================================================================
+
+#[utoipa::path(
+    get,
+    path = "/admin/translations/stats",
+    tag = "admin_translation",
+    responses(
+        (status = 200, description = "Translation statistics", body = TranslationStatsRes),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_get_translation_stats(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+) -> AppResult<Json<TranslationStatsRes>> {
+    let res = TranslationService::get_translation_stats(&st.db).await?;
     Ok(Json(res))
 }

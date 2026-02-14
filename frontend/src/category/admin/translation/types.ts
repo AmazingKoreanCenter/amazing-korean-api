@@ -258,3 +258,17 @@ export interface TranslationSearchItem {
 export interface TranslationSearchRes {
   items: TranslationSearchItem[];
 }
+
+// ── 번역 통계 DTO ──────────────────────────
+
+export interface TranslationStatItem {
+  content_type: ContentType;
+  lang: SupportedLanguage;
+  status: TranslationStatus;
+  count: number;
+}
+
+export interface TranslationStatsRes {
+  items: TranslationStatItem[];
+  total_translations: number;
+}
