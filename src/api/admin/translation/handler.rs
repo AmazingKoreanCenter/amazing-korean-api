@@ -7,9 +7,11 @@ use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
 use super::dto::{
-    AutoTranslateReq, AutoTranslateRes, TranslationBulkCreateReq, TranslationBulkCreateRes,
-    TranslationCreateReq, TranslationListReq, TranslationListRes, TranslationRes,
-    TranslationStatusReq, TranslationUpdateReq,
+    AutoTranslateBulkReq, AutoTranslateBulkRes, AutoTranslateReq, AutoTranslateRes,
+    ContentRecordsReq, ContentRecordsRes, SourceFieldsReq, SourceFieldsRes,
+    TranslationBulkCreateReq, TranslationBulkCreateRes, TranslationCreateReq,
+    TranslationListReq, TranslationListRes, TranslationRes, TranslationSearchReq,
+    TranslationSearchRes, TranslationStatusReq, TranslationUpdateReq,
 };
 use super::service::TranslationService;
 
@@ -102,7 +104,7 @@ pub async fn admin_get_translation(
 }
 
 #[utoipa::path(
-    put,
+    patch,
     path = "/admin/translations/{id}",
     tag = "admin_translation",
     params(("id" = i64, Path, description = "Translation ID")),
@@ -195,5 +197,113 @@ pub async fn admin_auto_translate(
         AppError::External("Translation provider not configured. Set TRANSLATE_PROVIDER=google.".to_string())
     })?;
     let res = TranslationService::auto_translate(&st.db, translator.as_ref(), req).await?;
+    Ok(Json(res))
+}
+
+// =============================================================================
+// 콘텐츠 목록 조회 (Step 4)
+// =============================================================================
+
+#[utoipa::path(
+    get,
+    path = "/admin/translations/content-records",
+    tag = "admin_translation",
+    params(ContentRecordsReq),
+    responses(
+        (status = 200, description = "Content records for dropdown", body = ContentRecordsRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_list_content_records(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Query(req): Query<ContentRecordsReq>,
+) -> AppResult<Json<ContentRecordsRes>> {
+    let res = TranslationService::list_content_records(&st.db, req).await?;
+    Ok(Json(res))
+}
+
+// =============================================================================
+// 원본 텍스트 조회 (Step 5)
+// =============================================================================
+
+#[utoipa::path(
+    get,
+    path = "/admin/translations/source-fields",
+    tag = "admin_translation",
+    params(SourceFieldsReq),
+    responses(
+        (status = 200, description = "Source fields with Korean text", body = SourceFieldsRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_get_source_fields(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Query(req): Query<SourceFieldsReq>,
+) -> AppResult<Json<SourceFieldsRes>> {
+    let res = TranslationService::get_source_fields(&st.db, req).await?;
+    Ok(Json(res))
+}
+
+// =============================================================================
+// 벌크 자동 번역 (Step 6)
+// =============================================================================
+
+#[utoipa::path(
+    post,
+    path = "/admin/translations/auto-bulk",
+    tag = "admin_translation",
+    request_body(content = AutoTranslateBulkReq, content_type = "application/json"),
+    responses(
+        (status = 200, description = "Bulk auto translation result", body = AutoTranslateBulkRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+        (status = 500, description = "Translation provider not configured"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_auto_translate_bulk(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Json(req): Json<AutoTranslateBulkReq>,
+) -> AppResult<Json<AutoTranslateBulkRes>> {
+    let translator = st.translator.as_ref().ok_or_else(|| {
+        AppError::External("Translation provider not configured. Set TRANSLATE_PROVIDER=google.".to_string())
+    })?;
+    let res = TranslationService::auto_translate_bulk(&st.db, translator.as_ref(), req).await?;
+    Ok(Json(res))
+}
+
+// =============================================================================
+// 번역 검색 (Step 11 — 재사용)
+// =============================================================================
+
+#[utoipa::path(
+    get,
+    path = "/admin/translations/search",
+    tag = "admin_translation",
+    params(TranslationSearchReq),
+    responses(
+        (status = 200, description = "Translation search results", body = TranslationSearchRes),
+        (status = 400, description = "Bad request"),
+        (status = 401, description = "Unauthorized"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn admin_search_translations(
+    State(st): State<AppState>,
+    AuthUser(_auth): AuthUser,
+    Query(req): Query<TranslationSearchReq>,
+) -> AppResult<Json<TranslationSearchRes>> {
+    let res = TranslationService::search_translations(&st.db, req).await?;
     Ok(Json(res))
 }

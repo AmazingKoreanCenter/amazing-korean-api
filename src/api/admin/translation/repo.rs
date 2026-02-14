@@ -5,7 +5,7 @@ use sqlx::PgPool;
 use crate::error::AppResult;
 use crate::types::{ContentType, SupportedLanguage, TranslationStatus};
 
-use super::dto::{TranslatedField, TranslationRes};
+use super::dto::{ContentRecordItem, SourceFieldItem, TranslatedField, TranslationRes, TranslationSearchItem};
 
 pub struct TranslationRepo;
 
@@ -198,6 +198,402 @@ impl TranslationRepo {
     }
 
     // =========================================================================
+    // 콘텐츠 목록 조회 (Step 4)
+    // =========================================================================
+
+    /// content_type별 레코드 목록 조회 (드롭다운용)
+    pub async fn find_content_records(
+        pool: &PgPool,
+        content_type: ContentType,
+    ) -> AppResult<Vec<ContentRecordItem>> {
+        let items = match content_type {
+            ContentType::Video => {
+                sqlx::query_as::<_, ContentRecordItem>(
+                    r#"
+                    SELECT
+                        v.video_id::bigint AS id,
+                        v.video_idx AS label,
+                        COALESCE(
+                            (SELECT string_agg(vt.video_tag_title, ', ' ORDER BY vt.video_tag_title)
+                             FROM video_tag_map vtm
+                             JOIN video_tag vt ON vt.video_tag_id = vtm.video_tag_id
+                             WHERE vtm.video_id = v.video_id),
+                            ''
+                        ) AS detail
+                    FROM video v
+                    ORDER BY v.video_id
+                    "#,
+                )
+                .fetch_all(pool)
+                .await?
+            }
+            ContentType::Lesson => {
+                sqlx::query_as::<_, ContentRecordItem>(
+                    r#"
+                    SELECT
+                        lesson_id::bigint AS id,
+                        lesson_idx AS label,
+                        lesson_title AS detail
+                    FROM lesson
+                    ORDER BY lesson_id
+                    "#,
+                )
+                .fetch_all(pool)
+                .await?
+            }
+            ContentType::Study => {
+                sqlx::query_as::<_, ContentRecordItem>(
+                    r#"
+                    SELECT
+                        study_id::bigint AS id,
+                        study_idx AS label,
+                        study_title AS detail
+                    FROM study
+                    ORDER BY study_id
+                    "#,
+                )
+                .fetch_all(pool)
+                .await?
+            }
+            ContentType::StudyTaskChoice => {
+                sqlx::query_as::<_, ContentRecordItem>(
+                    r#"
+                    SELECT
+                        st.study_task_id::bigint AS id,
+                        CONCAT('Study#', st.study_id, ' Task#', st.study_task_seq) AS label,
+                        LEFT(stc.study_task_choice_question, 50) AS detail
+                    FROM study_task st
+                    JOIN study_task_choice stc ON stc.study_task_id = st.study_task_id
+                    WHERE st.study_task_kind = 'choice'
+                    ORDER BY st.study_id, st.study_task_seq
+                    "#,
+                )
+                .fetch_all(pool)
+                .await?
+            }
+            ContentType::StudyTaskTyping => {
+                sqlx::query_as::<_, ContentRecordItem>(
+                    r#"
+                    SELECT
+                        st.study_task_id::bigint AS id,
+                        CONCAT('Study#', st.study_id, ' Task#', st.study_task_seq) AS label,
+                        LEFT(stt.study_task_typing_question, 50) AS detail
+                    FROM study_task st
+                    JOIN study_task_typing stt ON stt.study_task_id = st.study_task_id
+                    WHERE st.study_task_kind = 'typing'
+                    ORDER BY st.study_id, st.study_task_seq
+                    "#,
+                )
+                .fetch_all(pool)
+                .await?
+            }
+            ContentType::StudyTaskVoice => {
+                sqlx::query_as::<_, ContentRecordItem>(
+                    r#"
+                    SELECT
+                        st.study_task_id::bigint AS id,
+                        CONCAT('Study#', st.study_id, ' Task#', st.study_task_seq) AS label,
+                        LEFT(stv.study_task_voice_question, 50) AS detail
+                    FROM study_task st
+                    JOIN study_task_voice stv ON stv.study_task_id = st.study_task_id
+                    WHERE st.study_task_kind = 'voice'
+                    ORDER BY st.study_id, st.study_task_seq
+                    "#,
+                )
+                .fetch_all(pool)
+                .await?
+            }
+            ContentType::StudyTaskExplain => {
+                sqlx::query_as::<_, ContentRecordItem>(
+                    r#"
+                    SELECT DISTINCT ON (st.study_task_id)
+                        st.study_task_id::bigint AS id,
+                        CONCAT('Study#', st.study_id, ' Task#', st.study_task_seq) AS label,
+                        ste.explain_title AS detail
+                    FROM study_task st
+                    JOIN study_task_explain ste ON ste.study_task_id = st.study_task_id
+                        AND ste.explain_lang = 'ko'
+                    ORDER BY st.study_task_id, st.study_id, st.study_task_seq
+                    "#,
+                )
+                .fetch_all(pool)
+                .await?
+            }
+            // VideoTag, Course — 직접 선택하지 않음 (Video 내부에서 처리)
+            _ => Vec::new(),
+        };
+
+        Ok(items)
+    }
+
+    // =========================================================================
+    // 원본 텍스트 조회 (Step 5)
+    // =========================================================================
+
+    /// content_type + content_id에 해당하는 모든 번역 가능 필드 + 한국어 원본 반환
+    pub async fn find_source_fields(
+        pool: &PgPool,
+        content_type: ContentType,
+        content_id: i64,
+    ) -> AppResult<Vec<SourceFieldItem>> {
+        let mut fields = Vec::new();
+
+        match content_type {
+            ContentType::Video => {
+                // video 테이블 자체 필드
+                let row = sqlx::query_as::<_, VideoSourceRow>(
+                    r#"SELECT video_idx FROM video WHERE video_id = $1"#,
+                )
+                .bind(content_id)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(r) = row {
+                    fields.push(SourceFieldItem {
+                        content_type: ContentType::Video,
+                        content_id,
+                        field_name: "video_idx".to_string(),
+                        source_text: Some(r.video_idx),
+                    });
+                }
+
+                // video에 연결된 video_tag 필드들
+                let tags = sqlx::query_as::<_, VideoTagSourceRow>(
+                    r#"
+                    SELECT vt.video_tag_id::bigint, vt.video_tag_key, vt.video_tag_title, vt.video_tag_subtitle
+                    FROM video_tag vt
+                    JOIN video_tag_map vtm ON vtm.video_tag_id = vt.video_tag_id
+                    WHERE vtm.video_id = $1
+                    ORDER BY vt.video_tag_id
+                    "#,
+                )
+                .bind(content_id)
+                .fetch_all(pool)
+                .await?;
+
+                for tag in tags {
+                    fields.push(SourceFieldItem {
+                        content_type: ContentType::VideoTag,
+                        content_id: tag.video_tag_id,
+                        field_name: "video_tag_key".to_string(),
+                        source_text: Some(tag.video_tag_key),
+                    });
+                    fields.push(SourceFieldItem {
+                        content_type: ContentType::VideoTag,
+                        content_id: tag.video_tag_id,
+                        field_name: "video_tag_title".to_string(),
+                        source_text: Some(tag.video_tag_title),
+                    });
+                    fields.push(SourceFieldItem {
+                        content_type: ContentType::VideoTag,
+                        content_id: tag.video_tag_id,
+                        field_name: "video_tag_subtitle".to_string(),
+                        source_text: tag.video_tag_subtitle,
+                    });
+                }
+            }
+            ContentType::Lesson => {
+                let row = sqlx::query_as::<_, LessonSourceRow>(
+                    r#"
+                    SELECT lesson_idx, lesson_title, lesson_subtitle, lesson_description
+                    FROM lesson WHERE lesson_id = $1
+                    "#,
+                )
+                .bind(content_id)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(r) = row {
+                    for (name, text) in [
+                        ("lesson_idx", Some(r.lesson_idx)),
+                        ("lesson_title", Some(r.lesson_title)),
+                        ("lesson_subtitle", r.lesson_subtitle),
+                        ("lesson_description", r.lesson_description),
+                    ] {
+                        fields.push(SourceFieldItem {
+                            content_type: ContentType::Lesson,
+                            content_id,
+                            field_name: name.to_string(),
+                            source_text: text,
+                        });
+                    }
+                }
+            }
+            ContentType::Study => {
+                let row = sqlx::query_as::<_, StudySourceRow>(
+                    r#"
+                    SELECT study_idx, study_title, study_subtitle, study_description
+                    FROM study WHERE study_id = $1
+                    "#,
+                )
+                .bind(content_id)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(r) = row {
+                    for (name, text) in [
+                        ("study_idx", Some(r.study_idx)),
+                        ("study_title", Some(r.study_title)),
+                        ("study_subtitle", r.study_subtitle),
+                        ("study_description", r.study_description),
+                    ] {
+                        fields.push(SourceFieldItem {
+                            content_type: ContentType::Study,
+                            content_id,
+                            field_name: name.to_string(),
+                            source_text: text,
+                        });
+                    }
+                }
+            }
+            ContentType::StudyTaskChoice => {
+                let row = sqlx::query_as::<_, ChoiceSourceRow>(
+                    r#"
+                    SELECT
+                        study_task_choice_question,
+                        study_task_choice_1, study_task_choice_2,
+                        study_task_choice_3, study_task_choice_4,
+                        study_task_choice_answer
+                    FROM study_task_choice WHERE study_task_id = $1
+                    "#,
+                )
+                .bind(content_id)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(r) = row {
+                    for (name, text) in [
+                        ("study_task_choice_question", Some(r.study_task_choice_question)),
+                        ("study_task_choice_1", Some(r.study_task_choice_1)),
+                        ("study_task_choice_2", Some(r.study_task_choice_2)),
+                        ("study_task_choice_3", Some(r.study_task_choice_3)),
+                        ("study_task_choice_4", Some(r.study_task_choice_4)),
+                        ("study_task_choice_answer", Some(r.study_task_choice_answer.to_string())),
+                    ] {
+                        fields.push(SourceFieldItem {
+                            content_type: ContentType::StudyTaskChoice,
+                            content_id,
+                            field_name: name.to_string(),
+                            source_text: text,
+                        });
+                    }
+                }
+            }
+            ContentType::StudyTaskTyping => {
+                let row = sqlx::query_as::<_, TypingSourceRow>(
+                    r#"
+                    SELECT study_task_typing_question, study_task_typing_answer
+                    FROM study_task_typing WHERE study_task_id = $1
+                    "#,
+                )
+                .bind(content_id)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(r) = row {
+                    for (name, text) in [
+                        ("study_task_typing_question", r.study_task_typing_question),
+                        ("study_task_typing_answer", r.study_task_typing_answer),
+                    ] {
+                        fields.push(SourceFieldItem {
+                            content_type: ContentType::StudyTaskTyping,
+                            content_id,
+                            field_name: name.to_string(),
+                            source_text: text,
+                        });
+                    }
+                }
+            }
+            ContentType::StudyTaskVoice => {
+                let row = sqlx::query_as::<_, VoiceSourceRow>(
+                    r#"
+                    SELECT study_task_voice_question, study_task_voice_answer
+                    FROM study_task_voice WHERE study_task_id = $1
+                    "#,
+                )
+                .bind(content_id)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(r) = row {
+                    for (name, text) in [
+                        ("study_task_voice_question", r.study_task_voice_question),
+                        ("study_task_voice_answer", r.study_task_voice_answer),
+                    ] {
+                        fields.push(SourceFieldItem {
+                            content_type: ContentType::StudyTaskVoice,
+                            content_id,
+                            field_name: name.to_string(),
+                            source_text: text,
+                        });
+                    }
+                }
+            }
+            ContentType::StudyTaskExplain => {
+                let row = sqlx::query_as::<_, ExplainSourceRow>(
+                    r#"
+                    SELECT explain_title, explain_text
+                    FROM study_task_explain
+                    WHERE study_task_id = $1 AND explain_lang = 'ko'
+                    "#,
+                )
+                .bind(content_id)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(r) = row {
+                    for (name, text) in [
+                        ("explain_title", r.explain_title),
+                        ("explain_text", r.explain_text),
+                    ] {
+                        fields.push(SourceFieldItem {
+                            content_type: ContentType::StudyTaskExplain,
+                            content_id,
+                            field_name: name.to_string(),
+                            source_text: text,
+                        });
+                    }
+                }
+            }
+            _ => {} // VideoTag, Course — 직접 호출되지 않음
+        }
+
+        Ok(fields)
+    }
+
+    // =========================================================================
+    // 번역 검색 (Step 11 — 재사용)
+    // =========================================================================
+
+    /// 기존 번역 검색 (translated_text 유사 매칭 — 재사용용)
+    /// source_text를 기반으로 동일 텍스트가 이미 번역된 레코드를 검색
+    pub async fn search_translations(
+        pool: &PgPool,
+        _source_text: &str,
+        lang: Option<SupportedLanguage>,
+    ) -> AppResult<Vec<TranslationSearchItem>> {
+        // content_translations에는 source_text가 저장되지 않으므로,
+        // 언어 + 상태 기반으로 최근 번역을 조회하여 재사용 후보 제공
+        let rows = sqlx::query_as::<_, TranslationSearchItem>(
+            r#"
+            SELECT
+                translation_id, content_type, content_id, field_name,
+                lang, translated_text, status
+            FROM content_translations
+            WHERE ($1::supported_language_enum IS NULL OR lang = $1)
+              AND status IN ('approved', 'reviewed')
+            ORDER BY updated_at DESC
+            LIMIT 50
+            "#,
+        )
+        .bind(lang)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    // =========================================================================
     // 공용 번역 조회 (기존 도메인 API에서 fallback 패턴으로 사용)
     // =========================================================================
 
@@ -262,4 +658,65 @@ struct TranslationRow {
     field_name: String,
     translated_text: String,
     lang: SupportedLanguage,
+}
+
+// =============================================================================
+// Source Fields 내부 쿼리용 행 구조체
+// =============================================================================
+
+#[derive(Debug, sqlx::FromRow)]
+struct VideoSourceRow {
+    video_idx: String,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct VideoTagSourceRow {
+    video_tag_id: i64,
+    video_tag_key: String,
+    video_tag_title: String,
+    video_tag_subtitle: Option<String>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct LessonSourceRow {
+    lesson_idx: String,
+    lesson_title: String,
+    lesson_subtitle: Option<String>,
+    lesson_description: Option<String>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct StudySourceRow {
+    study_idx: String,
+    study_title: String,
+    study_subtitle: Option<String>,
+    study_description: Option<String>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct ChoiceSourceRow {
+    study_task_choice_question: String,
+    study_task_choice_1: String,
+    study_task_choice_2: String,
+    study_task_choice_3: String,
+    study_task_choice_4: String,
+    study_task_choice_answer: i32,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct TypingSourceRow {
+    study_task_typing_question: Option<String>,
+    study_task_typing_answer: Option<String>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct VoiceSourceRow {
+    study_task_voice_question: Option<String>,
+    study_task_voice_answer: Option<String>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct ExplainSourceRow {
+    explain_title: Option<String>,
+    explain_text: Option<String>,
 }

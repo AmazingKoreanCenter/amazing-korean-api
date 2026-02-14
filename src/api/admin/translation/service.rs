@@ -3,12 +3,15 @@ use validator::Validate;
 
 use crate::error::{AppError, AppResult};
 use crate::external::translator::TranslationProvider;
+use crate::types::SupportedLanguage;
 
 use super::dto::{
-    AutoTranslateItemResult, AutoTranslateReq, AutoTranslateRes, TranslationBulkCreateReq,
+    AutoTranslateBulkItem, AutoTranslateBulkItemResult, AutoTranslateBulkReq, AutoTranslateBulkRes,
+    AutoTranslateItemResult, AutoTranslateReq, AutoTranslateRes, ContentRecordsReq,
+    ContentRecordsRes, SourceFieldsReq, SourceFieldsRes, TranslationBulkCreateReq,
     TranslationBulkCreateRes, TranslationBulkItemResult, TranslationCreateReq,
     TranslationListMeta, TranslationListReq, TranslationListRes, TranslationRes,
-    TranslationStatusReq, TranslationUpdateReq,
+    TranslationSearchReq, TranslationSearchRes, TranslationStatusReq, TranslationUpdateReq,
 };
 use super::repo::TranslationRepo;
 
@@ -180,6 +183,42 @@ impl TranslationService {
         Ok(())
     }
 
+    // =========================================================================
+    // 콘텐츠 목록 / 원본 텍스트 / 번역 검색 (Step 4, 5, 11)
+    // =========================================================================
+
+    /// 콘텐츠 목록 조회 (드롭다운용)
+    pub async fn list_content_records(
+        pool: &PgPool,
+        req: ContentRecordsReq,
+    ) -> AppResult<ContentRecordsRes> {
+        let items = TranslationRepo::find_content_records(pool, req.content_type).await?;
+        Ok(ContentRecordsRes { items })
+    }
+
+    /// 원본 텍스트 조회 (한국어 소스 필드)
+    pub async fn get_source_fields(
+        pool: &PgPool,
+        req: SourceFieldsReq,
+    ) -> AppResult<SourceFieldsRes> {
+        let fields = TranslationRepo::find_source_fields(pool, req.content_type, req.content_id).await?;
+        Ok(SourceFieldsRes { fields })
+    }
+
+    /// 번역 검색 (재사용용 — 동일 소스 텍스트 기존 번역 찾기)
+    pub async fn search_translations(
+        pool: &PgPool,
+        req: TranslationSearchReq,
+    ) -> AppResult<TranslationSearchRes> {
+        req.validate().map_err(AppError::Validation)?;
+        let items = TranslationRepo::search_translations(pool, &req.source_text, req.lang).await?;
+        Ok(TranslationSearchRes { items })
+    }
+
+    // =========================================================================
+    // 자동 번역 (단건 + 벌크)
+    // =========================================================================
+
     /// 자동 번역 (TranslationProvider를 통해 원본 → 타겟 언어 자동 번역 후 DB 저장)
     pub async fn auto_translate(
         pool: &PgPool,
@@ -251,5 +290,125 @@ impl TranslationService {
             success_count,
             results,
         })
+    }
+
+    /// 벌크 자동 번역 (복수 필드 × 복수 언어)
+    pub async fn auto_translate_bulk(
+        pool: &PgPool,
+        translator: &dyn TranslationProvider,
+        req: AutoTranslateBulkReq,
+    ) -> AppResult<AutoTranslateBulkRes> {
+        req.validate().map_err(AppError::Validation)?;
+
+        let total = req.items.len() * req.target_langs.len();
+        let mut results = Vec::with_capacity(total);
+        let mut success_count = 0usize;
+
+        for item in &req.items {
+            // 순수 숫자이면 번역 스킵 — 번역 필요 없는 값 (예: study_task_choice_answer)
+            let is_numeric = item.source_text.trim().parse::<f64>().is_ok();
+
+            for target_lang in &req.target_langs {
+                if is_numeric {
+                    // 숫자는 그대로 UPSERT
+                    match TranslationRepo::upsert_one(
+                        pool,
+                        item.content_type,
+                        item.content_id,
+                        &item.field_name,
+                        *target_lang,
+                        &item.source_text,
+                    )
+                    .await
+                    {
+                        Ok(row) => {
+                            success_count += 1;
+                            results.push(AutoTranslateBulkItemResult {
+                                content_type: item.content_type,
+                                content_id: item.content_id,
+                                field_name: item.field_name.clone(),
+                                lang: *target_lang,
+                                success: true,
+                                translation_id: Some(row.translation_id),
+                                translated_text: Some(item.source_text.clone()),
+                                error: None,
+                            });
+                        }
+                        Err(e) => {
+                            results.push(Self::bulk_error_result(
+                                &item, *target_lang, format!("DB save failed: {}", e),
+                            ));
+                        }
+                    }
+                    continue;
+                }
+
+                let gcp_target = target_lang.to_gcp_code();
+
+                match translator.translate(&item.source_text, "ko", gcp_target).await {
+                    Ok(translated_text) => {
+                        match TranslationRepo::upsert_one(
+                            pool,
+                            item.content_type,
+                            item.content_id,
+                            &item.field_name,
+                            *target_lang,
+                            &translated_text,
+                        )
+                        .await
+                        {
+                            Ok(row) => {
+                                success_count += 1;
+                                results.push(AutoTranslateBulkItemResult {
+                                    content_type: item.content_type,
+                                    content_id: item.content_id,
+                                    field_name: item.field_name.clone(),
+                                    lang: *target_lang,
+                                    success: true,
+                                    translation_id: Some(row.translation_id),
+                                    translated_text: Some(translated_text),
+                                    error: None,
+                                });
+                            }
+                            Err(e) => {
+                                results.push(Self::bulk_error_result(
+                                    &item, *target_lang, format!("DB save failed: {}", e),
+                                ));
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        results.push(Self::bulk_error_result(
+                            &item, *target_lang, e.to_string(),
+                        ));
+                    }
+                }
+            }
+        }
+
+        let fail_count = total - success_count;
+        Ok(AutoTranslateBulkRes {
+            total,
+            success_count,
+            fail_count,
+            results,
+        })
+    }
+
+    fn bulk_error_result(
+        item: &AutoTranslateBulkItem,
+        lang: SupportedLanguage,
+        error: String,
+    ) -> AutoTranslateBulkItemResult {
+        AutoTranslateBulkItemResult {
+            content_type: item.content_type,
+            content_id: item.content_id,
+            field_name: item.field_name.clone(),
+            lang,
+            success: false,
+            translation_id: None,
+            translated_text: None,
+            error: Some(error),
+        }
     }
 }

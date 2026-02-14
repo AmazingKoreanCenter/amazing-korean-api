@@ -1210,8 +1210,8 @@ VIMEO_ACCESS_TOKEN=xxx
   - **UNIQUE**: (content_type, content_id, field_name, lang)
 
 - **Enums**
-  - `content_type_enum`: `'course'`, `'lesson'`, `'video'`, `'video_tag'`, `'study'`, `'study_task_choice'`, `'study_task_typing'`, `'study_task_voice'`
-    - `'video'` = 비디오 제목/부제 번역, `'video_tag'` = 비디오 태그 번역 (향후 사용)
+  - `content_type_enum`: `'course'`, `'lesson'`, `'video'`, `'video_tag'`, `'study'`, `'study_task_choice'`, `'study_task_typing'`, `'study_task_voice'`, `'study_task_explain'`
+    - `'video'` = 비디오 제목/부제 번역, `'video_tag'` = 비디오 태그 번역, `'study_task_explain'` = 학습 해설 번역
   - `translation_status_enum`: `'draft'`, `'reviewed'`, `'approved'`
   - `supported_language_enum`: `'en'`, `'zh-CN'`, `'zh-TW'`, `'ja'`, `'vi'`, `'id'`, `'th'`, `'my'`, `'km'`, `'mn'`, `'ru'`, `'uz'`, `'kk'`, `'tg'`, `'ne'`, `'si'`, `'hi'`, `'es'`, `'pt'`, `'fr'`, `'de'` (21개, 아랍어 제외 — RTL 별도 대응 필요)
 
@@ -2419,10 +2419,14 @@ Location: http://localhost:5173/login?error=oauth_failed&error_description=...
 | 9-2 | `POST /admin/translations` | `/admin/translations/new` | 번역 단건 생성 (UPSERT) | ***content_type+content_id+field_name+lang 기준 UPSERT, 텍스트 변경 시에만 status 리셋, RBAC***<br>성공: **201**<br>실패: **401/403/400/422** | [✅] |
 | 9-3 | `POST /admin/translations/bulk` | `/admin/translations/bulk` | 번역 벌크 생성 | ***부분 성공, RBAC***<br>성공: **201** / 부분: **207**<br>실패: **401/403/400/422** | [✅] |
 | 9-4 | `GET /admin/translations/{id}` | `/admin/translations/{translation_id}` | 번역 상세 조회 | ***RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅] |
-| 9-5 | `PUT /admin/translations/{id}` | `/admin/translations/{translation_id}/edit` | 번역 수정 (텍스트/상태) | ***translated_text, status 변경 가능, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422** | [✅] |
+| 9-5 | `PATCH /admin/translations/{id}` | `/admin/translations/{translation_id}/edit` | 번역 수정 (텍스트/상태) | ***translated_text, status 부분 수정, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422** | [✅] |
 | 9-6 | `PATCH /admin/translations/{id}/status` | `/admin/translations/{translation_id}` | 번역 상태만 변경 | ***draft → reviewed → approved 상태 전이, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422** | [✅] |
 | 9-7 | `DELETE /admin/translations/{id}` | `/admin/translations/{translation_id}` | 번역 삭제 | ***RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅] |
 | 9-8 | `POST /admin/translations/auto` | `/admin/translations` | 자동 번역 (GCP) | ***Google Cloud Translation v2 Basic 연동, 원본 텍스트를 대상 언어로 자동 번역 후 draft 상태로 UPSERT, TRANSLATE_PROVIDER=none이면 503, RBAC***<br>성공: **200**<br>실패: **401/403/400/422/503** | [✅] |
+| 9-9 | `GET /admin/translations/content-records` | - | 콘텐츠 목록 조회 (드롭다운용) | ***content_type별 레코드 목록 반환, RBAC***<br>성공: **200**<br>실패: **401/403/400** | [✅] |
+| 9-10 | `GET /admin/translations/source-fields` | - | 원본 텍스트 조회 | ***content_type+content_id로 한국어 원본 필드 조회, RBAC***<br>성공: **200**<br>실패: **401/403/400** | [✅] |
+| 9-11 | `POST /admin/translations/auto-bulk` | `/admin/translations/new` | 벌크 자동 번역 | ***복수 필드 × 복수 언어 일괄 자동 번역, 숫자 값 스킵, RBAC***<br>성공: **200**<br>실패: **401/403/400/422/503** | [✅] |
+| 9-12 | `GET /admin/translations/search` | - | 번역 검색 (재사용) | ***source_text+lang으로 기존 번역 검색, RBAC***<br>성공: **200**<br>실패: **401/403/400** | [✅] |
 
 ---
 
@@ -2556,7 +2560,7 @@ draft → reviewed → approved
 
 ---
 
-#### 9-5 : `PUT /admin/translations/{id}` (번역 수정)
+#### 9-5 : `PATCH /admin/translations/{id}` (번역 수정)
 
 **요청**
 ```json
@@ -2632,6 +2636,104 @@ draft → reviewed → approved
 > - 개별 언어 번역 실패 시 해당 항목만 `success: false` + `error` 메시지, 나머지는 정상 처리
 > - 번역 결과는 `draft` 상태로 UPSERT → 관리자가 검수(reviewed) → 승인(approved) 후 사용자에게 제공
 > - 환경변수: `TRANSLATE_PROVIDER=google`, `GOOGLE_TRANSLATE_API_KEY`, `GOOGLE_TRANSLATE_PROJECT_ID` 필요
+
+---
+
+#### 9-9 : `GET /admin/translations/content-records` (콘텐츠 목록 조회)
+
+> content_type별로 번역 가능한 레코드 목록을 반환한다. 관리자가 번역 대상 콘텐츠를 드롭다운에서 선택할 때 사용.
+
+**Query Parameters**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `content_type` | string | ✅ | 콘텐츠 유형 (video, lesson, study, study_task_choice, study_task_typing, study_task_voice, study_task_explain) |
+
+**응답 (성공 200)**
+```json
+{
+  "items": [
+    { "id": 1, "label": "VID-001", "detail": "발음 기초" },
+    { "id": 2, "label": "VID-002", "detail": "문법 기초" }
+  ]
+}
+```
+
+---
+
+#### 9-10 : `GET /admin/translations/source-fields` (원본 텍스트 조회)
+
+> content_type + content_id로 해당 레코드의 번역 가능 필드와 한국어 원본 텍스트를 반환한다. Video 선택 시 연결된 video_tag 필드도 함께 반환.
+
+**Query Parameters**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `content_type` | string | ✅ | 콘텐츠 유형 |
+| `content_id` | i64 | ✅ | 콘텐츠 ID |
+
+**응답 (성공 200)**
+```json
+{
+  "fields": [
+    { "content_type": "video", "content_id": 1, "field_name": "video_idx", "source_text": "VID-001" },
+    { "content_type": "video_tag", "content_id": 10, "field_name": "video_tag_title", "source_text": "발음 연습" }
+  ]
+}
+```
+
+---
+
+#### 9-11 : `POST /admin/translations/auto-bulk` (벌크 자동 번역)
+
+> 복수 필드 × 복수 언어를 일괄 자동 번역한다. 순수 숫자 source_text는 번역 API 호출 없이 그대로 UPSERT.
+
+**요청 Body (JSON)**
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `items` | array | ✅ | 번역 대상 필드 목록 (content_type, content_id, field_name, source_text) |
+| `target_langs` | string[] | ✅ | 대상 언어 코드 배열 |
+
+```json
+{
+  "items": [
+    { "content_type": "video", "content_id": 1, "field_name": "video_idx", "source_text": "VID-001" },
+    { "content_type": "video_tag", "content_id": 10, "field_name": "video_tag_title", "source_text": "발음 연습" }
+  ],
+  "target_langs": ["en", "ja", "vi"]
+}
+```
+
+**응답 (성공 200)**
+```json
+{
+  "total": 6,
+  "success_count": 6,
+  "fail_count": 0,
+  "results": [
+    { "content_type": "video", "content_id": 1, "field_name": "video_idx", "lang": "en", "success": true, "translation_id": 42, "translated_text": "VID-001" }
+  ]
+}
+```
+
+---
+
+#### 9-12 : `GET /admin/translations/search` (번역 검색)
+
+> 동일 source_text의 기존 번역을 검색한다. 번역 재사용 시 활용.
+
+**Query Parameters**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `source_text` | string | ✅ | 검색할 원본 텍스트 |
+| `lang` | string | N | 언어 코드 필터 |
+
+**응답 (성공 200)**
+```json
+{
+  "items": [
+    { "translation_id": 42, "content_type": "video", "content_id": 1, "field_name": "video_idx", "lang": "en", "translated_text": "VID-001", "status": "approved" }
+  ]
+}
+```
 
 ---
 

@@ -11,6 +11,10 @@ export const contentTypeSchema = z.enum([
   "video",
   "video_tag",
   "study",
+  "study_task_choice",
+  "study_task_typing",
+  "study_task_voice",
+  "study_task_explain",
 ]);
 export type ContentType = z.infer<typeof contentTypeSchema>;
 
@@ -28,6 +32,55 @@ export const supportedLanguageSchema = z.enum([
   "es", "pt", "fr", "de", "hi", "ne", "si", "km", "uz", "kk", "tg",
 ]);
 export type SupportedLanguage = z.infer<typeof supportedLanguageSchema>;
+
+// ── UI 카테고리 계층 ──────────────────────────
+
+// UI 최상위 카테고리 (3개만 — 사용자 선택)
+export type TopCategory = "video" | "study" | "lesson";
+
+// Study 하위 타입
+export type StudySubType =
+  | "study"
+  | "study_task_choice"
+  | "study_task_typing"
+  | "study_task_voice"
+  | "study_task_explain";
+
+// 최상위 카테고리 옵션
+export const TOP_CATEGORIES: { value: TopCategory; label: string }[] = [
+  { value: "video", label: "Video" },
+  { value: "study", label: "Study" },
+  { value: "lesson", label: "Lesson" },
+];
+
+// Study 하위 타입 옵션
+export const STUDY_SUB_TYPES: { value: StudySubType; label: string }[] = [
+  { value: "study", label: "Study (메인)" },
+  { value: "study_task_choice", label: "Task Choice (객관식)" },
+  { value: "study_task_typing", label: "Task Typing (타이핑)" },
+  { value: "study_task_voice", label: "Task Voice (음성)" },
+  { value: "study_task_explain", label: "Task Explain (해설)" },
+];
+
+// content_type → 읽기 쉬운 라벨 매핑
+export const CONTENT_TYPE_LABELS: Record<string, string> = {
+  course: "Course",
+  lesson: "Lesson",
+  video: "Video",
+  video_tag: "Video (Tag)",
+  study: "Study",
+  study_task_choice: "Study Task (Choice)",
+  study_task_typing: "Study Task (Typing)",
+  study_task_voice: "Study Task (Voice)",
+  study_task_explain: "Study Task (Explain)",
+};
+
+// 최상위 카테고리 → 필터링에 사용할 content_type 목록
+export const CATEGORY_CONTENT_TYPES: Record<TopCategory, ContentType[]> = {
+  video: ["video", "video_tag"],
+  study: ["study", "study_task_choice", "study_task_typing", "study_task_voice", "study_task_explain"],
+  lesson: ["lesson"],
+};
 
 // ── 요청 DTO ──────────────────────────────
 
@@ -98,7 +151,7 @@ export type TranslationListRes = z.infer<typeof translationListResSchema>;
 
 // ── 자동 번역 DTO ──────────────────────────
 
-// 자동 번역 요청
+// 자동 번역 요청 (단건)
 export const autoTranslateReqSchema = z.object({
   content_type: contentTypeSchema,
   content_id: z.number().int().positive(),
@@ -122,4 +175,85 @@ export interface AutoTranslateRes {
   total: number;
   success_count: number;
   results: AutoTranslateItemResult[];
+}
+
+// ── 콘텐츠 목록 조회 DTO ──────────────────────
+
+// 콘텐츠 레코드 개별 항목
+export interface ContentRecordItem {
+  id: number;
+  label: string;
+  detail?: string;
+}
+
+// 콘텐츠 목록 응답
+export interface ContentRecordsRes {
+  items: ContentRecordItem[];
+}
+
+// ── 원본 텍스트 조회 DTO ──────────────────────
+
+// 원본 필드 개별 항목
+export interface SourceFieldItem {
+  content_type: ContentType;
+  content_id: number;
+  field_name: string;
+  source_text?: string;
+}
+
+// 원본 필드 응답
+export interface SourceFieldsRes {
+  fields: SourceFieldItem[];
+}
+
+// ── 벌크 자동 번역 DTO ──────────────────────
+
+// 벌크 자동 번역 개별 항목
+export interface AutoTranslateBulkItem {
+  content_type: ContentType;
+  content_id: number;
+  field_name: string;
+  source_text: string;
+}
+
+// 벌크 자동 번역 요청
+export interface AutoTranslateBulkReq {
+  items: AutoTranslateBulkItem[];
+  target_langs: SupportedLanguage[];
+}
+
+// 벌크 자동 번역 개별 결과
+export interface AutoTranslateBulkItemResult {
+  content_type: ContentType;
+  content_id: number;
+  field_name: string;
+  lang: string;
+  success: boolean;
+  translation_id?: number;
+  translated_text?: string;
+  error?: string;
+}
+
+// 벌크 자동 번역 응답
+export interface AutoTranslateBulkRes {
+  total: number;
+  success_count: number;
+  fail_count: number;
+  results: AutoTranslateBulkItemResult[];
+}
+
+// ── 번역 검색 DTO ──────────────────────────
+
+export interface TranslationSearchItem {
+  translation_id: number;
+  content_type: ContentType;
+  content_id: number;
+  field_name: string;
+  lang: SupportedLanguage;
+  translated_text: string;
+  status: TranslationStatus;
+}
+
+export interface TranslationSearchRes {
+  items: TranslationSearchItem[];
 }
