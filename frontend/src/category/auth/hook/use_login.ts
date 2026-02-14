@@ -1,13 +1,18 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import i18n from "@/i18n";
 import { ApiError } from "@/api/client";
-import type { LoginReq } from "@/category/auth/types";
+import type { LoginReq, LoginRes, MfaChallengeRes } from "@/category/auth/types";
 import { useAuthStore } from "@/hooks/use_auth_store";
 
 import { login } from "../auth_api";
+
+// MFA 챌린지 응답 여부 판별
+const isMfaChallenge = (data: LoginRes | MfaChallengeRes): data is MfaChallengeRes =>
+  "mfa_required" in data && data.mfa_required === true;
 
 const statusMessageMap: Record<number, string> = {
   400: "auth.statusBadRequest",
@@ -25,6 +30,11 @@ export interface SocialOnlyError {
 export interface EmailNotVerifiedError {
   isEmailNotVerified: true;
   email: string;
+}
+
+export interface MfaPending {
+  mfa_token: string;
+  user_id: number;
 }
 
 // 소셜 전용 계정 에러 파싱
@@ -73,10 +83,18 @@ const getErrorMessage = (error: unknown) => {
 
 export const useLogin = () => {
   const navigate = useNavigate();
+  const [mfaPending, setMfaPending] = useState<MfaPending | null>(null);
 
   const mutation = useMutation({
     mutationFn: (data: LoginReq) => login(data),
     onSuccess: (data) => {
+      // MFA 챌린지 응답인 경우
+      if (isMfaChallenge(data)) {
+        setMfaPending({ mfa_token: data.mfa_token, user_id: data.user_id });
+        return;
+      }
+
+      // 일반 로그인 성공
       useAuthStore.getState().login(data);
       toast.success(i18n.t("auth.toastLoginSuccess"));
       navigate("/about");
@@ -105,8 +123,13 @@ export const useLogin = () => {
     ? parseSocialOnlyError(mutation.error)
     : null;
 
+  const clearMfaPending = () => setMfaPending(null);
+
   return {
     ...mutation,
     socialOnlyError,
+    mfaPending,
+    setMfaPending,
+    clearMfaPending,
   };
 };

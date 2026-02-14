@@ -55,7 +55,8 @@ pub async fn signup_tx(
             user_state,
             user_auth,
             user_created_at as created_at,
-            (user_password IS NOT NULL) as has_password
+            (user_password IS NOT NULL) as has_password,
+            user_mfa_enabled as mfa_enabled
     "#)
     .bind(email)
     .bind(password_hash)
@@ -158,7 +159,8 @@ pub async fn find_user_by_email_idx(pool: &PgPool, email_idx: &str) -> AppResult
             user_state,
             user_auth,
             user_created_at as created_at,
-            (user_password IS NOT NULL) as has_password
+            (user_password IS NOT NULL) as has_password,
+            user_mfa_enabled as mfa_enabled
         FROM users
         WHERE user_email_idx = $1
     "#)
@@ -183,7 +185,8 @@ pub async fn find_user_by_nickname(pool: &PgPool, nickname: &str) -> AppResult<O
             user_state,
             user_auth,
             user_created_at as created_at,
-            (user_password IS NOT NULL) as has_password
+            (user_password IS NOT NULL) as has_password,
+            user_mfa_enabled as mfa_enabled
         FROM users
         WHERE user_nickname = $1
     "#)
@@ -209,7 +212,8 @@ pub async fn find_user(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileR
             user_state,
             user_auth,
             user_created_at as created_at,
-            (user_password IS NOT NULL) as has_password
+            (user_password IS NOT NULL) as has_password,
+            user_mfa_enabled as mfa_enabled
         FROM users
         WHERE user_id = $1
     "#)
@@ -258,7 +262,8 @@ pub async fn update_profile_tx(
             user_state,
             user_auth,
             user_created_at as created_at,
-            (user_password IS NOT NULL) as has_password
+            (user_password IS NOT NULL) as has_password,
+            user_mfa_enabled as mfa_enabled
     "#)
     .bind(user_id)
     .bind(req.nickname.as_ref())

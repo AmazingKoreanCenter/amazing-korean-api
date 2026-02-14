@@ -1465,6 +1465,10 @@ VIMEO_ACCESS_TOKEN=xxx
 | 3-7 | `POST /auth/verify-email` | `/verify-email` | 이메일 인증코드 확인 | ***회원가입 이메일 인증, HMAC-SHA256 해시 비교 (constant-time), user_check_email=true 업데이트***<br>성공: **200** `{ message, verified: true }`<br>실패(코드 무효/만료): **401** / 실패(형식): **400** / 실패(레이트리밋): **429** (10회/시간) | [✅] |
 | 3-8 | `POST /auth/resend-verification` | `/verify-email` | 이메일 인증코드 재발송 | ***미인증 사용자에게 새 인증코드 발송 (Enumeration Safe — 항상 동일 메시지)***<br>성공: **200** `{ message, remaining_attempts }` (항상 성공 메시지)<br>실패(형식): **400** / 실패(레이트리밋): **429** (5회/5시간) / 실패(이메일 서비스): **503** | [✅] |
 | 3-9 | `POST /auth/find-password` | `/account-recovery` | 비밀번호 찾기 (통합) | ***본인확인(이름+생일+이메일) → 인증코드 발송, Enumeration Safe, OAuth 전용 계정도 동일 응답***<br>성공: **200** `{ message, remaining_attempts }` (항상 동일 메시지)<br>실패(형식): **400** / 실패(레이트리밋): **429** (5회/5시간) | [✅] |
+| 3-10 | `POST /auth/mfa/setup` | `/admin/mfa/setup` | MFA 설정 시작 | ***TOTP 비밀키 생성 + QR코드 반환, AES-256-GCM 암호화 저장***<br>성공: **200** `{ secret, qr_code_data_uri, otpauth_uri }`<br>실패(미인증): **401** / 실패(이미 활성화): **409** | [✅] |
+| 3-11 | `POST /auth/mfa/verify-setup` | `/admin/mfa/setup` | MFA 설정 확인 | ***TOTP 코드 검증 → MFA 활성화 + 백업코드 10개 생성/반환***<br>성공: **200** `{ enabled: true, backup_codes: [...] }`<br>실패(미인증): **401** / 실패(코드 무효): **401** | [✅] |
+| 3-12 | `POST /auth/mfa/login` | `/login` | MFA 2단계 인증 | ***MFA 토큰 + TOTP/백업코드 검증 → 세션 완료***<br>성공: **200** `{ access_token, ... }` + Set-Cookie(refresh_token)<br>실패(토큰 만료): **401** / 실패(코드 무효): **401** / 실패(레이트리밋): **429** (5회/5분) | [✅] |
+| 3-13 | `POST /auth/mfa/disable` | (관리자) | MFA 비활성화 | ***HYMN 전용: 대상 사용자의 MFA 해제 + 전체 세션 무효화***<br>성공: **200** `{ disabled: true }`<br>실패(미인증): **401** / 실패(권한 없음): **403** | [✅] |
 
 ---
 
@@ -1744,6 +1748,81 @@ Location: http://localhost:5173/login?error=oauth_failed&error_description=...
 - 비밀번호 찾기 탭에 OAuth 경고 문구 표시 (warning 스타일)
 - Step 1(본인확인) → Step 2(인증코드 입력) → `POST /auth/verify-reset` → `/reset-password?token=xxx`
 - 잔여 발송 횟수 표시, 한도 도달 시 재전송 버튼 비활성화
+
+---
+
+#### 5.3-10 : `POST /auth/mfa/setup` (MFA 설정 시작)
+- **인증 필요**: Bearer 토큰 (AuthUser)
+- **성공 → 200 OK**
+  - TOTP 비밀키 생성 (`totp-rs` gen_secret)
+  - AES-256-GCM 암호화 후 `users.user_mfa_secret`에 임시 저장 (enabled=false 상태)
+  - QR 코드 data URI 생성 (`totp-rs` qr feature)
+  - 응답: `{ secret: "BASE32...", qr_code_data_uri: "data:image/png;base64,...", otpauth_uri: "otpauth://totp/AmazingKorean:email?..." }`
+- **실패(이미 활성화) → 409 Conflict**
+- **실패(미인증) → 401 Unauthorized**
+
+#### 5.3-11 : `POST /auth/mfa/verify-setup` (MFA 설정 확인)
+- **인증 필요**: Bearer 토큰 (AuthUser)
+- **요청**: `{ code: "123456" }` (6자리 TOTP)
+- **성공 → 200 OK**
+  - TOTP 코드 검증 (±1 step, 90초 허용)
+  - 백업 코드 10개 생성 (8자 영숫자)
+  - 백업 코드 SHA-256 해시 → JSON → AES-256-GCM 암호화 → DB 저장
+  - `user_mfa_enabled=true`, `user_mfa_enabled_at=now()` 업데이트
+  - 응답: `{ enabled: true, backup_codes: ["ABC12345", ...] }` (1회만 노출)
+- **실패(코드 무효) → 401 Unauthorized**
+
+#### 5.3-12 : `POST /auth/mfa/login` (MFA 2단계 인증)
+- **인증 불필요** (mfa_token으로 인증)
+- **요청**: `{ mfa_token: "uuid", code: "123456" }` (TOTP 6자리 또는 백업 코드 8자리)
+- **플로우**:
+  1. Redis `ak:mfa_pending:{mfa_token}` 조회 + 삭제 (일회용)
+  2. Rate limit 확인: `rl:mfa:{user_id}:{ip}` (5회/5분)
+  3. TOTP 코드 검증 시도 (6자리 숫자)
+  4. TOTP 실패 시 백업 코드 검증 시도 (SHA-256 비교)
+  5. 백업 코드 사용 시 해당 해시 목록에서 제거 + DB 갱신
+  6. 성공 → 세션 생성 (기존 login 후반부 로직 재사용)
+- **성공 → 200 OK**: `{ access_token, user_id, ... }` + Set-Cookie(refresh_token)
+- **실패(토큰 만료/무효) → 401** `MFA_TOKEN_EXPIRED`
+- **실패(코드 무효) → 401** `MFA_INVALID_CODE`
+- **실패(레이트리밋) → 429**
+
+#### 5.3-13 : `POST /auth/mfa/disable` (MFA 비활성화)
+- **인증 필요**: Bearer 토큰 (AuthUser, HYMN 역할만)
+- **요청**: `{ target_user_id: 123 }`
+- **성공 → 200 OK**
+  - 대상 사용자의 MFA 컬럼 초기화 (secret=NULL, enabled=false, backup_codes=NULL)
+  - 대상 사용자의 모든 세션 무효화 (보안)
+  - 응답: `{ disabled: true, user_id: 123 }`
+- **실패(HYMN 아닌 경우) → 403 Forbidden**
+
+##### MFA 로그인 흐름 (이메일/비밀번호)
+1. `POST /auth/login` → 이메일/비밀번호 검증 통과
+2. MFA 활성화 사용자 → `{ mfa_required: true, mfa_token: "uuid", user_id: 123 }` (세션 미생성)
+3. `POST /auth/mfa/login` → TOTP/백업 코드 검증 → 세션 생성 완료
+
+##### MFA 로그인 흐름 (Google OAuth)
+1. `GET /auth/google/callback` → OAuth 인증 완료
+2. MFA 활성화 사용자 → 프론트 리다이렉트: `/login?mfa_required=true&mfa_token=uuid&user_id=123`
+3. `POST /auth/mfa/login` → TOTP/백업 코드 검증 → 세션 생성 완료
+
+##### AdminRoute MFA 가드
+- Admin/HYMN 역할 사용자가 MFA 미설정 시 `/admin/mfa/setup`으로 강제 이동
+- MFA 설정 완료 후 관리자 페이지 접근 가능
+
+##### Redis 키 패턴 (MFA)
+| 키 | 타입 | TTL | 용도 |
+|----|------|-----|------|
+| `ak:mfa_pending:{mfa_token}` | STRING (JSON) | 300초 | MFA 인증 대기 (로그인 1단계 후) |
+| `rl:mfa:{user_id}:{ip}` | STRING (counter) | 300초 | MFA 코드 검증 Rate Limit |
+
+##### DB 컬럼 추가 (users 테이블)
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `user_mfa_secret` | TEXT | TOTP 비밀키 (AES-256-GCM 암호화) |
+| `user_mfa_enabled` | BOOLEAN DEFAULT false | MFA 활성화 여부 |
+| `user_mfa_backup_codes` | TEXT | 백업 코드 (SHA-256 해시 JSON, AES-256-GCM 암호화) |
+| `user_mfa_enabled_at` | TIMESTAMPTZ | MFA 최초 활성화 시각 |
 
 </details>
 
@@ -3814,11 +3893,13 @@ export function AppRouter() {
 - ~~접근 제어: 관리자 IP allowlist~~ → **완료** (`admin_ip_guard.rs`, CIDR 지원)
 - ~~RBAC 미들웨어~~ → **완료** (`role_guard.rs`, HYMN/admin만 admin 접근 허용)
 
+**✅ 완료 항목 (2026-02-14):**
+- ~~관리자 MFA 도입 (HYMN/admin 계정)~~ → **완료** (TOTP MFA, Google Authenticator, 백업 코드 10개, AdminRoute 강제 설정 가드)
+- ~~토큰 재사용 탐지 (Refresh Token Replay Attack 방지)~~ → **완료** (service.rs:380-410, 409 Conflict + 전체 세션 무효화)
+
 **📋 남은 항목 (외부 API 연결 작업 후 진행):**
-- 관리자 MFA 도입 (특히 HYMN/admin 계정) — 소셜 로그인/결제 시스템 후
 - 동시 세션 수 제한 — RDS 이전 후
-- 토큰 재사용 탐지 (Refresh Token Replay Attack 방지) — RDS 이전 후
-- step-up MFA (민감한 작업 시 추가 인증) — MFA 도입 후
+- step-up MFA (민감한 작업 시 추가 인증) — MFA 도입 완료, 필요 시 확장
 - 토큰 재발급 Redis 캐싱 — 동시 접속자 10K+ 시 재검토 (캐시 무효화 복잡도 고려)
 
 ### 8.6 코드 일관성 (Technical Debt) ✅

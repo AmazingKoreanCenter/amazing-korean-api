@@ -1,9 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp, AlertCircle, ShieldCheck, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import {
   Card,
@@ -30,9 +32,10 @@ import {
 import { loginReqSchema, type LoginReq } from "@/category/auth/types";
 import { useAuthStore } from "@/hooks/use_auth_store";
 
-import { useLogin } from "../hook/use_login";
+import { useLogin, type MfaPending } from "../hook/use_login";
 import { useGoogleLogin } from "../hook/use_google_login";
 import { useOAuthCallback } from "../hook/use_oauth_callback";
+import { mfaLogin } from "../auth_api";
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -43,7 +46,39 @@ export function LoginPage() {
   const [showEmailForm, setShowEmailForm] = useState(false);
 
   // OAuth 콜백 처리 (Google 로그인 완료 후 리다이렉트 처리)
-  const { isProcessing: isOAuthProcessing, hasOAuthParams } = useOAuthCallback();
+  const { isProcessing: isOAuthProcessing, hasOAuthParams, oauthMfaPending } = useOAuthCallback();
+
+  // MFA 상태 통합 (이메일 로그인 or OAuth 로그인에서 발생)
+  const activeMfaPending: MfaPending | null = loginMutation.mfaPending ?? oauthMfaPending;
+  const [mfaCode, setMfaCode] = useState("");
+
+  // MFA 코드 검증 mutation
+  const mfaLoginMutation = useMutation({
+    mutationFn: (data: { mfa_token: string; code: string }) => mfaLogin(data),
+    onSuccess: (data) => {
+      useAuthStore.getState().login(data);
+      toast.success(t("auth.toastLoginSuccess"));
+      navigate("/about");
+    },
+    onError: () => {
+      toast.error(t("auth.mfaInvalidCode"));
+      setMfaCode("");
+    },
+  });
+
+  const handleMfaSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeMfaPending || !mfaCode) return;
+    mfaLoginMutation.mutate({
+      mfa_token: activeMfaPending.mfa_token,
+      code: mfaCode,
+    });
+  };
+
+  const handleMfaBack = () => {
+    loginMutation.clearMfaPending();
+    setMfaCode("");
+  };
 
   // 이미 로그인된 경우 홈으로 리다이렉트
   // 단, OAuth 콜백 처리 중에는 건너뛰기 (useOAuthCallback에서 리다이렉트 처리)
@@ -127,6 +162,74 @@ export function LoginPage() {
       </div>
     );
   };
+
+  // MFA 코드 입력 화면
+  if (activeMfaPending) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-2 text-center">
+            <div className="flex justify-center mb-2">
+              <ShieldCheck className="h-12 w-12 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">{t("auth.mfaTitle")}</CardTitle>
+            <CardDescription>
+              {t("auth.mfaDescription")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={handleMfaSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="mfa-code" className="text-sm font-medium">
+                  {t("auth.mfaCodeLabel")}
+                </label>
+                <Input
+                  id="mfa-code"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder={t("auth.mfaCodePlaceholder")}
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\s/g, ""))}
+                  maxLength={8}
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("auth.mfaCodeHint")}
+                </p>
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={mfaLoginMutation.isPending || mfaCode.length < 6}
+              >
+                {mfaLoginMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    {t("auth.mfaVerifying")}
+                  </>
+                ) : (
+                  t("auth.mfaVerifyButton")
+                )}
+              </Button>
+            </form>
+            {/* OAuth MFA에서는 뒤로가기 불가 (URL 파라미터 기반) */}
+            {loginMutation.mfaPending && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={handleMfaBack}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                {t("auth.mfaBackToLogin")}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">

@@ -149,6 +149,9 @@ pub struct ProfileRes {
 
     /// 비밀번호 설정 여부 (OAuth 전용 계정은 false)
     pub has_password: bool,
+
+    /// MFA (2단계 인증) 활성화 여부
+    pub mfa_enabled: bool,
 }
 
 /// 사용자 환경설정 정보

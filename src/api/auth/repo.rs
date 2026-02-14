@@ -28,6 +28,7 @@ pub struct UserLoginInfo {
     pub user_state: bool,
     pub user_auth: UserAuth,
     pub user_check_email: bool,
+    pub user_mfa_enabled: bool,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -765,7 +766,8 @@ impl AuthRepo {
                 user_password,
                 user_state,
                 user_auth,
-                user_check_email
+                user_check_email,
+                user_mfa_enabled
             FROM users
             WHERE user_email_idx = $1
         "#)
@@ -837,6 +839,123 @@ impl AuthRepo {
         .fetch_optional(pool)
         .await?;
         Ok(row)
+    }
+
+    // ---------------------------------------------------------------------
+    // MFA (Multi-Factor Authentication)
+    // ---------------------------------------------------------------------
+
+    /// MFA 활성화 여부 조회
+    pub async fn find_user_mfa_enabled(
+        pool: &PgPool,
+        user_id: i64,
+    ) -> AppResult<bool> {
+        let row: Option<(bool,)> = sqlx::query_as(
+            "SELECT user_mfa_enabled FROM users WHERE user_id = $1"
+        )
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await?;
+        Ok(row.map(|r| r.0).unwrap_or(false))
+    }
+
+    /// MFA secret 조회 (암호화된 상태)
+    pub async fn find_mfa_secret(
+        pool: &PgPool,
+        user_id: i64,
+    ) -> AppResult<Option<String>> {
+        let row: Option<(Option<String>,)> = sqlx::query_as(
+            "SELECT user_mfa_secret FROM users WHERE user_id = $1"
+        )
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await?;
+        Ok(row.and_then(|r| r.0))
+    }
+
+    /// MFA secret 임시 저장 (setup 단계, enabled=false 유지)
+    pub async fn update_mfa_secret(
+        pool: &PgPool,
+        user_id: i64,
+        encrypted_secret: &str,
+    ) -> AppResult<()> {
+        sqlx::query(
+            "UPDATE users SET user_mfa_secret = $2 WHERE user_id = $1"
+        )
+        .bind(user_id)
+        .bind(encrypted_secret)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    /// MFA 활성화 (verify-setup 성공 후)
+    pub async fn enable_mfa(
+        pool: &PgPool,
+        user_id: i64,
+        encrypted_backup_codes: &str,
+    ) -> AppResult<()> {
+        sqlx::query(r#"
+            UPDATE users
+            SET user_mfa_enabled = true,
+                user_mfa_backup_codes = $2,
+                user_mfa_enabled_at = NOW()
+            WHERE user_id = $1
+        "#)
+        .bind(user_id)
+        .bind(encrypted_backup_codes)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    /// MFA 백업 코드 조회 (암호화된 상태)
+    pub async fn find_mfa_backup_codes(
+        pool: &PgPool,
+        user_id: i64,
+    ) -> AppResult<Option<String>> {
+        let row: Option<(Option<String>,)> = sqlx::query_as(
+            "SELECT user_mfa_backup_codes FROM users WHERE user_id = $1"
+        )
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await?;
+        Ok(row.and_then(|r| r.0))
+    }
+
+    /// MFA 백업 코드 갱신 (사용된 코드 제거 후)
+    pub async fn update_mfa_backup_codes(
+        pool: &PgPool,
+        user_id: i64,
+        encrypted_backup_codes: &str,
+    ) -> AppResult<()> {
+        sqlx::query(
+            "UPDATE users SET user_mfa_backup_codes = $2 WHERE user_id = $1"
+        )
+        .bind(user_id)
+        .bind(encrypted_backup_codes)
+        .execute(pool)
+        .await?;
+        Ok(())
+    }
+
+    /// MFA 비활성화 (HYMN 전용 — 모든 MFA 컬럼 초기화)
+    pub async fn disable_mfa(
+        pool: &PgPool,
+        user_id: i64,
+    ) -> AppResult<()> {
+        sqlx::query(r#"
+            UPDATE users
+            SET user_mfa_secret = NULL,
+                user_mfa_enabled = false,
+                user_mfa_backup_codes = NULL,
+                user_mfa_enabled_at = NULL
+            WHERE user_id = $1
+        "#)
+        .bind(user_id)
+        .execute(pool)
+        .await?;
+        Ok(())
     }
 }
 

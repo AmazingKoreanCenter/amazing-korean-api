@@ -7,6 +7,10 @@ import type {
   GoogleAuthUrlRes,
   LoginReq,
   LoginRes,
+  MfaChallengeRes,
+  MfaLoginReq,
+  MfaSetupRes,
+  MfaVerifySetupRes,
   RequestResetReq,
   RequestResetRes,
   ResendVerificationReq,
@@ -20,11 +24,8 @@ import type {
   VerifyResetRes,
 } from "@/category/auth/types";
 
-// URL Prefix 정책: client.ts baseURL에 '/api'가 있다면 아래에서 '/api'를 빼야 합니다.
-// 여기서는 안전하게 기존 코드를 존중하되, Signup 경로만 체크합니다.
-
 export const login = (data: LoginReq) => {
-  return request<LoginRes>("/auth/login", {
+  return request<LoginRes | MfaChallengeRes>("/auth/login", {
     method: "POST",
     data,
     // 로그인 요청은 토큰 갱신 인터셉터를 건너뜀
@@ -123,5 +124,30 @@ export const getGoogleAuthUrl = () => {
 export const refreshToken = () => {
   return request<LoginRes>("/auth/refresh", {
     method: "POST",
+  });
+};
+
+// ==========================================
+// MFA (Multi-Factor Authentication)
+// ==========================================
+
+export const mfaLogin = (data: MfaLoginReq) => {
+  return request<LoginRes>("/auth/mfa/login", {
+    method: "POST",
+    data,
+    skipAuthRefresh: true,
+  });
+};
+
+export const mfaSetup = () => {
+  return request<MfaSetupRes>("/auth/mfa/setup", {
+    method: "POST",
+  });
+};
+
+export const mfaVerifySetup = (data: { code: string }) => {
+  return request<MfaVerifySetupRes>("/auth/mfa/verify-setup", {
+    method: "POST",
+    data,
   });
 };

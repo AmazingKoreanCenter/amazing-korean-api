@@ -328,3 +328,80 @@ pub struct ResendVerificationRes {
     pub message: String,
     pub remaining_attempts: i64,
 }
+
+// =====================================================================
+// MFA (Multi-Factor Authentication) DTOs
+// =====================================================================
+
+/// MFA 챌린지 응답 (로그인 1단계 후 MFA 필요 시)
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "mfa_required": true,
+    "mfa_token": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+    "user_id": 123
+}))]
+pub struct MfaChallengeRes {
+    pub mfa_required: bool,
+    pub mfa_token: String,
+    pub user_id: i64,
+}
+
+/// MFA 로그인 요청 (2단계 인증 — TOTP 코드 또는 백업 코드)
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "mfa_token": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+    "code": "123456"
+}))]
+pub struct MfaLoginReq {
+    #[validate(length(min = 1))]
+    pub mfa_token: String,
+    #[validate(length(min = 6, max = 8))]
+    pub code: String,
+}
+
+/// MFA 설정 시작 응답 (QR 코드 + 비밀키)
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct MfaSetupRes {
+    /// Base32-encoded TOTP secret (수동 입력용)
+    pub secret: String,
+    /// QR 코드 data URI (data:image/png;base64,...)
+    pub qr_code_data_uri: String,
+    /// otpauth:// URI
+    pub otpauth_uri: String,
+}
+
+/// MFA 설정 확인 요청 (첫 코드 검증)
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({ "code": "123456" }))]
+pub struct MfaVerifySetupReq {
+    #[validate(length(equal = 6, message = "Code must be 6 digits"))]
+    pub code: String,
+}
+
+/// MFA 설정 확인 응답 (백업 코드 1회 노출)
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct MfaVerifySetupRes {
+    pub enabled: bool,
+    /// 10개 평문 백업 코드 (이 응답에서만 1회 노출)
+    pub backup_codes: Vec<String>,
+}
+
+/// MFA 비활성화 요청 (HYMN 전용 — 다른 사용자의 MFA 해제)
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({ "target_user_id": 456 }))]
+pub struct MfaDisableReq {
+    pub target_user_id: i64,
+}
+
+/// MFA 비활성화 응답
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct MfaDisableRes {
+    pub message: String,
+}

@@ -41,6 +41,10 @@ impl Modify for SecurityAddon {
         crate::api::auth::handler::reset_password,
         crate::api::auth::handler::request_reset,
         crate::api::auth::handler::verify_reset,
+        crate::api::auth::handler::mfa_setup,
+        crate::api::auth::handler::mfa_verify_setup,
+        crate::api::auth::handler::mfa_login,
+        crate::api::auth::handler::mfa_disable,
 
         // user (me/settings)
         crate::api::user::handler::signup,
@@ -174,6 +178,13 @@ impl Modify for SecurityAddon {
             crate::api::auth::dto::RequestResetRes,
             crate::api::auth::dto::VerifyResetReq,
             crate::api::auth::dto::VerifyResetRes,
+            crate::api::auth::dto::MfaChallengeRes,
+            crate::api::auth::dto::MfaLoginReq,
+            crate::api::auth::dto::MfaSetupRes,
+            crate::api::auth::dto::MfaVerifySetupReq,
+            crate::api::auth::dto::MfaVerifySetupRes,
+            crate::api::auth::dto::MfaDisableReq,
+            crate::api::auth::dto::MfaDisableRes,
 
             // user dto
             crate::api::user::dto::SignupReq,
