@@ -52,6 +52,8 @@ totp-rs = { version = "5", features = ["qr", "gen_secret"] }
 # CLI tools (rekey binary)
 clap = { version = "4", features = ["derive"] }
 hex = "0.4.3"
+# Paddle Billing SDK
+paddle-rust-sdk = "0.17"
 
 [[bin]]
 name = "rekey_encryption"

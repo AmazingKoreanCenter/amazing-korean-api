@@ -52,6 +52,19 @@ import { AdminTranslationEdit } from "@/category/admin/page/admin_translation_ed
 import { AdminEmailTest } from "@/category/admin/page/admin_email_test";
 import { AdminMfaSetupPage } from "@/category/admin/page/admin_mfa_setup_page";
 import { AdminUpgradeJoin } from "@/category/admin/page/admin_upgrade_join";
+import { AdminSubscriptionsPage } from "@/category/admin/payment/page/admin_subscriptions_page";
+import { AdminSubscriptionDetail } from "@/category/admin/payment/page/admin_subscription_detail";
+import { AdminTransactionsPage } from "@/category/admin/payment/page/admin_transactions_page";
+import { AdminGrantsPage } from "@/category/admin/payment/page/admin_grants_page";
+
+// Legal pages
+import { TermsPage } from "@/category/legal/page/terms_page";
+import { PrivacyPage } from "@/category/legal/page/privacy_page";
+import { RefundPolicyPage } from "@/category/legal/page/refund_policy_page";
+import { FaqPage } from "@/category/legal/page/faq_page";
+
+// Payment pages
+import { PricingPage } from "@/category/payment/page/pricing_page";
 
 // Error pages
 import { AccessDeniedPage, NotFoundPage, ErrorPage } from "@/category/error/page";
@@ -69,6 +82,7 @@ export function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/register" element={<Navigate to="/signup" replace />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/health" element={<HealthPage />} />
         <Route path="/request-reset-password" element={<RequestResetPasswordPage />} />
@@ -79,6 +93,13 @@ export function AppRoutes() {
         <Route path="/studies/tasks/:taskId" element={<StudyTaskPage />} />
         <Route path="/lessons" element={<LessonListPage />} />
         <Route path="/lessons/:lessonId" element={<LessonDetailPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+
+        {/* 법적/정책 페이지 (Public) */}
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/refund-policy" element={<RefundPolicyPage />} />
+        <Route path="/faq" element={<FaqPage />} />
 
         {/* 관리자 초대 페이지 (Public - 초대 코드로 접근) */}
         <Route path="/admin/upgrade/join" element={<AdminUpgradeJoin />} />
@@ -120,6 +141,10 @@ export function AppRoutes() {
           <Route path="translations/dashboard" element={<AdminTranslationDashboard />} />
           <Route path="translations/new" element={<AdminTranslationEdit />} />
           <Route path="translations/:id/edit" element={<AdminTranslationEdit />} />
+          <Route path="payment/subscriptions" element={<AdminSubscriptionsPage />} />
+          <Route path="payment/subscriptions/:id" element={<AdminSubscriptionDetail />} />
+          <Route path="payment/transactions" element={<AdminTransactionsPage />} />
+          <Route path="payment/grants" element={<AdminGrantsPage />} />
           <Route path="email" element={<AdminEmailTest />} />
         </Route>
       </Route>

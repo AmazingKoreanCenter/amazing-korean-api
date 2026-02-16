@@ -1,6 +1,7 @@
 pub mod email;
 pub mod ip_guard;
 pub mod lesson;
+pub mod payment;
 pub mod role_guard;
 pub mod router;
 pub mod study;

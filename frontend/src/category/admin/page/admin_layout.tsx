@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { Users, Video, BookOpen, GraduationCap, LayoutDashboard, Mail, Languages } from "lucide-react";
+import { Users, Video, BookOpen, GraduationCap, LayoutDashboard, Mail, Languages, CreditCard } from "lucide-react";
 
 const navItems = [
   { path: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -7,6 +7,7 @@ const navItems = [
   { path: "/admin/videos", label: "Videos", icon: Video },
   { path: "/admin/studies", label: "Studies", icon: BookOpen },
   { path: "/admin/lessons", label: "Lessons", icon: GraduationCap },
+  { path: "/admin/payment/subscriptions", label: "Payments", icon: CreditCard, prefix: "/admin/payment" },
   { path: "/admin/translations", label: "Translations", icon: Languages },
   { path: "/admin/email", label: "Email", icon: Mail },
 ];
@@ -14,11 +15,11 @@ const navItems = [
 export function AdminLayout() {
   const location = useLocation();
 
-  const isActive = (path: string, exact?: boolean) => {
+  const isActive = (path: string, exact?: boolean, prefix?: string) => {
     if (exact) {
       return location.pathname === path;
     }
-    return location.pathname.startsWith(path);
+    return location.pathname.startsWith(prefix ?? path);
   };
 
   return (
@@ -36,7 +37,7 @@ export function AdminLayout() {
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item.path, item.exact);
+            const active = isActive(item.path, item.exact, "prefix" in item ? item.prefix : undefined);
             return (
               <Link
                 key={item.path}

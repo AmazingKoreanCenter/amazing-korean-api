@@ -401,6 +401,91 @@ pub enum LessonItemKind {
 }
 
 // -----------------------------------------------------------------------------
+// 6. Payment & Subscription Enums
+// -----------------------------------------------------------------------------
+
+/// 결제 제공자
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "payment_provider_enum", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum PaymentProvider {
+    Paddle,
+}
+
+/// 구독 상태
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "subscription_status_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum SubscriptionStatus {
+    Trialing,
+    Active,
+    PastDue,
+    Paused,
+    Canceled,
+}
+
+/// 결제 트랜잭션 상태
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "transaction_status_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TransactionStatus {
+    Completed,
+    Refunded,
+    PartiallyRefunded,
+}
+
+/// 구독 주기
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "billing_interval_enum")]
+pub enum BillingInterval {
+    #[sqlx(rename = "month_1")]
+    #[serde(rename = "month_1")]
+    Month1,
+    #[sqlx(rename = "month_3")]
+    #[serde(rename = "month_3")]
+    Month3,
+    #[sqlx(rename = "month_6")]
+    #[serde(rename = "month_6")]
+    Month6,
+    #[sqlx(rename = "month_12")]
+    #[serde(rename = "month_12")]
+    Month12,
+}
+
+impl BillingInterval {
+    /// 개월 수 반환
+    pub fn months(&self) -> i32 {
+        match self {
+            Self::Month1 => 1,
+            Self::Month3 => 3,
+            Self::Month6 => 6,
+            Self::Month12 => 12,
+        }
+    }
+
+    /// 센트 단위 가격 반환
+    pub fn price_cents(&self) -> i32 {
+        match self {
+            Self::Month1 => 1000,   // $10.00
+            Self::Month3 => 2500,   // $25.00
+            Self::Month6 => 5000,   // $50.00
+            Self::Month12 => 10000, // $100.00
+        }
+    }
+}
+
+impl fmt::Display for BillingInterval {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Month1 => write!(f, "month_1"),
+            Self::Month3 => write!(f, "month_3"),
+            Self::Month6 => write!(f, "month_6"),
+            Self::Month12 => write!(f, "month_12"),
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
 // Helper Implementations (Display)
 // -----------------------------------------------------------------------------
 

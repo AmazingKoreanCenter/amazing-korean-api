@@ -1,0 +1,405 @@
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { CheckCircle2, Sparkles, Crown, PauseCircle, XCircle, PlayCircle, Tag } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useAuthStore } from "@/hooks/use_auth_store";
+
+import { usePaymentPlans } from "../hook/use_payment_plans";
+import { useSubscription } from "../hook/use_subscription";
+import { usePaddle } from "../hook/use_paddle";
+import { useCancelSubscription, usePauseSubscription, useResumeSubscription } from "../hook/use_manage_subscription";
+import type { PlanInfo } from "../types";
+
+const POPULAR_INTERVAL = "month_12";
+
+export function PricingPage() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+
+  const { data: plansData, isLoading: plansLoading } = usePaymentPlans();
+  const { data: subData, isLoading: subLoading } = useSubscription();
+
+  const { openCheckout } = usePaddle({
+    clientToken: plansData?.client_token ?? "",
+    sandbox: plansData?.sandbox ?? true,
+  });
+
+  const cancelMutation = useCancelSubscription();
+  const pauseMutation = usePauseSubscription();
+  const resumeMutation = useResumeSubscription();
+
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+
+  const subscription = subData?.subscription ?? null;
+  const hasActiveSub = subscription && ["active", "trialing"].includes(subscription.status);
+  const hasSub = subscription != null;
+
+  // checkout 성공 시 toast 표시
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      toast.success(t("payment.checkoutSuccess"));
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, t]);
+
+  const handleSelectPlan = (plan: PlanInfo) => {
+    if (!isLoggedIn) {
+      navigate("/login?redirect=/pricing");
+      return;
+    }
+    if (hasActiveSub) {
+      toast.info(t("payment.alreadySubscribed"));
+      return;
+    }
+    openCheckout(plan.price_id, promoCode.trim() || undefined);
+  };
+
+  const perMonth = (plan: PlanInfo) => {
+    const monthly = plan.price_cents / plan.months;
+    return `$${(monthly / 100).toFixed(2)}`;
+  };
+
+  if (plansLoading || (isLoggedIn && subLoading)) {
+    return (
+      <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-20">
+        <div className="text-center mb-16">
+          <Skeleton className="h-10 w-64 mx-auto mb-4" />
+          <Skeleton className="h-6 w-96 mx-auto" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-80 rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const plans = plansData?.plans ?? [];
+
+  return (
+    <div className="flex flex-col">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#F0F3FF] via-white to-[#E8F4FF]">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#129DD8]/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#4F71EB]/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative max-w-[1350px] mx-auto px-6 lg:px-8 py-16 lg:py-24">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border mb-8">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              <span className="text-sm text-muted-foreground">
+                {t("payment.trialBadge", { days: 1 })}
+              </span>
+            </div>
+
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+              {t("payment.title")}
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              {t("payment.subtitle")}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Cards */}
+      <section className="py-16 lg:py-24">
+        <div className="max-w-[1350px] mx-auto px-6 lg:px-8">
+          {/* Subscription Banner */}
+          {hasSub && subscription && (() => {
+            const status = subscription.status;
+            const isActive = status === "active";
+            const isTrialing = status === "trialing";
+            const isPaused = status === "paused";
+            const isCanceled = status === "canceled";
+            const isBusy = cancelMutation.isPending || pauseMutation.isPending || resumeMutation.isPending;
+
+            // 배너 색상/아이콘 매핑
+            const bannerStyle = isPaused
+              ? "from-amber-50 to-orange-50 border-amber-200"
+              : isCanceled
+                ? "from-red-50 to-rose-50 border-red-200"
+                : "from-emerald-50 to-teal-50 border-emerald-200";
+
+            const iconBg = isPaused ? "bg-amber-100" : isCanceled ? "bg-red-100" : "bg-emerald-100";
+            const iconColor = isPaused ? "text-amber-600" : isCanceled ? "text-red-600" : "text-emerald-600";
+            const textColor = isPaused ? "text-amber-900" : isCanceled ? "text-red-900" : "text-emerald-900";
+            const subTextColor = isPaused ? "text-amber-700" : isCanceled ? "text-red-700" : "text-emerald-700";
+            const StatusIcon = isPaused ? PauseCircle : isCanceled ? XCircle : CheckCircle2;
+
+            return (
+              <div className={`mb-12 p-6 rounded-2xl bg-gradient-to-r ${bannerStyle} border`}>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center`}>
+                      <StatusIcon className={`h-5 w-5 ${iconColor}`} />
+                    </div>
+                    <div>
+                      <p className={`font-semibold ${textColor}`}>
+                        {t("payment.currentPlan")}: {t(`payment.interval.${subscription.billing_interval}`)}
+                      </p>
+                      <p className={`text-sm ${subTextColor}`}>
+                        {t(`payment.status.${status}`)}
+                        {isCanceled && subscription.current_period_end && (
+                          <> &middot; {t("payment.expiresAt")}: {new Date(subscription.current_period_end).toLocaleDateString()}</>
+                        )}
+                        {!isCanceled && subscription.current_period_end && (
+                          <> &middot; {t("payment.nextBilling")}: {new Date(subscription.current_period_end).toLocaleDateString()}</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 관리 버튼 */}
+                  <div className="flex items-center gap-2">
+                    {/* active → 일시정지 + 취소 */}
+                    {isActive && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isBusy}
+                          onClick={() => pauseMutation.mutate()}
+                        >
+                          <PauseCircle className="h-4 w-4 mr-1.5" />
+                          {t("payment.pauseSubscription")}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                          disabled={isBusy}
+                          onClick={() => setCancelDialogOpen(true)}
+                        >
+                          {t("payment.cancelSubscription")}
+                        </Button>
+                      </>
+                    )}
+                    {/* trialing → 취소만 */}
+                    {isTrialing && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                        disabled={isBusy}
+                        onClick={() => setCancelDialogOpen(true)}
+                      >
+                        {t("payment.cancelSubscription")}
+                      </Button>
+                    )}
+                    {/* paused → 재개 + 취소 */}
+                    {isPaused && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isBusy}
+                          onClick={() => resumeMutation.mutate()}
+                        >
+                          <PlayCircle className="h-4 w-4 mr-1.5" />
+                          {t("payment.resumeSubscription")}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                          disabled={isBusy}
+                          onClick={() => setCancelDialogOpen(true)}
+                        >
+                          {t("payment.cancelSubscription")}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Plan Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {plans.map((plan) => {
+              const isPopular = plan.interval === POPULAR_INTERVAL;
+              const isCurrentPlan = hasActiveSub && subscription?.billing_interval === plan.interval;
+
+              return (
+                <Card
+                  key={plan.interval}
+                  className={`relative rounded-2xl transition-all duration-300 hover:shadow-lg ${
+                    isPopular
+                      ? "border-2 border-primary shadow-lg scale-[1.02]"
+                      : "border hover:border-primary/30"
+                  }`}
+                >
+                  {isPopular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <Badge className="gradient-primary text-white px-4 py-1 text-xs font-medium shadow-md">
+                        <Crown className="h-3 w-3 mr-1" />
+                        {t("payment.popular")}
+                      </Badge>
+                    </div>
+                  )}
+
+                  <CardHeader className="text-center pt-8 pb-2">
+                    <h3 className="text-lg font-semibold text-muted-foreground">
+                      {t(`payment.interval.${plan.interval}`)}
+                    </h3>
+                    <div className="mt-4">
+                      <span className="text-4xl font-bold">{plan.price_display}</span>
+                      {plan.months > 1 && (
+                        <span className="text-sm text-muted-foreground ml-1">
+                          / {plan.months}{t("payment.months")}
+                        </span>
+                      )}
+                    </div>
+                    {plan.months > 1 && (
+                      <p className="text-sm text-primary font-medium mt-1">
+                        {perMonth(plan)}{t("payment.perMonth")}
+                      </p>
+                    )}
+                  </CardHeader>
+
+                  <CardContent className="px-6 py-4">
+                    <ul className="space-y-3">
+                      <li className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <span>{t("payment.featureAllCourses")}</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <span>{t("payment.featureAllVideos")}</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <span>{t("payment.featureStudyMaterials")}</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <span>{t("payment.featureTrial", { days: plan.trial_days })}</span>
+                      </li>
+                      {plan.months >= 6 && (
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                          <span className="text-primary font-medium">
+                            {t("payment.featureSave", {
+                              percent: Math.round(
+                                (1 - plan.price_cents / plan.months / (plans[0]?.price_cents ?? plan.price_cents)) * 100
+                              ),
+                            })}
+                          </span>
+                        </li>
+                      )}
+                    </ul>
+                  </CardContent>
+
+                  <CardFooter className="px-6 pb-8">
+                    <Button
+                      className={`w-full rounded-xl h-12 text-base ${
+                        isPopular
+                          ? "gradient-primary text-white hover:opacity-90"
+                          : ""
+                      }`}
+                      variant={isPopular ? "default" : "outline"}
+                      disabled={!!isCurrentPlan}
+                      onClick={() => handleSelectPlan(plan)}
+                    >
+                      {isCurrentPlan
+                        ? t("payment.currentPlanLabel")
+                        : t("payment.selectPlan")}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Promo Code */}
+          {!hasActiveSub && (
+            <div className="flex justify-center mt-10">
+              <div className="flex items-center gap-2 max-w-sm w-full">
+                <div className="relative flex-1">
+                  <Tag className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={t("payment.promoCodePlaceholder")}
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                {promoCode && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPromoCode("")}
+                  >
+                    {t("payment.promoCodeClear")}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Bottom Note */}
+          <p className="text-center text-sm text-muted-foreground mt-12">
+            {t("payment.bottomNote")}
+          </p>
+        </div>
+      </section>
+
+      {/* Cancel Confirmation Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("payment.cancelConfirmTitle")}</DialogTitle>
+            <DialogDescription>{t("payment.cancelConfirmMessage")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                cancelMutation.mutate({ immediately: false }, {
+                  onSuccess: () => setCancelDialogOpen(false),
+                });
+              }}
+              disabled={cancelMutation.isPending}
+            >
+              {t("payment.cancelAtPeriodEnd")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                cancelMutation.mutate({ immediately: true }, {
+                  onSuccess: () => setCancelDialogOpen(false),
+                });
+              }}
+              disabled={cancelMutation.isPending}
+            >
+              {t("payment.cancelImmediate")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

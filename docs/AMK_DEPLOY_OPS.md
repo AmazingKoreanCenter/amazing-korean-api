@@ -313,7 +313,26 @@ DATABASE_URL=postgres://postgres:your-password@localhost:5432/amazing_korean_db 
   sqlx migrate run
 ```
 
-##### 4-1. 클린 배포 절차 (DB 초기화)
+##### 4-1. 점진적 마이그레이션 (기존 DB에 컬럼 추가)
+
+```bash
+# MFA 컬럼 추가 (2026-02-14)
+# 주의: 앱 배포 전에 먼저 실행해야 함 (새 앱이 MFA 컬럼을 참조하므로)
+# 기존 데이터에 영향 없음 (NULL 허용 또는 DEFAULT false)
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db <<'EOF'
+ALTER TABLE users ADD COLUMN user_mfa_secret TEXT;
+ALTER TABLE users ADD COLUMN user_mfa_enabled BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN user_mfa_backup_codes TEXT;
+ALTER TABLE users ADD COLUMN user_mfa_enabled_at TIMESTAMPTZ;
+EOF
+
+# 확인
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "\d users" | grep mfa
+```
+
+> **순서 중요**: 마이그레이션 먼저 → main 머지(CI/CD 배포). 반대 순서로 하면 새 앱이 존재하지 않는 컬럼을 참조하여 에러 발생.
+
+##### 4-2. 클린 배포 절차 (DB 초기화)
 
 ```bash
 # 1) 전체 중지 + DB 볼륨 삭제 (모든 데이터 초기화됨!)
