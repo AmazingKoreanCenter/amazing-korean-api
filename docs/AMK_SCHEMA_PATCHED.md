@@ -64,6 +64,10 @@ CREATE TABLE users (
   user_check_email boolean NOT NULL DEFAULT false,              -- 사용자 이메일 확인 : 사용하는 이메일 점검 및 보안, 복구 로직을 위한 상태 판단
   user_terms_service boolean NOT NULL DEFAULT false,            -- 사용자 이용약관 : 서비스 이용 시 사용자 이용약관 동의 여부
   user_terms_personal boolean NOT NULL DEFAULT false,           -- 사용자 개인정보 약관 : 서비스 이용 시 사용자 개인정보 약관 동의 여부 
+  user_mfa_secret text,                                         -- MFA 비밀키 : TOTP 비밀키 (AES-256-GCM 암호화)
+  user_mfa_enabled boolean NOT NULL DEFAULT false,              -- MFA 활성화 : Admin/HYMN 2단계 인증 활성화 여부
+  user_mfa_backup_codes text,                                   -- MFA 백업 코드 : SHA-256 해시 JSON 배열 (AES-256-GCM 암호화)
+  user_mfa_enabled_at timestamptz,                              -- MFA 활성화 시각 : MFA 최초 활성화 시간
   user_created_at timestamptz NOT NULL DEFAULT (now()),         -- 사용자 가입 일시 : 가입 후 자동으로 DB에 생성
   user_quit_at timestamptz                                      -- 사용자 탈퇴 일시 : 탈퇴 후 user_state : false로 전환, 추후 DB에서 삭제
 );

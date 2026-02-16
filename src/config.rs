@@ -58,6 +58,16 @@ pub struct Config {
     pub mfa_token_ttl_sec: i64,                  // MFA 토큰 유효시간 (초, 기본: 300 = 5분)
     pub rate_limit_mfa_max: i64,                 // MFA 코드 검증 최대 시도 횟수 (기본: 5)
     pub rate_limit_mfa_window_sec: i64,          // MFA 코드 검증 레이트리밋 윈도우 (초, 기본: 300)
+    // Payment Provider (Paddle Billing)
+    pub payment_provider: String,                    // "paddle" | "none" (기본: "none")
+    pub paddle_api_key: Option<String>,              // Paddle API Key (서버용)
+    pub paddle_webhook_secret: Option<String>,       // Paddle Webhook 서명 검증 시크릿
+    pub paddle_client_token: Option<String>,         // Paddle Client-side Token (프론트엔드용)
+    pub paddle_sandbox: bool,                        // true: Sandbox, false: Production
+    pub paddle_price_month_1: Option<String>,        // Paddle Price ID: 1개월
+    pub paddle_price_month_3: Option<String>,        // Paddle Price ID: 3개월
+    pub paddle_price_month_6: Option<String>,        // Paddle Price ID: 6개월
+    pub paddle_price_month_12: Option<String>,       // Paddle Price ID: 12개월
     // Field Encryption (AES-256-GCM + HMAC-SHA256 Blind Index)
     pub app_env: String,                         // "production" | "development" (기본)
     pub encryption_ring: KeyRing,                // 다중 키 버전 (ENCRYPTION_KEY_V{n})
@@ -237,6 +247,50 @@ impl Config {
             .parse::<i64>()
             .expect("RATE_LIMIT_MFA_WINDOW_SEC must be a number");
 
+        // Payment Provider: "paddle" | "none"
+        let payment_provider = env::var("PAYMENT_PROVIDER")
+            .unwrap_or_else(|_| "none".into())
+            .to_lowercase();
+        let paddle_api_key = env::var("PADDLE_API_KEY")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let paddle_webhook_secret = env::var("PADDLE_WEBHOOK_SECRET")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let paddle_client_token = env::var("PADDLE_CLIENT_TOKEN")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let paddle_sandbox = env::var("PADDLE_SANDBOX")
+            .map(|s| s == "true")
+            .unwrap_or(true); // 기본값: Sandbox (안전)
+        let paddle_price_month_1 = env::var("PADDLE_PRICE_MONTH_1")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let paddle_price_month_3 = env::var("PADDLE_PRICE_MONTH_3")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let paddle_price_month_6 = env::var("PADDLE_PRICE_MONTH_6")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let paddle_price_month_12 = env::var("PADDLE_PRICE_MONTH_12")
+            .ok()
+            .filter(|s| !s.is_empty());
+
+        // Payment provider 검증 (paddle 선택 시 필수 값 확인)
+        if payment_provider == "paddle" {
+            if paddle_api_key.is_none() {
+                panic!("PADDLE_API_KEY must be set when PAYMENT_PROVIDER=paddle");
+            }
+            if paddle_client_token.is_none() {
+                panic!("PADDLE_CLIENT_TOKEN must be set when PAYMENT_PROVIDER=paddle");
+            }
+        } else if payment_provider != "none" {
+            panic!(
+                "Unknown PAYMENT_PROVIDER '{}'. Must be 'paddle' or 'none'.",
+                payment_provider
+            );
+        }
+
         // Field Encryption (AES-256-GCM + HMAC-SHA256)
         let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".into());
 
@@ -367,6 +421,15 @@ impl Config {
             mfa_token_ttl_sec,
             rate_limit_mfa_max,
             rate_limit_mfa_window_sec,
+            payment_provider,
+            paddle_api_key,
+            paddle_webhook_secret,
+            paddle_client_token,
+            paddle_sandbox,
+            paddle_price_month_1,
+            paddle_price_month_3,
+            paddle_price_month_6,
+            paddle_price_month_12,
             app_env,
             encryption_ring,
             hmac_key,
@@ -434,6 +497,24 @@ impl Config {
         }
 
         false
+    }
+
+    /// Paddle Price ID → BillingInterval 매핑
+    pub fn billing_interval_for_price(&self, price_id: &str) -> Option<crate::types::BillingInterval> {
+        use crate::types::BillingInterval;
+        if self.paddle_price_month_1.as_deref() == Some(price_id) {
+            return Some(BillingInterval::Month1);
+        }
+        if self.paddle_price_month_3.as_deref() == Some(price_id) {
+            return Some(BillingInterval::Month3);
+        }
+        if self.paddle_price_month_6.as_deref() == Some(price_id) {
+            return Some(BillingInterval::Month6);
+        }
+        if self.paddle_price_month_12.as_deref() == Some(price_id) {
+            return Some(BillingInterval::Month12);
+        }
+        None
     }
 
     /// CIDR 범위 내 IP 확인
@@ -518,6 +599,11 @@ impl fmt::Debug for Config {
             .field("mfa_token_ttl_sec", &self.mfa_token_ttl_sec)
             .field("rate_limit_mfa_max", &self.rate_limit_mfa_max)
             .field("rate_limit_mfa_window_sec", &self.rate_limit_mfa_window_sec)
+            .field("payment_provider", &self.payment_provider)
+            .field("paddle_api_key", &self.paddle_api_key.as_ref().map(|_| "***"))
+            .field("paddle_webhook_secret", &self.paddle_webhook_secret.as_ref().map(|_| "***"))
+            .field("paddle_client_token", &self.paddle_client_token.as_ref().map(|_| "***"))
+            .field("paddle_sandbox", &self.paddle_sandbox)
             .field("app_env", &self.app_env)
             .field("encryption_ring", &self.encryption_ring)
             .field("hmac_key", &"***")

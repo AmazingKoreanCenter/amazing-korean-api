@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { labelKey: "nav.videos", path: "/videos" },
   { labelKey: "nav.studies", path: "/studies" },
   { labelKey: "nav.lessons", path: "/lessons" },
+  { labelKey: "nav.pricing", path: "/pricing" },
 ] as const;
 
 export function Header() {

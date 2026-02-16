@@ -104,6 +104,44 @@ async fn main() -> anyhow::Result<()> {
             }
         };
 
+    // 6.7) PaymentProvider 생성 (PAYMENT_PROVIDER 설정에 따라 분기)
+    let payment: Option<Arc<dyn external::payment::PaymentProvider>> =
+        match cfg.payment_provider.as_str() {
+            "paddle" => {
+                let api_key = cfg
+                    .paddle_api_key
+                    .clone()
+                    .expect("PADDLE_API_KEY required for paddle provider");
+                let client_token = cfg
+                    .paddle_client_token
+                    .clone()
+                    .expect("PADDLE_CLIENT_TOKEN required for paddle provider");
+                let env_label = if cfg.paddle_sandbox { "Sandbox" } else { "Production" };
+                tracing::info!(
+                    "💳 Payment provider enabled: Paddle Billing ({})",
+                    env_label
+                );
+                Some(Arc::new(
+                    external::payment::PaddleProvider::new(
+                        &api_key,
+                        cfg.paddle_sandbox,
+                        client_token,
+                    )
+                    .expect("Failed to create Paddle client"),
+                ))
+            }
+            "none" => {
+                tracing::info!("Payment provider disabled (PAYMENT_PROVIDER=none)");
+                None
+            }
+            other => {
+                panic!(
+                    "Unknown PAYMENT_PROVIDER '{}'. Must be 'paddle' or 'none'.",
+                    other
+                );
+            }
+        };
+
     // 7) AppState 생성
     let app_state = AppState {
         db: pool,
@@ -113,6 +151,7 @@ async fn main() -> anyhow::Result<()> {
         email,
         ipgeo,
         translator,
+        payment,
     };
 
     // 8) [CORS] 설정 정의

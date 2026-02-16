@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://amazingkorean.net/sitemap.xml
+
+# Admin pages
+Disallow: /admin/
+# Auth-only pages
+Disallow: /user/
+Disallow: /verify-email
+Disallow: /reset-password
+Disallow: /request-reset-password
+Disallow: /find-id
+# Utility pages
+Disallow: /health
+Disallow: /403
+Disallow: /error

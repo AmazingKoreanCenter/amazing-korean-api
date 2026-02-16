@@ -1,5 +1,17 @@
 import { request } from "@/api/client";
 import type {
+  AdminSubListReq,
+  AdminSubListRes,
+  AdminSubDetailRes,
+  AdminCancelSubReq,
+  AdminTxnListReq,
+  AdminTxnListRes,
+  AdminGrantReq,
+  AdminGrantRes,
+  AdminGrantListReq,
+  AdminGrantListRes,
+} from "./payment/types";
+import type {
   AdminListReq,
   AdminUserListRes,
   AdminUserRes,
@@ -688,4 +700,58 @@ export const searchTranslations = (lang?: SupportedLanguage) =>
 export const getTranslationStats = () =>
   request<TranslationStatsRes>("/admin/translations/stats", {
     method: "GET",
+  });
+
+// ==========================================
+// 11. Admin Payment API
+// ==========================================
+
+export const getAdminSubscriptions = (params: AdminSubListReq) =>
+  request<AdminSubListRes>("/admin/payment/subscriptions", {
+    method: "GET",
+    params,
+  });
+
+export const getAdminSubscription = (id: number) =>
+  request<AdminSubDetailRes>(`/admin/payment/subscriptions/${id}`, {
+    method: "GET",
+  });
+
+export const adminCancelSubscription = (id: number, data: AdminCancelSubReq) =>
+  request<AdminSubDetailRes>(`/admin/payment/subscriptions/${id}/cancel`, {
+    method: "POST",
+    data,
+  });
+
+export const adminPauseSubscription = (id: number) =>
+  request<AdminSubDetailRes>(`/admin/payment/subscriptions/${id}/pause`, {
+    method: "POST",
+  });
+
+export const adminResumeSubscription = (id: number) =>
+  request<AdminSubDetailRes>(`/admin/payment/subscriptions/${id}/resume`, {
+    method: "POST",
+  });
+
+export const getAdminTransactions = (params: AdminTxnListReq) =>
+  request<AdminTxnListRes>("/admin/payment/transactions", {
+    method: "GET",
+    params,
+  });
+
+export const createAdminGrant = (data: AdminGrantReq) =>
+  request<AdminGrantRes>("/admin/payment/grants", {
+    method: "POST",
+    data,
+  });
+
+export const getAdminGrants = (params: AdminGrantListReq) =>
+  request<AdminGrantListRes>("/admin/payment/grants", {
+    method: "GET",
+    params,
+  });
+
+export const revokeAdminGrant = (userId: number) =>
+  request<void>(`/admin/payment/grants/${userId}`, {
+    method: "DELETE",
   });

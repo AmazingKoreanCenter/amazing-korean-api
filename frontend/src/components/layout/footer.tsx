@@ -121,6 +121,12 @@ export function Footer() {
               >
                 {t("footer.privacy")}
               </Link>
+              <Link
+                to="/refund-policy"
+                className="text-white/70 hover:text-white text-sm transition-colors"
+              >
+                {t("footer.refundPolicy")}
+              </Link>
             </nav>
           </div>
 

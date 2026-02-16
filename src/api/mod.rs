@@ -11,6 +11,7 @@ pub mod auth;
 pub mod course;
 pub mod health;
 pub mod lesson;
+pub mod payment;
 pub mod study;
 pub mod user;
 pub mod util;
@@ -22,6 +23,7 @@ use self::admin::router::admin_router;
 use self::auth::router::auth_router;
 use self::course::router::course_router;
 use self::lesson::router::router as lesson_router;
+use self::payment::router::payment_router;
 use self::study::router::router as study_router;
 use self::user::router::user_router;
 use self::video::router::router as video_router;
@@ -42,6 +44,7 @@ pub fn app_router(state: AppState) -> axum::Router {
         .nest("/lessons", lesson_router())
         .nest("/videos", video_router())
         .nest("/studies", study_router())
+        .nest("/payment", payment_router())
         .route("/healthz", get(health::handler::health))
         .route("/health", get(health::handler::health))
         .route("/ready", get(health::handler::ready))
