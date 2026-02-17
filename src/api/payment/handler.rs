@@ -75,50 +75,6 @@ pub async fn cancel_subscription(
     Ok(Json(res))
 }
 
-/// POST /payment/subscription/pause
-///
-/// 구독 일시정지 (active 상태만 가능).
-#[utoipa::path(
-    post,
-    path = "/payment/subscription/pause",
-    tag = "Payment",
-    security(("bearerAuth" = [])),
-    responses(
-        (status = 200, description = "구독 일시정지 완료", body = SubscriptionRes),
-        (status = 400, description = "일시정지 불가 상태"),
-        (status = 401, description = "인증 필요")
-    )
-)]
-pub async fn pause_subscription(
-    State(st): State<AppState>,
-    AuthUser(auth_user): AuthUser,
-) -> AppResult<Json<SubscriptionRes>> {
-    let res = PaymentService::pause_subscription(&st, auth_user.sub).await?;
-    Ok(Json(res))
-}
-
-/// POST /payment/subscription/resume
-///
-/// 일시정지된 구독 재개 (paused 상태만 가능).
-#[utoipa::path(
-    post,
-    path = "/payment/subscription/resume",
-    tag = "Payment",
-    security(("bearerAuth" = [])),
-    responses(
-        (status = 200, description = "구독 재개 완료", body = SubscriptionRes),
-        (status = 400, description = "재개 불가 상태"),
-        (status = 401, description = "인증 필요")
-    )
-)]
-pub async fn resume_subscription(
-    State(st): State<AppState>,
-    AuthUser(auth_user): AuthUser,
-) -> AppResult<Json<SubscriptionRes>> {
-    let res = PaymentService::resume_subscription(&st, auth_user.sub).await?;
-    Ok(Json(res))
-}
-
 /// POST /payment/webhook
 ///
 /// Paddle Webhook 수신 엔드포인트.

@@ -3065,23 +3065,7 @@ draft → reviewed → approved
 
 ---
 
-#### 10-4 : `POST /admin/payment/subscriptions/{id}/pause` (관리자 구독 일시정지)
-
-> 활성 상태인 구독만 일시정지 가능.
-
-**응답**: `200 OK` (빈 JSON)
-
----
-
-#### 10-5 : `POST /admin/payment/subscriptions/{id}/resume` (관리자 구독 재개)
-
-> 일시정지 상태인 구독만 재개 가능.
-
-**응답**: `200 OK` (빈 JSON)
-
----
-
-#### 10-6 : `GET /admin/payment/transactions` (트랜잭션 목록)
+#### 10-4 : `GET /admin/payment/transactions` (트랜잭션 목록)
 
 > 전체 트랜잭션 목록 조회. 이메일 검색, 상태 필터, 정렬, 페이지네이션.
 
@@ -3118,7 +3102,7 @@ draft → reviewed → approved
 
 ---
 
-#### 10-7 : `POST /admin/payment/grants` (수동 수강권 부여)
+#### 10-5 : `POST /admin/payment/grants` (수동 수강권 부여)
 
 > Paddle 구독 없이 관리자가 직접 사용자에게 수강권을 부여한다 (VIP, CS 대응, 이벤트 등).
 
@@ -3148,7 +3132,7 @@ draft → reviewed → approved
 
 ---
 
-#### 10-8 : `GET /admin/payment/grants` (수동 부여 내역 조회)
+#### 10-6 : `GET /admin/payment/grants` (수동 부여 내역 조회)
 
 > 구독 없이 수강권이 활성화된 사용자 목록 조회.
 
@@ -3178,7 +3162,7 @@ draft → reviewed → approved
 
 ---
 
-#### 10-9 : `DELETE /admin/payment/grants/{userId}` (수동 수강권 회수)
+#### 10-7 : `DELETE /admin/payment/grants/{userId}` (수동 수강권 회수)
 
 > 사용자의 모든 수강권을 회수한다.
 
@@ -4563,7 +4547,7 @@ ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
   - **Phase 11** (사용자 결제): `GET /payment/plans` (공개), `GET /payment/subscription` (인증), `POST /payment/webhook` (Paddle)
   - **Phase 10** (관리자 결제): 구독 CRUD 6개 + 수동 수강권 3개 = 총 9개 엔드포인트
   - **Webhook**: 8 subscription + 1 transaction 이벤트 처리, HMAC-SHA256 서명 검증, 멱등성 보장
-  - **user_course 연동**: 구독 활성화 시 수강권 자동 부여, 취소/일시정지 시 자동 회수
+  - **user_course 연동**: 구독 활성화 시 수강권 자동 부여, 취소 시 자동 회수
   - **프론트엔드**: Pricing 페이지 (Paddle.js overlay checkout), 프로모 코드 입력, 관리자 결제 관리 UI
   - **프로덕션 배포**: DB 마이그레이션 + Paddle Sandbox Webhook 연동 완료
 

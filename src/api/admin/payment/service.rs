@@ -206,7 +206,7 @@ impl AdminPaymentService {
     }
 
     // =========================================================================
-    // 관리자 구독 관리 (cancel / pause / resume)
+    // 관리자 구독 관리 (cancel)
     // =========================================================================
 
     pub async fn cancel_subscription(
@@ -268,106 +268,6 @@ impl AdminPaymentService {
         .await?;
 
         // 최신 상태 반환
-        Self::get_subscription(st, actor_user_id, subscription_id, None, None).await
-    }
-
-    pub async fn pause_subscription(
-        st: &AppState,
-        actor_user_id: i64,
-        subscription_id: i64,
-        ip: Option<IpAddr>,
-        ua: Option<String>,
-    ) -> AppResult<AdminSubDetailRes> {
-        Self::check_admin_rbac(&st.db, actor_user_id).await?;
-
-        let payment = st
-            .payment
-            .as_ref()
-            .ok_or_else(|| {
-                AppError::ServiceUnavailable("Payment provider not configured".into())
-            })?;
-
-        let sub = AdminPaymentRepo::get_subscription(&st.db, subscription_id)
-            .await?
-            .ok_or(AppError::NotFound)?;
-
-        if sub.status != crate::types::SubscriptionStatus::Active {
-            return Err(AppError::BadRequest(
-                "Only active subscriptions can be paused".into(),
-            ));
-        }
-
-        payment
-            .pause_subscription(&sub.provider_subscription_id)
-            .await?;
-
-        tracing::info!(
-            admin_id = actor_user_id,
-            sub_id = subscription_id,
-            "Admin paused subscription"
-        );
-
-        Self::audit_log(
-            st,
-            actor_user_id,
-            "PAUSE_SUBSCRIPTION",
-            Some(subscription_id),
-            &serde_json::json!({ "subscription_id": subscription_id }),
-            ip,
-            ua.as_deref(),
-        )
-        .await?;
-
-        Self::get_subscription(st, actor_user_id, subscription_id, None, None).await
-    }
-
-    pub async fn resume_subscription(
-        st: &AppState,
-        actor_user_id: i64,
-        subscription_id: i64,
-        ip: Option<IpAddr>,
-        ua: Option<String>,
-    ) -> AppResult<AdminSubDetailRes> {
-        Self::check_admin_rbac(&st.db, actor_user_id).await?;
-
-        let payment = st
-            .payment
-            .as_ref()
-            .ok_or_else(|| {
-                AppError::ServiceUnavailable("Payment provider not configured".into())
-            })?;
-
-        let sub = AdminPaymentRepo::get_subscription(&st.db, subscription_id)
-            .await?
-            .ok_or(AppError::NotFound)?;
-
-        if sub.status != crate::types::SubscriptionStatus::Paused {
-            return Err(AppError::BadRequest(
-                "Only paused subscriptions can be resumed".into(),
-            ));
-        }
-
-        payment
-            .resume_subscription(&sub.provider_subscription_id)
-            .await?;
-
-        tracing::info!(
-            admin_id = actor_user_id,
-            sub_id = subscription_id,
-            "Admin resumed subscription"
-        );
-
-        Self::audit_log(
-            st,
-            actor_user_id,
-            "RESUME_SUBSCRIPTION",
-            Some(subscription_id),
-            &serde_json::json!({ "subscription_id": subscription_id }),
-            ip,
-            ua.as_deref(),
-        )
-        .await?;
-
         Self::get_subscription(st, actor_user_id, subscription_id, None, None).await
     }
 

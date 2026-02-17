@@ -4,8 +4,6 @@ import {
   getAdminSubscriptions,
   getAdminSubscription,
   adminCancelSubscription,
-  adminPauseSubscription,
-  adminResumeSubscription,
   getAdminTransactions,
   createAdminGrant,
   getAdminGrants,
@@ -67,38 +65,6 @@ export const useAdminCancelSubscription = () => {
     mutationFn: ({ id, data }: { id: number; data: AdminCancelSubReq }) =>
       adminCancelSubscription(id, data),
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({
-        queryKey: adminPaymentKeys.subscriptions,
-      });
-      queryClient.invalidateQueries({
-        queryKey: adminPaymentKeys.subscriptionDetail(id),
-      });
-    },
-  });
-};
-
-export const useAdminPauseSubscription = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) => adminPauseSubscription(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({
-        queryKey: adminPaymentKeys.subscriptions,
-      });
-      queryClient.invalidateQueries({
-        queryKey: adminPaymentKeys.subscriptionDetail(id),
-      });
-    },
-  });
-};
-
-export const useAdminResumeSubscription = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) => adminResumeSubscription(id),
-    onSuccess: (_, id) => {
       queryClient.invalidateQueries({
         queryKey: adminPaymentKeys.subscriptions,
       });

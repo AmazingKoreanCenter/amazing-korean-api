@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle2, Sparkles, Crown, PauseCircle, XCircle, PlayCircle, Tag } from "lucide-react";
+import { CheckCircle2, Sparkles, Crown, XCircle, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import { useAuthStore } from "@/hooks/use_auth_store";
 import { usePaymentPlans } from "../hook/use_payment_plans";
 import { useSubscription } from "../hook/use_subscription";
 import { usePaddle } from "../hook/use_paddle";
-import { useCancelSubscription, usePauseSubscription, useResumeSubscription } from "../hook/use_manage_subscription";
+import { useCancelSubscription } from "../hook/use_manage_subscription";
 import type { PlanInfo } from "../types";
 
 const POPULAR_INTERVAL = "month_12";
@@ -42,8 +42,6 @@ export function PricingPage() {
   });
 
   const cancelMutation = useCancelSubscription();
-  const pauseMutation = usePauseSubscription();
-  const resumeMutation = useResumeSubscription();
 
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [promoCode, setPromoCode] = useState("");
@@ -129,24 +127,20 @@ export function PricingPage() {
           {/* Subscription Banner */}
           {hasSub && subscription && (() => {
             const status = subscription.status;
-            const isActive = status === "active";
-            const isTrialing = status === "trialing";
-            const isPaused = status === "paused";
             const isCanceled = status === "canceled";
-            const isBusy = cancelMutation.isPending || pauseMutation.isPending || resumeMutation.isPending;
+            const isCancelScheduled = !isCanceled && !!subscription.canceled_at;
+            const isActive = (status === "active" || status === "trialing") && !isCancelScheduled;
+            const isBusy = cancelMutation.isPending;
 
-            // 배너 색상/아이콘 매핑
-            const bannerStyle = isPaused
-              ? "from-amber-50 to-orange-50 border-amber-200"
-              : isCanceled
-                ? "from-red-50 to-rose-50 border-red-200"
-                : "from-emerald-50 to-teal-50 border-emerald-200";
+            const bannerStyle = isCanceled || isCancelScheduled
+              ? "from-red-50 to-rose-50 border-red-200"
+              : "from-emerald-50 to-teal-50 border-emerald-200";
 
-            const iconBg = isPaused ? "bg-amber-100" : isCanceled ? "bg-red-100" : "bg-emerald-100";
-            const iconColor = isPaused ? "text-amber-600" : isCanceled ? "text-red-600" : "text-emerald-600";
-            const textColor = isPaused ? "text-amber-900" : isCanceled ? "text-red-900" : "text-emerald-900";
-            const subTextColor = isPaused ? "text-amber-700" : isCanceled ? "text-red-700" : "text-emerald-700";
-            const StatusIcon = isPaused ? PauseCircle : isCanceled ? XCircle : CheckCircle2;
+            const iconBg = isCanceled || isCancelScheduled ? "bg-red-100" : "bg-emerald-100";
+            const iconColor = isCanceled || isCancelScheduled ? "text-red-600" : "text-emerald-600";
+            const textColor = isCanceled || isCancelScheduled ? "text-red-900" : "text-emerald-900";
+            const subTextColor = isCanceled || isCancelScheduled ? "text-red-700" : "text-emerald-700";
+            const StatusIcon = isCanceled || isCancelScheduled ? XCircle : CheckCircle2;
 
             return (
               <div className={`mb-12 p-6 rounded-2xl bg-gradient-to-r ${bannerStyle} border`}>
@@ -160,78 +154,31 @@ export function PricingPage() {
                         {t("payment.currentPlan")}: {t(`payment.interval.${subscription.billing_interval}`)}
                       </p>
                       <p className={`text-sm ${subTextColor}`}>
-                        {t(`payment.status.${status}`)}
-                        {isCanceled && subscription.current_period_end && (
+                        {isCancelScheduled
+                          ? t("payment.cancelScheduled")
+                          : t(`payment.status.${status}`)}
+                        {(isCanceled || isCancelScheduled) && subscription.current_period_end && (
                           <> &middot; {t("payment.expiresAt")}: {new Date(subscription.current_period_end).toLocaleDateString()}</>
                         )}
-                        {!isCanceled && subscription.current_period_end && (
+                        {!isCanceled && !isCancelScheduled && subscription.current_period_end && (
                           <> &middot; {t("payment.nextBilling")}: {new Date(subscription.current_period_end).toLocaleDateString()}</>
                         )}
                       </p>
                     </div>
                   </div>
 
-                  {/* 관리 버튼 */}
-                  <div className="flex items-center gap-2">
-                    {/* active → 일시정지 + 취소 */}
-                    {isActive && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={isBusy}
-                          onClick={() => pauseMutation.mutate()}
-                        >
-                          <PauseCircle className="h-4 w-4 mr-1.5" />
-                          {t("payment.pauseSubscription")}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                          disabled={isBusy}
-                          onClick={() => setCancelDialogOpen(true)}
-                        >
-                          {t("payment.cancelSubscription")}
-                        </Button>
-                      </>
-                    )}
-                    {/* trialing → 취소만 */}
-                    {isTrialing && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                        disabled={isBusy}
-                        onClick={() => setCancelDialogOpen(true)}
-                      >
-                        {t("payment.cancelSubscription")}
-                      </Button>
-                    )}
-                    {/* paused → 재개 + 취소 */}
-                    {isPaused && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={isBusy}
-                          onClick={() => resumeMutation.mutate()}
-                        >
-                          <PlayCircle className="h-4 w-4 mr-1.5" />
-                          {t("payment.resumeSubscription")}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                          disabled={isBusy}
-                          onClick={() => setCancelDialogOpen(true)}
-                        >
-                          {t("payment.cancelSubscription")}
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                  {/* 취소 버튼 (active/trialing 상태 + 취소 예정 아닌 경우만) */}
+                  {isActive && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                      disabled={isBusy}
+                      onClick={() => setCancelDialogOpen(true)}
+                    >
+                      {t("payment.cancelSubscription")}
+                    </Button>
+                  )}
                 </div>
               </div>
             );

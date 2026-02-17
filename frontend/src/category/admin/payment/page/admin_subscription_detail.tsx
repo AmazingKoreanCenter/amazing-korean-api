@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Pause, Play, XCircle } from "lucide-react";
+import { ArrowLeft, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -25,8 +25,6 @@ import {
 import {
   useAdminSubscriptionDetail,
   useAdminCancelSubscription,
-  useAdminPauseSubscription,
-  useAdminResumeSubscription,
 } from "../hook/use_admin_payment";
 
 const formatCents = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -49,13 +47,10 @@ export function AdminSubscriptionDetail() {
 
   const { data, isLoading, isError } = useAdminSubscriptionDetail(subId);
   const cancelMutation = useAdminCancelSubscription();
-  const pauseMutation = useAdminPauseSubscription();
-  const resumeMutation = useAdminResumeSubscription();
 
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
-  const isBusy =
-    cancelMutation.isPending || pauseMutation.isPending || resumeMutation.isPending;
+  const isBusy = cancelMutation.isPending;
 
   const handleCancel = (immediately: boolean) => {
     cancelMutation.mutate(
@@ -68,20 +63,6 @@ export function AdminSubscriptionDetail() {
         onError: (e) => toast.error(e.message || "Cancel failed"),
       }
     );
-  };
-
-  const handlePause = () => {
-    pauseMutation.mutate(subId, {
-      onSuccess: () => toast.success("Subscription pause requested"),
-      onError: (e) => toast.error(e.message || "Pause failed"),
-    });
-  };
-
-  const handleResume = () => {
-    resumeMutation.mutate(subId, {
-      onSuccess: () => toast.success("Subscription resume requested"),
-      onError: (e) => toast.error(e.message || "Resume failed"),
-    });
   };
 
   if (isLoading) {
@@ -197,28 +178,6 @@ export function AdminSubscriptionDetail() {
                 <CardTitle>Actions</CardTitle>
               </CardHeader>
               <CardContent className="flex gap-2 flex-wrap">
-                {sub.status === "active" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePause}
-                    disabled={isBusy}
-                  >
-                    <Pause className="mr-1 h-4 w-4" />
-                    Pause
-                  </Button>
-                )}
-                {sub.status === "paused" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleResume}
-                    disabled={isBusy}
-                  >
-                    <Play className="mr-1 h-4 w-4" />
-                    Resume
-                  </Button>
-                )}
                 <Button
                   variant="destructive"
                   size="sm"
