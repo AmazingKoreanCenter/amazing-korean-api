@@ -141,62 +141,6 @@ pub async fn cancel_subscription(
     Ok(Json(res))
 }
 
-#[utoipa::path(
-    post,
-    path = "/admin/payment/subscriptions/{id}/pause",
-    tag = "admin_payment",
-    params(("id", Path, description = "Subscription ID")),
-    responses(
-        (status = 200, description = "Subscription paused", body = AdminSubDetailRes),
-        (status = 400, description = "Bad request"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden"),
-        (status = 404, description = "Not found")
-    ),
-    security(("bearerAuth" = []))
-)]
-pub async fn pause_subscription(
-    State(st): State<AppState>,
-    AuthUser(auth_user): AuthUser,
-    headers: HeaderMap,
-    Path(id): Path<i64>,
-) -> AppResult<Json<AdminSubDetailRes>> {
-    let ip = extract_client_ip(&headers);
-    let ua = extract_user_agent(&headers);
-
-    let res = AdminPaymentService::pause_subscription(&st, auth_user.sub, id, ip, ua).await?;
-
-    Ok(Json(res))
-}
-
-#[utoipa::path(
-    post,
-    path = "/admin/payment/subscriptions/{id}/resume",
-    tag = "admin_payment",
-    params(("id", Path, description = "Subscription ID")),
-    responses(
-        (status = 200, description = "Subscription resumed", body = AdminSubDetailRes),
-        (status = 400, description = "Bad request"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden"),
-        (status = 404, description = "Not found")
-    ),
-    security(("bearerAuth" = []))
-)]
-pub async fn resume_subscription(
-    State(st): State<AppState>,
-    AuthUser(auth_user): AuthUser,
-    headers: HeaderMap,
-    Path(id): Path<i64>,
-) -> AppResult<Json<AdminSubDetailRes>> {
-    let ip = extract_client_ip(&headers);
-    let ua = extract_user_agent(&headers);
-
-    let res = AdminPaymentService::resume_subscription(&st, auth_user.sub, id, ip, ua).await?;
-
-    Ok(Json(res))
-}
-
 // =============================================================================
 // 트랜잭션
 // =============================================================================

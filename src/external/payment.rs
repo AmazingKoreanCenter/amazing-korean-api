@@ -29,18 +29,6 @@ pub trait PaymentProvider: Send + Sync {
         effective_from: CancelEffectiveFrom,
     ) -> AppResult<ProviderSubscription>;
 
-    /// 구독 일시정지
-    async fn pause_subscription(
-        &self,
-        provider_subscription_id: &str,
-    ) -> AppResult<ProviderSubscription>;
-
-    /// 구독 재개
-    async fn resume_subscription(
-        &self,
-        provider_subscription_id: &str,
-    ) -> AppResult<ProviderSubscription>;
-
     /// Client-side token 반환 (프론트엔드 전달용)
     fn client_token(&self) -> &str;
 
@@ -162,41 +150,6 @@ impl PaymentProvider for PaddleProvider {
             .await
             .map_err(|e| {
                 tracing::error!(error = %e, sub_id = %provider_subscription_id, "Paddle cancel_subscription failed");
-                AppError::External(format!("Paddle API error: {}", e))
-            })?;
-
-        Ok(to_provider_subscription(&resp.data))
-    }
-
-    async fn pause_subscription(
-        &self,
-        provider_subscription_id: &str,
-    ) -> AppResult<ProviderSubscription> {
-        let resp = self
-            .client
-            .subscription_pause(provider_subscription_id)
-            .send()
-            .await
-            .map_err(|e| {
-                tracing::error!(error = %e, sub_id = %provider_subscription_id, "Paddle pause_subscription failed");
-                AppError::External(format!("Paddle API error: {}", e))
-            })?;
-
-        Ok(to_provider_subscription(&resp.data))
-    }
-
-    async fn resume_subscription(
-        &self,
-        provider_subscription_id: &str,
-    ) -> AppResult<ProviderSubscription> {
-        let resp = self
-            .client
-            .subscription_resume(provider_subscription_id)
-            .effective_from(chrono::Utc::now())
-            .send()
-            .await
-            .map_err(|e| {
-                tracing::error!(error = %e, sub_id = %provider_subscription_id, "Paddle resume_subscription failed");
                 AppError::External(format!("Paddle API error: {}", e))
             })?;
 

@@ -83,7 +83,7 @@ impl PaymentService {
     }
 
     // =========================================================================
-    // 구독 관리 (cancel / pause / resume)
+    // 구독 관리 (cancel)
     // =========================================================================
 
     /// 구독 취소
@@ -127,73 +127,6 @@ impl PaymentService {
         );
 
         // 최신 상태 반환 (webhook이 곧 DB를 업데이트)
-        Self::get_subscription(st, user_id).await
-    }
-
-    /// 구독 일시정지 (active 상태만 가능)
-    pub async fn pause_subscription(
-        st: &AppState,
-        user_id: i64,
-    ) -> AppResult<SubscriptionRes> {
-        let payment = st
-            .payment
-            .as_ref()
-            .ok_or_else(|| AppError::ServiceUnavailable("Payment provider not configured".into()))?;
-
-        let sub = PaymentRepo::get_active_subscription(&st.db, user_id)
-            .await?
-            .ok_or_else(|| AppError::BadRequest("No active subscription".into()))?;
-
-        if sub.status != SubscriptionStatus::Active {
-            return Err(AppError::BadRequest(
-                "Only active subscriptions can be paused".into(),
-            ));
-        }
-
-        payment
-            .pause_subscription(&sub.provider_subscription_id)
-            .await?;
-
-        tracing::info!(
-            user_id = user_id,
-            sub_id = %sub.provider_subscription_id,
-            "Subscription pause requested"
-        );
-
-        Self::get_subscription(st, user_id).await
-    }
-
-    /// 일시정지된 구독 재개 (paused 상태만 가능)
-    pub async fn resume_subscription(
-        st: &AppState,
-        user_id: i64,
-    ) -> AppResult<SubscriptionRes> {
-        let payment = st
-            .payment
-            .as_ref()
-            .ok_or_else(|| AppError::ServiceUnavailable("Payment provider not configured".into()))?;
-
-        // paused 상태 구독 조회 — get_active_subscription은 trialing/active/past_due만 포함
-        let sub = PaymentRepo::get_latest_subscription(&st.db, user_id)
-            .await?
-            .ok_or_else(|| AppError::BadRequest("No subscription found".into()))?;
-
-        if sub.status != SubscriptionStatus::Paused {
-            return Err(AppError::BadRequest(
-                "Only paused subscriptions can be resumed".into(),
-            ));
-        }
-
-        payment
-            .resume_subscription(&sub.provider_subscription_id)
-            .await?;
-
-        tracing::info!(
-            user_id = user_id,
-            sub_id = %sub.provider_subscription_id,
-            "Subscription resume requested"
-        );
-
         Self::get_subscription(st, user_id).await
     }
 

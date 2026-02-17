@@ -10,9 +10,3 @@ export const getSubscription = () =>
 
 export const cancelSubscription = (data: CancelSubscriptionReq) =>
   request<SubscriptionRes>("/payment/subscription/cancel", { method: "POST", data });
-
-export const pauseSubscription = () =>
-  request<SubscriptionRes>("/payment/subscription/pause", { method: "POST" });
-
-export const resumeSubscription = () =>
-  request<SubscriptionRes>("/payment/subscription/resume", { method: "POST" });

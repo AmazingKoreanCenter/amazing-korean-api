@@ -723,16 +723,6 @@ export const adminCancelSubscription = (id: number, data: AdminCancelSubReq) =>
     data,
   });
 
-export const adminPauseSubscription = (id: number) =>
-  request<AdminSubDetailRes>(`/admin/payment/subscriptions/${id}/pause`, {
-    method: "POST",
-  });
-
-export const adminResumeSubscription = (id: number) =>
-  request<AdminSubDetailRes>(`/admin/payment/subscriptions/${id}/resume`, {
-    method: "POST",
-  });
-
 export const getAdminTransactions = (params: AdminTxnListReq) =>
   request<AdminTxnListRes>("/admin/payment/transactions", {
     method: "GET",
