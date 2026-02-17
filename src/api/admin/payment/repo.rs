@@ -279,7 +279,7 @@ impl AdminPaymentRepo {
         let items = sqlx::query_as::<_, AdminGrantSummary>(
             r#"
             SELECT uc.user_id, u.user_email as user_email,
-                   MIN(uc.user_course_expire_at) as expire_at,
+                   MAX(uc.user_course_expire_at) as expire_at,
                    COUNT(uc.course_id) as course_count
             FROM user_course uc
             JOIN users u ON uc.user_id = u.user_id

@@ -1909,7 +1909,7 @@ impl AuthService {
         let input_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(code.as_bytes()));
 
         // 매치하는 해시 찾기
-        if let Some(pos) = hashes.iter().position(|h| h == &input_hash) {
+        if let Some(pos) = hashes.iter().position(|h| Self::constant_time_eq(h.as_bytes(), input_hash.as_bytes())) {
             // 사용된 코드 제거
             hashes.remove(pos);
 
@@ -1952,10 +1952,14 @@ impl AuthService {
         AuthRepo::update_login_state_by_user_tx(&mut tx, target_user_id, "revoked", Some("mfa_disabled")).await?;
         tx.commit().await?;
 
-        // Redis 세션 정리
+        // Redis 세션 + 리프레시 토큰 정리
         let mut redis_conn = st.redis.get().await
             .map_err(|e| AppError::Internal(e.to_string()))?;
         for sid in &session_ids {
+            // 리프레시 토큰도 함께 삭제
+            if let Ok(Some(login)) = AuthRepo::find_login_by_session_id(&st.db, sid).await {
+                let _: () = redis_conn.del(format!("ak:refresh:{}", login.refresh_hash)).await.unwrap_or(());
+            }
             let _: () = redis_conn.del(format!("ak:session:{}", sid)).await.unwrap_or(());
         }
         let _: () = redis_conn.del(format!("ak:user_sessions:{}", target_user_id)).await.unwrap_or(());

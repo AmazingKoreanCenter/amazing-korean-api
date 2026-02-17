@@ -46,6 +46,7 @@ export function AdminTranslationDashboard() {
     if (!data) return null;
 
     const map = new Map<string, Record<TranslationStatus, number>>();
+    const usedTypes = new Set<string>();
 
     for (const item of data.items) {
       const key = `${item.content_type}::${item.lang}`;
@@ -54,10 +55,9 @@ export function AdminTranslationDashboard() {
       }
       const entry = map.get(key)!;
       entry[item.status] = item.count;
+      usedTypes.add(item.content_type);
     }
 
-    // 사용 중인 content_type만 필터링 (데이터가 있는 것만)
-    const usedTypes = new Set(data.items.map((i) => i.content_type));
     const contentTypes = CONTENT_TYPE_ORDER.filter((ct) => usedTypes.has(ct));
 
     return { map, contentTypes };

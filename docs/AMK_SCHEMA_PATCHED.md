@@ -717,6 +717,6 @@ CREATE INDEX idx_subscriptions_status ON subscriptions (status);
 CREATE UNIQUE INDEX unique_provider_subscription ON subscriptions (payment_provider, provider_subscription_id);
 CREATE INDEX idx_transactions_user_id ON transactions (user_id);
 CREATE INDEX idx_transactions_subscription_id ON transactions (subscription_id);
-CREATE INDEX idx_transactions_provider_txn_id ON transactions (provider_transaction_id);
+CREATE UNIQUE INDEX idx_transactions_provider_txn_id ON transactions (provider_transaction_id);
 CREATE INDEX idx_webhook_events_type ON webhook_events (event_type);
 ```

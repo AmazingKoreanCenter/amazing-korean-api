@@ -9,7 +9,6 @@ const SUBSCRIPTION_KEY = ["payment", "subscription"] as const;
 
 /** Webhook이 DB를 업데이트할 시간을 확보한 뒤 구독 상태를 refetch */
 const invalidateWithDelay = (queryClient: ReturnType<typeof useQueryClient>) => {
-  void queryClient.invalidateQueries({ queryKey: [...SUBSCRIPTION_KEY] });
   setTimeout(() => {
     void queryClient.invalidateQueries({ queryKey: [...SUBSCRIPTION_KEY] });
   }, 3000);
