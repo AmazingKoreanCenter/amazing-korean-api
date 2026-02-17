@@ -1,6 +1,6 @@
 ---
 title: AMK_API_MASTER — Amazing Korean API  Master Spec
-updated: 2026-02-10
+updated: 2026-02-16
 owner: HYMN Co., Ltd. (Amazing Korean)
 audience: server / database / backend / frontend / lead / AI agent
 ---
@@ -52,6 +52,7 @@ audience: server / database / backend / frontend / lead / AI agent
   - [4.6 코스 도메인 (COURSE)](#46-코스-도메인-course--구현-완료)
   - [4.7 향후 업데이트 도메인](#47-향후-업데이트-도메인)
   - [4.8 번역 도메인 (TRANSLATION)](#48-번역-도메인-translation)
+  - [4.9 결제 도메인 (PAYMENT)](#49-결제-도메인-payment)
 
 - [5. 기능 & API 로드맵 (Phase / 화면 / 엔드포인트 / 상태 / DoD)](#5-기능--api-로드맵-phase--화면--엔드포인트--상태--dod)
   - [5.0 Phase 로드맵 체크박스 범례](#50-phase-로드맵-체크박스-범례)
@@ -64,6 +65,8 @@ audience: server / database / backend / frontend / lead / AI agent
   - [5.7 Phase 7 — admin](#57-phase-7--admin-)
   - [5.8 Phase 8 — course](#58-phase-8--course-)
   - [5.9 Phase 9 — translation (i18n)](#59-phase-9--translation-i18n)
+  - [5.10 Phase 10 — 관리자 결제/구독 관리](#510-phase-10--관리자-결제구독-관리--수동-수강권-)
+  - [5.11 Phase 11 — 사용자 결제 (Paddle Billing)](#511-phase-11--사용자-결제-paddle-billing-)
 
 - [6. 프론트엔드 구조 & 규칙](#6-프론트엔드-구조--규칙)
   - [6.1 프론트엔드 스택 & 기본 원칙](#61-프론트엔드-스택--기본-원칙)
@@ -401,6 +404,63 @@ VIMEO_ACCESS_TOKEN=xxx
   - IPv6: `is_loopback()`
   - 파싱 실패 시: `"localhost"` 문자열 매칭
 - 사설 IP는 외부 API 조회 skip, 기본값: `country='LC'` (Local), `asn=0`, `org='local'`
+
+#### 2.4.5 Paddle Billing (결제)
+
+> Paddle Billing (Merchant of Record) — 구독 기반 결제. Paddle이 세금/규정 처리.
+
+**Provider 설정**
+| Provider | 환경변수 | 설명 |
+|----------|----------|------|
+| `paddle` | 아래 9개 | Paddle Billing API (Sandbox/Production) |
+
+**환경변수**
+```env
+PADDLE_API_KEY=apikey_xxx            # Paddle API Key
+PADDLE_CLIENT_TOKEN=test_xxx         # 프론트엔드 Paddle.js 초기화용
+PADDLE_SANDBOX=true                  # true(Sandbox) / false(Production)
+PADDLE_WEBHOOK_SECRET=pdl_xxx        # Webhook 서명 검증용 Secret Key
+PADDLE_PRODUCT_ID=pro_xxx            # 상품 ID
+PADDLE_PRICE_MONTH_1=pri_xxx         # 1개월 구독 Price ID ($10)
+PADDLE_PRICE_MONTH_3=pri_xxx         # 3개월 구독 Price ID ($25)
+PADDLE_PRICE_MONTH_6=pri_xxx         # 6개월 구독 Price ID ($50)
+PADDLE_PRICE_MONTH_12=pri_xxx        # 12개월 구독 Price ID ($100)
+```
+
+**코드 구조**
+- `src/external/payment.rs`: `PaymentProvider` trait + `PaddleProvider` 구현 (paddle-rust-sdk)
+- `src/state.rs`: `AppState.payment: Option<Arc<dyn PaymentProvider>>`
+- `src/config.rs`: Paddle 환경변수 9개 + `billing_interval_for_price()` 매핑
+- `src/api/payment/`: 사용자 결제 API (plans, subscription, webhook)
+- `src/api/admin/payment/`: 관리자 결제 관리 API
+
+**비즈니스 모델**
+| 항목 | 값 |
+|------|-----|
+| 결제 모델 | 구독 (자동 갱신) |
+| 통화 | USD |
+| 무료 체험 | 1일 |
+| 1개월 | $10 |
+| 3개월 | $25 |
+| 6개월 | $50 |
+| 12개월 | $100 |
+
+**Webhook 이벤트 처리**
+| 이벤트 | 처리 내용 |
+|--------|-----------|
+| `subscription.created` | 구독 레코드 생성 |
+| `subscription.activated` | 상태 active 전환 + 수강권 부여 |
+| `subscription.updated` | 기간/가격 업데이트 |
+| `subscription.canceled` | 상태 canceled + 수강권 만료일 설정 |
+| `subscription.paused` | 상태 paused + 수강권 비활성화 |
+| `subscription.resumed` | 상태 active + 수강권 재활성화 |
+| `subscription.trialing` | 상태 trialing + 수강권 부여 |
+| `subscription.past_due` | 상태 past_due |
+| `transaction.completed` | 트랜잭션 기록 저장 |
+
+**Webhook 보안**
+- 서명 검증: `Paddle::unmarshal()` (HMAC-SHA256, 300초 MaximumVariance)
+- 멱등성: `webhook_events` 테이블 UNIQUE(payment_provider, provider_event_id)
 
 ### 2.5 User-Agent 서버사이드 파싱 (woothee)
 
@@ -1187,9 +1247,6 @@ VIMEO_ACCESS_TOKEN=xxx
 
 ### 4.7 향후 업데이트 도메인
 
-- `pay`
-  - 결제 : 사용자 결제 관련 테이블, 결제 후 콘텐츠 이용 가능
-  - `pay_state` ('ready', 'done', 'cancel')
 - `live`
   - 실시간 강의 : ZOOM API 연동을 통한 실시간 강의 서비스 관련 테이블
   - `live_state` ('ready', 'open', 'close')
@@ -1220,6 +1277,57 @@ VIMEO_ACCESS_TOKEN=xxx
     - `'video'` = 비디오 제목/부제 번역, `'video_tag'` = 비디오 태그 번역, `'study_task_explain'` = 학습 해설 번역
   - `translation_status_enum`: `'draft'`, `'reviewed'`, `'approved'`
   - `supported_language_enum`: `'ko'`, `'en'`, `'zh-CN'`, `'zh-TW'`, `'ja'`, `'vi'`, `'id'`, `'th'`, `'my'`, `'km'`, `'mn'`, `'ru'`, `'uz'`, `'kk'`, `'tg'`, `'ne'`, `'si'`, `'hi'`, `'es'`, `'pt'`, `'fr'`, `'de'` (22개, `ko`는 원본 언어, 아랍어 제외 — RTL 별도 대응 필요)
+
+### 4.9 결제 도메인 (PAYMENT)
+
+> Paddle Billing 기반 구독 결제 시스템. 구독, 트랜잭션, Webhook 이벤트를 관리한다.
+
+- `subscriptions`
+  - 사용자 구독 정보: Paddle 구독 ID, 상태, 결제 주기, 가격, 기간
+  - `subscription_id` (PK, BIGSERIAL)
+  - `user_id` (BIGINT, FK → users)
+  - `payment_provider` (payment_provider_enum): 결제 제공자
+  - `provider_subscription_id` (VARCHAR, UNIQUE): Paddle 구독 ID
+  - `provider_customer_id` (VARCHAR): Paddle 고객 ID
+  - `status` (subscription_status_enum): 구독 상태
+  - `billing_interval` (billing_interval_enum): 결제 주기
+  - `current_price_cents` (INT): 현재 가격 (센트 단위)
+  - `currency` (VARCHAR): 통화 코드 (USD)
+  - `current_period_start`, `current_period_end` (TIMESTAMPTZ): 현재 구독 기간
+  - `trial_ends_at`, `canceled_at`, `paused_at` (TIMESTAMPTZ): 상태 변경 시간
+  - `provider_meta` (JSONB): Paddle 원본 데이터
+  - **UNIQUE**: `provider_subscription_id`
+
+- `transactions`
+  - 결제 트랜잭션 기록: Paddle 트랜잭션 ID, 금액, 세금
+  - `transaction_id` (PK, BIGSERIAL)
+  - `subscription_id` (BIGINT, FK → subscriptions)
+  - `user_id` (BIGINT, FK → users)
+  - `payment_provider` (payment_provider_enum)
+  - `provider_transaction_id` (VARCHAR, UNIQUE): Paddle 트랜잭션 ID
+  - `status` (transaction_status_enum): completed/refunded
+  - `amount_cents` (INT): 결제 금액 (센트)
+  - `tax_cents` (INT): 세금 (센트)
+  - `currency` (VARCHAR): 통화 코드
+  - `billing_interval` (billing_interval_enum): 결제 주기
+  - `occurred_at` (TIMESTAMPTZ): 결제 발생 시간
+  - `provider_meta` (JSONB): Paddle 원본 데이터
+
+- `webhook_events`
+  - Webhook 이벤트 멱등성 관리: 중복 처리 방지
+  - `webhook_event_id` (PK, BIGSERIAL)
+  - `payment_provider` (payment_provider_enum)
+  - `provider_event_id` (VARCHAR): Paddle 이벤트 ID
+  - `event_type` (VARCHAR): 이벤트 유형 (subscription.activated 등)
+  - `payload` (JSONB): 원본 페이로드
+  - `processed_at` (TIMESTAMPTZ): 처리 시간
+  - **UNIQUE**: (payment_provider, provider_event_id)
+
+- **Enums**
+  - `payment_provider_enum`: `'paddle'`
+  - `subscription_status_enum`: `'trialing'`, `'active'`, `'past_due'`, `'paused'`, `'canceled'`
+  - `transaction_status_enum`: `'completed'`, `'refunded'`
+  - `billing_interval_enum`: `'month_1'`, `'month_3'`, `'month_6'`, `'month_12'`
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
@@ -3078,6 +3186,79 @@ draft → reviewed → approved
 
 </details>
 
+---
+
+<details>
+<summary><strong>5.11 Phase 11 — 사용자 결제 (Paddle Billing) ✅</strong></summary>
+
+> Paddle Billing 기반 구독 결제. 플랜 조회, 구독 상태 확인, Webhook 수신.
+
+#### 11-1 : `GET /payment/plans` (플랜 목록)
+
+> 공개 엔드포인트. 구독 플랜 목록 + Paddle Client Token 반환.
+
+**인증**: 불필요 (공개)
+
+**응답 (성공 200)**
+```json
+{
+  "plans": [
+    {
+      "price_id": "pri_01khg4rcvq9ewz1n1rs9zd59rp",
+      "interval": "month_1",
+      "price_cents": 1000,
+      "currency": "USD",
+      "label": "1 Month"
+    }
+  ],
+  "client_token": "test_53998ff59a87110b9c389e35880",
+  "sandbox": true
+}
+```
+
+---
+
+#### 11-2 : `GET /payment/subscription` (내 구독 상태)
+
+> 인증된 사용자의 현재 구독 정보 조회. 구독이 없으면 404.
+
+**인증**: Bearer Token (필수)
+
+**응답 (성공 200)**
+```json
+{
+  "subscription_id": 1,
+  "status": "active",
+  "billing_interval": "month_3",
+  "current_price_cents": 2500,
+  "currency": "USD",
+  "current_period_start": "2026-02-15T00:00:00Z",
+  "current_period_end": "2026-05-15T00:00:00Z",
+  "trial_ends_at": null,
+  "canceled_at": null,
+  "paused_at": null,
+  "created_at": "2026-02-15T00:00:00Z",
+  "management_urls": {
+    "cancel": "https://...",
+    "update_payment_method": "https://..."
+  }
+}
+```
+
+---
+
+#### 11-3 : `POST /payment/webhook` (Paddle Webhook)
+
+> Paddle에서 호출하는 Webhook 엔드포인트. 서명 검증 후 이벤트 처리.
+
+**인증**: Paddle HMAC-SHA256 서명 검증 (Paddle-Signature 헤더)
+
+**처리 이벤트**: subscription.created/activated/updated/canceled/paused/resumed/trialing/past_due, transaction.completed
+
+**응답**: `200 OK` (항상)
+
+</details>
+
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
 ---
@@ -4375,6 +4556,16 @@ ssh -i your-key.pem -L 5433:localhost:5432 ec2-user@43.200.180.110
 ---
 
 ## 9. 변경 이력 (요약)
+
+- **2026-02-16 — 결제 시스템 (Paddle Billing) 전체 구현 + 프로덕션 배포**
+  - **데이터 모델**: Section 4.9 결제 도메인 추가 — 4 ENUMs + 3 Tables (subscriptions, transactions, webhook_events)
+  - **외부 서비스**: Section 2.4.5 Paddle Billing 연동 추가
+  - **Phase 11** (사용자 결제): `GET /payment/plans` (공개), `GET /payment/subscription` (인증), `POST /payment/webhook` (Paddle)
+  - **Phase 10** (관리자 결제): 구독 CRUD 6개 + 수동 수강권 3개 = 총 9개 엔드포인트
+  - **Webhook**: 8 subscription + 1 transaction 이벤트 처리, HMAC-SHA256 서명 검증, 멱등성 보장
+  - **user_course 연동**: 구독 활성화 시 수강권 자동 부여, 취소/일시정지 시 자동 회수
+  - **프론트엔드**: Pricing 페이지 (Paddle.js overlay checkout), 프로모 코드 입력, 관리자 결제 관리 UI
+  - **프로덕션 배포**: DB 마이그레이션 + Paddle Sandbox Webhook 연동 완료
 
 - **2026-02-15 — 문서 정리 (코드-문서 동기화)**
   - Section 8.7 다국어 콘텐츠 확장: 항목 4,6,7,8,9 📋→✅ (Phase 1B/2/3 완료 반영)

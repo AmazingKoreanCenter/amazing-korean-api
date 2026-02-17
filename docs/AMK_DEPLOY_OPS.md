@@ -144,6 +144,17 @@ GOOGLE_TRANSLATE_PROJECT_ID=<id>   # Google Cloud Project ID
 
 # ─── Admin ───
 # ADMIN_IP_ALLOWLIST=1.2.3.4,10.0.0.0/8
+
+# ─── Paddle Billing (결제) ───
+PADDLE_API_KEY=apikey_xxx             # Paddle API Key (Sandbox/Production)
+PADDLE_CLIENT_TOKEN=test_xxx          # 프론트엔드 Paddle.js 초기화용
+PADDLE_SANDBOX=true                   # true(Sandbox) / false(Production)
+PADDLE_WEBHOOK_SECRET=pdl_xxx         # Webhook 서명 검증용 Secret Key
+PADDLE_PRODUCT_ID=pro_xxx             # 상품 ID
+PADDLE_PRICE_MONTH_1=pri_xxx          # 1개월 Price ID ($10)
+PADDLE_PRICE_MONTH_3=pri_xxx          # 3개월 Price ID ($25)
+PADDLE_PRICE_MONTH_6=pri_xxx          # 6개월 Price ID ($50)
+PADDLE_PRICE_MONTH_12=pri_xxx         # 12개월 Price ID ($100)
 ```
 
 > **Google OAuth 설정 시 주의**: Google Cloud Console → 사용자 인증 정보 → 승인된 리디렉션 URI에 `https://api.amazingkorean.net/auth/google/callback`을 반드시 추가해야 합니다.
@@ -331,6 +342,16 @@ docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "\d users" | grep
 ```
 
 > **순서 중요**: 마이그레이션 먼저 → main 머지(CI/CD 배포). 반대 순서로 하면 새 앱이 존재하지 않는 컬럼을 참조하여 에러 발생.
+
+```bash
+# 결제 시스템 테이블 추가 (2026-02-15)
+# 새 ENUM 4개 + 새 테이블 3개 (subscriptions, transactions, webhook_events)
+# 기존 테이블에 영향 없음 (새 테이블만 추가)
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db < migrations/20260215_payment_system.sql
+
+# 확인
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "\dt" | grep -E "subscriptions|transactions|webhook_events"
+```
 
 ##### 4-2. 클린 배포 절차 (DB 초기화)
 
@@ -750,6 +771,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 |------|----------|
 | `migrations/20260208_AMK_V1.sql` | 통합 스키마 — 클린 배포 시 `docker exec -i amk-pg psql ...` 로 실행 |
 | `migrations/20260208_AMK_V1_SEED.sql` | 시드 데이터 — 스키마 적용 후 실행 (콘텐츠 테이블만, 사용자 데이터 없음) |
+| `migrations/20260215_payment_system.sql` | 결제 시스템 — ENUM 4개 + 테이블 3개 (subscriptions, transactions, webhook_events) |
 | `migrations/*.sql` (기타) | `sqlx migrate run` 으로 점진적 마이그레이션. 오프라인 빌드 시 `.sqlx/` 폴더 필요 |
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
