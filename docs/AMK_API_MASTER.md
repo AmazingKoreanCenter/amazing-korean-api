@@ -1292,10 +1292,9 @@ PADDLE_PRICE_MONTH_12=pri_xxx        # 12개월 구독 Price ID ($100)
   - `status` (subscription_status_enum): 구독 상태
   - `billing_interval` (billing_interval_enum): 결제 주기
   - `current_price_cents` (INT): 현재 가격 (센트 단위)
-  - `currency` (VARCHAR): 통화 코드 (USD)
   - `current_period_start`, `current_period_end` (TIMESTAMPTZ): 현재 구독 기간
   - `trial_ends_at`, `canceled_at`, `paused_at` (TIMESTAMPTZ): 상태 변경 시간
-  - `provider_meta` (JSONB): Paddle 원본 데이터
+  - `provider_data` (JSONB): Paddle 원본 데이터
   - **UNIQUE**: `provider_subscription_id`
 
 - `transactions`
@@ -1305,13 +1304,13 @@ PADDLE_PRICE_MONTH_12=pri_xxx        # 12개월 구독 Price ID ($100)
   - `user_id` (BIGINT, FK → users)
   - `payment_provider` (payment_provider_enum)
   - `provider_transaction_id` (VARCHAR, UNIQUE): Paddle 트랜잭션 ID
-  - `status` (transaction_status_enum): completed/refunded
+  - `status` (transaction_status_enum): completed/refunded/partially_refunded
   - `amount_cents` (INT): 결제 금액 (센트)
   - `tax_cents` (INT): 세금 (센트)
   - `currency` (VARCHAR): 통화 코드
   - `billing_interval` (billing_interval_enum): 결제 주기
   - `occurred_at` (TIMESTAMPTZ): 결제 발생 시간
-  - `provider_meta` (JSONB): Paddle 원본 데이터
+  - `provider_data` (JSONB): Paddle 원본 데이터
 
 - `webhook_events`
   - Webhook 이벤트 멱등성 관리: 중복 처리 방지
@@ -1326,7 +1325,7 @@ PADDLE_PRICE_MONTH_12=pri_xxx        # 12개월 구독 Price ID ($100)
 - **Enums**
   - `payment_provider_enum`: `'paddle'`
   - `subscription_status_enum`: `'trialing'`, `'active'`, `'past_due'`, `'paused'`, `'canceled'`
-  - `transaction_status_enum`: `'completed'`, `'refunded'`
+  - `transaction_status_enum`: `'completed'`, `'refunded'`, `'partially_refunded'`
   - `billing_interval_enum`: `'month_1'`, `'month_3'`, `'month_6'`, `'month_12'`
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)

@@ -141,6 +141,7 @@ export function AppRoutes() {
           <Route path="translations/dashboard" element={<AdminTranslationDashboard />} />
           <Route path="translations/new" element={<AdminTranslationEdit />} />
           <Route path="translations/:id/edit" element={<AdminTranslationEdit />} />
+          <Route path="payment" element={<Navigate to="subscriptions" replace />} />
           <Route path="payment/subscriptions" element={<AdminSubscriptionsPage />} />
           <Route path="payment/subscriptions/:id" element={<AdminSubscriptionDetail />} />
           <Route path="payment/transactions" element={<AdminTransactionsPage />} />

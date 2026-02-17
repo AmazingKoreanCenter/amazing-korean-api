@@ -313,7 +313,7 @@ impl PaymentService {
         sub: &PaddleSubscription,
     ) -> AppResult<()> {
         let provider_sub_id = sub.id.to_string();
-        let status = paddle_status_to_internal(&format!("{:?}", sub.status));
+        let status = paddle_status_to_internal(&sub.status);
         let period_start = sub.current_billing_period.as_ref().map(|p| p.starts_at);
         let period_end = sub.current_billing_period.as_ref().map(|p| p.ends_at);
 
@@ -582,20 +582,13 @@ fn extract_billing_interval(st: &AppState, sub: &PaddleSubscription) -> Option<B
 }
 
 /// Paddle SDK의 SubscriptionStatus → 내부 SubscriptionStatus 변환
-fn paddle_status_to_internal(status_debug: &str) -> SubscriptionStatus {
-    let s = status_debug.to_lowercase();
-    if s.contains("active") {
-        SubscriptionStatus::Active
-    } else if s.contains("trial") {
-        SubscriptionStatus::Trialing
-    } else if s.contains("past") {
-        SubscriptionStatus::PastDue
-    } else if s.contains("pause") {
-        SubscriptionStatus::Paused
-    } else if s.contains("cancel") {
-        SubscriptionStatus::Canceled
-    } else {
-        SubscriptionStatus::Active
+fn paddle_status_to_internal(status: &paddle_rust_sdk::enums::SubscriptionStatus) -> SubscriptionStatus {
+    match status {
+        paddle_rust_sdk::enums::SubscriptionStatus::Active => SubscriptionStatus::Active,
+        paddle_rust_sdk::enums::SubscriptionStatus::Trialing => SubscriptionStatus::Trialing,
+        paddle_rust_sdk::enums::SubscriptionStatus::PastDue => SubscriptionStatus::PastDue,
+        paddle_rust_sdk::enums::SubscriptionStatus::Paused => SubscriptionStatus::Paused,
+        paddle_rust_sdk::enums::SubscriptionStatus::Canceled => SubscriptionStatus::Canceled,
     }
 }
 
