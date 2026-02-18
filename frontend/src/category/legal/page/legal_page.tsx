@@ -16,7 +16,7 @@ export function LegalPage({ pageKey, sections }: LegalPageProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F8F9FC] to-white">
+    <div className="min-h-screen bg-gradient-to-b from-muted to-background">
       <div className="max-w-3xl mx-auto px-6 lg:px-8 py-12 lg:py-20">
         {/* Back link */}
         <Link

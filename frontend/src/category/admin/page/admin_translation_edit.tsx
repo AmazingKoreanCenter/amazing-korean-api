@@ -82,7 +82,7 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
                 isActive
                   ? "bg-blue-100 text-blue-700"
                   : isDone
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-status-success/10 text-status-success"
                     : "bg-gray-100 text-gray-400"
               }`}
             >
@@ -497,7 +497,7 @@ function TranslationCreateWizard() {
                     <p className="text-sm font-medium">
                       Result: {bulkResult.success_count}/{bulkResult.total} success
                       {bulkResult.fail_count > 0 && (
-                        <span className="text-red-600 ml-2">({bulkResult.fail_count} failed)</span>
+                        <span className="text-destructive ml-2">({bulkResult.fail_count} failed)</span>
                       )}
                     </p>
                     <div className="space-y-1 max-h-48 overflow-y-auto">
@@ -505,7 +505,7 @@ function TranslationCreateWizard() {
                         <div
                           key={i}
                           className={`text-xs px-2 py-1 rounded ${
-                            r.success ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                            r.success ? "bg-status-success/10 text-status-success" : "bg-destructive/10 text-destructive"
                           }`}
                         >
                           <span className="font-mono font-medium">{r.lang}</span>
@@ -646,7 +646,7 @@ function TranslationEditForm({ id }: { id: number }) {
   }
 
   if (!data) {
-    return <p className="text-red-500">Translation not found.</p>;
+    return <p className="text-destructive">Translation not found.</p>;
   }
 
   return (

@@ -54,8 +54,8 @@ function SummaryCard({
 }) {
   const variantClasses = {
     default: "bg-primary/10 text-primary",
-    success: "bg-green-500/10 text-green-600",
-    destructive: "bg-red-500/10 text-red-600",
+    success: "bg-status-success/10 text-status-success",
+    destructive: "bg-destructive/10 text-destructive",
   };
 
   return (
@@ -127,7 +127,7 @@ function DeviceStats({
 
   const deviceColors: Record<string, string> = {
     desktop: "bg-blue-500",
-    mobile: "bg-green-500",
+    mobile: "bg-status-success",
     tablet: "bg-purple-500",
   };
 
@@ -213,10 +213,10 @@ function DailyLoginTable({
             return (
               <tr key={item.date} className="border-b hover:bg-muted/50">
                 <td className="p-4">{item.date}</td>
-                <td className="p-4 text-right text-green-600 font-medium">
+                <td className="p-4 text-right text-status-success font-medium">
                   {formatNumber(item.success)}
                 </td>
-                <td className="p-4 text-right text-red-600">
+                <td className="p-4 text-right text-destructive">
                   {formatNumber(item.fail)}
                 </td>
                 <td className="p-4 text-right">{formatNumber(item.unique_users)}</td>

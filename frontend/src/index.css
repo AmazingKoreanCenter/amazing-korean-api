@@ -30,8 +30,20 @@
     --accent: 197 84% 46%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 50%;
     --destructive-foreground: 210 40% 98%;
+
+    /* Brand Soft (Hero gradient backgrounds) */
+    --brand-soft: 230 100% 97%;
+    --brand-soft-alt: 206 100% 96%;
+
+    /* Status Colors (HSL sets, WCAG AA 4.5:1+ with foreground) */
+    --success: 160 84% 28%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 20 14% 4%;
+    --info: 217 91% 53%;
+    --info-foreground: 0 0% 100%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
@@ -71,6 +83,18 @@
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
+    /* Brand Soft (dark mode) */
+    --brand-soft: 222 47% 10%;
+    --brand-soft-alt: 222 47% 12%;
+
+    /* Status Colors (dark mode - brightness boost, AA compliant) */
+    --success: 160 84% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 20 14% 4%;
+    --info: 217 91% 58%;
+    --info-foreground: 0 0% 100%;
+
     --border: 217 33% 17%;
     --input: 217 33% 17%;
     --ring: 212 27% 84%;
@@ -99,29 +123,35 @@
 }
 
 @layer utilities {
-  /* Gradient utilities for buttons and backgrounds */
+  /* Gradient utilities — CSS 변수 참조 (HEX 직접 사용 금지) */
   .gradient-primary {
-    background: linear-gradient(90deg, #4F71EB 0%, #129DD8 100%);
-  }
-
-  .gradient-primary-hover {
-    background: linear-gradient(90deg, #3D5FD9 0%, #0B8BC6 100%);
+    background: linear-gradient(90deg, hsl(var(--secondary)) 0%, hsl(var(--accent)) 100%);
   }
 
   /* Text gradient */
   .text-gradient {
-    background: linear-gradient(90deg, #051D55 0%, #129DD8 100%);
+    background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* Shadow utilities */
+  /* Shadow utilities — primary 기반 */
   .shadow-card {
-    box-shadow: 0 0 26px -5px rgba(4, 4, 91, 0.12);
+    box-shadow: 0 0 26px -5px hsl(var(--primary) / 0.12);
   }
 
   .shadow-card-hover {
-    box-shadow: 0 8px 30px -5px rgba(4, 4, 91, 0.18);
+    box-shadow: 0 8px 30px -5px hsl(var(--primary) / 0.18);
   }
+
+  /* Hero Gradient — via-background for dark mode compatibility */
+  .bg-hero-gradient {
+    @apply bg-gradient-to-br from-brand-soft via-background to-brand-soft-alt;
+  }
+}
+
+/* Mobile Input zoom prevention — iOS only */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea { font-size: 16px; }
 }

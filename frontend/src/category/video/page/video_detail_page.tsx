@@ -260,16 +260,16 @@ export function VideoDetailPage() {
 
         {/* Completion Card */}
         {isVideoEnded && (
-          <Card className="border-0 bg-gradient-to-br from-green-50 to-emerald-50 shadow-card">
+          <Card className="border-0 bg-status-success/5 shadow-card">
             <CardContent className="p-8 text-center space-y-6">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <div className="w-16 h-16 rounded-full bg-status-success/10 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="h-8 w-8 text-status-success" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-green-700 mb-2">
+                <h2 className="text-xl font-bold text-status-success mb-2">
                   {t("video.completionTitle")}
                 </h2>
-                <p className="text-sm text-green-600/80">
+                <p className="text-sm text-status-success/80">
                   {t("video.completionDescription")}
                 </p>
               </div>

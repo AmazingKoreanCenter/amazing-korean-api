@@ -55,11 +55,11 @@ function LessonItemCard({ item, lessonId, totalItems, lastSeq }: LessonItemCardP
   const link = getItemLink();
 
   const content = (
-    <Card className={`border-0 shadow-sm rounded-xl transition-all duration-200 hover:shadow-card hover:-translate-y-0.5 group ${isCompleted ? "bg-green-50/50" : ""}`}>
+    <Card className={`border-0 shadow-sm rounded-xl transition-all duration-200 hover:shadow-card hover:-translate-y-0.5 group ${isCompleted ? "bg-status-success/5" : ""}`}>
       <CardContent className="p-4 flex items-center gap-4">
         <div className={`flex h-12 w-12 items-center justify-center rounded-xl font-bold text-lg shrink-0 ${
           isCompleted
-            ? "bg-green-100 text-green-600"
+            ? "bg-status-success/10 text-status-success"
             : "bg-gradient-to-br from-primary/10 to-secondary/10 text-primary"
         }`}>
           {isCompleted ? (
@@ -75,7 +75,7 @@ function LessonItemCard({ item, lessonId, totalItems, lastSeq }: LessonItemCardP
               {KIND_LABELS[item.kind] || item.kind}
             </Badge>
             {isCompleted && (
-              <span className="text-xs text-green-600 font-medium">{t("lesson.completedBadge")}</span>
+              <span className="text-xs text-status-success font-medium">{t("lesson.completedBadge")}</span>
             )}
           </div>
           <p className="text-sm text-muted-foreground truncate">
@@ -111,7 +111,7 @@ export function LessonDetailPage() {
         return null;
       case "paid":
         return (
-          <Badge className="bg-amber-500 hover:bg-amber-500 text-white border-0 gap-1">
+          <Badge variant="warning" className="border-0 gap-1">
             <Crown className="h-3 w-3" />
             {t("lesson.accessPaid")}
           </Badge>
@@ -125,7 +125,7 @@ export function LessonDetailPage() {
         );
       case "promote":
         return (
-          <Badge className="bg-green-500 hover:bg-green-500 text-white border-0">
+          <Badge variant="success" className="border-0">
             {t("lesson.accessPromote")}
           </Badge>
         );
@@ -157,7 +157,7 @@ export function LessonDetailPage() {
   if (isPending) {
     return (
       <div className="min-h-screen">
-        <section className="bg-gradient-to-br from-[#F0F3FF] via-white to-[#E8F4FF] border-b">
+        <section className="bg-hero-gradient border-b">
           <div className="max-w-[900px] mx-auto px-6 lg:px-8 py-10 lg:py-14">
             <Skeleton className="h-6 w-20 mb-4" />
             <Skeleton className="h-10 w-2/3 mb-3" />
@@ -209,7 +209,7 @@ export function LessonDetailPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-[#F0F3FF] via-white to-[#E8F4FF] border-b">
+      <section className="bg-hero-gradient border-b">
         <div className="max-w-[900px] mx-auto px-6 lg:px-8 py-10 lg:py-14">
           <Link
             to="/lessons"
@@ -268,7 +268,7 @@ export function LessonDetailPage() {
                     </Button>
                   )}
                   {progressPercent >= 100 && (
-                    <Badge className="bg-green-100 text-green-700 border-0 px-4 py-2 text-sm shrink-0">
+                    <Badge variant="success" className="bg-status-success/10 text-status-success border-0 px-4 py-2 text-sm shrink-0">
                       <CheckCircle2 className="h-4 w-4 mr-1.5" />
                       {t("lesson.lessonCompleted")}
                     </Badge>

@@ -86,7 +86,7 @@ export function VideoListPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-[#F0F3FF] via-white to-[#E8F4FF] border-b">
+      <section className="bg-hero-gradient border-b">
         <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-12 lg:py-16">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border">

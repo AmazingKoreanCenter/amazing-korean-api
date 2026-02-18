@@ -181,12 +181,12 @@ export function VimeoUploader({
   // 업로드 완료 상태
   if (progress === 100 && file) {
     return (
-      <div className={cn("rounded-lg border border-green-200 bg-green-50 p-4", className)}>
+      <div className={cn("rounded-lg border border-status-success/20 bg-status-success/10 p-4", className)}>
         <div className="flex items-center gap-3">
-          <FileVideo className="h-8 w-8 text-green-600 flex-shrink-0" />
+          <FileVideo className="h-8 w-8 text-status-success flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-green-700 truncate">{file.name}</p>
-            <p className="text-sm text-green-600">업로드 완료</p>
+            <p className="font-medium text-status-success truncate">{file.name}</p>
+            <p className="text-sm text-status-success">업로드 완료</p>
           </div>
           <Button
             type="button"

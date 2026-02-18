@@ -50,7 +50,25 @@ theme: {
         '3': 'hsl(var(--chart-3))',
         '4': 'hsl(var(--chart-4))',
         '5': 'hsl(var(--chart-5))'
-      }
+      },
+      brand: {
+        soft: 'hsl(var(--brand-soft))',
+        'soft-alt': 'hsl(var(--brand-soft-alt))',
+      },
+      status: {
+        success: 'hsl(var(--success))',
+        'success-foreground': 'hsl(var(--success-foreground))',
+        warning: 'hsl(var(--warning))',
+        'warning-foreground': 'hsl(var(--warning-foreground))',
+        info: 'hsl(var(--info))',
+        'info-foreground': 'hsl(var(--info-foreground))',
+      },
+    },
+    spacing: {
+      'section-sm': '2.5rem',
+      'section-md': '4rem',
+      'section-lg': '5rem',
+      'hero-lg': '8rem',
     },
     borderRadius: {
       lg: 'var(--radius)',

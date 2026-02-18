@@ -280,21 +280,21 @@ export function MyPage() {
         <CardContent className="space-y-6">
           {/* 신규 사용자 환영 메시지 */}
           {isNewUser && (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <div className="rounded-lg border border-status-success/20 bg-status-success/5 p-4">
               <div className="flex items-start gap-3">
-                <PartyPopper className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+                <PartyPopper className="h-5 w-5 text-status-success mt-0.5 shrink-0" />
                 <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium text-emerald-800">
+                  <p className="text-sm font-medium text-status-success">
                     {t("user.welcomeTitle")}
                   </p>
-                  <p className="text-sm text-emerald-700">
+                  <p className="text-sm text-status-success/80">
                     {t("user.welcomeDescription")}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={dismissWelcome}
-                  className="text-emerald-600 hover:text-emerald-800 text-sm"
+                  className="text-status-success hover:text-status-success/80 text-sm"
                 >
                   ✕
                 </button>

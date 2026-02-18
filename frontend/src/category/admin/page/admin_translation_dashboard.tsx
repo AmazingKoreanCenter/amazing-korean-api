@@ -32,7 +32,7 @@ function getStatusColor(
 ): string {
   const total = draft + reviewed + approved;
   if (total === 0) return "bg-gray-100 text-gray-400";
-  if (approved === total) return "bg-green-100 text-green-700";
+  if (approved === total) return "bg-status-success/10 text-status-success";
   if (approved + reviewed === total) return "bg-blue-100 text-blue-700";
   if (approved > 0) return "bg-yellow-100 text-yellow-700";
   return "bg-orange-100 text-orange-700";
@@ -89,7 +89,7 @@ export function AdminTranslationDashboard() {
       {/* Legend */}
       <div className="flex gap-4 mb-4 text-xs">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-green-100 border border-green-300" />
+          <span className="w-3 h-3 rounded bg-status-success/10 border border-status-success/30" />
           All Approved
         </span>
         <span className="flex items-center gap-1.5">
@@ -118,7 +118,7 @@ export function AdminTranslationDashboard() {
           ))}
         </div>
       ) : isError ? (
-        <div className="text-center text-red-500 py-8">
+        <div className="text-center text-destructive py-8">
           Failed to load translation statistics.
         </div>
       ) : matrix && matrix.contentTypes.length > 0 ? (

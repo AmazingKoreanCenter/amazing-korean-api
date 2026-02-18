@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Search, ChevronUp, ChevronDown, CreditCard, Receipt, Gift } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ const formatCents = (cents: number) =>
   `$${(cents / 100).toFixed(2)}`;
 
 export function AdminSubscriptionsPage() {
+  const { t } = useTranslation();
   const [params, setParams] = useState<AdminSubListReq>({ page: 1, size: 20 });
   const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -92,18 +94,18 @@ export function AdminSubscriptionsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Subscriptions</h1>
+        <h1 className="text-2xl font-bold">{t("admin.payment.subscriptions")}</h1>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
             <Link to="/admin/payment/transactions">
               <Receipt className="mr-2 h-4 w-4" />
-              Transactions
+              {t("admin.payment.transactions")}
             </Link>
           </Button>
           <Button variant="outline" asChild>
             <Link to="/admin/payment/grants">
               <Gift className="mr-2 h-4 w-4" />
-              Manual Grants
+              {t("admin.payment.manualGrants")}
             </Link>
           </Button>
         </div>
@@ -115,13 +117,13 @@ export function AdminSubscriptionsPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search by email or nickname..."
+              placeholder={t("admin.payment.searchByEmailOrNickname")}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9"
             />
           </div>
-          <Button type="submit" variant="secondary">Search</Button>
+          <Button type="submit" variant="secondary">{t("admin.payment.search")}</Button>
         </form>
 
         <Select value={statusFilter} onValueChange={(v) => {
@@ -129,15 +131,15 @@ export function AdminSubscriptionsPage() {
           setParams((prev) => ({ ...prev, page: 1 }));
         }}>
           <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="All Status" />
+            <SelectValue placeholder={t("admin.payment.allStatus")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="trialing">Trialing</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="past_due">Past Due</SelectItem>
-            <SelectItem value="paused">Paused</SelectItem>
-            <SelectItem value="canceled">Canceled</SelectItem>
+            <SelectItem value="all">{t("admin.payment.allStatus")}</SelectItem>
+            <SelectItem value="trialing">{t("admin.payment.trialing")}</SelectItem>
+            <SelectItem value="active">{t("admin.payment.active")}</SelectItem>
+            <SelectItem value="past_due">{t("admin.payment.pastDue")}</SelectItem>
+            <SelectItem value="paused">{t("admin.payment.paused")}</SelectItem>
+            <SelectItem value="canceled">{t("admin.payment.canceled")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -149,27 +151,27 @@ export function AdminSubscriptionsPage() {
             <tr>
               <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
                   onClick={() => handleSort("id")}>
-                ID<SortIcon field="id" />
+                {t("admin.payment.colId")}<SortIcon field="id" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">Email</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colEmail")}</th>
               <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
                   onClick={() => handleSort("status")}>
-                Status<SortIcon field="status" />
+                {t("admin.payment.colStatus")}<SortIcon field="status" />
               </th>
               <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
                   onClick={() => handleSort("billing_interval")}>
-                Interval<SortIcon field="billing_interval" />
+                {t("admin.payment.colInterval")}<SortIcon field="billing_interval" />
               </th>
               <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
                   onClick={() => handleSort("price")}>
-                Price<SortIcon field="price" />
+                {t("admin.payment.colPrice")}<SortIcon field="price" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">Period End</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colPeriodEnd")}</th>
               <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
                   onClick={() => handleSort("created_at")}>
-                Created<SortIcon field="created_at" />
+                {t("admin.payment.colCreated")}<SortIcon field="created_at" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">Actions</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -184,13 +186,13 @@ export function AdminSubscriptionsPage() {
             ) : isError ? (
               <tr>
                 <td colSpan={8} className="p-4 text-center text-destructive">
-                  Failed to load subscriptions
+                  {t("admin.payment.failedLoad")}
                 </td>
               </tr>
             ) : data?.items.length === 0 ? (
               <tr>
                 <td colSpan={8} className="p-4 text-center text-muted-foreground">
-                  No subscriptions found
+                  {t("admin.payment.noSubscriptions")}
                 </td>
               </tr>
             ) : (
@@ -215,7 +217,7 @@ export function AdminSubscriptionsPage() {
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/payment/subscriptions/${sub.subscription_id}`}>
                         <CreditCard className="mr-1 h-3 w-3" />
-                        Detail
+                        {t("admin.payment.detail")}
                       </Link>
                     </Button>
                   </td>
@@ -262,7 +264,7 @@ export function AdminSubscriptionsPage() {
 
       {data?.meta && (
         <p className="text-sm text-muted-foreground text-center">
-          Showing {data.items.length} of {data.meta.total_count} subscriptions
+          {t("admin.payment.showing", { count: data.items.length, total: data.meta.total_count })}
         </p>
       )}
     </div>
