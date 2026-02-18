@@ -19,7 +19,7 @@ export function HealthPage() {
   const badgeLabel = isError ? "offline" : data ? data.status : "checking";
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-white to-emerald-50 px-4">
+    <div className="flex h-screen items-center justify-center bg-hero-gradient px-4">
       <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4">
         <CardHeader className="space-y-3">
           <div className="flex items-center justify-between">

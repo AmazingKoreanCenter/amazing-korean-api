@@ -121,21 +121,21 @@ export function LoginPage() {
       .join(", ");
 
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 mb-4">
+      <div className="rounded-lg border border-status-warning/20 bg-status-warning/5 p-4 mb-4">
         <div className="flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+          <AlertCircle className="h-5 w-5 text-status-warning mt-0.5 shrink-0" />
           <div className="space-y-2">
-            <p className="text-sm font-medium text-amber-800">
+            <p className="text-sm font-medium text-status-warning">
               {t("auth.socialOnlyTitle")}
             </p>
-            <p className="text-sm text-amber-700">
+            <p className="text-sm text-status-warning/80">
               {t("auth.socialOnlyDescription", { providers: providerNames })}
             </p>
             {providers.includes("google") && (
               <Button
                 type="button"
                 variant="outline"
-                className="w-full mt-2 border-amber-300 hover:bg-amber-100"
+                className="w-full mt-2 border-status-warning/30 hover:bg-status-warning/10"
                 onClick={handleGoogleLogin}
                 disabled={googleLoginMutation.isPending}
               >

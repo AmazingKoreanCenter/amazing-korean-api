@@ -90,6 +90,7 @@ audience: server / database / backend / frontend / lead / AI agent
   - [8.2 진행 예정 항목](#82-진행-예정-항목)
   - [8.3 세부 검토 사항 — 한국어 발음 교정 AI](#83-세부-검토-사항--한국어-발음-교정-ai-pronunciation-coaching-ai)
   - [8.4 상시 모니터링 항목](#84-상시-모니터링-항목)
+  - [8.5 Paddle Live 전환 체크리스트](#85-paddle-live-전환-체크리스트)
 
 - [9. 변경 이력](#9-변경-이력)
 
@@ -3752,12 +3753,16 @@ export function AppRouter() {
 
 #### 6.5.3 Tailwind & Color System (Theme)
 
-- **색상 토큰 (globals.css 기반)**
-  - `primary`: 브랜드 메인 컬러 (Amazing Korean Blue) → 주요 액션 버튼
-  - `secondary`: 보조 컬러 → 취소/서브 버튼
-  - `destructive`: 위험/삭제 → `bg-red-600` 계열
-  - `muted`: 비활성/배경 → `bg-gray-100` 계열
-  - `accent`: 강조 포인트 → 학습 완료 체크 등
+> 상세 사용법, 금지 규칙, PR 체크리스트: [`docs/AMK_DESIGN_SYSTEM.md`](AMK_DESIGN_SYSTEM.md)
+
+- **색상 토큰 (index.css 기반)**
+  - `primary`: 브랜드 메인 (Navy `#051D55`) → 주요 액션, Footer
+  - `secondary`: 보조 (Blue `#4F71EB`) → 서브 버튼, 데코
+  - `accent`: 강조 (Cyan `#129DD8`) → 학습 완료, 아이콘
+  - `destructive`: 위험/삭제/에러 (= error 통일)
+  - `muted`: 비활성/배경
+  - `brand-soft` / `brand-soft-alt`: Hero 그라데이션 배경
+  - `status-success` / `warning` / `info`: 상태 색상 (HSL + foreground 세트)
 
 - **타이포그래피**
   - `h1` (Page Title): `text-2xl font-bold tracking-tight md:text-3xl`
@@ -4254,6 +4259,7 @@ export function AppRouter() {
 
 | # | 항목 | 카테고리 | 내역 | 예상 결과 | 조건/시점 |
 |:-:|------|---------|------|----------|----------|
+| 0 | **Paddle Live 전환** | 결제 | Sandbox → 프로덕션 전환 (§8.5 체크리스트) | 실결제 수신 가능 | **최우선** |
 | 1 | 동시 세션 수 제한 | 보안 | 역할별 동시 세션 상한 설정 | 다중 기기 무분별 로그인 방지 | RDS 이전 후 |
 | 2 | RDS/ElastiCache 이전 | 인프라 | EC2 단일 DB → AWS RDS + ElastiCache | TLS, 자동 백업, maxmemory 자동 적용 | 다음 우선순위 |
 | 3 | 다중 서버 구성 (HA) | 인프라 | ①nginx+컨테이너 복제 → ②ALB+EC2 → ③ECS Fargate | 고가용성, 무중단 배포, Auto Scaling | RDS 완료 후 |
@@ -4378,6 +4384,69 @@ export function AppRouter() {
 | 5 | 모바일 프레임워크 동향 | 기술 | React Native / SwiftUI / Kotlin Multiplatform 변화, 크로스플랫폼 AI 통합 사례 | 분기 1회 | — |
 | 6 | 인프라/보안 동향 | 기술 | AWS 신규 서비스, 컨테이너 오케스트레이션, 인증 표준 (Passkey 등), OWASP 업데이트 | 분기 1회 | [`AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md) |
 | 7 | 규제/법률 동향 | 사업 | 교육 앱 개인정보보호 (COPPA, GDPR-K), DMA/DSA 후속 조치, 각국 앱스토어 규제 | 분기 1회 | — |
+
+[⬆️ 목차로 돌아가기](#-목차-table-of-contents)
+
+### 8.5 Paddle Live 전환 체크리스트
+
+Sandbox → Live(프로덕션) 전환을 위한 단계별 체크리스트. 코드 변경 불필요 — 환경변수만 교체.
+
+> **참고 문서**: [Go-live checklist (Paddle Developer)](https://developer.paddle.com/build/onboarding/go-live-checklist)
+
+#### Step 1: Paddle 대시보드 작업 (수동)
+
+| # | 작업 | 상세 | 상태 |
+|:-:|------|------|:----:|
+| 1 | 계정 인증 (Account Verification) | Paddle Live 계정 사업자 인증 완료 확인 | ✅ |
+| 2 | 도메인 인증 (Domain Verification) | `amazingkorean.net` 도메인 승인 요청 (Dashboard > Checkout > Request domain approval) | ⬜ |
+| 3 | 상품 생성 (Product) | Live 계정에서 "Amazing Korean" 상품 새로 생성 (Sandbox 복사 X) | ⬜ |
+| 4 | 가격 생성 (Prices) | 4개 플랜: 1m/$10, 3m/$25, 6m/$50, 12m/$100 — USD, 자동갱신, 1일 무료 체험 | ⬜ |
+| 5 | API Key 발급 | Live 계정에서 API Key 생성 (형식: `pdl_live_apikey_...`) | ⬜ |
+| 6 | Client Token 발급 | Live 계정에서 Client-side Token 생성 (형식: `live_...`) | ⬜ |
+| 7 | Webhook 설정 | Notification Destination 생성: URL `https://api.amazingkorean.net/payment/webhook`, 이벤트: `subscription.*` + `transaction.completed` | ⬜ |
+| 8 | 결제수단 확인 | 카드(기본 ON) + PayPal/Apple Pay/Google Pay/KakaoPay/NaverPay 등 자동 제공 확인 | ⬜ |
+| 9 | 통화/세금 설정 | Balance Currency: USD, 세금: Paddle MoR 자동 처리 (별도 설정 불필요) | ⬜ |
+
+#### Step 2: GitHub Secrets 교체 (수동)
+
+| Secret | Sandbox 값 | Live 값 |
+|--------|-----------|---------|
+| `PADDLE_SANDBOX` | `true` | `false` |
+| `PADDLE_API_KEY` | `pdl_sdbx_apikey_...` | 새 발급 (`pdl_live_apikey_...`) |
+| `PADDLE_CLIENT_TOKEN` | `test_...` | 새 발급 (`live_...`) |
+| `PADDLE_WEBHOOK_SECRET` | `pdl_ntfset_...` | 새 발급 |
+| `PADDLE_PRODUCT_ID` | `pro_01khg4n...` | 새 Live Product ID |
+| `PADDLE_PRICE_MONTH_1` | `pri_01khg4r...` | 새 Live Price ID |
+| `PADDLE_PRICE_MONTH_3` | `pri_01khg4s...` | 새 Live Price ID |
+| `PADDLE_PRICE_MONTH_6` | `pri_01khg4t...` | 새 Live Price ID |
+| `PADDLE_PRICE_MONTH_12` | `pri_01khg4w...` | 새 Live Price ID |
+
+#### Step 3: 배포 및 검증
+
+1. GitHub Secrets 교체 후 CI/CD 배포 (main push 또는 workflow_dispatch)
+2. 서버 로그 확인: `💳 Payment provider enabled: Paddle Billing` (**Sandbox 미표시**)
+3. 테스트 결제 수행 → Webhook 수신 확인 (`webhook_events` 테이블)
+4. 구독 활성화 → `user_course` 자동 부여 확인
+
+#### 가격 변경 전략 (추후)
+
+현재 가격은 샘플. 콘텐츠 담당자와 최종 확정 후 변경 예정.
+
+- **방법**: 새 Price 객체 생성 (Paddle 대시보드) → `PADDLE_PRICE_MONTH_*` Secrets 업데이트 → 재배포
+- **기존 구독자**: 이전 Price로 자동 유지 (영향 없음), 신규 구독자만 새 가격 적용
+- **기존 구독자도 변경 시**: Subscription Update API (`proration_billing_mode` 설정)
+- **코드 변경 불필요** — 환경변수만 교체
+
+#### 결제수단 / 세금 참고
+
+**결제수단**: Paddle 기본 수수료(5% + $0.50/건)에 **모든 결제수단 포함** (추가 비용 없음)
+- 카드(Visa/MC/Amex), PayPal, Apple Pay, Google Pay, KakaoPay, NaverPay, Samsung Pay, Alipay, UnionPay, iDEAL 등
+- 고객 위치/기기/통화에 따라 Paddle이 자동으로 적절한 결제수단 표시
+
+**세금**: Paddle MoR(Merchant of Record)가 100개국+ **자동 처리**
+- VAT (EU/UK), GST (호주/인도), Sales Tax (미국 주별) — 자동 계산 + 징수 + 납부
+- 세금 관련 법적 책임도 Paddle에 귀속
+- 설정: "Prices include tax" OFF 권장 (표시 가격 + 세금 별도)
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 

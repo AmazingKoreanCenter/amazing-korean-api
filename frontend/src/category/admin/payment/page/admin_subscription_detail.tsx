@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -42,6 +43,7 @@ const statusBadgeVariant = (status: string) => {
 };
 
 export function AdminSubscriptionDetail() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const subId = Number(id);
 
@@ -57,10 +59,10 @@ export function AdminSubscriptionDetail() {
       { id: subId, data: { immediately } },
       {
         onSuccess: () => {
-          toast.success("Subscription cancel requested");
+          toast.success(t("admin.payment.cancelRequested"));
           setCancelDialogOpen(false);
         },
-        onError: (e) => toast.error(e.message || "Cancel failed"),
+        onError: (e) => toast.error(e.message || t("admin.payment.cancelFailed")),
       }
     );
   };
@@ -77,7 +79,7 @@ export function AdminSubscriptionDetail() {
   if (isError || !data) {
     return (
       <div className="text-center py-12 text-destructive">
-        Failed to load subscription
+        {t("admin.payment.failedLoad")}
       </div>
     );
   }
@@ -91,10 +93,12 @@ export function AdminSubscriptionDetail() {
         <Button variant="ghost" size="sm" asChild>
           <Link to="/admin/payment/subscriptions">
             <ArrowLeft className="mr-1 h-4 w-4" />
-            Back
+            {t("admin.payment.back")}
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold">Subscription #{sub.subscription_id}</h1>
+        <h1 className="text-2xl font-bold">
+          {t("admin.payment.subscriptionId", { id: sub.subscription_id })}
+        </h1>
         <Badge variant={statusBadgeVariant(sub.status)} className="text-sm">
           {sub.status}
         </Badge>
@@ -104,40 +108,40 @@ export function AdminSubscriptionDetail() {
         {/* Subscription Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Subscription</CardTitle>
-            <CardDescription>Paddle ID: {sub.provider_subscription_id}</CardDescription>
+            <CardTitle>{t("admin.payment.subscription")}</CardTitle>
+            <CardDescription>{t("admin.payment.paddleId", { id: sub.provider_subscription_id })}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Interval</span>
+              <span className="text-muted-foreground">{t("admin.payment.colInterval")}</span>
               <span>{sub.billing_interval}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Price</span>
+              <span className="text-muted-foreground">{t("admin.payment.colPrice")}</span>
               <span>{formatCents(sub.current_price_cents)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Period Start</span>
+              <span className="text-muted-foreground">{t("admin.payment.periodStart")}</span>
               <span>{formatDate(sub.current_period_start)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Period End</span>
+              <span className="text-muted-foreground">{t("admin.payment.periodEnd")}</span>
               <span>{formatDate(sub.current_period_end)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Trial Ends</span>
+              <span className="text-muted-foreground">{t("admin.payment.trialEnds")}</span>
               <span>{formatDate(sub.trial_ends_at)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Canceled At</span>
+              <span className="text-muted-foreground">{t("admin.payment.canceledAt")}</span>
               <span>{formatDate(sub.canceled_at)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Paused At</span>
+              <span className="text-muted-foreground">{t("admin.payment.pausedAt")}</span>
               <span>{formatDate(sub.paused_at)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Created</span>
+              <span className="text-muted-foreground">{t("admin.payment.created")}</span>
               <span>{formatDate(sub.created_at)}</span>
             </div>
           </CardContent>
@@ -147,25 +151,25 @@ export function AdminSubscriptionDetail() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>User</CardTitle>
+              <CardTitle>{t("admin.payment.user")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">User ID</span>
+                <span className="text-muted-foreground">{t("admin.payment.colUserId")}</span>
                 <Link to={`/admin/users/${user.user_id}`} className="text-blue-600 hover:underline">
                   {user.user_id}
                 </Link>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Email</span>
+                <span className="text-muted-foreground">{t("admin.payment.colEmail")}</span>
                 <span>{user.email}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Nickname</span>
+                <span className="text-muted-foreground">{t("admin.payment.colNickname")}</span>
                 <span>{user.nickname || "-"}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Role</span>
+                <span className="text-muted-foreground">{t("admin.payment.colRole")}</span>
                 <Badge variant="outline">{user.user_auth}</Badge>
               </div>
             </CardContent>
@@ -175,7 +179,7 @@ export function AdminSubscriptionDetail() {
           {sub.status !== "canceled" && (
             <Card>
               <CardHeader>
-                <CardTitle>Actions</CardTitle>
+                <CardTitle>{t("admin.payment.actions")}</CardTitle>
               </CardHeader>
               <CardContent className="flex gap-2 flex-wrap">
                 <Button
@@ -185,7 +189,7 @@ export function AdminSubscriptionDetail() {
                   disabled={isBusy}
                 >
                   <XCircle className="mr-1 h-4 w-4" />
-                  Cancel
+                  {t("admin.payment.cancel")}
                 </Button>
               </CardContent>
             </Card>
@@ -196,23 +200,23 @@ export function AdminSubscriptionDetail() {
       {/* Transactions */}
       <Card>
         <CardHeader>
-          <CardTitle>Transactions</CardTitle>
-          <CardDescription>{transactions.length} transaction(s)</CardDescription>
+          <CardTitle>{t("admin.payment.transactions")}</CardTitle>
+          <CardDescription>{t("admin.payment.transactionCount", { count: transactions.length })}</CardDescription>
         </CardHeader>
         <CardContent>
           {transactions.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No transactions yet</p>
+            <p className="text-muted-foreground text-sm">{t("admin.payment.noTransactionsYet")}</p>
           ) : (
             <div className="rounded-md border">
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/50">
                   <tr>
-                    <th className="h-10 px-4 text-left font-medium">ID</th>
-                    <th className="h-10 px-4 text-left font-medium">Status</th>
-                    <th className="h-10 px-4 text-left font-medium">Amount</th>
-                    <th className="h-10 px-4 text-left font-medium">Tax</th>
-                    <th className="h-10 px-4 text-left font-medium">Currency</th>
-                    <th className="h-10 px-4 text-left font-medium">Date</th>
+                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colId")}</th>
+                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colStatus")}</th>
+                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colAmount")}</th>
+                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colTax")}</th>
+                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colCurrency")}</th>
+                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colDate")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -239,9 +243,9 @@ export function AdminSubscriptionDetail() {
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancel Subscription</DialogTitle>
+            <DialogTitle>{t("admin.payment.cancelSubscription")}</DialogTitle>
             <DialogDescription>
-              Choose when to cancel this subscription.
+              {t("admin.payment.cancelDescription")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-row">
@@ -250,14 +254,14 @@ export function AdminSubscriptionDetail() {
               onClick={() => handleCancel(false)}
               disabled={cancelMutation.isPending}
             >
-              Cancel at Period End
+              {t("admin.payment.cancelAtPeriodEnd")}
             </Button>
             <Button
               variant="destructive"
               onClick={() => handleCancel(true)}
               disabled={cancelMutation.isPending}
             >
-              Cancel Immediately
+              {t("admin.payment.cancelImmediately")}
             </Button>
           </DialogFooter>
         </DialogContent>

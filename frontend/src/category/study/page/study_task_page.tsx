@@ -158,10 +158,10 @@ function VoiceTask({ payload, text, onChange, disabled }: VoiceTaskProps) {
 function ResultCard({ result }: { result: SubmitAnswerRes }) {
   const { t } = useTranslation();
   return (
-    <Card className={result.is_correct ? "border-green-500" : "border-red-500"}>
+    <Card className={result.is_correct ? "border-status-success" : "border-destructive"}>
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-2">
-          <span className={`text-lg font-bold ${result.is_correct ? "text-green-600" : "text-red-600"}`}>
+          <span className={`text-lg font-bold ${result.is_correct ? "text-status-success" : "text-destructive"}`}>
             {result.is_correct ? t("study.correct") : t("study.incorrect")}
           </span>
         </div>
@@ -507,10 +507,10 @@ export function StudyTaskPage() {
 
         {/* 마지막 문제 완료 메시지 (Study 컨텍스트) */}
         {showCompletion && studyData && !isInLessonContext && (
-          <Card className="border-green-500 bg-green-50">
+          <Card className="border-status-success bg-status-success/5">
             <CardContent className="p-6 text-center space-y-4">
               <div className="text-4xl">🎉</div>
-              <h2 className="text-xl font-bold text-green-700">
+              <h2 className="text-xl font-bold text-status-success">
                 {t("study.completionTitle", { title: studyData.title ?? t("common.noTitle") })}
               </h2>
               <p className="text-sm text-muted-foreground">

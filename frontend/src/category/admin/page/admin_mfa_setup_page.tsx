@@ -239,7 +239,7 @@ export function AdminMfaSetupPage() {
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center space-y-2">
           <div className="flex justify-center mb-2">
-            <Check className="h-12 w-12 text-green-500" />
+            <Check className="h-12 w-12 text-status-success" />
           </div>
           <CardTitle className="text-xl">{t("mfa.setupStep3Title")}</CardTitle>
           <CardDescription>{t("mfa.setupStep3Desc")}</CardDescription>

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HeroSection } from "@/components/sections/hero_section";
 import {
   Dialog,
   DialogContent,
@@ -95,31 +96,19 @@ export function PricingPage() {
 
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#F0F3FF] via-white to-[#E8F4FF]">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#129DD8]/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#4F71EB]/10 rounded-full blur-3xl" />
-        </div>
-
-        <div className="relative max-w-[1350px] mx-auto px-6 lg:px-8 py-16 lg:py-24">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border mb-8">
-              <Sparkles className="h-4 w-4 text-amber-500" />
-              <span className="text-sm text-muted-foreground">
-                {t("payment.trialBadge", { days: 1 })}
-              </span>
-            </div>
-
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-              {t("payment.title")}
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {t("payment.subtitle")}
-            </p>
-          </div>
-        </div>
-      </section>
+      <HeroSection
+        size="sm"
+        badge={
+          <>
+            <Sparkles className="h-4 w-4 text-status-warning" />
+            <span className="text-sm text-muted-foreground">
+              {t("payment.trialBadge", { days: 1 })}
+            </span>
+          </>
+        }
+        title={t("payment.title")}
+        subtitle={t("payment.subtitle")}
+      />
 
       {/* Pricing Cards */}
       <section className="py-16 lg:py-24">
@@ -133,13 +122,13 @@ export function PricingPage() {
             const isBusy = cancelMutation.isPending;
 
             const bannerStyle = isCanceled || isCancelScheduled
-              ? "from-red-50 to-rose-50 border-red-200"
-              : "from-emerald-50 to-teal-50 border-emerald-200";
+              ? "from-destructive/10 to-destructive/5 border-destructive/20"
+              : "from-status-success/10 to-status-success/5 border-status-success/20";
 
-            const iconBg = isCanceled || isCancelScheduled ? "bg-red-100" : "bg-emerald-100";
-            const iconColor = isCanceled || isCancelScheduled ? "text-red-600" : "text-emerald-600";
-            const textColor = isCanceled || isCancelScheduled ? "text-red-900" : "text-emerald-900";
-            const subTextColor = isCanceled || isCancelScheduled ? "text-red-700" : "text-emerald-700";
+            const iconBg = isCanceled || isCancelScheduled ? "bg-destructive/10" : "bg-status-success/10";
+            const iconColor = isCanceled || isCancelScheduled ? "text-destructive" : "text-status-success";
+            const textColor = isCanceled || isCancelScheduled ? "text-destructive" : "text-status-success";
+            const subTextColor = isCanceled || isCancelScheduled ? "text-destructive/80" : "text-status-success/80";
             const StatusIcon = isCanceled || isCancelScheduled ? XCircle : CheckCircle2;
 
             return (
@@ -172,7 +161,7 @@ export function PricingPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                      className="text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
                       disabled={isBusy}
                       onClick={() => setCancelDialogOpen(true)}
                     >
@@ -230,24 +219,24 @@ export function PricingPage() {
                   <CardContent className="px-6 py-4">
                     <ul className="space-y-3">
                       <li className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="h-4 w-4 text-status-success shrink-0" />
                         <span>{t("payment.featureAllCourses")}</span>
                       </li>
                       <li className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="h-4 w-4 text-status-success shrink-0" />
                         <span>{t("payment.featureAllVideos")}</span>
                       </li>
                       <li className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="h-4 w-4 text-status-success shrink-0" />
                         <span>{t("payment.featureStudyMaterials")}</span>
                       </li>
                       <li className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="h-4 w-4 text-status-success shrink-0" />
                         <span>{t("payment.featureTrial", { days: plan.trial_days })}</span>
                       </li>
                       {plan.months >= 6 && (
                         <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                          <CheckCircle2 className="h-4 w-4 text-status-success shrink-0" />
                           <span className="text-primary font-medium">
                             {t("payment.featureSave", {
                               percent: Math.round(

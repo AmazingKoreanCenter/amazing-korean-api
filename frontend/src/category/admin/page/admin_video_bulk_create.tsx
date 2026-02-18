@@ -197,7 +197,7 @@ V002,open,private,Lesson 2 Basics,Basic concepts,lesson-02,https://vimeo.com/987
           <CardHeader>
             <CardTitle>Preview ({parsedVideos.length} rows)</CardTitle>
             <CardDescription>
-              <span className="text-green-600">{validCount} valid</span>
+              <span className="text-status-success">{validCount} valid</span>
               {invalidCount > 0 && (
                 <span className="text-destructive ml-2">{invalidCount} invalid</span>
               )}
@@ -243,7 +243,7 @@ V002,open,private,Lesson 2 Basics,Basic concepts,lesson-02,https://vimeo.com/987
                             {video.error}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="flex items-center gap-1 w-fit text-green-600">
+                          <Badge variant="outline" className="flex items-center gap-1 w-fit text-status-success">
                             <CheckCircle className="h-3 w-3" />
                             Valid
                           </Badge>

@@ -389,7 +389,7 @@ export function AdminStudyCreate() {
         <h1 className="text-2xl font-bold">Create New Study</h1>
         {createdStudy && (
           <Badge variant="outline" className="ml-2">
-            <CheckCircle className="mr-1 h-3 w-3 text-green-500" />
+            <CheckCircle className="mr-1 h-3 w-3 text-status-success" />
             Study #{createdStudy.study_id} Created
           </Badge>
         )}
@@ -400,10 +400,10 @@ export function AdminStudyCreate() {
         const errorFields = Object.keys(errors).join(", ");
         toast.error(`Please fix errors: ${errorFields}`);
       })}>
-        <Card className={createdStudy ? "border-green-500/50" : ""}>
+        <Card className={createdStudy ? "border-status-success/20" : ""}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {createdStudy && <CheckCircle className="h-5 w-5 text-green-500" />}
+              {createdStudy && <CheckCircle className="h-5 w-5 text-status-success" />}
               Study Information
             </CardTitle>
             <CardDescription>
@@ -892,7 +892,7 @@ voice,Read this sentence,안녕하세요,,,,,,,`}
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">Preview ({parsedCSVTasks.length} rows)</span>
-                        <span className="text-green-600 text-sm">{validCSVCount} valid</span>
+                        <span className="text-status-success text-sm">{validCSVCount} valid</span>
                         {invalidCSVCount > 0 && (
                           <span className="text-destructive text-sm">{invalidCSVCount} invalid</span>
                         )}
@@ -935,7 +935,7 @@ voice,Read this sentence,안녕하세요,,,,,,,`}
                                       {task.error}
                                     </Badge>
                                   ) : (
-                                    <Badge variant="outline" className="flex items-center gap-1 w-fit text-green-600">
+                                    <Badge variant="outline" className="flex items-center gap-1 w-fit text-status-success">
                                       <CheckCircle className="h-3 w-3" />
                                       Valid
                                     </Badge>

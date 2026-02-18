@@ -60,7 +60,7 @@ export function LessonListPage() {
         return null; // Don't show badge for public (free) content
       case "paid":
         return (
-          <Badge className="absolute top-3 right-3 bg-amber-500 hover:bg-amber-500 text-white border-0 gap-1">
+          <Badge variant="warning" className="absolute top-3 right-3 border-0 gap-1">
             <Crown className="h-3 w-3" />
             {t("lesson.accessPaid")}
           </Badge>
@@ -74,7 +74,7 @@ export function LessonListPage() {
         );
       case "promote":
         return (
-          <Badge className="absolute top-3 right-3 bg-green-500 hover:bg-green-500 text-white border-0">
+          <Badge variant="success" className="absolute top-3 right-3 border-0">
             {t("lesson.accessPromote")}
           </Badge>
         );
@@ -118,7 +118,7 @@ export function LessonListPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-[#F0F3FF] via-white to-[#E8F4FF] border-b">
+      <section className="bg-hero-gradient border-b">
         <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-12 lg:py-16">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border">

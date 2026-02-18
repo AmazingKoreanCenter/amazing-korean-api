@@ -44,7 +44,7 @@ import {
 const STATUS_OPTIONS: { value: TranslationStatus; label: string; color: string }[] = [
   { value: "draft", label: "Draft", color: "bg-yellow-100 text-yellow-800" },
   { value: "reviewed", label: "Reviewed", color: "bg-blue-100 text-blue-800" },
-  { value: "approved", label: "Approved", color: "bg-green-100 text-green-800" },
+  { value: "approved", label: "Approved", color: "bg-status-success/10 text-status-success" },
 ];
 
 // ko를 제외한 언어 목록 (번역 대상)
@@ -299,7 +299,7 @@ export function AdminTranslationsPage() {
                 ))
               ) : isError ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-red-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-destructive">
                     Failed to load translations.
                   </td>
                 </tr>
@@ -343,7 +343,7 @@ export function AdminTranslationsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-red-600 hover:text-red-700"
+                          className="text-destructive hover:text-destructive"
                           onClick={() => handleDelete(item.translation_id)}
                         >
                           Delete

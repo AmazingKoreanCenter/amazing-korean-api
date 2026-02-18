@@ -143,7 +143,7 @@ function DistributionCard({
 
 const programBadgeColors: Record<string, string> = {
   basic_pronunciation: "bg-blue-100 text-blue-800",
-  basic_word: "bg-green-100 text-green-800",
+  basic_word: "bg-status-success/10 text-status-success",
   basic_900: "bg-purple-100 text-purple-800",
   topik_read: "bg-orange-100 text-orange-800",
   topik_listen: "bg-pink-100 text-pink-800",
@@ -341,7 +341,7 @@ export function AdminStudyStatsPage() {
   const programItems = summaryData
     ? [
         { label: "Basic Pron.", value: summaryData.by_program.basic_pronunciation, color: "bg-blue-500" },
-        { label: "Basic Word", value: summaryData.by_program.basic_word, color: "bg-green-500" },
+        { label: "Basic Word", value: summaryData.by_program.basic_word, color: "bg-status-success" },
         { label: "Basic 900", value: summaryData.by_program.basic_900, color: "bg-purple-500" },
         { label: "TOPIK Read", value: summaryData.by_program.topik_read, color: "bg-orange-500" },
         { label: "TOPIK Listen", value: summaryData.by_program.topik_listen, color: "bg-pink-500" },
@@ -353,7 +353,7 @@ export function AdminStudyStatsPage() {
   const stateItems = summaryData
     ? [
         { label: "Ready", value: summaryData.by_state.ready, color: "bg-yellow-500" },
-        { label: "Open", value: summaryData.by_state.open, color: "bg-green-500" },
+        { label: "Open", value: summaryData.by_state.open, color: "bg-status-success" },
         { label: "Close", value: summaryData.by_state.close, color: "bg-gray-500" },
       ]
     : [];

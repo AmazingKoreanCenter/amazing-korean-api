@@ -44,9 +44,9 @@ function SummaryCard({
 }) {
   const variantClasses = {
     default: "bg-primary/10 text-primary",
-    success: "bg-green-500/10 text-green-600",
-    warning: "bg-yellow-500/10 text-yellow-600",
-    destructive: "bg-red-500/10 text-red-600",
+    success: "bg-status-success/10 text-status-success",
+    warning: "bg-status-warning/10 text-status-warning",
+    destructive: "bg-destructive/10 text-destructive",
   };
 
   return (
@@ -95,9 +95,9 @@ function RoleDistribution({
 
   const roleTypes = [
     { key: "hymn", label: "HYMN", value: data.hymn, color: "bg-purple-500" },
-    { key: "admin", label: "Admin", value: data.admin, color: "bg-red-500" },
+    { key: "admin", label: "Admin", value: data.admin, color: "bg-destructive" },
     { key: "manager", label: "Manager", value: data.manager, color: "bg-blue-500" },
-    { key: "learner", label: "Learner", value: data.learner, color: "bg-green-500" },
+    { key: "learner", label: "Learner", value: data.learner, color: "bg-status-success" },
   ];
 
   return (

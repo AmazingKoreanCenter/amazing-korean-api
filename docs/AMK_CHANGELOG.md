@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-02-17
+updated: 2026-02-18
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,41 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-02-18 — 디자인 시스템 v1 구축 (전문가 2명 승인)**
+  - **Foundation 토큰 구축**
+    - `tailwind.config.js`: brand(soft/soft-alt), status(success/warning/info + foreground), spacing(section-sm/md/lg/hero-lg) 토큰 추가
+    - `index.css`: HSL CSS 변수 정의 (라이트 + 다크모드), `bg-hero-gradient` 유틸리티, iOS input zoom 방지(`@supports`)
+    - gradient-primary/text-gradient/shadow-card의 직접 HEX → `hsl(var())` CSS 변수 참조로 전환, 미사용 gradient-primary-hover 삭제
+    - `badge.tsx`: shadcn Badge에 success/warning/info variant 확장 (CVA)
+    - `package.json`: `lint:ui` 스크립트 추가 (bg/text/border/ring/from/via/to/stroke/fill 프리픽스 + 임의 HEX + 금지 팔레트 탐지)
+  - **공통 컴포넌트 추출**
+    - `section_container.tsx` 신규: 섹션 래퍼 (size sm/md/lg + container default/narrow + as prop)
+    - `hero_section.tsx` 신규: Hero 블록 (badge/title/subtitle/size/children, decorative blobs, bg-hero-gradient)
+  - **페이지 토큰 적용 (30파일)**
+    - 사용자 페이지 14파일: home, about, pricing, lesson(list/detail), study(list/detail/task), video(list/detail), login, my_page, legal, footer → HeroSection/SectionContainer 적용 + semantic 토큰
+    - Admin 페이지 16파일 + 기타 3파일: stats(study/user/login), translation(list/dashboard/edit), bulk-create(lesson/video/study/user), detail(study/lesson), study_create, vimeo_uploader, upgrade_join, mfa_setup, health_page → bg-green-*/text-red-* 등 51건 → status 토큰
+  - **WCAG AA 명암비 보정 (전문가 피드백 반영)**
+    - success `160 84% 39%` → `28%`, info `217 91% 60%` → `53%`, destructive `0 84% 60%` → `50%` (4.5:1+ 확보)
+    - 다크모드 비례 보정: success `45%` → `36%`, info `65%` → `58%`
+  - **section-md 반응형 제거**: `py-section-md lg:py-section-lg` → `py-section-md` 고정 (의도 없는 확대 방지)
+  - **문서**: `docs/AMK_DESIGN_SYSTEM.md` 신규 (01 Foundations ~ 07 Roadmap, 7개 섹션)
+  - **검증**: 빌드 성공 + `lint:ui` 0건 위반 (전체 .tsx)
+
+- **2026-02-18 — Paddle Live 전환 준비 + 관리자 대시보드/결제 QA + 환경변수 동기화**
+  - **Paddle Live 전환 준비**
+    - AMK_API_MASTER.md §8.5 Paddle Live 전환 체크리스트 신규 작성 (대시보드 작업 9항목, GitHub Secrets 10개, 배포 검증, 가격 변경 전략, 결제수단/세금 참고)
+    - Paddle 계정 인증(Account Verification) 신청 완료 — 심사 대기 중
+  - **관리자 대시보드 실제 데이터 연동**
+    - `admin_dashboard.tsx` 하드코딩 "-" → 4개 통계 API 호출 (`useUserStatsSummary`, `useLoginStatsSummary`, `useVideoStatsSummary`, `useStudyStatsSummary`)
+    - 로딩 Skeleton + 에러 시 "-" fallback + `toLocaleString()` 숫자 포맷
+  - **관리자 결제 4개 페이지 i18n**
+    - `ko.json`/`en.json`에 `admin.dashboard.*` (8키) + `admin.payment.*` (82키) 추가
+    - `admin_subscriptions_page.tsx`, `admin_transactions_page.tsx`, `admin_subscription_detail.tsx`, `admin_grants_page.tsx` — 전체 하드코딩 영어 → `t()` 교체
+  - **환경변수 동기화**
+    - `.env.example` 전면 업데이트: `config.rs` SSoT 기준 누락 변수 ~19개 추가 (Rate Limit, TTL, Payment, Translation 등)
+    - `deploy.yml`에 `VIMEO_ACCESS_TOKEN` 환경변수 추가
+  - **QA**: 44/44 PASS, 0 BUG (`docs/QA_DASHBOARD_I18N.md`)
 
 - **2026-02-17 — Gemini 코드 리뷰 반영 + 문서 현행화**
   - PR #118~#124 코드 리뷰 유효 11건 일괄 반영: 보안 2건, 버그 1건, 코드 개선 5건, 문서 3건

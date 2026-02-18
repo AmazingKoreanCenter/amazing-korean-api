@@ -1282,7 +1282,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   </div>
                   {selectedVideo && (
                     <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                      <Check className="h-4 w-4 text-green-600" />
+                      <Check className="h-4 w-4 text-status-success" />
                       <span className="text-sm font-medium">{selectedVideo.title}</span>
                       <span className="text-xs text-muted-foreground">(ID: {selectedVideo.id})</span>
                       <Button
@@ -1387,7 +1387,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                               }}
                             >
                               {selectedTask?.id === task.study_task_id && (
-                                <Check className="h-4 w-4 text-green-600" />
+                                <Check className="h-4 w-4 text-status-success" />
                               )}
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm">
@@ -1413,7 +1413,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
 
                   {selectedTask && (
                     <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                      <Check className="h-4 w-4 text-green-600" />
+                      <Check className="h-4 w-4 text-status-success" />
                       <span className="text-sm">
                         Task #{selectedTask.seq} ({selectedTask.kind})
                       </span>
@@ -1818,7 +1818,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   </div>
                   {editSelectedVideo && (
                     <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                      <Check className="h-4 w-4 text-green-600" />
+                      <Check className="h-4 w-4 text-status-success" />
                       <span className="text-sm font-medium">{editSelectedVideo.title}</span>
                       <span className="text-xs text-muted-foreground">(ID: {editSelectedVideo.id})</span>
                       <Button
@@ -1921,7 +1921,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                               }}
                             >
                               {editSelectedTask?.id === task.study_task_id && (
-                                <Check className="h-4 w-4 text-green-600" />
+                                <Check className="h-4 w-4 text-status-success" />
                               )}
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm">
@@ -1943,7 +1943,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
 
                   {editSelectedTask && (
                     <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                      <Check className="h-4 w-4 text-green-600" />
+                      <Check className="h-4 w-4 text-status-success" />
                       <span className="text-sm">Task #{editSelectedTask.seq} ({editSelectedTask.kind})</span>
                       <span className="text-xs text-muted-foreground">(ID: {editSelectedTask.id})</span>
                     </div>
@@ -2132,7 +2132,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   </div>
                   {bulkEditSelectedVideo && (
                     <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                      <Check className="h-4 w-4 text-green-600" />
+                      <Check className="h-4 w-4 text-status-success" />
                       <span className="text-sm font-medium">{bulkEditSelectedVideo.title}</span>
                       <span className="text-xs text-muted-foreground">(ID: {bulkEditSelectedVideo.id})</span>
                       <Button
@@ -2235,7 +2235,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                               }}
                             >
                               {bulkEditSelectedTask?.id === task.study_task_id && (
-                                <Check className="h-4 w-4 text-green-600" />
+                                <Check className="h-4 w-4 text-status-success" />
                               )}
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm">
@@ -2257,7 +2257,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
 
                   {bulkEditSelectedTask && (
                     <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
-                      <Check className="h-4 w-4 text-green-600" />
+                      <Check className="h-4 w-4 text-status-success" />
                       <span className="text-sm">Task #{bulkEditSelectedTask.seq} ({bulkEditSelectedTask.kind})</span>
                       <span className="text-xs text-muted-foreground">(ID: {bulkEditSelectedTask.id})</span>
                     </div>

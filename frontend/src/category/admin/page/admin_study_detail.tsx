@@ -1125,7 +1125,7 @@ function TaskDetailsContent({
                   key={num}
                   className={`p-2 rounded border text-sm ${
                     isCorrect
-                      ? "border-green-500 bg-green-50 dark:bg-green-950"
+                      ? "border-status-success/20 bg-status-success/10 dark:bg-status-success/10"
                       : "border-muted"
                   }`}
                 >

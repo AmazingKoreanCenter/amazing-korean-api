@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +34,7 @@ import {
 import type { AdminGrantListReq } from "../types";
 
 export function AdminGrantsPage() {
+  const { t } = useTranslation();
   const [params, setParams] = useState<AdminGrantListReq>({ page: 1, size: 20 });
   const [grantDialogOpen, setGrantDialogOpen] = useState(false);
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
@@ -54,11 +56,11 @@ export function AdminGrantsPage() {
   const handleCreateGrant = () => {
     const userId = parseInt(grantUserId);
     if (isNaN(userId) || userId <= 0) {
-      toast.error("Please enter a valid User ID");
+      toast.error(t("admin.payment.invalidUserId"));
       return;
     }
     if (!grantReason.trim()) {
-      toast.error("Please enter a reason");
+      toast.error(t("admin.payment.reasonRequired"));
       return;
     }
 
@@ -70,13 +72,13 @@ export function AdminGrantsPage() {
       },
       {
         onSuccess: (res) => {
-          toast.success(`Granted ${res.courses_granted} courses to user #${res.user_id}`);
+          toast.success(t("admin.payment.grantSuccess", { userId: res.user_id, count: res.courses_granted }));
           setGrantDialogOpen(false);
           setGrantUserId("");
           setGrantExpireAt("");
           setGrantReason("");
         },
-        onError: (e) => toast.error(e.message || "Grant failed"),
+        onError: (e) => toast.error(e.message || t("admin.payment.grantFailed")),
       }
     );
   };
@@ -86,11 +88,11 @@ export function AdminGrantsPage() {
 
     revokeGrant.mutate(revokeUserId, {
       onSuccess: () => {
-        toast.success(`Courses revoked for user #${revokeUserId}`);
+        toast.success(t("admin.payment.revokeSuccess", { userId: revokeUserId }));
         setRevokeDialogOpen(false);
         setRevokeUserId(null);
       },
-      onError: (e) => toast.error(e.message || "Revoke failed"),
+      onError: (e) => toast.error(e.message || t("admin.payment.revokeFailed")),
     });
   };
 
@@ -101,19 +103,19 @@ export function AdminGrantsPage() {
           <Button variant="ghost" size="sm" asChild>
             <Link to="/admin/payment/subscriptions">
               <ArrowLeft className="mr-1 h-4 w-4" />
-              Subscriptions
+              {t("admin.payment.subscriptions")}
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold">Manual Grants</h1>
+          <h1 className="text-2xl font-bold">{t("admin.payment.manualGrants")}</h1>
         </div>
         <Button onClick={() => setGrantDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Grant Courses
+          {t("admin.payment.grantCourses")}
         </Button>
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Users with active courses but no active subscription (manually granted).
+        {t("admin.payment.grantPageDesc")}
       </p>
 
       {/* Table */}
@@ -121,11 +123,11 @@ export function AdminGrantsPage() {
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50">
             <tr>
-              <th className="h-10 px-4 text-left font-medium">User ID</th>
-              <th className="h-10 px-4 text-left font-medium">Email</th>
-              <th className="h-10 px-4 text-left font-medium">Courses</th>
-              <th className="h-10 px-4 text-left font-medium">Expires</th>
-              <th className="h-10 px-4 text-left font-medium">Actions</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colUserId")}</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colEmail")}</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colCourses")}</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colExpires")}</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -140,13 +142,13 @@ export function AdminGrantsPage() {
             ) : isError ? (
               <tr>
                 <td colSpan={5} className="p-4 text-center text-destructive">
-                  Failed to load grants
+                  {t("admin.payment.failedLoad")}
                 </td>
               </tr>
             ) : data?.items.length === 0 ? (
               <tr>
                 <td colSpan={5} className="p-4 text-center text-muted-foreground">
-                  No manual grants found
+                  {t("admin.payment.noGrants")}
                 </td>
               </tr>
             ) : (
@@ -165,7 +167,7 @@ export function AdminGrantsPage() {
                   <td className="p-4">
                     {grant.expire_at
                       ? new Date(grant.expire_at).toLocaleDateString()
-                      : "No expiry"}
+                      : t("admin.payment.noExpiry")}
                   </td>
                   <td className="p-4">
                     <Button
@@ -178,7 +180,7 @@ export function AdminGrantsPage() {
                       }}
                     >
                       <Trash2 className="mr-1 h-3 w-3" />
-                      Revoke
+                      {t("admin.payment.revoke")}
                     </Button>
                   </td>
                 </tr>
@@ -224,7 +226,7 @@ export function AdminGrantsPage() {
 
       {data?.meta && (
         <p className="text-sm text-muted-foreground text-center">
-          Showing {data.items.length} of {data.meta.total_count} grants
+          {t("admin.payment.showing", { count: data.items.length, total: data.meta.total_count })}
         </p>
       )}
 
@@ -232,23 +234,23 @@ export function AdminGrantsPage() {
       <Dialog open={grantDialogOpen} onOpenChange={setGrantDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Grant Courses</DialogTitle>
+            <DialogTitle>{t("admin.payment.grantCourses")}</DialogTitle>
             <DialogDescription>
-              Manually grant all active courses to a user without a Paddle subscription.
+              {t("admin.payment.grantDescription")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>User ID</Label>
+              <Label>{t("admin.payment.grantUserId")}</Label>
               <Input
                 type="number"
-                placeholder="e.g. 123"
+                placeholder={t("admin.payment.grantUserIdPlaceholder")}
                 value={grantUserId}
                 onChange={(e) => setGrantUserId(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label>Expiration Date (optional)</Label>
+              <Label>{t("admin.payment.grantExpireDate")}</Label>
               <Input
                 type="date"
                 value={grantExpireAt}
@@ -256,9 +258,9 @@ export function AdminGrantsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Reason</Label>
+              <Label>{t("admin.payment.grantReason")}</Label>
               <Textarea
-                placeholder="e.g. VIP customer, CS compensation..."
+                placeholder={t("admin.payment.grantReasonPlaceholder")}
                 value={grantReason}
                 onChange={(e) => setGrantReason(e.target.value)}
               />
@@ -266,10 +268,10 @@ export function AdminGrantsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setGrantDialogOpen(false)}>
-              Cancel
+              {t("admin.payment.cancel")}
             </Button>
             <Button onClick={handleCreateGrant} disabled={createGrant.isPending}>
-              {createGrant.isPending ? "Granting..." : "Grant"}
+              {createGrant.isPending ? t("admin.payment.granting") : t("admin.payment.grant")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -279,22 +281,21 @@ export function AdminGrantsPage() {
       <Dialog open={revokeDialogOpen} onOpenChange={setRevokeDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Revoke Courses</DialogTitle>
+            <DialogTitle>{t("admin.payment.revokeTitle")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to revoke all courses for user #{revokeUserId}?
-              This action will deactivate all their course access.
+              {t("admin.payment.revokeDescription", { userId: revokeUserId })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRevokeDialogOpen(false)}>
-              Cancel
+              {t("admin.payment.cancel")}
             </Button>
             <Button
               variant="destructive"
               onClick={handleRevoke}
               disabled={revokeGrant.isPending}
             >
-              {revokeGrant.isPending ? "Revoking..." : "Revoke"}
+              {revokeGrant.isPending ? t("admin.payment.revoking") : t("admin.payment.revoke")}
             </Button>
           </DialogFooter>
         </DialogContent>

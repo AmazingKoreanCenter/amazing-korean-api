@@ -175,7 +175,7 @@ export function AdminUpgradeJoin() {
       <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 flex flex-col items-center gap-4">
-            <CheckCircle2 className="h-12 w-12 text-green-500" />
+            <CheckCircle2 className="h-12 w-12 text-status-success" />
             <h3 className="text-xl font-semibold">계정이 생성되었습니다!</h3>
             <p className="text-muted-foreground text-center">
               잠시 후 로그인 페이지로 이동합니다...

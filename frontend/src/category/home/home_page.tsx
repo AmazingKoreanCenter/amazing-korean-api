@@ -3,93 +3,76 @@ import { Link } from "react-router-dom";
 import { Play, BookOpen, Users, ArrowRight, CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { HeroSection } from "@/components/sections/hero_section";
+import { SectionContainer } from "@/components/sections/section_container";
 
 export default function HomePage() {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#F0F3FF] via-white to-[#E8F4FF]">
-        {/* Background Decoration */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#129DD8]/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#4F71EB]/10 rounded-full blur-3xl" />
+      <HeroSection
+        badge={
+          <>
+            <span className="w-2 h-2 rounded-full bg-status-success animate-pulse" />
+            <span className="text-sm text-muted-foreground">
+              {t("home.heroBadge")}
+            </span>
+          </>
+        }
+        title={t("home.heroTitle").split("\n").map((line, i) => (
+          <span key={i}>
+            {i > 0 && <br className="hidden sm:block" />}
+            {line}
+          </span>
+        ))}
+        subtitle={t("home.heroDescription").split("\n").map((line, i) => (
+          <span key={i}>
+            {i > 0 && <br className="hidden sm:block" />}
+            {line}
+          </span>
+        ))}
+      >
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
+          <Button
+            size="lg"
+            asChild
+            className="gradient-primary hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all rounded-full px-8 h-14 text-base"
+          >
+            <Link to="/signup">
+              {t("home.ctaStart")}
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            asChild
+            className="rounded-full px-8 h-14 text-base border-2 hover:bg-muted/50"
+          >
+            <Link to="/about">{t("home.ctaAbout")}</Link>
+          </Button>
         </div>
 
-        <div className="relative max-w-[1350px] mx-auto px-6 lg:px-8 py-20 lg:py-32">
-          <div className="max-w-3xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border mb-8">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-sm text-muted-foreground">
-                {t("home.heroBadge")}
-              </span>
-            </div>
-
-            {/* Main Heading */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-              {t("home.heroTitle").split("\n").map((line, i) => (
-                <span key={i}>
-                  {i > 0 && <br className="hidden sm:block" />}
-                  {line}
-                </span>
-              ))}
-            </h1>
-
-            {/* Description */}
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-              {t("home.heroDescription").split("\n").map((line, i) => (
-                <span key={i}>
-                  {i > 0 && <br className="hidden sm:block" />}
-                  {line}
-                </span>
-              ))}
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button
-                size="lg"
-                asChild
-                className="gradient-primary hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all rounded-full px-8 h-14 text-base"
-              >
-                <Link to="/signup">
-                  {t("home.ctaStart")}
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                asChild
-                className="rounded-full px-8 h-14 text-base border-2 hover:bg-muted/50"
-              >
-                <Link to="/about">{t("home.ctaAbout")}</Link>
-              </Button>
-            </div>
-
-            {/* Trust Indicators */}
-            <div className="flex flex-wrap justify-center gap-8 mt-12 pt-12 border-t">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">1,000+</div>
-                <div className="text-sm text-muted-foreground">{t("home.statVideos")}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">50+</div>
-                <div className="text-sm text-muted-foreground">{t("home.statInstructors")}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">10,000+</div>
-                <div className="text-sm text-muted-foreground">{t("home.statStudents")}</div>
-              </div>
-            </div>
+        {/* Trust Indicators */}
+        <div className="flex flex-wrap justify-center gap-8 mt-12 pt-12 border-t">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-primary">1,000+</div>
+            <div className="text-sm text-muted-foreground">{t("home.statVideos")}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-primary">50+</div>
+            <div className="text-sm text-muted-foreground">{t("home.statInstructors")}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-primary">10,000+</div>
+            <div className="text-sm text-muted-foreground">{t("home.statStudents")}</div>
           </div>
         </div>
-      </section>
+      </HeroSection>
 
       {/* Features Section */}
-      <section className="py-20 lg:py-28">
-        <div className="max-w-[1350px] mx-auto px-6 lg:px-8">
+      <SectionContainer size="lg">
           {/* Section Header */}
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -204,12 +187,11 @@ export default function HomePage() {
               </Button>
             </div>
           </div>
-        </div>
-      </section>
+      </SectionContainer>
 
       {/* CTA Section */}
-      <section className="py-20 lg:py-28 bg-[#051D55]">
-        <div className="max-w-[1350px] mx-auto px-6 lg:px-8 text-center">
+      <SectionContainer size="lg" className="bg-primary">
+        <div className="text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             {t("home.ctaSectionTitle")}
           </h2>
@@ -242,7 +224,7 @@ export default function HomePage() {
             </Button>
           </div>
         </div>
-      </section>
+      </SectionContainer>
     </div>
   );
 }

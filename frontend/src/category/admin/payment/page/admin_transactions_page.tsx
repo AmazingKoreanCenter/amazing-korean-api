@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Search, ChevronUp, ChevronDown, ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ type SortOrder = "asc" | "desc";
 const formatCents = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 export function AdminTransactionsPage() {
+  const { t } = useTranslation();
   const [params, setParams] = useState<AdminTxnListReq>({ page: 1, size: 20 });
   const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -78,10 +80,10 @@ export function AdminTransactionsPage() {
           <Button variant="ghost" size="sm" asChild>
             <Link to="/admin/payment/subscriptions">
               <ArrowLeft className="mr-1 h-4 w-4" />
-              Subscriptions
+              {t("admin.payment.subscriptions")}
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold">Transactions</h1>
+          <h1 className="text-2xl font-bold">{t("admin.payment.transactions")}</h1>
         </div>
       </div>
 
@@ -91,13 +93,13 @@ export function AdminTransactionsPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search by email..."
+              placeholder={t("admin.payment.searchByEmail")}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9"
             />
           </div>
-          <Button type="submit" variant="secondary">Search</Button>
+          <Button type="submit" variant="secondary">{t("admin.payment.search")}</Button>
         </form>
 
         <Select value={statusFilter} onValueChange={(v) => {
@@ -105,13 +107,13 @@ export function AdminTransactionsPage() {
           setParams((prev) => ({ ...prev, page: 1 }));
         }}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All Status" />
+            <SelectValue placeholder={t("admin.payment.allStatus")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="refunded">Refunded</SelectItem>
-            <SelectItem value="partially_refunded">Partially Refunded</SelectItem>
+            <SelectItem value="all">{t("admin.payment.allStatus")}</SelectItem>
+            <SelectItem value="completed">{t("admin.payment.completed")}</SelectItem>
+            <SelectItem value="refunded">{t("admin.payment.refunded")}</SelectItem>
+            <SelectItem value="partially_refunded">{t("admin.payment.partiallyRefunded")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -123,25 +125,25 @@ export function AdminTransactionsPage() {
             <tr>
               <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
                   onClick={() => handleSort("id")}>
-                ID<SortIcon field="id" />
+                {t("admin.payment.colId")}<SortIcon field="id" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">Email</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colEmail")}</th>
               <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
                   onClick={() => handleSort("status")}>
-                Status<SortIcon field="status" />
+                {t("admin.payment.colStatus")}<SortIcon field="status" />
               </th>
               <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
                   onClick={() => handleSort("amount")}>
-                Amount<SortIcon field="amount" />
+                {t("admin.payment.colAmount")}<SortIcon field="amount" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">Tax</th>
-              <th className="h-10 px-4 text-left font-medium">Currency</th>
-              <th className="h-10 px-4 text-left font-medium">Interval</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colTax")}</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colCurrency")}</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colInterval")}</th>
               <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
                   onClick={() => handleSort("occurred_at")}>
-                Date<SortIcon field="occurred_at" />
+                {t("admin.payment.colDate")}<SortIcon field="occurred_at" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">Sub</th>
+              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colSub")}</th>
             </tr>
           </thead>
           <tbody>
@@ -156,13 +158,13 @@ export function AdminTransactionsPage() {
             ) : isError ? (
               <tr>
                 <td colSpan={9} className="p-4 text-center text-destructive">
-                  Failed to load transactions
+                  {t("admin.payment.failedLoad")}
                 </td>
               </tr>
             ) : data?.items.length === 0 ? (
               <tr>
                 <td colSpan={9} className="p-4 text-center text-muted-foreground">
-                  No transactions found
+                  {t("admin.payment.noTransactions")}
                 </td>
               </tr>
             ) : (
@@ -233,7 +235,7 @@ export function AdminTransactionsPage() {
 
       {data?.meta && (
         <p className="text-sm text-muted-foreground text-center">
-          Showing {data.items.length} of {data.meta.total_count} transactions
+          {t("admin.payment.showing", { count: data.items.length, total: data.meta.total_count })}
         </p>
       )}
     </div>
