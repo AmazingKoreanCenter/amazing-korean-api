@@ -85,6 +85,16 @@ jobs:
             TRANSLATE_PROVIDER=${{ secrets.TRANSLATE_PROVIDER }}
             GOOGLE_TRANSLATE_API_KEY=${{ secrets.GOOGLE_TRANSLATE_API_KEY }}
             GOOGLE_TRANSLATE_PROJECT_ID=${{ secrets.GOOGLE_TRANSLATE_PROJECT_ID }}
+            PAYMENT_PROVIDER=${{ secrets.PAYMENT_PROVIDER }}
+            PADDLE_API_KEY=${{ secrets.PADDLE_API_KEY }}
+            PADDLE_CLIENT_TOKEN=${{ secrets.PADDLE_CLIENT_TOKEN }}
+            PADDLE_SANDBOX=${{ secrets.PADDLE_SANDBOX }}
+            PADDLE_WEBHOOK_SECRET=${{ secrets.PADDLE_WEBHOOK_SECRET }}
+            PADDLE_PRODUCT_ID=${{ secrets.PADDLE_PRODUCT_ID }}
+            PADDLE_PRICE_MONTH_1=${{ secrets.PADDLE_PRICE_MONTH_1 }}
+            PADDLE_PRICE_MONTH_3=${{ secrets.PADDLE_PRICE_MONTH_3 }}
+            PADDLE_PRICE_MONTH_6=${{ secrets.PADDLE_PRICE_MONTH_6 }}
+            PADDLE_PRICE_MONTH_12=${{ secrets.PADDLE_PRICE_MONTH_12 }}
             EOF
 
             # Restart containers
