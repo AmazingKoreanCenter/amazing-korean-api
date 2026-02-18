@@ -94,10 +94,10 @@ function RoleDistribution({
   const total = data.hymn + data.admin + data.manager + data.learner;
 
   const roleTypes = [
-    { key: "hymn", label: "HYMN", value: data.hymn, color: "bg-purple-500" },
+    { key: "hymn", label: "HYMN", value: data.hymn, color: "bg-chart-6" },
     { key: "admin", label: "Admin", value: data.admin, color: "bg-destructive" },
-    { key: "manager", label: "Manager", value: data.manager, color: "bg-blue-500" },
-    { key: "learner", label: "Learner", value: data.learner, color: "bg-status-success" },
+    { key: "manager", label: "Manager", value: data.manager, color: "bg-chart-3" },
+    { key: "learner", label: "Learner", value: data.learner, color: "bg-chart-2" },
   ];
 
   return (

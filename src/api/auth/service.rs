@@ -1948,18 +1948,15 @@ impl AuthService {
 
         // 대상 사용자의 모든 세션 무효화 (보안)
         let mut tx = st.db.begin().await?;
-        let session_ids = AuthRepo::find_user_session_ids_tx(&mut tx, target_user_id).await?;
+        let sessions = AuthRepo::find_user_sessions_with_refresh_tx(&mut tx, target_user_id).await?;
         AuthRepo::update_login_state_by_user_tx(&mut tx, target_user_id, "revoked", Some("mfa_disabled")).await?;
         tx.commit().await?;
 
-        // Redis 세션 + 리프레시 토큰 정리
+        // Redis 세션 + 리프레시 토큰 정리 (배치 조회로 N+1 해소)
         let mut redis_conn = st.redis.get().await
             .map_err(|e| AppError::Internal(e.to_string()))?;
-        for sid in &session_ids {
-            // 리프레시 토큰도 함께 삭제
-            if let Ok(Some(login)) = AuthRepo::find_login_by_session_id(&st.db, sid).await {
-                let _: () = redis_conn.del(format!("ak:refresh:{}", login.refresh_hash)).await.unwrap_or(());
-            }
+        for (sid, refresh_hash) in &sessions {
+            let _: () = redis_conn.del(format!("ak:refresh:{}", refresh_hash)).await.unwrap_or(());
             let _: () = redis_conn.del(format!("ak:session:{}", sid)).await.unwrap_or(());
         }
         let _: () = redis_conn.del(format!("ak:user_sessions:{}", target_user_id)).await.unwrap_or(());

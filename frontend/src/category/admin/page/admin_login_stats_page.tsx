@@ -126,9 +126,9 @@ function DeviceStats({
   }
 
   const deviceColors: Record<string, string> = {
-    desktop: "bg-blue-500",
-    mobile: "bg-status-success",
-    tablet: "bg-purple-500",
+    desktop: "bg-chart-1",
+    mobile: "bg-chart-2",
+    tablet: "bg-chart-5",
   };
 
   return (
