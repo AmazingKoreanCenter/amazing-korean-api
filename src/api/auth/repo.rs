@@ -498,6 +498,23 @@ impl AuthRepo {
         Ok(rows.into_iter().map(|(id,)| id).collect())
     }
 
+    /// 사용자의 활성 세션 ID + 리프레시 해시 일괄 조회 (N+1 방지)
+    pub async fn find_user_sessions_with_refresh_tx(
+        tx: &mut Transaction<'_, Postgres>,
+        user_id: i64,
+    ) -> AppResult<Vec<(String, String)>> {
+        let rows = sqlx::query_as::<_, (String, String)>(r#"
+            SELECT login_session_id::text, login_refresh_hash
+            FROM public.login
+            WHERE user_id = $1 AND login_state = 'active'::login_state_enum
+        "#)
+        .bind(user_id)
+        .fetch_all(&mut **tx)
+        .await?;
+
+        Ok(rows)
+    }
+
     // ---------------------------------------------------------------------
     // OAuth Related
     // ---------------------------------------------------------------------

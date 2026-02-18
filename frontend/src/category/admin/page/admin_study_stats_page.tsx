@@ -142,13 +142,13 @@ function DistributionCard({
 // ==========================================
 
 const programBadgeColors: Record<string, string> = {
-  basic_pronunciation: "bg-blue-100 text-blue-800",
-  basic_word: "bg-status-success/10 text-status-success",
-  basic_900: "bg-purple-100 text-purple-800",
-  topik_read: "bg-orange-100 text-orange-800",
-  topik_listen: "bg-pink-100 text-pink-800",
-  topik_write: "bg-cyan-100 text-cyan-800",
-  tbc: "bg-gray-100 text-gray-800",
+  basic_pronunciation: "bg-chart-1/10 text-chart-1",
+  basic_word: "bg-chart-2/10 text-chart-2",
+  basic_900: "bg-chart-6/10 text-chart-6",
+  topik_read: "bg-chart-4/10 text-chart-4",
+  topik_listen: "bg-chart-5/10 text-chart-5",
+  topik_write: "bg-chart-3/10 text-chart-3",
+  tbc: "bg-muted text-muted-foreground",
 };
 
 function TopStudiesTable({
@@ -340,21 +340,21 @@ export function AdminStudyStatsPage() {
 
   const programItems = summaryData
     ? [
-        { label: "Basic Pron.", value: summaryData.by_program.basic_pronunciation, color: "bg-blue-500" },
-        { label: "Basic Word", value: summaryData.by_program.basic_word, color: "bg-status-success" },
-        { label: "Basic 900", value: summaryData.by_program.basic_900, color: "bg-purple-500" },
-        { label: "TOPIK Read", value: summaryData.by_program.topik_read, color: "bg-orange-500" },
-        { label: "TOPIK Listen", value: summaryData.by_program.topik_listen, color: "bg-pink-500" },
-        { label: "TOPIK Write", value: summaryData.by_program.topik_write, color: "bg-cyan-500" },
-        { label: "TBC", value: summaryData.by_program.tbc, color: "bg-gray-500" },
+        { label: "Basic Pron.", value: summaryData.by_program.basic_pronunciation, color: "bg-chart-1" },
+        { label: "Basic Word", value: summaryData.by_program.basic_word, color: "bg-chart-2" },
+        { label: "Basic 900", value: summaryData.by_program.basic_900, color: "bg-chart-6" },
+        { label: "TOPIK Read", value: summaryData.by_program.topik_read, color: "bg-chart-4" },
+        { label: "TOPIK Listen", value: summaryData.by_program.topik_listen, color: "bg-chart-5" },
+        { label: "TOPIK Write", value: summaryData.by_program.topik_write, color: "bg-chart-3" },
+        { label: "TBC", value: summaryData.by_program.tbc, color: "bg-muted-foreground" },
       ]
     : [];
 
   const stateItems = summaryData
     ? [
-        { label: "Ready", value: summaryData.by_state.ready, color: "bg-yellow-500" },
+        { label: "Ready", value: summaryData.by_state.ready, color: "bg-chart-4" },
         { label: "Open", value: summaryData.by_state.open, color: "bg-status-success" },
-        { label: "Close", value: summaryData.by_state.close, color: "bg-gray-500" },
+        { label: "Close", value: summaryData.by_state.close, color: "bg-muted-foreground" },
       ]
     : [];
 
