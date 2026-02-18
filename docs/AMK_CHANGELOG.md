@@ -1,0 +1,440 @@
+---
+title: AMK_CHANGELOG — Amazing Korean API 변경 이력
+updated: 2026-02-17
+owner: HYMN Co., Ltd. (Amazing Korean)
+---
+
+# AMK_CHANGELOG — 변경 이력
+
+> `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
+> 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-02-17 — Gemini 코드 리뷰 반영 + 문서 현행화**
+  - PR #118~#124 코드 리뷰 유효 11건 일괄 반영: 보안 2건, 버그 1건, 코드 개선 5건, 문서 3건
+  - **보안**: MFA 백업 코드 `constant_time_eq` 적용, MFA 비활성화 시 리프레시 토큰 정리
+  - **버그**: 수동 수강권 만료일 쿼리 `MIN()` → `MAX()` 수정
+  - **코드**: Paddle 상태 enum 직접 매치, `/admin/payment` 리다이렉트, invalidateWithDelay 즉시 호출 제거, useMemo 이중 반복 최적화, PAYMENT_PROVIDER 기본값 제거
+  - **문서**: `provider_meta` → `provider_data`, `partially_refunded` 추가, UNIQUE 인덱스 표기
+  - Section 8 "Open Questions & 설계 TODO" → **"작업 현황"** 전면 재구성
+    - 8.1~8.11 (11개 서브섹션) → 8.1 완료 항목 (12행 표) + 8.2 진행 예정 (19행 표) + 8.3 세부 검토 (발음 AI)
+    - 기존 8.7 서브섹션 (내부 DB, 외부 API, 보안, 하드닝, 다국어, 향후 계획) 모두 완료 표에 통합
+    - 결제 시스템 ✅ 완료 반영 (Stripe → Paddle)
+  - Section 9 변경 이력 → `AMK_CHANGELOG.md` 분리
+  - Section 0.1 목적, Section 7 RBAC 참조 — 오래된 섹션명 수정
+
+- **2026-02-16 — 결제 시스템 (Paddle Billing) 전체 구현 + 프로덕션 배포**
+  - **데이터 모델**: Section 4.9 결제 도메인 추가 — 4 ENUMs + 3 Tables (subscriptions, transactions, webhook_events)
+  - **외부 서비스**: Section 2.4.5 Paddle Billing 연동 추가
+  - **Phase 11** (사용자 결제): `GET /payment/plans` (공개), `GET /payment/subscription` (인증), `POST /payment/webhook` (Paddle)
+  - **Phase 10** (관리자 결제): 구독 CRUD 6개 + 수동 수강권 3개 = 총 9개 엔드포인트
+  - **Webhook**: 8 subscription + 1 transaction 이벤트 처리, HMAC-SHA256 서명 검증, 멱등성 보장
+  - **user_course 연동**: 구독 활성화 시 수강권 자동 부여, 취소 시 자동 회수
+  - **프론트엔드**: Pricing 페이지 (Paddle.js overlay checkout), 프로모 코드 입력, 관리자 결제 관리 UI
+  - **프로덕션 배포**: DB 마이그레이션 + Paddle Sandbox Webhook 연동 완료
+
+- **2026-02-15 — 문서 정리 (코드-문서 동기화)**
+  - Section 8.7 다국어 콘텐츠 확장: 항목 4,6,7,8,9 📋→✅ (Phase 1B/2/3 완료 반영)
+  - Section 8.7 "향후 작업 계획" 통합 섹션 추가: 8.5 보안, 8.7 외부 API 분산 📋 항목을 한 곳으로 정리
+  - Section 8.5 남은 항목 → 8.7 향후 작업 계획 참조로 통합
+  - Section 8.9 다국어 UI 대응: 22개 언어 → 21개 언어 (아랍어 RTL 제외 확정 반영)
+
+- **2026-02-14 — Admin MFA (TOTP 2단계 인증) 구현 + QA 완료**
+  - **백엔드 (Rust/Axum)**
+    - DB 마이그레이션: `users` 테이블에 MFA 컬럼 4개 추가 (`user_mfa_secret`, `user_mfa_enabled`, `user_mfa_backup_codes`, `user_mfa_enabled_at`)
+    - `Cargo.toml`: `totp-rs = { version = "5", features = ["qr", "gen_secret"] }` 의존성 추가
+    - `src/api/auth/dto.rs`: MFA DTO 7개 (MfaChallengeRes, MfaLoginReq, MfaSetupRes, MfaVerifySetupReq, MfaVerifySetupRes, MfaDisableReq, MfaDisableRes)
+    - `src/api/auth/repo.rs`: `UserLoginInfo`에 `user_mfa_enabled` 추가 + MFA repo 함수 7개
+    - `src/api/auth/service.rs`: `LoginOutcome`/`OAuthLoginOutcome` enum, `login()`/`google_auth_callback()` MFA 분기, MFA 메서드 4개 (mfa_setup, mfa_verify_setup, mfa_login, mfa_disable)
+    - `src/api/auth/handler.rs`: MFA 핸들러 4개 + login/OAuth 핸들러 반환 타입 변경 (`impl IntoResponse`)
+    - `src/api/auth/router.rs`: `/mfa/setup`, `/mfa/verify-setup`, `/mfa/login`, `/mfa/disable` 라우트 추가
+    - `src/config.rs`: MFA 환경변수 3개 (MFA_TOKEN_TTL_SEC=300, RATE_LIMIT_MFA_MAX=5, RATE_LIMIT_MFA_WINDOW_SEC=300)
+    - `src/api/user/dto.rs` + `repo.rs`: `ProfileRes`에 `mfa_enabled: bool` 추가
+    - `src/docs.rs`: MFA 핸들러 4개 + DTO 7개 Swagger 등록
+  - **프론트엔드 (React/TypeScript)**
+    - `auth/types.ts`: MfaChallengeRes, MfaLoginReq(zod), MfaSetupRes, MfaVerifySetupRes
+    - `auth/auth_api.ts`: mfaLogin, mfaSetup, mfaVerifySetup API 함수
+    - `auth/hook/use_login.ts`: MFA 챌린지 감지 (`isMfaChallenge` 타입가드) + `mfaPending` 상태
+    - `auth/hook/use_oauth_callback.ts`: OAuth MFA 리다이렉트 파라미터 처리
+    - `auth/page/login_page.tsx`: MFA 코드 입력 UI (6~8자 TOTP/백업코드)
+    - `admin/page/admin_mfa_setup_page.tsx`: 3단계 위저드 (QR스캔→코드확인→백업코드)
+    - `routes/admin_route.tsx`: MFA 강제 설정 가드 (`!mfa_enabled` → `/admin/mfa/setup`)
+    - `app/routes.tsx`: `/admin/mfa/setup` 라우트 추가 (AdminLayout 밖, AdminRoute 안)
+    - `user/types.ts`: `mfa_enabled: z.boolean().optional()` 추가
+    - i18n: MFA 관련 키 추가 (ko.json, en.json + 20개 언어)
+  - **보안**
+    - TOTP 비밀키: AES-256-GCM 암호화 (AAD: `users.user_mfa_secret`)
+    - 백업 코드: SHA-256 해시 → JSON → AES-256-GCM 암호화
+    - MFA 토큰: Redis UUID (5분 TTL, 일회용)
+    - Rate Limit: `rl:mfa:{user_id}:{ip}` (5회/5분)
+    - MFA 비활성화: HYMN 전용, 자기 자신 비활성화 불가, 대상 전체 세션 무효화
+  - **QA (39/39 PASS)**
+    - H-1 수정: `login_method: "login"` → `"email"` (login_method_enum 불일치)
+    - M-1 수정: docs.rs에 MFA 핸들러/스키마 Swagger 등록 누락
+  - **프로덕션 배포 완료** (2026-02-14)
+    - DB 마이그레이션 수동 실행 (EC2 SSH → psql)
+    - Admin/HYMN MFA 설정 정상 작동 확인
+
+- **2026-02-10 — Phase 1A 다국어 인프라 + QA 수정 + 프로덕션 QA**
+  - **Phase 1A 다국어 인프라 (백엔드)**
+    - `content_translations` 테이블 + 21개 언어 enum (`SupportedLanguage`) 구현
+    - Admin 번역 CRUD API 7개 엔드포인트 (목록/생성UPSERT/벌크/상세/수정/상태변경/삭제)
+    - 기존 콘텐츠 API `?lang=` 확장: courses, lessons, videos, studies에 번역 fallback 주입
+    - Fallback 순서: 사용자 언어 → en → ko (서비스 계층 post-fetch merge)
+  - **Phase 1A QA 수정 (10개 이슈)**
+    - H-1: Course `GET /courses/{id}` 번역 지원 — handler→service 리팩토링, `?lang=` 파라미터 추가
+    - H-2: `ContentType::Video` 추가 — video title/subtitle 번역과 video_tag 번역 의미 분리, migration 추가
+    - M-1: `CourseListItem`에 `course_subtitle` 필드 추가 + 번역 주입
+    - M-2: Course DTO OpenAPI 스키마 등록 (`IntoParams`, `ToSchema` derive)
+    - M-3: UPSERT 정책 개선 — 텍스트 변경 시에만 `status='draft'` 리셋 (SQL CASE 조건)
+    - L-1~L-5: `CourseListQuery` derive 추가, Video DTO import 정리
+  - **프로덕션 QA 수정 (PROD-4 ~ PROD-8)**
+    - PROD-4: API 보안 헤더 미들웨어 추가 (`main.rs`) — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+    - PROD-5: Health `version` 필드 프로덕션 숨김 — `Option<String>` + `skip_serializing_if`, `APP_ENV=production`이면 None
+    - PROD-6: OpenAPI Swagger UI 프로덕션 비활성화 — `enable_docs` config에 따라 조건부 merge
+    - PROD-7: Guard 401/403 JSON 통일 — `ip_guard.rs`, `role_guard.rs` plain text → `AppError::Forbidden/Unauthorized` JSON 응답
+    - PROD-8: 404 Fallback 핸들러 추가 — 존재하지 않는 라우트에 JSON `AppError::NotFound` 반환
+  - **파일 변경 목록**
+    - `src/main.rs` — `security_headers` 미들웨어 함수 추가 + 레이어 적용
+    - `src/api/mod.rs` — 조건부 SwaggerUi merge + `fallback_404` 핸들러
+    - `src/api/health/handler.rs`, `dto.rs` — version `Option<String>`, 프로덕션 숨김
+    - `src/api/admin/ip_guard.rs` — `AppError::Forbidden` JSON 응답
+    - `src/api/admin/role_guard.rs` — `AppError::Unauthorized/Forbidden` JSON 응답
+    - `src/api/course/` — dto.rs, repo.rs, service.rs, handler.rs (H-1, M-1, M-2, L-1)
+    - `src/api/video/service.rs` — `ContentType::Video` 적용 (H-2)
+    - `src/api/video/dto.rs` — import 정리 (L-5)
+    - `src/types.rs` — `ContentType::Video` 추가 (H-2)
+    - `src/api/admin/translation/repo.rs` — UPSERT 조건부 status 리셋 (M-3)
+    - `src/docs.rs` — Course DTO 스키마 등록 (M-2)
+    - `migrations/20260210_i18n_add_video_content_type.sql` — 신규
+
+- **2026-02-09 — 이메일 인증 + 계정 복구 + Rate Limiting 강화**
+  - **이메일 인증 시스템**
+    - 회원가입 → 인증코드 발송 → 검증 → 로그인 가능 플로우 구현
+    - `POST /auth/verify-email` (3-7): HMAC-SHA256 해시 비교, `user_check_email=true` 업데이트
+    - `POST /auth/resend-verification` (3-8): Enumeration Safe, 잔여 횟수 반환
+    - 로그인 시 `user_check_email=false` → **403** 차단 (`AUTH_403_EMAIL_NOT_VERIFIED:email`)
+    - OAuth 자동 인증: 미인증 이메일로 OAuth 로그인 시 `user_check_email=true` 자동 업데이트
+    - Redis 저장: HMAC-SHA256 해시 (평문 코드 저장 금지), TTL 10분
+    - 프로덕션 fail-fast: `EMAIL_PROVIDER=none` + `APP_ENV=production` → 서버 부팅 실패
+    - EmailSender trait: Resend (`src/external/email.rs`)
+  - **계정 복구 (아이디/비밀번호 찾기) 통합**
+    - `POST /auth/find-password` (3-9): 본인확인(이름+생일+이메일) → 인증코드 발송
+    - `/account-recovery` 페이지: 탭 UI (아이디 찾기 / 비밀번호 찾기)
+    - OAuth 전용 계정 경고 문구 (warning 스타일, 비밀번호 찾기 탭)
+  - **Rate Limiting 강화**
+    - 이메일 발송 제한: 5회/1시간 → 5회/5시간 (환경변수 조정 가능)
+    - 환경변수: `RATE_LIMIT_EMAIL_WINDOW_SEC` (기본 18000초), `RATE_LIMIT_EMAIL_MAX` (기본 5)
+    - 응답에 `remaining_attempts` 필드 추가 (FindPasswordRes, RequestResetRes, ResendVerificationRes)
+    - 프론트: 잔여 발송 횟수 표시 + 한도 도달 시 재전송 버튼 비활성화
+  - **프론트엔드 변경**
+    - `verify_email_page.tsx` 신규 — 이메일 인증코드 확인 페이지
+    - `account_recovery_page.tsx` 신규 — 아이디/비밀번호 찾기 통합 (Tabs)
+    - `signup_page.tsx` — 가입 성공 시 `/verify-email`로 이동
+    - `use_login.ts` — 403 이메일 미인증 시 `/verify-email`로 이동
+    - i18n: 이메일 인증, 계정 복구, Rate Limiting 관련 키 추가 (ko.json, en.json)
+
+- **2026-02-08 — 프로덕션 클린 배포 (DB 보안 Phase 2D+3 반영)**
+  - **마이그레이션 통합**
+    - 기존 11개 마이그레이션 파일 → 단일 `20260208_AMK_V1.sql` 통합 (22 ENUMs, 35 Tables, FKs, Indexes)
+    - 암호화 컬럼 직접 포함 (`user_email` TEXT, `user_email_idx` TEXT 등), `ip_address` INET→TEXT 반영
+  - **시드 데이터**
+    - `20260208_AMK_V1_SEED.sql` 생성 (콘텐츠 10개 테이블, ~200행)
+    - 컬럼 순서 불일치 수정: `lesson`, `video`, `study` 테이블에 명시적 컬럼명 추가
+  - **Dockerfile 수정**
+    - 멀티바이너리 빌드 지원 (`amazing-korean-api` + `rekey_encryption`)
+    - `--bin` 플래그로 개별 바이너리 빌드
+  - **docker-compose.prod.yml 환경변수 추가**
+    - `ENCRYPTION_KEY_V1`, `ENCRYPTION_CURRENT_VERSION`, `HMAC_KEY`, `APP_ENV`
+    - `GOOGLE_CLIENT_ID/SECRET`, `GOOGLE_REDIRECT_URI`, `OAUTH_STATE_TTL_SEC`
+    - `FRONTEND_URL`, `ADMIN_IP_ALLOWLIST`
+  - **EC2 배포 완료**
+    - DB 볼륨 삭제 → 스키마 마이그레이션 → 시드 데이터 투입 → 전체 서비스 시작
+    - `.env.prod` 완전 구성 (프로덕션 전용 암호화 키 생성)
+    - Google OAuth redirect URI 프로덕션 설정 (`https://api.amazingkorean.net/auth/google/callback`)
+  - **배포 검증 완료**
+    - healthz: `{"status":"live","version":"v1.0.0"}`
+    - DB 암호화 확인: `user_email` = `enc:v1:...` 형태 정상 저장
+    - 시드 데이터: video=16, lesson=8 정상
+  - **문서 업데이트**
+    - Section 8.7: 프로덕션 클린 배포 항목 추가, 이메일 인증 상태 변경 (📋→보류)
+    - `AMK_DEPLOY_OPS.md`: .env.prod 전체 변수 목록, 클린 배포 절차, 트러블슈팅 추가
+
+- **2026-02-08 — 문서 구조 재편 (3파일 분할 + 불일치 수정)**
+  - **구조 변경**
+    - `AMK_API_MASTER.md` 단일 파일(8,100줄) → 3파일 분할(MASTER ~3,700줄 + CODE_PATTERNS ~4,000줄 + DEPLOY_OPS ~620줄)
+    - `AMK_CODE_PATTERNS.md` 신규 — 기존 Section 7.7 코드 예시 전체 이동
+    - `AMK_DEPLOY_OPS.md` 신규 — 기존 Section 6.6.2~6.6.4 배포/운영 가이드 + Phase 8 운영 도구 통합
+    - `docs/patchs/` → `docs/archive/patchs/` 아카이브 이동
+  - **삭제 항목**
+    - Section 0.4 (웹 LLM 협업 가이드 90줄) → 5줄 AI 에이전트 규칙으로 대체
+    - Section 8 (LLM 협업 규칙 74줄) 전체 삭제
+    - Phase 8 (scripts 테이블) 삭제 → Course Phase로 대체
+  - **불일치 수정 23건 (Section 2~5)**
+    - Section 2: `src/api/docs.rs` → `src/docs.rs`, 암호화 모듈 추가, EmailTemplate 4종, Vimeo 경로 명시
+    - Section 3: 액세스 토큰 TTL 1시간 → 15분, 리프레시 토큰 역할별 분리 명시
+    - Section 4: 암호화 컬럼(`_enc`, `_idx`) 반영, `ip_address` INET→TEXT, Course 도메인 추가, `user_oauth` 테이블 추가
+    - Section 5: Auth 라우트 3개 추가, Course 엔드포인트 3개 추가, Admin email/stats 엔드포인트 추가
+  - **섹션 번호 재구성**
+    - Section 9 (Open Questions) → Section 8
+    - Section 10 (변경 이력) → Section 9
+    - Section 6.6 "빌드/배포" → "로컬 개발" (배포 내용 DEPLOY_OPS 이관)
+  - **기타**
+    - Section 7.2 개발 플로우: Gemini 템플릿 단계 제거, CODE_PATTERNS 참조 추가
+    - Section 0.3 관련 파일 목록 갱신 (CODE_PATTERNS, DEPLOY_OPS 추가)
+    - 교차 참조 정리 (분할 파일 참조 업데이트)
+    - 목차(TOC) 전면 갱신 + 앵커 링크 검증
+
+- **2026-02-06 — Gemini 코드 리뷰 반영**
+  - **백엔드 — 코드 수정 (8건)**
+    - `google.rs`: ID Token 서명 검증을 Google JWKS 공개키 기반으로 변경 (RS256, kid 매칭)
+    - `ipgeo.rs`: `lookup()` 반환 타입 `Option<GeoLocation>` → `GeoLocation`, `is_private_ip()`를 `std::net::IpAddr` 파싱으로 개선
+    - `auth/service.rs`: 이메일 미설정 시 `AppError::ServiceUnavailable` 반환, 인라인 Argon2 해싱 → `password::hash_password()` 통합, 실패 로깅 `let _ =` → `if let Err(e)` + `warn!`
+    - `admin/upgrade/service.rs`: 로컬 `hash_password()` 제거 → `password::hash_password()` 사용, 이메일 미설정 시 `ServiceUnavailable` 반환
+    - `lesson/repo.rs`: DB 에러 `.unwrap_or(false)` → `?` 전파
+    - `user/service.rs`: ipgeo `.unwrap_or_default()` 제거
+  - **문서 정리**
+    - Section 8.5/9.7에 추후 작업 항목 5건 추가 (토큰 캐싱, GeoIP 전환, i18n async, OAuth 중복 통합, enum 매핑)
+    - 불일치 문서 4건 삭제: `AMK_BACKEND_STATUS.md`, `AMK_FRONTEND_STATUS.md`, `homepage_layout_design.md`, `login_table_plan.md`
+    - `.gitignore`에 `.aws/` 추가
+    - Section 5.3-1 소셜 전용 계정 에러 응답 형식 수정
+
+- **2026-02-05 — Login/Login_log 테이블 개선**
+  - **백엔드 — User-Agent 서버사이드 파싱**
+    - `woothee` 라이브러리 추가, `ParsedUa` 구조체 및 `parse_user_agent()` 함수 구현
+    - `login_os`, `login_browser`, `login_device`를 서버에서 자동 채움 (프론트엔드 전송 제거)
+    - OAuth/일반 로그인/회원가입 모두 동일하게 처리
+  - **백엔드 — login 테이블 컬럼 활성화**
+    - `login_expire_at`: `NOW() + refresh_ttl_secs` 기록, 토큰 갱신 시 갱신
+    - `login_active_at`: 토큰 갱신(refresh) 시 `NOW()` 업데이트
+    - `login_revoked_reason`: 상태 변경 시 사유 기록 (기본값 `none`, revoke 시 `password_changed`/`security_concern` 등)
+  - **백엔드 — login_log 테이블 감사 컬럼 활성화**
+    - `login_access_log`: access token SHA-256 해시 (64자)
+    - `login_token_id_log`: JWT `jti` claim (UUID v4)
+    - `login_fail_reason_log`: 실패 사유 (기본값 `none`, 실패 시 `invalid_credentials`/`account_disabled`/`token_reuse`)
+    - `login_expire_at_log`: 세션 만료 시각 기록
+    - login_log geo 컬럼에 COALESCE 기본값 추가 (`LC`/`0`/`local`)
+  - **백엔드 — JWT jti claim 추가**
+    - `jwt::create_token()`에서 UUID v4 기반 `jti` 생성, `Claims` 구조체에 `jti` 필드 추가
+  - **백엔드 — Geo/NULL 기본값 정책 변경**
+    - Private IP 기본값: `ZZ`→`LC`, `Unknown`→`local` (login/login_log 모든 COALESCE)
+    - `login_revoked_reason` NULL→`none`, `login_fail_reason_log` NULL→`none`
+  - **프론트엔드 — 버그 수정**
+    - `client.ts`: request interceptor 추가 (zustand → axios Authorization 헤더 자동 설정)
+    - `use_user_settings.ts`: `enabled` 옵션 + `staleTime: 5분` 추가 (미로그인 시 401 루프 방지)
+    - `use_language_sync.ts`: `{ enabled: isLoggedIn }` 전달
+    - `types.ts`: `LoginReq`에서 불필요 필드(`device`/`browser`/`os`) 제거
+  - **파일 변경 목록**
+    - `Cargo.toml` — `woothee` 의존성 추가
+    - `src/api/auth/handler.rs` — `ParsedUa`, `parse_user_agent()` 추가
+    - `src/api/auth/dto.rs` — `LoginReq` 간소화
+    - `src/api/auth/jwt.rs` — `jti` claim 추가
+    - `src/api/auth/repo.rs` — INSERT/UPDATE 쿼리에 신규 컬럼 반영, COALESCE 기본값 변경
+    - `src/api/auth/service.rs` — UA/geo/audit 파라미터 전달, revoked_reason/fail_reason 기본값
+    - `src/api/user/handler.rs` — UA 파싱 호출
+    - `src/api/user/service.rs` — 회원가입 로그에 audit 파라미터 추가
+    - `frontend/src/api/client.ts` — request interceptor 추가
+    - `frontend/src/category/auth/types.ts` — LoginReq 필드 제거
+    - `frontend/src/category/user/hook/use_user_settings.ts` — enabled/staleTime 추가
+    - `frontend/src/hooks/use_language_sync.ts` — enabled 조건 추가
+
+- **2026-02-05 — DB 보안 강화 계획 수립**
+  - 애플리케이션 레벨 AES-256-GCM 암호화 방식 결정 (pgcrypto, AWS KMS 비교 후)
+  - 암호화 대상 필드 식별: `user_email`, `user_name`, `user_birthday`, `oauth_email`, `oauth_subject`, `login_ip` 등
+  - Blind Index (HMAC-SHA256) 설계: 검색 필요 필드(email, oauth_subject)는 같은 테이블에 `_idx` 컬럼 추가
+  - 키 관리: `ENCRYPTION_KEY` + `HMAC_KEY` (환경변수, 각 32바이트)
+  - 마이그레이션 전략: 3단계 점진적 (호환 모드 → 일괄 암호화 → 정리)
+  - 보안 로드맵: 1단계 앱 레벨 AES → 2단계 AWS KMS → 3단계 HSM
+  - Section 8.7 로드맵에 "보안 & 데이터 보호" 섹션 추가
+
+- **2026-02-05 — 다국어 콘텐츠 확장 계획 수립**
+  - 22개 언어 지원 계획: en, zh-CN, zh-TW, ja, vi, id, th, my, km, mn, ru, uz, kk, tg, ne, si, hi, es, pt, fr, de, ar
+  - `content_translations` 번역 테이블 설계 (정규화, fallback 패턴)
+  - 폰트 전략: Noto Sans 패밀리 동적 로딩 (50MB+ → 언어별 선택 로드)
+  - RTL 대응 (아랍어): CSS Logical Properties, direction: rtl
+  - 번역 파이프라인: AI 자동 초안 → 관리자 검수 → 승인
+  - 단계적 접근: Phase 1 기반 → Phase 2 핵심 5개(en,ja,zh-CN,zh-TW,vi) → Phase 3 나머지 17개
+  - Section 8.7 로드맵에 "다국어 콘텐츠 확장" 섹션 추가, Section 8.9에 다국어 UI 대응 추가
+
+- **2026-02-05 — 다국어 지원 (i18n) 구현**
+  - 상세: Section 6.2.4 참조
+
+- **2026-02-03 — MyPage UI 리디자인 & 비밀번호 재설정 플로우**
+  - **백엔드**
+    - `ProfileRes`에 `has_password: bool` 필드 추가 (OAuth 전용 계정 구분)
+    - `GET /users/me`, `POST /users/me` 응답에 `has_password` 포함
+  - **프론트엔드**
+    - MyPage UI 리디자인
+      - 프로필 헤더: 닉네임 + user_auth 뱃지만 표시
+      - 보기 모드 필드 순서: 닉네임 → 이름 → 이메일 → 가입일 → 생년월일 → 언어 → 국가 → 성별
+      - 환경 설정 버튼을 수정 버튼 옆으로 이동
+      - 비밀번호 재설정 버튼 추가 (OAuth 전용 계정은 숨김)
+    - `/request-reset-password` 페이지 생성 (PrivateRoute 보호)
+      - 로그인 사용자 이메일 자동 채우기
+      - OAuth 전용 계정 접근 시 마이페이지로 리다이렉트
+      - 이메일 입력 → 인증번호 전송 → 인증번호 확인 UI (백엔드 API 연동 대기)
+    - 환경 설정 페이지에 마이페이지 돌아가기 링크 추가
+    - `UserDetail` 타입에 `has_password: boolean` 추가
+  - **문서**
+    - Section 7.7.1-1 ProfileRes 코드 예시 업데이트
+
+- **2026-02-03 — Google OAuth 소셜 로그인 구현**
+  - **백엔드**
+    - `GET /auth/google` — OAuth 시작 (auth_url 반환)
+    - `GET /auth/google/callback` — OAuth 콜백 처리 (토큰 발급, 프론트엔드 리다이렉트)
+    - `src/external/google.rs` — Google OAuth 클라이언트 구현
+    - `migrations/20260203_ADD_OAUTH_SUPPORT.sql` — `user_oauth` 테이블 추가, `users.user_password` NULL 허용
+  - **프론트엔드**
+    - 로그인 페이지에 "Google로 로그인" 버튼 추가
+    - `use_google_login.ts` 훅 생성
+    - OAuth 콜백 처리 (refreshToken 호출 → 스토어 업데이트)
+  - **문서**
+    - Section 5.3 Phase 3 auth에 3-6 Google OAuth 엔드포인트 추가
+    - Section 8.7 외부 API 연결 로드맵 업데이트
+
+- **2025-11-18**
+  - `AMK_Feature_Roadmap.md`, `AMK_PROJECT_JOURNAL.md`, `AMK_ENGINEERING_GUIDE.md`, `AMK_API_OVERVIEW_FULL.md`, `README_for_assistant.md`의 핵심 내용을 통합.
+  - 이 문서(`AMK_API_MASTER.md`)를 프로젝트의 단일 기준 문서로 지정.
+- **2026-01-21**
+  - Section 0.4 "LLM 협업 가이드" 추가 (LLM 활용 프롬프트 템플릿 및 참조 방법)
+  - Section 3.7 "인증 & 세션 관리 (통합)" 추가 (산재된 인증 관련 내용 통합)
+  - Section 5.0 "Phase 로드맵 체크박스 범례" 추가 (✅🆗⚠️❌🔄 의미 명확화)
+  - 문서 전체 목차(TOC) 추가 및 양방향 링크 구현 (각 섹션 시작/끝에 "목차로 돌아가기" 링크)
+  - 외부 파일 참조 링크 업데이트 (AMK_SCHEMA_PATCHED.md, LLM_PATCHS_TEMPLATE_*.md)
+- **2026-01-22**
+  - Section 7.7.2 "프론트엔드 패턴" 실제 코드 기반으로 전면 재작성 (기존 LLM 분석 내용 제거)
+  - Section 5 Phase 번호 체계 정리 (5.3 video → 5.4, 5.4 study → 5.5, 5.5 lesson → 5.6, 5.5.6 admin → 5.7, 5.7 scripts → 5.8)
+  - 목차(TOC) 실제 섹션 헤딩과 동기화 (Section 6, 7, 8, 9 하위 항목 추가)
+  - Section 8.6 "코드 일관성 (Technical Debt)" 추가
+  - Section 8.7 "추후 작업 항목 (문서 내 TODO 통합)" 추가
+- **2026-01-28 — Vimeo API 연동 & Admin Video 문서화**
+  - **Vimeo API 연동 (Phase 5 & 6 계획 기반)**
+    - `GET /admin/videos/vimeo/preview` — Vimeo 메타데이터 미리보기 (7-10)
+    - `POST /admin/videos/vimeo/upload-ticket` — Vimeo tus 업로드 티켓 생성 (7-11)
+    - `video` 테이블에 `video_duration`, `video_thumbnail` 컬럼 추가
+  - **Admin Video 엔드포인트 정비**
+    - `GET /admin/videos/{id}` 상세 조회 추가 (7-9)
+    - Phase 7 엔드포인트 번호 재정렬 (7-8 ~ 7-57, 이후 Study Stats 추가로 7-67까지 확장)
+  - **문서 업데이트**
+    - Section 4.3 비디오 도메인에 신규 컬럼 명세 추가
+    - Section 5.4 Phase 4 video에 응답 스키마 상세 추가 (VideoListItem, VideoDetailRes, VideoProgressRes)
+    - Section 5.7 Phase 7 admin video 엔드포인트 목록 갱신
+- **2026-01-26 — v1.0.0 MVP 릴리스**
+  - **MVP 배포 완료**
+    - Frontend: Cloudflare Pages (`amazingkorean.net`)
+    - Backend: AWS EC2 (`api.amazingkorean.net`)
+    - SSL: Cloudflare Flexible 모드
+  - **GitHub Actions CI/CD 파이프라인 구축**
+    - Section 6.6.2-3 "GitHub Actions CI/CD 파이프라인" 추가
+    - EC2에서 빌드 불필요 → t2.micro 유지 가능
+    - `git push`만으로 자동 배포
+  - **배포 최적화**
+    - `.dockerignore` 추가 (docs, frontend, .git 등 제외)
+    - `docker-compose.prod.yml` Docker Hub 이미지 사용으로 변경
+    - Section 6.6.2-4 "EC2 유지보수 가이드" 추가
+  - **버전 관리**: Cargo.toml `version = "1.0.0"`, Git tag `v1.0.0` 생성
+  - **Section 9 확장** (Open Questions & 설계 TODO)
+    - Section 8.8 "LLM 협업 도구 전환" 추가 (Patch 템플릿 처리 + GitHub Gemini)
+    - Section 8.9 "인프라 로드맵 (RDS 이전)" 추가 (이전 순서 및 시점 기준)
+    - Section 8.10 "데이터 모니터링 & 접근" 추가 (SSH 터널, Admin 대시보드, 동기화)
+    - 이후 변경 사항은 커밋 메시지 `docs: update AMK_API_MASTER <요약>` 형식으로 관리하고, 필요 시 이 섹션에 중요한 방향 전환만 추가한다.
+- **2026-01-28 — User/Login Stats & TODO 정비**
+  - **User/Login Stats 구현 (현재 7-63 ~ 7-67로 재번호)**
+    - `GET /admin/users/stats/summary` — 역할별(HYMN/admin/manager/learner) 통계로 변경
+    - `GET /admin/users/stats/signups` — 역할별 일별 가입 통계
+    - `GET /admin/logins/stats/summary` — 로그인 성공/실패/고유사용자/활성세션
+    - `GET /admin/logins/stats/daily` — 일별 로그인 통계
+    - `GET /admin/logins/stats/devices` — 디바이스별 통계
+  - **버그 수정**
+    - Video 상세 조회 시 `video_state = 'open'` 필터 추가 (비공개 영상 직접 접근 차단)
+  - **Section 9 TODO 업데이트**
+    - Section 8.2 로그 테이블 역할별 구분 항목 추가
+    - Section 8.7 기능 개발에 Admin 폼 검증, 영상 시청 시간, 토픽 정답 검사, 학습 문제 생성 추가
+    - Section 8.11.2 에러 페이지 항목 추가
+    - Section 8.12 "마케팅 & 데이터 분석" 신규 추가
+- **2026-01-29 — Admin Study Stats & Phase 7 정비**
+  - **Study Stats 구현 (7-42 ~ 7-44)**
+    - `GET /admin/studies/stats/summary` — 총 학습수/Task수/시도수/해결수/해결률, Program별(basic_pronunciation/basic_word/basic_900/topik_read/topik_listen/topik_write/tbc)/State별(ready/open/close) 분포
+    - `GET /admin/studies/stats/top` — TOP 학습 조회 (시도수/해결수/해결률 정렬, limit 1-50)
+    - `GET /admin/studies/stats/daily` — 일별 시도수/해결수/활성사용자, 제로필
+  - **Phase 7 엔드포인트 번호 재정렬 (7-1 ~ 7-67)**
+    - 중복된 번호 수정 (7-23, 7-28 중복 해소)
+    - `GET /admin/studies/{id}` (7-23), `GET /admin/studies/tasks/{id}` (7-29) 명확화
+    - Study Stats 추가로 인한 후속 번호 조정 (Lessons: 7-45~7-62, User/Login Stats: 7-63~7-67)
+  - **프론트엔드 Study Stats 페이지 구현**
+    - `/admin/studies/stats` 라우트 추가
+    - Summary Cards, Program/State 분포 차트, TOP Studies 테이블, Daily Stats 테이블
+    - Studies 목록 페이지에 Stats 버튼 추가
+- **2026-01-31 — Admin Lesson 프론트엔드 & Phase 7 Lesson 정비**
+  - **Admin Lesson 프론트엔드 완성**
+    - `/admin/lessons` — 목록 (검색/정렬/페이지네이션/벌크 수정)
+    - `/admin/lessons/new` — 단건 생성
+    - `/admin/lessons/bulk-create` — CSV 벌크 생성
+    - `/admin/lessons/:lessonId` — 상세/수정 (Info/Items/Progress 탭)
+  - **Lesson Items DELETE 엔드포인트 추가 (7-57, 7-58)**
+    - `DELETE /admin/lessons/{id}/items/{seq}` — 수업 아이템 단건 삭제
+    - `DELETE /admin/lessons/bulk/items` — 수업 아이템 다중 삭제
+  - **Phase 7 엔드포인트 번호 재정렬 (7-45 ~ 7-67)**
+    - Lessons: 7-45~7-62 (DELETE 추가로 +2)
+    - User/Login Stats: 7-63~7-67 (기존 7-61~7-65에서 +2)
+  - **Study Task 접근 제어 개선**
+    - `study_state = 'open'` 필터 추가 (부모 Study가 닫히면 Task 접근 차단)
+    - `find_task_detail`, `find_answer_key`, `get_try_count`, `find_task_explain`, `exists_task` 함수에 INNER JOIN study 추가
+  - **Progress 수정 UI 구현**
+    - Lesson Progress 탭에 단건/벌크 수정 다이얼로그 추가
+    - Last Item Seq 필드에 max 제약 (lesson items 기준)
+- **2026-02-02 — URL/함수명 통일 리팩토링**
+  - **Handler 네이밍 통일**
+    - `create_video_handler` → `admin_create_video`
+    - `get_vimeo_preview_handler` → `admin_get_vimeo_preview`
+    - `create_vimeo_upload_ticket_handler` → `admin_create_vimeo_upload_ticket`
+    - `get_task_explain_handler` → `get_task_explain`
+    - `admin_get_lesson_detail` → `admin_get_lesson`
+  - **Admin User logs 함수명 prefix 통일**
+    - `get_admin_user_logs` → `admin_get_user_logs`
+    - `get_user_self_logs` → `admin_get_user_self_logs`
+  - **Video repo 함수명 통일**
+    - `find_list_dynamic` → `list_videos`
+    - `find_detail_by_id` → `get_video_detail`
+    - `find_progress` → `get_progress`
+    - `upsert_progress` → `update_progress`
+  - **Section 8.7 "보류/낮음 우선순위" 업데이트**
+    - URL/함수명 통일 ✅ 완료
+    - Login 정보/로그 추가 ✅ — ip-api.com 연동 완료
+    - Lesson 통계 기능 — 추후 구현 예정
+- **2026-02-04 — Admin Upgrade (관리자 초대) 시스템 구현**
+  - **백엔드 (7-68 ~ 7-70)**
+    - `POST /admin/upgrade` — 관리자 초대 코드 생성 + 이메일 발송
+    - `GET /admin/upgrade/verify` — 초대 코드 검증 (Public)
+    - `POST /admin/upgrade/accept` — 관리자 계정 생성 (Public, OAuth 불가)
+    - RBAC 정책: HYMN→Admin/Manager, Admin→Manager, Manager→불가
+    - Redis TTL 10분, 일회용 코드 (ak_upgrade_{uuid})
+    - `EmailTemplate::AdminInvite` 추가 (invite_url, role, invited_by, expires_in_min)
+  - **프론트엔드**
+    - `types.ts` — Upgrade 타입 추가 (UpgradeInviteReq/Res, UpgradeVerifyRes, UpgradeAcceptReq/Res)
+    - `admin_api.ts` — API 함수 추가 (createAdminInvite, verifyAdminInvite, acceptAdminInvite)
+    - `/admin/upgrade/join` — 초대 수락 페이지 (Public 라우트)
+    - `/admin/users` — "Invite Admin" 버튼 및 초대 다이얼로그 추가
+  - **파일 변경 목록**
+    - `src/api/admin/upgrade/` — dto.rs, service.rs, handler.rs, router.rs, mod.rs (신규)
+    - `src/api/admin/mod.rs`, `src/api/admin/router.rs` — upgrade 모듈 등록
+    - `src/api/user/repo.rs` — find_user_by_email, find_user_by_nickname, create_admin_user 추가
+    - `src/external/email.rs` — AdminInvite 템플릿 추가
+    - `frontend/src/category/admin/types.ts` — Section 9 (Upgrade 타입)
+    - `frontend/src/category/admin/admin_api.ts` — Section 9 (Upgrade API)
+    - `frontend/src/category/admin/page/admin_upgrade_join.tsx` — 신규
+    - `frontend/src/category/admin/page/admin_users_page.tsx` — 초대 다이얼로그 추가
+    - `frontend/src/app/routes.tsx` — /admin/upgrade/join 라우트 추가
+- **2026-02-04 — IP Geolocation 기능 구현**
+  - **기능**: 로그인 시 IP 기반 지리정보 자동 조회 (ip-api.com 연동)
+  - **저장 필드**: `login_country`, `login_asn`, `login_org`
+  - **적용 테이블**: `login` (활성 세션), `login_log` (이력)
+  - **파일 변경 목록**
+    - `src/external/ipgeo.rs` — IpGeoClient 구현 (신규)
+    - `src/external/mod.rs` — ipgeo 모듈 등록
+    - `src/state.rs` — AppState에 `Arc<IpGeoClient>` 추가
+    - `src/main.rs` — IpGeoClient 초기화
+    - `src/api/auth/repo.rs` — insert_login_record_tx, insert_login_record_oauth_tx에 지리정보 파라미터 추가
+    - `src/api/auth/service.rs` — 로그인/OAuth 세션 생성 시 geo 데이터 전달
+    - `src/api/user/service.rs` — 회원가입 자동 로그인에 geo 데이터 전달
