@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-02-18
+updated: 2026-02-19
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,34 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-02-19 — Paddle 도메인 검토 대응**
+  - **환불 정책 재작성** (Paddle Seller Handbook 준수)
+    - 7일 → 30일 무조건 전액 환불 보장 (30-Day Money-Back Guarantee)
+    - 조건부 문구 전면 제거: "부분 환불", "환불 대상 아님", "예외 사항" 삭제
+    - 갱신 결제에도 동일 환불 정책 적용 (Paddle Checkout Buyer Terms 정합)
+    - 섹션 5→4 축소 (en.json, ko.json, refund_policy_page.tsx)
+  - **사업자명 통일** (Terms + Privacy)
+    - "HIM Co., Ltd." / "㈜ 힘" 단독 표기 → "Amazing Korean (operated by HIM Co., Ltd.)" / "Amazing Korean(운영: ㈜ 힘)" 으로 Paddle 제출명과 일치
+  - **SPA 크롤러 접근성 개선**
+    - `index.html`에 `<noscript>` 블록 추가: 서비스 소개, 법적 페이지 링크 (Terms/Privacy/Refund/FAQ), 연락처, 사업자 정보
+    - JS 미실행 크롤러(Paddle 도메인 검토 등)에 필수 정보 제공
+  - **검증**: `npm run build` 통과
+
+- **2026-02-18 — Gemini 코드 리뷰 반영 (PR #125~#127)**
+  - **백엔드**
+    - `docker-compose.prod.yml`: `PAYMENT_PROVIDER` 기본값 제거 → `:?` 구문으로 변경 (누락 시 docker-compose 레벨에서 명확한 에러 메시지와 함께 즉시 실패)
+    - `src/api/auth/repo.rs`: `find_user_sessions_with_refresh_tx()` 배치 쿼리 함수 추가 (session_id + refresh_hash 단일 쿼리 조회)
+    - `src/api/auth/service.rs`: `mfa_disable` 함수 N+1 쿼리 해소 — 루프 내 `find_login_by_session_id` 개별 호출 → 배치 쿼리 1회로 리팩토링
+  - **프론트엔드 — Admin 차트 색상 토큰 전환**
+    - `index.css` + `tailwind.config.js`: `--chart-6` (Purple, 280 65% 60%) 토큰 추가 (라이트/다크)
+    - `admin_login_stats_page.tsx`: deviceColors `bg-blue-500`/`bg-purple-500` → `bg-chart-1`/`bg-chart-2`/`bg-chart-5`
+    - `admin_study_stats_page.tsx`: programItems 7개 + programBadgeColors 7개 + stateItems 3개 하드코딩 색상 → chart 토큰 전환
+    - `admin_user_stats_page.tsx`: roleTypes `bg-purple-500`/`bg-blue-500` → `bg-chart-6`/`bg-chart-3`/`bg-chart-2`
+  - **문서 복원**
+    - `AMK_API_MASTER.md` §7.1: RBAC 권한 매트릭스 테이블 인라인 복원 (Section 8 재구성 시 유실)
+    - `AMK_API_MASTER.md` §8.2: 엔드포인트별 K6 성능 목표치 테이블 복원 (RPS + P95 응답시간)
+  - **검증**: `cargo check` + `npm run build` + `npm run lint:ui` 0건 통과
 
 - **2026-02-18 — 디자인 시스템 v1 구축 (전문가 2명 승인)**
   - **Foundation 토큰 구축**
