@@ -134,29 +134,50 @@ import { SectionContainer } from "@/components/sections/section_container";
 
 ### HeroSection
 
-`components/sections/hero_section.tsx` — 메인 페이지 Hero 블록.
+`components/sections/hero_section.tsx` — Hero 블록. `variant` prop으로 마케팅/리스트 레이아웃 전환.
 
 ```tsx
 import { HeroSection } from "@/components/sections/hero_section";
 
+// 마케팅 페이지 (기본)
 <HeroSection
   badge={<><Sparkles className="h-4 w-4 text-accent" /><span>Badge Text</span></>}
   title="메인 타이틀"
   subtitle="부제목 설명 텍스트"
-  size="sm"  // default | sm
+  size="sm"
 >
   {/* CTA 버튼 등 */}
+</HeroSection>
+
+// 리스트 페이지
+<HeroSection
+  variant="list"
+  badge={<><GraduationCap className="h-5 w-5 text-secondary" /><span>학습</span></>}
+  title="학습 목록"
+  subtitle="한국어 학습 프로그램"
+>
+  {/* 필터 패널 (flex row 배치) */}
 </HeroSection>
 ```
 
 **Props**:
 | Prop | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
+| variant | `'marketing' \| 'list'` | `'marketing'` | 레이아웃 변형 |
 | badge | `ReactNode` | — | 상단 배지 (아이콘 + 텍스트) |
 | title | `ReactNode` | 필수 | 메인 타이틀 |
 | subtitle | `ReactNode` | — | 부제목 |
-| size | `'default' \| 'sm'` | `'default'` | Hero 크기 |
-| children | `ReactNode` | — | CTA, 신뢰 지표 등 |
+| size | `'default' \| 'sm'` | `'default'` | Hero 크기 (marketing만 유효) |
+| children | `ReactNode` | — | CTA/필터 등 |
+
+**Variant 비교**:
+| 속성 | marketing | list |
+|------|-----------|------|
+| 배경 | `bg-hero-gradient` + 블롭 장식 | `bg-hero-gradient border-b` |
+| 정렬 | 중앙 (`text-center`) | 좌측 |
+| 패딩 | `py-section-lg lg:py-hero-lg` | `py-section-sm lg:py-section-md` |
+| 타이포 | `text-4xl md:text-5xl lg:text-6xl` | `text-3xl md:text-4xl` |
+| children | 중앙 배치 | flex row (필터 패널 지원) |
 
 ### Badge Variants
 
@@ -171,6 +192,161 @@ import { HeroSection } from "@/components/sections/hero_section";
 | `warning` | bg-status-warning | 유료/주의 |
 | `info` | bg-status-info | 정보 |
 | `outline` | border only | 아웃라인 |
+
+### Card CVA Variants
+
+`components/ui/card.tsx` — CVA 기반 카드 변형. `cardVariants` export.
+
+| Variant | 스타일 | 용도 |
+|---------|--------|------|
+| `default` | `rounded-xl border shadow` | 일반 카드 (기존 shadcn 기본) |
+| `elevated` | `border-0 shadow-card rounded-2xl` | 시각적 강조 (skeleton, 통계 등) |
+| `interactive` | elevated + hover/focus/active 인터랙션 | 클릭 가능한 카드 (리스트 아이템) |
+
+**interactive 포함 상태**:
+- `hover:-translate-y-1 hover:shadow-card-hover` — 호버 리프트
+- `focus-visible:ring-2 ring-ring ring-offset-2 ring-offset-background` — 키보드 포커스
+- `active:translate-y-0` — 클릭/탭 피드백
+- `motion-reduce:transition-none motion-reduce:transform-none` — 모션 감소 접근성
+
+**카드 링크 패턴**: 리스트 카드는 `<Link>` → `<Card variant="interactive">` 구조 사용.
+
+```tsx
+<Link to={`/items/${id}`}>
+  <Card variant="interactive" className="h-full group">
+    <CardHeader>...</CardHeader>
+    <CardContent>
+      <CardTitle className="group-hover:text-primary transition-colors">
+        {title}
+      </CardTitle>
+    </CardContent>
+  </Card>
+</Link>
+```
+
+### PaginationBar
+
+`components/sections/pagination_bar.tsx` — 페이지네이션 로직+UI 통합 컴포넌트.
+
+```tsx
+import { PaginationBar } from "@/components/sections/pagination_bar";
+
+<PaginationBar
+  currentPage={currentPage}
+  totalPages={totalPages}
+  onPageChange={setPage}
+/>
+```
+
+**Props**:
+| Prop | 타입 | 설명 |
+|------|------|------|
+| currentPage | `number` | 현재 페이지 |
+| totalPages | `number` | 총 페이지 수 |
+| onPageChange | `(page: number) => void` | 페이지 변경 핸들러 |
+| className | `string?` | 추가 클래스 |
+
+- `totalPages <= 1`이면 렌더링 안 함
+- 내부에서 `getPageItems()` 호출 (ELLIPSIS 포함)
+- 접근성: `aria-current="page"` (활성), `aria-disabled` (비활성 prev/next)
+
+**페이지네이션 유틸**: `lib/pagination.ts` — `getPageItems(current, total, siblingCount?)` + `ELLIPSIS` Symbol 상수.
+
+### EmptyState
+
+`components/sections/empty_state.tsx` — 데이터 없음 상태 표시.
+
+```tsx
+import { EmptyState } from "@/components/sections/empty_state";
+
+<EmptyState
+  icon={<BookOpen className="h-10 w-10 text-muted-foreground" />}
+  title="데이터가 없습니다"
+  description="아직 등록된 항목이 없습니다."
+  action={<Button>추가하기</Button>}
+/>
+```
+
+**Props**:
+| Prop | 타입 | 설명 |
+|------|------|------|
+| icon | `ReactNode` | 아이콘 (h-10 w-10 권장) |
+| title | `string` | 제목 |
+| description | `string?` | 부가 설명 |
+| action | `ReactNode?` | CTA 버튼 등 |
+| className | `string?` | 추가 클래스 (기본 py-20) |
+
+- 접근성: `role="status"`, 아이콘 컨테이너 `aria-hidden="true"`
+- 진입 애니메이션: `animate-in fade-in duration-300`
+
+### SkeletonGrid
+
+`components/sections/skeleton_grid.tsx` — 로딩 스켈레톤 그리드.
+
+```tsx
+import { SkeletonGrid } from "@/components/sections/skeleton_grid";
+
+<SkeletonGrid count={10} variant="video-card" columns={3} />
+```
+
+**Props**:
+| Prop | 타입 | 설명 |
+|------|------|------|
+| count | `number` | 스켈레톤 카드 수 |
+| variant | `"video-card" \| "content-card" \| "study-card"` | 카드 형태 |
+| columns | `2 \| 3 \| 4` | 그리드 열 수 (기본 3) |
+| className | `string?` | 추가 클래스 |
+
+- 모바일 항상 1열 (`grid-cols-1`), md부터 columns 적용
+- Tailwind 동적 클래스는 매핑 객체 사용 (인터폴레이션 금지)
+
+### ListStatsBar
+
+`components/sections/list_stats_bar.tsx` — 리스트 페이지 통계 바.
+
+```tsx
+import { ListStatsBar } from "@/components/sections/list_stats_bar";
+
+<ListStatsBar
+  icon={Film}
+  totalLabel={t("video.totalVideos", { count: 42 })}
+  total={42}
+  currentPage={1}
+  totalPages={5}
+  isFetching={false}
+/>
+```
+
+**Props**:
+| Prop | 타입 | 설명 |
+|------|------|------|
+| icon | `LucideIcon` | 좌측 아이콘 |
+| totalLabel | `string` | 총 개수 라벨 |
+| total | `number` | 총 개수 |
+| currentPage | `number` | 현재 페이지 |
+| totalPages | `number` | 총 페이지 수 |
+| isFetching | `boolean?` | 로딩 인디케이터 표시 |
+| className | `string?` | 추가 클래스 |
+
+### StatCard
+
+`components/sections/stat_card.tsx` — **대시보드 KPI 카드** 전용.
+
+```tsx
+import { StatCard } from "@/components/sections/stat_card";
+
+<StatCard icon={Users} label="총 사용자" value={1234} loading={false} />
+```
+
+**Props**:
+| Prop | 타입 | 설명 |
+|------|------|------|
+| icon | `LucideIcon` | 아이콘 |
+| label | `string` | 라벨 |
+| value | `number \| string?` | 표시값 |
+| loading | `boolean?` | 스켈레톤 표시 |
+
+> **용도 제한**: Admin Dashboard KPI 카드 목적. `sections/` 폴더의 범용 컴포넌트화 방지.
 
 ---
 
@@ -280,4 +456,31 @@ cd frontend && npm run lint:ui
 | 항목 | 작업 | 파일 |
 |------|------|------|
 | `SectionContainer size="none"` | sizeMap에 `none: ""` 추가 (이중 패딩 방지) | `section_container.tsx` |
-| `HeroSection layout="split"` | 좌우 분할 레이아웃 variant 추가 | `hero_section.tsx` |
+| ~~`HeroSection layout="split"`~~ | ~~좌우 분할 레이아웃 variant 추가~~ | ~~`hero_section.tsx`~~ |
+
+> `HeroSection layout="split"` → `variant="list"` (children flex row)로 대체 완료 (DS v2).
+
+---
+
+## 08 Changelog
+
+### v2 — 공유 컴포넌트 추출 (2026-02-19)
+
+**신규 컴포넌트 (6개)**:
+- `lib/pagination.ts` — getPageItems 유틸 + ELLIPSIS Symbol
+- `sections/pagination_bar.tsx` — PaginationBar (로직+UI 통합)
+- `sections/empty_state.tsx` — EmptyState (접근성: role="status", aria-hidden)
+- `sections/skeleton_grid.tsx` — SkeletonGrid (variant별 스켈레톤 카드)
+- `sections/list_stats_bar.tsx` — ListStatsBar (리스트 통계 바)
+- `sections/stat_card.tsx` — StatCard (대시보드 KPI 전용)
+
+**수정 (9개 파일)**:
+- `ui/card.tsx` — CVA cardVariants (default/elevated/interactive + ring-offset + motion-reduce)
+- `sections/hero_section.tsx` — variant prop (marketing/list), 리스트 패딩 토큰화
+- `video_list_page.tsx` — Hero + Empty + Skeleton + PaginationBar + ListStatsBar 전체 교체
+- `lesson_list_page.tsx` — 동일 + Card interactive
+- `study_list_page.tsx` — 동일 + Card interactive + HeroSection children 필터 슬롯
+- `study_detail_page.tsx` — Empty + Skeleton + PaginationBar + Card interactive
+- `lesson_detail_page.tsx` — EmptyState 교체
+- `admin_dashboard.tsx` — StatCard 교체
+- `AMK_DESIGN_SYSTEM.md` — 이 문서 업데이트

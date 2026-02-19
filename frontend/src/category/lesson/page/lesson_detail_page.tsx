@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/sections/empty_state";
 import { useAuthStore } from "@/hooks/use_auth_store";
 import type { LessonItemRes, LessonAccess } from "@/category/lesson/types";
 
@@ -294,15 +295,12 @@ export function LessonDetailPage() {
           </div>
 
           {data.items.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-                <BookMarked className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">{t("lesson.emptyItemsTitle")}</h3>
-              <p className="text-sm text-muted-foreground">
-                {t("lesson.emptyItemsDescription")}
-              </p>
-            </div>
+            <EmptyState
+              icon={<BookMarked className="h-10 w-10 text-muted-foreground" />}
+              title={t("lesson.emptyItemsTitle")}
+              description={t("lesson.emptyItemsDescription")}
+              className="py-16"
+            />
           ) : (
             <div className="space-y-3">
               {data.items.map((item) => (
