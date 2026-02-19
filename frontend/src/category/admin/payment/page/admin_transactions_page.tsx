@@ -184,7 +184,7 @@ export function AdminTransactionsPage() {
                     {txn.subscription_id ? (
                       <Link
                         to={`/admin/payment/subscriptions/${txn.subscription_id}`}
-                        className="text-blue-600 hover:underline"
+                        className="text-primary hover:underline"
                       >
                         #{txn.subscription_id}
                       </Link>

@@ -119,7 +119,7 @@ export function LessonDetailPage() {
         );
       case "private":
         return (
-          <Badge className="bg-gray-500 hover:bg-gray-500 text-white border-0 gap-1">
+          <Badge className="bg-muted-foreground hover:bg-muted-foreground text-white border-0 gap-1">
             <Lock className="h-3 w-3" />
             {t("lesson.accessPrivate")}
           </Badge>

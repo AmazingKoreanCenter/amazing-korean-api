@@ -21,7 +21,11 @@
     "errorOccurred": "Une erreur est survenue",
     "temporaryError": "Une erreur temporaire est survenue. Veuillez réessayer.",
     "loginRequired": "Connexion requise",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "Changer de thème",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeSystem": "Système"
   },
   "nav": {
     "about": "À propos",
@@ -50,7 +54,7 @@
     "privacy": "Politique de confidentialité",
     "contact": "Contact",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | PDG : Kyungyun Kim | N° SIRET : 505-88-03252 | N° de vente en ligne : 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | PDG : Kyoung Ryun KIM | N° SIRET : 505-88-03252 | N° de vente en ligne : 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. Tous droits réservés."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "Entrez votre nouveau mot de passe.",
     "newPasswordLabel": "Nouveau mot de passe",
     "newPasswordPlaceholder": "Entrez le nouveau mot de passe",
-    "confirmPasswordLabel": "Confirmer le nouveau mot de passe",
-    "confirmPasswordPlaceholder": "Confirmez le nouveau mot de passe",
+    "confirmPasswordLabel": "Confirmer le mot de passe",
+    "confirmPasswordPlaceholder": "Ressaisissez votre mot de passe",
     "changePasswordButton": "Changer le mot de passe",
     "changingPassword": "Modification en cours...",
     "sendVerificationCode": "Envoyer le code de vérification",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "Le mot de passe doit contenir un chiffre.",
     "validationPasswordMismatch": "Les mots de passe ne correspondent pas.",
     "validationConfirmPasswordRequired": "Veuillez confirmer votre mot de passe.",
-    "confirmPasswordLabel": "Confirmer le mot de passe",
-    "confirmPasswordPlaceholder": "Ressaisissez votre mot de passe",
     "statusBadRequest": "Veuillez vérifier le format des données saisies.",
     "statusUnauthorized": "E-mail ou mot de passe incorrect.",
     "statusForbidden": "Ce compte a été bloqué. Veuillez contacter l'administrateur.",

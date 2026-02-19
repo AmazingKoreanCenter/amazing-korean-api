@@ -157,7 +157,7 @@ export function AdminGrantsPage() {
                   <td className="p-4">
                     <Link
                       to={`/admin/users/${grant.user_id}`}
-                      className="text-blue-600 hover:underline"
+                      className="text-primary hover:underline"
                     >
                       {grant.user_id}
                     </Link>

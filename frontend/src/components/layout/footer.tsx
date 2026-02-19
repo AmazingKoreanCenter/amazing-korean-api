@@ -29,7 +29,7 @@ export function Footer() {
   const [selectedCert, setSelectedCert] = useState<typeof CERTIFICATIONS[number] | null>(null);
 
   return (
-    <footer className="bg-primary text-white">
+    <footer className="bg-footer text-footer-foreground">
       {/* Main Footer Content */}
       <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
@@ -37,17 +37,17 @@ export function Footer() {
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <span className="text-white font-bold text-lg">A</span>
+                <span className="text-footer-foreground font-bold text-lg">A</span>
               </div>
               <span className="text-xl font-bold">{t("common.brandName")}</span>
             </Link>
-            <p className="text-white/70 text-sm leading-relaxed mb-6 whitespace-pre-line">
+            <p className="text-footer-foreground/70 text-sm leading-relaxed mb-6 whitespace-pre-line">
               {t("footer.brandDescription")}
             </p>
 
             {/* Certification Badges */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-white/50 text-xs">
+              <div className="flex items-center gap-2 text-footer-foreground/50 text-xs">
                 <Award className="h-3.5 w-3.5" />
                 <span>{t("footer.certificationCheck")}</span>
               </div>
@@ -58,7 +58,7 @@ export function Footer() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setSelectedCert(cert)}
-                    className="justify-start text-white/70 hover:text-white hover:bg-white/10 px-3 h-9"
+                    className="justify-start text-footer-foreground/70 hover:text-footer-foreground hover:bg-footer-foreground/10 px-3 h-9"
                   >
                     <FileCheck className="h-4 w-4 mr-2" />
                     {t(cert.titleKey)}
@@ -74,25 +74,25 @@ export function Footer() {
             <nav className="flex flex-col gap-3">
               <Link
                 to="/about"
-                className="text-white/70 hover:text-white text-sm transition-colors"
+                className="text-footer-foreground/70 hover:text-footer-foreground text-sm transition-colors"
               >
                 {t("footer.serviceIntro")}
               </Link>
               <Link
                 to="/videos"
-                className="text-white/70 hover:text-white text-sm transition-colors"
+                className="text-footer-foreground/70 hover:text-footer-foreground text-sm transition-colors"
               >
                 {t("footer.videoLearning")}
               </Link>
               <Link
                 to="/studies"
-                className="text-white/70 hover:text-white text-sm transition-colors"
+                className="text-footer-foreground/70 hover:text-footer-foreground text-sm transition-colors"
               >
                 {t("footer.structuredLearning")}
               </Link>
               <Link
                 to="/lessons"
-                className="text-white/70 hover:text-white text-sm transition-colors"
+                className="text-footer-foreground/70 hover:text-footer-foreground text-sm transition-colors"
               >
                 {t("footer.oneOnOneLesson")}
               </Link>
@@ -105,25 +105,25 @@ export function Footer() {
             <nav className="flex flex-col gap-3">
               <Link
                 to="/faq"
-                className="text-white/70 hover:text-white text-sm transition-colors"
+                className="text-footer-foreground/70 hover:text-footer-foreground text-sm transition-colors"
               >
                 {t("footer.faq")}
               </Link>
               <Link
                 to="/terms"
-                className="text-white/70 hover:text-white text-sm transition-colors"
+                className="text-footer-foreground/70 hover:text-footer-foreground text-sm transition-colors"
               >
                 {t("footer.terms")}
               </Link>
               <Link
                 to="/privacy"
-                className="text-white/70 hover:text-white text-sm transition-colors"
+                className="text-footer-foreground/70 hover:text-footer-foreground text-sm transition-colors"
               >
                 {t("footer.privacy")}
               </Link>
               <Link
                 to="/refund-policy"
-                className="text-white/70 hover:text-white text-sm transition-colors"
+                className="text-footer-foreground/70 hover:text-footer-foreground text-sm transition-colors"
               >
                 {t("footer.refundPolicy")}
               </Link>
@@ -136,16 +136,16 @@ export function Footer() {
             <div className="flex flex-col gap-4">
               <a
                 href="mailto:amazingkoreancenter@gmail.com"
-                className="flex items-center gap-3 text-white/70 hover:text-white text-sm transition-colors"
+                className="flex items-center gap-3 text-footer-foreground/70 hover:text-footer-foreground text-sm transition-colors"
               >
                 <Mail className="h-4 w-4 flex-shrink-0" />
                 amazingkoreancenter@gmail.com
               </a>
-              <div className="flex items-center gap-3 text-white/70 text-sm">
+              <div className="flex items-center gap-3 text-footer-foreground/70 text-sm">
                 <Phone className="h-4 w-4 flex-shrink-0" />
                 0504-0821-5018
               </div>
-              <div className="flex items-start gap-3 text-white/70 text-sm">
+              <div className="flex items-start gap-3 text-footer-foreground/70 text-sm">
                 <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
                 <span>{t("footer.address")}</span>
               </div>
@@ -155,31 +155,31 @@ export function Footer() {
       </div>
 
       {/* Business Info Bar */}
-      <div className="border-t border-white/10">
+      <div className="border-t border-footer-foreground/10">
         <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-5">
-          <p className="text-white/50 text-xs leading-relaxed text-center md:text-left">
+          <p className="text-footer-foreground/50 text-xs leading-relaxed text-center md:text-left">
             {t("footer.businessInfo")}
           </p>
         </div>
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-white/10">
+      <div className="border-t border-footer-foreground/10">
         <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-white/50 text-sm">
+            <p className="text-footer-foreground/50 text-sm">
               {t("footer.copyright", { year: currentYear })}
             </p>
             <div className="flex items-center gap-6">
               <Link
                 to="/terms"
-                className="text-white/50 hover:text-white/70 text-sm transition-colors"
+                className="text-footer-foreground/50 hover:text-footer-foreground/70 text-sm transition-colors"
               >
                 {t("footer.terms")}
               </Link>
               <Link
                 to="/privacy"
-                className="text-white/50 hover:text-white/70 text-sm transition-colors"
+                className="text-footer-foreground/50 hover:text-footer-foreground/70 text-sm transition-colors"
               >
                 {t("footer.privacy")}
               </Link>

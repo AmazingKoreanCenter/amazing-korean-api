@@ -21,7 +21,11 @@
     "errorOccurred": "Fehler aufgetreten",
     "temporaryError": "Ein vorübergehender Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
     "loginRequired": "Anmeldung erforderlich",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "Design wechseln",
+    "themeLight": "Hell",
+    "themeDark": "Dunkel",
+    "themeSystem": "System"
   },
   "nav": {
     "about": "Über uns",
@@ -50,7 +54,7 @@
     "privacy": "Datenschutzrichtlinie",
     "contact": "Kontakt",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | CEO: Kyungyun Kim | Handelsreg.-Nr.: 505-88-03252 | Online-Vertriebsreg.: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | CEO: Kyoung Ryun KIM | Handelsreg.-Nr.: 505-88-03252 | Online-Vertriebsreg.: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. Alle Rechte vorbehalten."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "Geben Sie Ihr neues Passwort ein.",
     "newPasswordLabel": "Neues Passwort",
     "newPasswordPlaceholder": "Neues Passwort eingeben",
-    "confirmPasswordLabel": "Neues Passwort bestätigen",
-    "confirmPasswordPlaceholder": "Neues Passwort bestätigen",
+    "confirmPasswordLabel": "Passwort bestätigen",
+    "confirmPasswordPlaceholder": "Passwort erneut eingeben",
     "changePasswordButton": "Passwort ändern",
     "changingPassword": "Wird geändert...",
     "sendVerificationCode": "Bestätigungscode senden",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "Das Passwort muss eine Zahl enthalten.",
     "validationPasswordMismatch": "Die Passwörter stimmen nicht überein.",
     "validationConfirmPasswordRequired": "Bitte bestätigen Sie Ihr Passwort.",
-    "confirmPasswordLabel": "Passwort bestätigen",
-    "confirmPasswordPlaceholder": "Passwort erneut eingeben",
     "statusBadRequest": "Bitte überprüfen Sie das Eingabeformat.",
     "statusUnauthorized": "E-Mail oder Passwort ist falsch.",
     "statusForbidden": "Dieses Konto wurde gesperrt. Bitte kontaktieren Sie den Administrator.",

@@ -21,7 +21,11 @@
     "errorOccurred": "Se produjo un error",
     "temporaryError": "Se produjo un error temporal. Por favor, inténtelo de nuevo.",
     "loginRequired": "Inicio de sesión requerido",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "Cambiar tema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeSystem": "Sistema"
   },
   "nav": {
     "about": "Nosotros",
@@ -50,7 +54,7 @@
     "privacy": "Política de privacidad",
     "contact": "Contacto",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | CEO: Kyungyun Kim | N.º de Registro Comercial: 505-88-03252 | Reg. de Ventas Online: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | CEO: Kyoung Ryun KIM | N.º de Registro Comercial: 505-88-03252 | Reg. de Ventas Online: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. Todos los derechos reservados."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "Ingrese su nueva contraseña.",
     "newPasswordLabel": "Nueva contraseña",
     "newPasswordPlaceholder": "Ingrese nueva contraseña",
-    "confirmPasswordLabel": "Confirmar nueva contraseña",
-    "confirmPasswordPlaceholder": "Confirmar nueva contraseña",
+    "confirmPasswordLabel": "Confirmar contraseña",
+    "confirmPasswordPlaceholder": "Reingrese su contraseña",
     "changePasswordButton": "Cambiar contraseña",
     "changingPassword": "Cambiando...",
     "sendVerificationCode": "Enviar código de verificación",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "La contraseña debe contener un número.",
     "validationPasswordMismatch": "Las contraseñas no coinciden.",
     "validationConfirmPasswordRequired": "Por favor, confirme su contraseña.",
-    "confirmPasswordLabel": "Confirmar contraseña",
-    "confirmPasswordPlaceholder": "Reingrese su contraseña",
     "statusBadRequest": "Por favor, verifique el formato de entrada.",
     "statusUnauthorized": "El correo electrónico o la contraseña son incorrectos.",
     "statusForbidden": "Esta cuenta ha sido bloqueada. Por favor, contacte al administrador.",

@@ -21,7 +21,11 @@
     "errorOccurred": "Xatolik yuz berdi",
     "temporaryError": "Vaqtinchalik xatolik yuz berdi. Qayta urinib ko'ring.",
     "loginRequired": "Kirish talab qilinadi",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "Mavzuni oʻzgartirish",
+    "themeLight": "Yorqin",
+    "themeDark": "Qorongʻi",
+    "themeSystem": "Tizim"
   },
   "nav": {
     "about": "Biz haqimizda",
@@ -50,7 +54,7 @@
     "privacy": "Maxfiylik siyosati",
     "contact": "Aloqa",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | Direktor: Kyungyun Kim | Biznes raqami: 505-88-03252 | Onlayn savdo raqami: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | Direktor: Kyoung Ryun KIM | Biznes raqami: 505-88-03252 | Onlayn savdo raqami: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. Barcha huquqlar himoyalangan."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "Yangi parolingizni kiriting.",
     "newPasswordLabel": "Yangi parol",
     "newPasswordPlaceholder": "Yangi parolni kiriting",
-    "confirmPasswordLabel": "Yangi parolni tasdiqlash",
-    "confirmPasswordPlaceholder": "Yangi parolni qayta kiriting",
+    "confirmPasswordLabel": "Parolni tasdiqlash",
+    "confirmPasswordPlaceholder": "Parolni qayta kiriting",
     "changePasswordButton": "Parolni o'zgartirish",
     "changingPassword": "O'zgartirilmoqda...",
     "sendVerificationCode": "Tasdiqlash kodini yuborish",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "Parolda raqam bo'lishi kerak.",
     "validationPasswordMismatch": "Parollar mos kelmaydi.",
     "validationConfirmPasswordRequired": "Parolni tasdiqlang.",
-    "confirmPasswordLabel": "Parolni tasdiqlash",
-    "confirmPasswordPlaceholder": "Parolni qayta kiriting",
     "statusBadRequest": "Kiritish formatini tekshiring.",
     "statusUnauthorized": "Email yoki parol noto'g'ri.",
     "statusForbidden": "Bu hisob bloklangan. Administrator bilan bog'laning.",

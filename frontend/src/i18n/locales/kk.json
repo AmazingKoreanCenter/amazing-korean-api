@@ -21,7 +21,11 @@
     "errorOccurred": "Қате орын алды",
     "temporaryError": "Уақытша қате орын алды. Қайталап көріңіз.",
     "loginRequired": "Жүйеге кіру қажет",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "Тақырыпты ауыстыру",
+    "themeLight": "Жарық",
+    "themeDark": "Қараңғы",
+    "themeSystem": "Жүйе"
   },
   "nav": {
     "about": "Біз туралы",
@@ -50,7 +54,7 @@
     "privacy": "Құпиялылық саясаты",
     "contact": "Байланыс",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | Бас директор: Kyungyun Kim | Бизнес тіркеу №: 505-88-03252 | Онлайн сауда тіркеу: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | Бас директор: Kyoung Ryun KIM | Бизнес тіркеу №: 505-88-03252 | Онлайн сауда тіркеу: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. Барлық құқықтар қорғалған."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "Жаңа құпия сөзді енгізіңіз.",
     "newPasswordLabel": "Жаңа құпия сөз",
     "newPasswordPlaceholder": "Жаңа құпия сөзді енгізіңіз",
-    "confirmPasswordLabel": "Жаңа құпия сөзді растау",
-    "confirmPasswordPlaceholder": "Жаңа құпия сөзді растаңыз",
+    "confirmPasswordLabel": "Құпия сөзді растау",
+    "confirmPasswordPlaceholder": "Құпия сөзді қайта енгізіңіз",
     "changePasswordButton": "Құпия сөзді өзгерту",
     "changingPassword": "Өзгертілуде...",
     "sendVerificationCode": "Растау кодын жіберу",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "Құпия сөзде сан болуы керек.",
     "validationPasswordMismatch": "Құпия сөздер сәйкес келмейді.",
     "validationConfirmPasswordRequired": "Құпия сөзді растаңыз.",
-    "confirmPasswordLabel": "Құпия сөзді растау",
-    "confirmPasswordPlaceholder": "Құпия сөзді қайта енгізіңіз",
     "statusBadRequest": "Енгізу пішімін тексеріңіз.",
     "statusUnauthorized": "Электрондық пошта немесе құпия сөз дұрыс емес.",
     "statusForbidden": "Бұл тіркелгі бұғатталған. Әкімшіге хабарласыңыз.",

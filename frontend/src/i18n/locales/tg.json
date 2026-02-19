@@ -21,7 +21,11 @@
     "errorOccurred": "Хатогӣ рух дод",
     "temporaryError": "Хатогии муваққатӣ рух дод. Лутфан, аз нав кӯшиш кунед.",
     "loginRequired": "Воридшавӣ лозим аст",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "Мавзӯъро иваз кардан",
+    "themeLight": "Равшан",
+    "themeDark": "Торик",
+    "themeSystem": "Система"
   },
   "nav": {
     "about": "Дар бораи мо",
@@ -50,7 +54,7 @@
     "privacy": "Сиёсати махфият",
     "contact": "Тамос",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | Роҳбар: Kyungyun Kim | Рақами бақайдгирӣ: 505-88-03252 | Бақайдгирии фурӯши онлайн: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | Роҳбар: Kyoung Ryun KIM | Рақами бақайдгирӣ: 505-88-03252 | Бақайдгирии фурӯши онлайн: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. Ҳамаи ҳуқуқҳо ҳифз шудаанд."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "Рамзи навро ворид кунед.",
     "newPasswordLabel": "Рамзи нав",
     "newPasswordPlaceholder": "Рамзи навро ворид кунед",
-    "confirmPasswordLabel": "Тасдиқи рамзи нав",
-    "confirmPasswordPlaceholder": "Рамзи навро тасдиқ кунед",
+    "confirmPasswordLabel": "Тасдиқи рамз",
+    "confirmPasswordPlaceholder": "Рамзро аз нав ворид кунед",
     "changePasswordButton": "Иваз кардани рамз",
     "changingPassword": "Ивазшавӣ...",
     "sendVerificationCode": "Фиристодани рамзи тасдиқ",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "Рамз бояд рақам дошта бошад.",
     "validationPasswordMismatch": "Рамзҳо мувофиқат намекунанд.",
     "validationConfirmPasswordRequired": "Лутфан, рамзро тасдиқ кунед.",
-    "confirmPasswordLabel": "Тасдиқи рамз",
-    "confirmPasswordPlaceholder": "Рамзро аз нав ворид кунед",
     "statusBadRequest": "Лутфан, формати воридотро тафтиш кунед.",
     "statusUnauthorized": "Почта ё рамз нодуруст аст.",
     "statusForbidden": "Ин ҳисоб маҳдуд карда шудааст. Бо маъмур тамос гиред.",

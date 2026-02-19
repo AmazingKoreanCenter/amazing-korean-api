@@ -86,7 +86,7 @@ export default function HomePage() {
           {/* Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Video Learning */}
-            <div className="group relative bg-white rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border">
+            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border">
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Play className="h-7 w-7 text-white" />
               </div>
@@ -120,7 +120,7 @@ export default function HomePage() {
             </div>
 
             {/* Structured Learning */}
-            <div className="group relative bg-white rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border">
+            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border">
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <BookOpen className="h-7 w-7 text-white" />
               </div>
@@ -154,7 +154,7 @@ export default function HomePage() {
             </div>
 
             {/* 1:1 Lessons */}
-            <div className="group relative bg-white rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border">
+            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border">
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Users className="h-7 w-7 text-white" />
               </div>
@@ -190,12 +190,12 @@ export default function HomePage() {
       </SectionContainer>
 
       {/* CTA Section */}
-      <SectionContainer size="lg" className="bg-primary">
+      <SectionContainer size="lg" className="bg-surface-inverted">
         <div className="text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-surface-inverted-foreground mb-4">
             {t("home.ctaSectionTitle")}
           </h2>
-          <p className="text-white/70 text-lg max-w-xl mx-auto mb-10">
+          <p className="text-surface-inverted-foreground/70 text-lg max-w-xl mx-auto mb-10">
             {t("home.ctaSectionDescription").split("\n").map((line, i) => (
               <span key={i}>
                 {i > 0 && <br />}
@@ -218,7 +218,7 @@ export default function HomePage() {
               size="lg"
               variant="outline"
               asChild
-              className="rounded-full px-8 h-14 text-base border-2 border-white/30 text-black hover:bg-white/10 hover:border-white/50"
+              className="rounded-full px-8 h-14 text-base border-2 border-surface-inverted-foreground/30 text-surface-inverted-foreground hover:bg-surface-inverted-foreground/10 hover:border-surface-inverted-foreground/50"
             >
               <Link to="/login">{t("home.ctaAlreadyHaveAccount")}</Link>
             </Button>

@@ -31,11 +31,11 @@ function getStatusColor(
   approved: number,
 ): string {
   const total = draft + reviewed + approved;
-  if (total === 0) return "bg-gray-100 text-gray-400";
+  if (total === 0) return "bg-muted text-muted-foreground/70";
   if (approved === total) return "bg-status-success/10 text-status-success";
-  if (approved + reviewed === total) return "bg-blue-100 text-blue-700";
-  if (approved > 0) return "bg-yellow-100 text-yellow-700";
-  return "bg-orange-100 text-orange-700";
+  if (approved + reviewed === total) return "bg-primary/10 text-primary";
+  if (approved > 0) return "bg-status-warning/10 text-status-warning";
+  return "bg-destructive/10 text-destructive";
 }
 
 export function AdminTranslationDashboard() {
@@ -68,12 +68,12 @@ export function AdminTranslationDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <BarChart3 className="w-6 h-6 text-gray-700" />
-          <h2 className="text-2xl font-bold text-gray-900">
+          <BarChart3 className="w-6 h-6 text-foreground" />
+          <h2 className="text-2xl font-bold text-foreground">
             Translation Dashboard
           </h2>
           {data && (
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-muted-foreground">
               ({data.total_translations} total)
             </span>
           )}
@@ -93,19 +93,19 @@ export function AdminTranslationDashboard() {
           All Approved
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-blue-100 border border-blue-300" />
+          <span className="w-3 h-3 rounded bg-primary/10 border border-primary/30" />
           Reviewed
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-yellow-100 border border-yellow-300" />
+          <span className="w-3 h-3 rounded bg-status-warning/10 border border-status-warning/30" />
           Partially Approved
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-orange-100 border border-orange-300" />
+          <span className="w-3 h-3 rounded bg-destructive/10 border border-destructive/30" />
           Draft Only
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-gray-100 border border-gray-300" />
+          <span className="w-3 h-3 rounded bg-muted border border-border" />
           No Translations
         </span>
       </div>
@@ -122,12 +122,12 @@ export function AdminTranslationDashboard() {
           Failed to load translation statistics.
         </div>
       ) : matrix && matrix.contentTypes.length > 0 ? (
-        <div className="bg-white rounded-lg border overflow-hidden">
+        <div className="bg-card rounded-lg border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-3 py-2 font-medium text-gray-600 sticky left-0 bg-gray-50 z-10 min-w-[140px]">
+                <tr className="border-b bg-muted">
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground sticky left-0 bg-muted z-10 min-w-[140px]">
                     Content Type
                   </th>
                   {TARGET_LANGS.map((lang, i) => {
@@ -135,16 +135,16 @@ export function AdminTranslationDashboard() {
                     const tierBorder = TIER_BREAK_INDICES.some(
                       (bi) => i + 1 === bi,
                     )
-                      ? "border-l-2 border-l-gray-300"
+                      ? "border-l-2 border-l-border"
                       : "";
                     return (
                       <th
                         key={lang.code}
-                        className={`text-center px-1 py-2 font-medium text-gray-600 min-w-[52px] ${tierBorder}`}
+                        className={`text-center px-1 py-2 font-medium text-muted-foreground min-w-[52px] ${tierBorder}`}
                         title={`${lang.nativeName} (${lang.name})`}
                       >
                         <div>{lang.flag}</div>
-                        <div className="text-[10px] text-gray-400">
+                        <div className="text-[10px] text-muted-foreground/70">
                           {lang.code}
                         </div>
                       </th>
@@ -154,8 +154,8 @@ export function AdminTranslationDashboard() {
               </thead>
               <tbody>
                 {matrix.contentTypes.map((ct) => (
-                  <tr key={ct} className="border-b hover:bg-gray-50/50">
-                    <td className="px-3 py-2 font-medium text-gray-700 sticky left-0 bg-white z-10">
+                  <tr key={ct} className="border-b hover:bg-muted/50">
+                    <td className="px-3 py-2 font-medium text-foreground sticky left-0 bg-card z-10">
                       {CONTENT_TYPE_LABELS[ct] ?? ct}
                     </td>
                     {TARGET_LANGS.map((lang, i) => {
@@ -175,7 +175,7 @@ export function AdminTranslationDashboard() {
                       const tierBorder = TIER_BREAK_INDICES.some(
                         (bi) => i + 1 === bi,
                       )
-                        ? "border-l-2 border-l-gray-300"
+                        ? "border-l-2 border-l-border"
                         : "";
 
                       return (
@@ -200,7 +200,7 @@ export function AdminTranslationDashboard() {
           </div>
         </div>
       ) : (
-        <div className="text-center text-gray-500 py-8">
+        <div className="text-center text-muted-foreground py-8">
           No translation data available.
         </div>
       )}

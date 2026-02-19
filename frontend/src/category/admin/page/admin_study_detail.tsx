@@ -1092,7 +1092,7 @@ function TaskDetailsContent({
       {taskDetail.image_url && (
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Image URL</Label>
-          <p className="text-sm text-blue-600 truncate">
+          <p className="text-sm text-primary truncate">
             <a href={taskDetail.image_url} target="_blank" rel="noopener noreferrer">
               {taskDetail.image_url}
             </a>
@@ -1104,7 +1104,7 @@ function TaskDetailsContent({
       {taskDetail.audio_url && (
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Audio URL</Label>
-          <p className="text-sm text-blue-600 truncate">
+          <p className="text-sm text-primary truncate">
             <a href={taskDetail.audio_url} target="_blank" rel="noopener noreferrer">
               {taskDetail.audio_url}
             </a>

@@ -149,7 +149,7 @@ function DeviceStats({
           </div>
           <Progress
             value={item.percentage}
-            className={`h-2 ${deviceColors[item.device.toLowerCase()] || "bg-gray-500"}`}
+            className={`h-2 ${deviceColors[item.device.toLowerCase()] || "bg-muted-foreground"}`}
           />
         </div>
       ))}

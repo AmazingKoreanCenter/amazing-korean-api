@@ -57,6 +57,12 @@
     --chart-4: 43 74% 66%;
     --chart-5: 340 75% 55%;
     --chart-6: 280 65% 60%;
+
+    /* Surface tokens (always-dark sections) */
+    --footer: 222 90% 18%;
+    --footer-foreground: 210 40% 98%;
+    --surface-inverted: 222 90% 18%;
+    --surface-inverted-foreground: 210 40% 98%;
   }
 
   .dark {
@@ -106,6 +112,12 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
     --chart-6: 280 65% 65%;
+
+    /* Surface tokens (always-dark sections, slightly lighter in dark) */
+    --footer: 222 47% 8%;
+    --footer-foreground: 210 40% 98%;
+    --surface-inverted: 222 47% 10%;
+    --surface-inverted-foreground: 210 40% 98%;
   }
 }
 
@@ -145,6 +157,22 @@
 
   .shadow-card-hover {
     box-shadow: 0 8px 30px -5px hsl(var(--primary) / 0.18);
+  }
+
+  /* Dark mode shadow overrides — prevent white glow from --primary flip */
+  .dark .shadow-card {
+    box-shadow: 0 0 26px -5px hsl(0 0% 0% / 0.3);
+  }
+  .dark .shadow-card-hover {
+    box-shadow: 0 8px 30px -5px hsl(0 0% 0% / 0.4);
+  }
+
+  /* Dark mode text-gradient — use secondary→accent instead of primary→accent */
+  .dark .text-gradient {
+    background: linear-gradient(90deg, hsl(var(--secondary)) 0%, hsl(var(--accent)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   /* Hero Gradient — via-background for dark mode compatibility */

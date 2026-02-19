@@ -148,12 +148,12 @@ export function AdminEmailTest() {
             </CardHeader>
             <CardContent className="space-y-4">
               {selectedTemplate?.value === "password_reset" && (
-                <div className="border rounded-lg p-4 bg-gray-50">
+                <div className="border rounded-lg p-4 bg-muted">
                   <h3 className="font-semibold mb-2">비밀번호 재설정</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                     아래 인증 코드를 입력하여 비밀번호를 재설정하세요.
                   </p>
-                  <div className="bg-white border rounded-lg p-4 text-center">
+                  <div className="bg-card border rounded-lg p-4 text-center">
                     <span className="text-3xl font-bold tracking-widest">123456</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
@@ -162,13 +162,13 @@ export function AdminEmailTest() {
                 </div>
               )}
               {selectedTemplate?.value === "email_verification" && (
-                <div className="border rounded-lg p-4 bg-gray-50">
+                <div className="border rounded-lg p-4 bg-muted">
                   <h3 className="font-semibold mb-2">이메일 인증</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                     Amazing Korean에 가입해 주셔서 감사합니다!
                     아래 인증 코드를 입력하여 이메일을 인증하세요.
                   </p>
-                  <div className="bg-white border rounded-lg p-4 text-center">
+                  <div className="bg-card border rounded-lg p-4 text-center">
                     <span className="text-3xl font-bold tracking-widest">654321</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
@@ -177,7 +177,7 @@ export function AdminEmailTest() {
                 </div>
               )}
               {selectedTemplate?.value === "welcome" && (
-                <div className="border rounded-lg p-4 bg-gray-50">
+                <div className="border rounded-lg p-4 bg-muted">
                   <h3 className="font-semibold mb-2">테스트 사용자님, 환영합니다!</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                     Amazing Korean에 가입해 주셔서 감사합니다.
@@ -191,9 +191,9 @@ export function AdminEmailTest() {
             </CardContent>
           </Card>
 
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-primary/5 border-primary/20">
             <CardContent className="pt-4">
-              <p className="text-sm text-blue-800">
+              <p className="text-sm text-primary">
                 <strong>참고:</strong> AWS SES가 샌드박스 모드인 경우, 인증된 이메일 주소로만 발송할 수 있습니다.
                 운영 환경에서는 샌드박스 해제가 필요합니다.
               </p>

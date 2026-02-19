@@ -128,7 +128,7 @@
 | 주요 링크 (About, Pricing) | PASS | `<a href="/about">`, `<a href="/pricing">` |
 | 법률 링크 (Terms, Privacy, Refund, FAQ) | PASS | `/terms`, `/privacy`, `/refund-policy`, `/faq` |
 | 연락처 정보 (이메일, 전화, 주소) | PASS | `amazingkoreancenter@gmail.com`, `0504-0821-5018`, `350 Hannuri-daero, Sejong, 6F SB3` |
-| 사업자 정보 | PASS | "Amazing Korean (operated by HIM Co., Ltd.) \| CEO: Kyungyun Kim \| Business Reg. No.: 505-88-03252" |
+| 사업자 정보 | PASS | "Amazing Korean (operated by HIM Co., Ltd.) \| CEO: Kyoung Ryun KIM \| Business Reg. No.: 505-88-03252" |
 
 ---
 

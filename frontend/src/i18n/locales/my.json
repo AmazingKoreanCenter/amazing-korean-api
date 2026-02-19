@@ -21,7 +21,11 @@
     "errorOccurred": "အမှားတစ်ခု ဖြစ်ပွားခဲ့သည်",
     "temporaryError": "ယာယီအမှားတစ်ခု ဖြစ်ပွားခဲ့သည်။ ထပ်ကြိုးစားပါ။",
     "loginRequired": "အကောင့်ဝင်ရန် လိုအပ်သည်",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "အပြင်အဆင်ပြောင်းရန်",
+    "themeLight": "အလင်း",
+    "themeDark": "အမှောင်",
+    "themeSystem": "စနစ်"
   },
   "nav": {
     "about": "အကြောင်း",
@@ -50,7 +54,7 @@
     "privacy": "ကိုယ်ရေးအချက်အလက် မူဝါဒ",
     "contact": "ဆက်သွယ်ရန်",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | CEO: Kyungyun Kim | Business Reg. No.: 505-88-03252 | Online Sales Reg.: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | CEO: Kyoung Ryun KIM | Business Reg. No.: 505-88-03252 | Online Sales Reg.: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. All rights reserved."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "စကားဝှက်အသစ်ကို ထည့်ပါ။",
     "newPasswordLabel": "စကားဝှက်အသစ်",
     "newPasswordPlaceholder": "စကားဝှက်အသစ် ထည့်ပါ",
-    "confirmPasswordLabel": "စကားဝှက်အသစ် အတည်ပြု",
-    "confirmPasswordPlaceholder": "စကားဝှက်အသစ် ထပ်ထည့်ပါ",
+    "confirmPasswordLabel": "စကားဝှက် အတည်ပြု",
+    "confirmPasswordPlaceholder": "စကားဝှက် ထပ်ထည့်ပါ",
     "changePasswordButton": "စကားဝှက် ပြောင်းမည်",
     "changingPassword": "ပြောင်းလဲနေသည်...",
     "sendVerificationCode": "အတည်ပြုကုဒ် ပို့မည်",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "စကားဝှက်တွင် ဂဏန်း ပါဝင်ရမည်။",
     "validationPasswordMismatch": "စကားဝှက်များ မကိုက်ညီပါ။",
     "validationConfirmPasswordRequired": "စကားဝှက်ကို အတည်ပြုပါ။",
-    "confirmPasswordLabel": "စကားဝှက် အတည်ပြု",
-    "confirmPasswordPlaceholder": "စကားဝှက် ထပ်ထည့်ပါ",
     "statusBadRequest": "ထည့်သွင်းမှု ပုံစံကို စစ်ဆေးပါ။",
     "statusUnauthorized": "အီးမေးလ် သို့မဟုတ် စကားဝှက် မမှန်ကန်ပါ။",
     "statusForbidden": "ဤအကောင့်ကို ပိတ်ဆို့ထားပါသည်။ စီမံခန့်ခွဲသူထံ ဆက်သွယ်ပါ။",
@@ -182,7 +184,6 @@
     "verifyEmailDescription": "{{email}} သို့ ပို့ထားသော ဂဏန်း ၆ လုံး ကုဒ်ကို ထည့်ပါ။",
     "verifyEmailNoEmail": "အီးမေးလ် အချက်အလက်မရှိပါ။ ကျေးဇူးပြု၍ အရင် အကောင့်ဖွင့်ပါ။",
     "goToSignup": "အကောင့်ဖွင့်ရန် သွားမည်",
-    "backToLogin": "အကောင့်ဝင်ရန်သို့ ပြန်သွားမည်",
     "toastEmailVerified": "အီးမေးလ် အတည်ပြုမှု အောင်မြင်ပါသည်။ ကျေးဇူးပြု၍ အကောင့်ဝင်ပါ။",
     "toastEmailNotVerified": "အီးမေးလ် အတည်ပြုရန် လိုအပ်ပါသည်။",
     "toastVerificationCodeSent": "အတည်ပြုကုဒ်ကို သင့်အီးမေးလ်သို့ ပို့ပြီးပါပြီ။",

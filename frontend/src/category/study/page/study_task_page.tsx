@@ -181,10 +181,10 @@ function ResultCard({ result }: { result: SubmitAnswerRes }) {
 function ExplainCard({ explain }: { explain: TaskExplainRes }) {
   const { t } = useTranslation();
   return (
-    <Card className="border-blue-500">
+    <Card className="border-primary">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-blue-600">{t("study.explanation")}</span>
+          <span className="text-lg font-bold text-primary">{t("study.explanation")}</span>
         </div>
         {explain.title && (
           <h4 className="font-medium">{explain.title}</h4>
@@ -204,7 +204,7 @@ function ExplainCard({ explain }: { explain: TaskExplainRes }) {
                     href={resource}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="text-primary hover:underline"
                   >
                     {resource}
                   </a>
