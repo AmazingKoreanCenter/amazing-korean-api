@@ -11,6 +11,13 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-02-19 — Paddle 사업자 인증 (KYB) 서류 제출**
+  - Cloudflare 보안 설정 확인: Bot Fight Mode Off, Security Level Automated, I'm Under Attack 비활성화 — Paddle 크롤러 차단 요소 없음 확인
+  - 사업자등록증 (한글 + 영문) Paddle Dashboard 업로드 완료
+  - 주주명세서 한글 원본 (법인인감 날인) + 영문 번역본 PDF 생성 및 업로드 완료
+    - 주민등록번호 마스킹 처리, UBO (25%+ 지분) 명시
+    - Puppeteer + Noto Sans KR 폰트로 영문 PDF 자동 생성
+
 - **2026-02-19 — Paddle 도메인 검토 대응**
   - **환불 정책 재작성** (Paddle Seller Handbook 준수)
     - 7일 → 30일 무조건 전액 환불 보장 (30-Day Money-Back Guarantee)

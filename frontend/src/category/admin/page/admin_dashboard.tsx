@@ -3,7 +3,7 @@ import { Users, Activity, Video, BookOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { StatCard } from "@/components/sections/stat_card";
 import {
   useUserStatsSummary,
   useLoginStatsSummary,
@@ -72,23 +72,13 @@ export function AdminDashboard() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.label}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-20" />
-              ) : (
-                <div className="text-2xl font-bold">
-                  {stat.value?.toLocaleString() ?? "-"}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <StatCard
+            key={stat.label}
+            icon={stat.icon}
+            label={stat.label}
+            value={stat.value}
+            loading={isLoading}
+          />
         ))}
       </div>
 

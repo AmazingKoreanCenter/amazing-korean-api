@@ -3,57 +3,22 @@ import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, BookOpen, ClipboardList, Keyboard, Mic } from "lucide-react";
 
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/sections/empty_state";
+import { PaginationBar } from "@/components/sections/pagination_bar";
+import { SkeletonGrid } from "@/components/sections/skeleton_grid";
 import type { StudyDetailReq, StudyProgram, StudyTaskKind } from "@/category/study/types";
 
 import { useStudyDetail } from "../hook/use_study_detail";
 
 const PER_PAGE = 10;
-const ELLIPSIS = "ellipsis" as const;
-
-type PageItem = number | typeof ELLIPSIS;
-
 
 const KIND_ICONS: Record<StudyTaskKind, typeof ClipboardList> = {
   choice: ClipboardList,
   typing: Keyboard,
   voice: Mic,
-};
-
-const getPageItems = (currentPage: number, totalPages: number): PageItem[] => {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  const items: PageItem[] = [1];
-  const start = Math.max(2, currentPage - 1);
-  const end = Math.min(totalPages - 1, currentPage + 1);
-
-  if (start > 2) {
-    items.push(ELLIPSIS);
-  }
-
-  for (let page = start; page <= end; page += 1) {
-    items.push(page);
-  }
-
-  if (end < totalPages - 1) {
-    items.push(ELLIPSIS);
-  }
-
-  items.push(totalPages);
-  return items;
 };
 
 export function StudyDetailPage() {
@@ -93,22 +58,6 @@ export function StudyDetailPage() {
 
   const currentPage = meta?.page ?? page;
   const totalPages = Math.max(meta?.total_pages ?? 1, 1);
-
-  const pageItems = useMemo(
-    () => getPageItems(currentPage, totalPages),
-    [currentPage, totalPages]
-  );
-
-  const hasPrev = currentPage > 1;
-  const hasNext = currentPage < totalPages;
-
-  const handlePageChange = (nextPage: number) => {
-    if (nextPage === page || nextPage < 1 || nextPage > totalPages) {
-      return;
-    }
-    setPage(nextPage);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   if (!studyId || !Number.isFinite(studyId)) {
     return (
@@ -204,33 +153,13 @@ export function StudyDetailPage() {
 
           {/* Loading State */}
           {isPending ? (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: PER_PAGE }, (_, index) => (
-                <Card key={`skeleton-${index}`} className="border-0 shadow-card rounded-2xl overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <Skeleton className="h-6 w-20 rounded-full" />
-                      <Skeleton className="h-5 w-12" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-6 w-2/3" />
-                    <Skeleton className="h-4 w-1/2 mt-2" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <SkeletonGrid count={PER_PAGE} variant="study-card" />
           ) : tasks.length === 0 ? (
-            /* Empty State */
-            <div className="text-center py-20">
-              <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
-                <BookOpen className="h-10 w-10 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">{t("study.emptyTitle")}</h3>
-              <p className="text-sm text-muted-foreground">
-                {t("study.emptyDetailDescription")}
-              </p>
-            </div>
+            <EmptyState
+              icon={<BookOpen className="h-10 w-10 text-muted-foreground" />}
+              title={t("study.emptyTitle")}
+              description={t("study.emptyDetailDescription")}
+            />
           ) : (
             <>
               {/* Task Cards Grid */}
@@ -239,7 +168,7 @@ export function StudyDetailPage() {
                   const KindIcon = KIND_ICONS[task.kind];
                   return (
                     <Link key={task.task_id} to={`/studies/tasks/${task.task_id}`}>
-                      <Card className="h-full border-0 shadow-card rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover group">
+                      <Card variant="interactive" className="h-full group">
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <Badge variant="outline" className="gap-1.5 px-3 py-1 rounded-full">
@@ -265,62 +194,11 @@ export function StudyDetailPage() {
                 })}
               </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="mt-12 flex justify-center">
-                  <Pagination>
-                    <PaginationContent className="gap-1">
-                      <PaginationItem>
-                        <PaginationPrevious
-                          href="#"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            if (hasPrev) {
-                              handlePageChange(currentPage - 1);
-                            }
-                          }}
-                          aria-disabled={!hasPrev}
-                          className={`rounded-xl ${!hasPrev ? "pointer-events-none opacity-50" : ""}`}
-                        />
-                      </PaginationItem>
-                      {pageItems.map((item, index) => (
-                        <PaginationItem
-                          key={item === ELLIPSIS ? `ellipsis-${index}` : item}
-                        >
-                          {item === ELLIPSIS ? (
-                            <PaginationEllipsis />
-                          ) : (
-                            <PaginationLink
-                              href="#"
-                              isActive={item === currentPage}
-                              onClick={(event) => {
-                                event.preventDefault();
-                                handlePageChange(item);
-                              }}
-                              className={`rounded-xl ${item === currentPage ? "gradient-primary text-white border-0" : ""}`}
-                            >
-                              {item}
-                            </PaginationLink>
-                          )}
-                        </PaginationItem>
-                      ))}
-                      <PaginationItem>
-                        <PaginationNext
-                          href="#"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            if (hasNext) {
-                              handlePageChange(currentPage + 1);
-                            }
-                          }}
-                          aria-disabled={!hasNext}
-                          className={`rounded-xl ${!hasNext ? "pointer-events-none opacity-50" : ""}`}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
+              <PaginationBar
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
             </>
           )}
         </div>

@@ -1,5 +1,0 @@
-{
-  "checkpointing": { "enabled": true },
-  "fileFiltering": { "respectGitIgnore": true },
-  "includeDirectories": ["./"]
-}
