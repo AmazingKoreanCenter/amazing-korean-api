@@ -1,6 +1,6 @@
 import { LegalPage } from "./legal_page";
 
-const SECTIONS = Array.from({ length: 5 }, (_, i) => ({
+const SECTIONS = Array.from({ length: 4 }, (_, i) => ({
   titleKey: `legal.refund.s${i + 1}Title`,
   contentKey: `legal.refund.s${i + 1}Content`,
 }));
