@@ -21,7 +21,11 @@
     "errorOccurred": "エラーが発生しました",
     "temporaryError": "一時的なエラーです。もう一度お試しください。",
     "loginRequired": "ログインが必要です",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "テーマ変更",
+    "themeLight": "ライト",
+    "themeDark": "ダーク",
+    "themeSystem": "システム"
   },
   "nav": {
     "about": "紹介",
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "新しいパスワードを入力してください。",
     "newPasswordLabel": "新しいパスワード",
     "newPasswordPlaceholder": "新しいパスワードを入力",
-    "confirmPasswordLabel": "新しいパスワード確認",
-    "confirmPasswordPlaceholder": "新しいパスワードを再入力",
+    "confirmPasswordLabel": "パスワード確認",
+    "confirmPasswordPlaceholder": "パスワードを再入力してください",
     "changePasswordButton": "パスワードを変更",
     "changingPassword": "変更中...",
     "sendVerificationCode": "認証番号を送信",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "パスワードに数字を含める必要があります。",
     "validationPasswordMismatch": "パスワードが一致しません。",
     "validationConfirmPasswordRequired": "パスワード確認を入力してください。",
-    "confirmPasswordLabel": "パスワード確認",
-    "confirmPasswordPlaceholder": "パスワードを再入力してください",
     "statusBadRequest": "入力形式をご確認ください。",
     "statusUnauthorized": "メールアドレスまたはパスワードが一致しません。",
     "statusForbidden": "アクセスがブロックされたアカウントです。管理者にお問い合わせください。",

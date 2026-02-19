@@ -21,7 +21,11 @@
     "errorOccurred": "දෝෂයක් සිදු විය",
     "temporaryError": "තාවකාලික දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.",
     "loginRequired": "පිවිසීම අවශ්‍යයි",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "තේමාව වෙනස් කරන්න",
+    "themeLight": "සැහැල්ලු",
+    "themeDark": "අඳුරු",
+    "themeSystem": "පද්ධතිය"
   },
   "nav": {
     "about": "අප ගැන",
@@ -50,7 +54,7 @@
     "privacy": "පෞද්ගලිකත්ව ප්‍රතිපත්තිය",
     "contact": "සම්බන්ධ කරගන්න",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | CEO: Kyungyun Kim | Business Reg. No.: 505-88-03252 | Online Sales Reg.: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | CEO: Kyoung Ryun KIM | Business Reg. No.: 505-88-03252 | Online Sales Reg.: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. සියලුම හිමිකම් ඇවිරිණි."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "ඔබගේ නව මුරපදය ඇතුළත් කරන්න.",
     "newPasswordLabel": "නව මුරපදය",
     "newPasswordPlaceholder": "නව මුරපදය ඇතුළත් කරන්න",
-    "confirmPasswordLabel": "නව මුරපදය තහවුරු කරන්න",
-    "confirmPasswordPlaceholder": "නව මුරපදය තහවුරු කරන්න",
+    "confirmPasswordLabel": "මුරපදය තහවුරු කරන්න",
+    "confirmPasswordPlaceholder": "ඔබගේ මුරපදය නැවත ඇතුළත් කරන්න",
     "changePasswordButton": "මුරපදය වෙනස් කරන්න",
     "changingPassword": "වෙනස් කරමින්...",
     "sendVerificationCode": "සත්‍යාපන කේතය යවන්න",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "මුරපදයේ අංකයක් අඩංගු විය යුතුය.",
     "validationPasswordMismatch": "මුරපද නොගැළපේ.",
     "validationConfirmPasswordRequired": "කරුණාකර ඔබගේ මුරපදය තහවුරු කරන්න.",
-    "confirmPasswordLabel": "මුරපදය තහවුරු කරන්න",
-    "confirmPasswordPlaceholder": "ඔබගේ මුරපදය නැවත ඇතුළත් කරන්න",
     "statusBadRequest": "කරුණාකර ආදාන ආකෘතිය පරීක්ෂා කරන්න.",
     "statusUnauthorized": "විද්‍යුත් තැපෑල හෝ මුරපදය වැරදිය.",
     "statusForbidden": "මෙම ගිණුම අවහිර කර ඇත. කරුණාකර පරිපාලක හමුවන්න.",

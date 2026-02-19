@@ -21,7 +21,11 @@
     "errorOccurred": "Đã xảy ra lỗi",
     "temporaryError": "Lỗi tạm thời. Vui lòng thử lại.",
     "loginRequired": "Vui lòng đăng nhập",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "Đổi giao diện",
+    "themeLight": "Sáng",
+    "themeDark": "Tối",
+    "themeSystem": "Hệ thống"
   },
   "nav": {
     "about": "Giới thiệu",
@@ -50,7 +54,7 @@
     "privacy": "Chính sách bảo mật",
     "contact": "Liên hệ",
     "address": "350 Hannuri-daero, Sejong, Tầng 6 SB3",
-    "businessInfo": "Công ty HIM｜Đại diện: Kim Kyungyun｜Mã số kinh doanh: 505-88-03252｜Đăng ký bán hàng trực tuyến: 2025-Sejong Areum-0402",
+    "businessInfo": "Công ty HIM｜Đại diện: KIM Kyoung Ryun｜Mã số kinh doanh: 505-88-03252｜Đăng ký bán hàng trực tuyến: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. All rights reserved."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "Vui lòng nhập mật khẩu mới.",
     "newPasswordLabel": "Mật khẩu mới",
     "newPasswordPlaceholder": "Nhập mật khẩu mới",
-    "confirmPasswordLabel": "Xác nhận mật khẩu mới",
-    "confirmPasswordPlaceholder": "Nhập lại mật khẩu mới",
+    "confirmPasswordLabel": "Xác nhận mật khẩu",
+    "confirmPasswordPlaceholder": "Nhập lại mật khẩu",
     "changePasswordButton": "Đổi mật khẩu",
     "changingPassword": "Đang thay đổi...",
     "sendVerificationCode": "Gửi mã xác minh",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "Mật khẩu phải chứa số.",
     "validationPasswordMismatch": "Mật khẩu không khớp.",
     "validationConfirmPasswordRequired": "Vui lòng xác nhận mật khẩu.",
-    "confirmPasswordLabel": "Xác nhận mật khẩu",
-    "confirmPasswordPlaceholder": "Nhập lại mật khẩu",
     "statusBadRequest": "Vui lòng kiểm tra định dạng nhập.",
     "statusUnauthorized": "Email hoặc mật khẩu không đúng.",
     "statusForbidden": "Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.",
@@ -182,7 +184,6 @@
     "verifyEmailDescription": "Nhập mã 6 chữ số đã gửi đến {{email}}.",
     "verifyEmailNoEmail": "Không có thông tin email. Vui lòng đăng ký trước.",
     "goToSignup": "Đi đến đăng ký",
-    "backToLogin": "Quay lại đăng nhập",
     "toastEmailVerified": "Xác minh email thành công. Vui lòng đăng nhập.",
     "toastEmailNotVerified": "Cần xác minh email.",
     "toastVerificationCodeSent": "Mã xác minh đã được gửi đến email của bạn.",

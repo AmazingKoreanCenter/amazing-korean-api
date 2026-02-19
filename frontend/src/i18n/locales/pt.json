@@ -21,7 +21,11 @@
     "errorOccurred": "Ocorreu um Erro",
     "temporaryError": "Ocorreu um erro temporário. Por favor, tente novamente.",
     "loginRequired": "É necessário fazer login",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "Mudar tema",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "themeSystem": "Sistema"
   },
   "nav": {
     "about": "Sobre",
@@ -50,7 +54,7 @@
     "privacy": "Política de Privacidade",
     "contact": "Contato",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | CEO: Kyungyun Kim | CNPJ: 505-88-03252 | Reg. de Vendas Online: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | CEO: Kyoung Ryun KIM | CNPJ: 505-88-03252 | Reg. de Vendas Online: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. Todos os direitos reservados."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "Digite sua nova senha.",
     "newPasswordLabel": "Nova Senha",
     "newPasswordPlaceholder": "Digite a nova senha",
-    "confirmPasswordLabel": "Confirmar Nova Senha",
-    "confirmPasswordPlaceholder": "Confirme a nova senha",
+    "confirmPasswordLabel": "Confirmar Senha",
+    "confirmPasswordPlaceholder": "Digite sua senha novamente",
     "changePasswordButton": "Alterar Senha",
     "changingPassword": "Alterando...",
     "sendVerificationCode": "Enviar Código de Verificação",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "A senha deve conter um número.",
     "validationPasswordMismatch": "As senhas não coincidem.",
     "validationConfirmPasswordRequired": "Por favor, confirme sua senha.",
-    "confirmPasswordLabel": "Confirmar Senha",
-    "confirmPasswordPlaceholder": "Digite sua senha novamente",
     "statusBadRequest": "Por favor, verifique o formato dos dados inseridos.",
     "statusUnauthorized": "E-mail ou senha incorretos.",
     "statusForbidden": "Esta conta foi bloqueada. Por favor, entre em contato com o administrador.",

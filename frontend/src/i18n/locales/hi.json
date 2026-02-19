@@ -21,7 +21,11 @@
     "errorOccurred": "त्रुटि हुई",
     "temporaryError": "एक अस्थायी त्रुटि हुई। कृपया पुनः प्रयास करें।",
     "loginRequired": "लॉगिन आवश्यक है",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "थीम बदलें",
+    "themeLight": "लाइट",
+    "themeDark": "डार्क",
+    "themeSystem": "सिस्टम"
   },
   "nav": {
     "about": "परिचय",
@@ -50,7 +54,7 @@
     "privacy": "गोपनीयता नीति",
     "contact": "संपर्क करें",
     "address": "350 हन्नूरी-दाएरो, सेजोंग, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | CEO: Kyungyun Kim | व्यवसाय पंजीकरण संख्या: 505-88-03252 | ऑनलाइन बिक्री पंजीकरण: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | CEO: Kyoung Ryun KIM | व्यवसाय पंजीकरण संख्या: 505-88-03252 | ऑनलाइन बिक्री पंजीकरण: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. सर्वाधिकार सुरक्षित।"
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "अपना नया पासवर्ड दर्ज करें।",
     "newPasswordLabel": "नया पासवर्ड",
     "newPasswordPlaceholder": "नया पासवर्ड दर्ज करें",
-    "confirmPasswordLabel": "नए पासवर्ड की पुष्टि करें",
-    "confirmPasswordPlaceholder": "नए पासवर्ड की पुष्टि करें",
+    "confirmPasswordLabel": "पासवर्ड की पुष्टि करें",
+    "confirmPasswordPlaceholder": "अपना पासवर्ड पुनः दर्ज करें",
     "changePasswordButton": "पासवर्ड बदलें",
     "changingPassword": "बदला जा रहा है...",
     "sendVerificationCode": "सत्यापन कोड भेजें",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "पासवर्ड में एक संख्या होनी चाहिए।",
     "validationPasswordMismatch": "पासवर्ड मेल नहीं खाते।",
     "validationConfirmPasswordRequired": "कृपया अपने पासवर्ड की पुष्टि करें।",
-    "confirmPasswordLabel": "पासवर्ड की पुष्टि करें",
-    "confirmPasswordPlaceholder": "अपना पासवर्ड पुनः दर्ज करें",
     "statusBadRequest": "कृपया इनपुट प्रारूप की जांच करें।",
     "statusUnauthorized": "ईमेल या पासवर्ड गलत है।",
     "statusForbidden": "यह खाता ब्लॉक कर दिया गया है। कृपया प्रशासक से संपर्क करें।",

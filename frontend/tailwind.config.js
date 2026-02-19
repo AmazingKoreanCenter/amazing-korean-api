@@ -64,6 +64,14 @@ theme: {
         info: 'hsl(var(--info))',
         'info-foreground': 'hsl(var(--info-foreground))',
       },
+      footer: {
+        DEFAULT: 'hsl(var(--footer))',
+        foreground: 'hsl(var(--footer-foreground))',
+      },
+      'surface-inverted': {
+        DEFAULT: 'hsl(var(--surface-inverted))',
+        foreground: 'hsl(var(--surface-inverted-foreground))',
+      },
     },
     spacing: {
       'section-sm': '2.5rem',

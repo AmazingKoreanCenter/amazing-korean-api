@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/ui/theme_toggle";
 import { useAuthStore } from "@/hooks/use_auth_store";
 import { LogoutButton } from "@/category/auth/components/logout_button";
 import { useUpdateSettings } from "@/category/user/hook/use_update_settings";
@@ -60,8 +61,8 @@ export function Header() {
       className={cn(
         "sticky top-0 z-50 w-full transition-all duration-300",
         scrolled
-          ? "bg-white/95 backdrop-blur-md shadow-sm border-b"
-          : "bg-white border-b border-transparent"
+          ? "bg-background/95 backdrop-blur-md shadow-sm border-b"
+          : "bg-background border-b border-transparent"
       )}
     >
       <div className="max-w-[1350px] mx-auto flex h-[72px] items-center justify-between px-6 lg:px-8">
@@ -97,6 +98,8 @@ export function Header() {
 
         {/* Desktop Auth Buttons */}
         <div className="hidden lg:flex items-center gap-3">
+          <ThemeToggle />
+
           {/* Language Switcher */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -182,7 +185,7 @@ export function Header() {
           mobileMenuOpen ? "max-h-[400px] border-t" : "max-h-0"
         )}
       >
-        <nav className="max-w-[1350px] mx-auto px-6 py-4 flex flex-col gap-1 bg-white">
+        <nav className="max-w-[1350px] mx-auto px-6 py-4 flex flex-col gap-1 bg-background">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.path}
@@ -227,6 +230,10 @@ export function Header() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <div className="flex items-center gap-2 px-4 py-2">
+            <ThemeToggle />
+          </div>
 
           <div className="border-t my-3" />
 

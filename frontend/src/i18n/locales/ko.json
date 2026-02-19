@@ -21,7 +21,11 @@
     "errorOccurred": "오류 발생",
     "temporaryError": "일시적인 오류입니다. 다시 시도해주세요.",
     "loginRequired": "로그인이 필요합니다",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "테마 변경",
+    "themeLight": "라이트",
+    "themeDark": "다크",
+    "themeSystem": "시스템"
   },
   "nav": {
     "about": "소개",

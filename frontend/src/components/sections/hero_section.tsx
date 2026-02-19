@@ -28,7 +28,7 @@ export function HeroSection({
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div className="space-y-4">
               {badge && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background shadow-sm border">
                   {badge}
                 </div>
               )}

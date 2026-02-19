@@ -111,7 +111,7 @@ export function StudyListPage() {
       >
         {/* Filter Section */}
         <div className="w-full lg:w-80">
-          <div className="bg-white rounded-2xl shadow-card p-4 space-y-3">
+          <div className="bg-card rounded-2xl shadow-card p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Filter className="h-4 w-4" />
               {t("study.filterLabel")}

@@ -21,7 +21,11 @@
     "errorOccurred": "Terjadi Kesalahan",
     "temporaryError": "Terjadi kesalahan sementara. Silakan coba lagi.",
     "loginRequired": "Login diperlukan",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "Ubah tema",
+    "themeLight": "Terang",
+    "themeDark": "Gelap",
+    "themeSystem": "Sistem"
   },
   "nav": {
     "about": "Tentang",
@@ -50,7 +54,7 @@
     "privacy": "Kebijakan Privasi",
     "contact": "Kontak",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | CEO: Kyungyun Kim | No. Reg. Usaha: 505-88-03252 | No. Reg. Penjualan Online: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | CEO: Kyoung Ryun KIM | No. Reg. Usaha: 505-88-03252 | No. Reg. Penjualan Online: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. All rights reserved."
   },
   "auth": {

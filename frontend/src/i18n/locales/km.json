@@ -21,7 +21,11 @@
     "errorOccurred": "មានកំហុសកើតឡើង",
     "temporaryError": "មានកំហុសបណ្តោះអាសន្នកើតឡើង។ សូមព្យាយាមម្តងទៀត។",
     "loginRequired": "ត្រូវការចូលគណនី",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "ប្តូរស្បែក",
+    "themeLight": "ភ្លឺ",
+    "themeDark": "ងងឹត",
+    "themeSystem": "ប្រព័ន្ធ"
   },
   "nav": {
     "about": "អំពីយើង",
@@ -50,7 +54,7 @@
     "privacy": "គោលការណ៍ឯកជនភាព",
     "contact": "ទំនាក់ទំនង",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | CEO: Kyungyun Kim | Business Reg. No.: 505-88-03252 | Online Sales Reg.: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | CEO: Kyoung Ryun KIM | Business Reg. No.: 505-88-03252 | Online Sales Reg.: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. All rights reserved."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "បញ្ចូលពាក្យសម្ងាត់ថ្មីរបស់អ្នក។",
     "newPasswordLabel": "ពាក្យសម្ងាត់ថ្មី",
     "newPasswordPlaceholder": "បញ្ចូលពាក្យសម្ងាត់ថ្មី",
-    "confirmPasswordLabel": "បញ្ជាក់ពាក្យសម្ងាត់ថ្មី",
-    "confirmPasswordPlaceholder": "បញ្ជាក់ពាក្យសម្ងាត់ថ្មី",
+    "confirmPasswordLabel": "បញ្ជាក់ពាក្យសម្ងាត់",
+    "confirmPasswordPlaceholder": "បញ្ចូលពាក្យសម្ងាត់ម្តងទៀត",
     "changePasswordButton": "ប្តូរពាក្យសម្ងាត់",
     "changingPassword": "កំពុងប្តូរ...",
     "sendVerificationCode": "ផ្ញើលេខកូដផ្ទៀងផ្ទាត់",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "ពាក្យសម្ងាត់ត្រូវមានលេខ។",
     "validationPasswordMismatch": "ពាក្យសម្ងាត់មិនត្រូវគ្នា។",
     "validationConfirmPasswordRequired": "សូមបញ្ជាក់ពាក្យសម្ងាត់របស់អ្នក។",
-    "confirmPasswordLabel": "បញ្ជាក់ពាក្យសម្ងាត់",
-    "confirmPasswordPlaceholder": "បញ្ចូលពាក្យសម្ងាត់ម្តងទៀត",
     "statusBadRequest": "សូមពិនិត្យទម្រង់បញ្ចូល។",
     "statusUnauthorized": "អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ។",
     "statusForbidden": "គណនីនេះត្រូវបានបិទ។ សូមទាក់ទងអ្នកគ្រប់គ្រង។",

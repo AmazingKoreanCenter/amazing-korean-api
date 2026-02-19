@@ -21,7 +21,11 @@
     "errorOccurred": "Алдаа гарлаа",
     "temporaryError": "Түр зуурын алдаа гарлаа. Дахин оролдоно уу.",
     "loginRequired": "Нэвтрэх шаардлагатай",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "Загвар солих",
+    "themeLight": "Цайвар",
+    "themeDark": "Бараан",
+    "themeSystem": "Систем"
   },
   "nav": {
     "about": "Танилцуулга",
@@ -50,7 +54,7 @@
     "privacy": "Нууцлалын бодлого",
     "contact": "Холбоо барих",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | Захирал: Kyungyun Kim | Бизнесийн бүртгэлийн дугаар: 505-88-03252 | Онлайн борлуулалтын бүртгэл: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | Захирал: Kyoung Ryun KIM | Бизнесийн бүртгэлийн дугаар: 505-88-03252 | Онлайн борлуулалтын бүртгэл: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. Бүх эрх хуулиар хамгаалагдсан."
   },
   "auth": {
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "Шинэ нууц үгээ оруулна уу.",
     "newPasswordLabel": "Шинэ нууц үг",
     "newPasswordPlaceholder": "Шинэ нууц үгээ оруулна уу",
-    "confirmPasswordLabel": "Шинэ нууц үг баталгаажуулах",
-    "confirmPasswordPlaceholder": "Шинэ нууц үгээ дахин оруулна уу",
+    "confirmPasswordLabel": "Нууц үг баталгаажуулах",
+    "confirmPasswordPlaceholder": "Нууц үгээ дахин оруулна уу",
     "changePasswordButton": "Нууц үг солих",
     "changingPassword": "Солиж байна...",
     "sendVerificationCode": "Баталгаажуулах код илгээх",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "Нууц үг тоо агуулсан байх ёстой.",
     "validationPasswordMismatch": "Нууц үг таарахгүй байна.",
     "validationConfirmPasswordRequired": "Нууц үгээ баталгаажуулна уу.",
-    "confirmPasswordLabel": "Нууц үг баталгаажуулах",
-    "confirmPasswordPlaceholder": "Нууц үгээ дахин оруулна уу",
     "statusBadRequest": "Оруулсан мэдээллийн форматыг шалгана уу.",
     "statusUnauthorized": "Имэйл эсвэл нууц үг буруу байна.",
     "statusForbidden": "Энэ бүртгэл хаагдсан байна. Админтай холбогдоно уу.",

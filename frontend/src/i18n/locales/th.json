@@ -21,7 +21,11 @@
     "errorOccurred": "เกิดข้อผิดพลาด",
     "temporaryError": "เกิดข้อผิดพลาดชั่วคราว กรุณาลองใหม่อีกครั้ง",
     "loginRequired": "กรุณาเข้าสู่ระบบ",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "เปลี่ยนธีม",
+    "themeLight": "สว่าง",
+    "themeDark": "มืด",
+    "themeSystem": "ระบบ"
   },
   "nav": {
     "about": "เกี่ยวกับเรา",
@@ -126,8 +130,8 @@
     "resetPasswordNewDescription": "กรอกรหัสผ่านใหม่ของคุณ",
     "newPasswordLabel": "รหัสผ่านใหม่",
     "newPasswordPlaceholder": "กรอกรหัสผ่านใหม่",
-    "confirmPasswordLabel": "ยืนยันรหัสผ่านใหม่",
-    "confirmPasswordPlaceholder": "กรอกรหัสผ่านใหม่อีกครั้ง",
+    "confirmPasswordLabel": "ยืนยันรหัสผ่าน",
+    "confirmPasswordPlaceholder": "กรอกรหัสผ่านอีกครั้ง",
     "changePasswordButton": "เปลี่ยนรหัสผ่าน",
     "changingPassword": "กำลังเปลี่ยน...",
     "sendVerificationCode": "ส่งรหัสยืนยัน",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว",
     "validationPasswordMismatch": "รหัสผ่านไม่ตรงกัน",
     "validationConfirmPasswordRequired": "กรุณายืนยันรหัสผ่าน",
-    "confirmPasswordLabel": "ยืนยันรหัสผ่าน",
-    "confirmPasswordPlaceholder": "กรอกรหัสผ่านอีกครั้ง",
     "statusBadRequest": "กรุณาตรวจสอบรูปแบบข้อมูลที่กรอก",
     "statusUnauthorized": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
     "statusForbidden": "บัญชีนี้ถูกระงับ กรุณาติดต่อผู้ดูแลระบบ",

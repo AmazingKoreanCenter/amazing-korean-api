@@ -21,7 +21,11 @@
     "errorOccurred": "Произошла ошибка",
     "temporaryError": "Произошла временная ошибка. Пожалуйста, попробуйте снова.",
     "loginRequired": "Необходимо войти в систему",
-    "brandName": "Amazing Korean"
+    "brandName": "Amazing Korean",
+    "toggleTheme": "Сменить тему",
+    "themeLight": "Светлая",
+    "themeDark": "Тёмная",
+    "themeSystem": "Системная"
   },
   "nav": {
     "about": "О нас",
@@ -50,7 +54,7 @@
     "privacy": "Политика конфиденциальности",
     "contact": "Контакты",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | Генеральный директор: Kyungyun Kim | Рег. номер: 505-88-03252 | Рег. онлайн-торговли: 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | Генеральный директор: Kyoung Ryun KIM | Рег. номер: 505-88-03252 | Рег. онлайн-торговли: 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. Все права защищены."
   },
   "auth": {
@@ -127,7 +131,7 @@
     "newPasswordLabel": "Новый пароль",
     "newPasswordPlaceholder": "Введите новый пароль",
     "confirmPasswordLabel": "Подтверждение пароля",
-    "confirmPasswordPlaceholder": "Подтвердите новый пароль",
+    "confirmPasswordPlaceholder": "Введите пароль ещё раз",
     "changePasswordButton": "Изменить пароль",
     "changingPassword": "Изменение...",
     "sendVerificationCode": "Отправить код подтверждения",
@@ -170,8 +174,6 @@
     "validationPasswordDigit": "Пароль должен содержать цифру.",
     "validationPasswordMismatch": "Пароли не совпадают.",
     "validationConfirmPasswordRequired": "Пожалуйста, подтвердите пароль.",
-    "confirmPasswordLabel": "Подтверждение пароля",
-    "confirmPasswordPlaceholder": "Введите пароль ещё раз",
     "statusBadRequest": "Проверьте формат введённых данных.",
     "statusUnauthorized": "Неверный адрес почты или пароль.",
     "statusForbidden": "Этот аккаунт заблокирован. Обратитесь к администратору.",

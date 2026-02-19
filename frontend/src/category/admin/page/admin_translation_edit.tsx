@@ -76,14 +76,14 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
         const isDone = step < currentStep;
         return (
           <div key={step} className="flex items-center gap-2">
-            {i > 0 && <ChevronRight className="w-4 h-4 text-gray-300" />}
+            {i > 0 && <ChevronRight className="w-4 h-4 text-muted-foreground/70" />}
             <div
               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${
                 isActive
-                  ? "bg-blue-100 text-blue-700"
+                  ? "bg-primary/10 text-primary"
                   : isDone
                     ? "bg-status-success/10 text-status-success"
-                    : "bg-gray-100 text-gray-400"
+                    : "bg-muted text-muted-foreground/70"
               }`}
             >
               {isDone ? <Check className="w-3.5 h-3.5" /> : <span>{step}</span>}
@@ -322,7 +322,7 @@ function TranslationCreateWizard() {
                 ))}
               </div>
             ) : contentRecords.data && contentRecords.data.items.length === 0 ? (
-              <p className="text-sm text-gray-500">No records found.</p>
+              <p className="text-sm text-muted-foreground">No records found.</p>
             ) : (
               <div className="max-h-64 overflow-y-auto space-y-1">
                 {contentRecords.data?.items.map((rec) => (
@@ -330,15 +330,15 @@ function TranslationCreateWizard() {
                     key={rec.id}
                     className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
                       selectedRecordId === rec.id
-                        ? "bg-blue-50 border border-blue-200"
-                        : "hover:bg-gray-50 border border-transparent"
+                        ? "bg-primary/5 border border-primary/20"
+                        : "hover:bg-muted border border-transparent"
                     }`}
                     onClick={() => handleRecordSelect(rec.id)}
                   >
-                    <span className="font-mono text-xs text-gray-500">#{rec.id}</span>
+                    <span className="font-mono text-xs text-muted-foreground">#{rec.id}</span>
                     <span className="ml-2 font-medium">{rec.label}</span>
                     {rec.detail && (
-                      <span className="ml-2 text-gray-500">{rec.detail}</span>
+                      <span className="ml-2 text-muted-foreground">{rec.detail}</span>
                     )}
                   </button>
                 ))}
@@ -371,7 +371,7 @@ function TranslationCreateWizard() {
                 ))}
               </div>
             ) : sourceFields.data && sourceFields.data.fields.length === 0 ? (
-              <p className="text-sm text-gray-500">No translatable fields found.</p>
+              <p className="text-sm text-muted-foreground">No translatable fields found.</p>
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {sourceFields.data?.fields.map((f) => {
@@ -382,8 +382,8 @@ function TranslationCreateWizard() {
                       key={key}
                       className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors ${
                         selectedFields.has(key)
-                          ? "border-blue-200 bg-blue-50"
-                          : "border-gray-200 hover:bg-gray-50"
+                          ? "border-primary/20 bg-primary/5"
+                          : "border-border hover:bg-muted"
                       }`}
                     >
                       <Checkbox
@@ -405,7 +405,7 @@ function TranslationCreateWizard() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 mt-1 truncate">
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
                           {f.source_text || <span className="italic">No source text</span>}
                         </p>
                       </div>
@@ -468,14 +468,14 @@ function TranslationCreateWizard() {
                         />
                         <span>
                           {lang.nativeName}{" "}
-                          <span className="text-gray-400 text-xs">({lang.code})</span>
+                          <span className="text-muted-foreground/70 text-xs">({lang.code})</span>
                         </span>
                       </label>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-md p-3 text-sm text-gray-600">
+                <div className="bg-muted rounded-md p-3 text-sm text-muted-foreground">
                   {selectedFields.size} field(s) x {selectedLangs.size} language(s) ={" "}
                   <strong>{selectedFields.size * selectedLangs.size}</strong> translation(s)
                 </div>
@@ -509,10 +509,10 @@ function TranslationCreateWizard() {
                           }`}
                         >
                           <span className="font-mono font-medium">{r.lang}</span>
-                          <span className="mx-1 text-gray-400">|</span>
+                          <span className="mx-1 text-muted-foreground/70">|</span>
                           <span>{r.field_name}</span>
                           {r.success ? (
-                            <span className="ml-2 text-gray-600">
+                            <span className="ml-2 text-muted-foreground">
                               {r.translated_text && r.translated_text.length > 40
                                 ? r.translated_text.slice(0, 40) + "..."
                                 : r.translated_text}
@@ -567,7 +567,7 @@ function TranslationCreateWizard() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           Source: {f.source_text || "N/A"}
                         </p>
                         <Textarea
@@ -652,23 +652,23 @@ function TranslationEditForm({ id }: { id: number }) {
   return (
     <div className="max-w-2xl">
       {/* 읽기 전용 메타 정보 */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-2 text-sm">
+      <div className="mb-6 p-4 bg-muted rounded-lg space-y-2 text-sm">
         <div className="flex gap-8">
-          <span className="text-gray-500">Type:</span>
+          <span className="text-muted-foreground">Type:</span>
           <span className="font-medium">
             {CONTENT_TYPE_LABELS[data.content_type] ?? data.content_type}
           </span>
         </div>
         <div className="flex gap-8">
-          <span className="text-gray-500">Content ID:</span>
+          <span className="text-muted-foreground">Content ID:</span>
           <span className="font-mono">{data.content_id}</span>
         </div>
         <div className="flex gap-8">
-          <span className="text-gray-500">Field:</span>
+          <span className="text-muted-foreground">Field:</span>
           <span className="font-mono">{data.field_name}</span>
         </div>
         <div className="flex gap-8">
-          <span className="text-gray-500">Language:</span>
+          <span className="text-muted-foreground">Language:</span>
           <span>{SUPPORTED_LANGUAGES.find((l) => l.code === data.lang)?.nativeName ?? data.lang}</span>
         </div>
       </div>
@@ -743,7 +743,7 @@ export function AdminTranslationEdit() {
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back
         </Button>
-        <h2 className="text-2xl font-bold text-gray-900">
+        <h2 className="text-2xl font-bold text-foreground">
           {isCreateMode ? "New Translation" : "Edit Translation"}
         </h2>
       </div>

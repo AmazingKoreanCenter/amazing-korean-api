@@ -34,7 +34,7 @@ export function LessonListPage() {
         );
       case "private":
         return (
-          <Badge className="absolute top-3 right-3 bg-gray-500 hover:bg-gray-500 text-white border-0 gap-1">
+          <Badge className="absolute top-3 right-3 bg-muted-foreground hover:bg-muted-foreground text-white border-0 gap-1">
             <Lock className="h-3 w-3" />
             {t("lesson.accessPrivate")}
           </Badge>

@@ -42,8 +42,8 @@ import {
 } from "../translation/types";
 
 const STATUS_OPTIONS: { value: TranslationStatus; label: string; color: string }[] = [
-  { value: "draft", label: "Draft", color: "bg-yellow-100 text-yellow-800" },
-  { value: "reviewed", label: "Reviewed", color: "bg-blue-100 text-blue-800" },
+  { value: "draft", label: "Draft", color: "bg-status-warning/10 text-status-warning" },
+  { value: "reviewed", label: "Reviewed", color: "bg-primary/10 text-primary" },
   { value: "approved", label: "Approved", color: "bg-status-success/10 text-status-success" },
 ];
 
@@ -160,10 +160,10 @@ export function AdminTranslationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Languages className="w-6 h-6 text-gray-700" />
-          <h2 className="text-2xl font-bold text-gray-900">Translations</h2>
+          <Languages className="w-6 h-6 text-foreground" />
+          <h2 className="text-2xl font-bold text-foreground">Translations</h2>
           {data && (
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-muted-foreground">
               ({data.meta.total_count} total)
             </span>
           )}
@@ -240,7 +240,7 @@ export function AdminTranslationsPage() {
               return (
                 <div key={lang.code}>
                   {showSeparator && (
-                    <div className="my-1 border-t border-gray-200" />
+                    <div className="my-1 border-t border-border" />
                   )}
                   <SelectItem value={lang.code}>
                     {lang.flag} {lang.nativeName} ({lang.code})
@@ -271,19 +271,19 @@ export function AdminTranslationsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left px-4 py-3 font-medium text-gray-600">ID</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Type</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Content ID</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Field</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Lang</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Text</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Actions</th>
+              <tr className="border-b bg-muted">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">ID</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Type</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Content ID</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Field</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Lang</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Text</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -305,14 +305,14 @@ export function AdminTranslationsPage() {
                 </tr>
               ) : filteredItems && filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                     No translations found.
                   </td>
                 </tr>
               ) : (
                 filteredItems?.map((item) => (
-                  <tr key={item.translation_id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-900 font-mono text-xs">
+                  <tr key={item.translation_id} className="border-b hover:bg-muted">
+                    <td className="px-4 py-3 text-foreground font-mono text-xs">
                       {item.translation_id}
                     </td>
                     <td className="px-4 py-3">
@@ -326,7 +326,7 @@ export function AdminTranslationsPage() {
                       <Badge variant="secondary">{item.lang}</Badge>
                     </td>
                     <td className="px-4 py-3 max-w-[200px]">
-                      <span className="text-gray-700" title={item.translated_text}>
+                      <span className="text-foreground" title={item.translated_text}>
                         {truncate(item.translated_text, 40)}
                       </span>
                     </td>

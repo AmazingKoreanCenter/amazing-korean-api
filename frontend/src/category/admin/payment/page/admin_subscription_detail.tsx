@@ -156,7 +156,7 @@ export function AdminSubscriptionDetail() {
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t("admin.payment.colUserId")}</span>
-                <Link to={`/admin/users/${user.user_id}`} className="text-blue-600 hover:underline">
+                <Link to={`/admin/users/${user.user_id}`} className="text-primary hover:underline">
                   {user.user_id}
                 </Link>
               </div>

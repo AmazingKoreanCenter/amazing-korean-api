@@ -88,7 +88,7 @@ export function AboutPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-2xl p-8 shadow-card text-center">
+            <div className="bg-card rounded-2xl p-8 shadow-card text-center">
               <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
                 <Target className="h-8 w-8 text-white" />
               </div>
@@ -98,7 +98,7 @@ export function AboutPage() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-8 shadow-card text-center">
+            <div className="bg-card rounded-2xl p-8 shadow-card text-center">
               <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
                 <Heart className="h-8 w-8 text-white" />
               </div>
@@ -108,7 +108,7 @@ export function AboutPage() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-8 shadow-card text-center">
+            <div className="bg-card rounded-2xl p-8 shadow-card text-center">
               <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
                 <Globe className="h-8 w-8 text-white" />
               </div>
@@ -121,12 +121,12 @@ export function AboutPage() {
       </SectionContainer>
 
       {/* CTA Section */}
-      <SectionContainer size="lg" className="bg-primary">
+      <SectionContainer size="lg" className="bg-surface-inverted">
         <div className="text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-surface-inverted-foreground mb-4">
             {t("about.ctaTitle")}
           </h2>
-          <p className="text-white/70 text-lg max-w-xl mx-auto mb-10">
+          <p className="text-surface-inverted-foreground/70 text-lg max-w-xl mx-auto mb-10">
             {t("about.ctaDescription")}
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -144,7 +144,7 @@ export function AboutPage() {
               size="lg"
               variant="outline"
               asChild
-              className="rounded-full px-8 h-14 text-base border-2 border-white/30 text-black hover:bg-white/10 hover:border-white/50"
+              className="rounded-full px-8 h-14 text-base border-2 border-surface-inverted-foreground/30 text-surface-inverted-foreground hover:bg-surface-inverted-foreground/10 hover:border-surface-inverted-foreground/50"
             >
               <Link to="/videos">{t("about.ctaBrowseVideos")}</Link>
             </Button>
