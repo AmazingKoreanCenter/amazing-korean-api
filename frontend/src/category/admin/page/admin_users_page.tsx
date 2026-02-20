@@ -59,7 +59,7 @@ export function AdminUsersPage() {
     size: 20,
   });
   const [searchInput, setSearchInput] = useState("");
-  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortField, setSortField] = useState<SortField>("id");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   // 체크박스 선택 상태
@@ -187,13 +187,15 @@ export function AdminUsersPage() {
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
       case "HYMN":
-        return "destructive";
+        return "purple" as const;
       case "admin":
-        return "default";
+        return "orange" as const;
       case "manager":
-        return "secondary";
+        return "info" as const;
+      case "learner":
+        return "success" as const;
       default:
-        return "outline";
+        return "outline" as const;
     }
   };
 
@@ -236,105 +238,107 @@ export function AdminUsersPage() {
       </div>
 
       {/* Search & Bulk Actions */}
-      <div className="flex items-center justify-between gap-4">
-        <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search by email or nickname..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Button type="submit" variant="secondary">
-            Search
-          </Button>
-        </form>
+      <div className="bg-card rounded-lg border border-foreground/15 p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by email or nickname..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 border-foreground/20"
+              />
+            </div>
+            <Button type="submit" variant="secondary">
+              Search
+            </Button>
+          </form>
 
-        {selectedIds.size > 0 && (
-          <Button
-            variant="outline"
-            onClick={() => setBulkEditOpen(true)}
-          >
-            <Users className="mr-2 h-4 w-4" />
-            Edit {selectedIds.size} Selected
-          </Button>
-        )}
+          {selectedIds.size > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setBulkEditOpen(true)}
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Edit {selectedIds.size} Selected
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="bg-card rounded-lg border overflow-hidden shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50">
+          <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="h-10 px-4 text-left font-medium w-10">
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground w-10">
                 <Checkbox
                   checked={allSelected}
                   onCheckedChange={handleSelectAll}
                 />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("id")}
               >
                 ID
                 <SortIcon field="id" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("email")}
               >
                 Email
                 <SortIcon field="email" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("nickname")}
               >
                 Nickname
                 <SortIcon field="nickname" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("role")}
               >
                 Role
                 <SortIcon field="role" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("created_at")}
               >
                 Created At
                 <SortIcon field="created_at" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">Actions</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b">
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-4" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-8" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-40" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-24" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-5 w-16" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-28" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-8 w-16" />
                   </td>
                 </tr>
@@ -353,25 +357,25 @@ export function AdminUsersPage() {
               </tr>
             ) : (
               data?.items.map((user: AdminUserSummary) => (
-                <tr key={user.id} className="border-b hover:bg-muted/50">
-                  <td className="p-4">
+                <tr key={user.id} className="border-b hover:bg-accent/10">
+                  <td className="px-4 py-3">
                     <Checkbox
                       checked={selectedIds.has(user.id)}
                       onCheckedChange={(checked) => handleSelectOne(user.id, !!checked)}
                     />
                   </td>
-                  <td className="p-4">{user.id}</td>
-                  <td className="p-4">{user.email}</td>
-                  <td className="p-4">{user.nickname || "-"}</td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">{user.id}</td>
+                  <td className="px-4 py-3">{user.email}</td>
+                  <td className="px-4 py-3">{user.nickname || "-"}</td>
+                  <td className="px-4 py-3">
                     <Badge variant={getRoleBadgeVariant(user.role)}>
                       {user.role}
                     </Badge>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     {new Date(user.created_at).toLocaleDateString()}
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/users/${user.id}`}>Edit</Link>
                     </Button>

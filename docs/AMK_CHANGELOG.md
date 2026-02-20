@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-02-19
+updated: 2026-02-20
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,59 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-02-20 — Admin 리스트 페이지 디자인 통일 + Enum Badge 색상 체계 구축**
+  - **테이블 스타일 통일 (8개 페이지, Translations 기준)**
+    - Wrapper: `bg-card rounded-lg border overflow-hidden shadow-sm`
+    - Thead: `border-b-2 bg-secondary`, Th: `font-semibold text-secondary-foreground`
+    - Data cell: `px-4 py-3`, Hover: `hover:bg-accent/10`
+    - 대상: Users, Videos, Lessons, Studies, Subscriptions, Transactions, Grants, Translations
+  - **검색 폼 카드 래핑 (7개 페이지)**
+    - `bg-card rounded-lg border border-foreground/15 p-4 shadow-sm` 래퍼 추가
+    - Input 테두리 강화: `border-foreground/20`
+    - 대상: Users, Videos, Lessons, Studies, Subscriptions, Transactions, Translations
+  - **기본 정렬 ID 내림차순 (8개 페이지)**
+    - 프론트엔드: Users/Videos/Subscriptions/Transactions → `id`, Lessons → `lesson_id`, Studies → `study_id`
+    - 백엔드: Grants `ORDER BY uc.user_id DESC`, Translations `ORDER BY translation_id DESC`
+  - **Enum Badge 색상 체계 — 8개 CSS 변수 + 6개 Badge variant 신규**
+    - CSS 변수: `--badge-blue/orange/purple/yellow/sky/indigo` (light/dark 분리, 테마 토큰과 독립)
+    - Badge variant: `blue`, `orange`, `purple`, `yellow`, `sky`, `indigo` 추가
+    - State: open→`success`, ready→`warning`, close→`destructive`
+    - Access: public→`success`, paid→`destructive`, private→`blue`, promote→`warning`
+    - Subscription: active→`success`, trialing→`blue`, past_due→`warning`, paused→`orange`, canceled→`destructive`
+    - Transaction: completed→`success`, refunded→`destructive`, partially_refunded→`warning`
+    - User Role: HYMN→`purple`, admin→`orange`, manager→`info`, learner→`success`
+    - Translation Status: draft→`destructive`, reviewed→`warning`, approved→`success`
+    - Study Program: basic→`sky`(하늘색), topik→`indigo`(남색), tbc→`outline`
+  - **Warning Badge 글씨색 흰색 변경**: `--warning-foreground: 0 0% 100%` (라이트/다크 모두)
+  - **언어 컬럼 국기 이모지**: Translations 페이지 `<Badge>en</Badge>` → `🇺🇸 English` (emoji-flag + nativeName)
+  - **Admin 레이아웃 ThemeToggle 추가**: 관리자 헤더에 라이트/다크 모드 전환 버튼
+  - **검증**: `npm run build` 통과
+
+- **2026-02-19 — Design System v2/v3 + 다크모드 + CEO 이름 통일**
+  - **Design System v2 — 공유 컴포넌트 추출 (6개 신규)**
+    - `lib/pagination.ts` (getPageItems + ELLIPSIS Symbol), `sections/pagination_bar.tsx` (PaginationBar), `sections/empty_state.tsx` (EmptyState), `sections/skeleton_grid.tsx` (SkeletonGrid), `sections/list_stats_bar.tsx` (ListStatsBar), `sections/stat_card.tsx` (StatCard)
+    - `ui/card.tsx` CVA 확장: default/elevated/interactive variant (focus-visible:ring-2, active:translate-y-0, motion-reduce)
+    - `sections/hero_section.tsx` variant prop: marketing/list 레이아웃 전환
+    - 리스트 페이지 5개 + admin_dashboard.tsx 전면 교체 (Hero + Empty + Skeleton + PaginationBar + ListStatsBar)
+  - **Design System v3 — 다크모드 구현**
+    - CSS 변수 이중 정의 (`:root` + `.dark`) — 60+ 토큰 라이트/다크 분리
+    - `next-themes` ThemeProvider 연결 (`attribute="class"`, `defaultTheme="system"`, `disableTransitionOnChange`)
+    - `theme_toggle.tsx` 신규 — Sun/Moon 토글 + 드롭다운 (Light/Dark/System)
+    - 전용 Surface 토큰: `--footer`, `--surface-inverted` — `--primary` 반전 문제 해결
+    - 다크 shadow 오버라이드: `shadow-card`/`shadow-card-hover` → 검정 기반 (흰 글로우 방지)
+    - 다크 text-gradient 오버라이드: `--secondary → --accent` (라이트: `--primary → --accent`)
+    - Header/Footer + 공개 페이지 6개 + Admin 페이지 10개 하드코딩 색상 전면 교체
+    - 22개 로케일 테마 i18n 키 추가 (toggleTheme, themeLight, themeDark, themeSystem)
+  - **Design System v3 — UI/UX 가이드라인 문서화**
+    - `AMK_DESIGN_SYSTEM.md` 대폭 확장: Radius Scale (6단계), Typography Scale (Heading/Weight/Line-height), Shadow Scale (6단계), Icon Sizing (6단계), Container Sizes, Button Variants & Sizes, Animation & Duration, Grid Gap Standard
+    - Anti-Pattern 6개 추가 (Named colors, Footer/CTA, Radius/Shadow/Typography 혼용)
+    - PR 체크리스트 5개 항목 추가 (Radius, Typography, Shadow, Icon, 다크모드)
+  - **CEO 영문 이름 통일**
+    - i18n 18개 로케일: `Kyungyun Kim` → `Kyoung Ryun KIM` (베트남어: `KIM Kyoung Ryun`)
+    - noscript: `KIM KYEONGRYUN` 유지 (사업자등록증 영문본 기준)
+  - **검증**: `npm run build` + `npm run lint:ui` 0건 + QA 124항목 122 PASS / 2 MANUAL
+  - **프로덕션 배포 완료**
 
 - **2026-02-19 — Paddle 사업자 인증 (KYB) 서류 제출**
   - Cloudflare 보안 설정 확인: Bot Fight Mode Off, Security Level Automated, I'm Under Attack 비활성화 — Paddle 크롤러 차단 요소 없음 확인

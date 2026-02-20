@@ -59,7 +59,7 @@ export function AdminLessonsPage() {
     size: 20,
   });
   const [searchInput, setSearchInput] = useState("");
-  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortField, setSortField] = useState<SortField>("lesson_id");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -156,12 +156,12 @@ export function AdminLessonsPage() {
 
   const getStateBadgeVariant = (state: string) => {
     switch (state) {
-      case "ready":
-        return "secondary" as const;
       case "open":
-        return "default" as const;
+        return "success" as const;
+      case "ready":
+        return "warning" as const;
       case "close":
-        return "outline" as const;
+        return "destructive" as const;
       default:
         return "outline" as const;
     }
@@ -170,13 +170,13 @@ export function AdminLessonsPage() {
   const getAccessBadgeVariant = (access: string) => {
     switch (access) {
       case "public":
-        return "default" as const;
+        return "success" as const;
       case "paid":
-        return "secondary" as const;
-      case "private":
         return "destructive" as const;
+      case "private":
+        return "blue" as const;
       case "promote":
-        return "outline" as const;
+        return "warning" as const;
       default:
         return "outline" as const;
     }
@@ -206,119 +206,121 @@ export function AdminLessonsPage() {
       </div>
 
       {/* Search & Bulk Actions */}
-      <div className="flex items-center justify-between gap-4">
-        <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search by idx, title..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Button type="submit" variant="secondary">
-            Search
-          </Button>
-        </form>
+      <div className="bg-card rounded-lg border border-foreground/15 p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by idx, title..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 border-foreground/20"
+              />
+            </div>
+            <Button type="submit" variant="secondary">
+              Search
+            </Button>
+          </form>
 
-        {selectedIds.size > 0 && (
-          <Button variant="outline" onClick={() => setBulkEditOpen(true)}>
-            <BookOpen className="mr-2 h-4 w-4" />
-            Edit {selectedIds.size} Selected
-          </Button>
-        )}
+          {selectedIds.size > 0 && (
+            <Button variant="outline" onClick={() => setBulkEditOpen(true)}>
+              <BookOpen className="mr-2 h-4 w-4" />
+              Edit {selectedIds.size} Selected
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="bg-card rounded-lg border overflow-hidden shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50">
+          <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="h-10 px-4 text-left font-medium w-10">
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground w-10">
                 <Checkbox checked={allSelected} onCheckedChange={handleSelectAll} />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("lesson_id")}
               >
                 ID
                 <SortIcon field="lesson_id" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("lesson_idx")}
               >
                 IDX
                 <SortIcon field="lesson_idx" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("lesson_title")}
               >
                 Title
                 <SortIcon field="lesson_title" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("lesson_subtitle")}
               >
                 Subtitle
                 <SortIcon field="lesson_subtitle" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("lesson_state")}
               >
                 State
                 <SortIcon field="lesson_state" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("lesson_access")}
               >
                 Access
                 <SortIcon field="lesson_access" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("created_at")}
               >
                 Created At
                 <SortIcon field="created_at" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">Actions</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b">
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-4" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-8" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-24" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-32" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-32" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-5 w-14" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-5 w-14" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-28" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-8 w-16" />
                   </td>
                 </tr>
@@ -337,8 +339,8 @@ export function AdminLessonsPage() {
               </tr>
             ) : (
               data?.list.map((lesson: AdminLessonRes) => (
-                <tr key={lesson.lesson_id} className="border-b hover:bg-muted/50">
-                  <td className="p-4">
+                <tr key={lesson.lesson_id} className="border-b hover:bg-accent/10">
+                  <td className="px-4 py-3">
                     <Checkbox
                       checked={selectedIds.has(lesson.lesson_id)}
                       onCheckedChange={(checked) =>
@@ -346,18 +348,18 @@ export function AdminLessonsPage() {
                       }
                     />
                   </td>
-                  <td className="p-4">{lesson.lesson_id}</td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">{lesson.lesson_id}</td>
+                  <td className="px-4 py-3">
                     <code className="text-xs bg-muted px-1 py-0.5 rounded">
                       {lesson.lesson_idx}
                     </code>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <div className="max-w-xs truncate" title={lesson.lesson_title ?? ""}>
                       {lesson.lesson_title || "-"}
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <div
                       className="max-w-xs truncate text-muted-foreground"
                       title={lesson.lesson_subtitle ?? ""}
@@ -365,20 +367,20 @@ export function AdminLessonsPage() {
                       {lesson.lesson_subtitle || "-"}
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Badge variant={getStateBadgeVariant(lesson.lesson_state)}>
                       {lesson.lesson_state}
                     </Badge>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Badge variant={getAccessBadgeVariant(lesson.lesson_access)}>
                       {lesson.lesson_access}
                     </Badge>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     {new Date(lesson.lesson_created_at).toLocaleDateString()}
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/lessons/${lesson.lesson_id}`}>Edit</Link>
                     </Button>

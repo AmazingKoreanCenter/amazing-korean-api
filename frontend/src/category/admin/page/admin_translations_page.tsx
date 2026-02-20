@@ -41,10 +41,10 @@ import {
   CATEGORY_CONTENT_TYPES,
 } from "../translation/types";
 
-const STATUS_OPTIONS: { value: TranslationStatus; label: string; color: string }[] = [
-  { value: "draft", label: "Draft", color: "bg-status-warning/10 text-status-warning" },
-  { value: "reviewed", label: "Reviewed", color: "bg-primary/10 text-primary" },
-  { value: "approved", label: "Approved", color: "bg-status-success/10 text-status-success" },
+const STATUS_OPTIONS: { value: TranslationStatus; label: string }[] = [
+  { value: "draft", label: "Draft" },
+  { value: "reviewed", label: "Reviewed" },
+  { value: "approved", label: "Approved" },
 ];
 
 // ko를 제외한 언어 목록 (번역 대상)
@@ -185,7 +185,8 @@ export function AdminTranslationsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 mb-4 flex-wrap">
+      <div className="bg-card rounded-lg border border-foreground/15 p-4 shadow-sm mb-4">
+      <div className="flex gap-3 flex-wrap">
         {/* Category Filter (Video / Study / Lesson) */}
         <Select
           value={topCategory}
@@ -269,21 +270,22 @@ export function AdminTranslationsPage() {
           </SelectContent>
         </Select>
       </div>
+      </div>
 
       {/* Table */}
-      <div className="bg-card rounded-lg border overflow-hidden">
+      <div className="bg-card rounded-lg border overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">ID</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Type</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Content ID</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Field</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Lang</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Text</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Actions</th>
+              <tr className="border-b-2 bg-secondary">
+                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">ID</th>
+                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Type</th>
+                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Content ID</th>
+                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Field</th>
+                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Lang</th>
+                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Text</th>
+                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Status</th>
+                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -311,7 +313,7 @@ export function AdminTranslationsPage() {
                 </tr>
               ) : (
                 filteredItems?.map((item) => (
-                  <tr key={item.translation_id} className="border-b hover:bg-muted">
+                  <tr key={item.translation_id} className="border-b hover:bg-accent/10">
                     <td className="px-4 py-3 text-foreground font-mono text-xs">
                       {item.translation_id}
                     </td>
@@ -323,7 +325,10 @@ export function AdminTranslationsPage() {
                     <td className="px-4 py-3 font-mono text-xs">{item.content_id}</td>
                     <td className="px-4 py-3 font-mono text-xs">{item.field_name}</td>
                     <td className="px-4 py-3">
-                      <Badge variant="secondary">{item.lang}</Badge>
+                      <span className="inline-flex items-center gap-1.5 text-sm">
+                        <span className="emoji-flag">{SUPPORTED_LANGUAGES.find((l) => l.code === item.lang)?.flag ?? "🏳️"}</span>
+                        <span className="font-medium text-foreground">{SUPPORTED_LANGUAGES.find((l) => l.code === item.lang)?.nativeName ?? item.lang}</span>
+                      </span>
                     </td>
                     <td className="px-4 py-3 max-w-[200px]">
                       <span className="text-foreground" title={item.translated_text}>

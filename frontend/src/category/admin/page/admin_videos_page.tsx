@@ -47,7 +47,7 @@ export function AdminVideosPage() {
     size: 20,
   });
   const [searchInput, setSearchInput] = useState("");
-  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortField, setSortField] = useState<SortField>("id");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -142,12 +142,12 @@ export function AdminVideosPage() {
 
   const getStateBadgeVariant = (state: string) => {
     switch (state) {
-      case "ready":
-        return "secondary" as const;
       case "open":
-        return "default" as const;
+        return "success" as const;
+      case "ready":
+        return "warning" as const;
       case "close":
-        return "outline" as const;
+        return "destructive" as const;
       default:
         return "outline" as const;
     }
@@ -156,13 +156,13 @@ export function AdminVideosPage() {
   const getAccessBadgeVariant = (access: string) => {
     switch (access) {
       case "public":
-        return "default" as const;
-      case "promote":
-        return "default" as const;
+        return "success" as const;
       case "paid":
-        return "secondary" as const;
+        return "destructive" as const;
       case "private":
-        return "outline" as const;
+        return "blue" as const;
+      case "promote":
+        return "warning" as const;
       default:
         return "outline" as const;
     }
@@ -197,115 +197,117 @@ export function AdminVideosPage() {
       </div>
 
       {/* Search & Bulk Actions */}
-      <div className="flex items-center justify-between gap-4">
-        <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search by title..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Button type="submit" variant="secondary">
-            Search
-          </Button>
-        </form>
+      <div className="bg-card rounded-lg border border-foreground/15 p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by title..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 border-foreground/20"
+              />
+            </div>
+            <Button type="submit" variant="secondary">
+              Search
+            </Button>
+          </form>
 
-        {selectedIds.size > 0 && (
-          <Button
-            variant="outline"
-            onClick={() => setBulkEditOpen(true)}
-          >
-            <Video className="mr-2 h-4 w-4" />
-            Edit {selectedIds.size} Selected
-          </Button>
-        )}
+          {selectedIds.size > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setBulkEditOpen(true)}
+            >
+              <Video className="mr-2 h-4 w-4" />
+              Edit {selectedIds.size} Selected
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="bg-card rounded-lg border overflow-hidden shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50">
+          <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="h-10 px-4 text-left font-medium w-10">
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground w-10">
                 <Checkbox
                   checked={allSelected}
                   onCheckedChange={handleSelectAll}
                 />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("id")}
               >
                 ID
                 <SortIcon field="id" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("title")}
               >
                 Title
                 <SortIcon field="title" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("video_state")}
               >
                 State
                 <SortIcon field="video_state" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("video_access")}
               >
                 Access
                 <SortIcon field="video_access" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("views")}
               >
                 Views
                 <SortIcon field="views" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("created_at")}
               >
                 Created At
                 <SortIcon field="created_at" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">Actions</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b">
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-4" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-8" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-48" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-5 w-14" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-5 w-14" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-12" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-28" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-8 w-16" />
                   </td>
                 </tr>
@@ -324,36 +326,36 @@ export function AdminVideosPage() {
               </tr>
             ) : (
               data?.items.map((video: AdminVideoSummary) => (
-                <tr key={video.id} className="border-b hover:bg-muted/50">
-                  <td className="p-4">
+                <tr key={video.id} className="border-b hover:bg-accent/10">
+                  <td className="px-4 py-3">
                     <Checkbox
                       checked={selectedIds.has(video.id)}
                       onCheckedChange={(checked) => handleSelectOne(video.id, !!checked)}
                     />
                   </td>
-                  <td className="p-4">{video.id}</td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">{video.id}</td>
+                  <td className="px-4 py-3">
                     <div className="max-w-xs truncate" title={video.title}>
                       {video.title}
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Badge variant={getStateBadgeVariant(video.video_state)}>
                       {video.video_state}
                     </Badge>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Badge variant={getAccessBadgeVariant(video.video_access)}>
                       {video.video_access === "public" && <Eye className="mr-1 h-3 w-3" />}
                       {video.video_access === "private" && <EyeOff className="mr-1 h-3 w-3" />}
                       {video.video_access}
                     </Badge>
                   </td>
-                  <td className="p-4">{video.views.toLocaleString()}</td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">{video.views.toLocaleString()}</td>
+                  <td className="px-4 py-3">
                     {new Date(video.created_at).toLocaleDateString()}
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/videos/${video.id}`}>Edit</Link>
                     </Button>

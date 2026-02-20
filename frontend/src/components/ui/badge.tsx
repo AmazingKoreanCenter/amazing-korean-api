@@ -16,6 +16,13 @@ const badgeVariants = cva(
         success: "border-transparent bg-status-success text-status-success-foreground",
         warning: "border-transparent bg-status-warning text-status-warning-foreground",
         info: "border-transparent bg-status-info text-status-info-foreground",
+        // Badge-only fixed colors (theme-independent for enum display)
+        blue: "border-transparent bg-badge-blue text-badge-blue-foreground",
+        orange: "border-transparent bg-badge-orange text-badge-orange-foreground",
+        purple: "border-transparent bg-badge-purple text-badge-purple-foreground",
+        yellow: "border-transparent bg-badge-yellow text-badge-yellow-foreground",
+        sky: "border-transparent bg-badge-sky text-badge-sky-foreground",
+        indigo: "border-transparent bg-badge-indigo text-badge-indigo-foreground",
       },
     },
     defaultVariants: {

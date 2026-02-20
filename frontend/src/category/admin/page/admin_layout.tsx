@@ -1,6 +1,8 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { Users, Video, BookOpen, GraduationCap, LayoutDashboard, Mail, Languages, CreditCard } from "lucide-react";
 
+import { ThemeToggle } from "@/components/ui/theme_toggle";
+
 const navItems = [
   { path: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { path: "/admin/users", label: "Users", icon: Users },
@@ -76,6 +78,7 @@ export function AdminLayout() {
           </h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">Admin</span>
+            <ThemeToggle />
           </div>
         </header>
 

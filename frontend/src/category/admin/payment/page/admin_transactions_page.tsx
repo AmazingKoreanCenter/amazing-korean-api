@@ -36,7 +36,7 @@ export function AdminTransactionsPage() {
   const [params, setParams] = useState<AdminTxnListReq>({ page: 1, size: 20 });
   const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [sortField, setSortField] = useState<SortField>("occurred_at");
+  const [sortField, setSortField] = useState<SortField>("id");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   const { data, isLoading, isError } = useAdminTransactions({
@@ -88,62 +88,64 @@ export function AdminTransactionsPage() {
       </div>
 
       {/* Search & Filter */}
-      <div className="flex items-center gap-4">
-        <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={t("admin.payment.searchByEmail")}
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Button type="submit" variant="secondary">{t("admin.payment.search")}</Button>
-        </form>
+      <div className="bg-card rounded-lg border border-foreground/15 p-4 shadow-sm">
+        <div className="flex items-center gap-4">
+          <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={t("admin.payment.searchByEmail")}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 border-foreground/20"
+              />
+            </div>
+            <Button type="submit" variant="secondary">{t("admin.payment.search")}</Button>
+          </form>
 
-        <Select value={statusFilter} onValueChange={(v) => {
-          setStatusFilter(v === "all" ? "" : v);
-          setParams((prev) => ({ ...prev, page: 1 }));
-        }}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder={t("admin.payment.allStatus")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("admin.payment.allStatus")}</SelectItem>
-            <SelectItem value="completed">{t("admin.payment.completed")}</SelectItem>
-            <SelectItem value="refunded">{t("admin.payment.refunded")}</SelectItem>
-            <SelectItem value="partially_refunded">{t("admin.payment.partiallyRefunded")}</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select value={statusFilter} onValueChange={(v) => {
+            setStatusFilter(v === "all" ? "" : v);
+            setParams((prev) => ({ ...prev, page: 1 }));
+          }}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder={t("admin.payment.allStatus")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("admin.payment.allStatus")}</SelectItem>
+              <SelectItem value="completed">{t("admin.payment.completed")}</SelectItem>
+              <SelectItem value="refunded">{t("admin.payment.refunded")}</SelectItem>
+              <SelectItem value="partially_refunded">{t("admin.payment.partiallyRefunded")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="bg-card rounded-lg border overflow-hidden shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50">
+          <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("id")}>
                 {t("admin.payment.colId")}<SortIcon field="id" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colEmail")}</th>
-              <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colEmail")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("status")}>
                 {t("admin.payment.colStatus")}<SortIcon field="status" />
               </th>
-              <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("amount")}>
                 {t("admin.payment.colAmount")}<SortIcon field="amount" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colTax")}</th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colCurrency")}</th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colInterval")}</th>
-              <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colTax")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colCurrency")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colInterval")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("occurred_at")}>
                 {t("admin.payment.colDate")}<SortIcon field="occurred_at" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colSub")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colSub")}</th>
             </tr>
           </thead>
           <tbody>
@@ -151,7 +153,7 @@ export function AdminTransactionsPage() {
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b">
                   {Array.from({ length: 9 }).map((__, j) => (
-                    <td key={j} className="p-4"><Skeleton className="h-4 w-16" /></td>
+                    <td key={j} className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
                   ))}
                 </tr>
               ))
@@ -169,18 +171,23 @@ export function AdminTransactionsPage() {
               </tr>
             ) : (
               data?.items.map((txn) => (
-                <tr key={txn.transaction_id} className="border-b hover:bg-muted/50">
-                  <td className="p-4">{txn.transaction_id}</td>
-                  <td className="p-4">{txn.user_email}</td>
-                  <td className="p-4">
-                    <Badge variant="outline">{txn.status}</Badge>
+                <tr key={txn.transaction_id} className="border-b hover:bg-accent/10">
+                  <td className="px-4 py-3">{txn.transaction_id}</td>
+                  <td className="px-4 py-3">{txn.user_email}</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={
+                      txn.status === "completed" ? "success" :
+                      txn.status === "refunded" ? "destructive" :
+                      txn.status === "partially_refunded" ? "warning" :
+                      "outline"
+                    }>{txn.status}</Badge>
                   </td>
-                  <td className="p-4">{formatCents(txn.amount_cents)}</td>
-                  <td className="p-4">{formatCents(txn.tax_cents)}</td>
-                  <td className="p-4">{txn.currency}</td>
-                  <td className="p-4">{txn.billing_interval || "-"}</td>
-                  <td className="p-4">{new Date(txn.occurred_at).toLocaleDateString()}</td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">{formatCents(txn.amount_cents)}</td>
+                  <td className="px-4 py-3">{formatCents(txn.tax_cents)}</td>
+                  <td className="px-4 py-3">{txn.currency}</td>
+                  <td className="px-4 py-3">{txn.billing_interval || "-"}</td>
+                  <td className="px-4 py-3">{new Date(txn.occurred_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3">
                     {txn.subscription_id ? (
                       <Link
                         to={`/admin/payment/subscriptions/${txn.subscription_id}`}

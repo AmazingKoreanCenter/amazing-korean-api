@@ -133,7 +133,7 @@ impl TranslationRepo {
               AND ($2::bigint IS NULL OR content_id = $2)
               AND ($3::supported_language_enum IS NULL OR lang = $3)
               AND ($4::translation_status_enum IS NULL OR status = $4)
-            ORDER BY updated_at DESC
+            ORDER BY translation_id DESC
             LIMIT $5
             OFFSET $6
             "#,
