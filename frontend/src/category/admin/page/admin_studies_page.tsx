@@ -48,7 +48,7 @@ export function AdminStudiesPage() {
     size: 20,
   });
   const [searchInput, setSearchInput] = useState("");
-  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortField, setSortField] = useState<SortField>("study_id");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -146,12 +146,12 @@ export function AdminStudiesPage() {
 
   const getStateBadgeVariant = (state: string) => {
     switch (state) {
-      case "ready":
-        return "secondary" as const;
       case "open":
-        return "default" as const;
+        return "success" as const;
+      case "ready":
+        return "warning" as const;
       case "close":
-        return "outline" as const;
+        return "destructive" as const;
       default:
         return "outline" as const;
     }
@@ -162,11 +162,11 @@ export function AdminStudiesPage() {
       case "basic_pronunciation":
       case "basic_word":
       case "basic_900":
-        return "secondary" as const;
+        return "sky" as const;
       case "topik_read":
       case "topik_listen":
       case "topik_write":
-        return "default" as const;
+        return "indigo" as const;
       case "tbc":
         return "outline" as const;
       default:
@@ -177,13 +177,13 @@ export function AdminStudiesPage() {
   const getAccessBadgeVariant = (access: string) => {
     switch (access) {
       case "public":
-        return "default" as const;
+        return "success" as const;
       case "paid":
-        return "secondary" as const;
-      case "private":
         return "destructive" as const;
+      case "private":
+        return "blue" as const;
       case "promote":
-        return "outline" as const;
+        return "warning" as const;
       default:
         return "outline" as const;
     }
@@ -217,135 +217,137 @@ export function AdminStudiesPage() {
       </div>
 
       {/* Search & Bulk Actions */}
-      <div className="flex items-center justify-between gap-4">
-        <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search by idx, title..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Button type="submit" variant="secondary">
-            Search
-          </Button>
-        </form>
+      <div className="bg-card rounded-lg border border-foreground/15 p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by idx, title..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 border-foreground/20"
+              />
+            </div>
+            <Button type="submit" variant="secondary">
+              Search
+            </Button>
+          </form>
 
-        {selectedIds.size > 0 && (
-          <Button
-            variant="outline"
-            onClick={() => setBulkEditOpen(true)}
-          >
-            <BookOpen className="mr-2 h-4 w-4" />
-            Edit {selectedIds.size} Selected
-          </Button>
-        )}
+          {selectedIds.size > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setBulkEditOpen(true)}
+            >
+              <BookOpen className="mr-2 h-4 w-4" />
+              Edit {selectedIds.size} Selected
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="bg-card rounded-lg border overflow-hidden shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50">
+          <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="h-10 px-4 text-left font-medium w-10">
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground w-10">
                 <Checkbox
                   checked={allSelected}
                   onCheckedChange={handleSelectAll}
                 />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_id")}
               >
                 ID
                 <SortIcon field="study_id" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_idx")}
               >
                 IDX
                 <SortIcon field="study_idx" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_title")}
               >
                 Title
                 <SortIcon field="study_title" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_subtitle")}
               >
                 Subtitle
                 <SortIcon field="study_subtitle" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_program")}
               >
                 Program
                 <SortIcon field="study_program" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_state")}
               >
                 State
                 <SortIcon field="study_state" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_access")}
               >
                 Access
                 <SortIcon field="study_access" />
               </th>
               <th
-                className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("created_at")}
               >
                 Created At
                 <SortIcon field="created_at" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">Actions</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b">
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-4" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-8" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-24" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-32" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-32" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-5 w-12" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-5 w-14" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-5 w-14" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-4 w-28" />
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Skeleton className="h-8 w-16" />
                   </td>
                 </tr>
@@ -364,48 +366,48 @@ export function AdminStudiesPage() {
               </tr>
             ) : (
               data?.list.map((study: AdminStudyRes) => (
-                <tr key={study.study_id} className="border-b hover:bg-muted/50">
-                  <td className="p-4">
+                <tr key={study.study_id} className="border-b hover:bg-accent/10">
+                  <td className="px-4 py-3">
                     <Checkbox
                       checked={selectedIds.has(study.study_id)}
                       onCheckedChange={(checked) => handleSelectOne(study.study_id, !!checked)}
                     />
                   </td>
-                  <td className="p-4">{study.study_id}</td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">{study.study_id}</td>
+                  <td className="px-4 py-3">
                     <code className="text-xs bg-muted px-1 py-0.5 rounded">
                       {study.study_idx}
                     </code>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <div className="max-w-xs truncate" title={study.study_title ?? ""}>
                       {study.study_title || "-"}
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <div className="max-w-xs truncate text-muted-foreground" title={study.study_subtitle ?? ""}>
                       {study.study_subtitle || "-"}
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Badge variant={getProgramBadgeVariant(study.study_program)}>
                       {study.study_program}
                     </Badge>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Badge variant={getStateBadgeVariant(study.study_state)}>
                       {study.study_state}
                     </Badge>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Badge variant={getAccessBadgeVariant(study.study_access)}>
                       {study.study_access}
                     </Badge>
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     {new Date(study.study_created_at).toLocaleDateString()}
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/studies/${study.study_id}`}>Edit</Link>
                     </Button>

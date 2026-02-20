@@ -119,15 +119,15 @@ export function AdminGrantsPage() {
       </p>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="bg-card rounded-lg border overflow-hidden shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50">
+          <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colUserId")}</th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colEmail")}</th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colCourses")}</th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colExpires")}</th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colActions")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colUserId")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colEmail")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colCourses")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colExpires")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -135,7 +135,7 @@ export function AdminGrantsPage() {
               Array.from({ length: 3 }).map((_, i) => (
                 <tr key={i} className="border-b">
                   {Array.from({ length: 5 }).map((__, j) => (
-                    <td key={j} className="p-4"><Skeleton className="h-4 w-20" /></td>
+                    <td key={j} className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
                   ))}
                 </tr>
               ))
@@ -153,8 +153,8 @@ export function AdminGrantsPage() {
               </tr>
             ) : (
               data?.items.map((grant) => (
-                <tr key={grant.user_id} className="border-b hover:bg-muted/50">
-                  <td className="p-4">
+                <tr key={grant.user_id} className="border-b hover:bg-accent/10">
+                  <td className="px-4 py-3">
                     <Link
                       to={`/admin/users/${grant.user_id}`}
                       className="text-primary hover:underline"
@@ -162,14 +162,14 @@ export function AdminGrantsPage() {
                       {grant.user_id}
                     </Link>
                   </td>
-                  <td className="p-4">{grant.user_email}</td>
-                  <td className="p-4">{grant.course_count}</td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">{grant.user_email}</td>
+                  <td className="px-4 py-3">{grant.course_count}</td>
+                  <td className="px-4 py-3">
                     {grant.expire_at
                       ? new Date(grant.expire_at).toLocaleDateString()
                       : t("admin.payment.noExpiry")}
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Button
                       variant="ghost"
                       size="sm"

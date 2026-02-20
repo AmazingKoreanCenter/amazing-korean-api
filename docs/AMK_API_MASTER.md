@@ -198,8 +198,9 @@ audience: server / database / backend / frontend / lead / AI agent
     - **TypeScript**: 정적 타입 언어
 
   - **UI & Styling**
-    - **Tailwind CSS**: 유틸리티 퍼스트 CSS 프레임워크
+    - **Tailwind CSS**: 유틸리티 퍼스트 CSS 프레임워크 (`darkMode: ["class"]`)
     - **Shadcn/ui**: 재사용 가능한 컴포넌트 라이브러리 (Radix UI 기반)
+    - **next-themes**: 다크모드 테마 전환 (Light/Dark/System, localStorage 유지)
     - **Lucide React**: 아이콘 팩
     - **class-variance-authority (cva)**: 컴포넌트 변형(Variant) 관리
 
@@ -4258,6 +4259,9 @@ export function AppRouter() {
 | 10 | 다국어 (i18n) | 기능 | 21개 언어, 번역 CRUD API 7개, `?lang=` fallback, Google Translate, Noto Sans 동적 로딩 | 2026-02-14 | — |
 | 11 | 세션 보안 + MFA | 보안 | 역할별 TTL, 토큰 재사용 탐지 (409 Conflict), TOTP MFA + 백업 코드 10개, 강제 설정 가드 | 2026-02-14 | 동시 세션 제한, step-up MFA |
 | 12 | 결제 시스템 (Paddle) | 외부 API | Webhook 9종, 구독 취소, 수강권 자동 부여/회수, 관리자 9개 API, Pricing UI (Paddle.js) | 2026-02-16 | Paddle Live 전환 |
+| 13 | Design System v2/v3 | UI | 공유 컴포넌트 6개 (PaginationBar, EmptyState, SkeletonGrid, ListStatsBar, StatCard, Card CVA), 다크모드 (next-themes, CSS 변수 60+ 토큰, 22개 로케일), UI/UX 가이드라인 문서화 | 2026-02-19 | — |
+| 14 | Paddle KYB 서류 제출 | 결제 | 사업자등록증 + 주주명세서 (한/영) Paddle Dashboard 업로드 | 2026-02-19 | Live 전환 심사 대기 (2~4 영업일) |
+| 15 | CEO 영문 이름 통일 | 관리 | i18n 18개 로케일 `Kyoung Ryun KIM`, noscript `KIM KYEONGRYUN` (사업자등록증 기준) | 2026-02-19 | — |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드
@@ -4275,7 +4279,7 @@ export function AppRouter() {
 | 3 | 다중 서버 구성 (HA) | 인프라 | ①nginx+컨테이너 복제 → ②ALB+EC2 → ③ECS Fargate | 고가용성, 무중단 배포, Auto Scaling | RDS 완료 후 |
 | 4 | 시스템 모니터링 | 인프라 | DB/Redis 상태, 서버 리소스 실시간 확인 | Admin 대시보드 통합 | 필요 시 |
 | 5 | K6 성능 테스트 | 테스트 | 인증/조회/진도저장 부하 테스트, CI 연계 | SLA 기준 검증 (아래 표 참조) | CI 구축 시 |
-| 6 | 디자인 시스템 | UI | 브랜딩, 타이포그래피, 반응형 점검 | 일관된 UI/UX 체계 | 필요 시 |
+| 6 | ~~디자인 시스템~~ | ~~UI~~ | ~~브랜딩, 타이포그래피, 반응형 점검~~ | ~~일관된 UI/UX 체계~~ | ✅ §8.1 #13 |
 
 **K6 성능 목표치 (엔드포인트별)**:
 
@@ -4418,7 +4422,7 @@ Sandbox → Live(프로덕션) 전환을 위한 단계별 체크리스트. 코�
 
 | # | 작업 | 상세 | 상태 |
 |:-:|------|------|:----:|
-| 1 | 계정 인증 (Account Verification) | Paddle Live 계정 사업자 인증 완료 확인 | ✅ |
+| 1 | 계정 인증 (Account Verification) | Paddle Live 계정 사업자 인증 — KYB 서류 제출 완료 (사업자등록증 + 주주명세서 한/영), 심사 대기 중 (2~4 영업일) | 🔄 |
 | 2 | 도메인 인증 (Domain Verification) | `amazingkorean.net` 도메인 승인 요청 (Dashboard > Checkout > Request domain approval) | ⬜ |
 | 3 | 상품 생성 (Product) | Live 계정에서 "Amazing Korean" 상품 새로 생성 (Sandbox 복사 X) | ⬜ |
 | 4 | 가격 생성 (Prices) | 4개 플랜: 1m/$10, 3m/$25, 6m/$50, 12m/$100 — USD, 자동갱신, 1일 무료 체험 | ⬜ |

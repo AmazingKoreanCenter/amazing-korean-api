@@ -32,17 +32,17 @@ type SortOrder = "asc" | "desc";
 const statusBadgeVariant = (status: string) => {
   switch (status) {
     case "active":
-      return "default";
+      return "success" as const;
     case "trialing":
-      return "secondary";
+      return "blue" as const;
     case "past_due":
-      return "destructive";
+      return "warning" as const;
     case "paused":
-      return "outline";
+      return "orange" as const;
     case "canceled":
-      return "destructive";
+      return "destructive" as const;
     default:
-      return "outline";
+      return "outline" as const;
   }
 };
 
@@ -54,7 +54,7 @@ export function AdminSubscriptionsPage() {
   const [params, setParams] = useState<AdminSubListReq>({ page: 1, size: 20 });
   const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortField, setSortField] = useState<SortField>("id");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   const { data, isLoading, isError } = useAdminSubscriptions({
@@ -112,66 +112,68 @@ export function AdminSubscriptionsPage() {
       </div>
 
       {/* Search & Filter */}
-      <div className="flex items-center gap-4">
-        <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={t("admin.payment.searchByEmailOrNickname")}
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Button type="submit" variant="secondary">{t("admin.payment.search")}</Button>
-        </form>
+      <div className="bg-card rounded-lg border border-foreground/15 p-4 shadow-sm">
+        <div className="flex items-center gap-4">
+          <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={t("admin.payment.searchByEmailOrNickname")}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 border-foreground/20"
+              />
+            </div>
+            <Button type="submit" variant="secondary">{t("admin.payment.search")}</Button>
+          </form>
 
-        <Select value={statusFilter} onValueChange={(v) => {
-          setStatusFilter(v === "all" ? "" : v);
-          setParams((prev) => ({ ...prev, page: 1 }));
-        }}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder={t("admin.payment.allStatus")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("admin.payment.allStatus")}</SelectItem>
-            <SelectItem value="trialing">{t("admin.payment.trialing")}</SelectItem>
-            <SelectItem value="active">{t("admin.payment.active")}</SelectItem>
-            <SelectItem value="past_due">{t("admin.payment.pastDue")}</SelectItem>
-            <SelectItem value="paused">{t("admin.payment.paused")}</SelectItem>
-            <SelectItem value="canceled">{t("admin.payment.canceled")}</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select value={statusFilter} onValueChange={(v) => {
+            setStatusFilter(v === "all" ? "" : v);
+            setParams((prev) => ({ ...prev, page: 1 }));
+          }}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder={t("admin.payment.allStatus")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("admin.payment.allStatus")}</SelectItem>
+              <SelectItem value="trialing">{t("admin.payment.trialing")}</SelectItem>
+              <SelectItem value="active">{t("admin.payment.active")}</SelectItem>
+              <SelectItem value="past_due">{t("admin.payment.pastDue")}</SelectItem>
+              <SelectItem value="paused">{t("admin.payment.paused")}</SelectItem>
+              <SelectItem value="canceled">{t("admin.payment.canceled")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="bg-card rounded-lg border overflow-hidden shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50">
+          <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("id")}>
                 {t("admin.payment.colId")}<SortIcon field="id" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colEmail")}</th>
-              <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colEmail")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("status")}>
                 {t("admin.payment.colStatus")}<SortIcon field="status" />
               </th>
-              <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("billing_interval")}>
                 {t("admin.payment.colInterval")}<SortIcon field="billing_interval" />
               </th>
-              <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("price")}>
                 {t("admin.payment.colPrice")}<SortIcon field="price" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colPeriodEnd")}</th>
-              <th className="h-10 px-4 text-left font-medium cursor-pointer hover:bg-muted"
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colPeriodEnd")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("created_at")}>
                 {t("admin.payment.colCreated")}<SortIcon field="created_at" />
               </th>
-              <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colActions")}</th>
+              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -179,7 +181,7 @@ export function AdminSubscriptionsPage() {
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b">
                   {Array.from({ length: 8 }).map((__, j) => (
-                    <td key={j} className="p-4"><Skeleton className="h-4 w-20" /></td>
+                    <td key={j} className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
                   ))}
                 </tr>
               ))
@@ -197,23 +199,23 @@ export function AdminSubscriptionsPage() {
               </tr>
             ) : (
               data?.items.map((sub) => (
-                <tr key={sub.subscription_id} className="border-b hover:bg-muted/50">
-                  <td className="p-4">{sub.subscription_id}</td>
-                  <td className="p-4">{sub.user_email}</td>
-                  <td className="p-4">
+                <tr key={sub.subscription_id} className="border-b hover:bg-accent/10">
+                  <td className="px-4 py-3">{sub.subscription_id}</td>
+                  <td className="px-4 py-3">{sub.user_email}</td>
+                  <td className="px-4 py-3">
                     <Badge variant={statusBadgeVariant(sub.status)}>{sub.status}</Badge>
                   </td>
-                  <td className="p-4">{sub.billing_interval}</td>
-                  <td className="p-4">{formatCents(sub.current_price_cents)}</td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">{sub.billing_interval}</td>
+                  <td className="px-4 py-3">{formatCents(sub.current_price_cents)}</td>
+                  <td className="px-4 py-3">
                     {sub.current_period_end
                       ? new Date(sub.current_period_end).toLocaleDateString()
                       : "-"}
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     {new Date(sub.created_at).toLocaleDateString()}
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-3">
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/payment/subscriptions/${sub.subscription_id}`}>
                         <CreditCard className="mr-1 h-3 w-3" />

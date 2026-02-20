@@ -41,7 +41,7 @@
     --success: 160 84% 28%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
-    --warning-foreground: 20 14% 4%;
+    --warning-foreground: 0 0% 100%;
     --info: 217 91% 53%;
     --info-foreground: 0 0% 100%;
 
@@ -57,6 +57,23 @@
     --chart-4: 43 74% 66%;
     --chart-5: 340 75% 55%;
     --chart-6: 280 65% 60%;
+
+    /* Table header — stronger than muted for clear distinction */
+    --table-header: 222 20% 93%;
+
+    /* Badge-only colors (theme-independent, won't affect buttons/headers) */
+    --badge-blue: 224 76% 48%;
+    --badge-blue-foreground: 0 0% 100%;
+    --badge-orange: 25 95% 53%;
+    --badge-orange-foreground: 0 0% 100%;
+    --badge-purple: 270 60% 55%;
+    --badge-purple-foreground: 0 0% 100%;
+    --badge-yellow: 48 96% 50%;
+    --badge-yellow-foreground: 20 14% 4%;
+    --badge-sky: 199 89% 48%;
+    --badge-sky-foreground: 0 0% 100%;
+    --badge-indigo: 245 58% 50%;
+    --badge-indigo-foreground: 0 0% 100%;
 
     /* Surface tokens (always-dark sections) */
     --footer: 222 90% 18%;
@@ -98,7 +115,7 @@
     --success: 160 84% 36%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 55%;
-    --warning-foreground: 20 14% 4%;
+    --warning-foreground: 0 0% 100%;
     --info: 217 91% 58%;
     --info-foreground: 0 0% 100%;
 
@@ -112,6 +129,23 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
     --chart-6: 280 65% 65%;
+
+    /* Table header — stronger than muted for clear distinction */
+    --table-header: 222 35% 20%;
+
+    /* Badge-only colors (slightly brighter for dark bg readability) */
+    --badge-blue: 224 76% 55%;
+    --badge-blue-foreground: 0 0% 100%;
+    --badge-orange: 25 95% 55%;
+    --badge-orange-foreground: 0 0% 100%;
+    --badge-purple: 270 60% 60%;
+    --badge-purple-foreground: 0 0% 100%;
+    --badge-yellow: 48 96% 53%;
+    --badge-yellow-foreground: 20 14% 4%;
+    --badge-sky: 199 89% 55%;
+    --badge-sky-foreground: 0 0% 100%;
+    --badge-indigo: 245 58% 58%;
+    --badge-indigo-foreground: 0 0% 100%;
 
     /* Surface tokens (always-dark sections, slightly lighter in dark) */
     --footer: 222 47% 8%;

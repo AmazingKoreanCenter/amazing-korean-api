@@ -34,11 +34,12 @@ const formatDate = (d: string | null) =>
 
 const statusBadgeVariant = (status: string) => {
   switch (status) {
-    case "active": return "default";
-    case "trialing": return "secondary";
-    case "past_due": case "canceled": return "destructive";
-    case "paused": return "outline";
-    default: return "outline";
+    case "active": return "success" as const;
+    case "trialing": return "blue" as const;
+    case "past_due": return "warning" as const;
+    case "paused": return "orange" as const;
+    case "canceled": return "destructive" as const;
+    default: return "outline" as const;
   }
 };
 

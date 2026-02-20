@@ -288,7 +288,7 @@ impl AdminPaymentRepo {
             WHERE uc.user_course_active = true
             AND s.subscription_id IS NULL
             GROUP BY uc.user_id, u.user_email
-            ORDER BY MAX(uc.user_course_updated_at) DESC
+            ORDER BY uc.user_id DESC
             LIMIT $1 OFFSET $2
             "#,
         )
