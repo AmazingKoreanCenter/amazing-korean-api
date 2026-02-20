@@ -154,8 +154,8 @@ export function AdminTranslationDashboard() {
               </thead>
               <tbody>
                 {matrix.contentTypes.map((ct) => (
-                  <tr key={ct} className="border-b hover:bg-muted/50">
-                    <td className="px-3 py-2 font-medium text-foreground sticky left-0 bg-card z-10">
+                  <tr key={ct} className="group border-b hover:bg-muted/50">
+                    <td className="px-3 py-2 font-medium text-foreground sticky left-0 bg-card group-hover:bg-muted/50 z-10">
                       {CONTENT_TYPE_LABELS[ct] ?? ct}
                     </td>
                     {TARGET_LANGS.map((lang, i) => {

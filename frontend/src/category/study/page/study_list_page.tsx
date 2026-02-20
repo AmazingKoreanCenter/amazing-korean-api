@@ -139,7 +139,6 @@ export function StudyListPage() {
             <ListStatsBar
               icon={BookOpen}
               totalLabel={t("study.totalProblems", { count: meta.total_count ?? 0 })}
-              total={meta.total_count ?? 0}
               currentPage={currentPage}
               totalPages={totalPages}
               isFetching={isFetching}

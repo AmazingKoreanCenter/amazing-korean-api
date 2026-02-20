@@ -89,7 +89,6 @@ export function LessonListPage() {
             <ListStatsBar
               icon={BookMarked}
               totalLabel={t("lesson.totalLessons", { count: meta.total_count ?? 0 })}
-              total={meta.total_count ?? 0}
               currentPage={currentPage}
               totalPages={totalPages}
               isFetching={isFetching}
