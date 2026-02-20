@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 interface ListStatsBarProps {
   icon: LucideIcon;
   totalLabel: string;
-  total: number;
   currentPage: number;
   totalPages: number;
   isFetching?: boolean;
@@ -16,7 +15,6 @@ interface ListStatsBarProps {
 export function ListStatsBar({
   icon: Icon,
   totalLabel,
-  total,
   currentPage,
   totalPages,
   isFetching,
@@ -28,7 +26,7 @@ export function ListStatsBar({
     <div className={cn("mb-8 flex items-center justify-between", className)}>
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Icon className="h-4 w-4" />
-        <span>{totalLabel.replace("{count}", String(total))}</span>
+        <span>{totalLabel}</span>
         <span className="text-border">|</span>
         <span>
           {currentPage} / {totalPages} {t("common.page")}

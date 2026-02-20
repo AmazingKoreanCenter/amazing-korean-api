@@ -186,7 +186,7 @@ export function AdminTranslationsPage() {
 
       {/* Filters */}
       <div className="bg-card rounded-lg border border-foreground/15 p-4 shadow-sm mb-4">
-      <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-3 flex-wrap">
         {/* Category Filter (Video / Study / Lesson) */}
         <Select
           value={topCategory}
@@ -269,7 +269,7 @@ export function AdminTranslationsPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
+        </div>
       </div>
 
       {/* Table */}
@@ -325,10 +325,15 @@ export function AdminTranslationsPage() {
                     <td className="px-4 py-3 font-mono text-xs">{item.content_id}</td>
                     <td className="px-4 py-3 font-mono text-xs">{item.field_name}</td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1.5 text-sm">
-                        <span className="emoji-flag">{SUPPORTED_LANGUAGES.find((l) => l.code === item.lang)?.flag ?? "🏳️"}</span>
-                        <span className="font-medium text-foreground">{SUPPORTED_LANGUAGES.find((l) => l.code === item.lang)?.nativeName ?? item.lang}</span>
-                      </span>
+                      {(() => {
+                        const langInfo = SUPPORTED_LANGUAGES.find((l) => l.code === item.lang);
+                        return (
+                          <span className="inline-flex items-center gap-1.5 text-sm">
+                            <span className="emoji-flag">{langInfo?.flag ?? "🏳️"}</span>
+                            <span className="font-medium text-foreground">{langInfo?.nativeName ?? item.lang}</span>
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 max-w-[200px]">
                       <span className="text-foreground" title={item.translated_text}>

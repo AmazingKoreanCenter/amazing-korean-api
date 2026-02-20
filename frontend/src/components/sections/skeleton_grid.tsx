@@ -19,22 +19,7 @@ interface SkeletonGridProps {
   className?: string;
 }
 
-function VideoCardSkeleton() {
-  return (
-    <Card variant="elevated" className="overflow-hidden">
-      <Skeleton className="aspect-video w-full" />
-      <CardHeader className="space-y-2">
-        <Skeleton className="h-6 w-3/4" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3 mt-2" />
-      </CardContent>
-    </Card>
-  );
-}
-
-function ContentCardSkeleton() {
+function CardWithImageSkeleton() {
   return (
     <Card variant="elevated" className="overflow-hidden">
       <Skeleton className="aspect-video w-full" />
@@ -68,8 +53,8 @@ function StudyCardSkeleton() {
 }
 
 const skeletonComponents: Record<SkeletonVariant, () => React.JSX.Element> = {
-  "video-card": VideoCardSkeleton,
-  "content-card": ContentCardSkeleton,
+  "video-card": CardWithImageSkeleton,
+  "content-card": CardWithImageSkeleton,
   "study-card": StudyCardSkeleton,
 };
 

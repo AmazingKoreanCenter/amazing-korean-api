@@ -57,7 +57,6 @@ export function VideoListPage() {
             <ListStatsBar
               icon={Film}
               totalLabel={t("video.totalVideos", { count: meta.total_count ?? 0 })}
-              total={meta.total_count ?? 0}
               currentPage={currentPage}
               totalPages={totalPages}
               isFetching={isFetching}
