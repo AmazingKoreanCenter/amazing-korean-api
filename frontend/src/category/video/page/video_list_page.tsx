@@ -7,6 +7,7 @@ import { ListStatsBar } from "@/components/sections/list_stats_bar";
 import { EmptyState } from "@/components/sections/empty_state";
 import { PaginationBar } from "@/components/sections/pagination_bar";
 import { SkeletonGrid } from "@/components/sections/skeleton_grid";
+import { PageMeta } from "@/components/page_meta";
 import type { VideoListReq } from "@/category/video/types";
 
 import { VideoCard } from "../components/video_card";
@@ -36,6 +37,7 @@ export function VideoListPage() {
 
   return (
     <div className="min-h-screen">
+      <PageMeta titleKey="seo.videos.title" descriptionKey="seo.videos.description" />
       <HeroSection
         variant="list"
         badge={

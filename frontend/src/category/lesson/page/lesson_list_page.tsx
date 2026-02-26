@@ -10,6 +10,7 @@ import { ListStatsBar } from "@/components/sections/list_stats_bar";
 import { EmptyState } from "@/components/sections/empty_state";
 import { PaginationBar } from "@/components/sections/pagination_bar";
 import { SkeletonGrid } from "@/components/sections/skeleton_grid";
+import { PageMeta } from "@/components/page_meta";
 import type { LessonListReq, LessonAccess } from "@/category/lesson/types";
 
 import { useLessonList } from "../hook/use_lesson_list";
@@ -68,6 +69,7 @@ export function LessonListPage() {
 
   return (
     <div className="min-h-screen">
+      <PageMeta titleKey="seo.lessons.title" descriptionKey="seo.lessons.description" />
       <HeroSection
         variant="list"
         badge={

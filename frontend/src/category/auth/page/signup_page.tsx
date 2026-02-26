@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PageMeta } from "@/components/page_meta";
 import {
   Form,
   FormControl,
@@ -142,6 +143,7 @@ export function SignupPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
+      <PageMeta titleKey="seo.signup.title" descriptionKey="seo.signup.description" />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <CardTitle className="text-2xl">{t("auth.signupTitle")}</CardTitle>

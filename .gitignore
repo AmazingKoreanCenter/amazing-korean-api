@@ -666,3 +666,16 @@ db_backup.sql
 aws/
 .aws/
 awscliv2.zip
+
+# 한국어 교재 : 검수 중 **절.대.유.출.금.지**
+docs/textbook
+docs/pdf_check/
+scripts/
+
+# 루트 node_modules (교재 puppeteer용, frontend와 별도)
+/node_modules/
+/package.json
+/package-lock.json
+
+# MCP 로컬 설정
+.mcp.json

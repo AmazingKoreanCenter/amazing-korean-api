@@ -693,7 +693,113 @@ cd frontend && npm run lint:ui
 
 ---
 
-## 08 Changelog
+## 08 Figma Design System
+
+> 코드 기반 디자인 시스템(§01~§06)을 Figma 컴포넌트 라이브러리로 확장한다.
+> **목표**: 코딩 전 시각적 검증, 라이트/다크 동시 비교, 모바일 앱 UI 설계, 마케팅 자산 확보.
+
+### 도입 배경
+
+- 교육 서비스의 UI 일관성은 학습 몰입도에 직접 영향 — 디자인이 일괄적이지 않으면 학습 효과 저하
+- 현재 디자인 시스템이 코드(`index.css` + `tailwind.config.js`)에만 존재 — 시각적 전체 조감 불가
+- 새 페이지 추가 시 코드 → 브라우저 확인 → 수정 루프 반복 — Figma에서 확정 후 구현 1회 완료 목표
+- 모바일 앱 계획 (다음 작업 우선순위) — 웹과 다른 레이아웃을 사전 설계 필요
+
+### 도구 구성
+
+| 도구 | 용도 | 비용 |
+|------|------|:----:|
+| **Figma MCP Server** (공식) | Claude Code ↔ Figma 양방향 연동 | 무료 |
+| **Code to Canvas** (Figma × Anthropic) | 브라우저 렌더링 → 편집 가능한 Figma 프레임 변환 | 무료 |
+| **Obra shadcn/ui 키트** | shadcn/ui 전체 컴포넌트 Figma 라이브러리 | 무료 |
+| **Tailwind Tokens 플러그인** | `tailwind.config.js` → Figma Variables 자동 임포트 | 무료 |
+| **html.to.design** | URL → Figma 프레임 임포트 (레퍼런스 확보) | 무료 (월 10회) |
+
+**MCP 서버 설정**:
+```bash
+# Figma Remote MCP (데스크톱 앱 불필요)
+claude mcp add --transport http figma https://mcp.figma.com/mcp
+
+# Figma Desktop MCP (Dev Mode 필요)
+claude mcp add --transport sse figma-dev-mode-mcp-server http://127.0.0.1:3845/sse
+```
+
+### Phase 계획
+
+#### Phase F1 — Foundation (토큰 등록)
+
+코드에 정의된 디자인 토큰을 Figma Variables/Styles로 등록한다.
+
+| 항목 | 코드 소스 | Figma 대상 |
+|------|----------|-----------|
+| Color Tokens | `index.css` `:root` / `.dark` (60+ CSS 변수) | Variables (light/dark 모드 세트) |
+| Badge Colors | `--badge-blue/orange/purple/yellow/sky/indigo` | Variables (Badge 전용 컬렉션) |
+| Status Colors | `--success/warning/info/destructive` + foreground | Variables |
+| Surface Colors | `--footer/surface-inverted` + foreground | Variables |
+| Typography | Pretendard Variable, Heading Scale (§01) | Text Styles |
+| Spacing | section-sm/md/lg/hero-lg + gap 표준 | Spacing Variables |
+| Radius | 6단계 Scale (Micro~Pill) | Variables |
+| Shadow | 6단계 Scale (sm~xl + card/card-hover) | Effect Styles |
+
+#### Phase F2 — Components (shadcn/ui 대응)
+
+Obra 키트를 베이스로, 프로젝트 커스텀 컴포넌트를 추가한다.
+
+| 컴포넌트 | Variant/State | 비고 |
+|---------|---------------|------|
+| Button | 6 variants × 4 sizes + CTA | §03 참조 |
+| Badge | 12 variants (default~indigo) | Admin Enum 색상 체계 포함 |
+| Card | default / elevated / interactive (hover/focus/active) | CVA 기반 |
+| Input, Select, Dialog, Tabs | shadcn 기본 | Obra 키트 활용 |
+| HeroSection | marketing / list variant | §03 참조 |
+| EmptyState | icon + title + description + action | §03 참조 |
+| PaginationBar | currentPage / totalPages | §03 참조 |
+| ListStatsBar | icon + label + page info | §03 참조 |
+| SkeletonGrid | video-card / content-card / study-card | §03 참조 |
+| StatCard | icon + label + value | Admin 전용 |
+| ThemeToggle | Light/Dark/System | §03 참조 |
+
+#### Phase F3 — Page Templates (웹)
+
+컴포넌트를 조합하여 실제 페이지 레이아웃을 Figma Frame으로 구성한다.
+각 페이지 light/dark 모드 동시 비교.
+
+| 카테고리 | 페이지 |
+|---------|--------|
+| 공개 | Home, About, Pricing, FAQ |
+| 콘텐츠 목록 | Video List, Lesson List, Study List |
+| 콘텐츠 상세 | Video Detail, Lesson Detail, Study Detail + Task |
+| 인증 | Login (MFA 포함), Signup, Email Verify, Account Recovery |
+| 사용자 | MyPage, Settings, Reset Password |
+| 법적 | Terms, Privacy, Refund Policy |
+| Admin | Dashboard, Users, Videos, Lessons, Studies |
+| Admin 결제 | Subscriptions, Transactions, Grants |
+| Admin 기타 | Translations (List/Dashboard/Edit), Stats (Study/User/Login) |
+
+#### Phase F4 — Mobile App UI
+
+웹 디자인 시스템을 기반으로 모바일(375×812) 프레임 설계.
+
+| 항목 | 내용 |
+|------|------|
+| 컴포넌트 매핑 | 웹 컴포넌트 → iOS/Android 네이티브 대응 |
+| 화면 흐름 | Figma Prototype으로 인터랙션 플로우 |
+| 결제 플로우 | Apple IAP / Google Play Billing / Paddle 웹뷰 분기 |
+| Touch target | 최소 44px (§04 Mobile Checklist 준수) |
+| 앱스토어 자산 | 스크린샷, 프로모션 이미지 |
+
+### 코드 ↔ Figma 동기화 원칙
+
+| 규칙 | 설명 |
+|------|------|
+| **SSoT = 코드** | `tailwind.config.js` + `index.css`가 디자인 토큰의 원본. Figma는 시각적 미러 |
+| **코드 변경 → Figma 반영** | 토큰 변경 시 Tailwind Tokens 플러그인으로 Figma Variables 재임포트 |
+| **Figma 변경 → 코드 반영** | 새 디자인을 Figma에서 확정 후 코드로 구현 (역방향 자동 동기화 없음) |
+| **신규 페이지** | Figma에서 레이아웃 확정 → 코드 구현 (1회 완료 목표) |
+
+---
+
+## 09 Changelog
 
 ### v3 — 다크모드 + 디자인 가이드라인 (2026-02-19)
 

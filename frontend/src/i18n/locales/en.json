@@ -648,5 +648,63 @@
       "paddleId": "Paddle ID: {{id}}",
       "subscriptionId": "Subscription #{{id}}"
     }
+  },
+  "seo": {
+    "home": {
+      "title": "Amazing Korean - Korean Learning Platform",
+      "description": "The best online Korean learning platform for learners worldwide. We offer video learning, structured problem-solving, and 1:1 lessons."
+    },
+    "about": {
+      "title": "About - Amazing Korean",
+      "description": "About Amazing Korean - Providing effective and enjoyable Korean learning experiences for learners worldwide."
+    },
+    "pricing": {
+      "title": "Pricing - Amazing Korean",
+      "description": "Amazing Korean pricing plans - Get unlimited access to videos, study materials, and lessons."
+    },
+    "videos": {
+      "title": "Video Lessons - Amazing Korean",
+      "description": "Learn Korean effectively with video lessons from professional instructors."
+    },
+    "studies": {
+      "title": "Study Materials - Amazing Korean",
+      "description": "Improve your Korean skills with structured study materials and exercises."
+    },
+    "lessons": {
+      "title": "Lessons - Amazing Korean",
+      "description": "Learn Korean step by step with structured lessons."
+    },
+    "login": {
+      "title": "Login - Amazing Korean",
+      "description": "Log in to Amazing Korean to start learning Korean."
+    },
+    "signup": {
+      "title": "Sign Up - Amazing Korean",
+      "description": "Join Amazing Korean and start your Korean learning journey."
+    },
+    "terms": {
+      "title": "Terms of Service - Amazing Korean",
+      "description": "Amazing Korean Terms of Service."
+    },
+    "privacy": {
+      "title": "Privacy Policy - Amazing Korean",
+      "description": "Amazing Korean Privacy Policy regarding data collection and processing."
+    },
+    "refundPolicy": {
+      "title": "Refund Policy - Amazing Korean",
+      "description": "Amazing Korean subscription refund policy."
+    },
+    "faq": {
+      "title": "FAQ - Amazing Korean",
+      "description": "Frequently asked questions about Amazing Korean."
+    },
+    "findId": {
+      "title": "Account Recovery - Amazing Korean",
+      "description": "Find your registered account information."
+    },
+    "requestResetPassword": {
+      "title": "Reset Password - Amazing Korean",
+      "description": "Send a password reset email to your registered address."
+    }
   }
 }

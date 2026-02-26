@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageMeta } from "@/components/page_meta";
 import {
   Form,
   FormControl,
@@ -233,6 +234,7 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
+      <PageMeta titleKey="seo.login.title" descriptionKey="seo.login.description" />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <CardTitle className="text-2xl">{t("auth.loginTitle")}</CardTitle>

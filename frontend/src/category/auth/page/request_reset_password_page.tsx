@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageMeta } from "@/components/page_meta";
 import {
   Form,
   FormControl,
@@ -150,6 +151,7 @@ export function RequestResetPasswordPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
+      <PageMeta titleKey="seo.requestResetPassword.title" descriptionKey="seo.requestResetPassword.description" />
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>{t("auth.resetPasswordTitle")}</CardTitle>

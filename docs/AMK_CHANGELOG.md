@@ -11,6 +11,21 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-02-20 — Gemini 코드 리뷰 반영 (PR #128~#132)**
+  - **PR #128 — Redis DEL 배치 최적화** (`src/api/auth/service.rs`)
+    - 세션 무효화 시 Redis DEL 루프(N+1) → 키 수집 후 단일 DEL 호출(1회)로 변경
+  - **PR #129 — noscript lang 속성 추가** (`frontend/index.html`)
+    - `<noscript>` 내부 `<div>`에 `lang="en"` 추가 (HTML lang 불일치 해소)
+  - **PR #130 — 미사용 코드 정리**
+    - `ListStatsBar`: 미사용 `total` prop 제거 + 호출처 3곳 정리 (video/study/lesson list pages)
+    - `SkeletonGrid`: 동일 코드 `VideoCardSkeleton`/`ContentCardSkeleton` → `CardWithImageSkeleton` 병합
+  - **PR #131 — Translation Dashboard sticky 열 hover 수정** (`admin_translation_dashboard.tsx`)
+    - `<tr>`에 `group` 클래스, sticky `<td>`에 `group-hover:bg-muted/50` 추가
+  - **PR #132 — Translations 페이지 들여쓰기 + 성능 최적화** (`admin_translations_page.tsx`)
+    - Filters 컨테이너 내부 div 들여쓰기 수정
+    - `SUPPORTED_LANGUAGES.find()` 중복 호출(2회) → 변수 할당 1회로 최적화
+  - **검증**: `cargo check` + `npm run build` 통과
+
 - **2026-02-20 — Admin 리스트 페이지 디자인 통일 + Enum Badge 색상 체계 구축**
   - **테이블 스타일 통일 (8개 페이지, Translations 기준)**
     - Wrapper: `bg-card rounded-lg border overflow-hidden shadow-sm`
