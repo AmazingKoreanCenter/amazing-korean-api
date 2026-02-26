@@ -10,6 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HeroSection } from "@/components/sections/hero_section";
+import { PageMeta } from "@/components/page_meta";
 import {
   Dialog,
   DialogContent,
@@ -96,6 +97,7 @@ export function PricingPage() {
 
   return (
     <div className="flex flex-col">
+      <PageMeta titleKey="seo.pricing.title" descriptionKey="seo.pricing.description" />
       <HeroSection
         size="sm"
         badge={

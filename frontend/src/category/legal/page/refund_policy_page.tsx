@@ -1,3 +1,4 @@
+import { PageMeta } from "@/components/page_meta";
 import { LegalPage } from "./legal_page";
 
 const SECTIONS = Array.from({ length: 4 }, (_, i) => ({
@@ -6,5 +7,10 @@ const SECTIONS = Array.from({ length: 4 }, (_, i) => ({
 }));
 
 export function RefundPolicyPage() {
-  return <LegalPage pageKey="refund" sections={SECTIONS} />;
+  return (
+    <>
+      <PageMeta titleKey="seo.refundPolicy.title" descriptionKey="seo.refundPolicy.description" />
+      <LegalPage pageKey="refund" sections={SECTIONS} />
+    </>
+  );
 }

@@ -17,6 +17,7 @@ import { ListStatsBar } from "@/components/sections/list_stats_bar";
 import { EmptyState } from "@/components/sections/empty_state";
 import { PaginationBar } from "@/components/sections/pagination_bar";
 import { SkeletonGrid } from "@/components/sections/skeleton_grid";
+import { PageMeta } from "@/components/page_meta";
 import type { StudyListReq, StudyProgram } from "@/category/study/types";
 import { studyProgramSchema } from "@/category/study/types";
 
@@ -96,6 +97,7 @@ export function StudyListPage() {
 
   return (
     <div className="min-h-screen">
+      <PageMeta titleKey="seo.studies.title" descriptionKey="seo.studies.description" />
       <HeroSection
         variant="list"
         badge={

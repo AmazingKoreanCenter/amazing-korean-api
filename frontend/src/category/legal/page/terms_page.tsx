@@ -1,3 +1,4 @@
+import { PageMeta } from "@/components/page_meta";
 import { LegalPage } from "./legal_page";
 
 const SECTIONS = Array.from({ length: 7 }, (_, i) => ({
@@ -6,5 +7,10 @@ const SECTIONS = Array.from({ length: 7 }, (_, i) => ({
 }));
 
 export function TermsPage() {
-  return <LegalPage pageKey="terms" sections={SECTIONS} />;
+  return (
+    <>
+      <PageMeta titleKey="seo.terms.title" descriptionKey="seo.terms.description" />
+      <LegalPage pageKey="terms" sections={SECTIONS} />
+    </>
+  );
 }

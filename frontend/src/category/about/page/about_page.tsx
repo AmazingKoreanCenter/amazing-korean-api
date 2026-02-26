@@ -5,11 +5,13 @@ import { Target, Heart, Globe, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/sections/hero_section";
 import { SectionContainer } from "@/components/sections/section_container";
+import { PageMeta } from "@/components/page_meta";
 
 export function AboutPage() {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col">
+      <PageMeta titleKey="seo.about.title" descriptionKey="seo.about.description" />
       <HeroSection
         badge={
           <>

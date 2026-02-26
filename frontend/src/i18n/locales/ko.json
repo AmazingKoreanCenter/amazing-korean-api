@@ -651,5 +651,63 @@
       "paddleId": "Paddle ID: {{id}}",
       "subscriptionId": "구독 #{{id}}"
     }
+  },
+  "seo": {
+    "home": {
+      "title": "Amazing Korean - 한국어 학습 플랫폼",
+      "description": "전 세계 한국어 학습자를 위한 최고의 온라인 학습 플랫폼. 영상 학습, 체계적 문제 풀이, 1:1 수업을 제공합니다."
+    },
+    "about": {
+      "title": "소개 - Amazing Korean",
+      "description": "Amazing Korean 소개 - 전 세계 한국어 학습자에게 효과적이고 즐거운 학습 경험을 제공합니다."
+    },
+    "pricing": {
+      "title": "요금제 - Amazing Korean",
+      "description": "Amazing Korean 요금제 안내 - 영상, 학습 문제, 레슨을 무제한으로 이용할 수 있는 구독 플랜을 확인하세요."
+    },
+    "videos": {
+      "title": "영상 학습 - Amazing Korean",
+      "description": "전문 강사의 한국어 영상 강의로 효과적으로 학습하세요."
+    },
+    "studies": {
+      "title": "학습 문제 - Amazing Korean",
+      "description": "체계적인 한국어 학습 문제로 실력을 향상시키세요."
+    },
+    "lessons": {
+      "title": "레슨 - Amazing Korean",
+      "description": "단계별 한국어 레슨으로 체계적으로 학습하세요."
+    },
+    "login": {
+      "title": "로그인 - Amazing Korean",
+      "description": "Amazing Korean에 로그인하여 한국어 학습을 시작하세요."
+    },
+    "signup": {
+      "title": "회원가입 - Amazing Korean",
+      "description": "Amazing Korean에 가입하여 한국어 학습을 시작하세요."
+    },
+    "terms": {
+      "title": "이용약관 - Amazing Korean",
+      "description": "Amazing Korean 서비스 이용약관입니다."
+    },
+    "privacy": {
+      "title": "개인정보처리방침 - Amazing Korean",
+      "description": "Amazing Korean의 개인정보 수집 및 처리에 관한 방침입니다."
+    },
+    "refundPolicy": {
+      "title": "환불 정책 - Amazing Korean",
+      "description": "Amazing Korean의 구독 환불 정책을 안내합니다."
+    },
+    "faq": {
+      "title": "자주 묻는 질문 - Amazing Korean",
+      "description": "Amazing Korean에 대해 자주 묻는 질문과 답변입니다."
+    },
+    "findId": {
+      "title": "계정 찾기 - Amazing Korean",
+      "description": "가입한 계정 정보를 찾을 수 있습니다."
+    },
+    "requestResetPassword": {
+      "title": "비밀번호 재설정 - Amazing Korean",
+      "description": "비밀번호를 재설정하기 위한 이메일을 발송합니다."
+    }
   }
 }

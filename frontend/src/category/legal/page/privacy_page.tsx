@@ -1,3 +1,4 @@
+import { PageMeta } from "@/components/page_meta";
 import { LegalPage } from "./legal_page";
 
 const SECTIONS = Array.from({ length: 7 }, (_, i) => ({
@@ -6,5 +7,10 @@ const SECTIONS = Array.from({ length: 7 }, (_, i) => ({
 }));
 
 export function PrivacyPage() {
-  return <LegalPage pageKey="privacy" sections={SECTIONS} />;
+  return (
+    <>
+      <PageMeta titleKey="seo.privacy.title" descriptionKey="seo.privacy.description" />
+      <LegalPage pageKey="privacy" sections={SECTIONS} />
+    </>
+  );
 }

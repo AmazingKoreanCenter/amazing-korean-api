@@ -5,11 +5,13 @@ import { Play, BookOpen, Users, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/sections/hero_section";
 import { SectionContainer } from "@/components/sections/section_container";
+import { PageMeta } from "@/components/page_meta";
 
 export default function HomePage() {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col">
+      <PageMeta titleKey="seo.home.title" descriptionKey="seo.home.description" />
       <HeroSection
         badge={
           <>
