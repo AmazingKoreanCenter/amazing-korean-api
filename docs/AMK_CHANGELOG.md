@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-02-20
+updated: 2026-02-26
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,27 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-02-26 — 교재 주문 시스템 구현 (Textbook Order System)**
+  - **DB 마이그레이션**: ENUM 4개 (`textbook_language_enum`, `textbook_type_enum`, `textbook_order_status_enum`, `textbook_payment_method_enum`) + 테이블 3개 (`textbook`, `textbook_item`, `admin_textbook_log`)
+  - **백엔드 (Public API)**: `GET /textbook/catalog` (카탈로그), `POST /textbook/orders` (주문 생성), `GET /textbook/orders/{code}` (주문 조회) — 인증 불필요
+  - **백엔드 (Admin API)**: `GET /admin/textbook/orders` (목록/필터/검색/페이지네이션), `GET /admin/textbook/orders/{id}` (상세), `PATCH /admin/textbook/orders/{id}/status` (상태 변경), `DELETE /admin/textbook/orders/{id}` (삭제)
+  - **프론트엔드 (Public)**: 교재 주문 페이지 (`/textbook`), 주문 조회 페이지 (`/textbook/order/{code}`)
+  - **프론트엔드 (Admin)**: 주문 목록 (`/admin/textbook/orders`), 주문 상세+상태변경 (`/admin/textbook/orders/{id}`), 견적서/주문확인서 인쇄 (`/admin/textbook/orders/{id}/print`)
+  - **i18n**: `ko.json`, `en.json`에 `textbook`, `admin.textbook`, `seo.textbook` 키 추가
+  - **비즈니스 규칙**: 비회원 주문 가능, 계좌이체 전용, 20개 언어 × 2종(학생용/교사용), ₩25,000/권, 최소 10권
+  - **주문번호 형식**: `TB-YYMMDD-NNNN` (일별 순번)
+
+- **2026-02-26 — Google Search Console SEO 수정 (PageMeta 컴포넌트)**
+  - **문제**: `index.html`에 하드코딩된 `<link rel="canonical" href="/">` 때문에 SPA 모든 페이지가 `/`의 중복으로 인식되어 Google 색인 제외
+  - **해결**: React 19 네이티브 metadata 호이스팅을 활용한 `PageMeta` 컴포넌트 구현
+    - `frontend/src/components/page_meta.tsx` 신규 — 페이지별 동적 `<title>`, `<link rel="canonical">`, `<meta>` (description, OG, Twitter) 태그 관리
+    - `index.html`에서 PageMeta와 중복되는 정적 태그 제거 (title, canonical, description, og:title/description/url/locale, twitter:title/description)
+    - `index.html`에 정적 태그만 유지 (keywords, og:type/site_name/image/locale:alternate, twitter:card/image)
+  - **i18n SEO 키 추가**: `ko.json`, `en.json`에 `seo` 섹션 (14개 페이지 × title + description)
+  - **적용 페이지 (14개)**: `/`, `/about`, `/pricing`, `/videos`, `/studies`, `/lessons`, `/login`, `/signup`, `/find-id`, `/request-reset-password`, `/terms`, `/privacy`, `/refund-policy`, `/faq`
+  - **기타**: `.gitignore` 교재 관련 파일 제외 추가 (scripts/, docs/pdf_check/, /node_modules/, .mcp.json)
+  - **검증**: `npm run build` 통과 + 로컬 dev 서버에서 페이지별 canonical 동적 변경 확인
 
 - **2026-02-20 — Gemini 코드 리뷰 반영 (PR #128~#132)**
   - **PR #128 — Redis DEL 배치 최적화** (`src/api/auth/service.rs`)

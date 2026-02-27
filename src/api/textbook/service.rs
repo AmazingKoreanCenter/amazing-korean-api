@@ -1,0 +1,233 @@
+use crate::error::{AppError, AppResult};
+use crate::state::AppState;
+use crate::types::{TextbookLanguage, TextbookType};
+
+use super::dto::{
+    CatalogItem, CatalogRes, CreateOrderReq, OrderItemRes, OrderRes,
+};
+use super::repo::{TextbookOrderRow, TextbookItemRow, TextbookRepo};
+
+const UNIT_PRICE: i32 = 25_000; // KRW
+const MIN_TOTAL_QUANTITY: i32 = 10;
+
+pub struct TextbookService;
+
+impl TextbookService {
+    /// 교재 카탈로그 반환
+    pub async fn get_catalog() -> AppResult<CatalogRes> {
+        let languages = catalog_languages();
+        let items: Vec<CatalogItem> = languages
+            .into_iter()
+            .map(|(lang, name_ko, name_en, available)| CatalogItem {
+                language: lang,
+                language_name_ko: name_ko.to_string(),
+                language_name_en: name_en.to_string(),
+                available_types: vec![TextbookType::Student, TextbookType::Teacher],
+                unit_price: UNIT_PRICE,
+                currency: "KRW".to_string(),
+                available,
+            })
+            .collect();
+
+        Ok(CatalogRes {
+            items,
+            min_total_quantity: MIN_TOTAL_QUANTITY,
+            currency: "KRW".to_string(),
+        })
+    }
+
+    /// 주문 생성
+    pub async fn create_order(st: &AppState, req: CreateOrderReq) -> AppResult<OrderRes> {
+        // 총 수량 검증
+        let total_quantity: i32 = req.items.iter().map(|i| i.quantity).sum();
+        if total_quantity < MIN_TOTAL_QUANTITY {
+            return Err(AppError::BadRequest(format!(
+                "Minimum total quantity is {} copies",
+                MIN_TOTAL_QUANTITY
+            )));
+        }
+
+        // 세금계산서 요청 시 사업자등록번호 필수
+        if req.tax_invoice && req.tax_biz_number.as_ref().map_or(true, |s| s.is_empty()) {
+            return Err(AppError::BadRequest(
+                "Business registration number is required for tax invoice".into(),
+            ));
+        }
+
+        // 총액 계산
+        let total_amount: i32 = req.items.iter().map(|i| i.quantity * UNIT_PRICE).sum();
+
+        // 트랜잭션으로 주문 + 항목 생성
+        let mut tx = st.db.begin().await?;
+
+        let order_code = TextbookRepo::generate_order_code(&st.db).await?;
+
+        let order_id = TextbookRepo::insert_order(
+            &mut tx,
+            &order_code,
+            &req.orderer_name,
+            &req.orderer_email,
+            &req.orderer_phone,
+            req.org_name.as_deref(),
+            req.org_type.as_deref(),
+            req.delivery_postal_code.as_deref(),
+            &req.delivery_address,
+            req.delivery_detail.as_deref(),
+            req.payment_method,
+            req.depositor_name.as_deref(),
+            req.tax_invoice,
+            req.tax_biz_number.as_deref(),
+            req.tax_email.as_deref(),
+            total_quantity,
+            total_amount,
+            req.notes.as_deref(),
+        )
+        .await?;
+
+        let items: Vec<(TextbookLanguage, TextbookType, i32, i32)> = req
+            .items
+            .iter()
+            .map(|i| (i.language, i.textbook_type, i.quantity, UNIT_PRICE))
+            .collect();
+
+        TextbookRepo::insert_items(&mut tx, order_id, &items).await?;
+
+        tx.commit().await?;
+
+        tracing::info!(
+            order_id = order_id,
+            order_code = %order_code,
+            total_quantity = total_quantity,
+            total_amount = total_amount,
+            "Textbook order created"
+        );
+
+        // 생성된 주문 조회해서 반환
+        Self::get_order_by_code(st, &order_code).await
+    }
+
+    /// 주문번호로 주문 조회
+    pub async fn get_order_by_code(st: &AppState, code: &str) -> AppResult<OrderRes> {
+        let order = TextbookRepo::find_by_code(&st.db, code)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        let items = TextbookRepo::find_items_by_order(&st.db, order.order_id).await?;
+
+        Ok(build_order_res_from(order, items))
+    }
+
+    /// 주문 ID로 주문 조회
+    pub async fn get_order_by_id(st: &AppState, order_id: i64) -> AppResult<OrderRes> {
+        let order = TextbookRepo::find_by_id(&st.db, order_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        let items = TextbookRepo::find_items_by_order(&st.db, order.order_id).await?;
+
+        Ok(build_order_res_from(order, items))
+    }
+}
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+pub fn build_order_res_from(order: TextbookOrderRow, items: Vec<TextbookItemRow>) -> OrderRes {
+    OrderRes {
+        order_id: order.order_id,
+        order_code: order.order_code,
+        status: order.status,
+        orderer_name: order.orderer_name,
+        orderer_email: order.orderer_email,
+        orderer_phone: order.orderer_phone,
+        org_name: order.org_name,
+        org_type: order.org_type,
+        delivery_postal_code: order.delivery_postal_code,
+        delivery_address: order.delivery_address,
+        delivery_detail: order.delivery_detail,
+        payment_method: order.payment_method,
+        depositor_name: order.depositor_name,
+        tax_invoice: order.tax_invoice,
+        tax_biz_number: order.tax_biz_number,
+        tax_email: order.tax_email,
+        total_quantity: order.total_quantity,
+        total_amount: order.total_amount,
+        currency: order.currency,
+        notes: order.notes,
+        items: items
+            .into_iter()
+            .map(|i| {
+                let language_name = language_display_name(&i.textbook_language);
+                OrderItemRes {
+                    language: i.textbook_language,
+                    language_name,
+                    textbook_type: i.textbook_type,
+                    quantity: i.quantity,
+                    unit_price: i.unit_price,
+                    subtotal: i.subtotal,
+                }
+            })
+            .collect(),
+        confirmed_at: order.confirmed_at.map(|t| t.to_rfc3339()),
+        paid_at: order.paid_at.map(|t| t.to_rfc3339()),
+        shipped_at: order.shipped_at.map(|t| t.to_rfc3339()),
+        delivered_at: order.delivered_at.map(|t| t.to_rfc3339()),
+        canceled_at: order.canceled_at.map(|t| t.to_rfc3339()),
+        created_at: order.created_at.to_rfc3339(),
+        updated_at: order.updated_at.to_rfc3339(),
+    }
+}
+
+/// 언어 enum → 한국어 표시명
+fn language_display_name(lang: &TextbookLanguage) -> String {
+    match lang {
+        TextbookLanguage::Ja => "일본어",
+        TextbookLanguage::ZhCn => "중국어(간체)",
+        TextbookLanguage::ZhTw => "중국어(번체)",
+        TextbookLanguage::Vi => "베트남어",
+        TextbookLanguage::Th => "태국어",
+        TextbookLanguage::Id => "인도네시아어",
+        TextbookLanguage::My => "미얀마어",
+        TextbookLanguage::Mn => "몽골어",
+        TextbookLanguage::Ru => "러시아어",
+        TextbookLanguage::Es => "스페인어",
+        TextbookLanguage::Pt => "포르투갈어",
+        TextbookLanguage::Fr => "프랑스어",
+        TextbookLanguage::De => "독일어",
+        TextbookLanguage::Hi => "힌디어",
+        TextbookLanguage::Ne => "네팔어",
+        TextbookLanguage::Si => "싱할라어",
+        TextbookLanguage::Km => "크메르어",
+        TextbookLanguage::Uz => "우즈베크어",
+        TextbookLanguage::Kk => "카자흐어",
+        TextbookLanguage::Tg => "타지크어",
+    }
+    .to_string()
+}
+
+/// 교재 카탈로그 언어 목록 (language, 한국어명, 영어명, 사용가능여부)
+fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str, bool)> {
+    vec![
+        (TextbookLanguage::Ja, "일본어", "Japanese", true),
+        (TextbookLanguage::ZhCn, "중국어(간체)", "Chinese (Simplified)", true),
+        (TextbookLanguage::ZhTw, "중국어(번체)", "Chinese (Traditional)", true),
+        (TextbookLanguage::Vi, "베트남어", "Vietnamese", true),
+        (TextbookLanguage::Th, "태국어", "Thai", true),
+        (TextbookLanguage::Id, "인도네시아어", "Indonesian", true),
+        (TextbookLanguage::My, "미얀마어", "Myanmar", true),
+        (TextbookLanguage::Mn, "몽골어", "Mongolian", true),
+        (TextbookLanguage::Ru, "러시아어", "Russian", true),
+        (TextbookLanguage::Es, "스페인어", "Spanish", true),
+        (TextbookLanguage::Pt, "포르투갈어", "Portuguese", true),
+        (TextbookLanguage::Fr, "프랑스어", "French", true),
+        (TextbookLanguage::De, "독일어", "German", true),
+        (TextbookLanguage::Hi, "힌디어", "Hindi", true),
+        (TextbookLanguage::Ne, "네팔어", "Nepali", true),
+        (TextbookLanguage::Si, "싱할라어", "Sinhala", true),
+        (TextbookLanguage::Km, "크메르어", "Khmer", true),
+        (TextbookLanguage::Uz, "우즈베크어", "Uzbek", true),
+        (TextbookLanguage::Kk, "카자흐어", "Kazakh", true),
+        (TextbookLanguage::Tg, "타지크어", "Tajik", true),
+    ]
+}

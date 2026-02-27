@@ -5,6 +5,7 @@ pub mod payment;
 pub mod role_guard;
 pub mod router;
 pub mod study;
+pub mod textbook;
 pub mod translation;
 pub mod upgrade;
 pub mod user;

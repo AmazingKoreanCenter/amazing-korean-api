@@ -430,6 +430,8 @@ PADDLE_PRICE_MONTH_12=pri_xxx        # 12개월 구독 Price ID ($100)
 - `src/config.rs`: Paddle 환경변수 9개 + `billing_interval_for_price()` 매핑
 - `src/api/payment/`: 사용자 결제 API (plans, subscription, webhook)
 - `src/api/admin/payment/`: 관리자 결제 관리 API
+- `src/api/textbook/`: 교재 주문 API (catalog, orders — 비회원 접근 가능)
+- `src/api/admin/textbook/`: 관리자 교재 주문 관리 API
 
 **비즈니스 모델**
 | 항목 | 값 |
@@ -3239,6 +3241,119 @@ draft → reviewed → approved
 
 </details>
 
+### 5.12 Phase 12 — 교재 주문 (Textbook Ordering)
+
+> 비회원 교재 주문 시스템. 계좌이체 기반, 20개 언어 × 2종(학생용/교사용), ₩25,000/권, 최소 10권.
+> 마이그레이션: `migrations/20260226_textbook.sql`
+
+<details>
+<summary>📋 Textbook 엔드포인트 상세 (클릭)</summary>
+
+#### 12-1 : `GET /textbook/catalog` (교재 카탈로그)
+
+> 주문 가능한 교재 목록과 가격 정보를 반환.
+
+**인증**: 불필요
+
+**응답 (성공 200)**
+```json
+{
+  "items": [
+    {
+      "language": "ja",
+      "language_name_ko": "일본어",
+      "language_name_en": "Japanese",
+      "available_types": ["student", "teacher"],
+      "unit_price": 25000,
+      "available": true
+    }
+  ],
+  "currency": "KRW",
+  "min_total_quantity": 10
+}
+```
+
+#### 12-2 : `POST /textbook/orders` (주문 생성)
+
+> 교재 주문 접수. 비회원도 주문 가능.
+
+**인증**: 불필요
+
+**요청**
+```json
+{
+  "orderer_name": "홍길동",
+  "orderer_email": "hong@example.com",
+  "orderer_phone": "010-1234-5678",
+  "org_name": "한국어학원",
+  "org_type": "academy",
+  "delivery_postal_code": "06234",
+  "delivery_address": "서울특별시 강남구 ...",
+  "delivery_detail": "3층",
+  "payment_method": "bank_transfer",
+  "depositor_name": "홍길동",
+  "tax_invoice": false,
+  "items": [
+    { "language": "ja", "textbook_type": "student", "quantity": 10 }
+  ],
+  "notes": "빠른 배송 부탁드립니다"
+}
+```
+
+**검증**: 총 수량 ≥ 10, tax_invoice=true일 때 tax_biz_number + tax_email 필수
+
+**응답 (성공 201)**: OrderRes (주문 상세 + 항목)
+
+#### 12-3 : `GET /textbook/orders/{code}` (주문 조회)
+
+> 주문번호(order_code)로 주문 상태 조회. 비회원도 조회 가능.
+
+**인증**: 불필요
+
+**응답 (성공 200)**: OrderRes
+
+#### 12-4 : `GET /admin/textbook/orders` (관리자 주문 목록)
+
+> 교재 주문 목록 조회. 상태 필터, 검색, 페이지네이션 지원.
+
+**인증**: Admin (IP Guard + Role Guard)
+
+**쿼리 파라미터**: `page`, `size`, `q` (주문번호/신청자/기관 검색), `status`
+
+**응답 (성공 200)**
+```json
+{
+  "items": [OrderRes],
+  "meta": { "total_count": 42, "total_pages": 3, "current_page": 1, "per_page": 20 }
+}
+```
+
+#### 12-5 : `GET /admin/textbook/orders/{id}` (관리자 주문 상세)
+
+**인증**: Admin
+
+**응답 (성공 200)**: OrderRes
+
+#### 12-6 : `PATCH /admin/textbook/orders/{id}/status` (상태 변경)
+
+> 주문 상태 변경 + admin_textbook_log에 변경 이력 기록.
+
+**인증**: Admin
+
+**요청**: `{ "status": "confirmed" }`
+
+**응답 (성공 200)**: OrderRes
+
+#### 12-7 : `DELETE /admin/textbook/orders/{id}` (주문 삭제)
+
+> 주문 삭제 (CASCADE로 항목 + 로그 함께 삭제). admin_textbook_log에 삭제 이력 기록 후 삭제.
+
+**인증**: Admin
+
+**응답**: `204 No Content`
+
+</details>
+
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
 ---
@@ -3332,13 +3447,24 @@ src/
       # ... (동일 구조)
     lesson/
       # ... (동일 구조)
+    textbook/              # 교재 주문 (Public)
+      page/
+      hook/
+      types.ts
+      textbook_api.ts
     admin/
       # ... (동일 구조)
+      textbook/            # 교재 주문 관리 (Admin)
+        page/
+        hook/
+        types.ts
 
   components/            # 공용 컴포넌트 (Horizontal Slicing)
     ui/                  # ★ shadcn/ui 설치 경로 (Button, Dialog 등)
     layout/              # Header, Footer, Sidebar 등 레이아웃 조각
+    sections/            # HeroSection, SectionContainer, PaginationBar 등 페이지 섹션
     shared/              # 도메인에 종속되지 않는 재사용 컴포넌트 (LoadingSpinner 등)
+    page_meta.tsx        # ★ SEO: React 19 네이티브 metadata (title, canonical, OG/Twitter)
 
   i18n/                  # ★ 다국어(i18n) 모듈
     index.ts             # i18next 초기화, changeLanguage/getSavedLanguage 헬퍼

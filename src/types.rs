@@ -189,6 +189,7 @@ pub enum AdminAction {
     Reorder,
     Publish,
     Unpublish,
+    Delete,
 }
 
 // -----------------------------------------------------------------------------
@@ -483,6 +484,99 @@ impl fmt::Display for BillingInterval {
             Self::Month12 => write!(f, "month_12"),
         }
     }
+}
+
+// -----------------------------------------------------------------------------
+// 7. Textbook Order Enums
+// -----------------------------------------------------------------------------
+
+/// 교재 언어 (한국어/영어 제외 20개 언어)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "textbook_language_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TextbookLanguage {
+    Ja,
+    #[sqlx(rename = "zh_cn")]
+    #[serde(rename = "zh_cn")]
+    ZhCn,
+    #[sqlx(rename = "zh_tw")]
+    #[serde(rename = "zh_tw")]
+    ZhTw,
+    Vi,
+    Th,
+    Id,
+    My,
+    Mn,
+    Ru,
+    Es,
+    Pt,
+    Fr,
+    De,
+    Hi,
+    Ne,
+    Si,
+    Km,
+    Uz,
+    Kk,
+    Tg,
+}
+
+impl fmt::Display for TextbookLanguage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ja => write!(f, "ja"),
+            Self::ZhCn => write!(f, "zh_cn"),
+            Self::ZhTw => write!(f, "zh_tw"),
+            Self::Vi => write!(f, "vi"),
+            Self::Th => write!(f, "th"),
+            Self::Id => write!(f, "id"),
+            Self::My => write!(f, "my"),
+            Self::Mn => write!(f, "mn"),
+            Self::Ru => write!(f, "ru"),
+            Self::Es => write!(f, "es"),
+            Self::Pt => write!(f, "pt"),
+            Self::Fr => write!(f, "fr"),
+            Self::De => write!(f, "de"),
+            Self::Hi => write!(f, "hi"),
+            Self::Ne => write!(f, "ne"),
+            Self::Si => write!(f, "si"),
+            Self::Km => write!(f, "km"),
+            Self::Uz => write!(f, "uz"),
+            Self::Kk => write!(f, "kk"),
+            Self::Tg => write!(f, "tg"),
+        }
+    }
+}
+
+/// 교재 유형 (학생용/교사용)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "textbook_type_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TextbookType {
+    Student,
+    Teacher,
+}
+
+/// 교재 주문 상태
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "textbook_order_status_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TextbookOrderStatus {
+    Pending,
+    Confirmed,
+    Paid,
+    Printing,
+    Shipped,
+    Delivered,
+    Canceled,
+}
+
+/// 교재 결제 방식
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "textbook_payment_method_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TextbookPaymentMethod {
+    BankTransfer,
 }
 
 // -----------------------------------------------------------------------------
