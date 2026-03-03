@@ -34,3 +34,12 @@ export interface AdminTextbookListRes {
 export interface AdminUpdateStatusReq {
   status: TextbookOrderStatus;
 }
+
+// =============================================================================
+// 배송 추적 정보 업데이트
+// =============================================================================
+
+export interface AdminUpdateTrackingReq {
+  tracking_number?: string;
+  tracking_provider?: string;
+}

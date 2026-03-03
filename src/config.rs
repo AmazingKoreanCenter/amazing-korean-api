@@ -34,6 +34,8 @@ pub struct Config {
     pub rate_limit_study_max: i64,         // Study 답안 제출 최대 횟수/윈도우
     pub rate_limit_email_window_sec: i64,  // 이메일 발송 레이트리밋 윈도우 (초, 기본: 18000 = 5시간)
     pub rate_limit_email_max: i64,         // 이메일 발송 최대 횟수/윈도우 (기본: 5)
+    pub rate_limit_textbook_window_sec: i64, // 교재 주문 레이트리밋 윈도우 (초, 기본: 3600 = 1시간)
+    pub rate_limit_textbook_max: i64,        // 교재 주문 IP당 최대 횟수/윈도우 (기본: 5)
     pub cors_origins: Vec<String>,
     pub vimeo_access_token: Option<String>,
     pub admin_ip_allowlist: Vec<String>,  // Admin 접근 허용 IP 목록 (비어있으면 모든 IP 허용)
@@ -152,6 +154,16 @@ impl Config {
         if rate_limit_email_max < 1 {
             panic!("RATE_LIMIT_EMAIL_MAX must be >= 1, got {}", rate_limit_email_max);
         }
+
+        // Textbook Order Rate Limit: 비회원 주문 스팸 방지
+        let rate_limit_textbook_window_sec = env::var("RATE_LIMIT_TEXTBOOK_WINDOW_SEC")
+            .unwrap_or_else(|_| "3600".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_TEXTBOOK_WINDOW_SEC must be a number");
+        let rate_limit_textbook_max = env::var("RATE_LIMIT_TEXTBOOK_MAX")
+            .unwrap_or_else(|_| "5".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_TEXTBOOK_MAX must be a number");
 
         // CORS_ORIGINS: 쉼표로 구분된 origin 목록
         // 예: "http://localhost:5173,https://amazing-korean-api.pages.dev"
@@ -402,6 +414,8 @@ impl Config {
             rate_limit_study_max,
             rate_limit_email_window_sec,
             rate_limit_email_max,
+            rate_limit_textbook_window_sec,
+            rate_limit_textbook_max,
             cors_origins,
             vimeo_access_token,
             admin_ip_allowlist,
@@ -580,6 +594,8 @@ impl fmt::Debug for Config {
             .field("rate_limit_study_max", &self.rate_limit_study_max)
             .field("rate_limit_email_window_sec", &self.rate_limit_email_window_sec)
             .field("rate_limit_email_max", &self.rate_limit_email_max)
+            .field("rate_limit_textbook_window_sec", &self.rate_limit_textbook_window_sec)
+            .field("rate_limit_textbook_max", &self.rate_limit_textbook_max)
             .field("cors_origins", &self.cors_origins)
             .field("vimeo_access_token", &self.vimeo_access_token.as_ref().map(|_| "***"))
             .field("admin_ip_allowlist", &self.admin_ip_allowlist)

@@ -134,6 +134,9 @@ pub struct OrderRes {
     pub currency: String,
     /// 비고
     pub notes: Option<String>,
+    /// 배송 추적
+    pub tracking_number: Option<String>,
+    pub tracking_provider: Option<String>,
     /// 항목
     pub items: Vec<OrderItemRes>,
     /// 상태 변경 시각

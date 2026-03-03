@@ -15,6 +15,7 @@ import type {
   AdminTextbookListReq,
   AdminTextbookListRes,
   AdminUpdateStatusReq,
+  AdminUpdateTrackingReq,
 } from "./textbook/types";
 import type { OrderRes } from "@/category/textbook/types";
 import type {
@@ -769,6 +770,12 @@ export const getAdminTextbookOrder = (id: number) =>
 
 export const updateAdminTextbookOrderStatus = (id: number, data: AdminUpdateStatusReq) =>
   request<OrderRes>(`/admin/textbook/orders/${id}/status`, {
+    method: "PATCH",
+    data,
+  });
+
+export const updateAdminTextbookOrderTracking = (id: number, data: AdminUpdateTrackingReq) =>
+  request<OrderRes>(`/admin/textbook/orders/${id}/tracking`, {
     method: "PATCH",
     data,
   });

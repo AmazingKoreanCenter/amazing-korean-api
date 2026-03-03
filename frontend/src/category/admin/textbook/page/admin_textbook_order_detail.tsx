@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
@@ -37,13 +38,24 @@ import {
 import {
   useAdminTextbookOrderDetail,
   useAdminUpdateTextbookStatus,
+  useAdminUpdateTextbookTracking,
   useAdminDeleteTextbookOrder,
 } from "../hook/use_admin_textbook";
 import type { TextbookOrderStatus } from "@/category/textbook/types";
 
-const ALL_STATUSES: TextbookOrderStatus[] = [
-  "pending", "confirmed", "paid", "printing", "shipped", "delivered", "canceled",
-];
+/** 현재 상태에서 전환 가능한 다음 상태 목록 반환 */
+function getValidNextStatuses(current: TextbookOrderStatus): TextbookOrderStatus[] {
+  const transitions: Record<TextbookOrderStatus, TextbookOrderStatus[]> = {
+    pending: ["confirmed", "canceled"],
+    confirmed: ["paid", "canceled"],
+    paid: ["printing", "canceled"],
+    printing: ["shipped", "canceled"],
+    shipped: ["delivered", "canceled"],
+    delivered: [],
+    canceled: [],
+  };
+  return transitions[current] ?? [];
+}
 
 export function AdminTextbookOrderDetail() {
   const { t } = useTranslation();
@@ -53,9 +65,12 @@ export function AdminTextbookOrderDetail() {
 
   const { data: order, isLoading } = useAdminTextbookOrderDetail(id);
   const updateMutation = useAdminUpdateTextbookStatus();
+  const trackingMutation = useAdminUpdateTextbookTracking();
   const deleteMutation = useAdminDeleteTextbookOrder();
 
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [trackingProvider, setTrackingProvider] = useState("");
 
   const handleStatusChange = (newStatus: string) => {
     if (!order) return;
@@ -158,22 +173,31 @@ export function AdminTextbookOrderDetail() {
           <CardTitle>{t("admin.textbook.statusSection")}</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center gap-4">
-          <Select
-            value={order.status}
-            onValueChange={handleStatusChange}
-            disabled={updateMutation.isPending}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ALL_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {t(`admin.textbook.status.${s}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="text-base px-3 py-1">
+              {t(`admin.textbook.status.${order.status}`)}
+            </Badge>
+            {getValidNextStatuses(order.status).length > 0 && (
+              <>
+                <span className="text-muted-foreground">&rarr;</span>
+                <Select
+                  onValueChange={handleStatusChange}
+                  disabled={updateMutation.isPending}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder={t("admin.textbook.selectNextStatus")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getValidNextStatuses(order.status).map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {t(`admin.textbook.status.${s}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+          </div>
           {updateMutation.isPending && (
             <Loader2 className="h-4 w-4 animate-spin" />
           )}
@@ -291,6 +315,69 @@ export function AdminTextbookOrderDetail() {
           </Card>
         )}
       </div>
+
+      {/* 배송 추적 정보 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("admin.textbook.trackingSection")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {order.tracking_number && (
+            <div className="space-y-2 text-sm mb-4">
+              <Row label={t("admin.textbook.trackingNumber")} value={order.tracking_number} />
+              <Row label={t("admin.textbook.trackingProvider")} value={order.tracking_provider ?? "-"} />
+            </div>
+          )}
+          <div className="flex items-end gap-3">
+            <div className="flex-1 space-y-1">
+              <label className="text-sm font-medium">{t("admin.textbook.trackingProvider")}</label>
+              <Input
+                placeholder={t("admin.textbook.trackingProviderPlaceholder")}
+                value={trackingProvider}
+                onChange={(e) => setTrackingProvider(e.target.value)}
+              />
+            </div>
+            <div className="flex-1 space-y-1">
+              <label className="text-sm font-medium">{t("admin.textbook.trackingNumber")}</label>
+              <Input
+                placeholder={t("admin.textbook.trackingNumberPlaceholder")}
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+              />
+            </div>
+            <Button
+              size="sm"
+              disabled={trackingMutation.isPending || !trackingNumber.trim()}
+              onClick={() => {
+                trackingMutation.mutate(
+                  {
+                    id,
+                    data: {
+                      tracking_number: trackingNumber.trim() || undefined,
+                      tracking_provider: trackingProvider.trim() || undefined,
+                    },
+                  },
+                  {
+                    onSuccess: () => {
+                      toast.success(t("admin.textbook.trackingUpdated"));
+                      setTrackingNumber("");
+                      setTrackingProvider("");
+                    },
+                    onError: () => {
+                      toast.error(t("admin.textbook.trackingUpdateFailed"));
+                    },
+                  },
+                );
+              }}
+            >
+              {trackingMutation.isPending && (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              )}
+              {t("admin.textbook.updateTracking")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 비고 */}
       {order.notes && (

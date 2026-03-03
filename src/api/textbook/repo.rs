@@ -32,11 +32,15 @@ pub struct TextbookOrderRow {
     pub total_amount: i32,
     pub currency: String,
     pub notes: Option<String>,
+    pub tracking_number: Option<String>,
+    pub tracking_provider: Option<String>,
+    pub is_deleted: bool,
     pub confirmed_at: Option<DateTime<Utc>>,
     pub paid_at: Option<DateTime<Utc>>,
     pub shipped_at: Option<DateTime<Utc>>,
     pub delivered_at: Option<DateTime<Utc>>,
     pub canceled_at: Option<DateTime<Utc>>,
+    pub deleted_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -52,6 +56,20 @@ pub struct TextbookItemRow {
     pub subtotal: i32,
 }
 
+/// SELECT 공통 컬럼 리스트
+const ORDER_COLUMNS: &str = r#"
+    order_id, order_code, status,
+    orderer_name, orderer_email, orderer_phone,
+    org_name, org_type,
+    delivery_postal_code, delivery_address, delivery_detail,
+    payment_method, depositor_name,
+    tax_invoice, tax_biz_number, tax_email,
+    total_quantity, total_amount, currency, notes,
+    tracking_number, tracking_provider, is_deleted,
+    confirmed_at, paid_at, shipped_at, delivered_at, canceled_at, deleted_at,
+    created_at, updated_at
+"#;
+
 pub struct TextbookRepo;
 
 impl TextbookRepo {
@@ -59,16 +77,24 @@ impl TextbookRepo {
     // Order Code Generation
     // =========================================================================
 
-    /// TB-YYMMDD-NNNN 형식 주문번호 생성
-    pub async fn generate_order_code(pool: &PgPool) -> AppResult<String> {
+    /// TB-YYMMDD-NNNN 형식 주문번호 생성 (트랜잭션 내에서 호출하여 race condition 방지)
+    pub async fn generate_order_code(
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> AppResult<String> {
         let today = Utc::now().format("%y%m%d").to_string();
         let prefix = format!("TB-{}-", today);
+
+        // Advisory lock으로 동시 생성 방지 (blocking — 트랜잭션 종료 시 자동 해제)
+        sqlx::query("SELECT pg_advisory_xact_lock($1)")
+            .bind(0x7465787462_i64) // 'textb' hash
+            .execute(&mut **tx)
+            .await?;
 
         let count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM textbook WHERE order_code LIKE $1 || '%'",
         )
         .bind(&prefix)
-        .fetch_one(pool)
+        .fetch_one(&mut **tx)
         .await?;
 
         Ok(format!("TB-{}-{:04}", today, count + 1))
@@ -167,24 +193,14 @@ impl TextbookRepo {
         pool: &PgPool,
         order_code: &str,
     ) -> AppResult<Option<TextbookOrderRow>> {
-        let row = sqlx::query_as::<_, TextbookOrderRow>(
-            r#"
-            SELECT order_id, order_code, status,
-                   orderer_name, orderer_email, orderer_phone,
-                   org_name, org_type,
-                   delivery_postal_code, delivery_address, delivery_detail,
-                   payment_method, depositor_name,
-                   tax_invoice, tax_biz_number, tax_email,
-                   total_quantity, total_amount, currency, notes,
-                   confirmed_at, paid_at, shipped_at, delivered_at, canceled_at,
-                   created_at, updated_at
-            FROM textbook
-            WHERE order_code = $1
-            "#,
-        )
-        .bind(order_code)
-        .fetch_optional(pool)
-        .await?;
+        let sql = format!(
+            "SELECT {} FROM textbook WHERE order_code = $1 AND is_deleted = false",
+            ORDER_COLUMNS,
+        );
+        let row = sqlx::query_as::<_, TextbookOrderRow>(&sql)
+            .bind(order_code)
+            .fetch_optional(pool)
+            .await?;
 
         Ok(row)
     }
@@ -194,24 +210,14 @@ impl TextbookRepo {
         pool: &PgPool,
         order_id: i64,
     ) -> AppResult<Option<TextbookOrderRow>> {
-        let row = sqlx::query_as::<_, TextbookOrderRow>(
-            r#"
-            SELECT order_id, order_code, status,
-                   orderer_name, orderer_email, orderer_phone,
-                   org_name, org_type,
-                   delivery_postal_code, delivery_address, delivery_detail,
-                   payment_method, depositor_name,
-                   tax_invoice, tax_biz_number, tax_email,
-                   total_quantity, total_amount, currency, notes,
-                   confirmed_at, paid_at, shipped_at, delivered_at, canceled_at,
-                   created_at, updated_at
-            FROM textbook
-            WHERE order_id = $1
-            "#,
-        )
-        .bind(order_id)
-        .fetch_optional(pool)
-        .await?;
+        let sql = format!(
+            "SELECT {} FROM textbook WHERE order_id = $1 AND is_deleted = false",
+            ORDER_COLUMNS,
+        );
+        let row = sqlx::query_as::<_, TextbookOrderRow>(&sql)
+            .bind(order_id)
+            .fetch_optional(pool)
+            .await?;
 
         Ok(row)
     }
@@ -237,11 +243,35 @@ impl TextbookRepo {
         Ok(rows)
     }
 
+    /// 여러 주문의 항목을 한 번에 조회 (N+1 방지)
+    pub async fn find_items_by_orders(
+        pool: &PgPool,
+        order_ids: &[i64],
+    ) -> AppResult<Vec<TextbookItemRow>> {
+        if order_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        let rows = sqlx::query_as::<_, TextbookItemRow>(
+            r#"
+            SELECT item_id, order_id, textbook_language, textbook_type,
+                   quantity, unit_price, subtotal
+            FROM textbook_item
+            WHERE order_id = ANY($1)
+            ORDER BY order_id, item_id
+            "#,
+        )
+        .bind(order_ids)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows)
+    }
+
     // =========================================================================
     // Admin: 목록 조회
     // =========================================================================
 
-    /// 주문 목록 조회 (페이지네이션 + 필터)
+    /// 주문 목록 조회 (페이지네이션 + 필터, soft delete 제외)
     pub async fn list_orders(
         pool: &PgPool,
         status: Option<TextbookOrderStatus>,
@@ -249,136 +279,54 @@ impl TextbookRepo {
         page: i64,
         per_page: i64,
     ) -> AppResult<(Vec<TextbookOrderRow>, i64)> {
+        // 페이지네이션 범위 제한
+        let page = page.max(1);
+        let per_page = per_page.clamp(1, 100);
         let offset = (page - 1) * per_page;
 
+        // WHERE 절 동적 구성
+        let mut conditions = vec!["is_deleted = false".to_string()];
+        let mut bind_idx = 1_usize;
+
+        if status.is_some() {
+            conditions.push(format!("status = ${}", bind_idx));
+            bind_idx += 1;
+        }
+        if search.is_some() {
+            conditions.push(format!(
+                "(orderer_name ILIKE ${bi} OR order_code ILIKE ${bi} OR org_name ILIKE ${bi})",
+                bi = bind_idx,
+            ));
+            bind_idx += 1;
+        }
+
+        let where_clause = conditions.join(" AND ");
+
         // 총 개수
-        let total: i64 = if let Some(s) = status {
-            if let Some(q) = search {
-                let pattern = format!("%{}%", q);
-                sqlx::query_scalar(
-                    "SELECT COUNT(*) FROM textbook WHERE status = $1 AND (orderer_name ILIKE $2 OR order_code ILIKE $2 OR org_name ILIKE $2)",
-                )
-                .bind(s)
-                .bind(&pattern)
-                .fetch_one(pool)
-                .await?
-            } else {
-                sqlx::query_scalar("SELECT COUNT(*) FROM textbook WHERE status = $1")
-                    .bind(s)
-                    .fetch_one(pool)
-                    .await?
-            }
-        } else if let Some(q) = search {
-            let pattern = format!("%{}%", q);
-            sqlx::query_scalar(
-                "SELECT COUNT(*) FROM textbook WHERE orderer_name ILIKE $1 OR order_code ILIKE $1 OR org_name ILIKE $1",
-            )
-            .bind(&pattern)
-            .fetch_one(pool)
-            .await?
-        } else {
-            sqlx::query_scalar("SELECT COUNT(*) FROM textbook")
-                .fetch_one(pool)
-                .await?
-        };
+        let count_sql = format!("SELECT COUNT(*) FROM textbook WHERE {}", where_clause);
+        let mut count_query = sqlx::query_scalar::<_, i64>(&count_sql);
+        if let Some(s) = status {
+            count_query = count_query.bind(s);
+        }
+        if let Some(q) = search {
+            count_query = count_query.bind(format!("%{}%", escape_like(q)));
+        }
+        let total = count_query.fetch_one(pool).await?;
 
         // 데이터 조회
-        let rows = if let Some(s) = status {
-            if let Some(q) = search {
-                let pattern = format!("%{}%", q);
-                sqlx::query_as::<_, TextbookOrderRow>(
-                    r#"
-                    SELECT order_id, order_code, status,
-                           orderer_name, orderer_email, orderer_phone,
-                           org_name, org_type,
-                           delivery_postal_code, delivery_address, delivery_detail,
-                           payment_method, depositor_name,
-                           tax_invoice, tax_biz_number, tax_email,
-                           total_quantity, total_amount, currency, notes,
-                           confirmed_at, paid_at, shipped_at, delivered_at, canceled_at,
-                           created_at, updated_at
-                    FROM textbook
-                    WHERE status = $1 AND (orderer_name ILIKE $2 OR order_code ILIKE $2 OR org_name ILIKE $2)
-                    ORDER BY created_at DESC
-                    LIMIT $3 OFFSET $4
-                    "#,
-                )
-                .bind(s)
-                .bind(&pattern)
-                .bind(per_page)
-                .bind(offset)
-                .fetch_all(pool)
-                .await?
-            } else {
-                sqlx::query_as::<_, TextbookOrderRow>(
-                    r#"
-                    SELECT order_id, order_code, status,
-                           orderer_name, orderer_email, orderer_phone,
-                           org_name, org_type,
-                           delivery_postal_code, delivery_address, delivery_detail,
-                           payment_method, depositor_name,
-                           tax_invoice, tax_biz_number, tax_email,
-                           total_quantity, total_amount, currency, notes,
-                           confirmed_at, paid_at, shipped_at, delivered_at, canceled_at,
-                           created_at, updated_at
-                    FROM textbook
-                    WHERE status = $1
-                    ORDER BY created_at DESC
-                    LIMIT $2 OFFSET $3
-                    "#,
-                )
-                .bind(s)
-                .bind(per_page)
-                .bind(offset)
-                .fetch_all(pool)
-                .await?
-            }
-        } else if let Some(q) = search {
-            let pattern = format!("%{}%", q);
-            sqlx::query_as::<_, TextbookOrderRow>(
-                r#"
-                SELECT order_id, order_code, status,
-                       orderer_name, orderer_email, orderer_phone,
-                       org_name, org_type,
-                       delivery_postal_code, delivery_address, delivery_detail,
-                       payment_method, depositor_name,
-                       tax_invoice, tax_biz_number, tax_email,
-                       total_quantity, total_amount, currency, notes,
-                       confirmed_at, paid_at, shipped_at, delivered_at, canceled_at,
-                       created_at, updated_at
-                FROM textbook
-                WHERE orderer_name ILIKE $1 OR order_code ILIKE $1 OR org_name ILIKE $1
-                ORDER BY created_at DESC
-                LIMIT $2 OFFSET $3
-                "#,
-            )
-            .bind(&pattern)
-            .bind(per_page)
-            .bind(offset)
-            .fetch_all(pool)
-            .await?
-        } else {
-            sqlx::query_as::<_, TextbookOrderRow>(
-                r#"
-                SELECT order_id, order_code, status,
-                       orderer_name, orderer_email, orderer_phone,
-                       org_name, org_type,
-                       delivery_postal_code, delivery_address, delivery_detail,
-                       payment_method, depositor_name,
-                       tax_invoice, tax_biz_number, tax_email,
-                       total_quantity, total_amount, currency, notes,
-                       confirmed_at, paid_at, shipped_at, delivered_at, canceled_at,
-                       created_at, updated_at
-                FROM textbook
-                ORDER BY created_at DESC
-                LIMIT $1 OFFSET $2
-                "#,
-            )
-            .bind(per_page)
-            .bind(offset)
-            .fetch_all(pool)
-            .await?
-        };
+        let data_sql = format!(
+            "SELECT {} FROM textbook WHERE {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
+            ORDER_COLUMNS, where_clause, bind_idx, bind_idx + 1,
+        );
+        let mut data_query = sqlx::query_as::<_, TextbookOrderRow>(&data_sql);
+        if let Some(s) = status {
+            data_query = data_query.bind(s);
+        }
+        if let Some(q) = search {
+            data_query = data_query.bind(format!("%{}%", escape_like(q)));
+        }
+        data_query = data_query.bind(per_page).bind(offset);
+        let rows = data_query.fetch_all(pool).await?;
 
         Ok((rows, total))
     }
@@ -395,38 +343,67 @@ impl TextbookRepo {
     ) -> AppResult<()> {
         let now = Utc::now();
 
-        // 상태별 시각 업데이트
-        let (col, val): (&str, Option<DateTime<Utc>>) = match new_status {
-            TextbookOrderStatus::Confirmed => ("confirmed_at", Some(now)),
-            TextbookOrderStatus::Paid => ("paid_at", Some(now)),
-            TextbookOrderStatus::Shipped => ("shipped_at", Some(now)),
-            TextbookOrderStatus::Delivered => ("delivered_at", Some(now)),
-            TextbookOrderStatus::Canceled => ("canceled_at", Some(now)),
-            _ => ("updated_at", None),
+        // 상태별 타임스탬프 컬럼 결정
+        let timestamp_col: Option<&str> = match new_status {
+            TextbookOrderStatus::Confirmed => Some("confirmed_at"),
+            TextbookOrderStatus::Paid => Some("paid_at"),
+            TextbookOrderStatus::Shipped => Some("shipped_at"),
+            TextbookOrderStatus::Delivered => Some("delivered_at"),
+            TextbookOrderStatus::Canceled => Some("canceled_at"),
+            _ => None, // Pending, Printing — 별도 타임스탬프 없음
         };
 
-        // 동적 컬럼 업데이트를 위한 쿼리
-        let query = format!(
-            "UPDATE textbook SET status = $1, {} = COALESCE($3, {}), updated_at = NOW() WHERE order_id = $2",
-            col, col
-        );
-
-        sqlx::query(&query)
+        if let Some(col) = timestamp_col {
+            let query = format!(
+                "UPDATE textbook SET status = $1, {} = $3, updated_at = NOW() WHERE order_id = $2 AND is_deleted = false",
+                col
+            );
+            sqlx::query(&query)
+                .bind(new_status)
+                .bind(order_id)
+                .bind(now)
+                .execute(pool)
+                .await?;
+        } else {
+            sqlx::query(
+                "UPDATE textbook SET status = $1, updated_at = NOW() WHERE order_id = $2 AND is_deleted = false",
+            )
             .bind(new_status)
             .bind(order_id)
-            .bind(val)
             .execute(pool)
             .await?;
+        }
 
         Ok(())
     }
 
-    /// 주문 삭제
-    pub async fn delete_order(pool: &PgPool, order_id: i64) -> AppResult<()> {
-        sqlx::query("DELETE FROM textbook WHERE order_id = $1")
-            .bind(order_id)
-            .execute(pool)
-            .await?;
+    /// 배송 추적 정보 업데이트
+    pub async fn update_tracking(
+        pool: &PgPool,
+        order_id: i64,
+        tracking_number: Option<&str>,
+        tracking_provider: Option<&str>,
+    ) -> AppResult<()> {
+        sqlx::query(
+            "UPDATE textbook SET tracking_number = $2, tracking_provider = $3, updated_at = NOW() WHERE order_id = $1 AND is_deleted = false",
+        )
+        .bind(order_id)
+        .bind(tracking_number)
+        .bind(tracking_provider)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// 주문 Soft Delete
+    pub async fn soft_delete_order(pool: &PgPool, order_id: i64) -> AppResult<()> {
+        sqlx::query(
+            "UPDATE textbook SET is_deleted = true, deleted_at = NOW(), updated_at = NOW() WHERE order_id = $1",
+        )
+        .bind(order_id)
+        .execute(pool)
+        .await?;
 
         Ok(())
     }
@@ -435,7 +412,7 @@ impl TextbookRepo {
     // Admin: 로그
     // =========================================================================
 
-    /// 관리자 작업 로그 기록
+    /// 관리자 작업 로그 기록 (ILIKE 특수문자 이스케이프)
     pub async fn insert_admin_log(
         pool: &PgPool,
         admin_user_id: i64,
@@ -460,4 +437,12 @@ impl TextbookRepo {
 
         Ok(())
     }
+}
+
+/// ILIKE 패턴용 특수문자 이스케이프 (`%`, `_`, `\`)
+fn escape_like(input: &str) -> String {
+    input
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
 }

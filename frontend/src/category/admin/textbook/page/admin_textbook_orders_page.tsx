@@ -224,20 +224,28 @@ export function AdminTextbookOrdersPage() {
                 className={params.page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
               />
             </PaginationItem>
-            {Array.from({ length: Math.min(5, data.meta.total_pages) }, (_, i) => {
-              const page = i + 1;
-              return (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    onClick={() => handlePageChange(page)}
-                    isActive={params.page === page}
-                    className="cursor-pointer"
-                  >
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              );
-            })}
+            {(() => {
+              const current = params.page ?? 1;
+              const total = data.meta.total_pages;
+              const maxVisible = 5;
+              let start = Math.max(1, current - Math.floor(maxVisible / 2));
+              const end = Math.min(total, start + maxVisible - 1);
+              start = Math.max(1, end - maxVisible + 1);
+              return Array.from({ length: end - start + 1 }, (_, i) => {
+                const page = start + i;
+                return (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(page)}
+                      isActive={current === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              });
+            })()}
             <PaginationItem>
               <PaginationNext
                 onClick={() =>

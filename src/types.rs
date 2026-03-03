@@ -491,7 +491,7 @@ impl fmt::Display for BillingInterval {
 // -----------------------------------------------------------------------------
 
 /// 교재 언어 (한국어/영어 제외 20개 언어)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type, ToSchema)]
 #[sqlx(type_name = "textbook_language_enum", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum TextbookLanguage {
@@ -549,7 +549,7 @@ impl fmt::Display for TextbookLanguage {
 }
 
 /// 교재 유형 (학생용/교사용)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type, ToSchema)]
 #[sqlx(type_name = "textbook_type_enum", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum TextbookType {

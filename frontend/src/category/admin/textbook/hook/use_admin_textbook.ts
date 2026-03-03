@@ -4,9 +4,10 @@ import {
   getAdminTextbookOrders,
   getAdminTextbookOrder,
   updateAdminTextbookOrderStatus,
+  updateAdminTextbookOrderTracking,
   deleteAdminTextbookOrder,
 } from "../../admin_api";
-import type { AdminTextbookListReq, AdminUpdateStatusReq } from "../types";
+import type { AdminTextbookListReq, AdminUpdateStatusReq, AdminUpdateTrackingReq } from "../types";
 
 // =============================================================================
 // Query Keys
@@ -49,6 +50,23 @@ export const useAdminUpdateTextbookStatus = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: AdminUpdateStatusReq }) =>
       updateAdminTextbookOrderStatus(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({
+        queryKey: adminTextbookKeys.orders,
+      });
+      queryClient.invalidateQueries({
+        queryKey: adminTextbookKeys.orderDetail(id),
+      });
+    },
+  });
+};
+
+export const useAdminUpdateTextbookTracking = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: AdminUpdateTrackingReq }) =>
+      updateAdminTextbookOrderTracking(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({
         queryKey: adminTextbookKeys.orders,

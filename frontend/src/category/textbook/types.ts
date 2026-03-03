@@ -105,6 +105,8 @@ export const orderResSchema = z.object({
   total_amount: z.number().int(),
   currency: z.string(),
   notes: z.string().nullable(),
+  tracking_number: z.string().nullable(),
+  tracking_provider: z.string().nullable(),
   items: z.array(orderItemResSchema),
   confirmed_at: z.string().nullable(),
   paid_at: z.string().nullable(),

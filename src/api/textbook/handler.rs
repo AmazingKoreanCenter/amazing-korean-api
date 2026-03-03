@@ -1,7 +1,11 @@
 use axum::extract::{Path, State};
+use axum::http::HeaderMap;
 use axum::Json;
+use redis::AsyncCommands;
+use validator::Validate;
 
-use crate::error::AppResult;
+use crate::api::util::extract_client_ip;
+use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
 use super::dto::{CatalogRes, CreateOrderReq, OrderRes};
@@ -38,8 +42,25 @@ pub async fn get_catalog() -> AppResult<Json<CatalogRes>> {
 )]
 pub async fn create_order(
     State(st): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<CreateOrderReq>,
 ) -> AppResult<Json<OrderRes>> {
+    // IP 기반 Rate Limiting (비회원 주문 스팸 방지)
+    let client_ip = extract_client_ip(&headers);
+    let rl_key = format!("rl:textbook_order:{}", client_ip);
+    let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+    let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+    if attempts == 1 {
+        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_textbook_window_sec).await?;
+    }
+    if attempts > st.cfg.rate_limit_textbook_max {
+        return Err(AppError::TooManyRequests("TEXTBOOK_429_TOO_MANY_ORDERS".into()));
+    }
+
+    // 입력 검증 (length, email 형식 등)
+    req.validate().map_err(|e| AppError::BadRequest(e.to_string()))?;
+
     let res = TextbookService::create_order(&st, req).await?;
     Ok(Json(res))
 }

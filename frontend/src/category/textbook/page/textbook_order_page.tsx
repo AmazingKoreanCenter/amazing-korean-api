@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Copy,
   Package,
+  ScrollText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,6 +41,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { HeroSection } from "@/components/sections/hero_section";
 import { PageMeta } from "@/components/page_meta";
 
@@ -58,7 +67,7 @@ import type {
 const orderItemSchema = z.object({
   language: z.string().min(1),
   textbook_type: z.enum(["student", "teacher"]),
-  quantity: z.number().int().min(1),
+  quantity: z.number().int().min(1).max(9999),
 });
 
 const orderFormSchema = z.object({
@@ -73,7 +82,7 @@ const orderFormSchema = z.object({
   depositor_name: z.string().max(100),
   tax_invoice: z.boolean(),
   tax_biz_number: z.string().max(20),
-  tax_email: z.string(),
+  tax_email: z.string().email().max(255).or(z.literal("")),
   items: z.array(orderItemSchema).min(1),
   notes: z.string(),
 });
@@ -97,6 +106,10 @@ export function TextbookOrderPage() {
   const { data: catalog, isLoading: catalogLoading } = useCatalog();
   const createMutation = useCreateOrder();
   const [orderResult, setOrderResult] = useState<OrderRes | null>(null);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [termsAgreed, setTermsAgreed] = useState(false);
+  const termsScrollRef = useRef<HTMLDivElement>(null);
+  const pendingFormData = useRef<OrderFormValues | null>(null);
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderFormSchema),
@@ -133,6 +146,12 @@ export function TextbookOrderPage() {
   );
   const totalAmount = totalQuantity * UNIT_PRICE;
 
+  // 이미 선택된 language+type 조합 (중복 방지용)
+  const usedCombinations = new Set(
+    watchItems.map((item) => `${item.language}:${item.textbook_type}`),
+  );
+
+  // 폼 제출 → 검증 → 약관 모달 표시
   const onSubmit = (values: OrderFormValues) => {
     if (totalQuantity < MIN_TOTAL_QUANTITY) {
       toast.error(
@@ -140,6 +159,29 @@ export function TextbookOrderPage() {
       );
       return;
     }
+
+    // 중복 항목 체크
+    const seen = new Set<string>();
+    for (const item of values.items) {
+      const key = `${item.language}:${item.textbook_type}`;
+      if (seen.has(key)) {
+        toast.error(t("textbook.order.duplicateItemError"));
+        return;
+      }
+      seen.add(key);
+    }
+
+    // 검증 통과 → 폼 데이터 저장 후 약관 모달 표시
+    pendingFormData.current = values;
+    setTermsAgreed(false);
+    setTermsOpen(true);
+  };
+
+  // 약관 동의 후 실제 주문 실행
+  const executeOrder = () => {
+    const values = pendingFormData.current;
+    if (!values) return;
+    setTermsOpen(false);
 
     const data = {
       ...values,
@@ -204,7 +246,7 @@ export function TextbookOrderPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* 주문번호 */}
-              <div className="p-4 rounded-lg bg-secondary text-center">
+              <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
                 <p className="text-sm text-muted-foreground mb-1">
                   {t("textbook.order.orderCode")}
                 </p>
@@ -333,7 +375,7 @@ export function TextbookOrderPage() {
                   {fields.map((field, index) => (
                     <div
                       key={field.id}
-                      className="flex flex-col sm:flex-row gap-3 p-4 rounded-lg border bg-secondary/30"
+                      className="flex flex-col sm:flex-row gap-3 p-4 rounded-lg border border-border bg-muted/30"
                     >
                       {/* 언어 */}
                       <FormField
@@ -358,15 +400,23 @@ export function TextbookOrderPage() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {catalogItems.map((cat) => (
-                                  <SelectItem
-                                    key={cat.language}
-                                    value={cat.language}
-                                  >
-                                    {cat.language_name_ko} (
-                                    {cat.language_name_en})
-                                  </SelectItem>
-                                ))}
+                                {catalogItems.map((cat) => {
+                                  const currentType = watchItems[index]?.textbook_type ?? "student";
+                                  const dupKey = `${cat.language}:${currentType}`;
+                                  const isUsedByOther =
+                                    usedCombinations.has(dupKey) &&
+                                    watchItems[index]?.language !== cat.language;
+                                  return (
+                                    <SelectItem
+                                      key={cat.language}
+                                      value={cat.language}
+                                      disabled={isUsedByOther || !cat.available}
+                                    >
+                                      {cat.language_name_ko} (
+                                      {cat.language_name_en})
+                                    </SelectItem>
+                                  );
+                                })}
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -471,7 +521,7 @@ export function TextbookOrderPage() {
                   </Button>
 
                   {/* 합계 */}
-                  <div className="flex justify-between items-center p-4 rounded-lg bg-primary/5 border border-primary/20">
+                  <div className="flex justify-between items-center p-4 rounded-lg bg-muted/50 border border-border">
                     <div>
                       <span className="text-sm text-muted-foreground">
                         {t("textbook.order.totalQuantity")}:{" "}
@@ -711,7 +761,7 @@ export function TextbookOrderPage() {
                   <CardTitle>{t("textbook.order.sectionPayment")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="p-3 rounded-lg bg-secondary text-sm">
+                  <div className="p-3 rounded-lg bg-muted/50 border border-border text-sm">
                     {t("textbook.order.paymentMethodNote")}
                   </div>
                   <FormField
@@ -861,6 +911,84 @@ export function TextbookOrderPage() {
           </Form>
         </div>
       </section>
+
+      {/* ─── 약관 동의 모달 ─── */}
+      <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ScrollText className="h-5 w-5" />
+              {t("textbook.terms.title")}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t("textbook.terms.title")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div
+            ref={termsScrollRef}
+            className="flex-1 overflow-y-auto pr-2 space-y-6 text-sm leading-relaxed"
+          >
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div key={n}>
+                <h3 className="font-semibold text-base mb-2">
+                  {t(`textbook.terms.article${n}Title`)}
+                </h3>
+                <p className="text-muted-foreground whitespace-pre-line">
+                  {t(`textbook.terms.article${n}Content`)}
+                </p>
+              </div>
+            ))}
+
+            <div className="border-t pt-4 space-y-1">
+              <p className="text-muted-foreground">
+                {t("textbook.terms.closing")}
+              </p>
+              <p className="font-semibold">
+                {t("textbook.terms.publisher")}
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t pt-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="terms-agree"
+                checked={termsAgreed}
+                onCheckedChange={(v) => setTermsAgreed(v === true)}
+              />
+              <label
+                htmlFor="terms-agree"
+                className="text-sm cursor-pointer select-none"
+              >
+                {t("textbook.terms.agreeLabel")}
+              </label>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => setTermsOpen(false)}
+              >
+                {t("textbook.terms.declineButton")}
+              </Button>
+              <Button
+                disabled={!termsAgreed || createMutation.isPending}
+                onClick={executeOrder}
+              >
+                {createMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    {t("textbook.order.submitting")}
+                  </>
+                ) : (
+                  t("textbook.terms.agreeButton")
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

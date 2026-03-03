@@ -7,7 +7,9 @@ use crate::api::textbook::dto::OrderRes;
 use crate::error::AppResult;
 use crate::state::AppState;
 
-use super::dto::{AdminTextbookListReq, AdminTextbookListRes, AdminUpdateStatusReq};
+use super::dto::{
+    AdminTextbookListReq, AdminTextbookListRes, AdminUpdateStatusReq, AdminUpdateTrackingReq,
+};
 use super::service::AdminTextbookService;
 
 /// GET /admin/textbook/orders
@@ -95,6 +97,40 @@ pub async fn update_status(
 ) -> AppResult<Json<OrderRes>> {
     let res =
         AdminTextbookService::update_status(&st, auth_user.sub, id, req.status).await?;
+    Ok(Json(res))
+}
+
+/// PATCH /admin/textbook/orders/:id/tracking
+///
+/// 배송 추적 정보 업데이트.
+#[utoipa::path(
+    patch,
+    path = "/admin/textbook/orders/{id}/tracking",
+    tag = "Admin Textbook",
+    security(("bearerAuth" = [])),
+    params(
+        ("id" = i64, Path, description = "주문 ID")
+    ),
+    request_body = AdminUpdateTrackingReq,
+    responses(
+        (status = 200, description = "추적 정보 업데이트 완료", body = OrderRes),
+        (status = 404, description = "주문 없음")
+    )
+)]
+pub async fn update_tracking(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(id): Path<i64>,
+    Json(req): Json<AdminUpdateTrackingReq>,
+) -> AppResult<Json<OrderRes>> {
+    let res = AdminTextbookService::update_tracking(
+        &st,
+        auth_user.sub,
+        id,
+        req.tracking_number.as_deref(),
+        req.tracking_provider.as_deref(),
+    )
+    .await?;
     Ok(Json(res))
 }
 

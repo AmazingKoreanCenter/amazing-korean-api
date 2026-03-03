@@ -1,4 +1,5 @@
 use crate::error::{AppError, AppResult};
+use crate::external::email::{send_templated, EmailTemplate};
 use crate::state::AppState;
 use crate::types::{TextbookLanguage, TextbookType};
 
@@ -38,6 +39,13 @@ impl TextbookService {
 
     /// 주문 생성
     pub async fn create_order(st: &AppState, req: CreateOrderReq) -> AppResult<OrderRes> {
+        // 항목 수량 검증 (각 항목 1권 이상)
+        if req.items.iter().any(|i| i.quantity < 1) {
+            return Err(AppError::BadRequest(
+                "Each item quantity must be at least 1".into(),
+            ));
+        }
+
         // 총 수량 검증
         let total_quantity: i32 = req.items.iter().map(|i| i.quantity).sum();
         if total_quantity < MIN_TOTAL_QUANTITY {
@@ -47,20 +55,56 @@ impl TextbookService {
             )));
         }
 
-        // 세금계산서 요청 시 사업자등록번호 필수
-        if req.tax_invoice && req.tax_biz_number.as_ref().map_or(true, |s| s.is_empty()) {
-            return Err(AppError::BadRequest(
-                "Business registration number is required for tax invoice".into(),
-            ));
+        // 중복 항목 검증 (같은 language + type 조합 불가)
+        {
+            let mut seen = std::collections::HashSet::new();
+            for item in &req.items {
+                if !seen.insert((item.language, item.textbook_type)) {
+                    return Err(AppError::BadRequest(format!(
+                        "Duplicate item: {:?} {:?}",
+                        item.language, item.textbook_type
+                    )));
+                }
+            }
+        }
+
+        // 언어 가용성 검증
+        let catalog = catalog_languages();
+        for item in &req.items {
+            let available = catalog
+                .iter()
+                .find(|(lang, _, _, _)| *lang == item.language)
+                .map(|(_, _, _, avail)| *avail)
+                .unwrap_or(false);
+            if !available {
+                return Err(AppError::BadRequest(format!(
+                    "Language {:?} is currently not available for ordering",
+                    item.language
+                )));
+            }
+        }
+
+        // 세금계산서 요청 시 사업자등록번호 + 이메일 필수
+        if req.tax_invoice {
+            if req.tax_biz_number.as_ref().map_or(true, |s| s.is_empty()) {
+                return Err(AppError::BadRequest(
+                    "Business registration number is required for tax invoice".into(),
+                ));
+            }
+            if req.tax_email.as_ref().map_or(true, |s| s.is_empty()) {
+                return Err(AppError::BadRequest(
+                    "Tax invoice email is required for tax invoice".into(),
+                ));
+            }
         }
 
         // 총액 계산
         let total_amount: i32 = req.items.iter().map(|i| i.quantity * UNIT_PRICE).sum();
 
-        // 트랜잭션으로 주문 + 항목 생성
+        // 트랜잭션으로 주문 + 항목 생성 (주문번호 생성도 트랜잭션 내에서 — race condition 방지)
         let mut tx = st.db.begin().await?;
 
-        let order_code = TextbookRepo::generate_order_code(&st.db).await?;
+        let order_code = TextbookRepo::generate_order_code(&mut tx).await?;
 
         let order_id = TextbookRepo::insert_order(
             &mut tx,
@@ -101,6 +145,24 @@ impl TextbookService {
             total_amount = total_amount,
             "Textbook order created"
         );
+
+        // 주문 접수 확인 이메일 발송 (실패해도 주문은 유지)
+        if let Some(ref email_sender) = st.email {
+            let template = EmailTemplate::TextbookOrderConfirmation {
+                order_code: order_code.clone(),
+                orderer_name: req.orderer_name.clone(),
+                total_quantity,
+                total_amount,
+            };
+            if let Err(e) = send_templated(email_sender.as_ref(), &req.orderer_email, template).await {
+                tracing::warn!(
+                    order_code = %order_code,
+                    email = %req.orderer_email,
+                    error = %e,
+                    "Failed to send order confirmation email (order still created)"
+                );
+            }
+        }
 
         // 생성된 주문 조회해서 반환
         Self::get_order_by_code(st, &order_code).await
@@ -155,6 +217,8 @@ pub fn build_order_res_from(order: TextbookOrderRow, items: Vec<TextbookItemRow>
         total_amount: order.total_amount,
         currency: order.currency,
         notes: order.notes,
+        tracking_number: order.tracking_number,
+        tracking_provider: order.tracking_provider,
         items: items
             .into_iter()
             .map(|i| {

@@ -11,6 +11,37 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-03 — 교재 주문 시스템 개선 (Textbook Order System Improvements)**
+  - **DB 마이그레이션** (`20260303_textbook_improvements.sql`):
+    - Soft Delete 지원: `is_deleted`, `deleted_at` 컬럼 추가
+    - 배송 추적: `tracking_number`, `tracking_provider` 컬럼 추가
+    - FK 제약조건: `admin_textbook_log.order_id` CASCADE → RESTRICT (감사 로그 보존)
+    - DB 레벨 CHECK: 세금계산서 요청 시 사업자등록번호 필수
+    - 인덱스 추가: `(status, created_at)`, `orderer_email`, `is_deleted`
+  - **백엔드 개선**:
+    - 상태 머신 검증 (유효 전환만 허용, shipped 전환 시 추적정보 필수)
+    - Advisory Lock 개선: `pg_try_advisory_xact_lock` → `pg_advisory_xact_lock` (blocking 방식으로 중복 주문번호 완전 방지)
+    - IP 기반 Rate Limiting (Redis INCR, 기본 5회/시간)
+    - N+1 쿼리 해결 (`find_items_by_orders` 배치 조회)
+    - ILIKE 검색 특수문자 이스케이프 (`%`, `_`, `\`)
+    - 중복 항목 검증 (같은 언어+유형 조합 거부)
+    - 언어 가용성 검증 (비활성 언어 주문 차단)
+    - Validate() 호출 (이메일, 길이 등 DTO 검증)
+    - 페이지네이션 범위 제한 (page ≥ 1, per_page 1~100)
+    - `TextbookLanguage`, `TextbookType`에 Hash derive 추가
+  - **신규 API**: `PATCH /admin/textbook/orders/{id}/tracking` (배송 추적 정보 업데이트)
+  - **이메일 알림**:
+    - 주문 접수 확인 이메일 (`TextbookOrderConfirmation`)
+    - 상태 변경 알림 이메일 (`TextbookOrderStatusUpdate`) — 발송 시 운송장번호 포함
+  - **프론트엔드 개선**:
+    - 주문 폼: 약관 동의 모달 추가 (6개 조항 — 주문 제출 전 필수 동의)
+    - 주문 폼: 중복 항목 방지 (동일 언어+유형 Select 비활성화 + 제출 시 검증)
+    - 주문 폼: 세금계산서 이메일 Zod `.email()` 검증 추가, 수량 최대값(9999) 제한
+    - 주문 폼: 다크모드 색상 개선 (`bg-primary/5` → `bg-muted/50`, `bg-secondary` → `bg-muted/50`)
+    - 관리자: 유효 상태 전환만 표시 (State Machine UI), 배송 추적 입력/수정 UI
+    - 관리자: 페이지네이션 동적 페이지 범위 (현재 페이지 기준 5개 표시)
+  - **i18n**: 약관 6개 조항 (ko/en) + 추적 관련 8개 키 + 중복 에러 + 다음 상태 선택 키 추가
+
 - **2026-02-26 — 교재 주문 시스템 구현 (Textbook Order System)**
   - **DB 마이그레이션**: ENUM 4개 (`textbook_language_enum`, `textbook_type_enum`, `textbook_order_status_enum`, `textbook_payment_method_enum`) + 테이블 3개 (`textbook`, `textbook_item`, `admin_textbook_log`)
   - **백엔드 (Public API)**: `GET /textbook/catalog` (카탈로그), `POST /textbook/orders` (주문 생성), `GET /textbook/orders/{code}` (주문 조회) — 인증 불필요

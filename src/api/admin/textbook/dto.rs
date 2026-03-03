@@ -39,3 +39,13 @@ pub struct AdminTextbookListRes {
 pub struct AdminUpdateStatusReq {
     pub status: TextbookOrderStatus,
 }
+
+// =============================================================================
+// 배송 추적 정보 업데이트
+// =============================================================================
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct AdminUpdateTrackingReq {
+    pub tracking_number: Option<String>,
+    pub tracking_provider: Option<String>,
+}
