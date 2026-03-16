@@ -530,8 +530,18 @@ impl PaymentService {
                     }
                 }
             } else {
-                // 구독 없는 일회성 결제 (현재 지원 안 함)
-                tracing::warn!(txn_id = %provider_txn_id, "Transaction without subscription_id, skipping");
+                // 구독 없는 일회성 결제 — e-book 구매 확인
+                let custom_data = txn.custom_data.as_ref();
+                let is_ebook = custom_data
+                    .and_then(|cd| cd["type"].as_str())
+                    .map(|t| t == "ebook")
+                    .unwrap_or(false);
+
+                if is_ebook {
+                    return Self::handle_ebook_transaction_completed(st, txn).await;
+                }
+
+                tracing::warn!(txn_id = %provider_txn_id, "Transaction without subscription_id and not ebook, skipping");
                 return Ok(());
             };
 
@@ -557,6 +567,59 @@ impl PaymentService {
             amount_cents = amount_cents,
             "Transaction completed"
         );
+
+        Ok(())
+    }
+    // =========================================================================
+    // E-book 일회성 결제 핸들러
+    // =========================================================================
+
+    /// e-book 일회성 결제 완료 처리
+    /// custom_data: { "type": "ebook", "purchase_code": "EB-YYMMDD-NNNN" }
+    async fn handle_ebook_transaction_completed(
+        st: &AppState,
+        txn: &paddle_rust_sdk::entities::Transaction,
+    ) -> AppResult<()> {
+        let provider_txn_id = txn.id.to_string();
+        let custom_data = txn.custom_data.as_ref();
+
+        let purchase_code = custom_data
+            .and_then(|cd| cd["purchase_code"].as_str())
+            .unwrap_or("");
+
+        if purchase_code.is_empty() {
+            tracing::error!(
+                txn_id = %provider_txn_id,
+                "ebook transaction.completed: missing purchase_code in custom_data"
+            );
+            return Ok(());
+        }
+
+        // ebook_purchase 상태를 completed로 업데이트 + paddle_txn_id 저장
+        let result = crate::api::ebook::repo::complete_with_paddle_txn(
+            &st.db,
+            purchase_code,
+            &provider_txn_id,
+        )
+        .await?;
+
+        match result {
+            Some(row) => {
+                tracing::info!(
+                    user_id = row.user_id,
+                    purchase_code = %purchase_code,
+                    txn_id = %provider_txn_id,
+                    "E-book purchase completed via Paddle"
+                );
+            }
+            None => {
+                tracing::warn!(
+                    purchase_code = %purchase_code,
+                    txn_id = %provider_txn_id,
+                    "E-book purchase not found or already completed"
+                );
+            }
+        }
 
         Ok(())
     }

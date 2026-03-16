@@ -189,6 +189,7 @@ pub enum AdminAction {
     Reorder,
     Publish,
     Unpublish,
+    Delete,
 }
 
 // -----------------------------------------------------------------------------
@@ -481,6 +482,182 @@ impl fmt::Display for BillingInterval {
             Self::Month3 => write!(f, "month_3"),
             Self::Month6 => write!(f, "month_6"),
             Self::Month12 => write!(f, "month_12"),
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// 7. Textbook Order Enums
+// -----------------------------------------------------------------------------
+
+/// 교재 언어 (한국어/영어 제외 20개 언어)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "textbook_language_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TextbookLanguage {
+    Ja,
+    #[sqlx(rename = "zh_cn")]
+    #[serde(rename = "zh_cn")]
+    ZhCn,
+    #[sqlx(rename = "zh_tw")]
+    #[serde(rename = "zh_tw")]
+    ZhTw,
+    Vi,
+    Th,
+    Id,
+    My,
+    Mn,
+    Ru,
+    Es,
+    Pt,
+    Fr,
+    De,
+    Hi,
+    Ne,
+    Si,
+    Km,
+    Uz,
+    Kk,
+    Tg,
+    Tl,
+}
+
+impl TextbookLanguage {
+    /// 구매코드용 대문자 언어 코드 (e.g., "VI", "ZH_CN")
+    pub fn to_purchase_code(&self) -> &'static str {
+        match self {
+            Self::Ja => "JA",
+            Self::ZhCn => "ZH_CN",
+            Self::ZhTw => "ZH_TW",
+            Self::Vi => "VI",
+            Self::Th => "TH",
+            Self::Id => "ID",
+            Self::My => "MY",
+            Self::Mn => "MN",
+            Self::Ru => "RU",
+            Self::Es => "ES",
+            Self::Pt => "PT",
+            Self::Fr => "FR",
+            Self::De => "DE",
+            Self::Hi => "HI",
+            Self::Ne => "NE",
+            Self::Si => "SI",
+            Self::Km => "KM",
+            Self::Uz => "UZ",
+            Self::Kk => "KK",
+            Self::Tg => "TG",
+            Self::Tl => "TL",
+        }
+    }
+}
+
+impl fmt::Display for TextbookLanguage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ja => write!(f, "ja"),
+            Self::ZhCn => write!(f, "zh_cn"),
+            Self::ZhTw => write!(f, "zh_tw"),
+            Self::Vi => write!(f, "vi"),
+            Self::Th => write!(f, "th"),
+            Self::Id => write!(f, "id"),
+            Self::My => write!(f, "my"),
+            Self::Mn => write!(f, "mn"),
+            Self::Ru => write!(f, "ru"),
+            Self::Es => write!(f, "es"),
+            Self::Pt => write!(f, "pt"),
+            Self::Fr => write!(f, "fr"),
+            Self::De => write!(f, "de"),
+            Self::Hi => write!(f, "hi"),
+            Self::Ne => write!(f, "ne"),
+            Self::Si => write!(f, "si"),
+            Self::Km => write!(f, "km"),
+            Self::Uz => write!(f, "uz"),
+            Self::Kk => write!(f, "kk"),
+            Self::Tg => write!(f, "tg"),
+            Self::Tl => write!(f, "tl"),
+        }
+    }
+}
+
+/// 교재 유형 (학생용/교사용)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "textbook_type_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TextbookType {
+    Student,
+    Teacher,
+}
+
+/// 교재 주문 상태
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "textbook_order_status_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TextbookOrderStatus {
+    Pending,
+    Confirmed,
+    Paid,
+    Printing,
+    Shipped,
+    Delivered,
+    Canceled,
+}
+
+/// 교재 결제 방식
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "textbook_payment_method_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TextbookPaymentMethod {
+    BankTransfer,
+}
+
+// -----------------------------------------------------------------------------
+// 5. E-book Related Enums
+// -----------------------------------------------------------------------------
+
+/// E-book 에디션
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "ebook_edition_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum EbookEdition {
+    Student,
+    Teacher,
+}
+
+impl EbookEdition {
+    /// 구매코드용 에디션 코드 (e.g., "ST", "TC")
+    pub fn to_purchase_code(&self) -> &'static str {
+        match self {
+            Self::Student => "ST",
+            Self::Teacher => "TC",
+        }
+    }
+}
+
+/// E-book 구매 상태
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "ebook_purchase_status_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum EbookPurchaseStatus {
+    Pending,
+    Completed,
+    Refunded,
+}
+
+/// E-book 결제 방법
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "ebook_payment_method_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum EbookPaymentMethod {
+    Paddle,
+    BankTransfer,
+}
+
+impl EbookPaymentMethod {
+    /// 구매코드용 결제 방법 코드: Paddle→CA(Card), BankTransfer→BT
+    pub fn to_purchase_code(&self) -> &'static str {
+        match self {
+            Self::Paddle => "CA",
+            Self::BankTransfer => "BT",
         }
     }
 }

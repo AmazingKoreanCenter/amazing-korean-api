@@ -12,6 +12,13 @@ import type {
   AdminGrantListRes,
 } from "./payment/types";
 import type {
+  AdminTextbookListReq,
+  AdminTextbookListRes,
+  AdminUpdateStatusReq,
+  AdminUpdateTrackingReq,
+} from "./textbook/types";
+import type { OrderRes } from "@/category/textbook/types";
+import type {
   AdminListReq,
   AdminUserListRes,
   AdminUserRes,
@@ -743,5 +750,37 @@ export const getAdminGrants = (params: AdminGrantListReq) =>
 
 export const revokeAdminGrant = (userId: number) =>
   request<void>(`/admin/payment/grants/${userId}`, {
+    method: "DELETE",
+  });
+
+// ==========================================
+// 12. Admin Textbook API
+// ==========================================
+
+export const getAdminTextbookOrders = (params: AdminTextbookListReq) =>
+  request<AdminTextbookListRes>("/admin/textbook/orders", {
+    method: "GET",
+    params,
+  });
+
+export const getAdminTextbookOrder = (id: number) =>
+  request<OrderRes>(`/admin/textbook/orders/${id}`, {
+    method: "GET",
+  });
+
+export const updateAdminTextbookOrderStatus = (id: number, data: AdminUpdateStatusReq) =>
+  request<OrderRes>(`/admin/textbook/orders/${id}/status`, {
+    method: "PATCH",
+    data,
+  });
+
+export const updateAdminTextbookOrderTracking = (id: number, data: AdminUpdateTrackingReq) =>
+  request<OrderRes>(`/admin/textbook/orders/${id}/tracking`, {
+    method: "PATCH",
+    data,
+  });
+
+export const deleteAdminTextbookOrder = (id: number) =>
+  request<void>(`/admin/textbook/orders/${id}`, {
     method: "DELETE",
   });

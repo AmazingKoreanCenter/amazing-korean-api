@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-02-20
+updated: 2026-02-26
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,70 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-03-09 — E-book 웹 뷰어 시스템 (Phase 12.5) ✅**
+  - **핵심 설계**: 회원 전용 (로그인 필수), 웹 전용 (다운로드 없음), 3중 보안 아키텍처
+  - **DB 마이그레이션** (`20260310_ebook.sql`):
+    - ENUM 3개: `ebook_edition_enum`, `ebook_purchase_status_enum`, `ebook_payment_method_enum`
+    - 테이블 3개: `ebook_purchase` (구매), `ebook_access_log` (감사), `admin_ebook_log` (관리자)
+  - **백엔드 (Public API)**: `GET /ebook/catalog` (카탈로그), `POST /ebook/purchase` (구매, AuthUser+IP Rate Limit), `GET /ebook/my` (내 구매), `GET /ebook/viewer/{code}/meta` (뷰어 메타), `GET /ebook/viewer/{code}/pages/{num}` (워터마크 페이지 이미지)
+  - **백엔드 (Admin API)**: `GET /admin/ebook/purchases` (목록), `GET /admin/ebook/purchases/{id}` (상세), `PATCH /admin/ebook/purchases/{id}/status` (상태 변경), `DELETE /admin/ebook/purchases/{id}` (삭제)
+  - **보안**: 2중 워터마크 (가시적 대각선 텍스트 + LSB 스테가노그래피), Redis Rate Limit (30페이지/분/user), 브라우저 보호 (우클릭/인쇄/드래그 차단), blob:// URL, Cache-Control: no-store
+  - **Paddle 연동**: `transaction.completed` 웹훅에서 `custom_data.type == "ebook"` 분기 → 구매 완료 처리
+  - **프론트엔드**: 카탈로그 (`/ebook`), 웹 뷰어 (`/ebook/viewer/:code`), 내 구매 (`/ebook/my`), 관리자 목록+상세 (`/admin/ebook/purchases`)
+  - **이미지 처리**: `image` + `imageproc` + `ab_glyph` Rust 크레이트 (OnceLock 폰트 로딩)
+
+- **2026-03-03 — 교재 주문 시스템 개선 (Textbook Order System Improvements)**
+  - **DB 마이그레이션** (`20260303_textbook_improvements.sql`):
+    - Soft Delete 지원: `is_deleted`, `deleted_at` 컬럼 추가
+    - 배송 추적: `tracking_number`, `tracking_provider` 컬럼 추가
+    - FK 제약조건: `admin_textbook_log.order_id` CASCADE → RESTRICT (감사 로그 보존)
+    - DB 레벨 CHECK: 세금계산서 요청 시 사업자등록번호 필수
+    - 인덱스 추가: `(status, created_at)`, `orderer_email`, `is_deleted`
+  - **백엔드 개선**:
+    - 상태 머신 검증 (유효 전환만 허용, shipped 전환 시 추적정보 필수)
+    - Advisory Lock 개선: `pg_try_advisory_xact_lock` → `pg_advisory_xact_lock` (blocking 방식으로 중복 주문번호 완전 방지)
+    - IP 기반 Rate Limiting (Redis INCR, 기본 5회/시간)
+    - N+1 쿼리 해결 (`find_items_by_orders` 배치 조회)
+    - ILIKE 검색 특수문자 이스케이프 (`%`, `_`, `\`)
+    - 중복 항목 검증 (같은 언어+유형 조합 거부)
+    - 언어 가용성 검증 (비활성 언어 주문 차단)
+    - Validate() 호출 (이메일, 길이 등 DTO 검증)
+    - 페이지네이션 범위 제한 (page ≥ 1, per_page 1~100)
+    - `TextbookLanguage`, `TextbookType`에 Hash derive 추가
+  - **신규 API**: `PATCH /admin/textbook/orders/{id}/tracking` (배송 추적 정보 업데이트)
+  - **이메일 알림**:
+    - 주문 접수 확인 이메일 (`TextbookOrderConfirmation`)
+    - 상태 변경 알림 이메일 (`TextbookOrderStatusUpdate`) — 발송 시 운송장번호 포함
+  - **프론트엔드 개선**:
+    - 주문 폼: 약관 동의 모달 추가 (6개 조항 — 주문 제출 전 필수 동의)
+    - 주문 폼: 중복 항목 방지 (동일 언어+유형 Select 비활성화 + 제출 시 검증)
+    - 주문 폼: 세금계산서 이메일 Zod `.email()` 검증 추가, 수량 최대값(9999) 제한
+    - 주문 폼: 다크모드 색상 개선 (`bg-primary/5` → `bg-muted/50`, `bg-secondary` → `bg-muted/50`)
+    - 관리자: 유효 상태 전환만 표시 (State Machine UI), 배송 추적 입력/수정 UI
+    - 관리자: 페이지네이션 동적 페이지 범위 (현재 페이지 기준 5개 표시)
+  - **i18n**: 약관 6개 조항 (ko/en) + 추적 관련 8개 키 + 중복 에러 + 다음 상태 선택 키 추가
+
+- **2026-02-26 — 교재 주문 시스템 구현 (Textbook Order System)**
+  - **DB 마이그레이션**: ENUM 4개 (`textbook_language_enum`, `textbook_type_enum`, `textbook_order_status_enum`, `textbook_payment_method_enum`) + 테이블 3개 (`textbook`, `textbook_item`, `admin_textbook_log`)
+  - **백엔드 (Public API)**: `GET /textbook/catalog` (카탈로그), `POST /textbook/orders` (주문 생성), `GET /textbook/orders/{code}` (주문 조회) — 인증 불필요
+  - **백엔드 (Admin API)**: `GET /admin/textbook/orders` (목록/필터/검색/페이지네이션), `GET /admin/textbook/orders/{id}` (상세), `PATCH /admin/textbook/orders/{id}/status` (상태 변경), `DELETE /admin/textbook/orders/{id}` (삭제)
+  - **프론트엔드 (Public)**: 교재 주문 페이지 (`/textbook`), 주문 조회 페이지 (`/textbook/order/{code}`)
+  - **프론트엔드 (Admin)**: 주문 목록 (`/admin/textbook/orders`), 주문 상세+상태변경 (`/admin/textbook/orders/{id}`), 견적서/주문확인서 인쇄 (`/admin/textbook/orders/{id}/print`)
+  - **i18n**: `ko.json`, `en.json`에 `textbook`, `admin.textbook`, `seo.textbook` 키 추가
+  - **비즈니스 규칙**: 비회원 주문 가능, 계좌이체 전용, 20개 언어 × 2종(학생용/교사용), ₩25,000/권, 최소 10권
+  - **주문번호 형식**: `TB-YYMMDD-NNNN` (일별 순번)
+
+- **2026-02-26 — Google Search Console SEO 수정 (PageMeta 컴포넌트)**
+  - **문제**: `index.html`에 하드코딩된 `<link rel="canonical" href="/">` 때문에 SPA 모든 페이지가 `/`의 중복으로 인식되어 Google 색인 제외
+  - **해결**: React 19 네이티브 metadata 호이스팅을 활용한 `PageMeta` 컴포넌트 구현
+    - `frontend/src/components/page_meta.tsx` 신규 — 페이지별 동적 `<title>`, `<link rel="canonical">`, `<meta>` (description, OG, Twitter) 태그 관리
+    - `index.html`에서 PageMeta와 중복되는 정적 태그 제거 (title, canonical, description, og:title/description/url/locale, twitter:title/description)
+    - `index.html`에 정적 태그만 유지 (keywords, og:type/site_name/image/locale:alternate, twitter:card/image)
+  - **i18n SEO 키 추가**: `ko.json`, `en.json`에 `seo` 섹션 (14개 페이지 × title + description)
+  - **적용 페이지 (14개)**: `/`, `/about`, `/pricing`, `/videos`, `/studies`, `/lessons`, `/login`, `/signup`, `/find-id`, `/request-reset-password`, `/terms`, `/privacy`, `/refund-policy`, `/faq`
+  - **기타**: `.gitignore` 교재 관련 파일 제외 추가 (scripts/, docs/pdf_check/, /node_modules/, .mcp.json)
+  - **검증**: `npm run build` 통과 + 로컬 dev 서버에서 페이지별 canonical 동적 변경 확인
 
 - **2026-02-20 — Gemini 코드 리뷰 반영 (PR #128~#132)**
   - **PR #128 — Redis DEL 배치 최적화** (`src/api/auth/service.rs`)

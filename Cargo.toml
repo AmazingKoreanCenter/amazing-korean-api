@@ -54,6 +54,10 @@ clap = { version = "4", features = ["derive"] }
 hex = "0.4.3"
 # Paddle Billing SDK
 paddle-rust-sdk = "0.17"
+# E-book watermark (image processing)
+image = { version = "0.25", default-features = false, features = ["webp", "png"] }
+ab_glyph = "0.2"
+imageproc = "0.25"
 
 [[bin]]
 name = "rekey_encryption"

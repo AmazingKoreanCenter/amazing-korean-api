@@ -32,6 +32,7 @@
     "videos": "影片",
     "studies": "學習",
     "lessons": "課程",
+    "pricing": "價格",
     "myPage": "我的頁面",
     "login": "登入",
     "signup": "註冊",
@@ -52,6 +53,7 @@
     "faq": "常見問題",
     "terms": "使用條款",
     "privacy": "隱私權政策",
+    "refundPolicy": "退款政策",
     "contact": "聯絡方式",
     "address": "世宗市韓努里大路350號6樓SB3室",
     "businessInfo": "（株）HIM｜代表：金京倫｜營業執照號：505-88-03252｜通訊販售申報：第2025-世宗Areum-0402號",
@@ -71,6 +73,8 @@
     "emailPlaceholder": "email@example.com",
     "passwordLabel": "密碼",
     "passwordPlaceholder": "請輸入密碼",
+    "confirmPasswordLabel": "確認密碼",
+    "confirmPasswordPlaceholder": "請再次輸入密碼",
     "signupWithEmail": "使用電子郵件註冊",
     "findIdPassword": "找回帳號/密碼",
     "noAccount": "還沒有帳號？",
@@ -130,8 +134,8 @@
     "resetPasswordNewDescription": "請輸入新密碼。",
     "newPasswordLabel": "新密碼",
     "newPasswordPlaceholder": "輸入新密碼",
-    "confirmPasswordLabel": "確認密碼",
-    "confirmPasswordPlaceholder": "請再次輸入密碼",
+    "resetConfirmPasswordLabel": "確認密碼",
+    "resetConfirmPasswordPlaceholder": "請再次輸入密碼",
     "changePasswordButton": "更改密碼",
     "changingPassword": "更改中...",
     "sendVerificationCode": "發送驗證碼",
@@ -191,7 +195,16 @@
     "toastTooManyResendRequests": "重新發送次數過多，請稍後再試。",
     "oauthPasswordWarning": "透過社群登入（Google等）註冊的帳號沒有密碼，請使用對應的社群服務登入。",
     "remainingAttempts": "剩餘發送次數：{{count}}次",
-    "noAttemptsRemaining": "已達到發送上限，請稍後再試。"
+    "noAttemptsRemaining": "已達到發送上限，請稍後再試。",
+    "mfaTitle": "兩步驟驗證",
+    "mfaDescription": "請輸入 Google Authenticator 應用程式中的驗證碼",
+    "mfaCodeLabel": "驗證碼",
+    "mfaCodePlaceholder": "6位驗證碼或備用碼",
+    "mfaCodeHint": "請輸入6位TOTP驗證碼或8位備用碼",
+    "mfaVerifying": "驗證中...",
+    "mfaVerifyButton": "驗證",
+    "mfaBackToLogin": "返回登入",
+    "mfaInvalidCode": "驗證碼無效"
   },
   "user": {
     "myPageTitle": "我的頁面",
@@ -392,5 +405,155 @@
     "accessDeniedTitle": "無存取權限",
     "accessDeniedDescription": "您沒有權限存取此頁面。\n此頁面需要管理員權限。",
     "accessDeniedContact": "如認為是誤判，請聯絡管理員。"
+  },
+  "payment": {
+    "title": "選擇您的方案",
+    "subtitle": "無限存取所有內容。隨時取消。",
+    "trialBadge": "含{{days}}天免費試用",
+    "perMonth": "/月",
+    "months": "個月",
+    "selectPlan": "立即開始",
+    "popular": "熱門",
+    "currentPlan": "目前方案",
+    "currentPlanLabel": "目前方案",
+    "nextBilling": "下次計費日",
+    "interval": {
+      "month_1": "月付",
+      "month_3": "季付",
+      "month_6": "半年付",
+      "month_12": "年付"
+    },
+    "status": {
+      "active": "使用中",
+      "trialing": "試用中",
+      "past_due": "逾期未付",
+      "paused": "已暫停",
+      "canceled": "已取消"
+    },
+    "featureAllCourses": "無限存取所有課程",
+    "featureAllVideos": "完整影片內容庫",
+    "featureStudyMaterials": "無限學習教材",
+    "featureTrial": "{{days}}天免費試用",
+    "featureSave": "節省{{percent}}%",
+    "checkoutSuccess": "付款完成！您的課程存取已啟用。",
+    "loginRequired": "請登入後訂閱。",
+    "alreadySubscribed": "您已有有效訂閱。",
+    "serviceUnavailable": "付款服務暫時無法使用。請稍後再試。",
+    "bottomNote": "所有價格以美元計。訂閱自動續約，可隨時取消。",
+    "cancelSubscription": "取消訂閱",
+    "cancelConfirmTitle": "確定取消訂閱？",
+    "cancelConfirmMessage": "立即取消將立刻撤銷存取權限。選擇在期末取消，您可以在目前計費期結束前繼續使用服務。",
+    "cancelAtPeriodEnd": "在期末取消",
+    "cancelImmediate": "立即取消",
+    "cancelScheduled": "已安排在期末取消",
+    "cancelSuccess": "您的訂閱已取消。",
+    "cancelFailed": "取消訂閱失敗。請重試。",
+    "expiresAt": "到期時間",
+    "promoCodePlaceholder": "輸入促銷碼",
+    "promoCodeClear": "清除"
+  },
+  "ebook": {
+    "catalog": {
+      "title": "電子書教材",
+      "subtitle": "可即時線上閱讀的數位教材。",
+      "teacherEdition": "教師版",
+      "studentEdition": "學生版",
+      "selectLanguage": "請選擇語言。",
+      "comingSoon": "即將推出",
+      "loadError": "載入目錄失敗。"
+    },
+    "purchase": {
+      "title": "購買詳情",
+      "paymentMethod": "付款方式",
+      "bankTransfer": "銀行轉帳",
+      "creditCard": "信用卡（Paddle）",
+      "buy": "購買",
+      "loginRequired": "登入後購買",
+      "success": "購買完成。",
+      "error": "購買過程中發生錯誤。"
+    },
+    "status": {
+      "pending": "處理中",
+      "completed": "可使用",
+      "refunded": "已退款"
+    },
+    "my": {
+      "title": "我的電子書",
+      "empty": "沒有已購買的電子書。",
+      "browseCatalog": "瀏覽電子書",
+      "openViewer": "開啟閱讀器",
+      "loadError": "載入購買紀錄失敗。"
+    },
+    "viewer": {
+      "toc": "目錄",
+      "notFound": "找不到教材。",
+      "loadFailed": "頁面載入失敗。"
+    }
+  },
+  "seo": {
+    "home": {
+      "title": "Amazing Korean - 韓語學習平台",
+      "description": "面向全球學習者的最佳線上韓語學習平台。提供影片學習、系統化練習和1:1課程。"
+    },
+    "about": {
+      "title": "關於 - Amazing Korean",
+      "description": "關於Amazing Korean — 為全球學習者提供高效、有趣的韓語學習體驗。"
+    },
+    "pricing": {
+      "title": "價格方案 - Amazing Korean",
+      "description": "Amazing Korean價格方案 — 無限存取影片、學習教材和課程。"
+    },
+    "videos": {
+      "title": "影片課程 - Amazing Korean",
+      "description": "透過專業講師的影片課程高效學習韓語。"
+    },
+    "studies": {
+      "title": "學習教材 - Amazing Korean",
+      "description": "透過系統化的學習教材和練習提升韓語能力。"
+    },
+    "lessons": {
+      "title": "課程 - Amazing Korean",
+      "description": "透過系統化課程逐步學習韓語。"
+    },
+    "login": {
+      "title": "登入 - Amazing Korean",
+      "description": "登入Amazing Korean開始學習韓語。"
+    },
+    "signup": {
+      "title": "註冊 - Amazing Korean",
+      "description": "加入Amazing Korean，開啟你的韓語學習之旅。"
+    },
+    "terms": {
+      "title": "服務條款 - Amazing Korean",
+      "description": "Amazing Korean服務條款。"
+    },
+    "privacy": {
+      "title": "隱私權政策 - Amazing Korean",
+      "description": "Amazing Korean關於資料蒐集和處理的隱私權政策。"
+    },
+    "refundPolicy": {
+      "title": "退款政策 - Amazing Korean",
+      "description": "Amazing Korean訂閱退款政策。"
+    },
+    "faq": {
+      "title": "常見問題 - Amazing Korean",
+      "description": "關於Amazing Korean的常見問題。"
+    },
+    "findId": {
+      "title": "找回帳號 - Amazing Korean",
+      "description": "查詢已註冊的帳號資訊。"
+    },
+    "requestResetPassword": {
+      "title": "重設密碼 - Amazing Korean",
+      "description": "向註冊信箱發送密碼重設郵件。"
+    },
+    "textbook": {
+      "title": "教材訂購 - Amazing Korean",
+      "description": "線上訂購Amazing Korean教材。支援20種語言，學生版和教師版。"
+    },
+    "textbookStatus": {
+      "title": "訂單查詢 - Amazing Korean",
+      "description": "查詢教材訂單狀態。"
+    }
   }
 }

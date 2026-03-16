@@ -32,6 +32,7 @@
     "videos": "動画",
     "studies": "学習",
     "lessons": "レッスン",
+    "pricing": "料金プラン",
     "myPage": "マイページ",
     "login": "ログイン",
     "signup": "会員登録",
@@ -52,6 +53,7 @@
     "faq": "よくある質問",
     "terms": "利用規約",
     "privacy": "プライバシーポリシー",
+    "refundPolicy": "返金ポリシー",
     "contact": "お問い合わせ",
     "address": "世宗市ハンヌリ大路350 6階 SB3号",
     "businessInfo": "（株）HIM｜代表：キム・ギョンリュン｜事業者登録番号：505-88-03252｜通信販売届出：第2025-世宗アルム-0402号",
@@ -71,6 +73,8 @@
     "emailPlaceholder": "email@example.com",
     "passwordLabel": "パスワード",
     "passwordPlaceholder": "パスワードを入力してください",
+    "confirmPasswordLabel": "パスワード確認",
+    "confirmPasswordPlaceholder": "パスワードを再入力してください",
     "signupWithEmail": "メールで会員登録",
     "findIdPassword": "ID・パスワードを探す",
     "noAccount": "アカウントをお持ちでないですか？",
@@ -130,8 +134,8 @@
     "resetPasswordNewDescription": "新しいパスワードを入力してください。",
     "newPasswordLabel": "新しいパスワード",
     "newPasswordPlaceholder": "新しいパスワードを入力",
-    "confirmPasswordLabel": "パスワード確認",
-    "confirmPasswordPlaceholder": "パスワードを再入力してください",
+    "resetConfirmPasswordLabel": "パスワード確認",
+    "resetConfirmPasswordPlaceholder": "パスワードを再入力してください",
     "changePasswordButton": "パスワードを変更",
     "changingPassword": "変更中...",
     "sendVerificationCode": "認証番号を送信",
@@ -191,7 +195,16 @@
     "toastTooManyResendRequests": "再送信リクエスト回数を超えました。しばらくしてからもう一度お試しください。",
     "oauthPasswordWarning": "ソーシャルログイン（Googleなど）で登録したアカウントにはパスワードがありません。該当のソーシャルサービスでログインしてください。",
     "remainingAttempts": "残り送信回数：{{count}}回",
-    "noAttemptsRemaining": "送信上限に達しました。しばらくしてからもう一度お試しください。"
+    "noAttemptsRemaining": "送信上限に達しました。しばらくしてからもう一度お試しください。",
+    "mfaTitle": "2段階認証",
+    "mfaDescription": "Google Authenticatorアプリのコードを入力してください",
+    "mfaCodeLabel": "認証コード",
+    "mfaCodePlaceholder": "6桁のコードまたはバックアップコード",
+    "mfaCodeHint": "6桁のTOTPコードまたは8文字のバックアップコードを入力",
+    "mfaVerifying": "確認中...",
+    "mfaVerifyButton": "確認",
+    "mfaBackToLogin": "ログインに戻る",
+    "mfaInvalidCode": "認証コードが無効です"
   },
   "user": {
     "myPageTitle": "マイページ",
@@ -265,7 +278,7 @@
     "ctaAlreadyHaveAccount": "すでにアカウントをお持ちですか？"
   },
   "about": {
-    "badge": "About Us",
+    "badge": "私たちについて",
     "heroDescription": "世界中の韓国語学習者に効果的で楽しい\n学習体験を提供します。",
     "missionTitle": "私たちのミッション",
     "missionDescription1": "Amazing Koreanは、韓国語を学びたい世界中の学習者に最高の学習体験を提供するために生まれました。",
@@ -392,5 +405,155 @@
     "accessDeniedTitle": "アクセス権限がありません",
     "accessDeniedDescription": "このページにアクセスする権限がありません。\n管理者権限が必要なページです。",
     "accessDeniedContact": "誤ったアクセスだと思われる場合は管理者にお問い合わせください。"
+  },
+  "payment": {
+    "title": "プランを選択",
+    "subtitle": "すべてのコンテンツに無制限アクセス。いつでも解約可能。",
+    "trialBadge": "{{days}}日間の無料トライアル付き",
+    "perMonth": "/月",
+    "months": "ヶ月",
+    "selectPlan": "始める",
+    "popular": "人気",
+    "currentPlan": "現在のプラン",
+    "currentPlanLabel": "現在のプラン",
+    "nextBilling": "次回請求日",
+    "interval": {
+      "month_1": "月額",
+      "month_3": "3ヶ月",
+      "month_6": "6ヶ月",
+      "month_12": "年額"
+    },
+    "status": {
+      "active": "利用中",
+      "trialing": "トライアル",
+      "past_due": "支払い遅延",
+      "paused": "一時停止",
+      "canceled": "解約済み"
+    },
+    "featureAllCourses": "すべてのコースに無制限アクセス",
+    "featureAllVideos": "全動画コンテンツライブラリ",
+    "featureStudyMaterials": "無制限の学習教材",
+    "featureTrial": "{{days}}日間の無料トライアル",
+    "featureSave": "{{percent}}%お得",
+    "checkoutSuccess": "決済完了！コースへのアクセスが有効になりました。",
+    "loginRequired": "定期購読するにはログインしてください。",
+    "alreadySubscribed": "すでに有効な定期購読があります。",
+    "serviceUnavailable": "決済サービスは現在ご利用いただけません。しばらくしてからもう一度お試しください。",
+    "bottomNote": "すべての価格は米ドル建てです。定期購読は自動更新され、いつでも解約できます。",
+    "cancelSubscription": "定期購読を解約",
+    "cancelConfirmTitle": "定期購読を解約しますか？",
+    "cancelConfirmMessage": "即時解約すると、アクセスは直ちに取り消されます。期間終了時に解約すると、現在の請求期間が終了するまでサービスをご利用いただけます。",
+    "cancelAtPeriodEnd": "期間終了時に解約",
+    "cancelImmediate": "即時解約",
+    "cancelScheduled": "期間終了時に解約予定",
+    "cancelSuccess": "定期購読が解約されました。",
+    "cancelFailed": "定期購読の解約に失敗しました。もう一度お試しください。",
+    "expiresAt": "有効期限",
+    "promoCodePlaceholder": "プロモコードを入力",
+    "promoCodeClear": "クリア"
+  },
+  "ebook": {
+    "catalog": {
+      "title": "E-book教材",
+      "subtitle": "すぐにオンラインで読めるデジタル教材。",
+      "teacherEdition": "教師用",
+      "studentEdition": "学生用",
+      "selectLanguage": "言語を選択してください。",
+      "comingSoon": "近日公開",
+      "loadError": "カタログの読み込みに失敗しました。"
+    },
+    "purchase": {
+      "title": "購入詳細",
+      "paymentMethod": "お支払い方法",
+      "bankTransfer": "銀行振込",
+      "creditCard": "クレジットカード（Paddle）",
+      "buy": "購入",
+      "loginRequired": "ログインして購入",
+      "success": "購入が完了しました。",
+      "error": "購入中にエラーが発生しました。"
+    },
+    "status": {
+      "pending": "処理中",
+      "completed": "利用可能",
+      "refunded": "返金済み"
+    },
+    "my": {
+      "title": "マイE-book",
+      "empty": "購入したE-bookはありません。",
+      "browseCatalog": "E-bookを見る",
+      "openViewer": "ビューアで開く",
+      "loadError": "購入履歴の読み込みに失敗しました。"
+    },
+    "viewer": {
+      "toc": "目次",
+      "notFound": "教材が見つかりません。",
+      "loadFailed": "ページの読み込みに失敗しました。"
+    }
+  },
+  "seo": {
+    "home": {
+      "title": "Amazing Korean - 韓国語学習プラットフォーム",
+      "description": "世界中の学習者のための最高のオンライン韓国語学習プラットフォーム。動画学習、体系的な問題解決、1:1レッスンを提供します。"
+    },
+    "about": {
+      "title": "紹介 - Amazing Korean",
+      "description": "Amazing Koreanについて — 世界中の学習者に効果的で楽しい韓国語学習体験を提供します。"
+    },
+    "pricing": {
+      "title": "料金プラン - Amazing Korean",
+      "description": "Amazing Koreanの料金プラン — 動画、学習教材、レッスンへの無制限アクセス。"
+    },
+    "videos": {
+      "title": "動画レッスン - Amazing Korean",
+      "description": "プロの講師による動画レッスンで効果的に韓国語を学びましょう。"
+    },
+    "studies": {
+      "title": "学習教材 - Amazing Korean",
+      "description": "体系的な学習教材と演習で韓国語力を向上させましょう。"
+    },
+    "lessons": {
+      "title": "レッスン - Amazing Korean",
+      "description": "体系的なレッスンで韓国語をステップごとに学びましょう。"
+    },
+    "login": {
+      "title": "ログイン - Amazing Korean",
+      "description": "Amazing Koreanにログインして韓国語学習を始めましょう。"
+    },
+    "signup": {
+      "title": "会員登録 - Amazing Korean",
+      "description": "Amazing Koreanに参加して韓国語学習の旅を始めましょう。"
+    },
+    "terms": {
+      "title": "利用規約 - Amazing Korean",
+      "description": "Amazing Korean利用規約。"
+    },
+    "privacy": {
+      "title": "プライバシーポリシー - Amazing Korean",
+      "description": "Amazing Koreanのデータ収集と処理に関するプライバシーポリシー。"
+    },
+    "refundPolicy": {
+      "title": "返金ポリシー - Amazing Korean",
+      "description": "Amazing Koreanの定期購読返金ポリシー。"
+    },
+    "faq": {
+      "title": "よくある質問 - Amazing Korean",
+      "description": "Amazing Koreanに関するよくある質問。"
+    },
+    "findId": {
+      "title": "アカウント復旧 - Amazing Korean",
+      "description": "登録済みアカウント情報を検索します。"
+    },
+    "requestResetPassword": {
+      "title": "パスワード再設定 - Amazing Korean",
+      "description": "登録されたメールアドレスにパスワード再設定メールを送信します。"
+    },
+    "textbook": {
+      "title": "教材注文 - Amazing Korean",
+      "description": "Amazing Korean教材をオンラインで注文。20言語対応、学生用・教師用。"
+    },
+    "textbookStatus": {
+      "title": "注文状況確認 - Amazing Korean",
+      "description": "教材の注文状況を確認します。"
+    }
   }
 }

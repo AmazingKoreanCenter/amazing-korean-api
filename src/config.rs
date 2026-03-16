@@ -34,6 +34,8 @@ pub struct Config {
     pub rate_limit_study_max: i64,         // Study 답안 제출 최대 횟수/윈도우
     pub rate_limit_email_window_sec: i64,  // 이메일 발송 레이트리밋 윈도우 (초, 기본: 18000 = 5시간)
     pub rate_limit_email_max: i64,         // 이메일 발송 최대 횟수/윈도우 (기본: 5)
+    pub rate_limit_textbook_window_sec: i64, // 교재 주문 레이트리밋 윈도우 (초, 기본: 3600 = 1시간)
+    pub rate_limit_textbook_max: i64,        // 교재 주문 IP당 최대 횟수/윈도우 (기본: 5)
     pub cors_origins: Vec<String>,
     pub vimeo_access_token: Option<String>,
     pub admin_ip_allowlist: Vec<String>,  // Admin 접근 허용 IP 목록 (비어있으면 모든 IP 허용)
@@ -68,6 +70,12 @@ pub struct Config {
     pub paddle_price_month_3: Option<String>,        // Paddle Price ID: 3개월
     pub paddle_price_month_6: Option<String>,        // Paddle Price ID: 6개월
     pub paddle_price_month_12: Option<String>,       // Paddle Price ID: 12개월
+    // E-book Viewer
+    pub ebook_page_images_dir: String,              // EBOOK_PAGE_IMAGES_DIR (페이지 이미지 루트)
+    pub rate_limit_ebook_page_max: i64,             // RATE_LIMIT_EBOOK_PAGE_MAX (기본 30/분)
+    pub rate_limit_ebook_page_window_sec: i64,      // RATE_LIMIT_EBOOK_PAGE_WINDOW_SEC (기본 60)
+    pub rate_limit_ebook_purchase_max: i64,         // RATE_LIMIT_EBOOK_PURCHASE_MAX (기본 5/시간)
+    pub rate_limit_ebook_purchase_window_sec: i64,  // RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC (기본 3600)
     // Field Encryption (AES-256-GCM + HMAC-SHA256 Blind Index)
     pub app_env: String,                         // "production" | "development" (기본)
     pub encryption_ring: KeyRing,                // 다중 키 버전 (ENCRYPTION_KEY_V{n})
@@ -152,6 +160,16 @@ impl Config {
         if rate_limit_email_max < 1 {
             panic!("RATE_LIMIT_EMAIL_MAX must be >= 1, got {}", rate_limit_email_max);
         }
+
+        // Textbook Order Rate Limit: 비회원 주문 스팸 방지
+        let rate_limit_textbook_window_sec = env::var("RATE_LIMIT_TEXTBOOK_WINDOW_SEC")
+            .unwrap_or_else(|_| "3600".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_TEXTBOOK_WINDOW_SEC must be a number");
+        let rate_limit_textbook_max = env::var("RATE_LIMIT_TEXTBOOK_MAX")
+            .unwrap_or_else(|_| "5".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_TEXTBOOK_MAX must be a number");
 
         // CORS_ORIGINS: 쉼표로 구분된 origin 목록
         // 예: "http://localhost:5173,https://amazing-korean-api.pages.dev"
@@ -291,6 +309,26 @@ impl Config {
             );
         }
 
+        // E-book Viewer
+        let ebook_page_images_dir = env::var("EBOOK_PAGE_IMAGES_DIR")
+            .unwrap_or_else(|_| "docs/textbook/page-images".into());
+        let rate_limit_ebook_page_max = env::var("RATE_LIMIT_EBOOK_PAGE_MAX")
+            .unwrap_or_else(|_| "30".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_EBOOK_PAGE_MAX must be a number");
+        let rate_limit_ebook_page_window_sec = env::var("RATE_LIMIT_EBOOK_PAGE_WINDOW_SEC")
+            .unwrap_or_else(|_| "60".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_EBOOK_PAGE_WINDOW_SEC must be a number");
+        let rate_limit_ebook_purchase_max = env::var("RATE_LIMIT_EBOOK_PURCHASE_MAX")
+            .unwrap_or_else(|_| "5".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_EBOOK_PURCHASE_MAX must be a number");
+        let rate_limit_ebook_purchase_window_sec = env::var("RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC")
+            .unwrap_or_else(|_| "3600".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC must be a number");
+
         // Field Encryption (AES-256-GCM + HMAC-SHA256)
         let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".into());
 
@@ -402,6 +440,8 @@ impl Config {
             rate_limit_study_max,
             rate_limit_email_window_sec,
             rate_limit_email_max,
+            rate_limit_textbook_window_sec,
+            rate_limit_textbook_max,
             cors_origins,
             vimeo_access_token,
             admin_ip_allowlist,
@@ -430,6 +470,11 @@ impl Config {
             paddle_price_month_3,
             paddle_price_month_6,
             paddle_price_month_12,
+            ebook_page_images_dir,
+            rate_limit_ebook_page_max,
+            rate_limit_ebook_page_window_sec,
+            rate_limit_ebook_purchase_max,
+            rate_limit_ebook_purchase_window_sec,
             app_env,
             encryption_ring,
             hmac_key,
@@ -580,6 +625,8 @@ impl fmt::Debug for Config {
             .field("rate_limit_study_max", &self.rate_limit_study_max)
             .field("rate_limit_email_window_sec", &self.rate_limit_email_window_sec)
             .field("rate_limit_email_max", &self.rate_limit_email_max)
+            .field("rate_limit_textbook_window_sec", &self.rate_limit_textbook_window_sec)
+            .field("rate_limit_textbook_max", &self.rate_limit_textbook_max)
             .field("cors_origins", &self.cors_origins)
             .field("vimeo_access_token", &self.vimeo_access_token.as_ref().map(|_| "***"))
             .field("admin_ip_allowlist", &self.admin_ip_allowlist)
@@ -604,6 +651,11 @@ impl fmt::Debug for Config {
             .field("paddle_webhook_secret", &self.paddle_webhook_secret.as_ref().map(|_| "***"))
             .field("paddle_client_token", &self.paddle_client_token.as_ref().map(|_| "***"))
             .field("paddle_sandbox", &self.paddle_sandbox)
+            .field("ebook_page_images_dir", &self.ebook_page_images_dir)
+            .field("rate_limit_ebook_page_max", &self.rate_limit_ebook_page_max)
+            .field("rate_limit_ebook_page_window_sec", &self.rate_limit_ebook_page_window_sec)
+            .field("rate_limit_ebook_purchase_max", &self.rate_limit_ebook_purchase_max)
+            .field("rate_limit_ebook_purchase_window_sec", &self.rate_limit_ebook_purchase_window_sec)
             .field("app_env", &self.app_env)
             .field("encryption_ring", &self.encryption_ring)
             .field("hmac_key", &"***")
