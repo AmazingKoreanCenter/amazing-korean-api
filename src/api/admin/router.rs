@@ -2,6 +2,7 @@ use axum::Router;
 
 use crate::state::AppState;
 
+use super::ebook::router::admin_ebook_router;
 use super::email::router::admin_email_router;
 use super::lesson::router::admin_lesson_router;
 use super::payment::router::admin_payment_router;
@@ -31,6 +32,7 @@ pub fn admin_router() -> Router<AppState> {
         .nest("/upgrade", admin_upgrade_router())
         .nest("/payment", admin_payment_router())
         .nest("/textbook", admin_textbook_router())
+        .nest("/ebook", admin_ebook_router())
     // .nest("/courses", admin_course_router()) // 차후 확장
     // .nest("/reports", admin_report_router())
 }

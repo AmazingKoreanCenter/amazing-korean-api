@@ -11,6 +11,18 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-09 — E-book 웹 뷰어 시스템 (Phase 12.5) ✅**
+  - **핵심 설계**: 회원 전용 (로그인 필수), 웹 전용 (다운로드 없음), 3중 보안 아키텍처
+  - **DB 마이그레이션** (`20260310_ebook.sql`):
+    - ENUM 3개: `ebook_edition_enum`, `ebook_purchase_status_enum`, `ebook_payment_method_enum`
+    - 테이블 3개: `ebook_purchase` (구매), `ebook_access_log` (감사), `admin_ebook_log` (관리자)
+  - **백엔드 (Public API)**: `GET /ebook/catalog` (카탈로그), `POST /ebook/purchase` (구매, AuthUser+IP Rate Limit), `GET /ebook/my` (내 구매), `GET /ebook/viewer/{code}/meta` (뷰어 메타), `GET /ebook/viewer/{code}/pages/{num}` (워터마크 페이지 이미지)
+  - **백엔드 (Admin API)**: `GET /admin/ebook/purchases` (목록), `GET /admin/ebook/purchases/{id}` (상세), `PATCH /admin/ebook/purchases/{id}/status` (상태 변경), `DELETE /admin/ebook/purchases/{id}` (삭제)
+  - **보안**: 2중 워터마크 (가시적 대각선 텍스트 + LSB 스테가노그래피), Redis Rate Limit (30페이지/분/user), 브라우저 보호 (우클릭/인쇄/드래그 차단), blob:// URL, Cache-Control: no-store
+  - **Paddle 연동**: `transaction.completed` 웹훅에서 `custom_data.type == "ebook"` 분기 → 구매 완료 처리
+  - **프론트엔드**: 카탈로그 (`/ebook`), 웹 뷰어 (`/ebook/viewer/:code`), 내 구매 (`/ebook/my`), 관리자 목록+상세 (`/admin/ebook/purchases`)
+  - **이미지 처리**: `image` + `imageproc` + `ab_glyph` Rust 크레이트 (OnceLock 폰트 로딩)
+
 - **2026-03-03 — 교재 주문 시스템 개선 (Textbook Order System Improvements)**
   - **DB 마이그레이션** (`20260303_textbook_improvements.sql`):
     - Soft Delete 지원: `is_deleted`, `deleted_at` 컬럼 추가

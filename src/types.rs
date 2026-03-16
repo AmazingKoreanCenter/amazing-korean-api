@@ -519,6 +519,36 @@ pub enum TextbookLanguage {
     Uz,
     Kk,
     Tg,
+    Tl,
+}
+
+impl TextbookLanguage {
+    /// 구매코드용 대문자 언어 코드 (e.g., "VI", "ZH_CN")
+    pub fn to_purchase_code(&self) -> &'static str {
+        match self {
+            Self::Ja => "JA",
+            Self::ZhCn => "ZH_CN",
+            Self::ZhTw => "ZH_TW",
+            Self::Vi => "VI",
+            Self::Th => "TH",
+            Self::Id => "ID",
+            Self::My => "MY",
+            Self::Mn => "MN",
+            Self::Ru => "RU",
+            Self::Es => "ES",
+            Self::Pt => "PT",
+            Self::Fr => "FR",
+            Self::De => "DE",
+            Self::Hi => "HI",
+            Self::Ne => "NE",
+            Self::Si => "SI",
+            Self::Km => "KM",
+            Self::Uz => "UZ",
+            Self::Kk => "KK",
+            Self::Tg => "TG",
+            Self::Tl => "TL",
+        }
+    }
 }
 
 impl fmt::Display for TextbookLanguage {
@@ -544,6 +574,7 @@ impl fmt::Display for TextbookLanguage {
             Self::Uz => write!(f, "uz"),
             Self::Kk => write!(f, "kk"),
             Self::Tg => write!(f, "tg"),
+            Self::Tl => write!(f, "tl"),
         }
     }
 }
@@ -577,6 +608,58 @@ pub enum TextbookOrderStatus {
 #[serde(rename_all = "snake_case")]
 pub enum TextbookPaymentMethod {
     BankTransfer,
+}
+
+// -----------------------------------------------------------------------------
+// 5. E-book Related Enums
+// -----------------------------------------------------------------------------
+
+/// E-book 에디션
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "ebook_edition_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum EbookEdition {
+    Student,
+    Teacher,
+}
+
+impl EbookEdition {
+    /// 구매코드용 에디션 코드 (e.g., "ST", "TC")
+    pub fn to_purchase_code(&self) -> &'static str {
+        match self {
+            Self::Student => "ST",
+            Self::Teacher => "TC",
+        }
+    }
+}
+
+/// E-book 구매 상태
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "ebook_purchase_status_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum EbookPurchaseStatus {
+    Pending,
+    Completed,
+    Refunded,
+}
+
+/// E-book 결제 방법
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "ebook_payment_method_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum EbookPaymentMethod {
+    Paddle,
+    BankTransfer,
+}
+
+impl EbookPaymentMethod {
+    /// 구매코드용 결제 방법 코드: Paddle→CA(Card), BankTransfer→BT
+    pub fn to_purchase_code(&self) -> &'static str {
+        match self {
+            Self::Paddle => "CA",
+            Self::BankTransfer => "BT",
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------

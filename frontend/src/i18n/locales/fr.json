@@ -32,6 +32,7 @@
     "videos": "Vidéos",
     "studies": "Études",
     "lessons": "Leçons",
+    "pricing": "Tarifs",
     "myPage": "Mon compte",
     "login": "Connexion",
     "signup": "Inscription",
@@ -41,10 +42,10 @@
   "footer": {
     "brandDescription": "La meilleure plateforme d'apprentissage en ligne\npour les apprenants de coréen du monde entier",
     "certificationCheck": "Certifications",
-    "certOnlineMarketing": "Certificat de commerce en marketing en ligne",
+    "certOnlineMarketing": "Certificat d'enregistrement de vente en ligne",
     "certAmazingKoreanCenter": "Certification Amazing Korean Center",
     "quickLinks": "Liens rapides",
-    "serviceIntro": "About Us",
+    "serviceIntro": "Présentation du service",
     "videoLearning": "Apprentissage vidéo",
     "structuredLearning": "Apprentissage structuré",
     "oneOnOneLesson": "Cours particuliers",
@@ -52,9 +53,10 @@
     "faq": "FAQ",
     "terms": "Conditions d'utilisation",
     "privacy": "Politique de confidentialité",
+    "refundPolicy": "Politique de remboursement",
     "contact": "Contact",
     "address": "350 Hannuri-daero, Sejong, 6F SB3",
-    "businessInfo": "HIM Co., Ltd. | PDG : Kyoung Ryun KIM | N° SIRET : 505-88-03252 | N° de vente en ligne : 2025-Sejong Areum-0402",
+    "businessInfo": "HIM Co., Ltd. | PDG : Kyoung Ryun KIM | N° d'enregistrement : 505-88-03252 | N° de vente en ligne : 2025-Sejong Areum-0402",
     "copyright": "© {{year}} Amazing Korean. Tous droits réservés."
   },
   "auth": {
@@ -71,6 +73,8 @@
     "emailPlaceholder": "email@example.com",
     "passwordLabel": "Mot de passe",
     "passwordPlaceholder": "Entrez votre mot de passe",
+    "confirmPasswordLabel": "Confirmer le mot de passe",
+    "confirmPasswordPlaceholder": "Ressaisissez votre mot de passe",
     "signupWithEmail": "S'inscrire par e-mail",
     "findIdPassword": "Retrouver identifiant / Réinitialiser mot de passe",
     "noAccount": "Vous n'avez pas de compte ?",
@@ -130,8 +134,8 @@
     "resetPasswordNewDescription": "Entrez votre nouveau mot de passe.",
     "newPasswordLabel": "Nouveau mot de passe",
     "newPasswordPlaceholder": "Entrez le nouveau mot de passe",
-    "confirmPasswordLabel": "Confirmer le mot de passe",
-    "confirmPasswordPlaceholder": "Ressaisissez votre mot de passe",
+    "resetConfirmPasswordLabel": "Confirmer le mot de passe",
+    "resetConfirmPasswordPlaceholder": "Ressaisissez votre mot de passe",
     "changePasswordButton": "Changer le mot de passe",
     "changingPassword": "Modification en cours...",
     "sendVerificationCode": "Envoyer le code de vérification",
@@ -191,7 +195,16 @@
     "toastTooManyResendRequests": "Trop de demandes de renvoi. Veuillez réessayer plus tard.",
     "oauthPasswordWarning": "Les comptes créés via connexion sociale (Google, etc.) n'ont pas de mot de passe. Veuillez vous connecter via le service social.",
     "remainingAttempts": "Tentatives restantes : {{count}}",
-    "noAttemptsRemaining": "Vous avez atteint la limite d'envoi. Veuillez réessayer plus tard."
+    "noAttemptsRemaining": "Vous avez atteint la limite d'envoi. Veuillez réessayer plus tard.",
+    "mfaTitle": "Authentification à deux facteurs",
+    "mfaDescription": "Entrez le code de votre application Google Authenticator",
+    "mfaCodeLabel": "Code d'authentification",
+    "mfaCodePlaceholder": "Code à 6 chiffres ou code de secours",
+    "mfaCodeHint": "Entrez un code TOTP à 6 chiffres ou un code de secours à 8 caractères",
+    "mfaVerifying": "Vérification...",
+    "mfaVerifyButton": "Vérifier",
+    "mfaBackToLogin": "Retour à la connexion",
+    "mfaInvalidCode": "Code d'authentification invalide"
   },
   "user": {
     "myPageTitle": "Mon compte",
@@ -265,7 +278,7 @@
     "ctaAlreadyHaveAccount": "Vous avez déjà un compte ?"
   },
   "about": {
-    "badge": "About Us",
+    "badge": "À propos",
     "heroDescription": "Offrir des expériences d'apprentissage efficaces et agréables\naux apprenants de coréen du monde entier.",
     "missionTitle": "Notre mission",
     "missionDescription1": "Amazing Korean a été créé pour offrir la meilleure expérience d'apprentissage aux apprenants de coréen du monde entier.",
@@ -392,5 +405,116 @@
     "accessDeniedTitle": "Accès refusé",
     "accessDeniedDescription": "Vous n'avez pas la permission d'accéder à cette page.\nCette page nécessite des privilèges administrateur.",
     "accessDeniedContact": "Si vous pensez qu'il s'agit d'une erreur, veuillez contacter l'administrateur."
+  },
+  "payment": {
+    "title": "Choisissez votre formule",
+    "subtitle": "Accès illimité à tous les contenus. Annulez à tout moment.",
+    "trialBadge": "Essai gratuit de {{days}} jours inclus",
+    "perMonth": "/mois",
+    "months": " mois",
+    "selectPlan": "Commencer",
+    "popular": "Populaire",
+    "currentPlan": "Formule actuelle",
+    "currentPlanLabel": "Formule actuelle",
+    "nextBilling": "Prochaine facturation",
+    "interval": {
+      "month_1": "Mensuel",
+      "month_3": "Trimestriel",
+      "month_6": "Semestriel",
+      "month_12": "Annuel"
+    },
+    "status": {
+      "active": "Actif",
+      "trialing": "Essai",
+      "past_due": "En retard",
+      "paused": "En pause",
+      "canceled": "Annulé"
+    },
+    "featureAllCourses": "Accès illimité à tous les cours",
+    "featureAllVideos": "Bibliothèque vidéo complète",
+    "featureStudyMaterials": "Supports d'étude illimités",
+    "featureTrial": "Essai gratuit de {{days}} jours",
+    "featureSave": "Économisez {{percent}}%",
+    "checkoutSuccess": "Paiement effectué ! Votre accès aux cours a été activé.",
+    "loginRequired": "Veuillez vous connecter pour vous abonner.",
+    "alreadySubscribed": "Vous avez déjà un abonnement actif.",
+    "serviceUnavailable": "Le service de paiement est temporairement indisponible. Veuillez réessayer plus tard.",
+    "bottomNote": "Tous les prix sont en USD. Les abonnements se renouvellent automatiquement et peuvent être annulés à tout moment.",
+    "cancelSubscription": "Annuler l'abonnement",
+    "cancelConfirmTitle": "Annuler votre abonnement ?",
+    "cancelConfirmMessage": "Si vous annulez immédiatement, votre accès sera révoqué sur-le-champ. Si vous annulez à la fin de la période, vous pourrez continuer à utiliser le service jusqu'à la fin de votre période de facturation actuelle.",
+    "cancelAtPeriodEnd": "Annuler à la fin de la période",
+    "cancelImmediate": "Annuler immédiatement",
+    "cancelScheduled": "Annulation programmée à la fin de la période",
+    "cancelSuccess": "Votre abonnement a été annulé.",
+    "cancelFailed": "Échec de l'annulation de l'abonnement. Veuillez réessayer.",
+    "expiresAt": "Expire",
+    "promoCodePlaceholder": "Entrez le code promo",
+    "promoCodeClear": "Effacer"
+  },
+  "ebook": {
+    "catalog": {
+      "title": "Manuels e-book",
+      "subtitle": "Manuels numériques à lire en ligne instantanément.",
+      "teacherEdition": "Édition enseignant",
+      "studentEdition": "Édition étudiant",
+      "selectLanguage": "Veuillez sélectionner une langue.",
+      "comingSoon": "Bientôt disponible",
+      "loadError": "Échec du chargement du catalogue."
+    },
+    "purchase": {
+      "title": "Détails de l'achat",
+      "paymentMethod": "Mode de paiement",
+      "bankTransfer": "Virement bancaire",
+      "creditCard": "Carte de crédit (Paddle)",
+      "buy": "Acheter",
+      "loginRequired": "Connectez-vous pour acheter",
+      "success": "Achat effectué.",
+      "error": "Une erreur est survenue lors de l'achat."
+    },
+    "status": {
+      "pending": "En attente",
+      "completed": "Disponible",
+      "refunded": "Remboursé"
+    },
+    "my": {
+      "title": "Mes E-books",
+      "empty": "Aucun E-book acheté.",
+      "browseCatalog": "Parcourir les E-books",
+      "openViewer": "Ouvrir le lecteur",
+      "loadError": "Échec du chargement des achats."
+    },
+    "viewer": {
+      "toc": "Table des matières",
+      "notFound": "Manuel introuvable.",
+      "loadFailed": "Échec du chargement de la page."
+    }
+  },
+  "seo": {
+    "home": {
+      "title": "Amazing Korean - Plateforme d'apprentissage du coréen",
+      "description": "La meilleure plateforme en ligne d'apprentissage du coréen. Nous proposons l'apprentissage vidéo, des exercices structurés et des cours particuliers."
+    },
+    "about": {
+      "title": "À propos - Amazing Korean",
+      "description": "À propos d'Amazing Korean — Des expériences d'apprentissage du coréen efficaces et agréables pour les apprenants du monde entier."
+    },
+    "pricing": {
+      "title": "Tarifs - Amazing Korean",
+      "description": "Formules tarifaires Amazing Korean — Accès illimité aux vidéos, supports d'étude et cours."
+    },
+    "videos": { "title": "Cours vidéo - Amazing Korean", "description": "Apprenez le coréen efficacement avec des cours vidéo d'instructeurs professionnels." },
+    "studies": { "title": "Supports d'étude - Amazing Korean", "description": "Améliorez vos compétences en coréen avec des supports d'étude et exercices structurés." },
+    "lessons": { "title": "Cours - Amazing Korean", "description": "Apprenez le coréen étape par étape avec des cours structurés." },
+    "login": { "title": "Connexion - Amazing Korean", "description": "Connectez-vous à Amazing Korean pour commencer à apprendre le coréen." },
+    "signup": { "title": "Inscription - Amazing Korean", "description": "Rejoignez Amazing Korean et commencez votre parcours d'apprentissage du coréen." },
+    "terms": { "title": "Conditions d'utilisation - Amazing Korean", "description": "Conditions d'utilisation d'Amazing Korean." },
+    "privacy": { "title": "Politique de confidentialité - Amazing Korean", "description": "Politique de confidentialité d'Amazing Korean concernant la collecte et le traitement des données." },
+    "refundPolicy": { "title": "Politique de remboursement - Amazing Korean", "description": "Politique de remboursement des abonnements Amazing Korean." },
+    "faq": { "title": "FAQ - Amazing Korean", "description": "Questions fréquemment posées sur Amazing Korean." },
+    "findId": { "title": "Récupération de compte - Amazing Korean", "description": "Retrouvez les informations de votre compte enregistré." },
+    "requestResetPassword": { "title": "Réinitialiser le mot de passe - Amazing Korean", "description": "Envoyez un e-mail de réinitialisation du mot de passe à votre adresse enregistrée." },
+    "textbook": { "title": "Commande de manuels - Amazing Korean", "description": "Commandez des manuels Amazing Korean en ligne. Disponibles en 20 langues, éditions étudiant et enseignant." },
+    "textbookStatus": { "title": "Suivi de commande - Amazing Korean", "description": "Suivez l'état de votre commande de manuels." }
   }
 }

@@ -142,6 +142,10 @@ async fn main() -> anyhow::Result<()> {
             }
         };
 
+    // 6.9) E-book 워터마크 폰트 초기화
+    let watermark_font_path = format!("{}/NotoSans-Regular.ttf", cfg.ebook_page_images_dir);
+    amazing_korean_api::api::ebook::watermark::init_font(&watermark_font_path);
+
     // 7) AppState 생성
     let app_state = AppState {
         db: pool,

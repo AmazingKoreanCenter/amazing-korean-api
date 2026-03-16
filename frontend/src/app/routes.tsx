@@ -73,6 +73,13 @@ import { AdminTextbookOrdersPage } from "@/category/admin/textbook/page/admin_te
 import { AdminTextbookOrderDetail } from "@/category/admin/textbook/page/admin_textbook_order_detail";
 import { AdminTextbookOrderPrint } from "@/category/admin/textbook/page/admin_textbook_order_print";
 
+// E-book pages
+import { EbookCatalogPage } from "@/category/ebook/page/ebook_catalog_page";
+import { EbookViewerPage } from "@/category/ebook/page/ebook_viewer_page";
+import { EbookMyPurchasesPage } from "@/category/ebook/page/ebook_my_purchases_page";
+import { AdminEbookPurchasesPage } from "@/category/admin/ebook/page/admin_ebook_purchases_page";
+import { AdminEbookPurchaseDetail } from "@/category/admin/ebook/page/admin_ebook_purchase_detail";
+
 // Error pages
 import { AccessDeniedPage, NotFoundPage, ErrorPage } from "@/category/error/page";
 
@@ -103,6 +110,7 @@ export function AppRoutes() {
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/textbook" element={<TextbookOrderPage />} />
         <Route path="/textbook/order/:code" element={<TextbookOrderStatusPage />} />
+        <Route path="/ebook" element={<EbookCatalogPage />} />
 
         {/* 법적/정책 페이지 (Public) */}
         <Route path="/terms" element={<TermsPage />} />
@@ -117,6 +125,8 @@ export function AppRoutes() {
         <Route element={<PrivateRoute />}>
           <Route path="/user/me" element={<MyPage />} />
           <Route path="/user/settings" element={<SettingsPage />} />
+          <Route path="/ebook/viewer/:purchaseCode" element={<EbookViewerPage />} />
+          <Route path="/ebook/my" element={<EbookMyPurchasesPage />} />
         </Route>
       </Route>
 
@@ -159,6 +169,9 @@ export function AppRoutes() {
           <Route path="textbook/orders" element={<AdminTextbookOrdersPage />} />
           <Route path="textbook/orders/:orderId" element={<AdminTextbookOrderDetail />} />
           <Route path="textbook/orders/:orderId/print" element={<AdminTextbookOrderPrint />} />
+          <Route path="ebook" element={<Navigate to="ebook/purchases" replace />} />
+          <Route path="ebook/purchases" element={<AdminEbookPurchasesPage />} />
+          <Route path="ebook/purchases/:id" element={<AdminEbookPurchaseDetail />} />
           <Route path="email" element={<AdminEmailTest />} />
         </Route>
       </Route>

@@ -266,6 +266,7 @@ fn language_display_name(lang: &TextbookLanguage) -> String {
         TextbookLanguage::Uz => "우즈베크어",
         TextbookLanguage::Kk => "카자흐어",
         TextbookLanguage::Tg => "타지크어",
+        TextbookLanguage::Tl => "필리핀어",
     }
     .to_string()
 }
@@ -293,5 +294,6 @@ fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str, boo
         (TextbookLanguage::Uz, "우즈베크어", "Uzbek", true),
         (TextbookLanguage::Kk, "카자흐어", "Kazakh", true),
         (TextbookLanguage::Tg, "타지크어", "Tajik", true),
+        (TextbookLanguage::Tl, "필리핀어", "Filipino", true),
     ]
 }

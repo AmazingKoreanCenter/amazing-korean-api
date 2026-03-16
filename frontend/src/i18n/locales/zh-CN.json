@@ -32,6 +32,7 @@
     "videos": "视频",
     "studies": "学习",
     "lessons": "课程",
+    "pricing": "价格",
     "myPage": "我的页面",
     "login": "登录",
     "signup": "注册",
@@ -52,6 +53,7 @@
     "faq": "常见问题",
     "terms": "使用条款",
     "privacy": "隐私政策",
+    "refundPolicy": "退款政策",
     "contact": "联系方式",
     "address": "世宗市韩努里大路350号6楼SB3室",
     "businessInfo": "（株）HIM｜代表：金京伦｜营业执照号：505-88-03252｜通信销售申报：第2025-世宗Areum-0402号",
@@ -71,6 +73,8 @@
     "emailPlaceholder": "email@example.com",
     "passwordLabel": "密码",
     "passwordPlaceholder": "请输入密码",
+    "confirmPasswordLabel": "确认密码",
+    "confirmPasswordPlaceholder": "请再次输入密码",
     "signupWithEmail": "使用邮箱注册",
     "findIdPassword": "找回账号/密码",
     "noAccount": "还没有账号？",
@@ -130,8 +134,8 @@
     "resetPasswordNewDescription": "请输入新密码。",
     "newPasswordLabel": "新密码",
     "newPasswordPlaceholder": "输入新密码",
-    "confirmPasswordLabel": "确认密码",
-    "confirmPasswordPlaceholder": "请再次输入密码",
+    "resetConfirmPasswordLabel": "确认密码",
+    "resetConfirmPasswordPlaceholder": "请再次输入密码",
     "changePasswordButton": "更改密码",
     "changingPassword": "更改中...",
     "sendVerificationCode": "发送验证码",
@@ -191,7 +195,16 @@
     "toastTooManyResendRequests": "重新发送次数过多，请稍后再试。",
     "oauthPasswordWarning": "通过社交登录（Google等）注册的账号没有密码，请使用对应的社交服务登录。",
     "remainingAttempts": "剩余发送次数：{{count}}次",
-    "noAttemptsRemaining": "已达到发送上限，请稍后再试。"
+    "noAttemptsRemaining": "已达到发送上限，请稍后再试。",
+    "mfaTitle": "两步验证",
+    "mfaDescription": "请输入 Google Authenticator 应用中的验证码",
+    "mfaCodeLabel": "验证码",
+    "mfaCodePlaceholder": "6位验证码或备用码",
+    "mfaCodeHint": "请输入6位TOTP验证码或8位备用码",
+    "mfaVerifying": "验证中...",
+    "mfaVerifyButton": "验证",
+    "mfaBackToLogin": "返回登录",
+    "mfaInvalidCode": "验证码无效"
   },
   "user": {
     "myPageTitle": "我的页面",
@@ -392,5 +405,155 @@
     "accessDeniedTitle": "无访问权限",
     "accessDeniedDescription": "您没有权限访问此页面。\n此页面需要管理员权限。",
     "accessDeniedContact": "如认为是误判，请联系管理员。"
+  },
+  "payment": {
+    "title": "选择您的方案",
+    "subtitle": "无限访问所有内容。随时取消。",
+    "trialBadge": "含{{days}}天免费试用",
+    "perMonth": "/月",
+    "months": "个月",
+    "selectPlan": "立即开始",
+    "popular": "热门",
+    "currentPlan": "当前方案",
+    "currentPlanLabel": "当前方案",
+    "nextBilling": "下次计费日",
+    "interval": {
+      "month_1": "月付",
+      "month_3": "季付",
+      "month_6": "半年付",
+      "month_12": "年付"
+    },
+    "status": {
+      "active": "使用中",
+      "trialing": "试用中",
+      "past_due": "逾期未付",
+      "paused": "已暂停",
+      "canceled": "已取消"
+    },
+    "featureAllCourses": "无限访问所有课程",
+    "featureAllVideos": "完整视频内容库",
+    "featureStudyMaterials": "无限学习资料",
+    "featureTrial": "{{days}}天免费试用",
+    "featureSave": "节省{{percent}}%",
+    "checkoutSuccess": "付款完成！您的课程访问已激活。",
+    "loginRequired": "请登录后订阅。",
+    "alreadySubscribed": "您已有有效订阅。",
+    "serviceUnavailable": "支付服务暂不可用。请稍后再试。",
+    "bottomNote": "所有价格以美元计。订阅自动续费，可随时取消。",
+    "cancelSubscription": "取消订阅",
+    "cancelConfirmTitle": "确定取消订阅？",
+    "cancelConfirmMessage": "立即取消将立刻撤销访问权限。选择在期末取消，您可以在当前计费期结束前继续使用服务。",
+    "cancelAtPeriodEnd": "在期末取消",
+    "cancelImmediate": "立即取消",
+    "cancelScheduled": "已安排在期末取消",
+    "cancelSuccess": "您的订阅已取消。",
+    "cancelFailed": "取消订阅失败。请重试。",
+    "expiresAt": "到期时间",
+    "promoCodePlaceholder": "输入促销码",
+    "promoCodeClear": "清除"
+  },
+  "ebook": {
+    "catalog": {
+      "title": "电子书教材",
+      "subtitle": "可即时在线阅读的数字教材。",
+      "teacherEdition": "教师版",
+      "studentEdition": "学生版",
+      "selectLanguage": "请选择语言。",
+      "comingSoon": "即将推出",
+      "loadError": "加载目录失败。"
+    },
+    "purchase": {
+      "title": "购买详情",
+      "paymentMethod": "付款方式",
+      "bankTransfer": "银行转账",
+      "creditCard": "信用卡（Paddle）",
+      "buy": "购买",
+      "loginRequired": "登录后购买",
+      "success": "购买完成。",
+      "error": "购买过程中发生错误。"
+    },
+    "status": {
+      "pending": "处理中",
+      "completed": "可使用",
+      "refunded": "已退款"
+    },
+    "my": {
+      "title": "我的电子书",
+      "empty": "没有已购买的电子书。",
+      "browseCatalog": "浏览电子书",
+      "openViewer": "打开阅读器",
+      "loadError": "加载购买记录失败。"
+    },
+    "viewer": {
+      "toc": "目录",
+      "notFound": "未找到教材。",
+      "loadFailed": "页面加载失败。"
+    }
+  },
+  "seo": {
+    "home": {
+      "title": "Amazing Korean - 韩语学习平台",
+      "description": "面向全球学习者的最佳在线韩语学习平台。提供视频学习、系统化练习和1:1课程。"
+    },
+    "about": {
+      "title": "关于 - Amazing Korean",
+      "description": "关于Amazing Korean — 为全球学习者提供高效、有趣的韩语学习体验。"
+    },
+    "pricing": {
+      "title": "价格方案 - Amazing Korean",
+      "description": "Amazing Korean价格方案 — 无限访问视频、学习资料和课程。"
+    },
+    "videos": {
+      "title": "视频课程 - Amazing Korean",
+      "description": "通过专业教师的视频课程高效学习韩语。"
+    },
+    "studies": {
+      "title": "学习资料 - Amazing Korean",
+      "description": "通过系统化的学习资料和练习提升韩语能力。"
+    },
+    "lessons": {
+      "title": "课程 - Amazing Korean",
+      "description": "通过系统化课程逐步学习韩语。"
+    },
+    "login": {
+      "title": "登录 - Amazing Korean",
+      "description": "登录Amazing Korean开始学习韩语。"
+    },
+    "signup": {
+      "title": "注册 - Amazing Korean",
+      "description": "加入Amazing Korean，开启你的韩语学习之旅。"
+    },
+    "terms": {
+      "title": "服务条款 - Amazing Korean",
+      "description": "Amazing Korean服务条款。"
+    },
+    "privacy": {
+      "title": "隐私政策 - Amazing Korean",
+      "description": "Amazing Korean关于数据收集和处理的隐私政策。"
+    },
+    "refundPolicy": {
+      "title": "退款政策 - Amazing Korean",
+      "description": "Amazing Korean订阅退款政策。"
+    },
+    "faq": {
+      "title": "常见问题 - Amazing Korean",
+      "description": "关于Amazing Korean的常见问题。"
+    },
+    "findId": {
+      "title": "找回账号 - Amazing Korean",
+      "description": "查找已注册的账号信息。"
+    },
+    "requestResetPassword": {
+      "title": "重置密码 - Amazing Korean",
+      "description": "向注册邮箱发送密码重置邮件。"
+    },
+    "textbook": {
+      "title": "教材订购 - Amazing Korean",
+      "description": "在线订购Amazing Korean教材。支持20种语言，学生版和教师版。"
+    },
+    "textbookStatus": {
+      "title": "订单查询 - Amazing Korean",
+      "description": "查询教材订单状态。"
+    }
   }
 }

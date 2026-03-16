@@ -30,7 +30,7 @@
   "nav": {
     "about": "About",
     "videos": "Videos",
-    "studies": "Study",
+    "studies": "Studies",
     "lessons": "Lessons",
     "pricing": "Pricing",
     "myPage": "My Page",
@@ -42,7 +42,7 @@
   "footer": {
     "brandDescription": "The best online learning platform\nfor Korean learners worldwide",
     "certificationCheck": "Certifications",
-    "certOnlineMarketing": "Online Marketing Business Certificate",
+    "certOnlineMarketing": "Online Sales Business Registration Certificate",
     "certAmazingKoreanCenter": "Amazing Korean Center Certification",
     "quickLinks": "Quick Links",
     "serviceIntro": "About Us",
@@ -73,6 +73,8 @@
     "emailPlaceholder": "email@example.com",
     "passwordLabel": "Password",
     "passwordPlaceholder": "Enter your password",
+    "confirmPasswordLabel": "Confirm Password",
+    "confirmPasswordPlaceholder": "Re-enter your password",
     "signupWithEmail": "Sign up with Email",
     "findIdPassword": "Find ID / Reset Password",
     "noAccount": "Don't have an account?",
@@ -110,7 +112,7 @@
     "termsPersonalRequired": "You must agree to the Privacy Policy.",
     "signupButton": "Sign Up",
     "signingUp": "Signing up...",
-    "signupSuccess": "Congratulations! Please log in.",
+    "signupSuccess": "Registration complete! Please log in.",
     "accountRecoveryTitle": "Account Recovery",
     "findIdTabTitle": "Find Email",
     "findPasswordTabTitle": "Reset Password",
@@ -132,8 +134,8 @@
     "resetPasswordNewDescription": "Enter your new password.",
     "newPasswordLabel": "New Password",
     "newPasswordPlaceholder": "Enter new password",
-    "confirmPasswordLabel": "Confirm Password",
-    "confirmPasswordPlaceholder": "Re-enter your password",
+    "resetConfirmPasswordLabel": "Confirm New Password",
+    "resetConfirmPasswordPlaceholder": "Re-enter new password",
     "changePasswordButton": "Change Password",
     "changingPassword": "Changing...",
     "sendVerificationCode": "Send Verification Code",
@@ -758,6 +760,31 @@
         "companyInfo": "Amazing Korean Inc. | amazingkorean.net",
         "printButton": "Print / Save as PDF"
       }
+    },
+    "ebook": {
+      "title": "E-book Management",
+      "searchPlaceholder": "Search by purchase code",
+      "allStatuses": "All Statuses",
+      "purchaseCode": "Purchase Code",
+      "language": "Language",
+      "edition": "Edition",
+      "status": "Status",
+      "payment": "Payment",
+      "date": "Date",
+      "price": "Price",
+      "noResults": "No results found.",
+      "purchaseInfo": "Purchase Info",
+      "changeStatus": "Change status",
+      "statusUpdated": "Status updated.",
+      "deleted": "Deleted.",
+      "confirmDelete": "Are you sure you want to delete?",
+      "delete": "Delete",
+      "userId": "User ID",
+      "paddleTxnId": "Paddle Txn ID",
+      "completedAt": "Completed At",
+      "refundedAt": "Refunded At",
+      "notFound": "Purchase not found.",
+      "loadError": "Failed to load data."
     }
   },
   "textbook": {
@@ -882,6 +909,50 @@
       "article6Content": "1. In the event of a dispute related to these terms, both parties shall endeavor to resolve it amicably through consultation.\n\n2. If consultation fails, lawsuits related to this contract shall be filed with the competent court in accordance with the Civil Procedure Act and other relevant laws.",
       "closing": "By signing this order form, I confirm that I have fully understood and agree to the above terms.",
       "publisher": "HYMN PUBLISHING Co., Ltd."
+    }
+  },
+  "ebook": {
+    "catalog": {
+      "title": "E-book Textbooks",
+      "subtitle": "Digital textbooks you can read online instantly.",
+      "teacherEdition": "Teacher Edition",
+      "studentEdition": "Student Edition",
+      "selectLanguage": "Please select a language.",
+      "comingSoon": "Coming Soon",
+      "loadError": "Failed to load catalog."
+    },
+    "purchase": {
+      "title": "Purchase Details",
+      "paymentMethod": "Payment Method",
+      "bankTransfer": "Bank Transfer",
+      "creditCard": "Credit Card (Paddle)",
+      "buy": "Purchase",
+      "loginRequired": "Login to Purchase",
+      "success": "Purchase completed.",
+      "error": "An error occurred during purchase."
+    },
+    "status": {
+      "pending": "Pending",
+      "completed": "Available",
+      "refunded": "Refunded"
+    },
+    "my": {
+      "title": "My E-books",
+      "empty": "No purchased E-books.",
+      "browseCatalog": "Browse E-books",
+      "openViewer": "Open Viewer",
+      "loadError": "Failed to load purchases."
+    },
+    "viewer": {
+      "toc": "Table of Contents",
+      "notFound": "Textbook not found.",
+      "notFoundDesc": "The purchase code does not exist or you do not have access.",
+      "paymentRequired": "Payment not completed.",
+      "paymentRequiredDesc": "You can view the E-book after payment is completed. For bank transfers, access will be granted after admin confirmation.",
+      "goToMyEbooks": "Go to My E-books",
+      "loadFailed": "Failed to load page.",
+      "spreadView": "Two-page view",
+      "singleView": "Single page view"
     }
   },
   "seo": {

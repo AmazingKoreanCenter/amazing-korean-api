@@ -32,6 +32,7 @@
     "videos": "Video",
     "studies": "Học tập",
     "lessons": "Bài học",
+    "pricing": "Bảng giá",
     "myPage": "Trang cá nhân",
     "login": "Đăng nhập",
     "signup": "Đăng ký",
@@ -52,6 +53,7 @@
     "faq": "Câu hỏi thường gặp",
     "terms": "Điều khoản sử dụng",
     "privacy": "Chính sách bảo mật",
+    "refundPolicy": "Chính sách hoàn tiền",
     "contact": "Liên hệ",
     "address": "350 Hannuri-daero, Sejong, Tầng 6 SB3",
     "businessInfo": "Công ty HIM｜Đại diện: KIM Kyoung Ryun｜Mã số kinh doanh: 505-88-03252｜Đăng ký bán hàng trực tuyến: 2025-Sejong Areum-0402",
@@ -71,6 +73,8 @@
     "emailPlaceholder": "email@example.com",
     "passwordLabel": "Mật khẩu",
     "passwordPlaceholder": "Nhập mật khẩu",
+    "confirmPasswordLabel": "Xác nhận mật khẩu",
+    "confirmPasswordPlaceholder": "Nhập lại mật khẩu của bạn",
     "signupWithEmail": "Đăng ký bằng email",
     "findIdPassword": "Tìm tài khoản / Đặt lại mật khẩu",
     "noAccount": "Chưa có tài khoản?",
@@ -130,8 +134,8 @@
     "resetPasswordNewDescription": "Vui lòng nhập mật khẩu mới.",
     "newPasswordLabel": "Mật khẩu mới",
     "newPasswordPlaceholder": "Nhập mật khẩu mới",
-    "confirmPasswordLabel": "Xác nhận mật khẩu",
-    "confirmPasswordPlaceholder": "Nhập lại mật khẩu",
+    "resetConfirmPasswordLabel": "Xác nhận mật khẩu",
+    "resetConfirmPasswordPlaceholder": "Nhập lại mật khẩu",
     "changePasswordButton": "Đổi mật khẩu",
     "changingPassword": "Đang thay đổi...",
     "sendVerificationCode": "Gửi mã xác minh",
@@ -191,7 +195,16 @@
     "toastTooManyResendRequests": "Quá nhiều yêu cầu gửi lại. Vui lòng thử lại sau.",
     "oauthPasswordWarning": "Tài khoản đăng ký qua mạng xã hội (Google, v.v.) không có mật khẩu. Vui lòng đăng nhập bằng dịch vụ mạng xã hội tương ứng.",
     "remainingAttempts": "Số lần gửi còn lại: {{count}}",
-    "noAttemptsRemaining": "Đã đạt giới hạn gửi. Vui lòng thử lại sau."
+    "noAttemptsRemaining": "Đã đạt giới hạn gửi. Vui lòng thử lại sau.",
+    "mfaTitle": "Xác thực hai bước",
+    "mfaDescription": "Nhập mã từ ứng dụng Google Authenticator",
+    "mfaCodeLabel": "Mã xác thực",
+    "mfaCodePlaceholder": "Mã 6 chữ số hoặc mã dự phòng",
+    "mfaCodeHint": "Nhập mã TOTP 6 chữ số hoặc mã dự phòng 8 ký tự",
+    "mfaVerifying": "Đang xác thực...",
+    "mfaVerifyButton": "Xác thực",
+    "mfaBackToLogin": "Quay lại đăng nhập",
+    "mfaInvalidCode": "Mã xác thực không hợp lệ"
   },
   "user": {
     "myPageTitle": "Trang cá nhân",
@@ -392,5 +405,155 @@
     "accessDeniedTitle": "Không có quyền truy cập",
     "accessDeniedDescription": "Bạn không có quyền truy cập trang này.\nTrang này yêu cầu quyền quản trị viên.",
     "accessDeniedContact": "Nếu bạn cho rằng đây là lỗi, vui lòng liên hệ quản trị viên."
+  },
+  "payment": {
+    "title": "Chọn gói của bạn",
+    "subtitle": "Truy cập không giới hạn tất cả nội dung. Hủy bất cứ lúc nào.",
+    "trialBadge": "Bao gồm {{days}} ngày dùng thử miễn phí",
+    "perMonth": "/tháng",
+    "months": " tháng",
+    "selectPlan": "Bắt đầu",
+    "popular": "Phổ biến",
+    "currentPlan": "Gói hiện tại",
+    "currentPlanLabel": "Gói hiện tại",
+    "nextBilling": "Thanh toán tiếp theo",
+    "interval": {
+      "month_1": "Hàng tháng",
+      "month_3": "3 tháng",
+      "month_6": "6 tháng",
+      "month_12": "Hàng năm"
+    },
+    "status": {
+      "active": "Đang hoạt động",
+      "trialing": "Dùng thử",
+      "past_due": "Quá hạn",
+      "paused": "Tạm dừng",
+      "canceled": "Đã hủy"
+    },
+    "featureAllCourses": "Truy cập không giới hạn tất cả khóa học",
+    "featureAllVideos": "Thư viện video đầy đủ",
+    "featureStudyMaterials": "Tài liệu học tập không giới hạn",
+    "featureTrial": "Dùng thử miễn phí {{days}} ngày",
+    "featureSave": "Tiết kiệm {{percent}}%",
+    "checkoutSuccess": "Thanh toán hoàn tất! Quyền truy cập khóa học đã được kích hoạt.",
+    "loginRequired": "Vui lòng đăng nhập để đăng ký.",
+    "alreadySubscribed": "Bạn đã có gói đăng ký đang hoạt động.",
+    "serviceUnavailable": "Dịch vụ thanh toán hiện không khả dụng. Vui lòng thử lại sau.",
+    "bottomNote": "Tất cả giá tính bằng USD. Đăng ký tự động gia hạn và có thể hủy bất cứ lúc nào.",
+    "cancelSubscription": "Hủy đăng ký",
+    "cancelConfirmTitle": "Hủy đăng ký của bạn?",
+    "cancelConfirmMessage": "Nếu hủy ngay, quyền truy cập sẽ bị thu hồi ngay lập tức. Nếu hủy vào cuối kỳ, bạn có thể tiếp tục sử dụng dịch vụ cho đến khi kỳ thanh toán hiện tại kết thúc.",
+    "cancelAtPeriodEnd": "Hủy vào cuối kỳ",
+    "cancelImmediate": "Hủy ngay",
+    "cancelScheduled": "Đã lên lịch hủy vào cuối kỳ",
+    "cancelSuccess": "Đăng ký của bạn đã được hủy.",
+    "cancelFailed": "Hủy đăng ký thất bại. Vui lòng thử lại.",
+    "expiresAt": "Hết hạn",
+    "promoCodePlaceholder": "Nhập mã khuyến mãi",
+    "promoCodeClear": "Xóa"
+  },
+  "ebook": {
+    "catalog": {
+      "title": "Giáo trình E-book",
+      "subtitle": "Giáo trình kỹ thuật số có thể đọc trực tuyến ngay lập tức.",
+      "teacherEdition": "Bản giáo viên",
+      "studentEdition": "Bản học sinh",
+      "selectLanguage": "Vui lòng chọn ngôn ngữ.",
+      "comingSoon": "Sắp ra mắt",
+      "loadError": "Không thể tải danh mục."
+    },
+    "purchase": {
+      "title": "Chi tiết mua hàng",
+      "paymentMethod": "Phương thức thanh toán",
+      "bankTransfer": "Chuyển khoản ngân hàng",
+      "creditCard": "Thẻ tín dụng (Paddle)",
+      "buy": "Mua",
+      "loginRequired": "Đăng nhập để mua",
+      "success": "Mua hàng thành công.",
+      "error": "Đã xảy ra lỗi trong quá trình mua hàng."
+    },
+    "status": {
+      "pending": "Đang xử lý",
+      "completed": "Khả dụng",
+      "refunded": "Đã hoàn tiền"
+    },
+    "my": {
+      "title": "E-book của tôi",
+      "empty": "Chưa có E-book nào được mua.",
+      "browseCatalog": "Xem E-book",
+      "openViewer": "Mở trình xem",
+      "loadError": "Không thể tải lịch sử mua hàng."
+    },
+    "viewer": {
+      "toc": "Mục lục",
+      "notFound": "Không tìm thấy giáo trình.",
+      "loadFailed": "Không thể tải trang."
+    }
+  },
+  "seo": {
+    "home": {
+      "title": "Amazing Korean - Nền tảng học tiếng Hàn",
+      "description": "Nền tảng học tiếng Hàn trực tuyến tốt nhất cho người học trên toàn thế giới. Cung cấp học qua video, bài tập có hệ thống và bài học 1:1."
+    },
+    "about": {
+      "title": "Giới thiệu - Amazing Korean",
+      "description": "Về Amazing Korean — Mang đến trải nghiệm học tiếng Hàn hiệu quả và thú vị cho người học toàn cầu."
+    },
+    "pricing": {
+      "title": "Bảng giá - Amazing Korean",
+      "description": "Gói giá Amazing Korean — Truy cập không giới hạn video, tài liệu học tập và bài học."
+    },
+    "videos": {
+      "title": "Video bài giảng - Amazing Korean",
+      "description": "Học tiếng Hàn hiệu quả với video bài giảng từ giảng viên chuyên nghiệp."
+    },
+    "studies": {
+      "title": "Tài liệu học tập - Amazing Korean",
+      "description": "Nâng cao khả năng tiếng Hàn với tài liệu học tập và bài tập có hệ thống."
+    },
+    "lessons": {
+      "title": "Bài học - Amazing Korean",
+      "description": "Học tiếng Hàn từng bước với các bài học có hệ thống."
+    },
+    "login": {
+      "title": "Đăng nhập - Amazing Korean",
+      "description": "Đăng nhập Amazing Korean để bắt đầu học tiếng Hàn."
+    },
+    "signup": {
+      "title": "Đăng ký - Amazing Korean",
+      "description": "Tham gia Amazing Korean và bắt đầu hành trình học tiếng Hàn."
+    },
+    "terms": {
+      "title": "Điều khoản dịch vụ - Amazing Korean",
+      "description": "Điều khoản dịch vụ của Amazing Korean."
+    },
+    "privacy": {
+      "title": "Chính sách bảo mật - Amazing Korean",
+      "description": "Chính sách bảo mật của Amazing Korean về thu thập và xử lý dữ liệu."
+    },
+    "refundPolicy": {
+      "title": "Chính sách hoàn tiền - Amazing Korean",
+      "description": "Chính sách hoàn tiền đăng ký Amazing Korean."
+    },
+    "faq": {
+      "title": "Câu hỏi thường gặp - Amazing Korean",
+      "description": "Câu hỏi thường gặp về Amazing Korean."
+    },
+    "findId": {
+      "title": "Khôi phục tài khoản - Amazing Korean",
+      "description": "Tìm thông tin tài khoản đã đăng ký."
+    },
+    "requestResetPassword": {
+      "title": "Đặt lại mật khẩu - Amazing Korean",
+      "description": "Gửi email đặt lại mật khẩu đến địa chỉ đã đăng ký."
+    },
+    "textbook": {
+      "title": "Đặt mua giáo trình - Amazing Korean",
+      "description": "Đặt mua giáo trình Amazing Korean trực tuyến. Có 20 ngôn ngữ, bản học sinh và giáo viên."
+    },
+    "textbookStatus": {
+      "title": "Theo dõi đơn hàng - Amazing Korean",
+      "description": "Theo dõi tình trạng đơn hàng giáo trình."
+    }
   }
 }

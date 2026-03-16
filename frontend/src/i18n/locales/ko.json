@@ -132,8 +132,8 @@
     "resetPasswordNewDescription": "새로운 비밀번호를 입력해주세요.",
     "newPasswordLabel": "새 비밀번호",
     "newPasswordPlaceholder": "새 비밀번호 입력",
-    "confirmPasswordLabel": "새 비밀번호 확인",
-    "confirmPasswordPlaceholder": "새 비밀번호 확인",
+    "resetConfirmPasswordLabel": "새 비밀번호 확인",
+    "resetConfirmPasswordPlaceholder": "새 비밀번호 확인",
     "changePasswordButton": "비밀번호 변경",
     "changingPassword": "변경 중...",
     "sendVerificationCode": "인증번호 전송",
@@ -188,7 +188,6 @@
     "verifyEmailDescription": "{{email}}로 전송된 6자리 인증번호를 입력해주세요.",
     "verifyEmailNoEmail": "이메일 정보가 없습니다. 회원가입을 먼저 진행해주세요.",
     "goToSignup": "회원가입으로 이동",
-    "backToLogin": "로그인으로 돌아가기",
     "toastEmailVerified": "이메일 인증이 완료되었습니다. 로그인해주세요.",
     "toastEmailNotVerified": "이메일 인증이 필요합니다.",
     "toastVerificationCodeSent": "인증번호가 이메일로 전송되었습니다.",
@@ -761,6 +760,31 @@
         "companyInfo": "(주)놀라운한국어 | amazingkorean.net",
         "printButton": "인쇄 / PDF 저장"
       }
+    },
+    "ebook": {
+      "title": "E-book 관리",
+      "searchPlaceholder": "구매코드 검색",
+      "allStatuses": "전체 상태",
+      "purchaseCode": "구매코드",
+      "language": "언어",
+      "edition": "에디션",
+      "status": "상태",
+      "payment": "결제",
+      "date": "일자",
+      "price": "가격",
+      "noResults": "검색 결과가 없습니다.",
+      "purchaseInfo": "구매 정보",
+      "changeStatus": "상태 변경",
+      "statusUpdated": "상태가 변경되었습니다.",
+      "deleted": "삭제되었습니다.",
+      "confirmDelete": "정말 삭제하시겠습니까?",
+      "delete": "삭제",
+      "userId": "사용자 ID",
+      "paddleTxnId": "Paddle 거래 ID",
+      "completedAt": "결제 완료일",
+      "refundedAt": "환불일",
+      "notFound": "구매 정보를 찾을 수 없습니다.",
+      "loadError": "데이터를 불러오는 중 오류가 발생했습니다."
     }
   },
   "textbook": {
@@ -885,6 +909,50 @@
       "article6Content": "① 본 약관과 관련하여 분쟁이 발생한 경우, 양 당사자는 협의를 통하여 원만히 해결하도록 노력합니다.\n\n② 협의가 이루어지지 아니하는 경우, 본 계약과 관련한 소송은 민사소송법 등 관계 법령에 따른 관할법원에 제기합니다.",
       "closing": "본 주문서에 서명함으로써 상기 약관의 내용을 충분히 이해하였으며 이에 동의합니다.",
       "publisher": "주식회사 힘(HYMN PUBLISHING)"
+    }
+  },
+  "ebook": {
+    "catalog": {
+      "title": "E-book 교재",
+      "subtitle": "온라인에서 바로 열람할 수 있는 전자 교재입니다.",
+      "teacherEdition": "교사용",
+      "studentEdition": "학생용",
+      "selectLanguage": "언어를 선택해주세요.",
+      "comingSoon": "준비 중",
+      "loadError": "카탈로그를 불러오는 중 오류가 발생했습니다."
+    },
+    "purchase": {
+      "title": "구매 정보",
+      "paymentMethod": "결제 방법",
+      "bankTransfer": "계좌이체",
+      "creditCard": "신용카드 (Paddle)",
+      "buy": "구매하기",
+      "loginRequired": "로그인 후 구매",
+      "success": "구매가 완료되었습니다.",
+      "error": "구매 중 오류가 발생했습니다."
+    },
+    "status": {
+      "pending": "결제 대기",
+      "completed": "이용 가능",
+      "refunded": "환불 완료"
+    },
+    "my": {
+      "title": "내 E-book",
+      "empty": "구매한 E-book이 없습니다.",
+      "browseCatalog": "E-book 둘러보기",
+      "openViewer": "열람하기",
+      "loadError": "구매 목록을 불러오는 중 오류가 발생했습니다."
+    },
+    "viewer": {
+      "toc": "목차",
+      "notFound": "교재를 찾을 수 없습니다.",
+      "notFoundDesc": "존재하지 않는 구매코드이거나 접근 권한이 없습니다.",
+      "paymentRequired": "결제가 완료되지 않았습니다.",
+      "paymentRequiredDesc": "결제 완료 후 E-book을 열람할 수 있습니다. 계좌이체의 경우 입금 확인 후 관리자가 승인합니다.",
+      "goToMyEbooks": "내 E-book으로 이동",
+      "loadFailed": "페이지를 불러올 수 없습니다.",
+      "spreadView": "두 쪽 보기",
+      "singleView": "한 쪽 보기"
     }
   },
   "seo": {
