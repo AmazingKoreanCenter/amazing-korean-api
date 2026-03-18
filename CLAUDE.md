@@ -12,78 +12,55 @@
 - **배포**: AWS EC2 (백엔드) + Cloudflare Pages (프론트엔드)
 - **도메인**: amazingkorean.net (프론트), api.amazingkorean.net (백엔드)
 
-## 필수 참조 문서
+## 참조 문서
 
 작업 시작 전 관련 문서를 반드시 읽고 시작할 것.
 
+### 핵심 문서 (항상 참조)
+
 | 문서 | 역할 | 언제 읽나 |
 |------|------|-----------|
-| `docs/AMK_API_MASTER.md` | API 스펙, 엔드포인트, DTO, 보안 정책 **(SSoT)** | 모든 작업 |
-| `docs/AMK_CODE_PATTERNS.md` | 백엔드/프론트엔드 코드 패턴, 컨벤션 | 새 기능 구현 시 |
+| `docs/AMK_API_MASTER.md` | 공통 규칙, 시스템 환경, 데이터 모델 **(SSoT Core)** | 모든 작업 |
+| `docs/AMK_CODE_PATTERNS.md` | 엔지니어링 원칙 + 백엔드/프론트엔드 코드 패턴 | 새 기능 구현 시 |
 | `docs/AMK_DEPLOY_OPS.md` | 배포, 운영, CI/CD, 인프라 | 배포/환경 관련 작업 시 |
 | `docs/AMK_SCHEMA_PATCHED.md` | DB 스키마 (테이블, 인덱스, 관계) | DB 관련 작업 시 |
 
-## 디렉토리 구조
+### API 도메인 문서 (해당 도메인 작업 시)
 
-```
-src/
-├── main.rs                    # 부트스트랩
-├── config.rs                  # 환경변수 설정 SSoT
-├── state.rs                   # AppState 의존성 컨테이너
-├── error.rs                   # 전역 에러 타입 (AppError → HTTP 응답)
-├── types.rs                   # DB enum ↔ Rust enum ↔ JSON 매핑
-├── crypto/                    # 암호화 (cipher, service, blind_index)
-├── external/email.rs          # EmailSender trait + ResendEmailSender
-├── bin/rekey_encryption.rs    # 키 로테이션 CLI
-└── api/
-    ├── auth/                  # 인증 (로그인, OAuth, 비밀번호 재설정, 이메일 인증)
-    ├── user/                  # 사용자 관리
-    ├── admin/                 # 관리자 기능
-    ├── course/                # 코스
-    ├── lesson/                # 레슨
-    ├── study/                 # 학습
-    ├── video/                 # 영상
-    └── health/                # 헬스체크
+| 문서 | 도메인 |
+|------|--------|
+| `docs/AMK_API_AUTH.md` | 인증 (로그인, OAuth, MFA, 비밀번호, 이메일 인증) |
+| `docs/AMK_API_USER.md` | 사용자 CRUD + 관리자 사용자 관리 |
+| `docs/AMK_API_LEARNING.md` | health, video, study, lesson, course, translation |
+| `docs/AMK_API_PAYMENT.md` | Paddle 결제, 구독, 웹훅 |
+| `docs/AMK_API_TEXTBOOK.md` | 교재 주문 |
+| `docs/AMK_API_EBOOK.md` | E-book 웹 뷰어 |
+| `docs/AMK_API_FUTURE.md` | 미구현 (시딩, 발음, 조음, TTS) |
 
-frontend/src/
-├── category/                  # 도메인별 모듈
-│   ├── auth/                  # 인증 (page, hook, types, auth_api)
-│   ├── user/                  # 사용자
-│   ├── admin/                 # 관리자
-│   ├── lesson/                # 레슨
-│   ├── study/                 # 학습
-│   └── ...
-├── i18n/locales/              # 다국어 (ko.json, en.json)
-├── hooks/                     # 전역 훅 (use_auth_store 등)
-├── api/client.ts              # Axios 인스턴스 + ApiError
-└── app/routes.tsx             # 라우팅
-```
+### 기타 도메인 문서
 
-## 백엔드 모듈 패턴 (각 도메인 공통)
+| 문서 | 역할 |
+|------|------|
+| `docs/AMK_FRONTEND.md` | 프론트엔드 구조, 라우팅, 상태관리, UI/UX |
+| `docs/AMK_STATUS.md` | 작업 현황, 로드맵, 체크리스트 |
+| `docs/AMK_MARKET_ANALYSIS.md` | 시장 분석, 교육 방법론, 비즈니스 전략 |
+| `docs/AMK_DESIGN_SYSTEM.md` | Figma 디자인 시스템, UI 컴포넌트 |
+| `docs/AMK_PIPELINE.md` | AI 파이프라인, 자동화 전략 |
+| `docs/AMK_MACMINI_SETUP.md` | Mac Mini AI 인프라 셋업 |
+| `docs/AMK_CHANGELOG.md` | 변경 이력 |
 
-```
-api/{domain}/
-├── dto.rs       # 요청/응답 DTO (Deserialize, Validate, ToSchema)
-├── repo.rs      # SQLx 쿼리 (DB 접근만, 비즈니스 로직 없음)
-├── service.rs   # 비즈니스 로직 (트랜잭션, 검증, 외부 호출)
-├── handler.rs   # HTTP 핸들러 (파싱 → 서비스 호출 → 응답)
-└── router.rs    # 라우트 정의 (미들웨어 바인딩)
-```
+## 핵심 파일
 
-## 프론트엔드 모듈 패턴 (각 도메인 공통)
-
-```
-category/{domain}/
-├── types.ts      # Zod 스키마 + TypeScript 타입
-├── {domain}_api.ts  # API 함수 (Axios 호출)
-├── hook/         # TanStack Query 훅 (useQuery, useMutation)
-└── page/         # 페이지 컴포넌트
-```
+- `src/config.rs` — 환경변수 설정 SSoT
+- `src/error.rs` — 전역 에러 타입 (AppError → HTTP 응답)
+- `src/types.rs` — DB enum ↔ Rust enum ↔ JSON 매핑
+- `src/api/{domain}/` — 백엔드 도메인별 모듈 (dto → repo → service → handler → router)
+- `frontend/src/category/{domain}/` — 프론트엔드 도메인별 모듈 (types → api → hook → page)
 
 ## 핵심 규칙
 
 ### 코드 변경 시
-- **문서 동기화**: 코드 변경 시 `docs/AMK_API_MASTER.md`도 반드시 함께 업데이트
+- **문서 동기화**: 코드 변경 시 해당 도메인 문서(`docs/AMK_API_*.md`)도 반드시 함께 업데이트
 - **환경변수 변경**: `config.rs` + `docker-compose.prod.yml` + `docs/` 동시 반영
 - **새 엔드포인트 추가**: dto → repo → service → handler → router 순서로 구현
 
@@ -98,17 +75,17 @@ category/{domain}/
 - `EMAIL_PROVIDER=none` + `APP_ENV=production` → 서버 부팅 실패 (panic)
 - `RATE_LIMIT_EMAIL_MAX < 1` → 서버 부팅 실패 (panic)
 
-## 검증 체크리스트
+## 작업 수행 플로우
 
-코드 변경 후 반드시 확인:
+코드 변경이 포함된 모든 작업에 아래 순서를 따를 것.
 
-```bash
-# 백엔드 컴파일 확인
-cargo check
-
-# 프론트엔드 빌드 확인 (tsc + vite)
-cd frontend && npm run build
-```
+1. 해당 도메인 문서 읽기 (`docs/AMK_API_*.md`)
+2. 코드 작업 수행
+3. 검증 (`cargo check` + `cd frontend && npm run build`)
+4. 변경된 도메인 문서 업데이트 (`docs/AMK_API_*.md`)
+5. `docs/AMK_STATUS.md` 체크박스 갱신
+6. `docs/AMK_CHANGELOG.md` 변경 이력 추가
+7. 관련 메모리 날짜 갱신
 
 ## 커밋 컨벤션
 

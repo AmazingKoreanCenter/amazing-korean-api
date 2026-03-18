@@ -449,6 +449,21 @@ docker stats
 | `400: redirect_uri_mismatch` (Google OAuth) | redirect URI 불일치 | `.env.prod` GOOGLE_REDIRECT_URI + Google Cloud Console 승인 URI 모두 `https://api.amazingkorean.net/auth/google/callback`으로 설정 |
 | INSERT 시 컬럼 순서 에러 | 통합 마이그레이션과 pg_dump 컬럼 순서 불일치 | INSERT문에 명시적 컬럼명 추가 (`INSERT INTO table (col1, col2, ...) VALUES (...)`) |
 
+##### 8-1. 환경변수 변경 시 docker-compose.prod.yml 동시 수정 필수
+
+> **3회 실수 발생** — `.env.prod`에 변수 추가 시 `docker-compose.prod.yml`의 `environment:` 섹션에도 반드시 추가할 것. Docker Compose는 `.env.prod` 파일을 직접 읽지 않고, `environment:` 섹션에 명시된 변수만 컨테이너에 전달한다.
+
+**확인 절차:**
+1. `config.rs`에서 해당 기능이 사용하는 **모든** `env::var()` 호출을 검색
+2. 변수 접두사만 보지 말고, 관련된 모든 변수를 목록으로 정리 (예: `PAYMENT_PROVIDER` + `PADDLE_*`)
+3. 목록의 각 변수가 `docker-compose.prod.yml`의 `environment:` 섹션에 있는지 하나씩 대조
+4. 누락된 변수가 있으면 추가
+
+**실수 이력:**
+- 1차: 최초 환경변수 추가 시 docker-compose.prod.yml 누락
+- 2차: Paddle 변수 추가 시 `PADDLE_*` 9개 전부 누락
+- 3차: Paddle 변수 추가 수정 시 `PAYMENT_PROVIDER` 누락 (`PADDLE_*` 접두사에만 집중해서 놓침)
+
 ##### 9. Cloudflare SSL & 보안 설정
 
 Cloudflare 프록시 사용 시 Let's Encrypt 없이 SSL 적용 가능:
