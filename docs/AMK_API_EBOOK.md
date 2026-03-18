@@ -36,7 +36,7 @@ Layer 2: 포렌식 워터마크 (실시간 동적)
 
 Layer 3: 플랫폼 보안
   • 브라우저: 우클릭/선택/인쇄/드래그 차단
-  • Cache-Control: no-store (브라우저 캐시 방지)
+  • Cache-Control: private, max-age=300 (인증된 사용자만 캐시, 5분 TTL)
   • blob:// URL 사용 (네트워크 탭에 이미지 URL 미노출)
   • 레이트 리밋: 30페이지/분/user (벌크 크롤링 차단)
 ```
@@ -150,7 +150,7 @@ Phase 3 [데스크탑 앱] Tauri(Rust) + DevTools 차단 — 오프라인 지원
 **응답 (성공 200)**
 ```json
 {
-  "purchase_code": "EB-260309-0001",
+  "purchase_code": "VI-ST-20260310-CA-0001",
   "language": "vi",
   "edition": "teacher",
   "total_pages": 124,
@@ -176,7 +176,7 @@ Cache-Control: private, max-age=300
 X-Content-Type-Options: nosniff
 ```
 
-**워터마크 (4중 비가시적 보안)**:
+**워터마크 (4중 다층 보안 — 1 가시 + 3 비가시)**:
 1. 풋터 워터마크: `{pageNum} | {purchaseCode} | Amazing Korean` — 페이지 하단 풋터 영역, #999999 회색
 2. 마이크로 도트: user_id 64비트를 4 모서리에 16비트씩 near-white(#FEFEFE) 도트 인코딩
 3. LSB 스테가노그래피: purchase_code + watermark_id SHA-256 해시 → R 채널 LSB (비트별 고유 시드)

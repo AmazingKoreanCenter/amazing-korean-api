@@ -222,11 +222,11 @@
   - **400** = 형식/누락/파싱 실패(예: `page=abc`, `program=` 빈값)
   - **422** = 도메인 제약 위반(예: `study_program_enum`에 없는 값, `per_page` 상한 초과, 보기 규칙 위반)
 - **로그**
-  - 문제 조회(4-2): **STUDY_TASK_LOG**에 study_task_action_log 컬럼 study_task_log_action_enum 바탕으로 `view` 업데이트
-  - 정답 제출(4-3)
+  - 문제 조회(5-3): **STUDY_TASK_LOG**에 study_task_action_log 컬럼 study_task_log_action_enum 바탕으로 `view` 업데이트
+  - 정답 제출(5-4)
     1. **STUDY_TASK_STATUS**에 업데이트 : 시도횟수(`study_task_status_try`), 최고점(`study_task_status_best`), 완료여부(`study_task_status_completed`)
     2. **STUDY_TASK_LOG**에 업데이트 : 학습행동(`study_task_action_log`), 시도횟수(`study_task_try_no_log`), 점수기록(`study_task_score_log`), 완료여부(`study_task_is_correct_log`), 풀이기록(`study_task_payload_log`),
-  - 상태 조회(4-4): **STUDY_TASK_LOG**에 study_task_action_log 컬럼 study_task_log_action_enum 바탕으로 `status` 업데이트
+  - 상태 조회(5-5): **STUDY_TASK_LOG**에 study_task_action_log 컬럼 study_task_log_action_enum 바탕으로 `status` 업데이트
 - **레이트리밋(선택)**
   - 과도한 채점/새로고침 방지 → **429 + Retry-After**
 - **권한/공개 정책**

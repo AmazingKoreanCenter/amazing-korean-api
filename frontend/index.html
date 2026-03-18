@@ -5,16 +5,26 @@
     <link rel="icon" type="image/png" href="/images/Amazing-Korean_LOGO.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- PageMeta 컴포넌트가 동적으로 관리: title, canonical, description, og:title/description/url/locale, twitter:title/description -->
+    <!-- Fallback: social crawler(FB/Twitter/Slack/Telegram)는 JS 미실행 → 정적 meta 필요 -->
+    <title>Amazing Korean | 온라인 한국어 학습</title>
+    <meta name="description" content="The best online Korean learning platform. Video lessons, structured exercises, and 1:1 tutoring for learners worldwide." />
     <meta name="keywords" content="Korean learning, 한국어 학습, Learn Korean, TOPIK, Korean online course, 한국어 강의, Amazing Korean" />
+    <link rel="canonical" href="https://amazingkorean.net" />
 
-    <!-- Open Graph (정적) -->
+    <!-- Open Graph (정적 fallback — PageMeta가 JS로 덮어씀) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Amazing Korean" />
+    <meta property="og:title" content="Amazing Korean | 온라인 한국어 학습" />
+    <meta property="og:description" content="The best online Korean learning platform. Video lessons, structured exercises, and 1:1 tutoring for learners worldwide." />
+    <meta property="og:url" content="https://amazingkorean.net" />
     <meta property="og:image" content="https://amazingkorean.net/images/Amazing-Korean_LOGO.png" />
+    <meta property="og:locale" content="ko_KR" />
     <meta property="og:locale:alternate" content="en_US" />
 
-    <!-- Twitter Card (정적) -->
+    <!-- Twitter Card (정적 fallback — PageMeta가 JS로 덮어씀) -->
     <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Amazing Korean | 온라인 한국어 학습" />
+    <meta name="twitter:description" content="The best online Korean learning platform. Video lessons, structured exercises, and 1:1 tutoring for learners worldwide." />
     <meta name="twitter:image" content="https://amazingkorean.net/images/Amazing-Korean_LOGO.png" />
 
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />

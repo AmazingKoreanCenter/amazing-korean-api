@@ -1955,21 +1955,17 @@ impl AuthService {
         // Redis 세션 + 리프레시 토큰 일괄 정리 (단일 DEL 명령)
         let mut redis_conn = st.redis.get().await
             .map_err(|e| AppError::Internal(e.to_string()))?;
-        if !sessions.is_empty() {
-            let mut keys: Vec<String> = sessions
-                .iter()
-                .flat_map(|(sid, refresh_hash)| {
-                    [
-                        format!("ak:refresh:{}", refresh_hash),
-                        format!("ak:session:{}", sid),
-                    ]
-                })
-                .collect();
-            keys.push(format!("ak:user_sessions:{}", target_user_id));
-            let _: () = redis_conn.del(keys).await.unwrap_or(());
-        } else {
-            let _: () = redis_conn.del(format!("ak:user_sessions:{}", target_user_id)).await.unwrap_or(());
-        }
+        let mut keys: Vec<String> = sessions
+            .iter()
+            .flat_map(|(sid, refresh_hash)| {
+                [
+                    format!("ak:refresh:{}", refresh_hash),
+                    format!("ak:session:{}", sid),
+                ]
+            })
+            .collect();
+        keys.push(format!("ak:user_sessions:{}", target_user_id));
+        let _: () = redis_conn.del(keys).await.unwrap_or(());
 
         info!("MFA disabled for user {} by HYMN user {}", target_user_id, auth_user_id);
 
