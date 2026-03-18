@@ -8,8 +8,91 @@
 
 ---
 
+## 0. 엔지니어링 원칙 (작업 방식 가이드)
+
+> AMK_API_MASTER.md §7에서 이관됨. 작업 원칙, 개발 플로우, DTO/검증, 서비스 계층, 트랜잭션 패턴, 테스트.
+
+### 0.1 작업 원칙
+
+1. **문서 우선** — 스펙/기능/규칙은 항상 AMK_API_MASTER.md를 기준으로 한다.
+2. **정적 가드 필수** — `cargo fmt -- --check` + `cargo clippy -- -D warnings` + `cargo check` 모두 통과해야 PR/머지 가능.
+3. **마이그레이션 규칙** — 이미 적용된 마이그레이션은 수정/이름 변경 금지. 변경은 항상 새 마이그레이션 추가. SQLx 마커는 `--! up` / `--! down`만 사용.
+4. **로그/감사** — 도메인별: `USERS_LOG`, `LOGIN_LOG`, `VIDEO_LOG`, `STUDY_TASK_LOG`. 관리자: `ADMIN_USERS_LOG`, `ADMIN_VIDEO_LOG`, `ADMIN_STUDY_LOG`, `ADMIN_LESSON_LOG`.
+5. **보안**
+   - `user_state == 'on'` 인 사용자만 로그인/액세스 허용
+   - `Authorization: Bearer <ACCESS_TOKEN>` 필수, 토큰 `sub`(user_id)만 신뢰
+   - 비밀번호 Argon2 해시, 원문 절대 저장/로그 금지
+   - 세션/리프레시 Redis 키(`ak:session:*`, `ak:refresh:*`), rotate-on-use
+   - 관리자 RBAC: HYMN(전체) > admin(전체 읽기/쓰기) > manager(담당 class, 향후) > learner(자신만)
+   - 구현: `src/api/admin/role_guard.rs`, `admin_ip_guard.rs`, 프론트 `AdminRoute`
+   - HTTPS 필수, 토큰/세션 ID를 URL에 노출 금지
+
+### 0.2 개발 플로우
+
+1. 문서 확인 (AMK_API_MASTER.md + 관련 파일)
+2. 기존: 문서 참조 후 작업 / 신규: API 명시 → 문서 업데이트 → 작업
+3. 코드/마이그레이션 생성 (이 문서의 패턴 참조)
+4. 정적 가드 + 스모크 테스트
+5. 로드맵 체크박스 업데이트 + 문서 동기화
+
+### 0.3 DTO/검증 규칙
+
+- HTTP 경계에서 항상 DTO(struct) 사용, 내부 도메인 타입과 분리
+- 문자열: `trim` 후 검증, 길이 제한 명시, 공백만 있으면 빈 값 → 400
+- 이메일: RFC 형식 검증 (`validator` 크레이트), 대소문자 미구분
+- 비밀번호: 최소 8자+, DTO에서 길이만 검증, 해시는 service 계층
+- 날짜: `chrono::NaiveDate`, DB에 `DATE`/`TIMESTAMPTZ`
+- Enum: 정의되지 않은 값 → 400, AMK_API_MASTER.md §4 기준
+- ID: 음수 불가 (0 또는 음수 → 400), 페이징: `page >= 1`, `1 <= size <= 100`
+
+### 0.4 서비스 계층 및 파일 구조
+
+```
+api/{domain}/
+├── dto.rs       # 요청/응답 DTO (HTTP 경계 타입)
+├── handler.rs   # Axum 핸들러 (파싱 → service 호출, 비즈니스 로직 없음)
+├── service.rs   # 비즈니스 로직 (트랜잭션, 검증, repo 호출)
+├── repo.rs      # DB 접근 (sqlx 쿼리, 비즈니스 규칙 없음)
+├── router.rs    # 라우트 + 미들웨어 바인딩
+└── mod.rs       # 모듈 선언 + re-export
+```
+
+특수 모듈:
+- `api/auth/`: `extractor.rs` (Claims), `jwt.rs`, `token_utils.rs`
+- `api/health/`: `handler.rs` (헬스체크)
+- `api/scripts/db_fastcheck.sh`: DB 준비 상태 점검
+
+### 0.5 트랜잭션 패턴
+
+**원칙**: handler는 트랜잭션 열지 않음 → **service에서 시작/커밋/롤백** → repo는 넘겨받은 executor에서 쿼리만 실행.
+
+**순서**: 검증 → 메인 변경 → 로그 → (통계/파생) → 커밋
+
+```rust
+pub async fn update_user_and_log(state: &AppState, input: UpdateUserInput, actor_id: i64) -> AppResult<User> {
+    let mut tx = state.db.begin().await?;
+    let user = user_repo::update_user(&mut tx, &input).await?;
+    user_repo::insert_users_log(&mut tx, &user, actor_id, "update_profile").await?;
+    tx.commit().await?;
+    Ok(user)
+}
+```
+
+**repo 제네릭 executor 패턴**: `&PgPool` / `&mut Transaction<'_, Postgres>` 모두 수용.
+
+**API upsert 패턴** (예: 비디오 진도): DB 함수(`api_upsert_video_progress`)에서 INSERT/UPDATE + 로그를 한 번에 처리.
+
+### 0.6 테스트 & 자동화
+
+1. **최소 정적 가드** (로컬 + CI): `cargo fmt -- --check` + `cargo clippy -- -D warnings` + `cargo check`
+2. **스모크 테스트**: `scripts/smoke_*.sh` (cURL 기반, 성공 + 대표 에러 케이스)
+3. **향후**: CI 자동화 (PR 시 정적 가드 + 스모크) → K6 부하 테스트
+
+---
+
 ## 📋 목차 (Table of Contents)
 
+- [0. 엔지니어링 원칙 (작업 방식 가이드)](#0-엔지니어링-원칙-작업-방식-가이드)
 - [1. 백엔드 패턴 (Rust/Axum)](#1-백엔드-패턴-rustaxum)
   - [1.0 공용 코드 (Common Code)](#10-공용-코드-common-code)
   - [1.1 dto.rs](#11-dtors)
@@ -1760,6 +1843,20 @@ Result<T, sqlx::Error> → AppResult<T> 변환
       ↓
 [Service]로 반환
 ```
+
+#### ⚠️ SQLx FromRow 타입 매칭 주의사항
+
+**1. PostgreSQL INT4 → Rust i64 직접 매핑 불가**
+- **증상**: `query_as::<_, SomeStruct>` → 500 DB_ERROR
+- **원인**: DB 컬럼이 INT4(i32)인데 Rust 구조체 필드를 i64로 선언
+- **해결**: SQL에서 `::bigint AS id` 캐스팅 추가
+- 이 프로젝트의 PK들(`video_id`, `lesson_id`, `study_id`, `study_task_id`)은 모두 INT4(i32)
+
+**2. SQLx Option\<String\> 컬럼 별칭 규칙**
+- **증상**: `ColumnNotFound("detail")` 에러
+- **원인**: SQL에서 `AS "detail?"` (따옴표+물음표) 사용 → SQLx가 컬럼명을 `detail?`로 인식
+- **해결**: `Option<String>` 필드는 그냥 `AS detail`로 별칭 지정. SQLx가 자동으로 NULL → None 처리
+- `"컬럼?"` 문법은 사용하지 말 것
 
 ---
 

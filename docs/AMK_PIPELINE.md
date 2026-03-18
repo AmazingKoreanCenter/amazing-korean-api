@@ -88,6 +88,8 @@ audience: AI agents / lead / developer
   - [11.7 하이브리드 아키텍처 (온디바이스 + 서버)](#117-하이브리드-아키텍처-온디바이스--서버)
   - [11.8 도입 로드맵](#118-도입-로드맵)
   - [11.9 한국어 발음 교정 AI 오케스트레이션](#119-한국어-발음-교정-ai-오케스트레이션)
+- [12. 참고 자료 (References)](#12-참고-자료-references)
+  - [12.1 조음 애니메이션 조사](#121-조음-애니메이션-조사-2026-03-03)
 
 ---
 
@@ -1600,5 +1602,184 @@ AI (Bllossom-3B): "좋아요! 어디에서 산책하고 싶어요?"
 ```
 
 > **원칙:** 발음 연습의 핵심 루프(발음 → 피드백 → 교정 가이드 → 모범 발음 → 재시도)는 **온디바이스에서 완결**되어야 한다. 서버는 정밀도를 높이는 보조 역할이다.
+
+[맨 위로](#목차-table-of-contents)
+
+---
+
+## 12. 참고 자료 (References)
+
+### 12.1 조음 애니메이션 조사 (2026-03-03)
+
+#### 핵심 결론
+
+- **15~17개 다이어그램**으로 한국어 전체 음소 커버 가능
+- Wikimedia CC0 SVG 활용 → 자체 제작 최소화
+- 기술 스택: Figma → SVG → GSAP MorphSVG (무료) + React
+- **한국어 전용 조음 애니메이션 도구 부재 → 차별화 기회**
+- 예상 기간: 3~6주 (Level 2 품질)
+
+---
+
+#### 필요 다이어그램 수
+
+##### 자음 — 7개 조음 위치 (평음/경음/격음은 같은 입 위치)
+
+| # | 위치 | 해당 음소 | 설명 |
+|---|------|----------|------|
+| 1 | 양순음 (Bilabial) | ㅁ, ㅂ/ㅍ/ㅃ | 두 입술 접촉 |
+| 2 | 치조 폐쇄음 (Alveolar Stop) | ㄴ, ㄷ/ㅌ/ㄸ | 혀끝 → 윗잇몸 완전 접촉 |
+| 3 | 치조 마찰음 (Alveolar Fricative) | ㅅ/ㅆ | 혀끝 → 윗잇몸 좁은 틈 |
+| 4 | 치조 설측음 (Alveolar Lateral) | ㄹ | 혀끝 접촉, 측면 공기 통과 (받침 [l] / 초성 [ɾ] 탄음) |
+| 5 | 치경구개 파찰음 (Alveopalatal) | ㅈ/ㅊ/ㅉ | 혀날 → 경구개 접근 (CC0에 없음, 자체 제작 필요) |
+| 6 | 연구개음 (Velar) | ㄱ/ㅋ/ㄲ, ㅇ(종성) | 혀뒤 → 연구개 접촉 |
+| 7 | 성문음 (Glottal) | ㅎ | 구강 폐쇄 없음, 성대 마찰 |
+
+##### 성문 상태도 — 1개 (3가지 변형)
+
+| 상태 | 성대 | 기류 | VOT |
+|------|------|------|-----|
+| 평음 (ㄱ,ㄷ,ㅂ,ㅅ,ㅈ) | 이완 | 중간 | 짧음 (20~50ms) |
+| 경음 (ㄲ,ㄸ,ㅃ,ㅆ,ㅉ) | 강하게 닫힘 | 최소 | 매우 짧음 (<20ms) |
+| 격음 (ㅋ,ㅌ,ㅍ,ㅊ) | 넓게 열림 | 최대 | 길음 (>80ms) |
+
+##### 모음 — 7~9개 혀 위치
+
+| | 전설 비원순 | 후설 비원순 | 후설 원순 |
+|---|---|---|---|
+| **고** | ㅣ /i/ | ㅡ /ɯ/ | ㅜ /u/ |
+| **중** | ㅔ /e/ (ㅐ 합류) | ㅓ /ʌ/ | ㅗ /o/ |
+| **저** | | ㅏ /a/ | |
+
+- 현대 서울말: ㅐ/ㅔ 합류 → 7개로 충분
+- 이중모음: 기존 단모음 위치 간 전환 애니메이션
+- 받침 7개: 자음 위치의 부분집합 (추가 다이어그램 불필요)
+
+##### 총합: **15~17개**
+
+---
+
+#### 사용 가능한 기존 자료
+
+##### Wikimedia Commons CC0 SVG (퍼블릭 도메인)
+- 제작자: Dan McCloy, Richard Wright (워싱턴대학교)
+- 라이선스: **CC0 (자유 사용)**
+- 한국어 해당 IPA: /p/, /t/, /k/, /m/, /n/, /ŋ/, /s/, /h/, /ɾ/, /l/, /a/, /i/, /u/, /o/, /ʌ/, /ɯ/, /e/, /ɛ/
+- **부족**: /tɕ/ (ㅈ/ㅊ/ㅉ 치경구개) → 자체 제작 필요
+- URL: commons.wikimedia.org/wiki/Category:Sagittal_sections
+
+##### 참고 도구
+
+| 도구 | URL | 특징 | 활용 |
+|------|-----|------|------|
+| **SAMMY** | incl.pl/sammy | 인터랙티브 조음 단면도, JS 기반 | UX 참고 |
+| **Sounds of Speech** | soundsofspeech.uiowa.edu | 영어/스페인어/독일어 조음 애니메이션 | **목표 퀄리티 벤치마크** |
+| **VocalTractLab** | vocaltractlab.de | 3D 성도 모델, GPL, SVG 내보내기, 한국어 연구 데이터 존재 | 기술 참고 |
+| **Seeing Speech** | seeingspeech.ac.uk | MRI 기반 2D 리그 (혀 13개 제어점) | 리그 구조 참고 |
+| **Pink Trombone** | Rust 포트도 존재 (crates.io) | 실시간 성도 합성, Canvas + Web Audio | 고급 참고 |
+
+##### 한글 = 조음 다이어그램
+- 세종대왕이 한글 자음을 발음 기관 모양에서 설계
+- ㄱ = 혀뿌리(연구개), ㄴ = 혀끝(치조), ㅁ = 입술, ㅅ = 치아, ㅇ = 목구멍
+- ㄱ→ㅋ (획 추가 = 기류 강화) — 교육적으로 연결 가능
+
+---
+
+#### 기술 스택
+
+##### 추천: SVG + GSAP MorphSVG (2025년 완전 무료화)
+
+| 기술 | 장점 | 비용 |
+|------|------|------|
+| **GSAP MorphSVG** | 최고 path 모핑, 포인트 수 불일치 자동 처리, shapeIndex 제어 | 무료 |
+| **Flubber.js** (대안) | MIT 라이선스, React 호환, 임의 형태 보간 | 무료 |
+| **Framer Motion** (보조) | React 네이티브, 스프링 물리, d 속성 애니메이션 | 무료 |
+
+##### 제작 파이프라인
+
+```
+1. Wikimedia CC0 SVG 다운로드 (기존 IPA 조음도)
+     ↓
+2. Figma에서 한국어 특화 수정 (ㅈ/ㅊ/ㅉ 추가, 통일된 스타일)
+     ↓
+3. 혀 위치별 SVG <path d="..."> 데이터 추출 (15~17개)
+     ↓
+4. JSON 데이터 모델에 path 저장
+     ↓
+5. React 컴포넌트 + GSAP MorphSVG로 애니메이션
+     ↓
+6. TTS 오디오와 동기화
+```
+
+##### 데이터 모델
+
+```json
+{
+  "ㄱ": {
+    "ipa": "k",
+    "place": "velar",
+    "manner": "plosive",
+    "laryngeal": "plain",
+    "tongue_path": "M 45,120 C 50,100 65,85 80,82 ...",
+    "lip_state": "neutral",
+    "velum": "raised",
+    "audio_male": "/audio/phonemes/giyeok_m.mp3",
+    "audio_female": "/audio/phonemes/giyeok_f.mp3"
+  }
+}
+```
+
+##### 컴포넌트 구조
+
+```
+<ArticulationDiagram phoneme="ㄱ" />
+  - 고정 SVG: 머리 윤곽, 입천장, 치아, 비강
+  - 애니메이션 SVG path: 혀 (모핑), 입술 (모핑), 연구개 (이동)
+  - 오디오: 남/여 TTS 재생
+  - 라벨: 한글 자모 + IPA + 조음 위치명
+```
+
+##### 혀 리그 제어점 (Seeing Speech 참고)
+- 최소 6~8개 제어점: 혀끝(1), 혀날(1), 혀앞(1), 혀가운데(1), 혀뒤(2), 혀뿌리(1~2)
+- 풀 리그: 13개 (후두개 2 + 혀뿌리 3 + 혀등 2 + 혀앞 1 + 혀날 1 + 혀끝 1 + 혀밑 3)
+
+---
+
+#### 난이도/일정
+
+| 수준 | 방식 | 기간 | 적합도 |
+|------|------|------|--------|
+| Level 1 | 이미지 교체 (정적) | 1~2주 | 낮음 |
+| **Level 2** | **SVG path 모핑 (부드러운 전환)** | **3~6주** | **최적** |
+| Level 3 | 실시간 파라메트릭 제어 | 2~4개월 | 과도 |
+
+---
+
+#### 경쟁 현황
+
+| 앱 | 조음 시각화 | 한국어 | 비고 |
+|-----|----------|--------|------|
+| Sounds of Speech (아이오와대) | 조음 애니메이션 + 비디오 + 오디오 | 없음 (영/스/독만) | 골드 스탠다드 |
+| Speech Sounds Visualized | X-ray 비디오 + 3D | 없음 (영어만) | 구독 |
+| ELSA Speak | 조음 다이어그램 (정적) + AI 피드백 | 없음 (영어만) | 모바일 |
+| TEUIDA | AI 발음 피드백 | 한국어 | 조음 시각화 없음 |
+| **Amazing Korean** | **조음 SVG 애니메이션 + AI 발음 평가** | **한국어** | **유일** |
+
+**한국어 전용 조음 애니메이션 도구는 현재 존재하지 않음 → 선점 기회**
+
+---
+
+#### 참고 링크
+
+- Wikimedia CC0 Sagittal SVGs: commons.wikimedia.org/wiki/Category:Sagittal_sections
+- SAMMY Interactive Sagittal: incl.pl/sammy
+- Sounds of Speech: soundsofspeech.uiowa.edu
+- VocalTractLab (GPL): vocaltractlab.de
+- Seeing Speech (MRI 기반): seeingspeech.ac.uk
+- Pink Trombone Rust: crates.io/crates/pink-trombone
+- GSAP MorphSVG (무료): gsap.com/docs/v3/Plugins/MorphSVGPlugin
+- Flubber.js (MIT): github.com/veltman/flubber
+- Rhubarb Lip Sync WASM: github.com/danieloquelis/rhubarb-lip-sync-wasm
+- 한글 조음 원리 (훈민정음): en.wikipedia.org/wiki/Origin_of_Hangul
 
 [맨 위로](#목차-table-of-contents)

@@ -1,0 +1,521 @@
+# AMK_STATUS — 작업 현황 & 로드맵
+
+> 완료 항목, 진행 예정, Paddle 전환, 보안 전략, 콘텐츠 개선.
+> 공통 규칙(인증, 에러, 페이징): [AMK_API_MASTER.md §3](./AMK_API_MASTER.md)
+> DB 스키마: [AMK_SCHEMA_PATCHED.md](./AMK_SCHEMA_PATCHED.md)
+> 코드 패턴: [AMK_CODE_PATTERNS.md](./AMK_CODE_PATTERNS.md)
+> 교재/출판: `amazing-korean-books` 프로젝트 참조
+
+---
+
+## 작업 현황
+
+### 8.1 완료 항목 ✅
+
+| # | 항목 | 카테고리 | 내역 | 완료일 | 향후 확장 |
+|:-:|------|---------|------|:------:|----------|
+| 1 | Admin 통계 API | 기능 | users/logins/studies/videos 통계 엔드포인트 + 프론트 UI | 2026-01 | 시스템 모니터링 (DB/Redis) |
+| 2 | RBAC + Admin 감사 로그 | 보안 | role_guard, IP Allowlist, actor_user_id 전달, AdminRoute, 에러 페이지 | 2026-02-02 | manager class 기반 접근, 세분화 권한 |
+| 3 | 코드 일관성 + 네이밍 | 코드 품질 | 함수명/URL 통일, Stateless 패턴, Refresh Token 포맷 등 8건 | 2026-02-02 | — |
+| 4 | 내부 DB 작업 | 인프라 | Redis 보안(인증+포트), 시청 시간 추적, Study 레이트리밋, Course 도메인, 수강권 정책 | 2026-02-02 | — |
+| 5 | Google OAuth | 외부 API | Authorization Code Flow, 프론트엔드 소셜 로그인 | 2026-02-03 | Apple OAuth (비용 보류) |
+| 6 | Login/Login_log 개선 | 기능 | UA 서버파싱(woothee), 세션 컬럼 활성화, JWT jti, Geo 기본값 | 2026-02-05 | — |
+| 7 | DB 암호화 (Phase 1~3) | 보안 | AES-256-GCM + HMAC Blind Index, 키 로테이션, 55+ call sites 적용 | 2026-02-08 | AWS KMS envelope → HSM |
+| 8 | 프로덕션 배포 + 하드닝 | 인프라 | 통합 마이그레이션, Redis 보안, 보안 헤더, Swagger/Health 숨김, 404 Fallback | 2026-02-10 | — |
+| 9 | 이메일 시스템 (Resend) | 외부 API | 회원가입 인증, 계정 복구, Rate Limiting, 관리자 초대, 도메인 검증 | 2026-02-09 | — |
+| 10 | 다국어 (i18n) | 기능 | 21개 언어, 번역 CRUD API 7개, `?lang=` fallback, Google Translate, Noto Sans 동적 로딩 | 2026-02-14 | — |
+| 11 | 세션 보안 + MFA | 보안 | 역할별 TTL, 토큰 재사용 탐지 (409 Conflict), TOTP MFA + 백업 코드 10개, 강제 설정 가드 | 2026-02-14 | 동시 세션 제한, step-up MFA |
+| 12 | 결제 시스템 (Paddle) | 외부 API | Webhook 9종, 구독 취소, 수강권 자동 부여/회수, 관리자 9개 API, Pricing UI (Paddle.js) | 2026-02-16 | Paddle Live 전환 |
+| 13 | Design System v2/v3 | UI | 공유 컴포넌트 6개 (PaginationBar, EmptyState, SkeletonGrid, ListStatsBar, StatCard, Card CVA), 다크모드 (next-themes, CSS 변수 60+ 토큰, 22개 로케일), UI/UX 가이드라인 문서화 | 2026-02-19 | — |
+| 14 | Paddle KYB 서류 제출 | 결제 | 사업자등록증 + 주주명세서 (한/영) Paddle Dashboard 업로드 | 2026-02-19 | Live 전환 심사 대기 (2~4 영업일) |
+| 15 | CEO 영문 이름 통일 | 관리 | i18n 18개 로케일 `Kyoung Ryun KIM`, noscript `KIM KYEONGRYUN` (사업자등록증 기준) | 2026-02-19 | — |
+| 16 | 교재 주문 시스템 | 기능 | 비회원 주문, 계좌이체, 20개 언어 × 2종, ₩25,000/권, 최소 10권, DB 4 ENUM + 3 테이블, 백엔드 8 API, 프론트 5 페이지, 견적서/주문확인서 인쇄, 약관 동의 모달, 상태 머신 검증, 이메일 알림 (주문확인/상태변경), Rate Limiting, Advisory Lock, Soft Delete | 2026-03-03 | 카드/Paddle 결제 |
+| 17 | 교재 HTML 재구축 시스템 | 콘텐츠 | JSON(11) + JS 컴포넌트(10) + CSS(9) → HTML → PDF 자동 생성 파이프라인, 120페이지, 원본 99.2% 일치, Puppeteer CSS 전수 감사 | 2026-03-02 | 20개 언어 자동 생성 토대 |
+| 18 | 교재 번역 Wave 1 | 콘텐츠 | ja, zh_cn, id, th — 923항목 × 4언어 번역, translate_extract/merge 도구, PDF 생성 완료 | 2026-03-02 | Wave 2~5 (16개 언어) |
+
+> **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
+> **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드
+> **다국어 참고**: 21개 언어 (아랍어 RTL 제외), Fallback: 사용자 언어 → en → ko, 공개 조건: `status = 'approved'`
+
+### 8.2 진행 예정 항목
+
+#### 핵심 (우선순위 순)
+
+| # | 항목 | 카테고리 | 내역 | 예상 결과 | 조건/시점 |
+|:-:|------|---------|------|----------|----------|
+| 0 | **Paddle Live 전환** | 결제 | Sandbox → 프로덕션 전환 (§8.5 체크리스트). KYB 서류 심사 완료, Identity Verification (Onfido) 완료, 계정 활성화 대기 중 (1~3 영업일) | 실결제 수신 가능 | **최우선 — 활성화 후 환경변수 교체만** |
+| 0.5 | **e-book 웹 뷰어** | e-book | 페이지 이미지 기반 웹 뷰어 (Phase 12.5), 구매/다운로드 시스템, Paddle 연동, 워터마크 | 자체 사이트 e-book 열람/구매 | **다음 구현 대상** |
+| 0.6 | **학습 콘텐츠 시딩** | 콘텐츠 | 교재 JSON → DB 시딩 (Phase 13), 기존 테스트 데이터 삭제 후 실 콘텐츠 투입 | 웹 학습 서비스 실데이터 | Paddle Live 전환 후 |
+| 0.6 | **교재 번역 Wave 2~5** | 콘텐츠 | 잔여 16개 언어 번역 (zh_tw, es, hi 완료 → km 진행 중 → Wave 3~5) | 20개 언어 교재 + 학습 콘텐츠 완성 | 병행 진행 |
+| 1 | 동시 세션 수 제한 | 보안 | 역할별 동시 세션 상한 설정 | 다중 기기 무분별 로그인 방지 | RDS 이전 후 |
+| 2 | RDS/ElastiCache 이전 | 인프라 | EC2 단일 DB → AWS RDS + ElastiCache | TLS, 자동 백업, maxmemory 자동 적용 | 다음 우선순위 |
+| 3 | 다중 서버 구성 (HA) | 인프라 | ①nginx+컨테이너 복제 → ②ALB+EC2 → ③ECS Fargate | 고가용성, 무중단 배포, Auto Scaling | RDS 완료 후 |
+| 4 | 시스템 모니터링 | 인프라 | DB/Redis 상태, 서버 리소스 실시간 확인 | Admin 대시보드 통합 | 필요 시 |
+| 5 | K6 성능 테스트 | 테스트 | 인증/조회/진도저장 부하 테스트, CI 연계 | SLA 기준 검증 (아래 표 참조) | CI 구축 시 |
+| 6 | ~~디자인 시스템~~ | ~~UI~~ | ~~브랜딩, 타이포그래피, 반응형 점검~~ | ~~일관된 UI/UX 체계~~ | ✅ §8.1 #13 |
+
+**K6 성능 목표치 (엔드포인트별)**:
+
+| 엔드포인트 | 목표 RPS | P95 응답시간 |
+|----------|---------|-------------|
+| 인증 (login/refresh) | 100 | < 200ms |
+| 목록 조회 (videos/studies) | 200 | < 100ms |
+| 상세 조회 | 300 | < 50ms |
+| 진도 저장 (progress) | 100 | < 150ms |
+
+**대표 시나리오**: 회원가입 → 로그인 → 비디오 조회 → 시청 → 진도 저장 → 학습 문제 풀이
+| 7 | 마케팅/데이터 분석 | 기능 | 사용자 세그먼트, 리텐션 분석, 마케팅 자동화 | 데이터 기반 의사결정 | 사용자 확보 후 |
+
+#### 보류/조건부
+
+| # | 항목 | 카테고리 | 내역 | 예상 결과 | 조건/시점 |
+|:-:|------|---------|------|----------|----------|
+| 8 | Apple OAuth | 외부 API | Apple Sign In 구현 | iOS 사용자 편의성 | 비용/환경 해결 시 |
+| 9 | GeoIP 전환 | 인프라 | ip-api.com → MaxMind GeoLite2 로컬 DB | HTTPS, 무제한 쿼리 | 트래픽 증가 시 |
+| 10 | step-up MFA | 보안 | 민감 작업 시 추가 인증 요구 | 결제/비밀번호 변경 시 보안 강화 | 필요 시 |
+| 11 | 이메일 수신 | 외부 API | `support@amazingkorean.net` 수신 | 사용자 문의 처리 | Cloudflare Routing 또는 Workspace |
+| 12 | 토큰 Redis 캐싱 | 보안 | 재발급 시 DB 조회 → Redis 캐시 | 동시 접속 성능 개선 | 동시접속 10K+ |
+| 13 | enum sqlx::Type 전환 | 코드 품질 | 수동 match → `#[sqlx(type_name)]` derive | 보일러플레이트 감소 | 일괄 전환 시점 검토 |
+| 14 | Keyset 페이징 | 기능 | page/size → keyset pagination | 대용량 테이블 성능 개선 | 데이터 1만 건+ |
+| 15 | Lesson 통계 | 기능 | `/admin/lessons/stats` 구현 | 수업별 진행도 분석 | 필요 시 |
+| 16 | 학습 문제 동적 생성 | 기능 | 커리큘럼 기반 문제 자동 생성/전달 | 학습 콘텐츠 확장 | 커리큘럼 완비 후 |
+| 17 | 통계 비동기/배치 분리 | 인프라 | 집계 로직 비동기 처리 | API 응답 속도 개선 | 집계 복잡화 시 |
+| 18 | OAuth 중복 통합 | 코드 품질 | auth repo/service 리팩토링 | 코드 중복 제거 | 세 번째 OAuth 추가 시 |
+| 19 | manager 역할 구현 | 기능 | class 기반 접근 권한 부여 | 담당 학습자 범위 내 관리 | class 테이블 구현 후 |
+
+#### 다국어 UI 참고 (21개 언어, LTR 전용)
+
+| 항목 | 설명 |
+|------|------|
+| **폰트** | Noto Sans 패밀리 동적 로딩 (Latin/Cyrillic/CJK/Thai/Myanmar/Khmer/Sinhala/Devanagari) |
+| **텍스트 길이** | 독일어 등 60%+ 길어질 수 있음 → 고정 폭 금지, flex/grid 사용, `text-overflow: ellipsis` |
+| **줄 높이** | Thai/Myanmar/Khmer/Sinhala 결합 문자 → `line-height: 1.6~1.8` |
+
+### 8.3 세부 검토 사항 — 한국어 발음 교정 AI (Pronunciation Coaching AI)
+
+**현재 상태**: 조사 완료, 단계별 전략 확정 (2026-03-03)
+
+**문제 정의**: 한국어 학습자의 발음 교정은 1:1 원어민 교사 없이는 사실상 불가능하다. **한 글자 단위 발음 교정이 초급 학습자에게 가장 중요**하며, 기존 서비스는 이를 지원하지 않는다.
+
+**핵심 원칙**: 한국어는 비성조 언어 → 음높이 변화 거의 없음 → 한 글자씩 끊어서 발음 연습이 핵심.
+
+#### 기존 API 비교 (조사 완료)
+
+| API | 한 글자 | 음소별 점수 | 한국어 | 가격 | 평가 |
+|-----|:-------:|:---------:|:------:|------|------|
+| **SpeechSuper** | **지원** | **있음** (오발음 피드백 포함) | 4단계 (글자/단어/문장/단락) | $0.004/건 (단어) | **최적** |
+| ETRI e-PreTX | 미지원 | 없음 (1~5점 단일 점수) | 문장만 | 무료 (1K/일) | 제한적 |
+| Azure Speech | 미설계 | 있으나 음소명 미제공 (ko-KR) | 있음 | ~$1/시간 | 부적합 |
+
+- **SpeechSuper**: 유일하게 한글 1자 음소별 평가 지원, REST + WebSocket, Rust SDK 제공
+- **ETRI**: 2025.07 aiopen → e-PreTX 이전, PCM 전용, 자유 발화 시 전문가와 상관관계 없음 (Kim & Ko, 2022)
+
+#### 3단계 전략 (확정)
+
+**Phase 1** (현재): 따라하기 안내만 (녹음/판별 없음)
+
+**Phase 2** (콘텐츠 완성 후): SpeechSuper API 프로토타이핑
+- 한 글자 + 단어/문장 발음 평가, 음소별 점수 + 오발음 피드백
+- Rust 백엔드 통합, 사용자 반응/데이터 수집
+- 비용: $0.004/건 → 1,000명 활동 시 ~$1,680/월 (Growth $0.0028)
+
+**Phase 3** (기술 검증 후): 커스텀 모델 개발
+- **왜 한국어가 유리한가**: 음절 = 초성(19) + 중성(21) + 종성(28) 고정 구조, ~40개 음소 소규모 분류 문제, 성조 없음
+- **베이스 모델**: `kresnik/wav2vec2-large-xlsr-korean` (Apache 2.0, WER 4.74%, CER 1.78%)
+- **학습 데이터**: AIHub 71469 (1,030시간, 영어모국어 한국어 음성, 음소 시간 정렬 + 오류 태그) — HYMN 법인으로 접근 가능
+- **아키텍처**: wav2vec2 파인튜닝 → 초성/중성/종성 3-way 분류 헤드 + GOP 점수화 (0~100)
+- **학술 검증**: PER 10.25%, 전문가 일치 90% (2024, 1.56h 데이터), L1별 39개 오류 패턴 분류 (ICPhS 2023)
+- **개발 비용**: GPU $200~$1,000, 추론 CPU 가능 (<100ms/음절, $50~200/월), 기간 2~3개월
+- **장점**: API 비용 제거 + 데이터 주권 + L1별(20개 언어) 맞춤 피드백
+
+#### L2 학습자 공통 오류 패턴 (ICPhS 2023)
+
+1. 격음/경음 → 평음 대치 (ㅋ/ㄲ→ㄱ, ㅌ/ㄸ→ㄷ, ㅍ/ㅃ→ㅂ, ㅊ/ㅉ→ㅈ, ㅆ→ㅅ)
+2. 종성(받침) 탈락
+3. 이중모음 → 단모음 대치
+4. L1별 고유 패턴 (베트남어: /l/→/n/ 종성, 일본어: /ŋ/ 삽입 등)
+
+#### 조음 애니메이션 (Phase 15 연동)
+
+- **15~17개 다이어그램**으로 한국어 전체 음소 커버 (자음 7 조음 위치 + 성문 1 + 모음 7~9)
+- 평음/경음/격음은 같은 입 위치 → 성문 상태도로 차이 표현
+- **Wikimedia CC0 SVG** 활용 (IPA 조음 단면도, 퍼블릭 도메인) → 자체 제작 최소화
+- 기술: Figma → SVG → GSAP MorphSVG (무료) + React
+- **한국어 전용 조음 애니메이션 도구 부재 → 차별화 기회** (경쟁사 분석 완료)
+
+#### 맞춤형 학습 AI 확장 로드맵
+
+```
+데이터 플라이휠:
+사용자 발음 녹음 → 모델 평가 → 피드백/재시도 → 데이터 축적 → 모델 재학습 → 정확도 향상 → 사용자 증가 → ...
+```
+
+1. **발음 평가 AI** (Phase 14) — 음소별 정확도 판정
+2. **학습자 프로파일링** — L1 기반 취약 음소 자동 파악 + 개인별 반복 오류 패턴 추적
+3. **맞춤형 학습 경로** — 취약 부분 자동 반복 출제, 조음 영상 재안내
+4. **20개 언어별 특화 모델** — L1 간섭 오류 집중
+
+**핵심 차별점**: 교재(콘텐츠) + AI(개인화) 조합 → 데이터가 쌓일수록 격차 벌어짐 → 진입 장벽
+
+#### 사용 가능한 데이터셋
+
+| 데이터셋 | 규모 | 음소 라벨 | 오류 태그 | 접근 |
+|----------|------|----------|----------|------|
+| **AIHub 교육용 영어모국어 한국어 음성 (71469)** | **1,030시간** | **있음 (시간축 정렬)** | **있음 (TextGrid)** | 한국 국적 |
+| AIHub 외국인 한국어 발화 (505) | 4,302시간 | 없음 (단어 단위) | 없음 | 한국 국적 |
+| KsponSpeech (한국어 자연발화) | 1,000시간 | 없음 | 없음 | 한국 국적 |
+| Zeroth-Korean | ~50시간 | 없음 | 없음 | **오픈** |
+
+#### 오픈소스 선례
+
+| 프로젝트 | 아키텍처 | 특징 |
+|----------|---------|------|
+| DevTae/SpeechFeedback | Deep Speech 2 (CNN+BiGRU+CTC) | Docker+FastAPI, 한글→44 IPA 변환, AIHub 60만 샘플 |
+| kresnik/wav2vec2-large-xlsr-korean | wav2vec2 XLSR Large (0.3B) | WER 4.74%, CER 1.78%, Apache 2.0 |
+| ai-pronunciation-trainer | Whisper + Epitran + 규칙기반 | 영어/독일어만, 한국어 적용 시 커스텀 필요 |
+
+#### 참고 링크
+
+- SpeechSuper 한국어 데모: speechsuper.com/demo/korean/
+- SpeechSuper 가격: speechsuper.com/pricing.html
+- SpeechSuper API 샘플 (Rust 포함): github.com/speechsuper/SpeechSuper-API-Samples
+- AIHub 교육용 한국어 음성: aihub.or.kr/aihubdata/data/view.do?dataSetSn=71469
+- ETRI e-PreTX: epretx.etri.re.kr
+- 2025 논문 (Whisper 파인튜닝): eksss.org/archive/view_article?pid=pss-17-1-51
+- 2024 논문 (아동 발음장애): arxiv.org/html/2403.08187v1
+- ICPhS 2023 (L2 오류): arxiv.org/abs/2306.10821
+
+### 8.4 상시 모니터링 항목
+
+프로젝트 전반에 걸쳐 지속적으로 수행해야 하는 조사·분석·모니터링 활동.
+
+| # | 항목 | 분류 | 내역 | 주기 | 참고 |
+|:-:|------|------|------|:----:|------|
+| 1 | 한국어 교육 시장 조사 | 시장 | 경쟁사 동향 (신규 앱, 가격 변동, 기능 출시), TOPIK 응시자/학습자 통계, 시장 규모 업데이트 | 월 1회 | [`AMK_MARKET_ANALYSIS.md`](./AMK_MARKET_ANALYSIS.md) |
+| 2 | 교육 앱 UX/UI 트렌드 | 시장 | 주요 교육 앱 UI 변화, 온보딩 플로우, 게이미피케이션 패턴, 접근성 트렌드 | 월 1회 | — |
+| 3 | 결제/수익 모델 동향 | 시장 | Apple/Google IAP 정책 변경, 수수료율 변동, 지역별 가격 전략, 프로모션 사례 | 분기 1회 | [`AMK_MARKET_ANALYSIS.md §4`](./AMK_MARKET_ANALYSIS.md#4-모바일-앱-결제-전략) |
+| 4 | AI/ML 기술 동향 | 기술 | LLM 경량화 (BitNet 후속), 음성인식 (Whisper 후속), 온디바이스 AI SDK, 발음 평가 API | 월 1회 | [`AMK_PIPELINE.md §11`](./AMK_PIPELINE.md) |
+| 5 | 모바일 프레임워크 동향 | 기술 | React Native / SwiftUI / Kotlin Multiplatform 변화, 크로스플랫폼 AI 통합 사례 | 분기 1회 | — |
+| 6 | 인프라/보안 동향 | 기술 | AWS 신규 서비스, 컨테이너 오케스트레이션, 인증 표준 (Passkey 등), OWASP 업데이트 | 분기 1회 | [`AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md) |
+| 7 | 규제/법률 동향 | 사업 | 교육 앱 개인정보보호 (COPPA, GDPR-K), DMA/DSA 후속 조치, 각국 앱스토어 규제 | 분기 1회 | — |
+
+[⬆️ 목차로 돌아가기](#-목차-table-of-contents)
+
+### 8.5 Paddle Live 전환 체크리스트
+
+Sandbox → Live(프로덕션) 전환을 위한 단계별 체크리스트. 코드 변경 불필요 — 환경변수만 교체.
+
+> **참고 문서**: [Go-live checklist (Paddle Developer)](https://developer.paddle.com/build/onboarding/go-live-checklist)
+
+#### Step 1: Paddle 대시보드 작업 (수동)
+
+| # | 작업 | 상세 | 상태 |
+|:-:|------|------|:----:|
+| 1 | 계정 인증 (Account Verification) | Paddle Live 계정 사업자 인증 — KYB 서류 심사 완료, Identity Verification (Onfido) 완료, 계정 활성화 대기 중 (1~3 영업일) | ✅ |
+| 2 | 도메인 인증 (Domain Verification) | `amazingkorean.net` 도메인 승인 요청 (Dashboard > Checkout > Request domain approval) | ⬜ |
+| 3 | 상품 생성 (Product) | Live 계정에서 "Amazing Korean" 상품 새로 생성 (Sandbox 복사 X) | ⬜ |
+| 4 | 가격 생성 (Prices) | 4개 플랜: 1m/$10, 3m/$25, 6m/$50, 12m/$100 — USD, 자동갱신, 1일 무료 체험 | ⬜ |
+| 5 | API Key 발급 | Live 계정에서 API Key 생성 (형식: `pdl_live_apikey_...`) | ⬜ |
+| 6 | Client Token 발급 | Live 계정에서 Client-side Token 생성 (형식: `live_...`) | ⬜ |
+| 7 | Webhook 설정 | Notification Destination 생성: URL `https://api.amazingkorean.net/payment/webhook`, 이벤트: `subscription.*` + `transaction.completed` | ⬜ |
+| 8 | 결제수단 확인 | 카드(기본 ON) + PayPal/Apple Pay/Google Pay/KakaoPay/NaverPay 등 자동 제공 확인 | ⬜ |
+| 9 | 통화/세금 설정 | Balance Currency: USD, 세금: Paddle MoR 자동 처리 (별도 설정 불필요) | ⬜ |
+
+#### Step 2: GitHub Secrets 교체 (수동)
+
+| Secret | Sandbox 값 | Live 값 |
+|--------|-----------|---------|
+| `PADDLE_SANDBOX` | `true` | `false` |
+| `PADDLE_API_KEY` | `pdl_sdbx_apikey_...` | 새 발급 (`pdl_live_apikey_...`) |
+| `PADDLE_CLIENT_TOKEN` | `test_...` | 새 발급 (`live_...`) |
+| `PADDLE_WEBHOOK_SECRET` | `pdl_ntfset_...` | 새 발급 |
+| `PADDLE_PRODUCT_ID` | `pro_01khg4n...` | 새 Live Product ID |
+| `PADDLE_PRICE_MONTH_1` | `pri_01khg4r...` | 새 Live Price ID |
+| `PADDLE_PRICE_MONTH_3` | `pri_01khg4s...` | 새 Live Price ID |
+| `PADDLE_PRICE_MONTH_6` | `pri_01khg4t...` | 새 Live Price ID |
+| `PADDLE_PRICE_MONTH_12` | `pri_01khg4w...` | 새 Live Price ID |
+
+#### Step 3: 배포 및 검증
+
+1. GitHub Secrets 교체 후 CI/CD 배포 (main push 또는 workflow_dispatch)
+2. 서버 로그 확인: `💳 Payment provider enabled: Paddle Billing` (**Sandbox 미표시**)
+3. 테스트 결제 수행 → Webhook 수신 확인 (`webhook_events` 테이블)
+4. 구독 활성화 → `user_course` 자동 부여 확인
+
+#### 가격 변경 전략 (추후)
+
+현재 가격은 샘플. 콘텐츠 담당자와 최종 확정 후 변경 예정.
+
+- **방법**: 새 Price 객체 생성 (Paddle 대시보드) → `PADDLE_PRICE_MONTH_*` Secrets 업데이트 → 재배포
+- **기존 구독자**: 이전 Price로 자동 유지 (영향 없음), 신규 구독자만 새 가격 적용
+- **기존 구독자도 변경 시**: Subscription Update API (`proration_billing_mode` 설정)
+- **코드 변경 불필요** — 환경변수만 교체
+
+#### 결제수단 / 세금 참고
+
+**결제수단**: Paddle 기본 수수료(5% + $0.50/건)에 **모든 결제수단 포함** (추가 비용 없음)
+- 카드(Visa/MC/Amex), PayPal, Apple Pay, Google Pay, KakaoPay, NaverPay, Samsung Pay, Alipay, UnionPay, iDEAL 등
+- 고객 위치/기기/통화에 따라 Paddle이 자동으로 적절한 결제수단 표시
+
+**세금**: Paddle MoR(Merchant of Record)가 100개국+ **자동 처리**
+- VAT (EU/UK), GST (호주/인도), Sales Tax (미국 주별) — 자동 계산 + 징수 + 납부
+- 세금 관련 법적 책임도 Paddle에 귀속
+- 설정: "Prices include tax" OFF 권장 (표시 가격 + 세금 별도)
+
+[⬆️ 목차로 돌아가기](#-목차-table-of-contents)
+
+---
+
+### 8.6 학습 콘텐츠 보안 전략 (Content Protection)
+
+> 자체 플랫폼(웹/앱)의 학습 콘텐츠와 외부 유통 EPUB3에 대한 3중 보안 아키텍처.
+
+#### 유통 채널별 전략
+
+| 채널 | 형식 | 보안 방식 |
+|------|------|----------|
+| **자체 웹/앱** | 인터랙티브 학습 플랫폼 (DB → API → 렌더링) | 구조적 보안 + 포렌식 마킹 + 플랫폼 보안 |
+| **외부 플랫폼** (Amazon/Apple/Google/Kobo) | EPUB3 | 플랫폼 DRM 자동 적용 |
+
+- 자체 사이트에서는 EPUB3 파일을 제공하지 않음 — **다운로드 가능한 파일 자체가 존재하지 않음**
+- 교재 콘텐츠(JSON 데이터)를 서버에서 인터랙티브 학습 콘텐츠로 동적 렌더링
+- EPUB3는 외부 플랫폼 유통 전용으로만 생성
+
+#### Layer 1 — 구조적 보안 (콘텐츠 제공 방식 자체가 방어)
+
+| 방어 요소 | 설명 |
+|----------|------|
+| 파일 없음 | 다운로드할 파일이 존재하지 않음 (EPUB3/PDF 미제공) |
+| 서버 렌더링 | 콘텐츠가 DB → API → 조각 단위 전송, 전체 데이터 한 번에 노출 안 됨 |
+| 페이지/단원 단위 접근 | 요청한 부분만 내려줌, 전체 책을 한 번에 수집 불가 |
+| 인증 + 구독 확인 | 로그인 + 활성 구독 상태에서만 접근 가능 |
+| 데이터 분해 | 어휘/문장/활용/조사가 개별 API 응답으로 분리 — 크롤링해도 원본 교재 형태로 재조립 극히 어려움 |
+
+#### Layer 2 — 포렌식 워터마킹 (유출 시 추적, 실시간 동적 생성)
+
+API 응답마다 구매자별 고유 마킹 패턴을 **실시간 동적 생성** — 세션마다 패턴이 바뀌어 패턴 분석 자체가 불가능.
+
+| 층 | 기법 | 추적 대상 | 제거 난이도 | 비고 |
+|:--:|------|----------|:---------:|------|
+| 1 | **ZWC (Zero-Width Character) 삽입** | 텍스트 복사 | 쉬움 | 유니코드 영폭 문자로 구매자 ID 인코딩 |
+| 2 | **동형 문자(Homoglyph) 치환** | ZWC 제거 후에도 생존 | 중간 | 육안 구분 불가 유니코드 문자 교체 |
+| 3 | **이미지 LSB 삽입** | 이미지 캡처 | 어려움 | 픽셀 최하위 비트에 데이터 삽입 |
+| 4 | **CSS 미세 변형** | 화면 캡처 | 어려움 | letter-spacing/color 0.01px/0.01% 단위 차이 |
+
+- 인터랙티브 플랫폼 장점: EPUB3는 구매 시 1회 마킹이지만, 플랫폼에서는 **매 API 요청마다 패턴 변경 가능**
+- 마킹 정보: 구매자 ID + 타임스탬프 + IP + 기기 + 세션 ID
+- 4개 레이어 중 **하나만 살아남아도 법적 추적 근거 확보**
+- "마킹이 되어있다"는 사실 자체가 심리적 유출 억제 효과
+
+#### Layer 3 — 플랫폼 보안 (기존 인프라 활용)
+
+| 환경 | 보안 조치 |
+|------|----------|
+| **웹** | 우클릭 차단, 텍스트 선택 차단 (`user-select: none`), 개발자도구 감지, 인쇄 차단 |
+| **앱 (iOS/Android)** | 스크린샷/화면 녹화 차단 API, 암호화 캐시, 오프라인 읽기 시 암호화 유지 |
+| **외부 플랫폼** | Amazon/Apple/Google/Kobo 자체 DRM 자동 적용 (별도 설정 불필요) |
+
+#### 보안 한계 인식
+
+- **어떤 DRM도 100% 완벽하지 않음** — 넷플릭스도 뚫림
+- 핵심은 "완벽한 차단"이 아니라 **"비용 대비 효과"** — 대다수에게 충분히 어렵게 만드는 것
+- 3중 방어 구조에서 콘텐츠를 완전히 탈취하려면: 인증 돌파 → 조각 데이터 전수 크롤링 → 원본 재조립 → 4중 마킹 전부 제거 필요
+- ₩25,000 교재를 이 수준으로 뚫으려는 동기 대비 방어 비용이 충분히 합리적
+
+#### 미해결 이슈
+
+| # | 위치 | 내용 | 심각도 |
+|:-:|------|------|:------:|
+| 1 | `src/api/admin/user/repo.rs:453` | `admin_get_user_logs()`에서 `u.user_email as admin_email` 직접 SELECT — COALESCE 미적용 + 서비스 레이어 복호화 없음. 암호화된 이메일이 그대로 반환될 수 있음 | Medium |
+
+> DB 암호화 Phase 2 계획(Bug 1~8) 중 유일하게 미완료된 항목. 나머지 7개 Bug + Sub-Phase 2B~2D는 모두 구현 완료 확인 (2026-03-18 검증).
+
+#### 학습 콘텐츠 개선 방안
+
+> 교재(JSON) 데이터를 웹 학습 콘텐츠로 변환하는 설계. 교재 페이지 순서 = 학습 순서.
+
+##### 핵심 원칙
+
+- 교재(JSON)의 내용이 곧 웹 학습 콘텐츠의 원본 데이터
+- 교재 페이지 순서 = 학습 순서 (`page_manifest.json` 기준)
+- 동영상/음성은 현재 미보유 → 추후 제작
+- 기존 course/lesson/study DB 데이터는 테스트 데이터 → 삭제 가능
+
+##### 교재 JSON 데이터 → DB 매핑
+
+**데이터 소스** (`scripts/textbook/data/`)
+
+| JSON 파일 | 내용 | 항목 수 | Study Program |
+|-----------|------|---------|---------------|
+| vocabulary.json | 어휘 카드 (한국어 + 20개 언어 번역) | 280+ | basic_word |
+| sentences.json | 문법 예문 (한국어 + 번역) | 496+ | basic_900 |
+| pronunciation.json | 한글 조합표 (자음×모음) | 테이블 7+ | basic_pronunciation |
+| pronunciation_test.json | 발음 테스트 | 연습 문제 | basic_pronunciation |
+| particles.json | 조사 활용표 | 테이블 | basic_900 |
+| conjugation.json | 동사/형용사 활용 (현재/과거/미래) | 테이블 | basic_900 |
+| structure.json | 문장 구조 (의문사 패턴) | 테이블 | basic_900 |
+| appendix.json | 숫자, 문법 연습 | 테이블 | basic_900 |
+
+**DB 계층 구조**
+
+```
+Course "놀라운 한국어 기초"
+├── Part I. 발음 (Pronunciation)
+│   ├── Lesson 1~7: pronunciation.json + pronunciation_test.json + vocabulary.json(발음)
+├── Part II. 문법 기초 (Grammar Basics)
+│   ├── Lesson 8~10: particles.json + structure.json
+├── Part III~IV. 서술어/부사어 문법
+│   ├── Lesson 11~30: sentences.json (섹션별 1 Lesson)
+├── Part V. 동사 활용
+│   ├── Lesson 31~33: conjugation.json
+└── Part VI. 부록
+    ├── Lesson 34~35: appendix.json
+```
+
+##### Lesson 구조 (설명 + 영상 + 문제)
+
+```
+Lesson = [설명 콘텐츠] + [Video (있으면)] + [Study Tasks]
+
+- 설명: lesson_description에 해당 단원의 개념 설명
+- Video: 강사 영상 (있을 경우 lesson_item kind=video)
+- Study: lesson_item kind=task로 연결된 문제들
+- Explain: study_task_explain에 문법 테이블/해설 저장
+```
+
+**Lesson 예시 (모음 1)**
+
+```
+Lesson "모음 1 (Vowel 1)"
+├── [설명] "한국어에는 10개의 기본 모음이 있습니다..."
+├── [Video] 입모양 발음 시범 영상 (추후)
+├── [Study: choice × 5] ㄱ+ㅏ=? → [가,나,다,라]
+├── [Study: typing × 3] 직접 타이핑 또는 클릭 순서 배열
+└── [Study explain] 자음+모음 조합표 (pronunciation.json)
+```
+
+##### 문제 유형 (Study Task Kinds)
+
+현재 DB 지원: choice, typing, voice
+
+| Kind | 방식 | 교재 데이터 활용 |
+|------|------|----------------|
+| **choice** (4지선다) | 보기 중 정답 선택 | vocab → 뜻 맞추기, sentence → 번역 맞추기, pronunciation → 조합 맞추기 |
+| **typing** (타이핑) | 직접 입력 | vocab → 한국어 쓰기, conjugation → 활용형 쓰기 |
+| **typing** (클릭배열) | 형태소/블록 순서 배열 | sentence → 어순 배열, particles → 조사 선택 배열 |
+
+**클릭 순서 배열형** (typing 확장 또는 신규 kind 'ordering')
+- 문제: "나는 행복합니다"를 올바른 어순으로 배열하세요
+- 보기: [행복합니다] [나는] ← 셔플된 블록
+- 정답: [나는] [행복합니다]
+- 기존 typing kind를 확장하거나 ordering kind 신규 추가 검토
+
+**오답 생성 전략**
+- **vocab choice**: 같은 카테고리(같은 페이지/챕터) 내 다른 어휘에서 랜덤 추출
+- **sentence choice**: 같은 문법 섹션 내 다른 예문 번역에서 추출
+- **pronunciation choice**: 유사 자모 조합에서 추출 (가/나/다/라)
+- **particles choice**: 다른 조사를 오답으로 (는/를/에/로)
+
+##### 영상 제작 전략 (2026-03-03 확정)
+
+**핵심 방향: AI 기술 적극 도입**
+- 강사 직접 촬영이 아닌 **AI 음성 + 애니메이션** 중심
+- 목표: 일관된 퀄리티, 대량 생산 가능, 정확한 발음 전달
+
+**한국어 발음 교육의 핵심 원칙**
+- **성조 없음**: 음높이 변화 거의 없음 → 음율적이지 않게 한 글자씩 발음
+- **한 글자씩**: 학습 시 반드시 한 글자 단위로 끊어서 발음 연습
+- **남성 + 여성 음성**: 모든 발음을 남녀 AI 음성 2가지로 제공
+- **입모양/혀 위치**: 실사 촬영 대신 **애니메이션**으로 시각화 (더 명확)
+- **두 글자 이상**: 목차별 순차적 듣기 + 따라하기 연습
+
+**파트별 영상 구성**
+
+Part I. 발음 (1순위 — 텍스트 대체 불가)
+
+| 요소 | 내용 |
+|------|------|
+| **AI 음성** | 한 글자씩 남성/여성 TTS, 성조 없이 평탄하게 |
+| **애니메이션** | 입모양 + 혀 위치 다이어그램 (자음/모음별) |
+| **자막** | 한글 + 발음기호 + 학습자 모국어 (20개 언어) |
+| **흐름** | 글자 표시 → 애니메이션 → 남성 발음 → 여성 발음 → 따라하기 |
+| **조합 연습** | 자음+모음 조합표 한 줄씩 순차 재생 + 듣기 |
+
+Part II. 문법 기초
+
+| 요소 | 내용 |
+|------|------|
+| **시제** | 핵심 동사 기준 → 현재/과거/미래 × 기본형/의문형, AI 발음 시범 |
+| **조사** | 핵심 명사 기준 → 각 조사별 발음 시범 |
+| **문장구조/의문사** | 동일 패턴: 텍스트 + AI 발음 |
+
+Part III~VI. 문장/서술어/부사어/기타 문법
+
+| 요소 | 내용 |
+|------|------|
+| **공통** | 각 목차의 문법/형태를 AI 발음으로 보여줌 |
+| **예문** | 10개 예문 순차 재생 (남/여 음성) + 모국어 자막 |
+
+**학습 흐름: 영상 → Study 복습 (확정)**
+
+```
+[영상] 전체 흐름을 한 번 봄 (수동적, 개요 파악)
+  ↓
+[Study] 자기 페이스로 연습 + 복습 (능동적, 반복)
+  ↓
+[이후 복습] Study만 반복 (영상 재시청은 선택적)
+```
+
+- 영상 = 설명/시범, Study = 연습/평가 — 역할 분리
+- Study에서 audio_url로 개별 음성 재생 가능 → 인터랙티브 장점 흡수
+- 인터랙티브 웹 콘텐츠 별도 구현 불필요 (기존 video + study 구조 유지)
+
+**발음 평가 (음성 인식) — 단계적 도입**
+
+| Phase | 범위 | 접근 방식 | 시기 |
+|-------|------|----------|------|
+| **Phase 1** | 따라하기 안내만 (녹음/판별 없음) | 없음 | 지금 |
+| **Phase 2** | **한 글자 + 단어/문장** 발음 평가 | SpeechSuper API ($0.004/건) | 콘텐츠 완성 후 |
+| **Phase 3** | 커스텀 AI로 전환 | wav2vec2 파인튜닝 + 초성/중성/종성 분류 | 기술 검증 후 |
+
+- **한 글자 발음 교정이 초급 학습자에게 가장 중요** (핵심 원칙)
+- Phase 2: SpeechSuper가 유일하게 한글 1자 음소별 평가 지원 → 프로토타이핑 + 사용자 검증
+- Phase 3: AIHub 71469 데이터(1,030h, 음소 라벨+오류 태그) + wav2vec2-xlsr-korean 파인튜닝
+- 커스텀 모델 장점: API 비용 제거, 데이터 주권, L1별 맞춤 피드백 (20개 언어)
+- **상세 조사**: [pronunciation_ai_research.md](pronunciation_ai_research.md) (메모리 토픽 파일)
+
+**입모양/혀 애니메이션 제작 방안 (조사 완료)**
+- **15~17개 다이어그램**으로 전체 커버 (자음 7위치 + 성문 1 + 모음 7~9)
+- 평음/경음/격음은 같은 입 위치 → 성문 상태도로 차이 표현
+- **Wikimedia CC0 SVG** 활용 (IPA 조음 단면도, 퍼블릭 도메인) → 자체 제작 최소화
+- 자체 제작 필요: ㅈ/ㅊ/ㅉ 치경구개음 SVG만
+- **기술**: Figma → SVG path → GSAP MorphSVG (무료) + React
+- **기간**: 3~6주 (Level 2: SVG 모핑)
+- **한국어 전용 조음 애니메이션 도구 부재 → 차별화 기회**
+- **상세 조사**: [AMK_PIPELINE.md §12.1 조음 애니메이션 조사](./AMK_PIPELINE.md#121-조음-애니메이션-조사-2026-03-03)
+
+**AI 기술 스택**
+- **TTS**: 한국어 고품질 AI 음성 (남/여) — Google Cloud TTS, CLOVA, OpenAI TTS 등 (조사 필요)
+- **발음 평가**: Phase 2 SpeechSuper API → Phase 3 커스텀 wav2vec2 모델 (조사 완료, [상세](pronunciation_ai_research.md))
+- **입모양 애니메이션**: CC0 SVG + Figma → GSAP MorphSVG + React (조사 완료, [상세](./AMK_PIPELINE.md#121-조음-애니메이션-조사-2026-03-03))
+- **영상 자동 생성**: JSON 데이터 → 스크립트 → 영상 자동 렌더링 파이프라인
+- **자막**: 교재 번역 데이터(20개 언어)에서 SRT/VTT 자동 생성
+
+**다국어 자막 전략**
+- 음성: 한국어 AI TTS (남/여)
+- 자막: 교재 JSON translations에서 자동 추출 → 20개 언어
+- 결과: 영상 템플릿 1개 → 자막만 교체로 20개 언어 커버
+
+##### 구현 접근법: Seed Script
+
+```
+scripts/textbook/JSON → seed_script → DB (study + study_task + lesson + course)
+```
+
+1. JSON 파일 읽기 (vocabulary, sentences, pronunciation, ...)
+2. Study 세트 생성 (program별: basic_pronunciation, basic_word, basic_900)
+3. StudyTask 생성 (choice/typing 문제 자동 생성 + explain 해설)
+4. Lesson 생성 + lesson_description에 단원 설명 + LessonItem에 task 연결
+5. Course 생성 + course_lesson으로 Lesson 연결
+
+[⬆️ AMK_API_MASTER.md로 돌아가기](./AMK_API_MASTER.md)
