@@ -117,7 +117,7 @@ Course "놀라운 한국어 기초"
 | 5 | 영상 자동 렌더링 파이프라인 (오디오 + 자막 + 애니메이션 → 영상) | ⬜ |
 | 6 | Lesson/Video DB 연결 + lesson_item kind=video 시딩 | ⬜ |
 
-[⬆️ 목차로 돌아가기](#-목차-table-of-contents)
+[⬆️ 문서 상단으로 돌아가기](#amk_api_future--미구현-phase-스펙)
 
 ---
 
