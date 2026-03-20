@@ -929,7 +929,10 @@
       "buy": "구매하기",
       "loginRequired": "로그인 후 구매",
       "success": "구매가 완료되었습니다.",
-      "error": "구매 중 오류가 발생했습니다."
+      "error": "구매 중 오류가 발생했습니다.",
+      "paddleUnavailable": "카드 결제를 사용할 수 없습니다.",
+      "checkoutSuccess": "결제가 완료되었습니다.",
+      "cancelSuccess": "주문이 취소되었습니다."
     },
     "status": {
       "pending": "결제 대기",
@@ -941,6 +944,9 @@
       "empty": "구매한 E-book이 없습니다.",
       "browseCatalog": "E-book 둘러보기",
       "openViewer": "열람하기",
+      "payNow": "결제하기",
+      "cancelOrder": "주문 취소",
+      "processing": "결제 처리 중...",
       "loadError": "구매 목록을 불러오는 중 오류가 발생했습니다."
     },
     "viewer": {
@@ -1019,6 +1025,31 @@
     "textbookStatus": {
       "title": "주문 조회 - Amazing Korean",
       "description": "교재 주문 상태를 조회합니다."
+    },
+    "book": {
+      "title": "Amazing Korean Basic {{language}} - 교재 정보",
+      "description": "Amazing Korean Basic {{language}} 교재의 상세 정보와 구매 안내입니다.",
+      "notFoundTitle": "교재를 찾을 수 없습니다 - Amazing Korean",
+      "notFoundDescription": "유효하지 않은 ISBN입니다."
     }
+  },
+  "book": {
+    "editionStudent": "학생용",
+    "editionTeacher": "교사용",
+    "ctaPrimary": "무료로 학습 시작하기",
+    "ctaBottomTitle": "지금 바로 시작하세요",
+    "buyEbook": "E-book 구매하기",
+    "orderTextbook": "교재 주문하기",
+    "signupFree": "무료 회원가입",
+    "myEbooks": "내 E-book",
+    "benefitsTitle": "교재와 함께하는 온라인 학습",
+    "benefitVideos": "영상 콘텐츠",
+    "benefitQuizzes": "학습 문제",
+    "benefitLanguages": "21개 언어 지원",
+    "otherLanguages": "다른 언어 교재",
+    "notFound": "교재를 찾을 수 없습니다",
+    "notFoundDesc": "유효하지 않은 ISBN입니다. 홈페이지로 이동하거나 교재 목록을 확인하세요.",
+    "goHome": "홈으로",
+    "viewCatalog": "교재 목록"
   }
 }

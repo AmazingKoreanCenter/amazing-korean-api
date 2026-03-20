@@ -32,6 +32,7 @@
 | 16 | 교재 주문 시스템 | 기능 | 비회원 주문, 계좌이체, 20개 언어 × 2종, ₩25,000/권, 최소 10권, DB 4 ENUM + 3 테이블, 백엔드 8 API, 프론트 5 페이지, 견적서/주문확인서 인쇄, 약관 동의 모달, 상태 머신 검증, 이메일 알림 (주문확인/상태변경), Rate Limiting, Advisory Lock, Soft Delete | 2026-03-03 | 카드/Paddle 결제 |
 | 17 | 교재 HTML 재구축 시스템 | 콘텐츠 | JSON(11) + JS 컴포넌트(10) + CSS(9) → HTML → PDF 자동 생성 파이프라인, 120페이지, 원본 99.2% 일치, Puppeteer CSS 전수 감사 | 2026-03-02 | 20개 언어 자동 생성 토대 |
 | 18 | 교재 번역 Wave 1 | 콘텐츠 | ja, zh_cn, id, th — 923항목 × 4언어 번역, translate_extract/merge 도구, PDF 생성 완료 | 2026-03-02 | Wave 2~5 (16개 언어) |
+| 19 | QR 교재 랜딩 페이지 | 프론트 | `/book/:isbn` — 교재 QR 스캔 → 서비스 연결. 10개 언어 × 2종(학생/교사) ISBN 20개, 3섹션 구조 (Hero+CTA, 서비스안내+다른언어, 하단CTA), PageMeta 동적 SEO, changeLanguage 자동 전환, 국기 SVG 10개 | 2026-03-20 | — |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드
@@ -43,8 +44,8 @@
 
 | # | 항목 | 카테고리 | 내역 | 예상 결과 | 조건/시점 |
 |:-:|------|---------|------|----------|----------|
-| 0 | **Paddle Live 전환** | 결제 | Sandbox → 프로덕션 전환 (§8.5 체크리스트). KYB 서류 심사 완료, Identity Verification (Onfido) 완료, 계정 활성화 대기 중 (1~3 영업일) | 실결제 수신 가능 | **최우선 — 활성화 후 환경변수 교체만** |
-| 0.5 | **e-book 웹 뷰어** | e-book | 페이지 이미지 기반 웹 뷰어 (Phase 12.5), 구매/다운로드 시스템, Paddle 연동, 워터마크 | 자체 사이트 e-book 열람/구매 | **다음 구현 대상** |
+| 0 | **Paddle Live 전환** | 결제 | Sandbox → 프로덕션 전환. KYB 승인 완료. Dashboard 설정 + Discount 코드 적용 완료. **남은: GitHub Secrets 교체 + 배포 + E2E 검증** | 실결제 수신 가능 | **최우선** |
+| 0.5 | ~~**e-book Paddle 연동**~~ | e-book | ~~Paddle checkout overlay, 가격 분기 (USD/KRW), 구매 취소, 환불 웹훅~~ | ~~카드결제로 e-book 구매~~ | **✅ 코드 구현 완료 (배포 대기)** |
 | 0.6 | **학습 콘텐츠 시딩** | 콘텐츠 | 교재 JSON → DB 시딩 (Phase 13), 기존 테스트 데이터 삭제 후 실 콘텐츠 투입 | 웹 학습 서비스 실데이터 | Paddle Live 전환 후 |
 | 0.6 | **교재 번역 Wave 2~5** | 콘텐츠 | 잔여 16개 언어 번역 (zh_tw, es, hi 완료 → km 진행 중 → Wave 3~5) | 20개 언어 교재 + 학습 콘텐츠 완성 | 병행 진행 |
 | 1 | 동시 세션 수 제한 | 보안 | 역할별 동시 세션 상한 설정 | 다중 기기 무분별 로그인 방지 | RDS 이전 후 |
@@ -73,7 +74,7 @@
 | 8 | Apple OAuth | 외부 API | Apple Sign In 구현 | iOS 사용자 편의성 | 비용/환경 해결 시 |
 | 9 | GeoIP 전환 | 인프라 | ip-api.com → MaxMind GeoLite2 로컬 DB | HTTPS, 무제한 쿼리 | 트래픽 증가 시 |
 | 10 | step-up MFA | 보안 | 민감 작업 시 추가 인증 요구 | 결제/비밀번호 변경 시 보안 강화 | 필요 시 |
-| 11 | 이메일 수신 | 외부 API | `support@amazingkorean.net` 수신 | 사용자 문의 처리 | Cloudflare Routing 또는 Workspace |
+| 11 | ~~이메일 수신~~ | ~~외부 API~~ | ~~`support@amazingkorean.net` 수신~~ | ~~사용자 문의 처리~~ | ✅ Cloudflare Email Routing 설정 완료 (→ Gmail 포워딩) |
 | 12 | 토큰 Redis 캐싱 | 보안 | 재발급 시 DB 조회 → Redis 캐시 | 동시 접속 성능 개선 | 동시접속 10K+ |
 | 13 | enum sqlx::Type 전환 | 코드 품질 | 수동 match → `#[sqlx(type_name)]` derive | 보일러플레이트 감소 | 일괄 전환 시점 검토 |
 | 14 | Keyset 페이징 | 기능 | page/size → keyset pagination | 대용량 테이블 성능 개선 | 데이터 1만 건+ |
@@ -203,53 +204,117 @@
 
 ### 8.5 Paddle Live 전환 체크리스트
 
-Sandbox → Live(프로덕션) 전환을 위한 단계별 체크리스트. 코드 변경 불필요 — 환경변수만 교체.
+Sandbox → Live(프로덕션) 전환. 코드 구현 완료, Dashboard 설정 대부분 완료.
 
 > **참고 문서**: [Go-live checklist (Paddle Developer)](https://developer.paddle.com/build/onboarding/go-live-checklist)
 
-#### Step 1: Paddle 대시보드 작업 (수동)
+#### 완료 항목
 
-| # | 작업 | 상세 | 상태 |
-|:-:|------|------|:----:|
-| 1 | 계정 인증 (Account Verification) | Paddle Live 계정 사업자 인증 — KYB 서류 심사 완료, Identity Verification (Onfido) 완료, 계정 활성화 대기 중 (1~3 영업일) | ✅ |
-| 2 | 도메인 인증 (Domain Verification) | `amazingkorean.net` 도메인 승인 요청 (Dashboard > Checkout > Request domain approval) | ⬜ |
-| 3 | 상품 생성 (Product) | Live 계정에서 "Amazing Korean" 상품 새로 생성 (Sandbox 복사 X) | ⬜ |
-| 4 | 가격 생성 (Prices) | 4개 플랜: 1m/$10, 3m/$25, 6m/$50, 12m/$100 — USD, 자동갱신, 1일 무료 체험 | ⬜ |
-| 5 | API Key 발급 | Live 계정에서 API Key 생성 (형식: `pdl_live_apikey_...`) | ⬜ |
-| 6 | Client Token 발급 | Live 계정에서 Client-side Token 생성 (형식: `live_...`) | ⬜ |
-| 7 | Webhook 설정 | Notification Destination 생성: URL `https://api.amazingkorean.net/payment/webhook`, 이벤트: `subscription.*` + `transaction.completed` | ⬜ |
-| 8 | 결제수단 확인 | 카드(기본 ON) + PayPal/Apple Pay/Google Pay/KakaoPay/NaverPay 등 자동 제공 확인 | ⬜ |
-| 9 | 통화/세금 설정 | Balance Currency: USD, 세금: Paddle MoR 자동 처리 (별도 설정 불필요) | ⬜ |
+| # | 작업 | 상태 |
+|:-:|------|:----:|
+| 1 | 계정 인증 (KYB + Onfido) | ✅ |
+| 2 | 도메인 인증 (`amazingkorean.net`) | ✅ |
+| 3 | Products 생성 (구독 + E-book) | ✅ |
+| 4 | Prices 생성 (1/3/6/12개월 정가 + E-book) | ✅ |
+| 5 | API Key 발급 (`pdl_apikey_live_...`) | ✅ |
+| 6 | Client Token 발급 (`live_...`) | ✅ |
+| 7 | Webhook Destination (11개 이벤트, Secret Key 확보) | ✅ |
+| 8 | Payment Methods (Card + PayPal/Apple Pay/Google Pay) | ✅ |
+| 9 | Balance Currency (USD) + Sales Tax Settings | ✅ |
+| 10 | Default Payment Link (`https://amazingkorean.net/pricing`) | ✅ |
+| 11 | Retain (Payment Recovery, 이메일 브랜딩, Postmark 인증) | ✅ |
+| 12 | pwCustomer 코드 (`use_paddle.ts` + 3개 호출 사이트) | ✅ |
+| 13 | Retain 홈페이지 Paddle.js 초기화 (`home_page.tsx`) | ✅ |
+| 14 | Cloudflare Email Routing (`support@amazingkorean.net` → Gmail) | ✅ |
+| 15 | 환경변수 정리 (`PADDLE_PRODUCT_ID` 제거, `PADDLE_PRICE_EBOOK` 통일) | ✅ |
+| 16 | Paddle Discount 3개 생성 (3/6/12개월 flat $5/$10/$20 off) | ✅ |
+| 17 | Discount 코드 적용 (`config.rs`, `dto.rs`, `service.rs`, `use_paddle.ts`, `pricing_page.tsx`) | ✅ |
+| 18 | GitHub Secrets Discount ID 3개 등록 | ✅ |
 
-#### Step 2: GitHub Secrets 교체 (수동)
+#### 남은 작업
 
-| Secret | Sandbox 값 | Live 값 |
-|--------|-----------|---------|
-| `PADDLE_SANDBOX` | `true` | `false` |
-| `PADDLE_API_KEY` | `pdl_sdbx_apikey_...` | 새 발급 (`pdl_live_apikey_...`) |
-| `PADDLE_CLIENT_TOKEN` | `test_...` | 새 발급 (`live_...`) |
-| `PADDLE_WEBHOOK_SECRET` | `pdl_ntfset_...` | 새 발급 |
-| `PADDLE_PRODUCT_ID` | `pro_01khg4n...` | 새 Live Product ID |
-| `PADDLE_PRICE_MONTH_1` | `pri_01khg4r...` | 새 Live Price ID |
-| `PADDLE_PRICE_MONTH_3` | `pri_01khg4s...` | 새 Live Price ID |
-| `PADDLE_PRICE_MONTH_6` | `pri_01khg4t...` | 새 Live Price ID |
-| `PADDLE_PRICE_MONTH_12` | `pri_01khg4w...` | 새 Live Price ID |
+##### ~~Step 1: Paddle Discount 생성 — 유저 (Dashboard)~~ ✅
 
-#### Step 3: 배포 및 검증
+##### ~~Step 2: 코드 수정 — Claude~~ ✅
 
-1. GitHub Secrets 교체 후 CI/CD 배포 (main push 또는 workflow_dispatch)
-2. 서버 로그 확인: `💳 Payment provider enabled: Paddle Billing` (**Sandbox 미표시**)
-3. 테스트 결제 수행 → Webhook 수신 확인 (`webhook_events` 테이블)
-4. 구독 활성화 → `user_course` 자동 부여 확인
+Paddle Dashboard → **Catalog → Discounts** 에서 3개 생성:
 
-#### 가격 변경 전략 (추후)
+| Discount | Type | Amount | Recur | Restrict To | 최종가 |
+|----------|------|--------|-------|-------------|--------|
+| 3개월 할인 | Flat | $5 off | Yes (영구) | 3개월 Price ID만 | $30 → $25 |
+| 6개월 할인 | Flat | $10 off | Yes (영구) | 6개월 Price ID만 | $60 → $50 |
+| 12개월 할인 | Flat | $20 off | Yes (영구) | 12개월 Price ID만 | $120 → $100 |
 
-현재 가격은 샘플. 콘텐츠 담당자와 최종 확정 후 변경 예정.
+- Code: 비워두기 (코드 없이 생성 → `discountId`로 자동 적용)
+- 생성 후 Discount ID (`dsc_...`) 3개 확보
 
-- **방법**: 새 Price 객체 생성 (Paddle 대시보드) → `PADDLE_PRICE_MONTH_*` Secrets 업데이트 → 재배포
-- **기존 구독자**: 이전 Price로 자동 유지 (영향 없음), 신규 구독자만 새 가격 적용
-- **기존 구독자도 변경 시**: Subscription Update API (`proration_billing_mode` 설정)
-- **코드 변경 불필요** — 환경변수만 교체
+##### Step 2: 코드 수정 — Claude
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `src/types.rs` | `price_cents()` 정가로 수정: 3개월 $30(3000), 6개월 $60(6000), 12개월 $120(12000) |
+| `src/config.rs` | Discount ID 환경변수 3개 추가 (`PADDLE_DISCOUNT_MONTH_3/6/12`) |
+| `docker-compose.prod.yml` | Discount ID 환경변수 3개 추가 |
+| `.github/workflows/deploy.yml` | Discount ID Secrets 3개 추가 |
+| `.env.example` | Discount ID 환경변수 3개 추가 |
+| `src/api/payment/service.rs` | Plans API 응답에 `discount_id` 포함 |
+| `frontend/src/category/payment/` | checkout 시 `discountId` 자동 적용 |
+
+##### Step 3: GitHub Secrets 업데이트 — 유저
+
+| Secret | 값 |
+|--------|-----|
+| `PADDLE_SANDBOX` | `false` |
+| `PADDLE_API_KEY` | Live API Key (`pdl_apikey_live_...`) |
+| `PADDLE_CLIENT_TOKEN` | Live Client Token (`live_...`) |
+| `PADDLE_WEBHOOK_SECRET` | Live Webhook Secret (`pdl_ntfset_...`) |
+| `PADDLE_PRICE_MONTH_1` | Live Price ID ($10) |
+| `PADDLE_PRICE_MONTH_3` | Live Price ID ($30, 정가) |
+| `PADDLE_PRICE_MONTH_6` | Live Price ID ($60, 정가) |
+| `PADDLE_PRICE_MONTH_12` | Live Price ID ($120, 정가) |
+| `PADDLE_PRICE_EBOOK` | Live Price ID ($10) |
+| `PADDLE_DISCOUNT_MONTH_3` | Discount ID (`dsc_...`) |
+| `PADDLE_DISCOUNT_MONTH_6` | Discount ID (`dsc_...`) |
+| `PADDLE_DISCOUNT_MONTH_12` | Discount ID (`dsc_...`) |
+| `PAYMENT_PROVIDER` | `paddle` |
+
+##### Step 4: 배포 — 유저
+
+1. 커밋 → push → GitHub Actions 자동 배포
+2. 서버 로그 확인: `💳 Payment provider enabled: Paddle Billing (Production)`
+
+##### Step 5: E2E 검증 — 유저
+
+| # | 검증 항목 | 방법 | 기대 결과 |
+|:-:|----------|------|----------|
+| 1 | API Health | `curl https://api.amazingkorean.net/health` | 200 OK |
+| 2 | Plans API | `curl https://api.amazingkorean.net/payment/plans` | `sandbox: false`, Live Price ID |
+| 3 | E-book Catalog | `curl https://api.amazingkorean.net/ebook/catalog` | `sandbox: false`, Live Price ID |
+| 4 | Webhook Simulator | Dashboard → Notifications → Webhook Simulator | 200 OK |
+| 5 | 구독 실결제 | `/pricing` → 1개월 $10 → 카드 결제 | DB subscription + transaction 생성 |
+| 6 | 구독 Discount | `/pricing` → 3개월 → 체크아웃에서 ~~$30~~ $25 표시 | Discount 자동 적용 |
+| 7 | 구독 환불 | Dashboard에서 환불 | `adjustment.created` → transaction `refunded` |
+| 8 | E-book 실결제 | `/ebook` → Paddle overlay | `ebook_purchase` 상태 `completed` |
+| 9 | E-book 환불 | Dashboard에서 환불 | `ebook_purchase` 상태 `refunded` |
+| 10 | Retain URL 검증 | Paddle Retain → Check URL `https://amazingkorean.net` | Paddle.js 감지 |
+| 11 | 프론트 UX | `/pricing`, `/ebook`, `/ebook/my` 페이지 | 정상 로딩 + checkout 동작 |
+
+> ⚠️ Live 모드 = 실제 결제. 테스트 후 반드시 Dashboard에서 환불 처리.
+
+##### Step 6: 은행 — 유저
+
+- 하나은행 세종중앙금융센터(044-867-1111)에 USD 계좌 영문 예금주명 등록 요청
+- 등록 후 Paddle Dashboard → Payout Settings → Account Holder Name 입력
+
+#### 가격 구조
+
+| 구간 | 정가 (Paddle Price) | Discount | 최종가 (고객 결제) |
+|------|--------------------|---------|--------------------|
+| 1개월 | $10 | — | $10 |
+| 3개월 | $30 | $5 off | $25 |
+| 6개월 | $60 | $10 off | $50 |
+| 12개월 | $120 | $20 off | $100 |
+| E-book | $10 | — | $10 |
 
 #### 결제수단 / 세금 참고
 

@@ -929,7 +929,10 @@
       "buy": "Purchase",
       "loginRequired": "Login to Purchase",
       "success": "Purchase completed.",
-      "error": "An error occurred during purchase."
+      "error": "An error occurred during purchase.",
+      "paddleUnavailable": "Card payment is unavailable.",
+      "checkoutSuccess": "Payment completed.",
+      "cancelSuccess": "Order cancelled."
     },
     "status": {
       "pending": "Pending",
@@ -941,6 +944,9 @@
       "empty": "No purchased E-books.",
       "browseCatalog": "Browse E-books",
       "openViewer": "Open Viewer",
+      "payNow": "Pay Now",
+      "cancelOrder": "Cancel Order",
+      "processing": "Processing payment...",
       "loadError": "Failed to load purchases."
     },
     "viewer": {
@@ -1019,6 +1025,31 @@
     "textbookStatus": {
       "title": "Track Order - Amazing Korean",
       "description": "Track your textbook order status."
+    },
+    "book": {
+      "title": "Amazing Korean Basic {{language}} - Textbook Info",
+      "description": "Details and purchase information for Amazing Korean Basic {{language}} textbook.",
+      "notFoundTitle": "Textbook Not Found - Amazing Korean",
+      "notFoundDescription": "Invalid ISBN."
     }
+  },
+  "book": {
+    "editionStudent": "Student's Edition",
+    "editionTeacher": "Teacher's Edition",
+    "ctaPrimary": "Start Learning for Free",
+    "ctaBottomTitle": "Get Started Now",
+    "buyEbook": "Buy E-book",
+    "orderTextbook": "Order Textbook",
+    "signupFree": "Free Sign Up",
+    "myEbooks": "My E-books",
+    "benefitsTitle": "Online Learning with Your Textbook",
+    "benefitVideos": "Video Content",
+    "benefitQuizzes": "Practice Quizzes",
+    "benefitLanguages": "21 Languages",
+    "otherLanguages": "Other Language Editions",
+    "notFound": "Textbook not found",
+    "notFoundDesc": "Invalid ISBN. Please go to the homepage or check the textbook catalog.",
+    "goHome": "Go Home",
+    "viewCatalog": "View Catalog"
   }
 }

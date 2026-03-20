@@ -70,6 +70,10 @@ pub struct Config {
     pub paddle_price_month_3: Option<String>,        // Paddle Price ID: 3개월
     pub paddle_price_month_6: Option<String>,        // Paddle Price ID: 6개월
     pub paddle_price_month_12: Option<String>,       // Paddle Price ID: 12개월
+    pub paddle_ebook_price: Option<String>,          // Paddle Price ID: e-book 일회성 $10
+    pub paddle_discount_month_3: Option<String>,       // Paddle Discount ID: 3개월 $5 off
+    pub paddle_discount_month_6: Option<String>,       // Paddle Discount ID: 6개월 $10 off
+    pub paddle_discount_month_12: Option<String>,      // Paddle Discount ID: 12개월 $20 off
     // E-book Viewer
     pub ebook_page_images_dir: String,              // EBOOK_PAGE_IMAGES_DIR (페이지 이미지 루트)
     pub rate_limit_ebook_page_max: i64,             // RATE_LIMIT_EBOOK_PAGE_MAX (기본 30/분)
@@ -293,6 +297,18 @@ impl Config {
         let paddle_price_month_12 = env::var("PADDLE_PRICE_MONTH_12")
             .ok()
             .filter(|s| !s.is_empty());
+        let paddle_ebook_price = env::var("PADDLE_PRICE_EBOOK")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let paddle_discount_month_3 = env::var("PADDLE_DISCOUNT_MONTH_3")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let paddle_discount_month_6 = env::var("PADDLE_DISCOUNT_MONTH_6")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let paddle_discount_month_12 = env::var("PADDLE_DISCOUNT_MONTH_12")
+            .ok()
+            .filter(|s| !s.is_empty());
 
         // Payment provider 검증 (paddle 선택 시 필수 값 확인)
         if payment_provider == "paddle" {
@@ -470,6 +486,10 @@ impl Config {
             paddle_price_month_3,
             paddle_price_month_6,
             paddle_price_month_12,
+            paddle_ebook_price,
+            paddle_discount_month_3,
+            paddle_discount_month_6,
+            paddle_discount_month_12,
             ebook_page_images_dir,
             rate_limit_ebook_page_max,
             rate_limit_ebook_page_window_sec,
@@ -651,6 +671,10 @@ impl fmt::Debug for Config {
             .field("paddle_webhook_secret", &self.paddle_webhook_secret.as_ref().map(|_| "***"))
             .field("paddle_client_token", &self.paddle_client_token.as_ref().map(|_| "***"))
             .field("paddle_sandbox", &self.paddle_sandbox)
+            .field("paddle_ebook_price", &self.paddle_ebook_price)
+            .field("paddle_discount_month_3", &self.paddle_discount_month_3)
+            .field("paddle_discount_month_6", &self.paddle_discount_month_6)
+            .field("paddle_discount_month_12", &self.paddle_discount_month_12)
             .field("ebook_page_images_dir", &self.ebook_page_images_dir)
             .field("rate_limit_ebook_page_max", &self.rate_limit_ebook_page_max)
             .field("rate_limit_ebook_page_window_sec", &self.rate_limit_ebook_page_window_sec)

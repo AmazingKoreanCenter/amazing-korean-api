@@ -25,6 +25,7 @@ import { usePaymentPlans } from "../hook/use_payment_plans";
 import { useSubscription } from "../hook/use_subscription";
 import { usePaddle } from "../hook/use_paddle";
 import { useCancelSubscription } from "../hook/use_manage_subscription";
+import { useUserMe } from "@/category/user/hook/use_user_me";
 import type { PlanInfo } from "../types";
 
 const POPULAR_INTERVAL = "month_12";
@@ -37,10 +38,12 @@ export function PricingPage() {
 
   const { data: plansData, isLoading: plansLoading } = usePaymentPlans();
   const { data: subData, isLoading: subLoading } = useSubscription();
+  const { data: userMe } = useUserMe();
 
   const { openCheckout } = usePaddle({
     clientToken: plansData?.client_token ?? "",
     sandbox: plansData?.sandbox ?? true,
+    email: userMe?.email,
   });
 
   const cancelMutation = useCancelSubscription();
@@ -69,7 +72,10 @@ export function PricingPage() {
       toast.info(t("payment.alreadySubscribed"));
       return;
     }
-    openCheckout(plan.price_id, promoCode.trim() || undefined);
+    openCheckout(plan.price_id, {
+      discountId: plan.discount_id ?? undefined,
+      discountCode: promoCode.trim() || undefined,
+    });
   };
 
   const perMonth = (plan: PlanInfo) => {

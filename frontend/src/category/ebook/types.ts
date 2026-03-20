@@ -21,6 +21,7 @@ export const ebookEditionInfoSchema = z.object({
   edition: ebookEditionSchema,
   price: z.number(),
   currency: z.string(),
+  paddle_price_usd: z.number().nullable().optional(),
   total_pages: z.number(),
   available: z.boolean(),
 });
@@ -36,6 +37,9 @@ export type EbookCatalogItem = z.infer<typeof ebookCatalogItemSchema>;
 
 export const ebookCatalogResSchema = z.object({
   items: z.array(ebookCatalogItemSchema),
+  paddle_ebook_price_id: z.string().nullable().optional(),
+  client_token: z.string().nullable().optional(),
+  sandbox: z.boolean().optional(),
 });
 export type EbookCatalogRes = z.infer<typeof ebookCatalogResSchema>;
 

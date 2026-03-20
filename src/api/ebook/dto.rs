@@ -12,6 +12,7 @@ pub struct EbookEditionInfo {
     pub edition: EbookEdition,
     pub price: i32,
     pub currency: String,
+    pub paddle_price_usd: Option<i32>,
     pub total_pages: i32,
     pub available: bool,
 }
@@ -27,6 +28,9 @@ pub struct EbookCatalogItem {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct EbookCatalogRes {
     pub items: Vec<EbookCatalogItem>,
+    pub paddle_ebook_price_id: Option<String>,
+    pub client_token: Option<String>,
+    pub sandbox: bool,
 }
 
 // ─────────────────────── Purchase ───────────────────────

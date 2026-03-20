@@ -6,9 +6,18 @@ import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/sections/hero_section";
 import { SectionContainer } from "@/components/sections/section_container";
 import { PageMeta } from "@/components/page_meta";
+import { usePaddle } from "@/category/payment/hook/use_paddle";
+import { usePaymentPlans } from "@/category/payment/hook/use_payment_plans";
 
 export default function HomePage() {
   const { t } = useTranslation();
+  const { data: plans } = usePaymentPlans();
+
+  // Retain: 홈페이지에서 Paddle.js 초기화 (결제 실패 시 인앱 알림 표시용)
+  usePaddle({
+    clientToken: plans?.client_token ?? "",
+    sandbox: plans?.sandbox ?? false,
+  });
   return (
     <div className="flex flex-col">
       <PageMeta titleKey="seo.home.title" descriptionKey="seo.home.description" />

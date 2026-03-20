@@ -30,15 +30,17 @@ const LOCALE_MAP: Record<string, string> = {
 
 interface PageMetaProps {
   titleKey: string;
+  titleParams?: Record<string, string>;
   descriptionKey: string;
+  descriptionParams?: Record<string, string>;
 }
 
-export function PageMeta({ titleKey, descriptionKey }: PageMetaProps) {
+export function PageMeta({ titleKey, titleParams, descriptionKey, descriptionParams }: PageMetaProps) {
   const { t, i18n } = useTranslation();
   const { pathname } = useLocation();
 
-  const title = t(titleKey);
-  const description = t(descriptionKey);
+  const title = t(titleKey, titleParams);
+  const description = t(descriptionKey, descriptionParams);
   const url = `${BASE_URL}${pathname}`;
   const locale = LOCALE_MAP[i18n.language] || "ko_KR";
 

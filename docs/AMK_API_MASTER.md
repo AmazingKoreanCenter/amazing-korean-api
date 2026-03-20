@@ -401,11 +401,11 @@ PADDLE_API_KEY=apikey_xxx            # Paddle API Key
 PADDLE_CLIENT_TOKEN=test_xxx         # 프론트엔드 Paddle.js 초기화용
 PADDLE_SANDBOX=true                  # true(Sandbox) / false(Production)
 PADDLE_WEBHOOK_SECRET=pdl_xxx        # Webhook 서명 검증용 Secret Key
-PADDLE_PRODUCT_ID=pro_xxx            # 상품 ID
 PADDLE_PRICE_MONTH_1=pri_xxx         # 1개월 구독 Price ID ($10)
-PADDLE_PRICE_MONTH_3=pri_xxx         # 3개월 구독 Price ID ($25)
-PADDLE_PRICE_MONTH_6=pri_xxx         # 6개월 구독 Price ID ($50)
-PADDLE_PRICE_MONTH_12=pri_xxx        # 12개월 구독 Price ID ($100)
+PADDLE_PRICE_MONTH_3=pri_xxx         # 3개월 구독 Price ID ($30, 정가)
+PADDLE_PRICE_MONTH_6=pri_xxx         # 6개월 구독 Price ID ($60, 정가)
+PADDLE_PRICE_MONTH_12=pri_xxx        # 12개월 구독 Price ID ($120, 정가)
+PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
 ```
 
 **코드 구조**
