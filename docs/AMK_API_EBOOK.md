@@ -70,13 +70,20 @@ Phase 3 [데스크탑 앱] Tauri(Rust) + DevTools 차단 — 오프라인 지원
       "language_name_ko": "베트남어",
       "language_name_en": "Vietnamese",
       "editions": [
-        { "edition": "teacher", "price": 15000, "currency": "KRW", "total_pages": 124, "available": true },
-        { "edition": "student", "price": 12000, "currency": "KRW", "total_pages": 90, "available": true }
+        { "edition": "teacher", "price": 15000, "currency": "KRW", "paddle_price_usd": 1000, "total_pages": 124, "available": true },
+        { "edition": "student", "price": 12000, "currency": "KRW", "paddle_price_usd": 1000, "total_pages": 90, "available": true }
       ]
     }
-  ]
+  ],
+  "paddle_ebook_price_id": "pri_xxx",
+  "client_token": "live_xxx",
+  "sandbox": false
 }
 ```
+
+- `paddle_price_usd`: Paddle 결제 시 USD 가격 (cents, $10.00 = 1000). null이면 Paddle 미지원.
+- `paddle_ebook_price_id`, `client_token`: Paddle 결제 미설정 시 null.
+- `sandbox`: true이면 Paddle Sandbox 환경.
 
 #### 12.5-2 : `POST /ebook/purchase` (e-book 구매)
 
@@ -99,13 +106,13 @@ Phase 3 [데스크탑 앱] Tauri(Rust) + DevTools 차단 — 오프라인 지원
 **응답 (성공 200)**
 ```json
 {
-  "purchase_code": "VN-ST-20260310-CA-0001",
+  "purchase_code": "VN-TC-20260310-CA-0001",
   "status": "pending",
   "language": "vi",
   "edition": "teacher",
   "payment_method": "paddle",
-  "price": 15000,
-  "currency": "KRW",
+  "price": 1000,
+  "currency": "USD",
   "created_at": "2026-03-09T12:00:00Z"
 }
 ```
@@ -128,18 +135,26 @@ Phase 3 [데스크탑 앱] Tauri(Rust) + DevTools 차단 — 오프라인 지원
 {
   "items": [
     {
-      "purchase_code": "VN-ST-20260310-CA-0001",
+      "purchase_code": "VN-TC-20260310-CA-0001",
       "status": "completed",
       "language": "vi",
       "edition": "teacher",
       "payment_method": "paddle",
-      "price": 15000,
-      "currency": "KRW",
+      "price": 1000,
+      "currency": "USD",
       "created_at": "2026-03-09T12:00:00Z"
     }
   ]
 }
 ```
+
+#### 12.5-3.5 : `DELETE /ebook/purchase/{code}` (구매 취소)
+
+> pending 상태의 구매를 취소 (soft delete). 본인 소유만 가능.
+
+**인증**: AuthUser (JWT)
+
+**응답**: 204 No Content (성공) / 404 Not Found (없거나 pending 아님)
 
 #### 12.5-4 : `GET /ebook/viewer/{code}/meta` (뷰어 메타 정보)
 
@@ -221,6 +236,11 @@ X-Content-Type-Options: nosniff
 **Paddle 연동 (일회성 결제)**:
 - `transaction.completed` 웹훅에서 `custom_data.type == "ebook"` + `custom_data.purchase_code` 확인
 - `ebook_purchase.paddle_txn_id` 저장 + `status` → `completed` 업데이트
+- **환불**: `adjustment.created`/`adjustment.updated` 이벤트에서 `AdjustmentAction::Refund` + `AdjustmentStatus::Approved` 확인 → `paddle_txn_id`로 조회 → `status` → `refunded`
+- **가격 분기**: Paddle 결제 = $10 USD (1000 cents), 계좌이체 = ₩12,000~₩15,000 KRW (에디션별)
+- **프론트엔드**: 카탈로그에서 Paddle checkout overlay 호출 (`customData: { type: "ebook", purchase_code }`)
+- **Pending 재결제**: `/ebook/my`에서 pending+paddle 구매에 "결제하기" 버튼으로 checkout 재시도
+- **주문 취소**: `DELETE /ebook/purchase/{code}`로 pending 구매 soft delete
 
 **빌드 파이프라인 (페이지 이미지 생성)**:
 ```bash

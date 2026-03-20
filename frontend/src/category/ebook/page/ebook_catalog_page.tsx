@@ -24,6 +24,8 @@ import { useAuthStore } from "@/hooks/use_auth_store";
 
 import { useEbookCatalog } from "../hook/use_ebook_catalog";
 import { useCreateEbookPurchase } from "../hook/use_create_purchase";
+import { usePaddle } from "@/category/payment/hook/use_paddle";
+import { useUserMe } from "@/category/user/hook/use_user_me";
 import type { EbookEdition, EbookPaymentMethod } from "../types";
 
 export function EbookCatalogPage() {
@@ -32,10 +34,20 @@ export function EbookCatalogPage() {
   const { isLoggedIn } = useAuthStore();
   const { data, isLoading, isError } = useEbookCatalog();
   const purchaseMutation = useCreateEbookPurchase();
+  const { data: userMe } = useUserMe();
 
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
   const [selectedEdition, setSelectedEdition] = useState<EbookEdition>("teacher");
   const [paymentMethod, setPaymentMethod] = useState<EbookPaymentMethod>("bank_transfer");
+
+  const { openEbookCheckout } = usePaddle({
+    clientToken: data?.client_token ?? "",
+    sandbox: data?.sandbox ?? false,
+    email: userMe?.email,
+    onCheckoutComplete: () => {
+      navigate("/ebook/my");
+    },
+  });
 
   const handlePurchase = () => {
     if (!isLoggedIn) {
@@ -55,9 +67,18 @@ export function EbookCatalogPage() {
         payment_method: paymentMethod,
       },
       {
-        onSuccess: () => {
-          toast.success(t("ebook.purchase.success"));
-          navigate(`/ebook/my`);
+        onSuccess: (res) => {
+          if (paymentMethod === "paddle") {
+            const priceId = data?.paddle_ebook_price_id;
+            if (!priceId) {
+              toast.error(t("ebook.purchase.paddleUnavailable"));
+              return;
+            }
+            openEbookCheckout(priceId, res.purchase_code);
+          } else {
+            toast.success(t("ebook.purchase.success"));
+            navigate("/ebook/my");
+          }
         },
         onError: (error) => {
           toast.error(error.message || t("ebook.purchase.error"));
@@ -88,6 +109,15 @@ export function EbookCatalogPage() {
   }
 
   const items = data?.items ?? [];
+
+  // 결제 방법에 따라 가격 표시 분기
+  const formatPrice = (editionInfo: { price: number; currency: string; paddle_price_usd?: number | null }) => {
+    if (paymentMethod === "paddle" && editionInfo.paddle_price_usd) {
+      const usd = editionInfo.paddle_price_usd;
+      return `$${(usd / 100).toFixed(2)} USD`;
+    }
+    return `${editionInfo.price.toLocaleString()} ${editionInfo.currency}`;
+  };
 
   return (
     <div className="container mx-auto py-12 px-4 max-w-5xl">
@@ -156,10 +186,7 @@ export function EbookCatalogPage() {
               <CardContent>
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold">
-                    {editionInfo.price.toLocaleString()}
-                    <span className="text-sm text-muted-foreground ml-1">
-                      {editionInfo.currency}
-                    </span>
+                    {formatPrice(editionInfo)}
                   </span>
                   <span className="text-sm text-muted-foreground">
                     {editionInfo.total_pages}p

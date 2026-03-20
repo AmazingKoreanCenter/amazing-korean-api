@@ -268,6 +268,27 @@ impl PaymentRepo {
         Ok(id)
     }
 
+    /// provider_transaction_id로 트랜잭션 상태 업데이트 (환불 처리용)
+    pub async fn update_transaction_status_by_provider_id(
+        pool: &PgPool,
+        provider_transaction_id: &str,
+        status: TransactionStatus,
+    ) -> AppResult<bool> {
+        let result = sqlx::query(
+            r#"
+            UPDATE transactions
+            SET status = $1, updated_at = NOW()
+            WHERE provider_transaction_id = $2
+            "#,
+        )
+        .bind(status)
+        .bind(provider_transaction_id)
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected() > 0)
+    }
+
     // =========================================================================
     // Webhook Event Queries (멱등성)
     // =========================================================================

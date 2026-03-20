@@ -65,6 +65,18 @@ pub async fn get_my_purchases(
     Ok(Json(res))
 }
 
+/// DELETE /ebook/purchase/:code
+///
+/// 대기 중인 구매 취소 (soft delete). 로그인 + 본인 소유만 가능.
+pub async fn cancel_purchase(
+    State(st): State<AppState>,
+    AuthUser(claims): AuthUser,
+    Path(code): Path<String>,
+) -> AppResult<StatusCode> {
+    EbookService::cancel_pending_purchase(&st, claims.sub, &code).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 /// GET /ebook/viewer/:code/meta
 ///
 /// 뷰어 메타 정보 (TOC, 총 페이지 수). 로그인 + 소유 확인.

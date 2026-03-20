@@ -464,13 +464,13 @@ impl BillingInterval {
         }
     }
 
-    /// 센트 단위 가격 반환
+    /// 센트 단위 정가 반환 (Discount 적용 전)
     pub fn price_cents(&self) -> i32 {
         match self {
             Self::Month1 => 1000,   // $10.00
-            Self::Month3 => 2500,   // $25.00
-            Self::Month6 => 5000,   // $50.00
-            Self::Month12 => 10000, // $100.00
+            Self::Month3 => 3000,   // $30.00 (Discount $5 off → $25)
+            Self::Month6 => 6000,   // $60.00 (Discount $10 off → $50)
+            Self::Month12 => 12000, // $120.00 (Discount $20 off → $100)
         }
     }
 }

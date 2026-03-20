@@ -18,6 +18,7 @@ export const planInfoSchema = z.object({
   price_cents: z.number().int(),
   price_display: z.string(),
   price_id: z.string(),
+  discount_id: z.string().nullable().optional(),
   trial_days: z.number().int(),
   label: z.string(),
 });

@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
-use crate::types::{EbookEdition, EbookPurchaseStatus, TextbookLanguage};
+use crate::types::{EbookEdition, EbookPaymentMethod, EbookPurchaseStatus, TextbookLanguage};
 
 use super::dto::{
     CreatePurchaseReq, EbookCatalogItem, EbookCatalogRes, EbookEditionInfo, MyPurchasesRes,
@@ -11,9 +11,11 @@ use super::dto::{
 use super::repo;
 use super::watermark;
 
-/// E-book 가격 (KRW)
-const TEACHER_PRICE: i32 = 15_000;
-const STUDENT_PRICE: i32 = 12_000;
+/// E-book 가격 (KRW, 계좌이체용)
+const TEACHER_PRICE_KRW: i32 = 15_000;
+const STUDENT_PRICE_KRW: i32 = 12_000;
+/// E-book 가격 (USD cents, Paddle용 — $10.00)
+const EBOOK_PRICE_USD_CENTS: i32 = 10_00;
 
 pub struct EbookService;
 
@@ -62,14 +64,15 @@ impl EbookService {
                 };
 
                 let price = match edition {
-                    EbookEdition::Teacher => TEACHER_PRICE,
-                    EbookEdition::Student => STUDENT_PRICE,
+                    EbookEdition::Teacher => TEACHER_PRICE_KRW,
+                    EbookEdition::Student => STUDENT_PRICE_KRW,
                 };
 
                 editions.push(EbookEditionInfo {
                     edition,
                     price,
                     currency: "KRW".to_string(),
+                    paddle_price_usd: Some(EBOOK_PRICE_USD_CENTS),
                     total_pages,
                     available,
                 });
@@ -83,7 +86,23 @@ impl EbookService {
             });
         }
 
-        Ok(EbookCatalogRes { items })
+        let (paddle_ebook_price_id, client_token, sandbox) =
+            if let Some(ref payment) = st.payment {
+                (
+                    st.cfg.paddle_ebook_price.clone(),
+                    Some(payment.client_token().to_string()),
+                    payment.is_sandbox(),
+                )
+            } else {
+                (None, None, false)
+            };
+
+        Ok(EbookCatalogRes {
+            items,
+            paddle_ebook_price_id,
+            client_token,
+            sandbox,
+        })
     }
 
     // ─────────────────────── Purchase ───────────────────────
@@ -105,9 +124,12 @@ impl EbookService {
             return Err(AppError::Conflict(msg.into()));
         }
 
-        let price = match req.edition {
-            EbookEdition::Teacher => TEACHER_PRICE,
-            EbookEdition::Student => STUDENT_PRICE,
+        let (price, currency) = match req.payment_method {
+            EbookPaymentMethod::Paddle => (EBOOK_PRICE_USD_CENTS, "USD"),
+            EbookPaymentMethod::BankTransfer => match req.edition {
+                EbookEdition::Teacher => (TEACHER_PRICE_KRW, "KRW"),
+                EbookEdition::Student => (STUDENT_PRICE_KRW, "KRW"),
+            },
         };
 
         // 트랜잭션으로 주문코드 생성 + INSERT
@@ -123,7 +145,7 @@ impl EbookService {
             req.edition,
             req.payment_method,
             price,
-            "KRW",
+            currency,
         )
         .await?;
 
@@ -161,6 +183,20 @@ impl EbookService {
             .collect();
 
         Ok(MyPurchasesRes { items })
+    }
+
+    // ─────────────────────── Cancel Pending ───────────────────────
+
+    pub async fn cancel_pending_purchase(
+        st: &AppState,
+        user_id: i64,
+        purchase_code: &str,
+    ) -> AppResult<()> {
+        let deleted = repo::cancel_pending_purchase(&st.db, user_id, purchase_code).await?;
+        if !deleted {
+            return Err(AppError::NotFound);
+        }
+        Ok(())
     }
 
     // ─────────────────────── Viewer Meta ───────────────────────

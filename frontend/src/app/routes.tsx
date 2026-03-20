@@ -73,6 +73,9 @@ import { AdminTextbookOrdersPage } from "@/category/admin/textbook/page/admin_te
 import { AdminTextbookOrderDetail } from "@/category/admin/textbook/page/admin_textbook_order_detail";
 import { AdminTextbookOrderPrint } from "@/category/admin/textbook/page/admin_textbook_order_print";
 
+// Book landing page
+import { BookLandingPage } from "@/category/book/page/book_landing_page";
+
 // E-book pages
 import { EbookCatalogPage } from "@/category/ebook/page/ebook_catalog_page";
 import { EbookViewerPage } from "@/category/ebook/page/ebook_viewer_page";
@@ -111,6 +114,7 @@ export function AppRoutes() {
         <Route path="/textbook" element={<TextbookOrderPage />} />
         <Route path="/textbook/order/:code" element={<TextbookOrderStatusPage />} />
         <Route path="/ebook" element={<EbookCatalogPage />} />
+        <Route path="/book/:isbn" element={<BookLandingPage />} />
 
         {/* 법적/정책 페이지 (Public) */}
         <Route path="/terms" element={<TermsPage />} />

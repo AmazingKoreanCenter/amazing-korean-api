@@ -20,6 +20,9 @@ pub struct PlanInfo {
     pub price_display: String,
     /// Paddle Price ID (프론트엔드에서 checkout 시 사용)
     pub price_id: String,
+    /// Paddle Discount ID (프론트엔드에서 checkout 시 자동 적용, 없으면 null)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discount_id: Option<String>,
     /// 무료 체험 일수
     pub trial_days: i32,
     /// 레이블 (Monthly, Quarterly, Semi-Annual, Annual)

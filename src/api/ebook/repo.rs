@@ -241,6 +241,45 @@ pub async fn complete_with_paddle_txn(
     Ok(row.as_ref().map(map_purchase_row))
 }
 
+/// Paddle 환불 시: paddle_txn_id로 조회 → 상태 refunded 처리
+pub async fn refund_by_paddle_txn(
+    db: &PgPool,
+    paddle_txn_id: &str,
+) -> AppResult<Option<EbookPurchaseRow>> {
+    let sql = format!(
+        "UPDATE ebook_purchase
+         SET status = 'refunded', refunded_at = NOW(), updated_at = NOW()
+         WHERE paddle_txn_id = $1 AND status = 'completed' AND is_deleted = false
+         RETURNING {PURCHASE_COLUMNS}"
+    );
+
+    let row = sqlx::query(&sql)
+        .bind(paddle_txn_id)
+        .fetch_optional(db)
+        .await?;
+
+    Ok(row.as_ref().map(map_purchase_row))
+}
+
+/// pending 구매 취소 (soft delete)
+pub async fn cancel_pending_purchase(
+    db: &PgPool,
+    user_id: i64,
+    purchase_code: &str,
+) -> AppResult<bool> {
+    let result = sqlx::query(
+        "UPDATE ebook_purchase
+         SET is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+         WHERE purchase_code = $1 AND user_id = $2 AND status = 'pending' AND is_deleted = false"
+    )
+    .bind(purchase_code)
+    .bind(user_id)
+    .execute(db)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
+}
+
 // ─────────────────────── Access Log ───────────────────────
 
 pub async fn insert_access_log(

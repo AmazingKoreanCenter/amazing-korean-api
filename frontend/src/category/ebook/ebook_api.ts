@@ -17,6 +17,9 @@ export const createEbookPurchase = (data: CreatePurchaseReq) =>
 export const getMyPurchases = () =>
   request<MyPurchasesRes>("/ebook/my");
 
+export const cancelEbookPurchase = (code: string) =>
+  request<void>(`/ebook/purchase/${code}`, { method: "DELETE" });
+
 export const getViewerMeta = (code: string) =>
   request<ViewerMetaRes>(`/ebook/viewer/${code}/meta`);
 

@@ -11,6 +11,42 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-20 — QR 교재 랜딩 페이지 (`/book/:isbn`)**
+  - **라우트**: `/book/:isbn` — 교재 속표지 QR 코드 스캔 → 서비스 연결 랜딩 페이지
+  - **데이터**: `book_data.ts` — 10개 언어 × 2종(학생/교사) ISBN 20개 하드코딩, `findBookByISBN()`, `formatISBN()`
+  - **UI 구조**: 3섹션 (Hero+CTA, 서비스안내+다른언어 pill, 하단CTA), 인증 상태별 CTA 분기
+  - **SEO**: PageMeta `titleParams`/`descriptionParams` 동적 보간 확장 (하위 호환)
+  - **i18n**: `changeLanguage(book.i18nCode)` 자동 전환, Filipino(`tl`) → `en` fallback, `zh_cn` → `zh-CN` 매핑
+  - **국기 SVG**: `frontend/public/flags/` 10개 복사 (amazing-korean-books 소스)
+  - **i18n 키**: `ko.json`/`en.json`에 `seo.book` + `book` 네임스페이스 18개 키 추가
+
+- **2026-03-18 — Paddle Live 전환 + E-book Paddle Checkout 연동**
+  - **환불 웹훅**: `adjustment.created`/`adjustment.updated` 이벤트 핸들러 추가 (e-book + 구독 transaction 환불 처리)
+  - **E-book 가격 분기**: Paddle = $10 USD, 계좌이체 = ₩12,000~₩15,000 KRW (에디션별)
+  - **Catalog API 확장**: `paddle_ebook_price_id`, `client_token`, `sandbox`, `paddle_price_usd` 필드 추가
+  - **구매 취소 API**: `DELETE /ebook/purchase/{code}` (pending soft delete)
+  - **프론트 Paddle Checkout**: 카탈로그에서 Paddle overlay 호출, `/ebook/my`에서 pending 재결제/취소 버튼
+  - **Config**: `PADDLE_PRICE_EBOOK` 환경변수 추가 (`config.rs` + `docker-compose.prod.yml`)
+  - **use_paddle 훅 확장**: `openEbookCheckout()`, `onCheckoutComplete` 콜백
+  - **자동 refetch**: pending+paddle 구매 시 5초 interval로 상태 자동 갱신
+  - **pwCustomer (Go-Live)**: `Paddle.Initialize()`에 `pwCustomer: { email }` 전달 + `Paddle.Update()` 후속 업데이트 — Retain 동작 조건
+  - **Deploy 가이드 확장**: Dashboard 전체 설정 목록 추가 (Balance Currency, Payout, Sales Tax, Default Payment Link, Payment Methods, Retain, Discount)
+  - **Retain 홈페이지**: `home_page.tsx`에서 Paddle.js 초기화 (결제 실패 시 인앱 알림 표시용)
+  - **이메일 인프라**: Cloudflare Email Routing (`support@amazingkorean.net` → Gmail), SPF 레코드 병합
+  - **환경변수 정리**: `PADDLE_PRODUCT_ID` 전체 제거 (코드 미사용), `PADDLE_EBOOK_PRICE` → `PADDLE_PRICE_EBOOK` 통일
+  - **가격 정가 전환**: 3개월 $25→$30, 6개월 $50→$60, 12개월 $100→$120 (Paddle Discount로 할인 적용)
+  - **Paddle Discount 연동**: `config.rs`에 `PADDLE_DISCOUNT_MONTH_3/6/12` 추가, Plans API에 `discount_id` 포함, `openCheckout()`에서 `discountId` 자동 적용 (체크아웃에서 ~~$120~~ $100 표시)
+
+- **2026-03-18 — Gemini 코드 리뷰 반영 (PR #133~#138)**
+  - **코드**: `auth/service.rs` Redis DEL if/else 분기 → 단일 경로 간결화
+  - **SEO**: `index.html` social crawler fallback meta 태그 추가 (title, description, canonical, og:*, twitter:*)
+  - **문서 오류 수정**:
+    - `AMK_API_EBOOK.md`: Cache-Control `no-store` → `private, max-age=300` (코드와 일치), purchase_code 포맷 수정, 워터마크 "비가시적" → "다층 (1 가시 + 3 비가시)"
+    - `AMK_API_AUTH.md`: 시나리오 범위 `5.3-6` → `5.3-13`
+    - `AMK_API_FUTURE.md`: 깨진 TOC 앵커 수정
+    - `AMK_API_LEARNING.md`: phase 번호 `4-2/4-3/4-4` → `5-3/5-4/5-5`
+  - **스킵 (근거 포함)**: IIFE 리팩터링 (과도한 추상화), react-helmet-async (React 19 네이티브), canonical URL 환경 분기 (SEO 정석 위반), Cargo.lock 중복 (transitive dependency 정상)
+
 - **2026-03-09 — E-book 웹 뷰어 시스템 (Phase 12.5) ✅**
   - **핵심 설계**: 회원 전용 (로그인 필수), 웹 전용 (다운로드 없음), 3중 보안 아키텍처
   - **DB 마이그레이션** (`20260310_ebook.sql`):

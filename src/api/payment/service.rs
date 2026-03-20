@@ -35,6 +35,13 @@ impl PaymentService {
                 BillingInterval::Month12 => st.cfg.paddle_price_month_12.clone(),
             };
 
+            let discount_id = match interval {
+                BillingInterval::Month3 => st.cfg.paddle_discount_month_3.clone(),
+                BillingInterval::Month6 => st.cfg.paddle_discount_month_6.clone(),
+                BillingInterval::Month12 => st.cfg.paddle_discount_month_12.clone(),
+                _ => None,
+            };
+
             if let Some(price_id) = price_id {
                 let cents = interval.price_cents();
                 plans.push(PlanInfo {
@@ -43,6 +50,7 @@ impl PaymentService {
                     price_cents: cents,
                     price_display: format!("${}.{:02}", cents / 100, cents % 100),
                     price_id,
+                    discount_id,
                     trial_days: 1,
                     label: label.to_string(),
                 });
@@ -182,6 +190,11 @@ impl PaymentService {
             // --- Transaction 이벤트 ---
             EventData::TransactionCompleted(txn) => {
                 Self::handle_transaction_completed(st, txn).await?;
+            }
+
+            // --- Adjustment 이벤트 (환불/크레딧) ---
+            EventData::AdjustmentCreated(adj) | EventData::AdjustmentUpdated(adj) => {
+                Self::handle_adjustment(st, adj).await?;
             }
 
             // 기타 이벤트는 무시
@@ -571,6 +584,57 @@ impl PaymentService {
         Ok(())
     }
     // =========================================================================
+    // Adjustment (환불/크레딧) 핸들러
+    // =========================================================================
+
+    /// adjustment.created / adjustment.updated — 환불 처리
+    async fn handle_adjustment(
+        st: &AppState,
+        adj: &paddle_rust_sdk::entities::Adjustment,
+    ) -> AppResult<()> {
+        use paddle_rust_sdk::enums::{AdjustmentAction, AdjustmentStatus};
+
+        // 환불(Refund) + 승인(Approved) 상태만 처리
+        if adj.action != AdjustmentAction::Refund {
+            tracing::debug!(adj_id = %adj.id, action = ?adj.action, "Non-refund adjustment, skipping");
+            return Ok(());
+        }
+        if adj.status != AdjustmentStatus::Approved {
+            tracing::debug!(adj_id = %adj.id, status = ?adj.status, "Refund not yet approved, skipping");
+            return Ok(());
+        }
+
+        let txn_id = adj.transaction_id.to_string();
+        tracing::info!(adj_id = %adj.id, txn_id = %txn_id, "Processing approved refund");
+
+        // e-book 구매 환불 처리
+        let refunded = crate::api::ebook::repo::refund_by_paddle_txn(&st.db, &txn_id).await?;
+        if let Some(row) = refunded {
+            tracing::info!(
+                user_id = row.user_id,
+                purchase_code = %row.purchase_code,
+                "E-book purchase refunded via Paddle adjustment"
+            );
+            return Ok(());
+        }
+
+        // 구독 transaction 환불 처리
+        let updated = PaymentRepo::update_transaction_status_by_provider_id(
+            &st.db,
+            &txn_id,
+            TransactionStatus::Refunded,
+        )
+        .await?;
+        if updated {
+            tracing::info!(txn_id = %txn_id, "Subscription transaction marked as refunded");
+        } else {
+            tracing::warn!(txn_id = %txn_id, "No matching transaction found for refund");
+        }
+
+        Ok(())
+    }
+
+    // =========================================================================
     // E-book 일회성 결제 핸들러
     // =========================================================================
 
@@ -672,6 +736,8 @@ fn event_data_type_name(data: &EventData) -> String {
         EventData::TransactionPaid(_) => "transaction.paid",
         EventData::TransactionUpdated(_) => "transaction.updated",
         EventData::TransactionCanceled(_) => "transaction.canceled",
+        EventData::AdjustmentCreated(_) => "adjustment.created",
+        EventData::AdjustmentUpdated(_) => "adjustment.updated",
         _ => "unknown",
     }
     .to_string()
