@@ -31,7 +31,7 @@ INSERT INTO _sqlx_migrations (version, description, installed_on, success, check
 (20260226,       'textbook',                           now(), true, decode('fc242d0362ccf8166e965fdf4aa98b547a49f9814226197b9e901beb5faa54fb98cf2c30ae64ddd2d82e241c2cfdbdfe', 'hex'), 0),
 (20260303,       'textbook improvements',              now(), true, decode('14f0fed7cc3bd81b5df29071db22d414e367173bfa0b1920c5f8867de5b9e6a48b0bb7198b1af353431a5191bec5d457', 'hex'), 0),
 (20260310,       'add tl language',                    now(), true, decode('b4e794a8ae1010c0e2f3989362f67f5809f9bc74a4ec8742185fe078ca17899d7400e09fe71ceea2741e9b9bd82b3c06', 'hex'), 0),
-(20260310000001, 'ebook',                              now(), true, decode('c8cb44b455fb03113a903233ab2db942eb292df332d4d8fdeebcbddfca41ef7a5ef4bedc6a21649fd42e28042d9eeeb5', 'hex'), 0),
+(20260311,       'ebook',                              now(), true, decode('c8cb44b455fb03113a903233ab2db942eb292df332d4d8fdeebcbddfca41ef7a5ef4bedc6a21649fd42e28042d9eeeb5', 'hex'), 0),
 (20260312,       'ebook purchase code expand',         now(), true, decode('f0f0185d7762a70b8662ee8294645d5868afde0894ef74fb95603a1a5a947951990d6820b6ad81a214d97e5f875317f4', 'hex'), 0),
 (20260323,       'textbook tax fields',                now(), true, decode('813865f0f515ed94ec8b5e991633e25fb0f5d721370f9d10441084f9d2e0f66b279977dc91163cb4ab46eb0f0122a6ba', 'hex'), 0)
 ON CONFLICT (version) DO NOTHING;
