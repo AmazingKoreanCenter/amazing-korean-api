@@ -305,54 +305,71 @@ nano nginx/nginx.conf
 docker compose -f docker-compose.prod.yml restart nginx
 ```
 
-##### 4. 데이터베이스 마이그레이션
+##### 4. 데이터베이스 마이그레이션 (자동)
 
-```bash
-# 방법 A: 통합 마이그레이션 (클린 배포 — DB 볼륨 삭제 후)
-# DB만 먼저 시작
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d db
-sleep 5
+앱 부팅 시 `sqlx::migrate!()` 가 `migrations/` 폴더의 SQL 파일을 자동 실행합니다.
+수동 SSH 접속 불필요 — 코드 배포 = 마이그레이션 자동 적용.
 
-# 스키마 마이그레이션
-docker exec -i amk-pg psql -U postgres -d amazing_korean_db < migrations/20260208_AMK_V1.sql
+**동작 원리:**
 
-# 시드 데이터 투입 (콘텐츠 테이블)
-docker exec -i amk-pg psql -U postgres -d amazing_korean_db < migrations/20260208_AMK_V1_SEED.sql
+- `_sqlx_migrations` 테이블에 적용 이력 자동 기록 (version + SHA-384 checksum)
+- 이미 적용된 마이그레이션은 건너뜀
+- 각 마이그레이션은 개별 트랜잭션 내 실행 (실패 시 롤백)
+- `pg_advisory_lock()` 으로 동시 실행 방지
+- `main.rs` 에서 DB pool 생성 직후, 서버 시작 전에 실행
 
-# 방법 B: SQLx CLI (점진적 마이그레이션)
-cargo install sqlx-cli --no-default-features --features postgres
-DATABASE_URL=postgres://postgres:your-password@localhost:5432/amazing_korean_db \
-  sqlx migrate run
+**파일 네이밍 규칙:**
+
+```
+migrations/YYYYMMDDHHMMSS_description.sql
 ```
 
-##### 4-1. 점진적 마이그레이션 (기존 DB에 컬럼 추가)
+- 첫 `_` 앞 숫자가 version (BIGINT PK) — **반드시 유니크**
+- description은 자유 (밑줄 → 공백으로 변환되어 `_sqlx_migrations.description`에 저장)
+- 한 번 적용된 파일의 내용을 수정하면 checksum 불일치로 서버 부팅 실패
+
+**신규 마이그레이션 추가 방법:**
 
 ```bash
-# MFA 컬럼 추가 (2026-02-14)
-# 주의: 앱 배포 전에 먼저 실행해야 함 (새 앱이 MFA 컬럼을 참조하므로)
-# 기존 데이터에 영향 없음 (NULL 허용 또는 DEFAULT false)
-docker exec -i amk-pg psql -U postgres -d amazing_korean_db <<'EOF'
-ALTER TABLE users ADD COLUMN user_mfa_secret TEXT;
-ALTER TABLE users ADD COLUMN user_mfa_enabled BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE users ADD COLUMN user_mfa_backup_codes TEXT;
-ALTER TABLE users ADD COLUMN user_mfa_enabled_at TIMESTAMPTZ;
-EOF
+# 1. 마이그레이션 파일 작성
+touch migrations/20260324120000_add_new_feature.sql
+# SQL 작성...
 
-# 확인
-docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "\d users" | grep mfa
+# 2. 로컬 DB에서 테스트
+cargo run  # → "Database migrations applied" 로그 확인
+
+# 3. SQLx 오프라인 캐시 갱신 (Docker 빌드용)
+cargo sqlx prepare
+git add .sqlx
+
+# 4. 커밋 & 푸시 → 배포 시 자동 적용
 ```
 
-> **순서 중요**: 마이그레이션 먼저 → main 머지(CI/CD 배포). 반대 순서로 하면 새 앱이 존재하지 않는 컬럼을 참조하여 에러 발생.
+##### 4-1. 기존 프로덕션 전환 (1회성)
+
+기존에 수동으로 적용된 마이그레이션을 `_sqlx_migrations` 테이블에 등록해야 합니다.
+이 작업은 자동 마이그레이션 전환 시 **1회만** 실행합니다.
 
 ```bash
-# 결제 시스템 테이블 추가 (2026-02-15)
-# 새 ENUM 4개 + 새 테이블 3개 (subscriptions, transactions, webhook_events)
-# 기존 테이블에 영향 없음 (새 테이블만 추가)
-docker exec -i amk-pg psql -U postgres -d amazing_korean_db < migrations/20260215_payment_system.sql
+# EC2 SSH 접속 후
+cd amazing-korean-api
+git pull origin KKRYOUN
 
-# 확인
-docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "\dt" | grep -E "subscriptions|transactions|webhook_events"
+# 부트스트랩 스크립트 실행 (기존 13개 마이그레이션 이력 등록)
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db < scripts/bootstrap_sqlx_migrations.sql
+
+# 확인: 13개 행이 모두 등록되었는지 확인
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db \
+  -c "SELECT version, description, success FROM _sqlx_migrations ORDER BY version;"
+
+# 앱 재빌드 & 시작
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+
+# 로그 확인: "Database migrations applied" 메시지 확인
+docker logs amk-api --tail 30
 ```
+
+> **주의**: 부트스트랩 없이 앱을 시작하면 sqlx가 모든 마이그레이션을 처음부터 실행하려 하여, 이미 존재하는 테이블/컬럼 에러로 서버 부팅 실패.
 
 ##### 4-2. 클린 배포 절차 (DB 초기화)
 
@@ -361,22 +378,18 @@ docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "\dt" | grep -E "
 docker compose -f docker-compose.prod.yml down
 docker volume rm amazing-korean-api_postgres_data
 
-# 2) DB만 시작
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d db
-sleep 5
-
-# 3) 최신 마이그레이션 가져오기
+# 2) 최신 코드 가져오기
 git pull origin KKRYOUN
 
-# 4) 스키마 + 시드 실행
-docker exec -i amk-pg psql -U postgres -d amazing_korean_db < migrations/20260208_AMK_V1.sql
-docker exec -i amk-pg psql -U postgres -d amazing_korean_db < migrations/20260208_AMK_V1_SEED.sql
+# 3) 전체 시작 (DB 생성 → 앱 부팅 시 마이그레이션 자동 실행)
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
-# 5) .env.prod 확인 후 전체 시작
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+# 4) 시드 데이터 투입 (콘텐츠 테이블 — 수동)
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db < seeds/20260208_AMK_V1_SEED.sql
 ```
 
 > **주의**: `docker volume rm`은 PostgreSQL 전체 데이터를 삭제합니다 (users, video, study, lesson 등 모든 테이블).
+> 시드 파일은 `seeds/` 폴더에 있으며, 자동 실행되지 않습니다 (수동 투입 필요).
 
 ##### 5. 배포 후 확인
 
@@ -390,7 +403,11 @@ docker ps
 
 # API 로그 확인
 docker logs amk-api --tail 30
-# → "Server listening on http://0.0.0.0:3000" 확인
+# → "Database migrations applied" + "Server listening on http://0.0.0.0:3000" 확인
+
+# 마이그레이션 적용 상태 확인
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db \
+  -c "SELECT version, description, success FROM _sqlx_migrations ORDER BY version;"
 
 # DB 시드 데이터 확인
 docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "SELECT count(*) FROM video;"
@@ -405,13 +422,14 @@ docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "SELECT user_emai
 
 | 파일 | 설명 |
 |------|------|
-| `Dockerfile` | Rust 백엔드 멀티스테이지 빌드 (rust:1.85, 멀티바이너리: api + rekey_encryption) |
+| `Dockerfile` | Rust 백엔드 멀티스테이지 빌드 (rust:1.88, 멀티바이너리: api + rekey_encryption) |
 | `docker-compose.prod.yml` | 프로덕션 구성 (API + DB + Redis + Nginx + Certbot) |
 | `nginx/nginx.conf` | 리버스 프록시 (`api.amazingkorean.net` → api:3000), SSL은 Cloudflare Flexible |
 | `.sqlx/` | SQLx 오프라인 캐시 (Docker 빌드 시 필수) |
 | `.env.prod` | 프로덕션 환경 변수 (Git에 포함하지 않음) — 전체 변수 목록은 위 "환경 변수" 섹션 참조 |
-| `migrations/20260208_AMK_V1.sql` | 통합 스키마 마이그레이션 (22 ENUMs, 35 Tables) |
-| `migrations/20260208_AMK_V1_SEED.sql` | 시드 데이터 (콘텐츠 10개 테이블, ~200행) |
+| `migrations/` | SQLx 자동 마이그레이션 폴더 — 앱 부팅 시 자동 실행 |
+| `seeds/20260208_AMK_V1_SEED.sql` | 시드 데이터 (콘텐츠 10개 테이블, ~200행) — 클린 배포 시 수동 투입 |
+| `scripts/bootstrap_sqlx_migrations.sql` | 1회성 전환 스크립트 (기존 프로덕션 → sqlx 자동 마이그레이션) |
 
 ##### 7. 유용한 명령어
 
@@ -449,6 +467,9 @@ docker stats
 | `pull access denied for amazing-korean-api` | `.env.prod`의 `DOCKER_IMAGE` 값 누락/오타 | `DOCKER_IMAGE=amazingkorean/amazing-korean-api` (org/repo 형식) |
 | `400: redirect_uri_mismatch` (Google OAuth) | redirect URI 불일치 | `.env.prod` GOOGLE_REDIRECT_URI + Google Cloud Console 승인 URI 모두 `https://api.amazingkorean.net/auth/google/callback`으로 설정 |
 | INSERT 시 컬럼 순서 에러 | 통합 마이그레이션과 pg_dump 컬럼 순서 불일치 | INSERT문에 명시적 컬럼명 추가 (`INSERT INTO table (col1, col2, ...) VALUES (...)`) |
+| `migration X was previously applied but has been modified` | 적용 후 마이그레이션 파일 내용 변경 (checksum 불일치) | 파일을 원래 내용으로 복원. 스키마 변경이 필요하면 새 마이그레이션 파일 추가 |
+| `migration X was previously applied but is missing` | 적용 후 마이그레이션 파일 삭제 | 삭제된 파일 복원, 또는 `_sqlx_migrations` 테이블에서 해당 행 삭제 |
+| 앱 시작 시 `relation already exists` | `_sqlx_migrations` 테이블 없이 앱 시작 (기존 프로덕션) | `scripts/bootstrap_sqlx_migrations.sql` 먼저 실행 |
 
 ##### 8-1. 환경변수 변경 시 docker-compose.prod.yml 동시 수정 필수
 

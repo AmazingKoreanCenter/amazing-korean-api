@@ -37,6 +37,31 @@ export const fetchPageImage = async (
   return res.data as ArrayBuffer;
 };
 
+export const sendViewerHeartbeat = (sessionId: string) =>
+  request<{ valid: boolean }>("/ebook/viewer/heartbeat", {
+    method: "POST",
+    data: { session_id: sessionId },
+  });
+
+/**
+ * 타일 이미지를 ArrayBuffer로 가져옴 (타일 분할 모드)
+ */
+export const fetchPageTile = async (
+  code: string,
+  page: number,
+  row: number,
+  col: number
+): Promise<ArrayBuffer> => {
+  const res = await api.get(
+    `/ebook/viewer/${code}/pages/${page}/tiles/${row}/${col}`,
+    {
+      responseType: "arraybuffer",
+      headers: { "X-Ebook-Viewer": "1" },
+    }
+  );
+  return res.data as ArrayBuffer;
+};
+
 // ─────────────────────── Admin ───────────────────────
 
 import type { AdminEbookListRes, EbookPurchaseStatus } from "./types";

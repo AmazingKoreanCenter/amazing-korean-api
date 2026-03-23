@@ -395,6 +395,20 @@
     "backToLesson": "Quay lại bài học",
     "backToLessonShort": "Bài học"
   },
+  "comingSoon": {
+    "badge": "Coming Soon",
+    "title": "Chúng tôi đang chuẩn bị nội dung tuyệt vời",
+    "description": "Chúng tôi đang xây dựng nội dung chất lượng\ncho trải nghiệm học tiếng Hàn tốt hơn.",
+    "videoTitle": "Học qua Video",
+    "videoDescription": "Nắm bắt nhịp điệu và ngữ điệu tiếng Hàn tự nhiên\nqua các video đa dạng từ người bản xứ.",
+    "studyTitle": "Luyện mẫu câu",
+    "studyDescription": "Luyện tập nhiều cách diễn đạt từ một câu\nqua bài trắc nghiệm và tự luận.",
+    "lessonTitle": "Chương trình học",
+    "lessonDescription": "Nâng cao kỹ năng với chương trình học có hệ thống\nkết hợp video và bài tập.",
+    "notifyHint": "Đăng ký tài khoản để nhận thông báo khi ra mắt.",
+    "exploreEbook": "Xem giáo trình E-book",
+    "exploreTextbook": "Đặt mua giáo trình in"
+  },
   "error": {
     "errorPageTitle": "Đã xảy ra sự cố",
     "errorPageDescription": "Máy chủ gặp sự cố tạm thời.\nVui lòng thử lại sau.",

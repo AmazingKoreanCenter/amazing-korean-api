@@ -13,20 +13,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuthStore } from "@/hooks/use_auth_store";
 
 import { useEbookCatalog } from "../hook/use_ebook_catalog";
 import { useCreateEbookPurchase } from "../hook/use_create_purchase";
-import { usePaddle } from "@/category/payment/hook/use_paddle";
-import { useUserMe } from "@/category/user/hook/use_user_me";
-import type { EbookEdition, EbookPaymentMethod } from "../types";
+import type { EbookEdition } from "../types";
 
 export function EbookCatalogPage() {
   const { t } = useTranslation();
@@ -34,20 +25,9 @@ export function EbookCatalogPage() {
   const { isLoggedIn } = useAuthStore();
   const { data, isLoading, isError } = useEbookCatalog();
   const purchaseMutation = useCreateEbookPurchase();
-  const { data: userMe } = useUserMe();
 
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
   const [selectedEdition, setSelectedEdition] = useState<EbookEdition>("teacher");
-  const [paymentMethod, setPaymentMethod] = useState<EbookPaymentMethod>("bank_transfer");
-
-  const { openEbookCheckout } = usePaddle({
-    clientToken: data?.client_token ?? "",
-    sandbox: data?.sandbox ?? false,
-    email: userMe?.email,
-    onCheckoutComplete: () => {
-      navigate("/ebook/my");
-    },
-  });
 
   const handlePurchase = () => {
     if (!isLoggedIn) {
@@ -64,21 +44,12 @@ export function EbookCatalogPage() {
       {
         language: selectedLang,
         edition: selectedEdition,
-        payment_method: paymentMethod,
+        payment_method: "bank_transfer",
       },
       {
-        onSuccess: (res) => {
-          if (paymentMethod === "paddle") {
-            const priceId = data?.paddle_ebook_price_id;
-            if (!priceId) {
-              toast.error(t("ebook.purchase.paddleUnavailable"));
-              return;
-            }
-            openEbookCheckout(priceId, res.purchase_code);
-          } else {
-            toast.success(t("ebook.purchase.success"));
-            navigate("/ebook/my");
-          }
+        onSuccess: () => {
+          toast.success(t("ebook.purchase.success"));
+          navigate("/ebook/my");
         },
         onError: (error) => {
           toast.error(error.message || t("ebook.purchase.error"));
@@ -110,12 +81,7 @@ export function EbookCatalogPage() {
 
   const items = data?.items ?? [];
 
-  // 결제 방법에 따라 가격 표시 분기
-  const formatPrice = (editionInfo: { price: number; currency: string; paddle_price_usd?: number | null }) => {
-    if (paymentMethod === "paddle" && editionInfo.paddle_price_usd) {
-      const usd = editionInfo.paddle_price_usd;
-      return `$${(usd / 100).toFixed(2)} USD`;
-    }
+  const formatPrice = (editionInfo: { price: number; currency: string }) => {
     return `${editionInfo.price.toLocaleString()} ${editionInfo.currency}`;
   };
 
@@ -205,28 +171,6 @@ export function EbookCatalogPage() {
             <CardTitle className="text-lg">{t("ebook.purchase.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">
-                {t("ebook.purchase.paymentMethod")}
-              </label>
-              <Select
-                value={paymentMethod}
-                onValueChange={(v) => setPaymentMethod(v as EbookPaymentMethod)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bank_transfer">
-                    {t("ebook.purchase.bankTransfer")}
-                  </SelectItem>
-                  <SelectItem value="paddle">
-                    {t("ebook.purchase.creditCard")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             <Button
               className="w-full"
               onClick={handlePurchase}

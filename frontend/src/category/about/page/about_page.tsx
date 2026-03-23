@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Target, Heart, Globe, ArrowRight, Sparkles } from "lucide-react";
+import { Layers, Languages, GraduationCap, ArrowRight, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/sections/hero_section";
@@ -55,24 +55,24 @@ export function AboutPage() {
 
             <div className="relative">
               <div className="bg-gradient-to-br from-secondary to-accent rounded-3xl p-10 text-white">
-                <div className="text-6xl font-bold mb-2">2024</div>
-                <div className="text-white/80 text-lg mb-8">{t("about.serviceStartYear")}</div>
+                <div className="text-6xl font-bold mb-2">{t("about.statHeaderValue")}</div>
+                <div className="text-white/80 text-lg mb-8">{t("about.statHeaderLabel")}</div>
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <div className="text-3xl font-bold">10,000+</div>
-                    <div className="text-white/70">{t("about.statStudents")}</div>
+                    <div className="text-3xl font-bold">{t("about.stat1Value")}</div>
+                    <div className="text-white/70">{t("about.stat1Label")}</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold">50+</div>
-                    <div className="text-white/70">{t("about.statInstructors")}</div>
+                    <div className="text-3xl font-bold">{t("about.stat2Value")}</div>
+                    <div className="text-white/70">{t("about.stat2Label")}</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold">1,000+</div>
-                    <div className="text-white/70">{t("about.statContents")}</div>
+                    <div className="text-3xl font-bold">{t("about.stat3Value")}</div>
+                    <div className="text-white/70">{t("about.stat3Label")}</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold">30+</div>
-                    <div className="text-white/70">{t("about.statCountries")}</div>
+                    <div className="text-3xl font-bold">{t("about.stat4Value")}</div>
+                    <div className="text-white/70">{t("about.stat4Label")}</div>
                   </div>
                 </div>
               </div>
@@ -90,9 +90,9 @@ export function AboutPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-card rounded-2xl p-8 shadow-card text-center">
+            <div className="bg-card rounded-2xl p-8 shadow-card text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
               <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
-                <Target className="h-8 w-8 text-white" />
+                <Layers className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold mb-3">{t("about.valueEffective")}</h3>
               <p className="text-muted-foreground leading-relaxed">
@@ -100,9 +100,9 @@ export function AboutPage() {
               </p>
             </div>
 
-            <div className="bg-card rounded-2xl p-8 shadow-card text-center">
+            <div className="bg-card rounded-2xl p-8 shadow-card text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
               <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
-                <Heart className="h-8 w-8 text-white" />
+                <Languages className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold mb-3">{t("about.valueLearner")}</h3>
               <p className="text-muted-foreground leading-relaxed">
@@ -110,9 +110,9 @@ export function AboutPage() {
               </p>
             </div>
 
-            <div className="bg-card rounded-2xl p-8 shadow-card text-center">
+            <div className="bg-card rounded-2xl p-8 shadow-card text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
               <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
-                <Globe className="h-8 w-8 text-white" />
+                <GraduationCap className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-xl font-semibold mb-3">{t("about.valueGlobal")}</h3>
               <p className="text-muted-foreground leading-relaxed">

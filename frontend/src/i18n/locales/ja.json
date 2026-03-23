@@ -395,6 +395,20 @@
     "backToLesson": "レッスンに戻る",
     "backToLessonShort": "レッスンへ"
   },
+  "comingSoon": {
+    "badge": "Coming Soon",
+    "title": "素晴らしいコンテンツを準備中です",
+    "description": "より良い韓国語学習体験のために\n質の高いコンテンツを制作しています。",
+    "videoTitle": "動画学習",
+    "videoDescription": "ネイティブスピーカーの多彩な動画で\n自然な韓国語のリズムとイントネーションを身につけましょう。",
+    "studyTitle": "パターン練習",
+    "studyDescription": "選択式・記述式クイズで\n一つの文章からさまざまな表現を練習しましょう。",
+    "lessonTitle": "レッスンカリキュラム",
+    "lessonDescription": "動画と学習問題を組み合わせた\n体系的なカリキュラムで実力を伸ばしましょう。",
+    "notifyHint": "オープン時の通知を受け取るには、会員登録してお待ちください。",
+    "exploreEbook": "E-bookテキストを見る",
+    "exploreTextbook": "印刷テキストを注文"
+  },
   "error": {
     "errorPageTitle": "問題が発生しました",
     "errorPageDescription": "サーバーに一時的な問題が発生しました。\nしばらくしてからもう一度お試しください。",

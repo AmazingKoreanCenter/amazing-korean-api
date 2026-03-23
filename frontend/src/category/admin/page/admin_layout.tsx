@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { Users, Video, BookOpen, GraduationCap, LayoutDashboard, Mail, Languages, CreditCard } from "lucide-react";
+import { Users, Video, BookOpen, GraduationCap, LayoutDashboard, Mail, Languages, CreditCard, BookText, Tablet } from "lucide-react";
 
 import { ThemeToggle } from "@/components/ui/theme_toggle";
 
@@ -10,6 +10,8 @@ const navItems = [
   { path: "/admin/studies", label: "Studies", icon: BookOpen },
   { path: "/admin/lessons", label: "Lessons", icon: GraduationCap },
   { path: "/admin/payment/subscriptions", label: "Payments", icon: CreditCard, prefix: "/admin/payment" },
+  { path: "/admin/textbook/orders", label: "Textbook", icon: BookText, prefix: "/admin/textbook" },
+  { path: "/admin/ebook/purchases", label: "E-book", icon: Tablet, prefix: "/admin/ebook" },
   { path: "/admin/translations", label: "Translations", icon: Languages },
   { path: "/admin/email", label: "Email", icon: Mail },
 ];

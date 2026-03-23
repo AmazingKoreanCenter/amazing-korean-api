@@ -395,6 +395,20 @@
     "backToLesson": "Kembali ke Pelajaran",
     "backToLessonShort": "Ke Pelajaran"
   },
+  "comingSoon": {
+    "badge": "Coming Soon",
+    "title": "Kami Sedang Menyiapkan Sesuatu yang Hebat",
+    "description": "Kami sedang membuat konten berkualitas\nuntuk pengalaman belajar bahasa Korea yang lebih baik.",
+    "videoTitle": "Belajar lewat Video",
+    "videoDescription": "Pelajari ritme dan intonasi bahasa Korea secara alami\nmelalui berbagai video dari penutur asli.",
+    "studyTitle": "Latihan Pola Kalimat",
+    "studyDescription": "Latih berbagai ekspresi dari satu kalimat\ndengan kuis pilihan ganda dan isian.",
+    "lessonTitle": "Kurikulum Pelajaran",
+    "lessonDescription": "Tingkatkan kemampuan Anda dengan kurikulum terstruktur\nyang menggabungkan video dan latihan soal.",
+    "notifyHint": "Daftar akun untuk mendapat notifikasi saat diluncurkan.",
+    "exploreEbook": "Lihat Buku Teks E-book",
+    "exploreTextbook": "Pesan Buku Teks Cetak"
+  },
   "error": {
     "errorPageTitle": "Terjadi kesalahan",
     "errorPageDescription": "Terjadi kesalahan server sementara.\nSilakan coba lagi nanti.",

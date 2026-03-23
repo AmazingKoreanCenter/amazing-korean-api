@@ -1,6 +1,6 @@
 # AMK_API_EBOOK — E-book 웹 뷰어 API 스펙
 
-> 회원 전용 E-book 웹 뷰어 시스템 (3중 보안 + 워터마크).
+> 회원 전용 E-book 웹 뷰어 시스템 (7중 보안 + 워터마크).
 > 공통 규칙(인증, 에러, 페이징): [AMK_API_MASTER.md §3](./AMK_API_MASTER.md)
 > DB 스키마: [AMK_SCHEMA_PATCHED.md](./AMK_SCHEMA_PATCHED.md)
 > 코드 패턴: [AMK_CODE_PATTERNS.md](./AMK_CODE_PATTERNS.md)
@@ -21,7 +21,7 @@
 | 교사용 | 교사가 학생을 가르칠 때 사용 | **자체 사이트만** (인쇄물 + e-book) |
 | 해설용 | 학생이 혼자 공부 | 자체 사이트 + 외부 플랫폼 (Amazon/Apple/Google/Kobo/교보/Yes24) |
 
-**3중 보안 아키텍처**:
+**7중 보안 아키텍처**:
 ```
 Layer 1: 구조적 보안
   • 회원 전용 — AuthUser JWT 필수 (비회원 구매 불가)
@@ -30,15 +30,48 @@ Layer 1: 구조적 보안
   • user_id로 구매 소유 확인 (타인 구매 접근 차단)
 
 Layer 2: 포렌식 워터마크 (실시간 동적)
-  • 가시적: 사용자 이메일 대각선 반투명 오버레이
-  • 비가시적: LSB 스테가노그래피 (purchase_code 인코딩)
-  • 매 요청마다 고유 watermark_id 생성 → 감사 로그 연동
+  • 풋터 워터마크: purchase_code + page_num
+  • 마이크로 도트: user_id 64비트 near-white 도트 인코딩
+  • LSB 스테가노그래피: purchase_code + watermark_id SHA-256
+  • 감사 로그: ebook_access_log 테이블 (watermark_id, IP, UA)
 
 Layer 3: 플랫폼 보안
   • 브라우저: 우클릭/선택/인쇄/드래그 차단
-  • Cache-Control: private, max-age=300 (인증된 사용자만 캐시, 5분 TTL)
+  • Cache-Control: private, max-age=300 (5분 TTL)
   • blob:// URL 사용 (네트워크 탭에 이미지 URL 미노출)
   • 레이트 리밋: 30페이지/분/user (벌크 크롤링 차단)
+
+Layer 4: Canvas 추출 API 무력화 (프론트)
+  • toDataURL, toBlob, getImageData → 1x1 투명 반환
+  • captureStream → 빈 MediaStream
+  • OffscreenCanvas, createImageBitmap(canvas) 차단
+  • 뷰어 mount 시 프로토타입 오버라이드, unmount 시 복원
+
+Layer 5: 포커스/가시성 감지 → 콘텐츠 블러 (프론트)
+  • visibilitychange (primary) + blur/focus (secondary)
+  • beforeprint/afterprint → Ctrl+P 시도 시 블러
+  • CSS filter: blur(30px), will-change: filter (GPU 가속)
+
+Layer 6: DOM 조작 감지 (프론트)
+  • MutationObserver: canvas 삭제, style 변경 감지
+  • getComputedStyle 주기 검사 (2초): CSS 규칙 추가 감지
+  • 탬퍼링 시 canvas 클리어 + 강제 퇴장
+
+Layer 7: 동시 세션 제한 (백엔드 + 프론트)
+  • Redis SET EX: user별 단일 세션 (Last Writer Wins)
+  • 90초 TTL / 30초 heartbeat (3:1 비율)
+  • 새 기기 접속 시 기존 세션 자동 만료
+  • Redis 장애 시 fail closed (접근 거부)
+```
+
+**타일 분할 전송** (기능 플래그: `EBOOK_TILE_MODE`):
+```
+• 3×3 그리드 (9 타일/페이지), 전체 이미지에 워터마크 적용 후 분할
+• 기능 플래그로 점진 롤아웃 (기본 false)
+• 전용 Rate Limit: 270/분/user (30페이지 × 9타일)
+• 프리페치 ±2 페이지 (HTTP/2 동시 100+ 스트림 내)
+• 나머지 픽셀: 마지막 행/열은 총크기-offset으로 계산
+• imageSmoothingEnabled=false (타일 경계 이음새 방지)
 ```
 
 **앱 확장 로드맵**:
@@ -172,9 +205,34 @@ Phase 3 [데스크탑 앱] Tauri(Rust) + DevTools 차단 — 오프라인 지원
   "toc": [
     { "title": "Part I. 발음", "page": 1 },
     { "title": "Part II. 어휘", "page": 25 }
-  ]
+  ],
+  "session_id": "uuid-v4",
+  "tile_mode": false,
+  "grid_rows": null,
+  "grid_cols": null
 }
 ```
+
+- `session_id`: Redis 동시 세션 관리용 UUID (뷰어 진입 시 발급, heartbeat에 사용)
+- `tile_mode`: true이면 타일 분할 전송 모드 (서버 `EBOOK_TILE_MODE` 설정)
+- `grid_rows`, `grid_cols`: 타일 그리드 크기 (tile_mode=true 시 값 존재)
+
+#### 12.5-4.5 : `POST /ebook/viewer/heartbeat` (뷰어 세션 heartbeat)
+
+> 뷰어 세션 유효성 확인 + TTL 갱신. 30초 간격 호출.
+
+**인증**: AuthUser (JWT)
+
+**요청**
+```json
+{ "session_id": "uuid-v4" }
+```
+
+**응답 (성공 200)**
+```json
+{ "valid": true }
+```
+- `valid: false` → 다른 기기가 세션 점유 or 세션 만료 → 프론트에서 `/ebook/my`로 이동
 
 #### 12.5-5 : `GET /ebook/viewer/{code}/pages/{page_num}` (페이지 이미지 조회)
 
@@ -202,6 +260,18 @@ X-Content-Type-Options: nosniff
 - 커버 페이지(1~4)에도 풋터 워터마크 적용됨 — 커버 디자인에 따라 시각 QA 필요
 - `Cache-Control: private, max-age=300` — 5분 내 동일 페이지 재방문 시 캐시 히트로 새 워터마크 미적용 (기존 watermark_id와 이미지 일치하므로 포렌식 추적 정상)
 - 감사 로그는 `tokio::spawn` fire-and-forget — DB 일시 장애 시 로그 유실 가능 (이미지 반환 우선)
+
+#### 12.5-5.5 : `GET /ebook/viewer/{code}/pages/{page_num}/tiles/{row}/{col}` (타일 이미지 조회)
+
+> 타일 분할 모드 시 개별 타일 이미지 반환. `EBOOK_TILE_MODE=true` 시 활성화.
+
+**인증**: AuthUser (JWT) + 구매 소유 확인 + completed 상태 + 세션 검증
+
+**Rate Limit**: 270타일/분/user_id (Redis INCR, 전용 키)
+
+**경로 파라미터**: `row` (0-based), `col` (0-based)
+
+**응답**: `image/webp` (워터마크 적용된 타일 이미지)
 
 #### 12.5-6 : `GET /admin/ebook/purchases` (관리자 구매 목록)
 
@@ -299,6 +369,12 @@ frontend/src/category/admin/ebook/page/
 | `RATE_LIMIT_EBOOK_PAGE_WINDOW_SEC` | 60 | 페이지 제한 윈도우 (초) |
 | `RATE_LIMIT_EBOOK_PURCHASE_MAX` | 5 | 구매 요청 제한 (회/윈도우) |
 | `RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC` | 3600 | 구매 제한 윈도우 (초) |
+| `EBOOK_SESSION_TTL_SEC` | 90 | 뷰어 세션 TTL (초, heartbeat 갱신) |
+| `EBOOK_TILE_MODE` | false | 타일 분할 전송 활성화 |
+| `EBOOK_TILE_GRID_ROWS` | 3 | 타일 그리드 행 수 |
+| `EBOOK_TILE_GRID_COLS` | 3 | 타일 그리드 열 수 |
+| `RATE_LIMIT_EBOOK_TILE_MAX` | 270 | 타일 요청 제한 (회/윈도우) |
+| `RATE_LIMIT_EBOOK_TILE_WINDOW_SEC` | 60 | 타일 제한 윈도우 (초) |
 
 **워터마크 폰트**:
 - `OnceLock<Option<FontArc>>` — `watermark.rs`에서 선언, `main.rs`에서 `init_font()` 호출
@@ -312,8 +388,13 @@ frontend/src/category/admin/ebook/page/
 - 모든 이미지 gitignored (`page-images/` 디렉토리)
 
 **추가 보안 (구현 완료)**:
-- Canvas 렌더링: `<img>` → `<canvas>` 전환, ArrayBuffer 캐시, blob URL 즉시 revoke (이미지 추출 난이도 상승)
-- Referer 체크: 이미지 URL 직접 접근 차단 (뷰어 페이지에서만 요청 가능)
+- Canvas 렌더링: `<img>` → `<canvas>` 전환, ArrayBuffer 캐시, blob URL 즉시 revoke
+- 커스텀 헤더 체크: `X-Ebook-Viewer: 1` (URL 직접 접근 차단)
+- Canvas 추출 API 무력화: toDataURL/toBlob/getImageData/captureStream/OffscreenCanvas/createImageBitmap 프로토타입 오버라이드
+- 포커스/가시성 감지: 탭 전환/인쇄 시 blur(30px) 즉시 적용
+- DOM 조작 감지: MutationObserver + getComputedStyle 주기 검사 (2초)
+- 동시 세션 제한: Redis 기반 user별 단일 세션, 90초 TTL, 30초 heartbeat
+- 타일 분할 전송: 3×3 그리드, 기능 플래그로 점진 롤아웃 (`EBOOK_TILE_MODE`)
 
 **주요 구현 노트**:
 - TOC 사이드바: state 기반 패널 (프로젝트 shadcn에 Sheet 없음)
@@ -326,7 +407,6 @@ frontend/src/category/admin/ebook/page/
 - TOC 한국어+영어 이중언어 표시 (`to_korean_title()` 매핑, `TocEntry.title_ko`)
 
 **향후 개선 (미구현, 계획만)**:
-- 단기 토큰(page-token) 방식: 뷰어 메타 요청 시 Redis TTL 토큰 발급 → 이미지 요청에 `X-Page-Token` 헤더 → 1회 사용 후 삭제 (Referer 체크보다 견고)
 - Service Worker 캐시, CDN (CloudFront + signed URL), 이미지 해상도 최적화 (2x→1.5x DPR)
 - 뷰어 테마 전환 (흰색/세피아/다크), 핀치 줌, Fit 모드 전환, 자동 스프레드
 

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { BookOpen, CreditCard, Eye, Loader2, X } from "lucide-react";
+import { BookOpen, Eye, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -15,11 +15,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useMyPurchases } from "../hook/use_my_purchases";
-import { useEbookCatalog } from "../hook/use_ebook_catalog";
 import { cancelEbookPurchase } from "../ebook_api";
-import { usePaddle } from "@/category/payment/hook/use_paddle";
-import { useUserMe } from "@/category/user/hook/use_user_me";
-import type { EbookPurchaseStatus, PurchaseRes } from "../types";
+import type { EbookPurchaseStatus } from "../types";
 
 const STATUS_BADGE: Record<
   EbookPurchaseStatus,
@@ -34,19 +31,8 @@ export function EbookMyPurchasesPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useMyPurchases();
-  const { data: catalog } = useEbookCatalog();
-  const { data: userMe } = useUserMe();
 
   const items = data?.items ?? [];
-
-  const { openEbookCheckout } = usePaddle({
-    clientToken: catalog?.client_token ?? "",
-    sandbox: catalog?.sandbox ?? false,
-    email: userMe?.email,
-    onCheckoutComplete: () => {
-      queryClient.invalidateQueries({ queryKey: ["ebook", "my-purchases"] });
-    },
-  });
 
   const cancelMutation = useMutation({
     mutationFn: cancelEbookPurchase,
@@ -58,15 +44,6 @@ export function EbookMyPurchasesPage() {
       toast.error(t("ebook.purchase.error"));
     },
   });
-
-  const handlePayNow = (purchase: PurchaseRes) => {
-    const priceId = catalog?.paddle_ebook_price_id;
-    if (!priceId) {
-      toast.error(t("ebook.purchase.paddleUnavailable"));
-      return;
-    }
-    openEbookCheckout(priceId, purchase.purchase_code);
-  };
 
   if (isLoading) {
     return (
@@ -109,8 +86,6 @@ export function EbookMyPurchasesPage() {
         <div className="space-y-4">
           {items.map((purchase) => {
             const statusInfo = STATUS_BADGE[purchase.status];
-            const isPendingPaddle =
-              purchase.status === "pending" && purchase.payment_method === "paddle";
 
             return (
               <Card key={purchase.purchase_code}>
@@ -144,32 +119,7 @@ export function EbookMyPurchasesPage() {
                           </Link>
                         </Button>
                       )}
-                      {isPendingPaddle && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => handlePayNow(purchase)}
-                          >
-                            <CreditCard className="w-4 h-4 mr-1" />
-                            {t("ebook.my.payNow")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => cancelMutation.mutate(purchase.purchase_code)}
-                            disabled={cancelMutation.isPending}
-                          >
-                            {cancelMutation.isPending ? (
-                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                            ) : (
-                              <X className="w-4 h-4 mr-1" />
-                            )}
-                            {t("ebook.my.cancelOrder")}
-                          </Button>
-                        </>
-                      )}
-                      {purchase.status === "pending" &&
-                        purchase.payment_method === "bank_transfer" && (
+                      {purchase.status === "pending" && (
                           <Button
                             size="sm"
                             variant="outline"

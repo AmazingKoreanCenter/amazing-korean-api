@@ -46,6 +46,10 @@ async fn main() -> anyhow::Result<()> {
             .connect_lazy(&database_url)?
     };
 
+    // 3.5) DB 마이그레이션 자동 실행
+    sqlx::migrate!().run(&pool).await?;
+    tracing::info!("📦 Database migrations applied");
+
     // 4) Redis 풀 생성
     let redis_cfg = deadpool_redis::Config::from_url(cfg.redis_url.clone());
     let redis: RedisPool = redis_cfg

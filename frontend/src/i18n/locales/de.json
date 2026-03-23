@@ -395,6 +395,20 @@
     "backToLesson": "Zurück zur Lektion",
     "backToLessonShort": "Zur Lektion"
   },
+  "comingSoon": {
+    "badge": "Coming Soon",
+    "title": "Wir bereiten etwas Großartiges vor",
+    "description": "Wir erstellen hochwertige Inhalte\nfür ein besseres Koreanisch-Lernerlebnis.",
+    "videoTitle": "Video-Lernen",
+    "videoDescription": "Erlernen Sie den natürlichen Rhythmus und die Intonation\ndurch vielfältige Videos von Muttersprachlern.",
+    "studyTitle": "Musterübungen",
+    "studyDescription": "Üben Sie verschiedene Ausdrücke aus einem Satz\nmit Multiple-Choice- und Schreibaufgaben.",
+    "lessonTitle": "Lektions-Lehrplan",
+    "lessonDescription": "Verbessern Sie Ihre Fähigkeiten mit einem strukturierten Lehrplan,\nder Videos und Übungsaufgaben kombiniert.",
+    "notifyHint": "Registrieren Sie sich, um bei der Veröffentlichung benachrichtigt zu werden.",
+    "exploreEbook": "E-book-Lehrbücher ansehen",
+    "exploreTextbook": "Gedruckte Lehrbücher bestellen"
+  },
   "error": {
     "errorPageTitle": "Etwas ist schiefgelaufen",
     "errorPageDescription": "Ein vorübergehender Serverfehler ist aufgetreten.\nBitte versuchen Sie es später erneut.",

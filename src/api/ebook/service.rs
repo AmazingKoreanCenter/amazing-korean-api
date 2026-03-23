@@ -1,12 +1,16 @@
 use std::path::Path;
 
+use image::GenericImageView;
+
+use redis::AsyncCommands;
+
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 use crate::types::{EbookEdition, EbookPaymentMethod, EbookPurchaseStatus, TextbookLanguage};
 
 use super::dto::{
-    CreatePurchaseReq, EbookCatalogItem, EbookCatalogRes, EbookEditionInfo, MyPurchasesRes,
-    PurchaseRes, TocEntry, ViewerMetaRes,
+    CreatePurchaseReq, EbookCatalogItem, EbookCatalogRes, EbookEditionInfo, HeartbeatRes,
+    MyPurchasesRes, PurchaseRes, TocEntry, ViewerMetaRes,
 };
 use super::repo;
 use super::watermark;
@@ -258,13 +262,99 @@ impl EbookService {
             })
             .unwrap_or_default();
 
+        let tile_mode = st.cfg.ebook_tile_enabled;
+        let (grid_rows, grid_cols) = if tile_mode {
+            (Some(st.cfg.ebook_tile_grid_rows), Some(st.cfg.ebook_tile_grid_cols))
+        } else {
+            (None, None)
+        };
+
         Ok(ViewerMetaRes {
             purchase_code: row.purchase_code,
             language: row.language,
             edition: row.edition,
             total_pages,
             toc,
+            session_id: String::new(), // handler에서 Redis 세션 등록 후 설정
+            tile_mode,
+            grid_rows,
+            grid_cols,
         })
+    }
+
+    // ─────────────────────── Session ───────────────────────
+
+    /// 뷰어 세션 등록 (Redis SET EX, 새 기기가 기존 세션 덮어쓰기 = Last Writer Wins)
+    pub async fn register_session(
+        st: &AppState,
+        user_id: i64,
+        purchase_code: &str,
+    ) -> AppResult<String> {
+        let session_id = uuid::Uuid::new_v4().to_string();
+        let session_key = format!("ebook_viewer:{}", user_id);
+        let session_data = serde_json::json!({
+            "session_id": &session_id,
+            "purchase_code": purchase_code,
+        });
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis::cmd("SET")
+            .arg(&session_key)
+            .arg(session_data.to_string())
+            .arg("EX")
+            .arg(st.cfg.ebook_session_ttl_sec)
+            .query_async(&mut redis_conn)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        Ok(session_id)
+    }
+
+    /// 뷰어 세션 heartbeat (세션 유효 시 TTL 갱신, 무효 시 valid=false)
+    pub async fn heartbeat(
+        st: &AppState,
+        user_id: i64,
+        session_id: &str,
+    ) -> AppResult<HeartbeatRes> {
+        let session_key = format!("ebook_viewer:{}", user_id);
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        let stored: Option<String> = redis_conn.get(&session_key).await?;
+        match stored {
+            Some(data) => {
+                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&data) {
+                    if parsed["session_id"].as_str() == Some(session_id) {
+                        let _: () = redis_conn
+                            .expire(&session_key, st.cfg.ebook_session_ttl_sec)
+                            .await?;
+                        return Ok(HeartbeatRes { valid: true });
+                    }
+                }
+                Ok(HeartbeatRes { valid: false })
+            }
+            None => Ok(HeartbeatRes { valid: false }),
+        }
+    }
+
+    /// 뷰어 세션 존재 확인 (페이지/타일 요청 시, Redis 장애 = fail closed)
+    pub async fn verify_session(st: &AppState, user_id: i64) -> AppResult<()> {
+        let session_key = format!("ebook_viewer:{}", user_id);
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let session_exists: Option<String> = redis_conn.get(&session_key).await?;
+        if session_exists.is_none() {
+            return Err(AppError::Forbidden("Viewer session expired".into()));
+        }
+        Ok(())
     }
 
     // ─────────────────────── Page Image ───────────────────────
@@ -353,6 +443,119 @@ impl EbookService {
         });
 
         Ok(watermarked)
+    }
+
+    // ─────────────────────── Page Tile ───────────────────────
+
+    /// 타일 분할 이미지 반환 (3×3 그리드 → 9개 타일)
+    pub async fn get_page_tile(
+        st: &AppState,
+        user_id: i64,
+        purchase_code: &str,
+        page_num: i32,
+        tile_row: u32,
+        tile_col: u32,
+        ip_address: Option<&str>,
+        user_agent: Option<&str>,
+    ) -> AppResult<Vec<u8>> {
+        let grid_rows = st.cfg.ebook_tile_grid_rows;
+        let grid_cols = st.cfg.ebook_tile_grid_cols;
+
+        // 타일 좌표 유효성 검증
+        if tile_row >= grid_rows || tile_col >= grid_cols {
+            return Err(AppError::BadRequest("Invalid tile coordinates".into()));
+        }
+
+        // 1. 구매 확인 + 소유 확인
+        let row = repo::find_by_code(&st.db, purchase_code)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        if row.user_id != user_id {
+            return Err(AppError::NotFound);
+        }
+
+        if row.status != EbookPurchaseStatus::Completed {
+            return Err(AppError::Forbidden(
+                "결제가 완료되지 않았습니다.".into(),
+            ));
+        }
+
+        if page_num < 1 {
+            return Err(AppError::BadRequest("Invalid page number".into()));
+        }
+
+        let edition_dir = match row.edition {
+            EbookEdition::Teacher => "teacher",
+            EbookEdition::Student => "student",
+        };
+        let lang_code = row.language.to_code();
+
+        // manifest 페이지 범위 검증
+        let manifest_path = Path::new(&st.cfg.ebook_page_images_dir)
+            .join(edition_dir)
+            .join(lang_code)
+            .join("manifest.json");
+        if let Ok(content) = tokio::fs::read_to_string(&manifest_path).await {
+            if let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&content) {
+                let total = manifest["total_pages"].as_i64().unwrap_or(0) as i32;
+                if total > 0 && page_num > total {
+                    return Err(AppError::BadRequest("Page number out of range".into()));
+                }
+            }
+        }
+
+        // 2. 이미지 로드
+        let image_path = Path::new(&st.cfg.ebook_page_images_dir)
+            .join(edition_dir)
+            .join(lang_code)
+            .join(format!("page-{:03}.webp", page_num));
+
+        let image_bytes = tokio::fs::read(&image_path).await.map_err(|_| {
+            AppError::NotFound
+        })?;
+
+        // 3. 워터마크 적용 (전체 이미지에 먼저 적용 후 분할)
+        let watermark_id = uuid::Uuid::new_v4().to_string();
+        let watermarked =
+            watermark::apply_watermark(&image_bytes, purchase_code, &watermark_id, user_id, page_num)?;
+
+        // 4. 워터마크된 이미지 → 타일 추출
+        let img = image::load_from_memory(&watermarked)
+            .map_err(|e| AppError::Internal(format!("Failed to decode image: {e}")))?;
+        let (w, h) = img.dimensions();
+        let tile_w = w / grid_cols;
+        let tile_h = h / grid_rows;
+        let x = tile_col * tile_w;
+        let y = tile_row * tile_h;
+        let actual_w = if tile_col == grid_cols - 1 { w - x } else { tile_w };
+        let actual_h = if tile_row == grid_rows - 1 { h - y } else { tile_h };
+        let tile = img.crop_imm(x, y, actual_w, actual_h);
+
+        // 5. WebP 인코딩 (quality 90+)
+        let mut buf = std::io::Cursor::new(Vec::new());
+        tile.write_to(&mut buf, image::ImageFormat::WebP)
+            .map_err(|e| AppError::Internal(format!("Failed to encode tile: {e}")))?;
+
+        // 6. 감사 로그 (비동기)
+        let db = st.db.clone();
+        let wm_id = watermark_id.clone();
+        let ip = ip_address.map(|s| s.to_string());
+        let ua = user_agent.map(|s| s.to_string());
+        tokio::spawn(async move {
+            let _ = repo::insert_access_log(
+                &db,
+                row.purchase_id,
+                user_id,
+                page_num,
+                &wm_id,
+                ip.as_deref(),
+                ua.as_deref(),
+            )
+            .await;
+        });
+
+        Ok(buf.into_inner())
     }
 }
 

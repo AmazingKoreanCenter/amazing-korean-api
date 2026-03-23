@@ -395,6 +395,20 @@
     "backToLesson": "返回課程",
     "backToLessonShort": "返回課程"
   },
+  "comingSoon": {
+    "badge": "Coming Soon",
+    "title": "我們正在準備優質內容",
+    "description": "為了更好的韓語學習體驗，\n我們正在精心製作優質內容。",
+    "videoTitle": "影片學習",
+    "videoDescription": "透過多樣化的母語者影片，\n掌握自然的韓語節奏和語調。",
+    "studyTitle": "句型練習",
+    "studyDescription": "透過選擇題和填空題，\n從一個句子練習多種表達方式。",
+    "lessonTitle": "課程體系",
+    "lessonDescription": "透過影片與練習題相結合的\n系統化課程提升您的實力。",
+    "notifyHint": "註冊帳號即可在上線時收到通知。",
+    "exploreEbook": "瀏覽電子教材",
+    "exploreTextbook": "訂購紙本教材"
+  },
   "error": {
     "errorPageTitle": "發生了問題",
     "errorPageDescription": "伺服器發生暫時性問題。\n請稍後再試。",

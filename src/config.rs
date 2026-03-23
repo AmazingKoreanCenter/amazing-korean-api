@@ -80,6 +80,12 @@ pub struct Config {
     pub rate_limit_ebook_page_window_sec: i64,      // RATE_LIMIT_EBOOK_PAGE_WINDOW_SEC (기본 60)
     pub rate_limit_ebook_purchase_max: i64,         // RATE_LIMIT_EBOOK_PURCHASE_MAX (기본 5/시간)
     pub rate_limit_ebook_purchase_window_sec: i64,  // RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC (기본 3600)
+    pub ebook_session_ttl_sec: i64,                // EBOOK_SESSION_TTL_SEC (기본 90, heartbeat 갱신)
+    pub ebook_tile_enabled: bool,                  // EBOOK_TILE_MODE (기본 false, 타일 분할 활성화)
+    pub ebook_tile_grid_rows: u32,                 // EBOOK_TILE_GRID_ROWS (기본 3)
+    pub ebook_tile_grid_cols: u32,                 // EBOOK_TILE_GRID_COLS (기본 3)
+    pub rate_limit_ebook_tile_max: i64,            // RATE_LIMIT_EBOOK_TILE_MAX (기본 270/분)
+    pub rate_limit_ebook_tile_window_sec: i64,     // RATE_LIMIT_EBOOK_TILE_WINDOW_SEC (기본 60)
     // Field Encryption (AES-256-GCM + HMAC-SHA256 Blind Index)
     pub app_env: String,                         // "production" | "development" (기본)
     pub encryption_ring: KeyRing,                // 다중 키 버전 (ENCRYPTION_KEY_V{n})
@@ -344,6 +350,30 @@ impl Config {
             .unwrap_or_else(|_| "3600".into())
             .parse::<i64>()
             .expect("RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC must be a number");
+        let ebook_session_ttl_sec = env::var("EBOOK_SESSION_TTL_SEC")
+            .unwrap_or_else(|_| "90".into())
+            .parse::<i64>()
+            .expect("EBOOK_SESSION_TTL_SEC must be a number");
+        let ebook_tile_enabled = env::var("EBOOK_TILE_MODE")
+            .unwrap_or_else(|_| "false".into())
+            .parse::<bool>()
+            .expect("EBOOK_TILE_MODE must be true or false");
+        let ebook_tile_grid_rows = env::var("EBOOK_TILE_GRID_ROWS")
+            .unwrap_or_else(|_| "3".into())
+            .parse::<u32>()
+            .expect("EBOOK_TILE_GRID_ROWS must be a number");
+        let ebook_tile_grid_cols = env::var("EBOOK_TILE_GRID_COLS")
+            .unwrap_or_else(|_| "3".into())
+            .parse::<u32>()
+            .expect("EBOOK_TILE_GRID_COLS must be a number");
+        let rate_limit_ebook_tile_max = env::var("RATE_LIMIT_EBOOK_TILE_MAX")
+            .unwrap_or_else(|_| "270".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_EBOOK_TILE_MAX must be a number");
+        let rate_limit_ebook_tile_window_sec = env::var("RATE_LIMIT_EBOOK_TILE_WINDOW_SEC")
+            .unwrap_or_else(|_| "60".into())
+            .parse::<i64>()
+            .expect("RATE_LIMIT_EBOOK_TILE_WINDOW_SEC must be a number");
 
         // Field Encryption (AES-256-GCM + HMAC-SHA256)
         let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".into());
@@ -495,6 +525,12 @@ impl Config {
             rate_limit_ebook_page_window_sec,
             rate_limit_ebook_purchase_max,
             rate_limit_ebook_purchase_window_sec,
+            ebook_session_ttl_sec,
+            ebook_tile_enabled,
+            ebook_tile_grid_rows,
+            ebook_tile_grid_cols,
+            rate_limit_ebook_tile_max,
+            rate_limit_ebook_tile_window_sec,
             app_env,
             encryption_ring,
             hmac_key,
@@ -680,6 +716,12 @@ impl fmt::Debug for Config {
             .field("rate_limit_ebook_page_window_sec", &self.rate_limit_ebook_page_window_sec)
             .field("rate_limit_ebook_purchase_max", &self.rate_limit_ebook_purchase_max)
             .field("rate_limit_ebook_purchase_window_sec", &self.rate_limit_ebook_purchase_window_sec)
+            .field("ebook_session_ttl_sec", &self.ebook_session_ttl_sec)
+            .field("ebook_tile_enabled", &self.ebook_tile_enabled)
+            .field("ebook_tile_grid_rows", &self.ebook_tile_grid_rows)
+            .field("ebook_tile_grid_cols", &self.ebook_tile_grid_cols)
+            .field("rate_limit_ebook_tile_max", &self.rate_limit_ebook_tile_max)
+            .field("rate_limit_ebook_tile_window_sec", &self.rate_limit_ebook_tile_window_sec)
             .field("app_env", &self.app_env)
             .field("encryption_ring", &self.encryption_ring)
             .field("hmac_key", &"***")

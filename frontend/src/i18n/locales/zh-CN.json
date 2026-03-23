@@ -395,6 +395,20 @@
     "backToLesson": "返回课程",
     "backToLessonShort": "返回课程"
   },
+  "comingSoon": {
+    "badge": "Coming Soon",
+    "title": "我们正在准备优质内容",
+    "description": "为了更好的韩语学习体验，\n我们正在精心制作优质内容。",
+    "videoTitle": "视频学习",
+    "videoDescription": "通过多样化的母语者视频，\n掌握自然的韩语节奏和语调。",
+    "studyTitle": "句型练习",
+    "studyDescription": "通过选择题和填空题，\n从一个句子练习多种表达方式。",
+    "lessonTitle": "课程体系",
+    "lessonDescription": "通过视频与练习题相结合的\n系统化课程提升您的实力。",
+    "notifyHint": "注册账号即可在上线时收到通知。",
+    "exploreEbook": "浏览电子教材",
+    "exploreTextbook": "订购纸质教材"
+  },
   "error": {
     "errorPageTitle": "出现了问题",
     "errorPageDescription": "服务器出现临时问题。\n请稍后再试。",

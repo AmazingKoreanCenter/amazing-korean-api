@@ -11,6 +11,59 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-23 — 구독 요금제 + E-book Paddle 결제 차단**
+  - **사유**: 콘텐츠 미준비 상태에서 결제 방지
+  - **구독 요금제**: `/pricing` → ComingSoonPage 교체, 헤더 "요금제" 메뉴 제거
+  - **E-book Paddle**: 카탈로그에서 Paddle 결제 옵션 제거 (계좌이체만 유지), 내 구매 목록에서 Paddle 재시도 버튼 숨김
+  - **홈페이지**: Paddle.js 초기화 + `/payment/plans` API 호출 제거 (불필요한 리소스 로딩 방지)
+  - **유지**: 백엔드 API, Admin 결제 관리, 교재 주문, E-book 계좌이체 — 모두 정상 유지
+  - **복원**: 콘텐츠 준비 완료 시 라우트/헤더/Paddle 코드 원복
+
+- **2026-03-23 — sqlx 자동 마이그레이션 전환**
+  - **기존**: EC2 SSH 접속 → `docker exec psql < migration.sql` 수동 실행
+  - **변경**: `sqlx::migrate!().run(&pool)` — 앱 부팅 시 자동 실행 (`main.rs`)
+  - **Cargo.toml**: sqlx features에 `"migrate"` 추가
+  - **파일 구조 변경**: SEED 파일 `seeds/`로 분리, version 충돌 파일 3개 리네이밍 (YYYYMMDDHHMMSS)
+  - **프로덕션 전환**: `scripts/bootstrap_sqlx_migrations.sql` 1회성 실행 (기존 13개 마이그레이션 이력 등록)
+  - **문서**: `AMK_DEPLOY_OPS.md` 섹션 4 전체 재작성
+
+- **2026-03-23 — 세금계산서 홈택스 필수 항목 추가**
+  - **추가 필드 5개**: `tax_company_name`(상호), `tax_rep_name`(대표자명), `tax_address`(사업장 주소), `tax_biz_type`(업태), `tax_biz_item`(종목)
+  - **홈택스 필수**: 상호 + 대표자명은 세금계산서 요청 시 필수 (DB CHECK 제약 + 백엔드 검증 + 프론트 * 표시)
+  - **홈택스 권장**: 사업장 주소, 업태, 종목은 선택 입력
+  - **영향 범위**: DB 마이그레이션, 백엔드 DTO/Repo/Service, 프론트 주문 폼, Admin 상세/인쇄, i18n (ko+en)
+
+- **2026-03-23 — 교재 카탈로그 리디자인 + 헤더 네비게이션**
+  - **카탈로그 페이지 신규** (`/textbook`): 표지 이미지 기반 상품 그리드 (학생용/교사용 섹션 분리), 44개 표지 이미지 (`amazing-korean-books` 에서 static 복사), 주문 안내 섹션 (최소수량/결제방법/배송 3카드)
+  - **주문 페이지 분리** (`/textbook/order`): 기존 `/textbook` → `/textbook/order`로 이동, 카탈로그에서 선택 시 URL 파라미터(`?lang=&type=`)로 자동 항목 추가, 주문 항목에 표지 썸네일 표시
+  - **헤더 네비게이션**: NAV_ITEMS에 "교재" 메뉴 추가 (`/textbook`)
+  - **i18n**: `textbook.catalog.*` 키 13개 추가 (ko + en), `nav.textbook` 키 추가
+
+- **2026-03-23 — Coming Soon 페이지 + 에러 페이지 개선**
+  - **ComingSoonPage 신규**: 영상/학습/레슨 라우트(`/videos`, `/studies`, `/lessons` + 하위)를 "콘텐츠 준비 중" 페이지로 대체. HeroSection + 3개 Feature 미리보기 카드(영상/패턴/수업) + E-book/교재 CTA. 콘텐츠 오픈 시 원래 컴포넌트로 복원 가능
+  - **에러 페이지 RootLayout 통합**: 404/403/Error 페이지를 RootLayout 내부로 이동 → Header/Footer 유지. Card 기반 → HeroSection 기반으로 UI 일관성 개선
+  - **i18n**: `comingSoon.*` 키 13개 추가 (ko + en)
+
+- **2026-03-23 — 홈/소개 페이지 문구 & UI 개선**
+  - **문구 전면 교체** (ko.json + en.json): 일반적 마케팅 문구 → 실제 차별점 기반 구체적 문구
+    - Hero: "효과적이고 즐거운 학습" → "500개 핵심 문장으로 30,000개 표현을 익히는 TOPIK 연계 체계적 커리큘럼"
+    - Trust Indicators: 플레이스홀더 숫자(1,000+/50+/10,000+) → 실제 차별점(20 지원 언어/500+ 핵심 문장/TOPIK 연계)
+    - Feature 3번: "1:1 수업" (미구현) → "교재로 정리하기" (실제 판매 중), 경로 `/lessons` → `/ebook/catalog`
+    - 소개 페이지: Mission "우리의 미션" → "왜 Amazing Korean인가", 통계 카드 전면 교체, Core Values 3가지 재정의
+  - **UI 개선**: Feature/Value 카드 `hover:border-accent/50` 추가, 링크 `text-accent font-medium` 가시성 향상, Trust Indicators `text-gradient` 적용
+  - **아이콘 교체**: Users→BookMarked (교재), Target→Layers (패턴), Heart→Languages (모국어), Globe→GraduationCap (TOPIK)
+  - **문서 검증**: 미구현 기능 5개(모국어 자막, 구간 반복, 음성 입력, 오답 복습, 발음 가이드)를 구현된 기능으로 수정
+
+- **2026-03-20 — E-book 뷰어 보안 강화 5단계**
+  - **Step 1: Canvas 추출 API 무력화** (프론트): `toDataURL`, `toBlob`, `getImageData`, `captureStream`, `OffscreenCanvas`, `createImageBitmap(canvas)` 프로토타입 오버라이드 (뷰어 mount 시 적용, unmount 시 복원)
+  - **Step 2: 포커스/가시성 감지** (프론트): `visibilitychange` (primary) + `blur`/`focus` (secondary) + `beforeprint`/`afterprint` → `filter: blur(30px)` + `will-change: filter` (GPU 가속)
+  - **Step 3: DOM 조작 감지** (프론트): `MutationObserver` (canvas 삭제, style 변경) + `getComputedStyle` 주기 검사 (2초, CSS 규칙 추가 감지) → 탬퍼링 시 canvas 클리어 + 강제 퇴장
+  - **Step 4: 동시 세션 제한** (백엔드+프론트): Redis `SET EX` user별 단일 세션 (Last Writer Wins), 90초 TTL / 30초 heartbeat (3:1 비율), `POST /ebook/viewer/heartbeat` 엔드포인트 추가, 새 기기 접속 시 기존 세션 자동 만료
+  - **Step 5: 타일 분할 전송** (백엔드+프론트): 3×3 그리드(9 타일/페이지), 기능 플래그 `EBOOK_TILE_MODE` (기본 false), 전체 이미지에 워터마크 적용 후 `crop_imm` 분할, 나머지 픽셀 자동 대응, 전용 Rate Limit 270/분, `TiledPageCanvas` 컴포넌트 + `usePageTiles` 훅 추가
+  - **환경변수 7개 추가**: `EBOOK_SESSION_TTL_SEC`, `EBOOK_TILE_MODE`, `EBOOK_TILE_GRID_ROWS/COLS`, `RATE_LIMIT_EBOOK_TILE_MAX/WINDOW_SEC`, `RATE_LIMIT_EBOOK_PAGE/PURCHASE` (docker-compose + .env.example)
+  - **엔드포인트 2개 추가**: `POST /ebook/viewer/heartbeat`, `GET /ebook/viewer/{code}/pages/{page_num}/tiles/{row}/{col}`
+  - **보안 아키텍처 3중 → 7중 강화**: 기존 (구조+워터마크+플랫폼) + Canvas 무력화 + 포커스 블러 + DOM 감지 + 세션 제한
+
 - **2026-03-20 — QR 교재 랜딩 페이지 (`/book/:isbn`)**
   - **라우트**: `/book/:isbn` — 교재 속표지 QR 코드 스캔 → 서비스 연결 랜딩 페이지
   - **데이터**: `book_data.ts` — 10개 언어 × 2종(학생/교사) ISBN 20개 하드코딩, `findBookByISBN()`, `formatISBN()`

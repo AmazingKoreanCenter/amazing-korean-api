@@ -13,7 +13,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+  InputOTPSeparator,
+} from "@/components/ui/input-otp";
 import { mfaSetup, mfaVerifySetup } from "@/category/auth/auth_api";
 import type { MfaSetupRes, MfaVerifySetupRes } from "@/category/auth/types";
 
@@ -184,22 +189,31 @@ export function AdminMfaSetupPage() {
             <CardDescription>{t("mfa.setupStep2Desc")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleVerify} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="totp-code" className="text-sm font-medium">
+            <form onSubmit={handleVerify} className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-sm font-medium">
                   {t("mfa.codeLabel")}
                 </label>
-                <Input
-                  id="totp-code"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder={t("mfa.codePlaceholder")}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                  maxLength={6}
-                  autoFocus
-                />
+                <div className="flex justify-center">
+                  <InputOTP
+                    maxLength={6}
+                    value={code}
+                    onChange={setCode}
+                    autoFocus
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                    </InputOTPGroup>
+                    <InputOTPSeparator />
+                    <InputOTPGroup>
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
               </div>
               <Button
                 type="submit"

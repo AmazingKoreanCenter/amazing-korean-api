@@ -185,8 +185,23 @@ export function AdminTextbookOrderPrint() {
               {t("admin.textbook.print.bizNumber")}: {order.tax_biz_number}
             </p>
             <p>
+              {t("admin.textbook.print.companyName")}: {order.tax_company_name ?? "-"}
+            </p>
+            <p>
+              {t("admin.textbook.print.repName")}: {order.tax_rep_name ?? "-"}
+            </p>
+            <p>
               {t("admin.textbook.print.taxEmail")}: {order.tax_email}
             </p>
+            {order.tax_address && (
+              <p>{t("admin.textbook.print.taxAddress")}: {order.tax_address}</p>
+            )}
+            {order.tax_biz_type && (
+              <p>{t("admin.textbook.print.taxBizType")}: {order.tax_biz_type}</p>
+            )}
+            {order.tax_biz_item && (
+              <p>{t("admin.textbook.print.taxBizItem")}: {order.tax_biz_item}</p>
+            )}
           </div>
         )}
 

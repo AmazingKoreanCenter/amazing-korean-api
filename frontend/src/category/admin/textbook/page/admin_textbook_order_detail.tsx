@@ -310,7 +310,12 @@ export function AdminTextbookOrderDetail() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <Row label={t("admin.textbook.bizNumber")} value={order.tax_biz_number ?? "-"} />
+              <Row label={t("admin.textbook.companyName")} value={order.tax_company_name ?? "-"} />
+              <Row label={t("admin.textbook.repName")} value={order.tax_rep_name ?? "-"} />
               <Row label={t("admin.textbook.taxEmail")} value={order.tax_email ?? "-"} />
+              {order.tax_address && <Row label={t("admin.textbook.taxAddress")} value={order.tax_address} />}
+              {order.tax_biz_type && <Row label={t("admin.textbook.taxBizType")} value={order.tax_biz_type} />}
+              {order.tax_biz_item && <Row label={t("admin.textbook.taxBizItem")} value={order.tax_biz_item} />}
             </CardContent>
           </Card>
         )}

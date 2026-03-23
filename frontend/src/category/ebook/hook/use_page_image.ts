@@ -1,7 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-import { fetchPageImage } from "../ebook_api";
+import { fetchPageImage, fetchPageTile } from "../ebook_api";
 
 /**
  * 페이지 이미지를 ArrayBuffer로 캐시.
@@ -47,4 +47,61 @@ export const usePageImage = (
   }, [code, page, totalPages, enabled, viewMode, queryClient]);
 
   return query;
+};
+
+/**
+ * 타일 분할 모드: 한 페이지의 모든 타일(gridRows × gridCols)을 병렬 fetch.
+ * 프리페치 범위: ±2 페이지 (타일 수가 많으므로 축소)
+ */
+export const usePageTiles = (
+  code: string,
+  page: number,
+  totalPages: number,
+  gridRows: number,
+  gridCols: number,
+  enabled = true,
+) => {
+  const queryClient = useQueryClient();
+
+  // 모든 타일 좌표 생성
+  const tileCoords: Array<{ row: number; col: number }> = [];
+  for (let r = 0; r < gridRows; r++) {
+    for (let c = 0; c < gridCols; c++) {
+      tileCoords.push({ row: r, col: c });
+    }
+  }
+
+  const results = useQueries({
+    queries: tileCoords.map(({ row, col }) => ({
+      queryKey: ["ebook", "tile", code, page, row, col],
+      queryFn: () => fetchPageTile(code, page, row, col),
+      enabled: enabled && !!code && page > 0,
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+    })),
+  });
+
+  // 인접 페이지 프리페치 (±2)
+  useEffect(() => {
+    if (!code || !enabled) return;
+
+    for (const offset of [1, -1, 2, -2]) {
+      const adjPage = page + offset;
+      if (adjPage > 0 && adjPage <= totalPages) {
+        for (const { row, col } of tileCoords) {
+          queryClient.prefetchQuery({
+            queryKey: ["ebook", "tile", code, adjPage, row, col],
+            queryFn: () => fetchPageTile(code, adjPage, row, col),
+            staleTime: 5 * 60 * 1000,
+          });
+        }
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, page, totalPages, enabled, gridRows, gridCols, queryClient]);
+
+  const isLoading = results.some((r) => r.isLoading);
+  const tiles = results.map((r) => r.data);
+
+  return { tiles, isLoading, tileCoords };
 };

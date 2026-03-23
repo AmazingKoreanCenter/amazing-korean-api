@@ -16,6 +16,12 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+  InputOTPSeparator,
+} from "@/components/ui/input-otp";
 import { PageMeta } from "@/components/page_meta";
 import {
   Form,
@@ -52,6 +58,7 @@ export function LoginPage() {
   // MFA 상태 통합 (이메일 로그인 or OAuth 로그인에서 발생)
   const activeMfaPending: MfaPending | null = loginMutation.mfaPending ?? oauthMfaPending;
   const [mfaCode, setMfaCode] = useState("");
+  const [useBackupCode, setUseBackupCode] = useState(false);
 
   // MFA 코드 검증 mutation
   const mfaLoginMutation = useMutation({
@@ -79,6 +86,7 @@ export function LoginPage() {
   const handleMfaBack = () => {
     loginMutation.clearMfaPending();
     setMfaCode("");
+    setUseBackupCode(false);
   };
 
   // 이미 로그인된 경우 홈으로 리다이렉트
@@ -180,24 +188,54 @@ export function LoginPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleMfaSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="mfa-code" className="text-sm font-medium">
+              <div className="space-y-3">
+                <label className="text-sm font-medium">
                   {t("auth.mfaCodeLabel")}
                 </label>
-                <Input
-                  id="mfa-code"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder={t("auth.mfaCodePlaceholder")}
-                  value={mfaCode}
-                  onChange={(e) => setMfaCode(e.target.value.replace(/\s/g, ""))}
-                  maxLength={8}
-                  autoFocus
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t("auth.mfaCodeHint")}
-                </p>
+                {useBackupCode ? (
+                  <Input
+                    type="text"
+                    autoComplete="one-time-code"
+                    placeholder={t("auth.mfaBackupPlaceholder")}
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value.replace(/\s/g, ""))}
+                    maxLength={8}
+                    autoFocus
+                  />
+                ) : (
+                  <div className="flex justify-center">
+                    <InputOTP
+                      maxLength={6}
+                      value={mfaCode}
+                      onChange={setMfaCode}
+                      autoFocus
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                      </InputOTPGroup>
+                      <InputOTPSeparator />
+                      <InputOTPGroup>
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => {
+                    setUseBackupCode(!useBackupCode);
+                    setMfaCode("");
+                  }}
+                >
+                  {useBackupCode
+                    ? t("auth.mfaUseAuthApp")
+                    : t("auth.mfaUseBackupCode")}
+                </button>
               </div>
               <Button
                 type="submit"
