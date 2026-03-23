@@ -617,6 +617,11 @@ CREATE TABLE textbook (
   depositor_name   VARCHAR(100),                                         -- 입금자명
   tax_invoice      BOOLEAN NOT NULL DEFAULT false,                       -- 세금계산서 요청
   tax_biz_number   VARCHAR(20),                                          -- 사업자등록번호
+  tax_company_name VARCHAR(200),                                         -- 상호
+  tax_rep_name     VARCHAR(100),                                         -- 대표자명
+  tax_address      TEXT,                                                 -- 사업장 주소
+  tax_biz_type     VARCHAR(100),                                         -- 업태
+  tax_biz_item     VARCHAR(100),                                         -- 종목
   tax_email        VARCHAR(255),                                         -- 세금계산서 이메일
   total_quantity   INT NOT NULL,                                         -- 총 수량
   total_amount     INT NOT NULL,                                         -- 총액 (KRW)
@@ -633,7 +638,9 @@ CREATE TABLE textbook (
   deleted_at       TIMESTAMPTZ,                                          -- 삭제 시각
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),                   -- 주문 생성 시간
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),                   -- 주문 수정 시간
-  CONSTRAINT chk_tax_biz_number CHECK (tax_invoice = false OR tax_biz_number IS NOT NULL)
+  CONSTRAINT chk_tax_biz_number CHECK (tax_invoice = false OR tax_biz_number IS NOT NULL),
+  CONSTRAINT chk_tax_company_name CHECK (tax_invoice = false OR tax_company_name IS NOT NULL),
+  CONSTRAINT chk_tax_rep_name CHECK (tax_invoice = false OR tax_rep_name IS NOT NULL)
 );
 
 -- 2.9.2 textbook_item : 교재 주문 항목 (1:N)

@@ -78,6 +78,16 @@ pub struct CreateOrderReq {
     pub tax_invoice: bool,
     #[validate(length(max = 20))]
     pub tax_biz_number: Option<String>,
+    #[validate(length(max = 200))]
+    pub tax_company_name: Option<String>,
+    #[validate(length(max = 100))]
+    pub tax_rep_name: Option<String>,
+    #[validate(length(max = 500))]
+    pub tax_address: Option<String>,
+    #[validate(length(max = 100))]
+    pub tax_biz_type: Option<String>,
+    #[validate(length(max = 100))]
+    pub tax_biz_item: Option<String>,
     #[validate(email, length(max = 255))]
     pub tax_email: Option<String>,
 
@@ -127,6 +137,11 @@ pub struct OrderRes {
     /// 세금계산서
     pub tax_invoice: bool,
     pub tax_biz_number: Option<String>,
+    pub tax_company_name: Option<String>,
+    pub tax_rep_name: Option<String>,
+    pub tax_address: Option<String>,
+    pub tax_biz_type: Option<String>,
+    pub tax_biz_item: Option<String>,
     pub tax_email: Option<String>,
     /// 금액
     pub total_quantity: i32,

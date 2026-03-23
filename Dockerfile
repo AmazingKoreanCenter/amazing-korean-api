@@ -46,8 +46,12 @@ RUN apt-get update && apt-get install -y \
 # Copy binary from builder
 COPY --from=builder /app/target/release/amazing-korean-api /app/amazing-korean-api
 
-# Copy migrations (if needed at runtime)
+# Copy migrations (sqlx::migrate!() 런타임 자동 실행용은 바이너리에 임베딩됨)
+# 클린 배포 참조용으로 유지
 COPY migrations ./migrations
+
+# Copy seeds (클린 배포 시 시드 데이터 수동 투입용)
+COPY seeds ./seeds
 
 # Expose port
 EXPOSE 3000

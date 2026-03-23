@@ -671,6 +671,7 @@ awscliv2.zip
 docs/textbook
 docs/pdf_check/
 scripts/
+!scripts/bootstrap_sqlx_migrations.sql
 
 # 루트 node_modules (교재 puppeteer용, frontend와 별도)
 /node_modules/

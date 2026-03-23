@@ -395,6 +395,20 @@
     "backToLesson": "Retour à la leçon",
     "backToLessonShort": "Vers la leçon"
   },
+  "comingSoon": {
+    "badge": "Coming Soon",
+    "title": "Nous préparons quelque chose de formidable",
+    "description": "Nous créons du contenu de qualité\npour une meilleure expérience d'apprentissage du coréen.",
+    "videoTitle": "Apprentissage vidéo",
+    "videoDescription": "Maîtrisez le rythme et l'intonation naturels du coréen\ngrâce à des vidéos variées de locuteurs natifs.",
+    "studyTitle": "Exercices de modèles",
+    "studyDescription": "Pratiquez diverses expressions à partir d'une seule phrase\navec des quiz à choix multiples et des exercices écrits.",
+    "lessonTitle": "Programme de cours",
+    "lessonDescription": "Développez vos compétences avec un programme structuré\ncombinant vidéos et exercices pratiques.",
+    "notifyHint": "Inscrivez-vous pour être notifié lors du lancement.",
+    "exploreEbook": "Voir les manuels E-book",
+    "exploreTextbook": "Commander des manuels imprimés"
+  },
   "error": {
     "errorPageTitle": "Un problème est survenu",
     "errorPageDescription": "Une erreur temporaire du serveur est survenue.\nVeuillez réessayer plus tard.",

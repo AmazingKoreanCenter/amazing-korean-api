@@ -83,8 +83,19 @@ export const viewerMetaResSchema = z.object({
   edition: ebookEditionSchema,
   total_pages: z.number(),
   toc: z.array(tocEntrySchema),
+  session_id: z.string(),
+  tile_mode: z.boolean(),
+  grid_rows: z.number().nullable().optional(),
+  grid_cols: z.number().nullable().optional(),
 });
 export type ViewerMetaRes = z.infer<typeof viewerMetaResSchema>;
+
+// ─────────────────────── Heartbeat ───────────────────────
+
+export const heartbeatResSchema = z.object({
+  valid: z.boolean(),
+});
+export type HeartbeatRes = z.infer<typeof heartbeatResSchema>;
 
 // ─────────────────────── Admin ───────────────────────
 

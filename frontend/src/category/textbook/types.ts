@@ -65,6 +65,11 @@ export interface CreateOrderReq {
   depositor_name?: string;
   tax_invoice: boolean;
   tax_biz_number?: string;
+  tax_company_name?: string;
+  tax_rep_name?: string;
+  tax_address?: string;
+  tax_biz_type?: string;
+  tax_biz_item?: string;
   tax_email?: string;
   items: CreateOrderItemReq[];
   notes?: string;
@@ -100,6 +105,11 @@ export const orderResSchema = z.object({
   depositor_name: z.string().nullable(),
   tax_invoice: z.boolean(),
   tax_biz_number: z.string().nullable(),
+  tax_company_name: z.string().nullable(),
+  tax_rep_name: z.string().nullable(),
+  tax_address: z.string().nullable(),
+  tax_biz_type: z.string().nullable(),
+  tax_biz_item: z.string().nullable(),
   tax_email: z.string().nullable(),
   total_quantity: z.number().int(),
   total_amount: z.number().int(),

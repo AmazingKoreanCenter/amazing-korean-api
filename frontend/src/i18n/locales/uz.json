@@ -395,6 +395,20 @@
     "backToLesson": "Darsga qaytish",
     "backToLessonShort": "Darsga"
   },
+  "comingSoon": {
+    "badge": "Coming Soon",
+    "title": "Biz ajoyib narsalarni tayyorlamoqdamiz",
+    "description": "Yaxshiroq koreys tilini o'rganish tajribasi uchun\nsifatli kontent yaratmoqdamiz.",
+    "videoTitle": "Video orqali o'rganish",
+    "videoDescription": "Ona tili so'zlashuvchilarning turli videolari orqali\nkoreys tilining tabiiy ohang va intonatsiyasini o'rganing.",
+    "studyTitle": "Namuna mashqlari",
+    "studyDescription": "Ko'p tanlovli va yozma testlar orqali\nbitta gapdan turli iboralarni mashq qiling.",
+    "lessonTitle": "Dars dasturi",
+    "lessonDescription": "Video va mashqlarni birlashtirgan\ntizimli dastur orqali ko'nikmangizni oshiring.",
+    "notifyHint": "Ishga tushganda xabar olish uchun ro'yxatdan o'ting.",
+    "exploreEbook": "E-book darsliklarni ko'rish",
+    "exploreTextbook": "Bosma darsliklarni buyurtma qilish"
+  },
   "error": {
     "errorPageTitle": "Nimadir noto'g'ri ketdi",
     "errorPageDescription": "Vaqtinchalik server xatoligi yuz berdi.\nKeyinroq qayta urinib ko'ring.",

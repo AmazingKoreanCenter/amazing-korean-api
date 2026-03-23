@@ -395,6 +395,20 @@
     "backToLesson": "Voltar para a Aula",
     "backToLessonShort": "Para a Aula"
   },
+  "comingSoon": {
+    "badge": "Coming Soon",
+    "title": "Estamos preparando algo incrível",
+    "description": "Estamos criando conteúdo de qualidade\npara uma melhor experiência de aprendizado de coreano.",
+    "videoTitle": "Aprendizado por vídeo",
+    "videoDescription": "Aprenda o ritmo e a entonação natural do coreano\natravés de diversos vídeos de falantes nativos.",
+    "studyTitle": "Prática de padrões",
+    "studyDescription": "Pratique diversas expressões a partir de uma frase\ncom questionários de múltipla escolha e escritos.",
+    "lessonTitle": "Currículo de aulas",
+    "lessonDescription": "Aprimore suas habilidades com um currículo estruturado\nque combina vídeos e exercícios práticos.",
+    "notifyHint": "Cadastre-se para ser notificado quando lançarmos.",
+    "exploreEbook": "Ver livros didáticos E-book",
+    "exploreTextbook": "Encomendar livros didáticos impressos"
+  },
   "error": {
     "errorPageTitle": "Algo deu errado",
     "errorPageDescription": "Ocorreu um erro temporário no servidor.\nPor favor, tente novamente mais tarde.",

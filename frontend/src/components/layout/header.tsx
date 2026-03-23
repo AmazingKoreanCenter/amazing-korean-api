@@ -20,10 +20,10 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { labelKey: "nav.about", path: "/about" },
+  { labelKey: "nav.textbook", path: "/textbook" },
   { labelKey: "nav.videos", path: "/videos" },
   { labelKey: "nav.studies", path: "/studies" },
   { labelKey: "nav.lessons", path: "/lessons" },
-  { labelKey: "nav.pricing", path: "/pricing" },
 ] as const;
 
 export function Header() {

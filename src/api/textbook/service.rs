@@ -84,11 +84,21 @@ impl TextbookService {
             }
         }
 
-        // 세금계산서 요청 시 사업자등록번호 + 이메일 필수
+        // 세금계산서 요청 시 홈택스 필수 항목 검증
         if req.tax_invoice {
             if req.tax_biz_number.as_ref().map_or(true, |s| s.is_empty()) {
                 return Err(AppError::BadRequest(
                     "Business registration number is required for tax invoice".into(),
+                ));
+            }
+            if req.tax_company_name.as_ref().map_or(true, |s| s.is_empty()) {
+                return Err(AppError::BadRequest(
+                    "Company name (상호) is required for tax invoice".into(),
+                ));
+            }
+            if req.tax_rep_name.as_ref().map_or(true, |s| s.is_empty()) {
+                return Err(AppError::BadRequest(
+                    "Representative name (대표자명) is required for tax invoice".into(),
                 ));
             }
             if req.tax_email.as_ref().map_or(true, |s| s.is_empty()) {
@@ -121,6 +131,11 @@ impl TextbookService {
             req.depositor_name.as_deref(),
             req.tax_invoice,
             req.tax_biz_number.as_deref(),
+            req.tax_company_name.as_deref(),
+            req.tax_rep_name.as_deref(),
+            req.tax_address.as_deref(),
+            req.tax_biz_type.as_deref(),
+            req.tax_biz_item.as_deref(),
             req.tax_email.as_deref(),
             total_quantity,
             total_amount,
@@ -212,6 +227,11 @@ pub fn build_order_res_from(order: TextbookOrderRow, items: Vec<TextbookItemRow>
         depositor_name: order.depositor_name,
         tax_invoice: order.tax_invoice,
         tax_biz_number: order.tax_biz_number,
+        tax_company_name: order.tax_company_name,
+        tax_rep_name: order.tax_rep_name,
+        tax_address: order.tax_address,
+        tax_biz_type: order.tax_biz_type,
+        tax_biz_item: order.tax_biz_item,
         tax_email: order.tax_email,
         total_quantity: order.total_quantity,
         total_amount: order.total_amount,

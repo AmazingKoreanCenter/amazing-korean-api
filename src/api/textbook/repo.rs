@@ -27,6 +27,11 @@ pub struct TextbookOrderRow {
     pub depositor_name: Option<String>,
     pub tax_invoice: bool,
     pub tax_biz_number: Option<String>,
+    pub tax_company_name: Option<String>,
+    pub tax_rep_name: Option<String>,
+    pub tax_address: Option<String>,
+    pub tax_biz_type: Option<String>,
+    pub tax_biz_item: Option<String>,
     pub tax_email: Option<String>,
     pub total_quantity: i32,
     pub total_amount: i32,
@@ -63,7 +68,7 @@ const ORDER_COLUMNS: &str = r#"
     org_name, org_type,
     delivery_postal_code, delivery_address, delivery_detail,
     payment_method, depositor_name,
-    tax_invoice, tax_biz_number, tax_email,
+    tax_invoice, tax_biz_number, tax_company_name, tax_rep_name, tax_address, tax_biz_type, tax_biz_item, tax_email,
     total_quantity, total_amount, currency, notes,
     tracking_number, tracking_provider, is_deleted,
     confirmed_at, paid_at, shipped_at, delivered_at, canceled_at, deleted_at,
@@ -120,6 +125,11 @@ impl TextbookRepo {
         depositor_name: Option<&str>,
         tax_invoice: bool,
         tax_biz_number: Option<&str>,
+        tax_company_name: Option<&str>,
+        tax_rep_name: Option<&str>,
+        tax_address: Option<&str>,
+        tax_biz_type: Option<&str>,
+        tax_biz_item: Option<&str>,
         tax_email: Option<&str>,
         total_quantity: i32,
         total_amount: i32,
@@ -132,9 +142,9 @@ impl TextbookRepo {
                 org_name, org_type,
                 delivery_postal_code, delivery_address, delivery_detail,
                 payment_method, depositor_name,
-                tax_invoice, tax_biz_number, tax_email,
+                tax_invoice, tax_biz_number, tax_company_name, tax_rep_name, tax_address, tax_biz_type, tax_biz_item, tax_email,
                 total_quantity, total_amount, notes
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
             RETURNING order_id
             "#,
         )
@@ -151,6 +161,11 @@ impl TextbookRepo {
         .bind(depositor_name)
         .bind(tax_invoice)
         .bind(tax_biz_number)
+        .bind(tax_company_name)
+        .bind(tax_rep_name)
+        .bind(tax_address)
+        .bind(tax_biz_type)
+        .bind(tax_biz_item)
         .bind(tax_email)
         .bind(total_quantity)
         .bind(total_amount)

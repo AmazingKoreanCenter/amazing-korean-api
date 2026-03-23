@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -82,6 +83,11 @@ const orderFormSchema = z.object({
   depositor_name: z.string().max(100),
   tax_invoice: z.boolean(),
   tax_biz_number: z.string().max(20),
+  tax_company_name: z.string().max(200),
+  tax_rep_name: z.string().max(100),
+  tax_address: z.string().max(500),
+  tax_biz_type: z.string().max(100),
+  tax_biz_item: z.string().max(100),
   tax_email: z.string().email().max(255).or(z.literal("")),
   items: z.array(orderItemSchema).min(1),
   notes: z.string(),
@@ -95,7 +101,7 @@ type OrderFormValues = z.infer<typeof orderFormSchema>;
 
 const UNIT_PRICE = 25_000;
 const MIN_TOTAL_QUANTITY = 10;
-const BANK_ACCOUNT = "농협 302-1234-5678-91 (주)놀라운한국어";
+const BANK_ACCOUNT = "하나은행 915-910012-71304 주식회사 힘";
 
 // =============================================================================
 // Component
@@ -126,6 +132,11 @@ export function TextbookOrderPage() {
       depositor_name: "",
       tax_invoice: false,
       tax_biz_number: "",
+      tax_company_name: "",
+      tax_rep_name: "",
+      tax_address: "",
+      tax_biz_type: "",
+      tax_biz_item: "",
       tax_email: "",
       items: [{ language: "", textbook_type: "student", quantity: 10 }],
       notes: "",
@@ -136,6 +147,17 @@ export function TextbookOrderPage() {
     control: form.control,
     name: "items",
   });
+
+  const [searchParams] = useSearchParams();
+
+  // 카탈로그에서 선택한 항목 자동 추가
+  useEffect(() => {
+    const lang = searchParams.get("lang");
+    const type = searchParams.get("type");
+    if (lang && (type === "student" || type === "teacher")) {
+      form.setValue("items", [{ language: lang, textbook_type: type, quantity: 10 }]);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const watchItems = form.watch("items");
   const watchTaxInvoice = form.watch("tax_invoice");
@@ -191,6 +213,11 @@ export function TextbookOrderPage() {
       delivery_detail: values.delivery_detail || undefined,
       depositor_name: values.depositor_name || undefined,
       tax_biz_number: values.tax_biz_number || undefined,
+      tax_company_name: values.tax_company_name || undefined,
+      tax_rep_name: values.tax_rep_name || undefined,
+      tax_address: values.tax_address || undefined,
+      tax_biz_type: values.tax_biz_type || undefined,
+      tax_biz_item: values.tax_biz_item || undefined,
       tax_email: values.tax_email || undefined,
       notes: values.notes || undefined,
       payment_method: "bank_transfer" as const,
@@ -377,6 +404,16 @@ export function TextbookOrderPage() {
                       key={field.id}
                       className="flex flex-col sm:flex-row gap-3 p-4 rounded-lg border border-border bg-muted/30"
                     >
+                      {/* 표지 썸네일 */}
+                      {watchItems[index]?.language && (
+                        <div className="hidden sm:flex items-center">
+                          <img
+                            src={`/covers/${watchItems[index]?.textbook_type ?? "student"}-${watchItems[index]?.language}.webp`}
+                            alt=""
+                            className="w-12 h-16 rounded object-cover border"
+                          />
+                        </div>
+                      )}
                       {/* 언어 */}
                       <FormField
                         control={form.control}
@@ -834,6 +871,42 @@ export function TextbookOrderPage() {
                       />
                       <FormField
                         control={form.control}
+                        name="tax_company_name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {t("textbook.order.taxCompanyName")} *
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t("textbook.order.taxCompanyNamePlaceholder")}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="tax_rep_name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {t("textbook.order.taxRepName")} *
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t("textbook.order.taxRepNamePlaceholder")}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
                         name="tax_email"
                         render={({ field }) => (
                           <FormItem>
@@ -844,6 +917,60 @@ export function TextbookOrderPage() {
                               <Input
                                 type="email"
                                 placeholder="tax@company.com"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="tax_address"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel>
+                              {t("textbook.order.taxAddress")}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t("textbook.order.taxAddressPlaceholder")}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="tax_biz_type"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {t("textbook.order.taxBizType")}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t("textbook.order.taxBizTypePlaceholder")}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="tax_biz_item"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {t("textbook.order.taxBizItem")}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t("textbook.order.taxBizItemPlaceholder")}
                                 {...field}
                               />
                             </FormControl>

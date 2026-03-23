@@ -1,23 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Play, BookOpen, Users, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Play, BookOpen, BookMarked, ArrowRight, CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/sections/hero_section";
 import { SectionContainer } from "@/components/sections/section_container";
 import { PageMeta } from "@/components/page_meta";
-import { usePaddle } from "@/category/payment/hook/use_paddle";
-import { usePaymentPlans } from "@/category/payment/hook/use_payment_plans";
-
 export default function HomePage() {
   const { t } = useTranslation();
-  const { data: plans } = usePaymentPlans();
-
-  // Retain: 홈페이지에서 Paddle.js 초기화 (결제 실패 시 인앱 알림 표시용)
-  usePaddle({
-    clientToken: plans?.client_token ?? "",
-    sandbox: plans?.sandbox ?? false,
-  });
   return (
     <div className="flex flex-col">
       <PageMeta titleKey="seo.home.title" descriptionKey="seo.home.description" />
@@ -68,16 +58,16 @@ export default function HomePage() {
         {/* Trust Indicators */}
         <div className="flex flex-wrap justify-center gap-8 mt-12 pt-12 border-t">
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">1,000+</div>
-            <div className="text-sm text-muted-foreground">{t("home.statVideos")}</div>
+            <div className="text-2xl font-bold text-gradient">{t("home.stat1Value")}</div>
+            <div className="text-sm text-muted-foreground">{t("home.stat1Label")}</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">50+</div>
-            <div className="text-sm text-muted-foreground">{t("home.statInstructors")}</div>
+            <div className="text-2xl font-bold text-gradient">{t("home.stat2Value")}</div>
+            <div className="text-sm text-muted-foreground">{t("home.stat2Label")}</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">10,000+</div>
-            <div className="text-sm text-muted-foreground">{t("home.statStudents")}</div>
+            <div className="text-2xl font-bold text-gradient">{t("home.stat3Value")}</div>
+            <div className="text-sm text-muted-foreground">{t("home.stat3Label")}</div>
           </div>
         </div>
       </HeroSection>
@@ -97,7 +87,7 @@ export default function HomePage() {
           {/* Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Video Learning */}
-            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border">
+            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover hover:border-accent/50 transition-all duration-300 border">
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Play className="h-7 w-7 text-white" />
               </div>
@@ -122,7 +112,7 @@ export default function HomePage() {
               <Button
                 variant="ghost"
                 asChild
-                className="p-0 h-auto text-primary hover:text-primary/80 group-hover:translate-x-1 transition-transform"
+                className="p-0 h-auto text-accent font-medium hover:text-accent/80 group-hover:translate-x-1 transition-transform"
               >
                 <Link to="/videos" className="flex items-center gap-1">
                   {t("home.videoLink")} <ArrowRight className="h-4 w-4" />
@@ -131,7 +121,7 @@ export default function HomePage() {
             </div>
 
             {/* Structured Learning */}
-            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border">
+            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover hover:border-accent/50 transition-all duration-300 border">
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <BookOpen className="h-7 w-7 text-white" />
               </div>
@@ -156,7 +146,7 @@ export default function HomePage() {
               <Button
                 variant="ghost"
                 asChild
-                className="p-0 h-auto text-primary hover:text-primary/80 group-hover:translate-x-1 transition-transform"
+                className="p-0 h-auto text-accent font-medium hover:text-accent/80 group-hover:translate-x-1 transition-transform"
               >
                 <Link to="/studies" className="flex items-center gap-1">
                   {t("home.studyLink")} <ArrowRight className="h-4 w-4" />
@@ -165,9 +155,9 @@ export default function HomePage() {
             </div>
 
             {/* 1:1 Lessons */}
-            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-all duration-300 border">
+            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover hover:border-accent/50 transition-all duration-300 border">
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Users className="h-7 w-7 text-white" />
+                <BookMarked className="h-7 w-7 text-white" />
               </div>
               <h3 className="text-xl font-semibold mb-3">{t("home.lessonTitle")}</h3>
               <p className="text-muted-foreground mb-6 leading-relaxed">
@@ -190,9 +180,9 @@ export default function HomePage() {
               <Button
                 variant="ghost"
                 asChild
-                className="p-0 h-auto text-primary hover:text-primary/80 group-hover:translate-x-1 transition-transform"
+                className="p-0 h-auto text-accent font-medium hover:text-accent/80 group-hover:translate-x-1 transition-transform"
               >
-                <Link to="/lessons" className="flex items-center gap-1">
+                <Link to="/ebook/catalog" className="flex items-center gap-1">
                   {t("home.lessonLink")} <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>

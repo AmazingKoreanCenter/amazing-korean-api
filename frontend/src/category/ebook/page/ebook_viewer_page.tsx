@@ -22,7 +22,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useViewerMeta } from "../hook/use_viewer_meta";
-import { usePageImage } from "../hook/use_page_image";
+import { usePageImage, usePageTiles } from "../hook/use_page_image";
+import { sendViewerHeartbeat } from "../ebook_api";
 
 const ZOOM_LEVELS = [50, 75, 100, 120, 150];
 const DEFAULT_ZOOM_INDEX = 2; // 100%
@@ -74,6 +75,103 @@ function PageCanvas({
   );
 }
 
+/** 타일 분할 Canvas: gridRows×gridCols 타일을 하나의 Canvas에 조립 */
+function TiledPageCanvas({
+  tiles,
+  gridRows,
+  gridCols,
+  className,
+  style,
+}: {
+  tiles: Array<ArrayBuffer | undefined>;
+  gridRows: number;
+  gridCols: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || tiles.some((t) => !t)) return;
+
+    // 모든 타일을 Image로 디코딩
+    let cancelled = false;
+    const images: HTMLImageElement[] = [];
+    const urls: string[] = [];
+
+    Promise.all(
+      tiles.map((buf) => {
+        const blob = new Blob([buf!], { type: "image/webp" });
+        const url = URL.createObjectURL(blob);
+        urls.push(url);
+        return new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = url;
+        });
+      })
+    ).then((imgs) => {
+      if (cancelled) return;
+      images.push(...imgs);
+
+      // 캔버스 크기 계산 (타일 크기 합산)
+      let totalW = 0;
+      let totalH = 0;
+      for (let r = 0; r < gridRows; r++) {
+        let rowH = 0;
+        let rowW = 0;
+        for (let c = 0; c < gridCols; c++) {
+          const idx = r * gridCols + c;
+          rowW += imgs[idx].naturalWidth;
+          rowH = Math.max(rowH, imgs[idx].naturalHeight);
+        }
+        totalW = Math.max(totalW, rowW);
+        totalH += rowH;
+      }
+
+      canvas.width = totalW;
+      canvas.height = totalH;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.imageSmoothingEnabled = false;
+
+      // 타일 배치
+      let yOff = 0;
+      for (let r = 0; r < gridRows; r++) {
+        let xOff = 0;
+        let rowH = 0;
+        for (let c = 0; c < gridCols; c++) {
+          const idx = r * gridCols + c;
+          ctx.drawImage(imgs[idx], xOff, yOff);
+          xOff += imgs[idx].naturalWidth;
+          rowH = Math.max(rowH, imgs[idx].naturalHeight);
+        }
+        yOff += rowH;
+      }
+    }).finally(() => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    });
+
+    return () => {
+      cancelled = true;
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [tiles, gridRows, gridCols]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={className}
+      style={{ ...style, userSelect: "none" }}
+      onContextMenu={(e) => e.preventDefault()}
+      draggable={false}
+      onDragStart={(e) => e.preventDefault()}
+    />
+  );
+}
+
 export function EbookViewerPage() {
   const { purchaseCode } = useParams<{ purchaseCode: string }>();
   const { t } = useTranslation();
@@ -87,11 +185,184 @@ export function EbookViewerPage() {
   const [tocOpen, setTocOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("single");
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [isObscured, setIsObscured] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const viewerRef = useRef<HTMLDivElement>(null);
+
+  // ─── Step 1: Canvas 추출 API 무력화 ───
+  useEffect(() => {
+    const orig = {
+      toDataURL: HTMLCanvasElement.prototype.toDataURL,
+      toBlob: HTMLCanvasElement.prototype.toBlob,
+      getImageData: CanvasRenderingContext2D.prototype.getImageData,
+      captureStream: HTMLCanvasElement.prototype.captureStream,
+      createImageBitmap: window.createImageBitmap,
+    };
+
+    const BLANK =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    HTMLCanvasElement.prototype.toDataURL = function () {
+      return BLANK;
+    };
+    HTMLCanvasElement.prototype.toBlob = function (cb) {
+      const e = document.createElement("canvas");
+      e.width = 1;
+      e.height = 1;
+      orig.toBlob.call(e, cb);
+    };
+    CanvasRenderingContext2D.prototype.getImageData = function (
+      _sx: number,
+      _sy: number,
+      sw: number,
+      sh: number,
+    ) {
+      return new ImageData(sw, sh);
+    };
+    HTMLCanvasElement.prototype.captureStream = function () {
+      return new MediaStream();
+    };
+
+    // OffscreenCanvas 차단 (지원 브라우저만)
+    const hasTransfer = "transferControlToOffscreen" in HTMLCanvasElement.prototype;
+    const origTransfer = hasTransfer
+      ? HTMLCanvasElement.prototype.transferControlToOffscreen
+      : null;
+    if (hasTransfer) {
+      HTMLCanvasElement.prototype.transferControlToOffscreen = function () {
+        throw new DOMException("Not allowed", "SecurityError");
+      };
+    }
+
+    // createImageBitmap — canvas 소스 차단
+    const origCreateImageBitmap = window.createImageBitmap;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).createImageBitmap = function () {
+      // eslint-disable-next-line prefer-rest-params
+      const args = Array.from(arguments);
+      if (args[0] instanceof HTMLCanvasElement) {
+        const empty = document.createElement("canvas");
+        empty.width = 1;
+        empty.height = 1;
+        args[0] = empty;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (origCreateImageBitmap as any).apply(window, args);
+    };
+
+    return () => {
+      HTMLCanvasElement.prototype.toDataURL = orig.toDataURL;
+      HTMLCanvasElement.prototype.toBlob = orig.toBlob;
+      CanvasRenderingContext2D.prototype.getImageData = orig.getImageData;
+      HTMLCanvasElement.prototype.captureStream = orig.captureStream;
+      if (hasTransfer && origTransfer)
+        HTMLCanvasElement.prototype.transferControlToOffscreen = origTransfer;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).createImageBitmap = origCreateImageBitmap;
+    };
+  }, []);
+
+  // ─── Step 2: 포커스/가시성 감지 → 콘텐츠 블러 ───
+  useEffect(() => {
+    const onVisibility = () => setIsObscured(document.visibilityState === "hidden");
+    const onBlur = () => setIsObscured(true);
+    const onFocus = () => setIsObscured(false);
+    const onBeforePrint = () => setIsObscured(true);
+    const onAfterPrint = () => setIsObscured(false);
+
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
+  }, []);
+
+  // ─── Step 3: DOM 조작 감지 ───
+  const handleTampering = useCallback(() => {
+    document.querySelectorAll("canvas").forEach((c) => {
+      c.getContext("2d")?.clearRect(0, 0, c.width, c.height);
+    });
+    navigate("/ebook/my");
+  }, [navigate]);
+
+  // MutationObserver — DOM 변경 감지
+  useEffect(() => {
+    const el = viewerRef.current;
+    if (!el) return;
+
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const removed of m.removedNodes) {
+          if (removed instanceof HTMLCanvasElement) {
+            handleTampering();
+            return;
+          }
+        }
+        if (m.type === "attributes" && m.attributeName === "style") {
+          const target = m.target as HTMLElement;
+          if (target.style.userSelect !== "" && target.style.userSelect !== "none") {
+            handleTampering();
+            return;
+          }
+        }
+      }
+    });
+
+    observer.observe(el, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["style", "class", "hidden"],
+    });
+
+    return () => observer.disconnect();
+  }, [handleTampering]);
+
+  // getComputedStyle 주기 검사 — CSS 규칙 추가 감지
+  useEffect(() => {
+    const el = viewerRef.current;
+    if (!el) return;
+
+    const interval = setInterval(() => {
+      const cs = getComputedStyle(el);
+      if (cs.userSelect !== "none" || cs.pointerEvents === "auto") {
+        handleTampering();
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [handleTampering]);
 
   const { data: meta, isLoading: metaLoading, error: metaError } = useViewerMeta(
     purchaseCode ?? ""
   );
+
+  // ─── Step 4: 동시 세션 제한 — Heartbeat ───
+  useEffect(() => {
+    if (!meta?.session_id) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await sendViewerHeartbeat(meta.session_id);
+        if (!res.valid) {
+          navigate("/ebook/my");
+        }
+      } catch {
+        // 네트워크 오류 → 다음 heartbeat에서 재시도
+      }
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [meta?.session_id, navigate]);
+
   const totalPages = meta?.total_pages ?? 0;
 
   // 두 쪽 보기 시 오른쪽 페이지 번호 (1페이지는 단독 표시 — 표지)
@@ -100,11 +371,16 @@ export function EbookViewerPage() {
       ? currentPage + 1
       : null;
 
+  const tileMode = meta?.tile_mode ?? false;
+  const gridRows = meta?.grid_rows ?? 3;
+  const gridCols = meta?.grid_cols ?? 3;
+
+  // 단일 이미지 모드 (tile_mode=false)
   const { data: imageData, isLoading: imageLoading } = usePageImage(
     purchaseCode ?? "",
     currentPage,
     totalPages,
-    !!meta,
+    !!meta && !tileMode,
     viewMode
   );
 
@@ -112,9 +388,36 @@ export function EbookViewerPage() {
     purchaseCode ?? "",
     spreadRightPage ?? 0,
     totalPages,
-    !!meta && spreadRightPage !== null,
+    !!meta && !tileMode && spreadRightPage !== null,
     viewMode
   );
+
+  // 타일 분할 모드 (tile_mode=true)
+  const { tiles: tilesLeft, isLoading: tilesLeftLoading } = usePageTiles(
+    purchaseCode ?? "",
+    currentPage,
+    totalPages,
+    gridRows,
+    gridCols,
+    !!meta && tileMode
+  );
+
+  const { tiles: tilesRight, isLoading: tilesRightLoading } = usePageTiles(
+    purchaseCode ?? "",
+    spreadRightPage ?? 0,
+    totalPages,
+    gridRows,
+    gridCols,
+    !!meta && tileMode && spreadRightPage !== null
+  );
+
+  // 통합 로딩 상태
+  const pageLoading = tileMode
+    ? tilesLeftLoading
+    : imageLoading;
+  const pageRightLoading = tileMode
+    ? tilesRightLoading
+    : imageLoadingRight;
 
   const zoom = ZOOM_LEVELS[zoomIndex];
 
@@ -274,8 +577,12 @@ export function EbookViewerPage() {
       ? `${displayPage}-${spreadRightPage} / ${totalPages}`
       : `${displayPage} / ${totalPages}`;
 
-  const isLoading = imageLoading || (viewMode === "spread" && imageLoadingRight);
-  const hasImage = !!imageData;
+  const isLoading = tileMode
+    ? pageLoading || (viewMode === "spread" && pageRightLoading)
+    : imageLoading || (viewMode === "spread" && imageLoadingRight);
+  const hasImage = tileMode
+    ? tilesLeft.every((t) => !!t)
+    : !!imageData;
 
   return (
     <>
@@ -289,6 +596,7 @@ export function EbookViewerPage() {
       `}</style>
 
       <div
+        ref={viewerRef}
         className={`ebook-viewer flex flex-col select-none ${
           isFullscreen
             ? "fixed inset-0 z-[9999] bg-neutral-900"
@@ -425,31 +733,69 @@ export function EbookViewerPage() {
               style={{
                 transform: `scale(${zoom / 100})`,
                 transformOrigin: "center center",
+                filter: isObscured ? "blur(30px)" : "none",
+                transition: "filter 0.15s ease-out",
+                willChange: "filter",
               }}
             >
-              <PageCanvas
-                data={imageData}
-                className="shadow-2xl rounded-sm"
-                style={{
-                  maxHeight: isFullscreen ? "calc(100vh - 100px)" : "calc(100vh - 140px)",
-                  maxWidth: viewMode === "spread" ? "45vw" : "90vw",
-                  width: "auto",
-                  height: "auto",
-                  pointerEvents: "none",
-                }}
-              />
-              {viewMode === "spread" && imageDataRight && (
-                <PageCanvas
-                  data={imageDataRight}
-                  className="shadow-2xl rounded-sm"
-                  style={{
-                    maxHeight: isFullscreen ? "calc(100vh - 100px)" : "calc(100vh - 140px)",
-                    maxWidth: "45vw",
-                    width: "auto",
-                    height: "auto",
-                    pointerEvents: "none",
-                  }}
-                />
+              {tileMode ? (
+                <>
+                  <TiledPageCanvas
+                    tiles={tilesLeft}
+                    gridRows={gridRows}
+                    gridCols={gridCols}
+                    className="shadow-2xl rounded-sm"
+                    style={{
+                      maxHeight: isFullscreen ? "calc(100vh - 100px)" : "calc(100vh - 140px)",
+                      maxWidth: viewMode === "spread" ? "45vw" : "90vw",
+                      width: "auto",
+                      height: "auto",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  {viewMode === "spread" && tilesRight.every((t) => !!t) && (
+                    <TiledPageCanvas
+                      tiles={tilesRight}
+                      gridRows={gridRows}
+                      gridCols={gridCols}
+                      className="shadow-2xl rounded-sm"
+                      style={{
+                        maxHeight: isFullscreen ? "calc(100vh - 100px)" : "calc(100vh - 140px)",
+                        maxWidth: "45vw",
+                        width: "auto",
+                        height: "auto",
+                        pointerEvents: "none",
+                      }}
+                    />
+                  )}
+                </>
+              ) : (
+                <>
+                  <PageCanvas
+                    data={imageData!}
+                    className="shadow-2xl rounded-sm"
+                    style={{
+                      maxHeight: isFullscreen ? "calc(100vh - 100px)" : "calc(100vh - 140px)",
+                      maxWidth: viewMode === "spread" ? "45vw" : "90vw",
+                      width: "auto",
+                      height: "auto",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  {viewMode === "spread" && imageDataRight && (
+                    <PageCanvas
+                      data={imageDataRight}
+                      className="shadow-2xl rounded-sm"
+                      style={{
+                        maxHeight: isFullscreen ? "calc(100vh - 100px)" : "calc(100vh - 140px)",
+                        maxWidth: "45vw",
+                        width: "auto",
+                        height: "auto",
+                        pointerEvents: "none",
+                      }}
+                    />
+                  )}
+                </>
               )}
             </div>
           ) : (

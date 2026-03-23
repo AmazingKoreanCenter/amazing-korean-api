@@ -9,7 +9,7 @@ use crate::api::util::extract_client_ip;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
-use super::dto::{CreatePurchaseReq, EbookCatalogRes, MyPurchasesRes, ViewerMetaRes};
+use super::dto::{CreatePurchaseReq, EbookCatalogRes, HeartbeatReq, HeartbeatRes, MyPurchasesRes, ViewerMetaRes};
 use super::service::EbookService;
 
 /// GET /ebook/catalog
@@ -85,7 +85,21 @@ pub async fn get_viewer_meta(
     AuthUser(claims): AuthUser,
     Path(code): Path<String>,
 ) -> AppResult<Json<ViewerMetaRes>> {
-    let res = EbookService::get_viewer_meta(&st, claims.sub, &code).await?;
+    let mut res = EbookService::get_viewer_meta(&st, claims.sub, &code).await?;
+    let session_id = EbookService::register_session(&st, claims.sub, &code).await?;
+    res.session_id = session_id;
+    Ok(Json(res))
+}
+
+/// POST /ebook/viewer/heartbeat
+///
+/// 뷰어 세션 heartbeat. 세션 유효 시 TTL 갱신, 무효 시 valid=false 반환.
+pub async fn heartbeat(
+    State(st): State<AppState>,
+    AuthUser(claims): AuthUser,
+    Json(req): Json<HeartbeatReq>,
+) -> AppResult<Json<HeartbeatRes>> {
+    let res = EbookService::heartbeat(&st, claims.sub, &req.session_id).await?;
     Ok(Json(res))
 }
 
@@ -108,6 +122,9 @@ pub async fn get_page_image(
     if !is_viewer_request {
         return Err(AppError::Forbidden("Direct access not allowed".into()));
     }
+
+    // 뷰어 세션 검증 (Redis 장애 시 fail closed)
+    EbookService::verify_session(&st, claims.sub).await?;
 
     // User-level Rate Limiting (페이지 크롤링 방지)
     let rl_key = format!("rl:ebook_page:{}", claims.sub);
@@ -152,6 +169,77 @@ pub async fn get_page_image(
         .header("Cache-Control", "private, max-age=300")
         .header("X-Content-Type-Options", "nosniff")
         .body(Body::from(image_bytes))
+        .map_err(|e| AppError::Internal(format!("Failed to build response: {e}").into()))?;
+
+    Ok(response)
+}
+
+/// GET /ebook/viewer/:code/pages/:page_num/tiles/:row/:col
+///
+/// 타일 분할 이미지 반환. 로그인 + 소유 확인 + 세션 검증 + 레이트 리밋.
+pub async fn get_page_tile(
+    State(st): State<AppState>,
+    AuthUser(claims): AuthUser,
+    Path((code, page_num, tile_row, tile_col)): Path<(String, i32, u32, u32)>,
+    headers: HeaderMap,
+) -> AppResult<Response<Body>> {
+    // 커스텀 헤더 체크
+    let is_viewer_request = headers
+        .get("x-ebook-viewer")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v == "1")
+        .unwrap_or(false);
+    if !is_viewer_request {
+        return Err(AppError::Forbidden("Direct access not allowed".into()));
+    }
+
+    // 뷰어 세션 검증 (Redis 장애 시 fail closed)
+    EbookService::verify_session(&st, claims.sub).await?;
+
+    // User-level Rate Limiting (타일 전용)
+    let rl_key = format!("rl:ebook_tile:{}", claims.sub);
+    let mut redis_conn = st
+        .redis
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+    if attempts == 1 {
+        let _: () = redis_conn
+            .expire(&rl_key, st.cfg.rate_limit_ebook_tile_window_sec)
+            .await?;
+    }
+    if attempts > st.cfg.rate_limit_ebook_tile_max {
+        return Err(AppError::TooManyRequests(
+            "EBOOK_429_TOO_MANY_TILE_REQUESTS".into(),
+        ));
+    }
+
+    let client_ip = extract_client_ip(&headers);
+    let user_agent = headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    let tile_bytes = EbookService::get_page_tile(
+        &st,
+        claims.sub,
+        &code,
+        page_num,
+        tile_row,
+        tile_col,
+        Some(&client_ip),
+        user_agent.as_deref(),
+    )
+    .await?;
+
+    let response = Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", "image/webp")
+        .header("Cache-Control", "private, max-age=300")
+        .header("X-Content-Type-Options", "nosniff")
+        .body(Body::from(tile_bytes))
         .map_err(|e| AppError::Internal(format!("Failed to build response: {e}").into()))?;
 
     Ok(response)

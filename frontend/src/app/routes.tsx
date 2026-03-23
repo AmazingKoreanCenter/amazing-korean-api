@@ -13,13 +13,8 @@ import { RequestResetPasswordPage } from "@/category/auth/page/request_reset_pas
 import { VerifyEmailPage } from "@/category/auth/page/verify_email_page";
 import { MyPage } from "@/category/user/page/my_page";
 import { SettingsPage } from "@/category/user/page/settings_page";
-import { VideoListPage } from "@/category/video/page/video_list_page";
-import { VideoDetailPage } from "@/category/video/page/video_detail_page";
-import { StudyListPage } from "@/category/study/page/study_list_page";
-import { StudyDetailPage } from "@/category/study/page/study_detail_page";
-import { StudyTaskPage } from "@/category/study/page/study_task_page";
-import { LessonListPage } from "@/category/lesson/page/lesson_list_page";
-import { LessonDetailPage } from "@/category/lesson/page/lesson_detail_page";
+// Coming Soon — 콘텐츠 준비 중 (video/study/lesson 임시 대체)
+import { ComingSoonPage } from "@/category/coming_soon/page/coming_soon_page";
 import PrivateRoute from "@/routes/private_route";
 
 // Admin imports
@@ -63,10 +58,10 @@ import { PrivacyPage } from "@/category/legal/page/privacy_page";
 import { RefundPolicyPage } from "@/category/legal/page/refund_policy_page";
 import { FaqPage } from "@/category/legal/page/faq_page";
 
-// Payment pages
-import { PricingPage } from "@/category/payment/page/pricing_page";
+// Payment pages — PricingPage 차단 (콘텐츠 미준비, ComingSoonPage로 대체)
 
 // Textbook pages
+import { TextbookCatalogPage } from "@/category/textbook/page/textbook_catalog_page";
 import { TextbookOrderPage } from "@/category/textbook/page/textbook_order_page";
 import { TextbookOrderStatusPage } from "@/category/textbook/page/textbook_order_status_page";
 import { AdminTextbookOrdersPage } from "@/category/admin/textbook/page/admin_textbook_orders_page";
@@ -103,15 +98,17 @@ export function AppRoutes() {
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/health" element={<HealthPage />} />
         <Route path="/request-reset-password" element={<RequestResetPasswordPage />} />
-        <Route path="/videos" element={<VideoListPage />} />
-        <Route path="/videos/:videoId" element={<VideoDetailPage />} />
-        <Route path="/studies" element={<StudyListPage />} />
-        <Route path="/studies/:studyId" element={<StudyDetailPage />} />
-        <Route path="/studies/tasks/:taskId" element={<StudyTaskPage />} />
-        <Route path="/lessons" element={<LessonListPage />} />
-        <Route path="/lessons/:lessonId" element={<LessonDetailPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/textbook" element={<TextbookOrderPage />} />
+        {/* 콘텐츠 준비 중 — 오픈 시 원래 컴포넌트로 복원 */}
+        <Route path="/videos" element={<ComingSoonPage />} />
+        <Route path="/videos/:videoId" element={<ComingSoonPage />} />
+        <Route path="/studies" element={<ComingSoonPage />} />
+        <Route path="/studies/:studyId" element={<ComingSoonPage />} />
+        <Route path="/studies/tasks/:taskId" element={<ComingSoonPage />} />
+        <Route path="/lessons" element={<ComingSoonPage />} />
+        <Route path="/lessons/:lessonId" element={<ComingSoonPage />} />
+        <Route path="/pricing" element={<ComingSoonPage />} />
+        <Route path="/textbook" element={<TextbookCatalogPage />} />
+        <Route path="/textbook/order" element={<TextbookOrderPage />} />
         <Route path="/textbook/order/:code" element={<TextbookOrderStatusPage />} />
         <Route path="/ebook" element={<EbookCatalogPage />} />
         <Route path="/book/:isbn" element={<BookLandingPage />} />
@@ -132,6 +129,11 @@ export function AppRoutes() {
           <Route path="/ebook/viewer/:purchaseCode" element={<EbookViewerPage />} />
           <Route path="/ebook/my" element={<EbookMyPurchasesPage />} />
         </Route>
+
+        {/* 에러 페이지 (RootLayout 내부 — Header/Footer 유지) */}
+        <Route path="/403" element={<AccessDeniedPage />} />
+        <Route path="/error" element={<ErrorPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
 
       {/* Admin 라우트 (admin/HYMN 권한 필요) */}
@@ -180,10 +182,6 @@ export function AppRoutes() {
         </Route>
       </Route>
 
-      {/* 에러 페이지 */}
-      <Route path="/403" element={<AccessDeniedPage />} />
-      <Route path="/error" element={<ErrorPage />} />
-      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

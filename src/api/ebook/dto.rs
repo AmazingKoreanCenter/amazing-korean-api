@@ -75,4 +75,20 @@ pub struct ViewerMetaRes {
     pub edition: EbookEdition,
     pub total_pages: i32,
     pub toc: Vec<TocEntry>,
+    pub session_id: String,
+    pub tile_mode: bool,
+    pub grid_rows: Option<u32>,
+    pub grid_cols: Option<u32>,
+}
+
+// ─────────────────────── Heartbeat ───────────────────────
+
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct HeartbeatReq {
+    pub session_id: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct HeartbeatRes {
+    pub valid: bool,
 }

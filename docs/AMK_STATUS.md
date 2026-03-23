@@ -33,6 +33,9 @@
 | 17 | 교재 HTML 재구축 시스템 | 콘텐츠 | JSON(11) + JS 컴포넌트(10) + CSS(9) → HTML → PDF 자동 생성 파이프라인, 120페이지, 원본 99.2% 일치, Puppeteer CSS 전수 감사 | 2026-03-02 | 20개 언어 자동 생성 토대 |
 | 18 | 교재 번역 Wave 1 | 콘텐츠 | ja, zh_cn, id, th — 923항목 × 4언어 번역, translate_extract/merge 도구, PDF 생성 완료 | 2026-03-02 | Wave 2~5 (16개 언어) |
 | 19 | QR 교재 랜딩 페이지 | 프론트 | `/book/:isbn` — 교재 QR 스캔 → 서비스 연결. 10개 언어 × 2종(학생/교사) ISBN 20개, 3섹션 구조 (Hero+CTA, 서비스안내+다른언어, 하단CTA), PageMeta 동적 SEO, changeLanguage 자동 전환, 국기 SVG 10개 | 2026-03-20 | — |
+| 21 | Coming Soon + 에러 페이지 개선 | 프론트 | 영상/학습/레슨 → ComingSoonPage (HeroSection + Feature 미리보기 + E-book CTA), 에러 페이지 RootLayout 통합 (Header/Footer 유지), i18n `comingSoon.*` 13키 추가 | 2026-03-23 | 콘텐츠 오픈 시 원래 컴포넌트 복원 |
+| 20 | 홈/소개 페이지 문구 & UI 개선 | 프론트 | 플레이스홀더 숫자(1,000+ 영상, 50+ 강사, 10,000+ 수강생) → 실제 차별점(20개 언어, 500+ 핵심 문장, TOPIK 연계)으로 교체, Feature 3번 "1:1 수업" → "교재로 정리하기" (미구현→구현 기능), Trust Indicators text-gradient, Feature/Value 카드 호버 강화, 아이콘 교체 (Layers/Languages/GraduationCap/BookMarked), 문서 검증 후 미구현 기능 5개 수정 | 2026-03-23 | — |
+| 22 | 교재 카탈로그 리디자인 | 프론트 | 표지 이미지 기반 카탈로그 페이지(`/textbook`), 주문 폼 분리(`/textbook/order`), 헤더 "교재" 메뉴 추가, 카탈로그→주문 URL 파라미터 연동, 주문 항목 표지 썸네일 | 2026-03-23 | — |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드
@@ -333,7 +336,7 @@ Paddle Dashboard → **Catalog → Discounts** 에서 3개 생성:
 
 ### 8.6 학습 콘텐츠 보안 전략 (Content Protection)
 
-> 자체 플랫폼(웹/앱)의 학습 콘텐츠와 외부 유통 EPUB3에 대한 3중 보안 아키텍처.
+> 자체 플랫폼(웹/앱)의 학습 콘텐츠와 외부 유통 EPUB3에 대한 7중 보안 아키텍처.
 
 #### 유통 채널별 전략
 
