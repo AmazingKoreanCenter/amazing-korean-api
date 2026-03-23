@@ -11,6 +11,12 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-23 — sqlx 마이그레이션 버전 순서 수정 (프로덕션 크래시 대응)**
+  - **사고 원인 1**: 부트스트랩 스크립트에 프로덕션 미적용 마이그레이션 6개를 "적용됨"으로 등록 → sqlx가 건너뛰어 테이블 미생성
+  - **사고 원인 2**: ebook 마이그레이션 파일명 `20260310000001`이 정수 비교 시 `20260312`보다 큰 값 → 테이블 생성 전에 ALTER 시도 → 크래시 루프
+  - **수정**: `20260310000001_ebook.sql` → `20260311_ebook.sql`로 리네이밍
+  - **교훈**: 같은 날짜 충돌 시 `000001` 접미사 대신 다음 날짜 사용. 부트스트랩은 프로덕션 DB 실제 상태 확인 후 작성
+
 - **2026-03-23 — 구독 요금제 + E-book Paddle 결제 차단**
   - **사유**: 콘텐츠 미준비 상태에서 결제 방지
   - **구독 요금제**: `/pricing` → ComingSoonPage 교체, 헤더 "요금제" 메뉴 제거
@@ -23,7 +29,7 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - **기존**: EC2 SSH 접속 → `docker exec psql < migration.sql` 수동 실행
   - **변경**: `sqlx::migrate!().run(&pool)` — 앱 부팅 시 자동 실행 (`main.rs`)
   - **Cargo.toml**: sqlx features에 `"migrate"` 추가
-  - **파일 구조 변경**: SEED 파일 `seeds/`로 분리, version 충돌 파일 3개 리네이밍 (YYYYMMDDHHMMSS)
+  - **파일 구조 변경**: SEED 파일 `seeds/`로 분리, version 충돌 파일 리네이밍 (다음 날짜 사용: `20260311`, `20260210000001`, `20260214000001`)
   - **프로덕션 전환**: `scripts/bootstrap_sqlx_migrations.sql` 1회성 실행 (기존 13개 마이그레이션 이력 등록)
   - **문서**: `AMK_DEPLOY_OPS.md` 섹션 4 전체 재작성
 

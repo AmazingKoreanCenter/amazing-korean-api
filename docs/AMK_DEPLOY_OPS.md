@@ -321,12 +321,15 @@ docker compose -f docker-compose.prod.yml restart nginx
 **파일 네이밍 규칙:**
 
 ```
-migrations/YYYYMMDDHHMMSS_description.sql
+migrations/YYYYMMDD_description.sql
 ```
 
 - 첫 `_` 앞 숫자가 version (BIGINT PK) — **반드시 유니크**
 - description은 자유 (밑줄 → 공백으로 변환되어 `_sqlx_migrations.description`에 저장)
 - 한 번 적용된 파일의 내용을 수정하면 checksum 불일치로 서버 부팅 실패
+- **같은 날짜 충돌 시**: 다음 날짜를 사용 (예: `20260310` 충돌 → `20260311`)
+
+> **⚠️ HHMMSS(000001 등) 접미사 사용 금지**: `20260310000001`은 정수 `20,260,310,000,001`이 되어 `20260312`(= `20,260,312`)보다 훨씬 큰 값. sqlx는 정수 기준 오름차순으로 실행하므로 의존성 순서가 뒤집혀 서버 크래시 발생 (2026-03-23 사고).
 
 **신규 마이그레이션 추가 방법:**
 
@@ -345,20 +348,21 @@ git add .sqlx
 # 4. 커밋 & 푸시 → 배포 시 자동 적용
 ```
 
-##### 4-1. 기존 프로덕션 전환 (1회성)
+##### 4-1. 기존 프로덕션 전환 (1회성) — 완료 (2026-03-23)
 
-기존에 수동으로 적용된 마이그레이션을 `_sqlx_migrations` 테이블에 등록해야 합니다.
-이 작업은 자동 마이그레이션 전환 시 **1회만** 실행합니다.
+> **이 섹션은 기록용입니다. 전환은 이미 완료되었으며, 다시 실행할 필요 없습니다.**
+
+기존에 수동으로 적용된 마이그레이션을 `_sqlx_migrations` 테이블에 등록하는 1회성 작업.
 
 ```bash
 # EC2 SSH 접속 후
 cd amazing-korean-api
 git pull origin KKRYOUN
 
-# 부트스트랩 스크립트 실행 (기존 13개 마이그레이션 이력 등록)
+# 부트스트랩 스크립트 실행
 docker exec -i amk-pg psql -U postgres -d amazing_korean_db < scripts/bootstrap_sqlx_migrations.sql
 
-# 확인: 13개 행이 모두 등록되었는지 확인
+# 확인
 docker exec -i amk-pg psql -U postgres -d amazing_korean_db \
   -c "SELECT version, description, success FROM _sqlx_migrations ORDER BY version;"
 
@@ -369,7 +373,10 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 docker logs amk-api --tail 30
 ```
 
-> **주의**: 부트스트랩 없이 앱을 시작하면 sqlx가 모든 마이그레이션을 처음부터 실행하려 하여, 이미 존재하는 테이블/컬럼 에러로 서버 부팅 실패.
+> **⚠️ 부트스트랩 스크립트 작성 시 주의사항 (2026-03-23 사고 교훈):**
+> - 부트스트랩에는 **프로덕션 DB에 실제 적용된 마이그레이션만** 등록해야 함
+> - 로컬에만 적용된 마이그레이션을 포함하면 sqlx가 "이미 적용됨"으로 건너뛰어 **테이블이 생성되지 않은 채 후속 마이그레이션 실행 → 크래시**
+> - 작성 전 프로덕션 DB에서 `\dt` / `\dT`로 실제 테이블/ENUM 존재 여부를 반드시 확인
 
 ##### 4-2. 클린 배포 절차 (DB 초기화)
 
@@ -470,6 +477,7 @@ docker stats
 | `migration X was previously applied but has been modified` | 적용 후 마이그레이션 파일 내용 변경 (checksum 불일치) | 파일을 원래 내용으로 복원. 스키마 변경이 필요하면 새 마이그레이션 파일 추가 |
 | `migration X was previously applied but is missing` | 적용 후 마이그레이션 파일 삭제 | 삭제된 파일 복원, 또는 `_sqlx_migrations` 테이블에서 해당 행 삭제 |
 | 앱 시작 시 `relation already exists` | `_sqlx_migrations` 테이블 없이 앱 시작 (기존 프로덕션) | `scripts/bootstrap_sqlx_migrations.sql` 먼저 실행 |
+| 앱 시작 시 `relation "X" does not exist` (마이그레이션 중) | 마이그레이션 실행 순서 오류. 원인 2가지: **(1)** 부트스트랩에 프로덕션 미적용 마이그레이션을 등록하여 sqlx가 건너뜀 **(2)** 파일명의 정수 버전이 의존성 순서와 불일치 (예: `20260310000001` > `20260312`) | `_sqlx_migrations`에서 잘못 등록된 행 DELETE → 파일명 버전 순서 확인 → 앱 재시작 |
 
 ##### 8-1. 환경변수 변경 시 docker-compose.prod.yml 동시 수정 필수
 
@@ -920,11 +928,14 @@ PADDLE_PRICE_EBOOK=pri_...
 
 ### DB 마이그레이션
 
-| 경로 | 관리 방법 |
-|------|----------|
-| `migrations/20260208_AMK_V1.sql` | 통합 스키마 — 클린 배포 시 `docker exec -i amk-pg psql ...` 로 실행 |
-| `migrations/20260208_AMK_V1_SEED.sql` | 시드 데이터 — 스키마 적용 후 실행 (콘텐츠 테이블만, 사용자 데이터 없음) |
-| `migrations/20260215_payment_system.sql` | 결제 시스템 — ENUM 4개 + 테이블 3개 (subscriptions, transactions, webhook_events) |
-| `migrations/*.sql` (기타) | `sqlx migrate run` 으로 점진적 마이그레이션. 오프라인 빌드 시 `.sqlx/` 폴더 필요 |
+앱 부팅 시 `sqlx::migrate!()` 가 `migrations/` 폴더의 SQL 파일을 자동 실행. 수동 실행 불필요.
+
+| 경로 | 설명 |
+|------|------|
+| `migrations/*.sql` | sqlx 자동 마이그레이션 — 앱 부팅 시 버전 순서대로 자동 적용 |
+| `seeds/20260208_AMK_V1_SEED.sql` | 시드 데이터 — 클린 배포 시 수동 투입 (자동 실행 안 됨) |
+| `scripts/bootstrap_sqlx_migrations.sql` | 1회성 전환 스크립트 (완료됨, 재실행 불필요) |
+
+> **네이밍 주의**: 파일명의 `_` 앞 숫자가 정수 버전. 같은 날짜 충돌 시 다음 날짜 사용. `000001` 접미사 절대 금지 (정수 비교 시 순서 뒤집힘).
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
