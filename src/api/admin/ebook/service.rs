@@ -1,8 +1,11 @@
+use crate::crypto::CryptoService;
 use crate::error::{AppError, AppResult};
+use crate::external::email::{send_templated, EmailTemplate};
 use crate::state::AppState;
 use crate::types::{AdminAction, EbookPurchaseStatus};
 
 use crate::api::ebook::repo;
+use crate::api::ebook::service::{language_name_ko, edition_label_ko};
 
 use super::dto::{
     AdminEbookListReq, AdminEbookListRes, AdminEbookMeta, AdminEbookPurchaseItem,
@@ -126,6 +129,29 @@ impl AdminEbookService {
             Some(after_data),
         )
         .await?;
+
+        // 결제 완료 이메일 발송 (completed 전환 시)
+        if req.status == EbookPurchaseStatus::Completed {
+            if let Some(ref email_sender) = st.email {
+                let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+                if let Ok(Some(encrypted_email)) = repo::find_user_encrypted_email(&st.db, existing.user_id).await {
+                    if let Ok(user_email) = crypto.decrypt(&encrypted_email, "users.user_email") {
+                        let template = EmailTemplate::EbookPurchaseCompleted {
+                            purchase_code: existing.purchase_code.clone(),
+                            language_name: language_name_ko(existing.language).to_string(),
+                            edition_label: edition_label_ko(existing.edition).to_string(),
+                        };
+                        if let Err(e) = send_templated(email_sender.as_ref(), &user_email, template).await {
+                            tracing::warn!(
+                                purchase_code = %existing.purchase_code,
+                                error = %e,
+                                "Failed to send ebook purchase completed email"
+                            );
+                        }
+                    }
+                }
+            }
+        }
 
         Self::get_purchase(st, purchase_id).await
     }

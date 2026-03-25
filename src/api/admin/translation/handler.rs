@@ -3,11 +3,10 @@ use axum::http::StatusCode;
 use axum::Json;
 
 use crate::api::auth::extractor::AuthUser;
-use crate::error::{AppError, AppResult};
+use crate::error::AppResult;
 use crate::state::AppState;
 
 use super::dto::{
-    AutoTranslateBulkReq, AutoTranslateBulkRes, AutoTranslateReq, AutoTranslateRes,
     ContentRecordsReq, ContentRecordsRes, SourceFieldsReq, SourceFieldsRes,
     TranslationBulkCreateReq, TranslationBulkCreateRes, TranslationCreateReq,
     TranslationListReq, TranslationListRes, TranslationRes, TranslationSearchReq,
@@ -174,32 +173,6 @@ pub async fn admin_delete_translation(
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[utoipa::path(
-    post,
-    path = "/admin/translations/auto",
-    tag = "admin_translation",
-    request_body(content = AutoTranslateReq, content_type = "application/json"),
-    responses(
-        (status = 200, description = "Auto translation result", body = AutoTranslateRes),
-        (status = 400, description = "Bad request"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden"),
-        (status = 502, description = "Translation provider not configured"),
-    ),
-    security(("bearerAuth" = []))
-)]
-pub async fn admin_auto_translate(
-    State(st): State<AppState>,
-    AuthUser(_auth): AuthUser,
-    Json(req): Json<AutoTranslateReq>,
-) -> AppResult<Json<AutoTranslateRes>> {
-    let translator = st.translator.as_ref().ok_or_else(|| {
-        AppError::External("Translation provider not configured. Set TRANSLATE_PROVIDER=google.".to_string())
-    })?;
-    let res = TranslationService::auto_translate(&st.db, translator.as_ref(), req).await?;
-    Ok(Json(res))
-}
-
 // =============================================================================
 // 콘텐츠 목록 조회 (Step 4)
 // =============================================================================
@@ -249,36 +222,6 @@ pub async fn admin_get_source_fields(
     Query(req): Query<SourceFieldsReq>,
 ) -> AppResult<Json<SourceFieldsRes>> {
     let res = TranslationService::get_source_fields(&st.db, req).await?;
-    Ok(Json(res))
-}
-
-// =============================================================================
-// 벌크 자동 번역 (Step 6)
-// =============================================================================
-
-#[utoipa::path(
-    post,
-    path = "/admin/translations/auto-bulk",
-    tag = "admin_translation",
-    request_body(content = AutoTranslateBulkReq, content_type = "application/json"),
-    responses(
-        (status = 200, description = "Bulk auto translation result", body = AutoTranslateBulkRes),
-        (status = 400, description = "Bad request"),
-        (status = 401, description = "Unauthorized"),
-        (status = 403, description = "Forbidden"),
-        (status = 502, description = "Translation provider not configured"),
-    ),
-    security(("bearerAuth" = []))
-)]
-pub async fn admin_auto_translate_bulk(
-    State(st): State<AppState>,
-    AuthUser(_auth): AuthUser,
-    Json(req): Json<AutoTranslateBulkReq>,
-) -> AppResult<Json<AutoTranslateBulkRes>> {
-    let translator = st.translator.as_ref().ok_or_else(|| {
-        AppError::External("Translation provider not configured. Set TRANSLATE_PROVIDER=google.".to_string())
-    })?;
-    let res = TranslationService::auto_translate_bulk(&st.db, translator.as_ref(), req).await?;
     Ok(Json(res))
 }
 

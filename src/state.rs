@@ -8,7 +8,6 @@ use crate::config::Config;
 use crate::external::email::EmailSender;
 use crate::external::ipgeo::IpGeoClient;
 use crate::external::payment::PaymentProvider;
-use crate::external::translator::TranslationProvider;
 
 #[derive(Clone, FromRef)]
 pub struct AppState {
@@ -20,8 +19,6 @@ pub struct AppState {
     pub email: Option<Arc<dyn EmailSender>>,
     /// IP Geolocation 클라이언트
     pub ipgeo: Arc<IpGeoClient>,
-    /// 번역 프로바이더 (TRANSLATE_PROVIDER 설정에 따라 Google Cloud Translation 사용)
-    pub translator: Option<Arc<dyn TranslationProvider>>,
     /// 결제 프로바이더 (PAYMENT_PROVIDER 설정에 따라 Paddle Billing 사용)
     pub payment: Option<Arc<dyn PaymentProvider>>,
 }

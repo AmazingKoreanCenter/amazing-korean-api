@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 
 import { RootLayout } from "@/components/layout/root_layout";
 import HomePage from "@/category/home/home_page";
@@ -60,26 +60,46 @@ import { FaqPage } from "@/category/legal/page/faq_page";
 
 // Payment pages — PricingPage 차단 (콘텐츠 미준비, ComingSoonPage로 대체)
 
+// Book hub page
+import { BookHubPage } from "@/category/book/page/book_hub_page";
+
+// Book QR landing page
+import { BookLandingPage } from "@/category/book/page/book_landing_page";
+
 // Textbook pages
 import { TextbookCatalogPage } from "@/category/textbook/page/textbook_catalog_page";
 import { TextbookOrderPage } from "@/category/textbook/page/textbook_order_page";
 import { TextbookOrderStatusPage } from "@/category/textbook/page/textbook_order_status_page";
+import { TextbookMyOrdersPage } from "@/category/textbook/page/textbook_my_orders_page";
+import { TextbookOrderPrint } from "@/category/textbook/page/textbook_order_print";
 import { AdminTextbookOrdersPage } from "@/category/admin/textbook/page/admin_textbook_orders_page";
 import { AdminTextbookOrderDetail } from "@/category/admin/textbook/page/admin_textbook_order_detail";
 import { AdminTextbookOrderPrint } from "@/category/admin/textbook/page/admin_textbook_order_print";
-
-// Book landing page
-import { BookLandingPage } from "@/category/book/page/book_landing_page";
 
 // E-book pages
 import { EbookCatalogPage } from "@/category/ebook/page/ebook_catalog_page";
 import { EbookViewerPage } from "@/category/ebook/page/ebook_viewer_page";
 import { EbookMyPurchasesPage } from "@/category/ebook/page/ebook_my_purchases_page";
+import { EbookPurchaseCompletePage } from "@/category/ebook/page/ebook_purchase_complete_page";
 import { AdminEbookPurchasesPage } from "@/category/admin/ebook/page/admin_ebook_purchases_page";
 import { AdminEbookPurchaseDetail } from "@/category/admin/ebook/page/admin_ebook_purchase_detail";
 
 // Error pages
 import { AccessDeniedPage, NotFoundPage, ErrorPage } from "@/category/error/page";
+
+// Redirect helpers for parameterized old routes
+function RedirectTextbookOrder() {
+  const { code } = useParams();
+  return <Navigate to={`/book/textbook/order/${code}`} replace />;
+}
+function RedirectTextbookOrderPrint() {
+  const { code } = useParams();
+  return <Navigate to={`/book/textbook/order/${code}/print`} replace />;
+}
+function RedirectEbookViewer() {
+  const { purchaseCode } = useParams();
+  return <Navigate to={`/book/ebook/viewer/${purchaseCode}`} replace />;
+}
 
 export function AppRoutes() {
   return (
@@ -107,11 +127,20 @@ export function AppRoutes() {
         <Route path="/lessons" element={<ComingSoonPage />} />
         <Route path="/lessons/:lessonId" element={<ComingSoonPage />} />
         <Route path="/pricing" element={<ComingSoonPage />} />
-        <Route path="/textbook" element={<TextbookCatalogPage />} />
-        <Route path="/textbook/order" element={<TextbookOrderPage />} />
-        <Route path="/textbook/order/:code" element={<TextbookOrderStatusPage />} />
-        <Route path="/ebook" element={<EbookCatalogPage />} />
+
+        {/* Book 허브 + 카탈로그 (Public) */}
+        <Route path="/book" element={<BookHubPage />} />
+        <Route path="/book/textbook" element={<TextbookCatalogPage />} />
+        <Route path="/book/textbook/order/:code" element={<TextbookOrderStatusPage />} />
+        <Route path="/book/textbook/order/:code/print" element={<TextbookOrderPrint />} />
+        <Route path="/book/ebook" element={<EbookCatalogPage />} />
         <Route path="/book/:isbn" element={<BookLandingPage />} />
+
+        {/* 기존 경로 리다이렉트 (하위 호환) */}
+        <Route path="/textbook" element={<Navigate to="/book/textbook" replace />} />
+        <Route path="/textbook/order/:code/print" element={<RedirectTextbookOrderPrint />} />
+        <Route path="/textbook/order/:code" element={<RedirectTextbookOrder />} />
+        <Route path="/ebook" element={<Navigate to="/book/ebook" replace />} />
 
         {/* 법적/정책 페이지 (Public) */}
         <Route path="/terms" element={<TermsPage />} />
@@ -126,8 +155,17 @@ export function AppRoutes() {
         <Route element={<PrivateRoute />}>
           <Route path="/user/me" element={<MyPage />} />
           <Route path="/user/settings" element={<SettingsPage />} />
-          <Route path="/ebook/viewer/:purchaseCode" element={<EbookViewerPage />} />
-          <Route path="/ebook/my" element={<EbookMyPurchasesPage />} />
+          <Route path="/book/textbook/order" element={<TextbookOrderPage />} />
+          <Route path="/book/textbook/my" element={<TextbookMyOrdersPage />} />
+          <Route path="/book/ebook/purchase-complete" element={<EbookPurchaseCompletePage />} />
+          <Route path="/book/ebook/viewer/:purchaseCode" element={<EbookViewerPage />} />
+          <Route path="/book/ebook/my" element={<EbookMyPurchasesPage />} />
+          {/* 기존 Private 경로 리다이렉트 */}
+          <Route path="/textbook/order" element={<Navigate to="/book/textbook/order" replace />} />
+          <Route path="/textbook/my" element={<Navigate to="/book/textbook/my" replace />} />
+          <Route path="/ebook/purchase-complete" element={<Navigate to="/book/ebook/purchase-complete" replace />} />
+          <Route path="/ebook/viewer/:purchaseCode" element={<RedirectEbookViewer />} />
+          <Route path="/ebook/my" element={<Navigate to="/book/ebook/my" replace />} />
         </Route>
 
         {/* 에러 페이지 (RootLayout 내부 — Header/Footer 유지) */}

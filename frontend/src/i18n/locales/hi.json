@@ -32,6 +32,7 @@
     "videos": "वीडियो",
     "studies": "अध्ययन",
     "lessons": "पाठ",
+    "book": "पुस्तक",
     "pricing": "मूल्य",
     "myPage": "मेरा पेज",
     "login": "लॉगिन",
@@ -211,6 +212,7 @@
     "myPageDescription": "अपनी प्रोफ़ाइल जानकारी देखें और संपादित करें",
     "settingsTitle": "सेटिंग्स",
     "settingsButton": "सेटिंग्स",
+    "purchaseHistory": "खरीद इतिहास",
     "userNotFound": "उपयोगकर्ता जानकारी नहीं मिली।",
     "userLoadFailed": "उपयोगकर्ता जानकारी लोड करने में विफल।",
     "settingsLoadFailed": "सेटिंग्स लोड करने में विफल।",
@@ -474,7 +476,24 @@
       "studentEdition": "छात्र संस्करण",
       "selectLanguage": "कृपया एक भाषा चुनें।",
       "comingSoon": "जल्द आ रहा है",
-      "loadError": "कैटलॉग लोड करने में विफल।"
+      "loadError": "कैटलॉग लोड करने में विफल।",
+      "refundPolicy": "रिफंड नीति देखें",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
     },
     "purchase": {
       "title": "खरीद विवरण",
@@ -484,9 +503,41 @@
       "buy": "खरीदें",
       "loginRequired": "खरीदने के लिए लॉगिन करें",
       "success": "खरीद पूर्ण।",
-      "error": "खरीद के दौरान त्रुटि हुई।"
+      "error": "खरीद के दौरान त्रुटि हुई।",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
     },
-    "status": { "pending": "प्रतीक्षारत", "completed": "उपलब्ध", "refunded": "धनवापसी" },
+    "purchaseComplete": {
+      "title": "खरीद पूर्ण",
+      "description": "आपकी E-book खरीद पूर्ण हो गई है।",
+      "subtitle": "आपका ऑर्डर प्राप्त हो गया है। कृपया नीचे विवरण जांचें।",
+      "purchaseCode": "खरीद कोड",
+      "codeCopied": "कोड कॉपी किया गया।",
+      "edition": "संस्करण",
+      "price": "कीमत",
+      "paymentMethod": "भुगतान विधि",
+      "bankGuideTitle": "भुगतान निर्देश",
+      "bankAccount": "{{account}}",
+      "bankNote": "7 दिनों के भीतर भुगतान करें। भुगतान सत्यापन के बाद पहुंच उपलब्ध होगी।",
+      "goToMyEbooks": "मेरे E-books",
+      "browseCatalog": "कैटलॉग ब्राउज़ करें",
+      "noData": "खरीद जानकारी नहीं मिली।"
+    },
+    "preview": {
+      "button": "पूर्वावलोकन",
+      "description": "कवर, विषय सूची और नमूना पृष्ठों का पूर्वावलोकन।",
+      "cover": "कवर",
+      "toc": "विषय सूची",
+      "sample": "नमूना {{n}}",
+      "pages": " पृष्ठ",
+      "purchaseButton": "खरीदें",
+      "imageNotAvailable": "चित्र तैयार हो रहा है"
+    },
+    "status": {
+      "pending": "प्रतीक्षारत",
+      "completed": "उपलब्ध",
+      "refunded": "धनवापसी"
+    },
     "my": {
       "title": "मेरी ई-बुक",
       "empty": "कोई खरीदी गई ई-बुक नहीं।",
@@ -494,24 +545,180 @@
       "openViewer": "व्यूअर खोलें",
       "loadError": "खरीद इतिहास लोड करने में विफल।"
     },
-    "viewer": { "toc": "विषय सूची", "notFound": "पाठ्यपुस्तक नहीं मिली।", "loadFailed": "पृष्ठ लोड करने में विफल।" }
+    "viewer": {
+      "toc": "विषय सूची",
+      "notFound": "पाठ्यपुस्तक नहीं मिली।",
+      "loadFailed": "पृष्ठ लोड करने में विफल।"
+    }
+  },
+  "textbook": {
+    "heroBadge": "Amazing Korean पाठ्यपुस्तकें",
+    "heroTitle": "पाठ्यपुस्तक ऑर्डर",
+    "heroSubtitle": "20 भाषाओं में पाठ्यपुस्तकें ऑर्डर करें। छात्र और शिक्षक संस्करण उपलब्ध हैं।",
+    "catalog": {
+      "badge": "पाठ्यपुस्तक",
+      "title": "कोरियाई पाठ्यपुस्तक संग्रह",
+      "description": "20 भाषाओं में छात्र और शिक्षक संस्करणों के साथ\nव्यवस्थित कोरियाई सीखने की यात्रा शुरू करें।",
+      "studentSection": "छात्र संस्करण",
+      "studentDescription": "सीखने वालों के लिए कोरियाई पाठ्यपुस्तकें।",
+      "teacherSection": "शिक्षक संस्करण",
+      "teacherDescription": "शिक्षकों के लिए कोरियाई शिक्षण मार्गदर्शिका।",
+      "orderButton": "ऑर्डर करें",
+      "pricePerUnit": "₩25,000 / प्रति",
+      "orderGuideTitle": "ऑर्डर जानकारी",
+      "orderGuideMinQty": "न्यूनतम ऑर्डर मात्रा 10 प्रतियाँ है।",
+      "orderGuidePayment": "बैंक ट्रांसफर द्वारा भुगतान।",
+      "orderGuideBulk": "100+ प्रतियों के ऑर्डर पर मुफ्त शिपिंग",
+      "orderCta": "पाठ्यपुस्तकें ऑर्डर करें",
+      "viewGrid": "ग्रिड दृश्य",
+      "viewCarousel": "कैरोसेल दृश्य",
+      "searchPlaceholder": "भाषा खोजें...",
+      "noResults": "कोई परिणाम नहीं मिला।",
+      "bookDescription": "व्यवस्थित कोरियाई सीखने की पाठ्यपुस्तक। प्रत्येक भाषा के मूल वक्ता विशेषज्ञों द्वारा अनुवादित।"
+    },
+    "detail": {
+      "modalTitle": "पाठ्यपुस्तक विवरण",
+      "coverImage": "मुख पृष्ठ",
+      "innerImage": "आंतरिक पृष्ठ",
+      "tocImage": "विषय सूची",
+      "description": "120 पृष्ठों की व्यवस्थित कोरियाई शिक्षण पुस्तक, प्रारंभिक से मध्यम स्तर तक।",
+      "translationNote": "{{language}} मूल भाषी विशेषज्ञों द्वारा अनुवादित।",
+      "orderNow": "अभी ऑर्डर करें",
+      "viewDetail": "विवरण देखें",
+      "imageNotAvailable": "छवि जल्द आ रही है"
+    },
+    "myOrders": {
+      "badge": "मेरे ऑर्डर",
+      "title": "पाठ्यपुस्तक खरीद इतिहास",
+      "description": "अपने ऑर्डर की स्थिति जांचें।",
+      "empty": "अभी तक कोई ऑर्डर नहीं।",
+      "browseCatalog": "पाठ्यपुस्तकें देखें",
+      "loadError": "ऑर्डर सूची लोड नहीं हो सकी।",
+      "status": {
+        "pending": "लंबित",
+        "confirmed": "पुष्टि",
+        "paid": "भुगतान पूर्ण",
+        "printing": "छपाई में",
+        "shipped": "भेजा गया",
+        "delivered": "वितरित",
+        "canceled": "रद्द"
+      }
+    },
+    "print": {
+      "quoteTitle": "कोटेशन",
+      "confirmationTitle": "ऑर्डर पुष्टि",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "दस्तावेज़ संख्या",
+      "date": "दिनांक",
+      "status": "स्थिति",
+      "recipient": "प्राप्तकर्ता",
+      "colItem": "वस्तु",
+      "colType": "प्रकार",
+      "colQty": "मात्रा",
+      "colPrice": "इकाई मूल्य",
+      "colSubtotal": "उप-योग",
+      "textbookPrefix": "Amazing Korean",
+      "total": "कुल",
+      "quoteTotal": "कोटेशन राशि",
+      "confirmationTotal": "ऑर्डर राशि",
+      "vatIncluded": "VAT शामिल",
+      "bankInfo": "भुगतान जानकारी",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "कृपया ऑर्डर पुष्टि के 7 दिनों के भीतर भुगतान करें।",
+      "taxInvoice": "कर चालान जानकारी",
+      "bizNumber": "व्यापार पंजीकरण संख्या",
+      "taxCompanyName": "कंपनी का नाम",
+      "repName": "प्रतिनिधि",
+      "taxEmail": "कर चालान ईमेल",
+      "taxAddress": "व्यापार पता",
+      "taxBizType": "व्यापार प्रकार",
+      "taxBizItem": "व्यापार मद",
+      "notes": "नोट्स",
+      "footer": "यह दस्तावेज़ इलेक्ट्रॉनिक रूप से जनरेट किया गया है और बिना हस्ताक्षर के मान्य है।",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "प्रिंट / PDF के रूप में सहेजें",
+      "pdfGuide": "PDF के रूप में सहेजने के लिए, प्रिंट डायलॉग में 'PDF के रूप में सहेजें' चुनें।",
+      "notFound": "ऑर्डर नहीं मिला।",
+      "quoteNotice": "यह कोटेशन ऑर्डर सबमिशन पर आधारित है और वास्तविक भुगतान राशि भिन्न हो सकती है।",
+      "confirmationNotice": "यह पुष्टि केवल ऑर्डर स्थिति सत्यापन के लिए है और यह आधिकारिक रसीद नहीं है।"
+    }
   },
   "seo": {
-    "home": { "title": "Amazing Korean - कोरियाई सीखने का मंच", "description": "दुनिया भर के शिक्षार्थियों के लिए सर्वश्रेष्ठ ऑनलाइन कोरियाई सीखने का मंच। वीडियो सीखना, व्यवस्थित अभ्यास और 1:1 पाठ।" },
-    "about": { "title": "परिचय - Amazing Korean", "description": "Amazing Korean के बारे में — दुनिया भर के शिक्षार्थियों के लिए प्रभावी और आनंददायक कोरियाई सीखने का अनुभव।" },
-    "pricing": { "title": "मूल्य - Amazing Korean", "description": "Amazing Korean मूल्य योजनाएं — वीडियो, अध्ययन सामग्री और पाठों तक असीमित पहुंच।" },
-    "videos": { "title": "वीडियो पाठ - Amazing Korean", "description": "पेशेवर प्रशिक्षकों के वीडियो पाठों से प्रभावी ढंग से कोरियाई सीखें।" },
-    "studies": { "title": "अध्ययन सामग्री - Amazing Korean", "description": "व्यवस्थित अध्ययन सामग्री और अभ्यास से अपनी कोरियाई क्षमता बढ़ाएं।" },
-    "lessons": { "title": "पाठ - Amazing Korean", "description": "व्यवस्थित पाठों से चरणबद्ध तरीके से कोरियाई सीखें।" },
-    "login": { "title": "लॉगिन - Amazing Korean", "description": "कोरियाई सीखना शुरू करने के लिए Amazing Korean में लॉगिन करें।" },
-    "signup": { "title": "साइन अप - Amazing Korean", "description": "Amazing Korean से जुड़ें और अपनी कोरियाई सीखने की यात्रा शुरू करें।" },
-    "terms": { "title": "सेवा की शर्तें - Amazing Korean", "description": "Amazing Korean सेवा की शर्तें।" },
-    "privacy": { "title": "गोपनीयता नीति - Amazing Korean", "description": "डेटा संग्रह और प्रसंस्करण के संबंध में Amazing Korean गोपनीयता नीति।" },
-    "refundPolicy": { "title": "धनवापसी नीति - Amazing Korean", "description": "Amazing Korean सदस्यता धनवापसी नीति।" },
-    "faq": { "title": "अक्सर पूछे जाने वाले प्रश्न - Amazing Korean", "description": "Amazing Korean के बारे में अक्सर पूछे जाने वाले प्रश्न।" },
-    "findId": { "title": "खाता पुनर्प्राप्ति - Amazing Korean", "description": "अपनी पंजीकृत खाता जानकारी खोजें।" },
-    "requestResetPassword": { "title": "पासवर्ड रीसेट - Amazing Korean", "description": "अपने पंजीकृत पते पर पासवर्ड रीसेट ईमेल भेजें।" },
-    "textbook": { "title": "पाठ्यपुस्तक ऑर्डर - Amazing Korean", "description": "Amazing Korean पाठ्यपुस्तकें ऑनलाइन ऑर्डर करें। 20 भाषाओं में उपलब्ध।" },
-    "textbookStatus": { "title": "ऑर्डर स्थिति - Amazing Korean", "description": "अपनी पाठ्यपुस्तक ऑर्डर स्थिति जांचें।" }
+    "home": {
+      "title": "Amazing Korean - कोरियाई सीखने का मंच",
+      "description": "दुनिया भर के शिक्षार्थियों के लिए सर्वश्रेष्ठ ऑनलाइन कोरियाई सीखने का मंच। वीडियो सीखना, व्यवस्थित अभ्यास और 1:1 पाठ।"
+    },
+    "about": {
+      "title": "परिचय - Amazing Korean",
+      "description": "Amazing Korean के बारे में — दुनिया भर के शिक्षार्थियों के लिए प्रभावी और आनंददायक कोरियाई सीखने का अनुभव।"
+    },
+    "pricing": {
+      "title": "मूल्य - Amazing Korean",
+      "description": "Amazing Korean मूल्य योजनाएं — वीडियो, अध्ययन सामग्री और पाठों तक असीमित पहुंच।"
+    },
+    "videos": {
+      "title": "वीडियो पाठ - Amazing Korean",
+      "description": "पेशेवर प्रशिक्षकों के वीडियो पाठों से प्रभावी ढंग से कोरियाई सीखें।"
+    },
+    "studies": {
+      "title": "अध्ययन सामग्री - Amazing Korean",
+      "description": "व्यवस्थित अध्ययन सामग्री और अभ्यास से अपनी कोरियाई क्षमता बढ़ाएं।"
+    },
+    "lessons": {
+      "title": "पाठ - Amazing Korean",
+      "description": "व्यवस्थित पाठों से चरणबद्ध तरीके से कोरियाई सीखें।"
+    },
+    "login": {
+      "title": "लॉगिन - Amazing Korean",
+      "description": "कोरियाई सीखना शुरू करने के लिए Amazing Korean में लॉगिन करें।"
+    },
+    "signup": {
+      "title": "साइन अप - Amazing Korean",
+      "description": "Amazing Korean से जुड़ें और अपनी कोरियाई सीखने की यात्रा शुरू करें।"
+    },
+    "terms": {
+      "title": "सेवा की शर्तें - Amazing Korean",
+      "description": "Amazing Korean सेवा की शर्तें।"
+    },
+    "privacy": {
+      "title": "गोपनीयता नीति - Amazing Korean",
+      "description": "डेटा संग्रह और प्रसंस्करण के संबंध में Amazing Korean गोपनीयता नीति।"
+    },
+    "refundPolicy": {
+      "title": "धनवापसी नीति - Amazing Korean",
+      "description": "Amazing Korean सदस्यता धनवापसी नीति।"
+    },
+    "faq": {
+      "title": "अक्सर पूछे जाने वाले प्रश्न - Amazing Korean",
+      "description": "Amazing Korean के बारे में अक्सर पूछे जाने वाले प्रश्न।"
+    },
+    "findId": {
+      "title": "खाता पुनर्प्राप्ति - Amazing Korean",
+      "description": "अपनी पंजीकृत खाता जानकारी खोजें।"
+    },
+    "requestResetPassword": {
+      "title": "पासवर्ड रीसेट - Amazing Korean",
+      "description": "अपने पंजीकृत पते पर पासवर्ड रीसेट ईमेल भेजें।"
+    },
+    "textbook": {
+      "title": "पाठ्यपुस्तक ऑर्डर - Amazing Korean",
+      "description": "Amazing Korean पाठ्यपुस्तकें ऑनलाइन ऑर्डर करें। 20 भाषाओं में उपलब्ध।"
+    },
+    "textbookStatus": {
+      "title": "ऑर्डर स्थिति - Amazing Korean",
+      "description": "अपनी पाठ्यपुस्तक ऑर्डर स्थिति जांचें।"
+    }
+  },
+  "bookHub": {
+    "badge": "Amazing Korean पाठ्यपुस्तक",
+    "title": "कोरियाई भाषा पाठ्यपुस्तक",
+    "subtitle": "20 भाषाओं में उपलब्ध कोरियाई सीखने की पाठ्यपुस्तकें खोजें",
+    "descriptionTitle": "Amazing Korean क्या है?",
+    "description": "Amazing Korean शुरुआती लोगों के लिए डिज़ाइन की गई एक व्यवस्थित कोरियाई भाषा पाठ्यपुस्तक है। हंगुल व्यंजन और स्वर से लेकर मुख्य वाक्य, व्याकरण, अभ्यास और TOPIK तैयारी तक — सब एक किताब में।",
+    "samplePages": "पूर्वावलोकन पृष्ठ",
+    "samplePagesNote": "वास्तविक पाठ्यपुस्तक के नमूना पृष्ठ",
+    "ctaTitle": "पुस्तकें ब्राउज़ करें",
+    "ctaTextbook": "मुद्रित कैटलॉग",
+    "ctaEbook": "E-book कैटलॉग"
   }
 }

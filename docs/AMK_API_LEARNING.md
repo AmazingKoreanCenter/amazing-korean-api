@@ -453,10 +453,10 @@
 | 9-5 | `PATCH /admin/translations/{id}` | `/admin/translations/{translation_id}/edit` | 번역 수정 (텍스트/상태) | ***translated_text, status 부분 수정, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422** | [✅] |
 | 9-6 | `PATCH /admin/translations/{id}/status` | `/admin/translations/{translation_id}` | 번역 상태만 변경 | ***draft → reviewed → approved 상태 전이, RBAC***<br>성공: **200**<br>실패: **401/403/404/400/422** | [✅] |
 | 9-7 | `DELETE /admin/translations/{id}` | `/admin/translations/{translation_id}` | 번역 삭제 | ***RBAC***<br>성공: **200**<br>실패: **401/403/404** | [✅] |
-| 9-8 | `POST /admin/translations/auto` | `/admin/translations` | 자동 번역 (GCP) | ***Google Cloud Translation v2 Basic 연동, 원본 텍스트를 대상 언어로 자동 번역 후 draft 상태로 UPSERT, TRANSLATE_PROVIDER=none이면 503, RBAC***<br>성공: **200**<br>실패: **401/403/400/422/503** | [✅] |
+| ~~9-8~~ | ~~`POST /admin/translations/auto`~~ | — | ~~자동 번역 (GCP)~~ | **삭제됨** (2026-03-24, Google Translate API 해지) | — |
 | 9-9 | `GET /admin/translations/content-records` | - | 콘텐츠 목록 조회 (드롭다운용) | ***content_type별 레코드 목록 반환, RBAC***<br>성공: **200**<br>실패: **401/403/400** | [✅] |
 | 9-10 | `GET /admin/translations/source-fields` | - | 원본 텍스트 조회 | ***content_type+content_id로 한국어 원본 필드 조회, RBAC***<br>성공: **200**<br>실패: **401/403/400** | [✅] |
-| 9-11 | `POST /admin/translations/auto-bulk` | `/admin/translations/new` | 벌크 자동 번역 | ***복수 필드 × 복수 언어 일괄 자동 번역, 숫자 값 스킵, RBAC***<br>성공: **200**<br>실패: **401/403/400/422/503** | [✅] |
+| ~~9-11~~ | ~~`POST /admin/translations/auto-bulk`~~ | — | ~~벌크 자동 번역~~ | **삭제됨** (2026-03-24, Google Translate API 해지) | — |
 | 9-12 | `GET /admin/translations/search` | - | 번역 검색 (재사용) | ***lang으로 최근 approved/reviewed 번역 조회, RBAC***<br>성공: **200**<br>실패: **401/403** | [✅] |
 
 ---
@@ -621,53 +621,9 @@ draft → reviewed → approved
 
 ---
 
-#### 9-8 : `POST /admin/translations/auto` (자동 번역)
+#### ~~9-8 : `POST /admin/translations/auto` (자동 번역)~~ — 삭제됨 (2026-03-24)
 
-> Google Cloud Translation v2 Basic를 사용하여 원본 텍스트를 지정 언어로 자동 번역한다. 번역 결과는 `draft` 상태로 `content_translations`에 UPSERT된다.
-
-**요청 Body (JSON)**
-
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| `content_type` | string | ✅ | `course`, `lesson`, `video`, `video_tag`, `study` |
-| `content_id` | integer | ✅ | 콘텐츠 ID |
-| `field_name` | string | ✅ | 번역 대상 필드명 (예: `title`, `description`) |
-| `source_text` | string | ✅ | 원본 텍스트 (한국어) |
-| `target_langs` | string[] | ✅ | 대상 언어 코드 배열 (최대 20개, 예: `["en", "ja", "zh-CN"]`) |
-
-```json
-{
-  "content_type": "video",
-  "content_id": 1,
-  "field_name": "title",
-  "source_text": "한국어 초급 과정",
-  "target_langs": ["en", "ja", "zh-CN", "zh-TW", "vi"]
-}
-```
-
-**응답 (성공 200)**
-
-```json
-{
-  "total": 5,
-  "success_count": 5,
-  "results": [
-    {
-      "lang": "en",
-      "success": true,
-      "translation_id": 42,
-      "translated_text": "Korean Beginner Course",
-      "error": null
-    }
-  ]
-}
-```
-
-> **주의사항**:
-> - `TRANSLATE_PROVIDER=none`이면 `503 Service Unavailable` (Translation provider not configured) 반환
-> - 개별 언어 번역 실패 시 해당 항목만 `success: false` + `error` 메시지, 나머지는 정상 처리
-> - 번역 결과는 `draft` 상태로 UPSERT → 관리자가 검수(reviewed) → 승인(approved) 후 사용자에게 제공
-> - 환경변수: `TRANSLATE_PROVIDER=google`, `GOOGLE_TRANSLATE_API_KEY`, `GOOGLE_TRANSLATE_PROJECT_ID` 필요
+> Google Cloud Translation API 해지로 인해 삭제됨. 번역은 Claude Code에서 직접 수행.
 
 ---
 
@@ -714,37 +670,9 @@ draft → reviewed → approved
 
 ---
 
-#### 9-11 : `POST /admin/translations/auto-bulk` (벌크 자동 번역)
+#### ~~9-11 : `POST /admin/translations/auto-bulk` (벌크 자동 번역)~~ — 삭제됨 (2026-03-24)
 
-> 복수 필드 × 복수 언어를 일괄 자동 번역한다. 순수 숫자 source_text는 번역 API 호출 없이 그대로 UPSERT.
-
-**요청 Body (JSON)**
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| `items` | array | ✅ | 번역 대상 필드 목록 (content_type, content_id, field_name, source_text) |
-| `target_langs` | string[] | ✅ | 대상 언어 코드 배열 |
-
-```json
-{
-  "items": [
-    { "content_type": "video", "content_id": 1, "field_name": "video_idx", "source_text": "VID-001" },
-    { "content_type": "video_tag", "content_id": 10, "field_name": "video_tag_title", "source_text": "발음 연습" }
-  ],
-  "target_langs": ["en", "ja", "vi"]
-}
-```
-
-**응답 (성공 200)**
-```json
-{
-  "total": 6,
-  "success_count": 6,
-  "fail_count": 0,
-  "results": [
-    { "content_type": "video", "content_id": 1, "field_name": "video_idx", "lang": "en", "success": true, "translation_id": 42, "translated_text": "VID-001" }
-  ]
-}
-```
+> Google Cloud Translation API 해지로 인해 삭제됨.
 
 ---
 

@@ -131,11 +131,6 @@ FRONTEND_URL=https://amazingkorean.net
 EMAIL_PROVIDER=resend              # resend | none (프로덕션에서 none 사용 시 서버 부팅 실패)
 RESEND_API_KEY=re_xxx              # 필수 (Resend 대시보드에서 발급)
 
-# ─── Translation (Google Cloud Translation v2 Basic) ───
-TRANSLATE_PROVIDER=google          # google | none (프로덕션에서도 none 허용 — 번역은 선택적 기능)
-GOOGLE_TRANSLATE_API_KEY=<api-key> # Google Cloud Translation API Key
-GOOGLE_TRANSLATE_PROJECT_ID=<id>   # Google Cloud Project ID
-
 # ─── Rate Limiting (이메일 발송) ───
 # RATE_LIMIT_EMAIL_WINDOW_SEC=18000  # 기본: 18000초 (5시간)
 # RATE_LIMIT_EMAIL_MAX=5             # 기본: 5회/윈도우
@@ -599,8 +594,6 @@ GitHub repo → **Settings** → **Secrets and variables** → **Actions**에서
 | `EC2_SSH_KEY` | .pem 파일 내용 전체 | `-----BEGIN` ~ `END-----` |
 | `POSTGRES_PASSWORD` | DB 비밀번호 | |
 | `JWT_SECRET` | JWT 시크릿 키 | |
-| `GOOGLE_TRANSLATE_API_KEY` | Google Cloud Translation API Key | 선택 (TRANSLATE_PROVIDER=google일 때 필수) |
-| `GOOGLE_TRANSLATE_PROJECT_ID` | Google Cloud Project ID | 선택 (TRANSLATE_PROVIDER=google일 때 필수) |
 
 ##### Workflow 파일 (.github/workflows/deploy.yml)
 

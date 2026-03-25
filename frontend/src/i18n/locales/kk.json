@@ -32,6 +32,7 @@
     "videos": "Бейнелер",
     "studies": "Оқу",
     "lessons": "Сабақтар",
+    "book": "Кітап",
     "pricing": "Бағалар",
     "myPage": "Менің бетім",
     "login": "Кіру",
@@ -211,6 +212,7 @@
     "myPageDescription": "Профиль ақпаратыңызды қарау және өңдеу",
     "settingsTitle": "Баптаулар",
     "settingsButton": "Баптаулар",
+    "purchaseHistory": "Сатып алу тарихы",
     "userNotFound": "Пайдаланушы ақпараты табылмады.",
     "userLoadFailed": "Пайдаланушы ақпаратын жүктеу сәтсіз.",
     "settingsLoadFailed": "Баптауларды жүктеу сәтсіз.",
@@ -467,28 +469,256 @@
     "promoCodeClear": "Тазалау"
   },
   "ebook": {
-    "catalog": { "title": "Электрондық оқулықтар", "subtitle": "Бірден онлайн оқуға болатын цифрлық оқулықтар.", "teacherEdition": "Мұғалім нұсқасы", "studentEdition": "Оқушы нұсқасы", "selectLanguage": "Тілді таңдаңыз.", "comingSoon": "Жақында", "loadError": "Каталогты жүктеу сәтсіз." },
-    "purchase": { "title": "Сатып алу мәліметтері", "paymentMethod": "Төлем әдісі", "bankTransfer": "Банк аударымы", "creditCard": "Несие картасы (Paddle)", "buy": "Сатып алу", "loginRequired": "Сатып алу үшін кіріңіз", "success": "Сатып алу аяқталды.", "error": "Сатып алу кезінде қате орын алды." },
-    "status": { "pending": "Күтілуде", "completed": "Қол жетімді", "refunded": "Қайтарылды" },
-    "my": { "title": "Менің электрондық кітаптарым", "empty": "Сатып алынған электрондық кітаптар жоқ.", "browseCatalog": "Электрондық кітаптарды қарау", "openViewer": "Оқу құралын ашу", "loadError": "Сатып алу тарихын жүктеу сәтсіз." },
-    "viewer": { "toc": "Мазмұны", "notFound": "Оқулық табылмады.", "loadFailed": "Бетті жүктеу сәтсіз." }
+    "catalog": {
+      "title": "Электрондық оқулықтар",
+      "subtitle": "Бірден онлайн оқуға болатын цифрлық оқулықтар.",
+      "teacherEdition": "Мұғалім нұсқасы",
+      "studentEdition": "Оқушы нұсқасы",
+      "selectLanguage": "Тілді таңдаңыз.",
+      "comingSoon": "Жақында",
+      "loadError": "Каталогты жүктеу сәтсіз.",
+      "refundPolicy": "Қайтару саясатын қарау",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
+    },
+    "purchase": {
+      "title": "Сатып алу мәліметтері",
+      "paymentMethod": "Төлем әдісі",
+      "bankTransfer": "Банк аударымы",
+      "creditCard": "Несие картасы (Paddle)",
+      "buy": "Сатып алу",
+      "loginRequired": "Сатып алу үшін кіріңіз",
+      "success": "Сатып алу аяқталды.",
+      "error": "Сатып алу кезінде қате орын алды.",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "Сатып алу аяқталды",
+      "description": "E-book сатып алу аяқталды.",
+      "subtitle": "Тапсырысыңыз қабылданды. Төмендегі мәліметтерді тексеріңіз.",
+      "purchaseCode": "Сатып алу коды",
+      "codeCopied": "Код көшірілді.",
+      "edition": "Басылым",
+      "price": "Баға",
+      "paymentMethod": "Төлем әдісі",
+      "bankGuideTitle": "Төлем нұсқаулығы",
+      "bankAccount": "{{account}}",
+      "bankNote": "7 күн ішінде төлеңіз. Төлем расталғаннан кейін қол жетімді болады.",
+      "goToMyEbooks": "Менің E-book",
+      "browseCatalog": "Каталогты қарау",
+      "noData": "Сатып алу ақпараты табылмады."
+    },
+    "preview": {
+      "button": "Алдын ала қарау",
+      "description": "Мұқаба, мазмұны және үлгі беттерді алдын ала қарау.",
+      "cover": "Мұқаба",
+      "toc": "Мазмұны",
+      "sample": "Үлгі {{n}}",
+      "pages": " бет",
+      "purchaseButton": "Сатып алу",
+      "imageNotAvailable": "Сурет дайындалуда"
+    },
+    "status": {
+      "pending": "Күтілуде",
+      "completed": "Қол жетімді",
+      "refunded": "Қайтарылды"
+    },
+    "my": {
+      "title": "Менің электрондық кітаптарым",
+      "empty": "Сатып алынған электрондық кітаптар жоқ.",
+      "browseCatalog": "Электрондық кітаптарды қарау",
+      "openViewer": "Оқу құралын ашу",
+      "loadError": "Сатып алу тарихын жүктеу сәтсіз."
+    },
+    "viewer": {
+      "toc": "Мазмұны",
+      "notFound": "Оқулық табылмады.",
+      "loadFailed": "Бетті жүктеу сәтсіз."
+    }
+  },
+  "textbook": {
+    "heroBadge": "Amazing Korean оқулықтары",
+    "heroTitle": "Оқулық тапсырысы",
+    "heroSubtitle": "20 тілде оқулықтар тапсырыс беріңіз. Оқушы және мұғалім басылымдары бар.",
+    "catalog": {
+      "badge": "Оқулық",
+      "title": "Корей тілі оқулықтар жинағы",
+      "description": "20 тілдегі оқушы және мұғалім басылымдарымен\nжүйелі корей тілін үйрену сапарын бастаңыз.",
+      "studentSection": "Оқушы басылымы",
+      "studentDescription": "Оқушыларға арналған корей тілі оқулықтары.",
+      "teacherSection": "Мұғалім басылымы",
+      "teacherDescription": "Мұғалімдерге арналған корей тілін оқыту нұсқаулықтары.",
+      "orderButton": "Тапсырыс беру",
+      "pricePerUnit": "₩25,000 / дана",
+      "orderGuideTitle": "Тапсырыс туралы ақпарат",
+      "orderGuideMinQty": "Ең аз тапсырыс саны — 10 дана.",
+      "orderGuidePayment": "Банк аударымы арқылы төлем.",
+      "orderGuideBulk": "100+ данадан тегін жеткізу",
+      "orderCta": "Оқулықтарды тапсырыс беру",
+      "viewGrid": "Тор көрінісі",
+      "viewCarousel": "Карусель көрінісі",
+      "searchPlaceholder": "Тілді іздеу...",
+      "noResults": "Нәтиже табылмады.",
+      "bookDescription": "Жүйелі корей тілін үйрену оқулығы. Әр тілдің ана тілді мамандары аударған."
+    },
+    "myOrders": {
+      "badge": "Менің тапсырыстарым",
+      "title": "Оқулық сатып алу тарихы",
+      "description": "Оқулық тапсырысыңыздың күйін тексеріңіз.",
+      "empty": "Әзірге тапсырыс жоқ.",
+      "browseCatalog": "Оқулықтарды көру",
+      "loadError": "Тапсырыс тізімін жүктеу мүмкін болмады.",
+      "status": {
+        "pending": "Күтілуде",
+        "confirmed": "Расталды",
+        "paid": "Төленді",
+        "printing": "Басылуда",
+        "shipped": "Жіберілді",
+        "delivered": "Жеткізілді",
+        "canceled": "Бас тартылды"
+      }
+    },
+    "detail": {
+      "modalTitle": "Оқулық мәліметтері",
+      "coverImage": "Мұқаба",
+      "innerImage": "Ішкі мұқаба",
+      "tocImage": "Мазмұны",
+      "description": "120 беттік жүйелі корей тілі оқулығы, бастапқыдан орта деңгейге дейін.",
+      "translationNote": "{{language}} ана тілді мамандар аударған.",
+      "orderNow": "Қазір тапсырыс беру",
+      "viewDetail": "Толығырақ көру",
+      "imageNotAvailable": "Сурет дайындалуда"
+    },
+    "print": {
+      "quoteTitle": "Баға ұсынысы",
+      "confirmationTitle": "Тапсырыс растауы",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "Құжат нөмірі",
+      "date": "Күні",
+      "status": "Күйі",
+      "recipient": "Кімге",
+      "colItem": "Тауар",
+      "colType": "Түрі",
+      "colQty": "Саны",
+      "colPrice": "Бірлік бағасы",
+      "colSubtotal": "Аралық жиынтық",
+      "textbookPrefix": "Amazing Korean",
+      "total": "Жалпы",
+      "quoteTotal": "Баға ұсынысы сомасы",
+      "confirmationTotal": "Тапсырыс сомасы",
+      "vatIncluded": "ҚҚС қосылған",
+      "bankInfo": "Төлем ақпараты",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "Тапсырыс расталғаннан кейін 7 күн ішінде төлем жасаңыз.",
+      "taxInvoice": "Салық шот-фактурасы",
+      "bizNumber": "Бизнес тіркеу нөмірі",
+      "taxCompanyName": "Компания атауы",
+      "repName": "Өкіл",
+      "taxEmail": "Салық шот-фактурасы электрондық поштасы",
+      "taxAddress": "Іскерлік мекенжайы",
+      "taxBizType": "Бизнес түрі",
+      "taxBizItem": "Бизнес бабы",
+      "notes": "Ескертпелер",
+      "footer": "Бұл құжат электрондық түрде жасалған және қолтаңбасыз жарамды.",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "Басып шығару / PDF ретінде сақтау",
+      "pdfGuide": "PDF ретінде сақтау үшін басып шығару диалогында 'PDF ретінде сақтау' таңдаңыз.",
+      "notFound": "Тапсырыс табылмады.",
+      "quoteNotice": "Бұл баға ұсынысы тапсырыс жіберуге негізделген және нақты төлем сомасы өзгеруі мүмкін.",
+      "confirmationNotice": "Бұл растау тек тапсырыс күйін тексеру үшін арналған және ресми түбіртек болып табылмайды."
+    }
   },
   "seo": {
-    "home": { "title": "Amazing Korean - Корей тілін үйрену платформасы", "description": "Бүкіл әлемдегі оқушыларға арналған ең үздік онлайн корей тілін үйрену платформасы." },
-    "about": { "title": "Біз туралы - Amazing Korean", "description": "Amazing Korean туралы — Бүкіл әлемдегі оқушыларға тиімді корей тілін үйрену тәжірибесі." },
-    "pricing": { "title": "Бағалар - Amazing Korean", "description": "Amazing Korean баға жоспарлары — Бейне, оқу материалдары мен сабақтарға шексіз қол жеткізу." },
-    "videos": { "title": "Бейне сабақтар - Amazing Korean", "description": "Кәсіби оқытушылардың бейне сабақтарымен корей тілін тиімді үйреніңіз." },
-    "studies": { "title": "Оқу материалдары - Amazing Korean", "description": "Жүйелі оқу материалдары мен жаттығулармен корей тіліндегі дағдыларыңызды жақсартыңыз." },
-    "lessons": { "title": "Сабақтар - Amazing Korean", "description": "Жүйелі сабақтармен корей тілін қадам бойынша үйреніңіз." },
-    "login": { "title": "Кіру - Amazing Korean", "description": "Корей тілін үйренуді бастау үшін Amazing Korean-ге кіріңіз." },
-    "signup": { "title": "Тіркелу - Amazing Korean", "description": "Amazing Korean-ге қосылып, корей тілін үйрену сапарын бастаңыз." },
-    "terms": { "title": "Қызмет шарттары - Amazing Korean", "description": "Amazing Korean қызмет шарттары." },
-    "privacy": { "title": "Құпиялылық саясаты - Amazing Korean", "description": "Amazing Korean құпиялылық саясаты." },
-    "refundPolicy": { "title": "Ақшаны қайтару саясаты - Amazing Korean", "description": "Amazing Korean жазылым ақшаны қайтару саясаты." },
-    "faq": { "title": "Жиі қойылатын сұрақтар - Amazing Korean", "description": "Amazing Korean туралы жиі қойылатын сұрақтар." },
-    "findId": { "title": "Аккаунтты қалпына келтіру - Amazing Korean", "description": "Тіркелген аккаунт ақпаратын табыңыз." },
-    "requestResetPassword": { "title": "Құпиясөзді қалпына келтіру - Amazing Korean", "description": "Тіркелген мекенжайға құпиясөзді қалпына келтіру электрондық хатын жіберіңіз." },
-    "textbook": { "title": "Оқулық тапсырысы - Amazing Korean", "description": "Amazing Korean оқулықтарын онлайн тапсырыс беріңіз." },
-    "textbookStatus": { "title": "Тапсырыс жағдайы - Amazing Korean", "description": "Оқулық тапсырысының жағдайын тексеріңіз." }
+    "home": {
+      "title": "Amazing Korean - Корей тілін үйрену платформасы",
+      "description": "Бүкіл әлемдегі оқушыларға арналған ең үздік онлайн корей тілін үйрену платформасы."
+    },
+    "about": {
+      "title": "Біз туралы - Amazing Korean",
+      "description": "Amazing Korean туралы — Бүкіл әлемдегі оқушыларға тиімді корей тілін үйрену тәжірибесі."
+    },
+    "pricing": {
+      "title": "Бағалар - Amazing Korean",
+      "description": "Amazing Korean баға жоспарлары — Бейне, оқу материалдары мен сабақтарға шексіз қол жеткізу."
+    },
+    "videos": {
+      "title": "Бейне сабақтар - Amazing Korean",
+      "description": "Кәсіби оқытушылардың бейне сабақтарымен корей тілін тиімді үйреніңіз."
+    },
+    "studies": {
+      "title": "Оқу материалдары - Amazing Korean",
+      "description": "Жүйелі оқу материалдары мен жаттығулармен корей тіліндегі дағдыларыңызды жақсартыңыз."
+    },
+    "lessons": {
+      "title": "Сабақтар - Amazing Korean",
+      "description": "Жүйелі сабақтармен корей тілін қадам бойынша үйреніңіз."
+    },
+    "login": {
+      "title": "Кіру - Amazing Korean",
+      "description": "Корей тілін үйренуді бастау үшін Amazing Korean-ге кіріңіз."
+    },
+    "signup": {
+      "title": "Тіркелу - Amazing Korean",
+      "description": "Amazing Korean-ге қосылып, корей тілін үйрену сапарын бастаңыз."
+    },
+    "terms": {
+      "title": "Қызмет шарттары - Amazing Korean",
+      "description": "Amazing Korean қызмет шарттары."
+    },
+    "privacy": {
+      "title": "Құпиялылық саясаты - Amazing Korean",
+      "description": "Amazing Korean құпиялылық саясаты."
+    },
+    "refundPolicy": {
+      "title": "Ақшаны қайтару саясаты - Amazing Korean",
+      "description": "Amazing Korean жазылым ақшаны қайтару саясаты."
+    },
+    "faq": {
+      "title": "Жиі қойылатын сұрақтар - Amazing Korean",
+      "description": "Amazing Korean туралы жиі қойылатын сұрақтар."
+    },
+    "findId": {
+      "title": "Аккаунтты қалпына келтіру - Amazing Korean",
+      "description": "Тіркелген аккаунт ақпаратын табыңыз."
+    },
+    "requestResetPassword": {
+      "title": "Құпиясөзді қалпына келтіру - Amazing Korean",
+      "description": "Тіркелген мекенжайға құпиясөзді қалпына келтіру электрондық хатын жіберіңіз."
+    },
+    "textbook": {
+      "title": "Оқулық тапсырысы - Amazing Korean",
+      "description": "Amazing Korean оқулықтарын онлайн тапсырыс беріңіз."
+    },
+    "textbookStatus": {
+      "title": "Тапсырыс жағдайы - Amazing Korean",
+      "description": "Оқулық тапсырысының жағдайын тексеріңіз."
+    }
+  },
+  "bookHub": {
+    "badge": "Amazing Korean оқулық",
+    "title": "Корей тілі оқулығы",
+    "subtitle": "20 тілде қолжетімді корей тілін үйрену оқулықтарын табыңыз",
+    "descriptionTitle": "Amazing Korean дегеніміз не?",
+    "description": "Amazing Korean — жаңадан бастаушыларға арналған жүйелі корей тілі оқулығы. Хангыл дауыссыз және дауысты дыбыстардан бастап, негізгі сөйлемдер, грамматика, жаттығулар және TOPIK дайындығына дейін — бәрі бір кітапта.",
+    "samplePages": "Алдын ала қарау",
+    "samplePagesNote": "Нақты оқулық беттерінің үлгілері",
+    "ctaTitle": "Кітаптарды шолу",
+    "ctaTextbook": "Баспа каталогы",
+    "ctaEbook": "E-book каталогы"
   }
 }

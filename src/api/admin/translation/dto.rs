@@ -118,46 +118,6 @@ pub struct TranslationBulkCreateRes {
 }
 
 // =============================================================================
-// 자동 번역 DTOs
-// =============================================================================
-
-/// 자동 번역 요청 (Google Cloud Translation 등을 통한 자동 초안 생성)
-#[derive(Debug, Deserialize, Validate, ToSchema)]
-pub struct AutoTranslateReq {
-    pub content_type: ContentType,
-    pub content_id: i64,
-
-    #[validate(length(min = 1, max = 100))]
-    pub field_name: String,
-
-    /// 원본 텍스트 (ko)
-    #[validate(length(min = 1))]
-    pub source_text: String,
-
-    /// 번역 대상 언어 목록
-    #[validate(length(min = 1, max = 20))]
-    pub target_langs: Vec<SupportedLanguage>,
-}
-
-/// 자동 번역 응답
-#[derive(Debug, Serialize, ToSchema)]
-pub struct AutoTranslateRes {
-    pub total: usize,
-    pub success_count: usize,
-    pub results: Vec<AutoTranslateItemResult>,
-}
-
-/// 자동 번역 개별 결과
-#[derive(Debug, Serialize, ToSchema)]
-pub struct AutoTranslateItemResult {
-    pub lang: SupportedLanguage,
-    pub success: bool,
-    pub translation_id: Option<i64>,
-    pub translated_text: Option<String>,
-    pub error: Option<String>,
-}
-
-// =============================================================================
 // 콘텐츠 목록 조회 (Content Records)
 // =============================================================================
 
@@ -205,57 +165,6 @@ pub struct SourceFieldItem {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct SourceFieldsRes {
     pub fields: Vec<SourceFieldItem>,
-}
-
-// =============================================================================
-// 벌크 자동 번역 (Auto Translate Bulk)
-// =============================================================================
-
-/// 벌크 자동 번역 개별 항목
-#[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
-pub struct AutoTranslateBulkItem {
-    pub content_type: ContentType,
-    pub content_id: i64,
-
-    #[validate(length(min = 1, max = 100))]
-    pub field_name: String,
-
-    #[validate(length(min = 1))]
-    pub source_text: String,
-}
-
-/// 벌크 자동 번역 요청
-#[derive(Debug, Deserialize, Validate, ToSchema)]
-pub struct AutoTranslateBulkReq {
-    #[validate(length(min = 1, max = 200))]
-    #[validate(nested)]
-    pub items: Vec<AutoTranslateBulkItem>,
-
-    /// 번역 대상 언어 목록
-    #[validate(length(min = 1, max = 21))]
-    pub target_langs: Vec<SupportedLanguage>,
-}
-
-/// 벌크 자동 번역 개별 결과
-#[derive(Debug, Serialize, ToSchema)]
-pub struct AutoTranslateBulkItemResult {
-    pub content_type: ContentType,
-    pub content_id: i64,
-    pub field_name: String,
-    pub lang: SupportedLanguage,
-    pub success: bool,
-    pub translation_id: Option<i64>,
-    pub translated_text: Option<String>,
-    pub error: Option<String>,
-}
-
-/// 벌크 자동 번역 응답
-#[derive(Debug, Serialize, ToSchema)]
-pub struct AutoTranslateBulkRes {
-    pub total: usize,
-    pub success_count: usize,
-    pub fail_count: usize,
-    pub results: Vec<AutoTranslateBulkItemResult>,
 }
 
 // =============================================================================

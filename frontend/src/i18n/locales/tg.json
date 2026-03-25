@@ -32,6 +32,7 @@
     "videos": "Видеоҳо",
     "studies": "Омӯзиш",
     "lessons": "Дарсҳо",
+    "book": "Китоб",
     "pricing": "Нархҳо",
     "myPage": "Саҳифаи ман",
     "login": "Воридшавӣ",
@@ -211,6 +212,7 @@
     "myPageDescription": "Маълумоти профилро дидан ва таҳрир кардан",
     "settingsTitle": "Танзимот",
     "settingsButton": "Танзимот",
+    "purchaseHistory": "Таърихи харид",
     "userNotFound": "Маълумоти корбар ёфт нашуд.",
     "userLoadFailed": "Маълумоти корбар бор карда нашуд.",
     "settingsLoadFailed": "Танзимот бор карда нашуд.",
@@ -467,28 +469,256 @@
     "promoCodeClear": "Тоза кардан"
   },
   "ebook": {
-    "catalog": { "title": "Китобҳои электронии дарсӣ", "subtitle": "Китобҳои рақамии дарсӣ, ки фавран дар интернет хонда мешаванд.", "teacherEdition": "Нашри муаллим", "studentEdition": "Нашри хонанда", "selectLanguage": "Лутфан забонро интихоб кунед.", "comingSoon": "Ба зудӣ", "loadError": "Каталог бор нашуд." },
-    "purchase": { "title": "Тафсилоти харид", "paymentMethod": "Тарзи пардохт", "bankTransfer": "Интиқоли бонкӣ", "creditCard": "Корти кредитӣ (Paddle)", "buy": "Харидан", "loginRequired": "Барои хариди ворид шавед", "success": "Хариди анҷом ёфт.", "error": "Дар ҳангоми хариди хатогӣ рух дод." },
-    "status": { "pending": "Дар интизорӣ", "completed": "Дастрас", "refunded": "Баргардонида шуд" },
-    "my": { "title": "Китобҳои электронии ман", "empty": "Китобҳои электронии харидашуда нест.", "browseCatalog": "Китобҳоро дидан", "openViewer": "Хонандаро кушодан", "loadError": "Таърихи хариди бор нашуд." },
-    "viewer": { "toc": "Мундариҷа", "notFound": "Китоби дарсӣ ёфт нашуд.", "loadFailed": "Саҳифа бор нашуд." }
+    "catalog": {
+      "title": "Китобҳои электронии дарсӣ",
+      "subtitle": "Китобҳои рақамии дарсӣ, ки фавран дар интернет хонда мешаванд.",
+      "teacherEdition": "Нашри муаллим",
+      "studentEdition": "Нашри хонанда",
+      "selectLanguage": "Лутфан забонро интихоб кунед.",
+      "comingSoon": "Ба зудӣ",
+      "loadError": "Каталог бор нашуд.",
+      "refundPolicy": "Сиёсати баргардонида",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
+    },
+    "purchase": {
+      "title": "Тафсилоти харид",
+      "paymentMethod": "Тарзи пардохт",
+      "bankTransfer": "Интиқоли бонкӣ",
+      "creditCard": "Корти кредитӣ (Paddle)",
+      "buy": "Харидан",
+      "loginRequired": "Барои хариди ворид шавед",
+      "success": "Хариди анҷом ёфт.",
+      "error": "Дар ҳангоми хариди хатогӣ рух дод.",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "Харид анҷом ёфт",
+      "description": "Харид E-book анҷом ёфт.",
+      "subtitle": "Фармоиши шумо қабул шуд. Маълумоти зеринро тафтиш кунед.",
+      "purchaseCode": "Коди харид",
+      "codeCopied": "Код нусхабардорӣ шуд.",
+      "edition": "Нашрия",
+      "price": "Нарх",
+      "paymentMethod": "Усули пардохт",
+      "bankGuideTitle": "Дастури пардохт",
+      "bankAccount": "{{account}}",
+      "bankNote": "Дар муддати 7 рӯз пардохт кунед. Пас аз тасдиқ дастрасӣ фаъол мешавад.",
+      "goToMyEbooks": "E-book-и ман",
+      "browseCatalog": "Каталогро тамошо кунед",
+      "noData": "Маълумоти харид ёфт нашуд."
+    },
+    "preview": {
+      "button": "Пешнамоиш",
+      "description": "Пешнамоиши муқова, мундариҷа ва саҳифаҳои намуна.",
+      "cover": "Муқова",
+      "toc": "Мундариҷа",
+      "sample": "Намуна {{n}}",
+      "pages": " саҳифа",
+      "purchaseButton": "Харидан",
+      "imageNotAvailable": "Тасвир омода мешавад"
+    },
+    "status": {
+      "pending": "Дар интизорӣ",
+      "completed": "Дастрас",
+      "refunded": "Баргардонида шуд"
+    },
+    "my": {
+      "title": "Китобҳои электронии ман",
+      "empty": "Китобҳои электронии харидашуда нест.",
+      "browseCatalog": "Китобҳоро дидан",
+      "openViewer": "Хонандаро кушодан",
+      "loadError": "Таърихи хариди бор нашуд."
+    },
+    "viewer": {
+      "toc": "Мундариҷа",
+      "notFound": "Китоби дарсӣ ёфт нашуд.",
+      "loadFailed": "Саҳифа бор нашуд."
+    }
+  },
+  "textbook": {
+    "heroBadge": "Китобҳои дарсии Amazing Korean",
+    "heroTitle": "Фармоиши китоби дарсӣ",
+    "heroSubtitle": "Китобҳои дарсиро дар 20 забон фармоиш диҳед. Нашрҳои хонанда ва муаллим мавҷуданд.",
+    "catalog": {
+      "badge": "Китоби дарсӣ",
+      "title": "Маҷмӯаи китобҳои дарсии забони кореягӣ",
+      "description": "Сафари омӯзиши низомноки забони кореягиро\nбо нашрҳои хонанда ва муаллим дар 20 забон оғоз кунед.",
+      "studentSection": "Нашри хонанда",
+      "studentDescription": "Китобҳои дарсии забони кореягӣ барои хонандагон.",
+      "teacherSection": "Нашри муаллим",
+      "teacherDescription": "Дастурҳои таълимии забони кореягӣ барои муаллимон.",
+      "orderButton": "Фармоиш додан",
+      "pricePerUnit": "₩25,000 / нусха",
+      "orderGuideTitle": "Маълумоти фармоиш",
+      "orderGuideMinQty": "Ҳадди ақали фармоиш 10 нусха.",
+      "orderGuidePayment": "Пардохт тавассути интиқоли бонкӣ.",
+      "orderGuideBulk": "Интиқоли ройгон барои фармоиши 100+ нусха",
+      "orderCta": "Китобҳои дарсиро фармоиш диҳед",
+      "viewGrid": "Намоиши тӯрӣ",
+      "viewCarousel": "Намоиши карусел",
+      "searchPlaceholder": "Забон ҷустуҷӯ кунед...",
+      "noResults": "Натиҷа ёфт нашуд.",
+      "bookDescription": "Китоби дарсии низомноки омӯзиши забони кореягӣ. Аз ҷониби мутахассисони забони модарии ҳар забон тарҷума шудааст."
+    },
+    "myOrders": {
+      "badge": "Фармоишҳои ман",
+      "title": "Таърихи хариди китоб",
+      "description": "Ҳолати фармоиши китобро тафтиш кунед.",
+      "empty": "Ҳоло фармоише нест.",
+      "browseCatalog": "Китобҳоро бинед",
+      "loadError": "Рӯйхати фармоишро бор кардан нашуд.",
+      "status": {
+        "pending": "Дар интизорӣ",
+        "confirmed": "Тасдиқ шуд",
+        "paid": "Пардохт шуд",
+        "printing": "Дар чоп",
+        "shipped": "Фиристода шуд",
+        "delivered": "Расонида шуд",
+        "canceled": "Бекор шуд"
+      }
+    },
+    "detail": {
+      "modalTitle": "Тафсилоти китоб",
+      "coverImage": "Муқова",
+      "innerImage": "Муқоваи дохилӣ",
+      "tocImage": "Мундариҷа",
+      "description": "Китоби таълимии забони кореягӣ, 120 саҳифа, аз сатҳи ибтидоӣ то миёна.",
+      "translationNote": "Аз ҷониби мутахассисони забони модарии {{language}} тарҷума шудааст.",
+      "orderNow": "Ҳозир фармоиш диҳед",
+      "viewDetail": "Тафсилотро бинед",
+      "imageNotAvailable": "Расм дар ҳоли омодасозӣ"
+    },
+    "print": {
+      "quoteTitle": "Нархнома",
+      "confirmationTitle": "Тасдиқи фармоиш",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "Рақами ҳуҷҷат",
+      "date": "Сана",
+      "status": "Ҳолат",
+      "recipient": "Ба",
+      "colItem": "Мол",
+      "colType": "Навъ",
+      "colQty": "Миқдор",
+      "colPrice": "Нархи воҳид",
+      "colSubtotal": "Ҷамъи қисмӣ",
+      "textbookPrefix": "Amazing Korean",
+      "total": "Ҷамъ",
+      "quoteTotal": "Маблағи нархнома",
+      "confirmationTotal": "Маблағи фармоиш",
+      "vatIncluded": "ААИ дохил аст",
+      "bankInfo": "Маълумоти пардохт",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "Лутфан дар давоми 7 рӯз пас аз тасдиқи фармоиш пардохт кунед.",
+      "taxInvoice": "Маълумоти ҳисобнома",
+      "bizNumber": "Рақами бақайдгирии тиҷорат",
+      "taxCompanyName": "Номи ширкат",
+      "repName": "Намоянда",
+      "taxEmail": "Имейли ҳисобнома",
+      "taxAddress": "Суроғаи тиҷоратӣ",
+      "taxBizType": "Навъи тиҷорат",
+      "taxBizItem": "Соҳаи тиҷорат",
+      "notes": "Эзоҳот",
+      "footer": "Ин ҳуҷҷат ба таври электронӣ тавлид шудааст ва бидуни имзо эътибор дорад.",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "Чоп / Ҳамчун PDF нигоҳ доштан",
+      "pdfGuide": "Барои нигоҳ доштан ҳамчун PDF, дар равзанаи чоп 'Ҳамчун PDF нигоҳ доштан'-ро интихоб кунед.",
+      "notFound": "Фармоиш ёфт нашуд.",
+      "quoteNotice": "Ин нархнома ба фиристодани фармоиш асос ёфтааст ва маблағи воқеии пардохт метавонад фарқ кунад.",
+      "confirmationNotice": "Ин тасдиқ танҳо барои санҷиши ҳолати фармоиш аст ва расиди расмӣ нест."
+    }
   },
   "seo": {
-    "home": { "title": "Amazing Korean - Платформаи омӯзиши забони кореягӣ", "description": "Беҳтарин платформаи онлайнии омӯзиши забони кореягӣ барои хонандагони саросари ҷаҳон." },
-    "about": { "title": "Дар бораи мо - Amazing Korean", "description": "Дар бораи Amazing Korean — Таҷрибаи самараноки омӯзиши забони кореягӣ барои хонандагони ҷаҳон." },
-    "pricing": { "title": "Нархҳо - Amazing Korean", "description": "Нақшаҳои нархи Amazing Korean — Дастрасии беҳудуд ба видео, маводи таҳсилӣ ва дарсҳо." },
-    "videos": { "title": "Дарсҳои видеоӣ - Amazing Korean", "description": "Бо дарсҳои видеоии муаллимони касбӣ забони кореагиро самаранок омӯзед." },
-    "studies": { "title": "Маводи таҳсилӣ - Amazing Korean", "description": "Бо маводи таҳсилии низомнок ва машқҳо малакаи забони кореягиро беҳтар кунед." },
-    "lessons": { "title": "Дарсҳо - Amazing Korean", "description": "Бо дарсҳои низомнок забони кореагиро қадам ба қадам омӯзед." },
-    "login": { "title": "Вуруд - Amazing Korean", "description": "Барои оғози омӯзиши забони кореягӣ ба Amazing Korean ворид шавед." },
-    "signup": { "title": "Бақайдгирӣ - Amazing Korean", "description": "Ба Amazing Korean ҳамроҳ шавед ва сафари омӯзиши забони кореагиро оғоз кунед." },
-    "terms": { "title": "Шартҳои хидмат - Amazing Korean", "description": "Шартҳои хидмати Amazing Korean." },
-    "privacy": { "title": "Сиёсати махфият - Amazing Korean", "description": "Сиёсати махфияти Amazing Korean." },
-    "refundPolicy": { "title": "Сиёсати баргардонидани пул - Amazing Korean", "description": "Сиёсати баргардонидани пули обунаи Amazing Korean." },
-    "faq": { "title": "Саволҳои зиёд пурсидашуда - Amazing Korean", "description": "Саволҳои зиёд пурсидашуда дар бораи Amazing Korean." },
-    "findId": { "title": "Барқарорсозии аккаунт - Amazing Korean", "description": "Маълумоти аккаунти бақайдгирифтаро ёбед." },
-    "requestResetPassword": { "title": "Бозсозии рамз - Amazing Korean", "description": "Ба суроғаи бақайдгирифта имейли бозсозии рамзро фиристед." },
-    "textbook": { "title": "Фармоиши китоби дарсӣ - Amazing Korean", "description": "Китобҳои дарсии Amazing Korean-ро бо интернет фармоиш диҳед." },
-    "textbookStatus": { "title": "Ҳолати фармоиш - Amazing Korean", "description": "Ҳолати фармоиши китоби дарсиро тафтиш кунед." }
+    "home": {
+      "title": "Amazing Korean - Платформаи омӯзиши забони кореягӣ",
+      "description": "Беҳтарин платформаи онлайнии омӯзиши забони кореягӣ барои хонандагони саросари ҷаҳон."
+    },
+    "about": {
+      "title": "Дар бораи мо - Amazing Korean",
+      "description": "Дар бораи Amazing Korean — Таҷрибаи самараноки омӯзиши забони кореягӣ барои хонандагони ҷаҳон."
+    },
+    "pricing": {
+      "title": "Нархҳо - Amazing Korean",
+      "description": "Нақшаҳои нархи Amazing Korean — Дастрасии беҳудуд ба видео, маводи таҳсилӣ ва дарсҳо."
+    },
+    "videos": {
+      "title": "Дарсҳои видеоӣ - Amazing Korean",
+      "description": "Бо дарсҳои видеоии муаллимони касбӣ забони кореагиро самаранок омӯзед."
+    },
+    "studies": {
+      "title": "Маводи таҳсилӣ - Amazing Korean",
+      "description": "Бо маводи таҳсилии низомнок ва машқҳо малакаи забони кореягиро беҳтар кунед."
+    },
+    "lessons": {
+      "title": "Дарсҳо - Amazing Korean",
+      "description": "Бо дарсҳои низомнок забони кореагиро қадам ба қадам омӯзед."
+    },
+    "login": {
+      "title": "Вуруд - Amazing Korean",
+      "description": "Барои оғози омӯзиши забони кореягӣ ба Amazing Korean ворид шавед."
+    },
+    "signup": {
+      "title": "Бақайдгирӣ - Amazing Korean",
+      "description": "Ба Amazing Korean ҳамроҳ шавед ва сафари омӯзиши забони кореагиро оғоз кунед."
+    },
+    "terms": {
+      "title": "Шартҳои хидмат - Amazing Korean",
+      "description": "Шартҳои хидмати Amazing Korean."
+    },
+    "privacy": {
+      "title": "Сиёсати махфият - Amazing Korean",
+      "description": "Сиёсати махфияти Amazing Korean."
+    },
+    "refundPolicy": {
+      "title": "Сиёсати баргардонидани пул - Amazing Korean",
+      "description": "Сиёсати баргардонидани пули обунаи Amazing Korean."
+    },
+    "faq": {
+      "title": "Саволҳои зиёд пурсидашуда - Amazing Korean",
+      "description": "Саволҳои зиёд пурсидашуда дар бораи Amazing Korean."
+    },
+    "findId": {
+      "title": "Барқарорсозии аккаунт - Amazing Korean",
+      "description": "Маълумоти аккаунти бақайдгирифтаро ёбед."
+    },
+    "requestResetPassword": {
+      "title": "Бозсозии рамз - Amazing Korean",
+      "description": "Ба суроғаи бақайдгирифта имейли бозсозии рамзро фиристед."
+    },
+    "textbook": {
+      "title": "Фармоиши китоби дарсӣ - Amazing Korean",
+      "description": "Китобҳои дарсии Amazing Korean-ро бо интернет фармоиш диҳед."
+    },
+    "textbookStatus": {
+      "title": "Ҳолати фармоиш - Amazing Korean",
+      "description": "Ҳолати фармоиши китоби дарсиро тафтиш кунед."
+    }
+  },
+  "bookHub": {
+    "badge": "Китоби дарсии Amazing Korean",
+    "title": "Китоби дарсии забони кореягӣ",
+    "subtitle": "Китобҳои дарсии омӯзиши забони кореягӣ дар 20 забонро кашф кунед",
+    "descriptionTitle": "Amazing Korean чист?",
+    "description": "Amazing Korean як китоби дарсии мунтазами забони кореягӣ барои навомӯзон аст. Аз ҳамсадо ва садоноки Хангыл то ҷумлаҳои асосӣ, грамматика, машқҳо ва тайёрии TOPIK — ҳама дар як китоб.",
+    "samplePages": "Саҳифаҳои пешнамоиш",
+    "samplePagesNote": "Намунаи саҳифаҳои китоби дарсии воқеӣ",
+    "ctaTitle": "Китобҳоро дидан",
+    "ctaTextbook": "Каталоги чопӣ",
+    "ctaEbook": "Каталоги E-book"
   }
 }

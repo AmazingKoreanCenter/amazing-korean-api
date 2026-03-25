@@ -1,6 +1,6 @@
 import { request } from "@/api/client";
 
-import type { CatalogRes, CreateOrderReq, OrderRes } from "./types";
+import type { CatalogRes, CreateOrderReq, MyOrdersRes, OrderRes } from "./types";
 
 export const getTextbookCatalog = () =>
   request<CatalogRes>("/textbook/catalog");
@@ -10,3 +10,6 @@ export const createTextbookOrder = (data: CreateOrderReq) =>
 
 export const getTextbookOrderByCode = (code: string) =>
   request<OrderRes>(`/textbook/orders/${code}`);
+
+export const getMyTextbookOrders = () =>
+  request<MyOrdersRes>("/textbook/my");

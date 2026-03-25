@@ -32,6 +32,7 @@
     "videos": "วิดีโอ",
     "studies": "แบบฝึกหัด",
     "lessons": "บทเรียน",
+    "book": "หนังสือ",
     "pricing": "ราคา",
     "myPage": "หน้าของฉัน",
     "login": "เข้าสู่ระบบ",
@@ -211,6 +212,7 @@
     "myPageDescription": "ดูและแก้ไขข้อมูลโปรไฟล์ของคุณ",
     "settingsTitle": "การตั้งค่า",
     "settingsButton": "การตั้งค่า",
+    "purchaseHistory": "ประวัติการซื้อ",
     "userNotFound": "ไม่พบข้อมูลผู้ใช้",
     "userLoadFailed": "โหลดข้อมูลผู้ใช้ไม่สำเร็จ",
     "settingsLoadFailed": "โหลดการตั้งค่าไม่สำเร็จ",
@@ -467,28 +469,256 @@
     "promoCodeClear": "ล้าง"
   },
   "ebook": {
-    "catalog": { "title": "ตำราเรียน E-book", "subtitle": "ตำราเรียนดิจิทัลที่อ่านออนไลน์ได้ทันที", "teacherEdition": "ฉบับครู", "studentEdition": "ฉบับนักเรียน", "selectLanguage": "กรุณาเลือกภาษา", "comingSoon": "เร็วๆ นี้", "loadError": "โหลดแคตตาล็อกไม่สำเร็จ" },
-    "purchase": { "title": "รายละเอียดการซื้อ", "paymentMethod": "วิธีชำระเงิน", "bankTransfer": "โอนเงินผ่านธนาคาร", "creditCard": "บัตรเครดิต (Paddle)", "buy": "ซื้อ", "loginRequired": "เข้าสู่ระบบเพื่อซื้อ", "success": "ซื้อสำเร็จ", "error": "เกิดข้อผิดพลาดระหว่างการซื้อ" },
-    "status": { "pending": "รอดำเนินการ", "completed": "พร้อมใช้งาน", "refunded": "คืนเงินแล้ว" },
-    "my": { "title": "E-book ของฉัน", "empty": "ยังไม่มี E-book ที่ซื้อ", "browseCatalog": "ดู E-book", "openViewer": "เปิดโปรแกรมอ่าน", "loadError": "โหลดประวัติการซื้อไม่สำเร็จ" },
-    "viewer": { "toc": "สารบัญ", "notFound": "ไม่พบตำราเรียน", "loadFailed": "โหลดหน้าไม่สำเร็จ" }
+    "catalog": {
+      "title": "ตำราเรียน E-book",
+      "subtitle": "ตำราเรียนดิจิทัลที่อ่านออนไลน์ได้ทันที",
+      "teacherEdition": "ฉบับครู",
+      "studentEdition": "ฉบับนักเรียน",
+      "selectLanguage": "กรุณาเลือกภาษา",
+      "comingSoon": "เร็วๆ นี้",
+      "loadError": "โหลดแคตตาล็อกไม่สำเร็จ",
+      "refundPolicy": "ดูนโยบายคืนเงิน",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
+    },
+    "purchase": {
+      "title": "รายละเอียดการซื้อ",
+      "paymentMethod": "วิธีชำระเงิน",
+      "bankTransfer": "โอนเงินผ่านธนาคาร",
+      "creditCard": "บัตรเครดิต (Paddle)",
+      "buy": "ซื้อ",
+      "loginRequired": "เข้าสู่ระบบเพื่อซื้อ",
+      "success": "ซื้อสำเร็จ",
+      "error": "เกิดข้อผิดพลาดระหว่างการซื้อ",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "ซื้อสำเร็จ",
+      "description": "การซื้อ E-book เสร็จสมบูรณ์",
+      "subtitle": "คำสั่งซื้อได้รับแล้ว กรุณาตรวจสอบรายละเอียด",
+      "purchaseCode": "รหัสซื้อ",
+      "codeCopied": "คัดลอกรหัสแล้ว",
+      "edition": "รุ่น",
+      "price": "ราคา",
+      "paymentMethod": "วิธีชำระ",
+      "bankGuideTitle": "วิธีชำระเงิน",
+      "bankAccount": "{{account}}",
+      "bankNote": "กรุณาชำระภายใน 7 วัน จะเปิดใช้งานหลังยืนยันการชำระ",
+      "goToMyEbooks": "E-book ของฉัน",
+      "browseCatalog": "ดูแคตตาล็อก",
+      "noData": "ไม่พบข้อมูลการซื้อ"
+    },
+    "preview": {
+      "button": "ดูตัวอย่าง",
+      "description": "ดูตัวอย่างหน้าปก สารบัญ และหน้าตัวอย่าง",
+      "cover": "หน้าปก",
+      "toc": "สารบัญ",
+      "sample": "ตัวอย่าง {{n}}",
+      "pages": " หน้า",
+      "purchaseButton": "ซื้อ",
+      "imageNotAvailable": "กำลังเตรียมรูปภาพ"
+    },
+    "status": {
+      "pending": "รอดำเนินการ",
+      "completed": "พร้อมใช้งาน",
+      "refunded": "คืนเงินแล้ว"
+    },
+    "my": {
+      "title": "E-book ของฉัน",
+      "empty": "ยังไม่มี E-book ที่ซื้อ",
+      "browseCatalog": "ดู E-book",
+      "openViewer": "เปิดโปรแกรมอ่าน",
+      "loadError": "โหลดประวัติการซื้อไม่สำเร็จ"
+    },
+    "viewer": {
+      "toc": "สารบัญ",
+      "notFound": "ไม่พบตำราเรียน",
+      "loadFailed": "โหลดหน้าไม่สำเร็จ"
+    }
+  },
+  "textbook": {
+    "heroBadge": "หนังสือเรียน Amazing Korean",
+    "heroTitle": "สั่งซื้อหนังสือเรียน",
+    "heroSubtitle": "สั่งซื้อหนังสือเรียนใน 20 ภาษา มีฉบับนักเรียนและฉบับครู",
+    "catalog": {
+      "badge": "หนังสือเรียน",
+      "title": "คอลเลกชันหนังสือเรียนภาษาเกาหลี",
+      "description": "เริ่มต้นเรียนภาษาเกาหลีอย่างเป็นระบบ\nด้วยฉบับนักเรียนและฉบับครูใน 20 ภาษา",
+      "studentSection": "ฉบับนักเรียน",
+      "studentDescription": "หนังสือเรียนภาษาเกาหลีสำหรับผู้เรียน",
+      "teacherSection": "ฉบับครู",
+      "teacherDescription": "คู่มือการสอนภาษาเกาหลีสำหรับครู",
+      "orderButton": "สั่งซื้อ",
+      "pricePerUnit": "₩25,000 / เล่ม",
+      "orderGuideTitle": "ข้อมูลการสั่งซื้อ",
+      "orderGuideMinQty": "จำนวนสั่งซื้อขั้นต่ำ 10 เล่ม",
+      "orderGuidePayment": "ชำระเงินโดยโอนผ่านธนาคาร",
+      "orderGuideBulk": "จัดส่งฟรีสำหรับการสั่งซื้อ 100 เล่มขึ้นไป",
+      "orderCta": "สั่งซื้อหนังสือเรียน",
+      "viewGrid": "มุมมองตาราง",
+      "viewCarousel": "มุมมองแบบหมุน",
+      "searchPlaceholder": "ค้นหาภาษา...",
+      "noResults": "ไม่พบผลลัพธ์",
+      "bookDescription": "หนังสือเรียนภาษาเกาหลีอย่างเป็นระบบ แปลโดยผู้เชี่ยวชาญเจ้าของภาษาในแต่ละภาษา"
+    },
+    "detail": {
+      "modalTitle": "รายละเอียดตำราเรียน",
+      "coverImage": "ปกหน้า",
+      "innerImage": "ปกใน",
+      "tocImage": "สารบัญ",
+      "description": "ตำราเรียนภาษาเกาหลีอย่างเป็นระบบ 120 หน้า ตั้งแต่ระดับเริ่มต้นถึงระดับกลาง",
+      "translationNote": "แปลโดยผู้เชี่ยวชาญเจ้าของภาษา{{language}}",
+      "orderNow": "สั่งซื้อเลย",
+      "viewDetail": "ดูรายละเอียด",
+      "imageNotAvailable": "กำลังเตรียมรูปภาพ"
+    },
+    "myOrders": {
+      "badge": "คำสั่งซื้อของฉัน",
+      "title": "ประวัติการซื้อตำราเรียน",
+      "description": "ตรวจสอบสถานะคำสั่งซื้อตำราเรียน",
+      "empty": "ยังไม่มีคำสั่งซื้อ",
+      "browseCatalog": "ดูตำราเรียน",
+      "loadError": "ไม่สามารถโหลดรายการคำสั่งซื้อได้",
+      "status": {
+        "pending": "รอดำเนินการ",
+        "confirmed": "ยืนยันแล้ว",
+        "paid": "ชำระเงินแล้ว",
+        "printing": "กำลังพิมพ์",
+        "shipped": "จัดส่งแล้ว",
+        "delivered": "ส่งถึงแล้ว",
+        "canceled": "ยกเลิกแล้ว"
+      }
+    },
+    "print": {
+      "quoteTitle": "ใบเสนอราคา",
+      "confirmationTitle": "ยืนยันคำสั่งซื้อ",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "เลขที่เอกสาร",
+      "date": "วันที่",
+      "status": "สถานะ",
+      "recipient": "เรียน",
+      "colItem": "รายการ",
+      "colType": "ประเภท",
+      "colQty": "จำนวน",
+      "colPrice": "ราคาต่อหน่วย",
+      "colSubtotal": "รวมย่อย",
+      "textbookPrefix": "Amazing Korean",
+      "total": "รวมทั้งหมด",
+      "quoteTotal": "ยอดเสนอราคา",
+      "confirmationTotal": "ยอดคำสั่งซื้อ",
+      "vatIncluded": "รวม VAT แล้ว",
+      "bankInfo": "ข้อมูลการชำระเงิน",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "กรุณาชำระเงินภายใน 7 วันหลังจากยืนยันคำสั่งซื้อ",
+      "taxInvoice": "ข้อมูลใบกำกับภาษี",
+      "bizNumber": "เลขทะเบียนนิติบุคคล",
+      "taxCompanyName": "ชื่อบริษัท",
+      "repName": "ผู้แทน",
+      "taxEmail": "อีเมลใบกำกับภาษี",
+      "taxAddress": "ที่อยู่สำนักงาน",
+      "taxBizType": "ประเภทธุรกิจ",
+      "taxBizItem": "สินค้า/บริการ",
+      "notes": "หมายเหตุ",
+      "footer": "เอกสารนี้จัดทำด้วยระบบอิเล็กทรอนิกส์และมีผลใช้ได้โดยไม่ต้องลงนาม",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "พิมพ์ / บันทึกเป็น PDF",
+      "pdfGuide": "หากต้องการบันทึกเป็น PDF ให้เลือก 'บันทึกเป็น PDF' ในหน้าต่างพิมพ์",
+      "notFound": "ไม่พบคำสั่งซื้อ",
+      "quoteNotice": "ใบเสนอราคานี้อ้างอิงจากการส่งคำสั่งซื้อ ยอดชำระจริงอาจแตกต่างกัน",
+      "confirmationNotice": "การยืนยันนี้ใช้สำหรับตรวจสอบสถานะคำสั่งซื้อเท่านั้น ไม่ใช่ใบเสร็จรับเงินอย่างเป็นทางการ"
+    }
   },
   "seo": {
-    "home": { "title": "Amazing Korean - แพลตฟอร์มเรียนภาษาเกาหลี", "description": "แพลตฟอร์มเรียนภาษาเกาหลีออนไลน์ที่ดีที่สุดสำหรับผู้เรียนทั่วโลก" },
-    "about": { "title": "เกี่ยวกับเรา - Amazing Korean", "description": "เกี่ยวกับ Amazing Korean — ประสบการณ์การเรียนภาษาเกาหลีที่มีประสิทธิภาพและสนุกสนาน" },
-    "pricing": { "title": "ราคา - Amazing Korean", "description": "แผนราคา Amazing Korean — เข้าถึงวิดีโอ สื่อการเรียน และบทเรียนอย่างไม่จำกัด" },
-    "videos": { "title": "บทเรียนวิดีโอ - Amazing Korean", "description": "เรียนภาษาเกาหลีอย่างมีประสิทธิภาพด้วยบทเรียนวิดีโอจากผู้สอนมืออาชีพ" },
-    "studies": { "title": "สื่อการเรียน - Amazing Korean", "description": "พัฒนาทักษะภาษาเกาหลีด้วยสื่อการเรียนและแบบฝึกหัดที่เป็นระบบ" },
-    "lessons": { "title": "บทเรียน - Amazing Korean", "description": "เรียนภาษาเกาหลีทีละขั้นตอนด้วยบทเรียนที่เป็นระบบ" },
-    "login": { "title": "เข้าสู่ระบบ - Amazing Korean", "description": "เข้าสู่ระบบ Amazing Korean เพื่อเริ่มเรียนภาษาเกาหลี" },
-    "signup": { "title": "สมัครสมาชิก - Amazing Korean", "description": "เข้าร่วม Amazing Korean และเริ่มต้นการเรียนภาษาเกาหลี" },
-    "terms": { "title": "เงื่อนไขการให้บริการ - Amazing Korean", "description": "เงื่อนไขการให้บริการของ Amazing Korean" },
-    "privacy": { "title": "นโยบายความเป็นส่วนตัว - Amazing Korean", "description": "นโยบายความเป็นส่วนตัวของ Amazing Korean" },
-    "refundPolicy": { "title": "นโยบายการคืนเงิน - Amazing Korean", "description": "นโยบายการคืนเงินการสมัครสมาชิก Amazing Korean" },
-    "faq": { "title": "คำถามที่พบบ่อย - Amazing Korean", "description": "คำถามที่พบบ่อยเกี่ยวกับ Amazing Korean" },
-    "findId": { "title": "กู้คืนบัญชี - Amazing Korean", "description": "ค้นหาข้อมูลบัญชีที่ลงทะเบียนไว้" },
-    "requestResetPassword": { "title": "รีเซ็ตรหัสผ่าน - Amazing Korean", "description": "ส่งอีเมลรีเซ็ตรหัสผ่านไปยังที่อยู่ที่ลงทะเบียนไว้" },
-    "textbook": { "title": "สั่งซื้อตำราเรียน - Amazing Korean", "description": "สั่งซื้อตำราเรียน Amazing Korean ออนไลน์ มีให้ใน 20 ภาษา" },
-    "textbookStatus": { "title": "สถานะการสั่งซื้อ - Amazing Korean", "description": "ตรวจสอบสถานะการสั่งซื้อตำราเรียน" }
+    "home": {
+      "title": "Amazing Korean - แพลตฟอร์มเรียนภาษาเกาหลี",
+      "description": "แพลตฟอร์มเรียนภาษาเกาหลีออนไลน์ที่ดีที่สุดสำหรับผู้เรียนทั่วโลก"
+    },
+    "about": {
+      "title": "เกี่ยวกับเรา - Amazing Korean",
+      "description": "เกี่ยวกับ Amazing Korean — ประสบการณ์การเรียนภาษาเกาหลีที่มีประสิทธิภาพและสนุกสนาน"
+    },
+    "pricing": {
+      "title": "ราคา - Amazing Korean",
+      "description": "แผนราคา Amazing Korean — เข้าถึงวิดีโอ สื่อการเรียน และบทเรียนอย่างไม่จำกัด"
+    },
+    "videos": {
+      "title": "บทเรียนวิดีโอ - Amazing Korean",
+      "description": "เรียนภาษาเกาหลีอย่างมีประสิทธิภาพด้วยบทเรียนวิดีโอจากผู้สอนมืออาชีพ"
+    },
+    "studies": {
+      "title": "สื่อการเรียน - Amazing Korean",
+      "description": "พัฒนาทักษะภาษาเกาหลีด้วยสื่อการเรียนและแบบฝึกหัดที่เป็นระบบ"
+    },
+    "lessons": {
+      "title": "บทเรียน - Amazing Korean",
+      "description": "เรียนภาษาเกาหลีทีละขั้นตอนด้วยบทเรียนที่เป็นระบบ"
+    },
+    "login": {
+      "title": "เข้าสู่ระบบ - Amazing Korean",
+      "description": "เข้าสู่ระบบ Amazing Korean เพื่อเริ่มเรียนภาษาเกาหลี"
+    },
+    "signup": {
+      "title": "สมัครสมาชิก - Amazing Korean",
+      "description": "เข้าร่วม Amazing Korean และเริ่มต้นการเรียนภาษาเกาหลี"
+    },
+    "terms": {
+      "title": "เงื่อนไขการให้บริการ - Amazing Korean",
+      "description": "เงื่อนไขการให้บริการของ Amazing Korean"
+    },
+    "privacy": {
+      "title": "นโยบายความเป็นส่วนตัว - Amazing Korean",
+      "description": "นโยบายความเป็นส่วนตัวของ Amazing Korean"
+    },
+    "refundPolicy": {
+      "title": "นโยบายการคืนเงิน - Amazing Korean",
+      "description": "นโยบายการคืนเงินการสมัครสมาชิก Amazing Korean"
+    },
+    "faq": {
+      "title": "คำถามที่พบบ่อย - Amazing Korean",
+      "description": "คำถามที่พบบ่อยเกี่ยวกับ Amazing Korean"
+    },
+    "findId": {
+      "title": "กู้คืนบัญชี - Amazing Korean",
+      "description": "ค้นหาข้อมูลบัญชีที่ลงทะเบียนไว้"
+    },
+    "requestResetPassword": {
+      "title": "รีเซ็ตรหัสผ่าน - Amazing Korean",
+      "description": "ส่งอีเมลรีเซ็ตรหัสผ่านไปยังที่อยู่ที่ลงทะเบียนไว้"
+    },
+    "textbook": {
+      "title": "สั่งซื้อตำราเรียน - Amazing Korean",
+      "description": "สั่งซื้อตำราเรียน Amazing Korean ออนไลน์ มีให้ใน 20 ภาษา"
+    },
+    "textbookStatus": {
+      "title": "สถานะการสั่งซื้อ - Amazing Korean",
+      "description": "ตรวจสอบสถานะการสั่งซื้อตำราเรียน"
+    }
+  },
+  "bookHub": {
+    "badge": "ตำราเรียน Amazing Korean",
+    "title": "ตำราเรียนภาษาเกาหลี",
+    "subtitle": "ค้นพบตำราเรียนภาษาเกาหลีที่มีให้บริการใน 20 ภาษา",
+    "descriptionTitle": "Amazing Korean คืออะไร?",
+    "description": "Amazing Korean เป็นตำราเรียนภาษาเกาหลีอย่างเป็นระบบสำหรับผู้เริ่มต้น ตั้งแต่พยัญชนะและสระฮันกึลไปจนถึงประโยคสำคัญ ไวยากรณ์ แบบฝึกหัด และการเตรียมสอบ TOPIK — ทั้งหมดในเล่มเดียว",
+    "samplePages": "ตัวอย่างหน้า",
+    "samplePagesNote": "หน้าตัวอย่างจากตำราเรียนจริง",
+    "ctaTitle": "ดูหนังสือ",
+    "ctaTextbook": "แคตตาล็อกฉบับพิมพ์",
+    "ctaEbook": "แคตตาล็อก E-book"
   }
 }

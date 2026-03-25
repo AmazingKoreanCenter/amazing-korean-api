@@ -31,7 +31,8 @@
       "language_name_en": "Japanese",
       "available_types": ["student", "teacher"],
       "unit_price": 25000,
-      "available": true
+      "available": true,
+      "isbn_ready": true
     }
   ],
   "currency": "KRW",
@@ -41,9 +42,9 @@
 
 #### 12-2 : `POST /textbook/orders` (주문 생성)
 
-> 교재 주문 접수. 비회원도 주문 가능.
+> 교재 주문 접수. 로그인 필수 (2026-03-24 변경).
 
-**인증**: 불필요
+**인증**: Bearer JWT 필수 (`user_id`가 주문에 연결됨)
 
 **요청**
 ```json
@@ -71,12 +72,28 @@
 - 각 항목 수량: 1~9999
 - 중복 항목 거부 (같은 language + textbook_type 조합 불가)
 - 비활성 언어 주문 차단 (카탈로그 `available=false`)
+- `isbn_ready`: ISBN 발급 완료 여부. false인 언어는 ISBN 발급 후 인쇄 → 배송 약 1주 추가 소요. 발급 완료 9개: ja, zh_cn, vi, th, ne, ru, km, tl, id
 - tax_invoice=true일 때 tax_biz_number + tax_email 필수
 - IP 기반 Rate Limiting (Redis, 기본 5회/시간)
 
 **프론트엔드 약관 동의**: 주문 제출 전 약관 동의 모달 표시 (6개 조항 — 주문 접수, 결제, 배송, 교환/반품, 개인정보, 기타). 동의 체크 후 제출 가능.
 
 **응답 (성공 201)**: OrderRes (주문 상세 + 항목)
+
+#### 12-2.5 : `GET /textbook/my` (내 주문 목록) — 2026-03-24 추가
+
+> 로그인한 사용자의 교재 주문 목록 조회.
+
+**인증**: Bearer JWT 필수
+
+**응답 (성공 200)**
+```json
+{
+  "orders": [
+    { "order_id": 1, "order_code": "TB-260324-0001", "status": "pending", "items": [...], "total_quantity": 10, "total_amount": 250000, ... }
+  ]
+}
+```
 
 #### 12-3 : `GET /textbook/orders/{code}` (주문 조회)
 

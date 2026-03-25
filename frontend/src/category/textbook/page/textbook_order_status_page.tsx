@@ -11,6 +11,8 @@ import {
   Printer,
   CreditCard,
   Loader2,
+  FileText,
+  ClipboardCheck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -298,6 +300,36 @@ export function TextbookOrderStatusPage() {
                     <p className="text-muted-foreground">{order.notes}</p>
                   </div>
                 )}
+
+                {/* 견적서 / 주문확인서 버튼 */}
+                <div className="flex flex-wrap gap-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      window.open(
+                        `/textbook/order/${order.order_code}/print?type=quote`,
+                        "_blank",
+                      )
+                    }
+                  >
+                    <FileText className="h-4 w-4 mr-1" />
+                    {t("textbook.print.quoteTitle")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      window.open(
+                        `/textbook/order/${order.order_code}/print?type=confirmation`,
+                        "_blank",
+                      )
+                    }
+                  >
+                    <ClipboardCheck className="h-4 w-4 mr-1" />
+                    {t("textbook.print.confirmationTitle")}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>

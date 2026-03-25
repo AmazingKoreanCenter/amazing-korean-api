@@ -9,4 +9,5 @@ pub fn textbook_router() -> Router<AppState> {
         .route("/catalog", get(handler::get_catalog))
         .route("/orders", post(handler::create_order))
         .route("/orders/{code}", get(handler::get_order_by_code))
+        .route("/my", get(handler::get_my_orders))
 }

@@ -32,6 +32,7 @@
     "videos": "Video",
     "studies": "Học tập",
     "lessons": "Bài học",
+    "book": "Sách",
     "pricing": "Bảng giá",
     "myPage": "Trang cá nhân",
     "login": "Đăng nhập",
@@ -211,6 +212,7 @@
     "myPageDescription": "Xem và chỉnh sửa thông tin cá nhân",
     "settingsTitle": "Cài đặt",
     "settingsButton": "Cài đặt",
+    "purchaseHistory": "Lịch sử mua hàng",
     "userNotFound": "Không tìm thấy thông tin người dùng.",
     "userLoadFailed": "Không thể tải thông tin người dùng.",
     "settingsLoadFailed": "Không thể tải thông tin cài đặt.",
@@ -474,7 +476,24 @@
       "studentEdition": "Bản học sinh",
       "selectLanguage": "Vui lòng chọn ngôn ngữ.",
       "comingSoon": "Sắp ra mắt",
-      "loadError": "Không thể tải danh mục."
+      "loadError": "Không thể tải danh mục.",
+      "refundPolicy": "Xem chính sách hoàn tiền",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
     },
     "purchase": {
       "title": "Chi tiết mua hàng",
@@ -484,7 +503,35 @@
       "buy": "Mua",
       "loginRequired": "Đăng nhập để mua",
       "success": "Mua hàng thành công.",
-      "error": "Đã xảy ra lỗi trong quá trình mua hàng."
+      "error": "Đã xảy ra lỗi trong quá trình mua hàng.",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "Mua thành công",
+      "description": "Việc mua E-book đã hoàn tất.",
+      "subtitle": "Đơn hàng đã được tiếp nhận. Vui lòng kiểm tra thông tin bên dưới.",
+      "purchaseCode": "Mã mua hàng",
+      "codeCopied": "Đã sao chép mã.",
+      "edition": "Phiên bản",
+      "price": "Giá",
+      "paymentMethod": "Phương thức thanh toán",
+      "bankGuideTitle": "Hướng dẫn thanh toán",
+      "bankAccount": "{{account}}",
+      "bankNote": "Vui lòng thanh toán trong 7 ngày. Truy cập sẽ được mở sau khi xác minh.",
+      "goToMyEbooks": "E-book của tôi",
+      "browseCatalog": "Xem danh mục",
+      "noData": "Không tìm thấy thông tin mua hàng."
+    },
+    "preview": {
+      "button": "Xem trước",
+      "description": "Xem trước bìa, mục lục và các trang mẫu.",
+      "cover": "Bìa",
+      "toc": "Mục lục",
+      "sample": "Mẫu {{n}}",
+      "pages": " trang",
+      "purchaseButton": "Mua",
+      "imageNotAvailable": "Hình ảnh đang được chuẩn bị"
     },
     "status": {
       "pending": "Đang xử lý",
@@ -502,6 +549,98 @@
       "toc": "Mục lục",
       "notFound": "Không tìm thấy giáo trình.",
       "loadFailed": "Không thể tải trang."
+    }
+  },
+  "textbook": {
+    "heroBadge": "Sách giáo khoa Amazing Korean",
+    "heroTitle": "Đặt sách giáo khoa",
+    "heroSubtitle": "Đặt sách giáo khoa bằng 20 ngôn ngữ. Có phiên bản dành cho học sinh và giáo viên.",
+    "catalog": {
+      "badge": "Sách giáo khoa",
+      "title": "Bộ sưu tập sách giáo khoa tiếng Hàn",
+      "description": "Bắt đầu hành trình học tiếng Hàn có hệ thống\nvới phiên bản dành cho học sinh và giáo viên bằng 20 ngôn ngữ.",
+      "studentSection": "Phiên bản học sinh",
+      "studentDescription": "Sách giáo khoa tiếng Hàn dành cho người học.",
+      "teacherSection": "Phiên bản giáo viên",
+      "teacherDescription": "Sách hướng dẫn giảng dạy tiếng Hàn cho giáo viên.",
+      "orderButton": "Đặt hàng",
+      "pricePerUnit": "₩25.000 / cuốn",
+      "orderGuideTitle": "Thông tin đặt hàng",
+      "orderGuideMinQty": "Số lượng đặt hàng tối thiểu là 10 cuốn.",
+      "orderGuidePayment": "Thanh toán bằng chuyển khoản ngân hàng.",
+      "orderGuideBulk": "Miễn phí vận chuyển cho đơn hàng từ 100 cuốn",
+      "orderCta": "Đặt sách giáo khoa",
+      "viewGrid": "Dạng lưới",
+      "viewCarousel": "Dạng băng chuyền",
+      "searchPlaceholder": "Tìm ngôn ngữ...",
+      "noResults": "Không tìm thấy kết quả.",
+      "bookDescription": "Sách giáo khoa học tiếng Hàn có hệ thống. Được dịch bởi chuyên gia bản ngữ của từng ngôn ngữ."
+    },
+    "detail": {
+      "modalTitle": "Chi tiết giáo trình",
+      "coverImage": "Bìa trước",
+      "innerImage": "Bìa trong",
+      "tocImage": "Mục lục",
+      "description": "Giáo trình học tiếng Hàn có hệ thống, 120 trang, từ cơ bản đến trung cấp.",
+      "translationNote": "Được dịch bởi chuyên gia bản ngữ {{language}}.",
+      "orderNow": "Đặt hàng ngay",
+      "viewDetail": "Xem chi tiết",
+      "imageNotAvailable": "Hình ảnh đang chuẩn bị"
+    },
+    "print": {
+      "quoteTitle": "Báo giá",
+      "confirmationTitle": "Xác nhận đơn hàng",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "Số chứng từ",
+      "date": "Ngày",
+      "status": "Trạng thái",
+      "recipient": "Người nhận",
+      "colItem": "Mục",
+      "colType": "Loại",
+      "colQty": "SL",
+      "colPrice": "Đơn giá",
+      "colSubtotal": "Thành tiền",
+      "textbookPrefix": "Amazing Korean",
+      "total": "Tổng cộng",
+      "quoteTotal": "Số tiền báo giá",
+      "confirmationTotal": "Số tiền đơn hàng",
+      "vatIncluded": "đã bao gồm VAT",
+      "bankInfo": "Thông tin thanh toán",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "Vui lòng thanh toán trong vòng 7 ngày sau khi xác nhận đơn hàng.",
+      "taxInvoice": "Thông tin hóa đơn thuế",
+      "bizNumber": "Số đăng ký kinh doanh",
+      "taxCompanyName": "Tên công ty",
+      "repName": "Người đại diện",
+      "taxEmail": "Email hóa đơn thuế",
+      "taxAddress": "Địa chỉ kinh doanh",
+      "taxBizType": "Loại hình kinh doanh",
+      "taxBizItem": "Ngành nghề",
+      "notes": "Ghi chú",
+      "footer": "Chứng từ này được tạo bằng điện tử và có hiệu lực mà không cần chữ ký.",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "In / Lưu PDF",
+      "pdfGuide": "Để lưu PDF, chọn 'Lưu dưới dạng PDF' trong hộp thoại in.",
+      "notFound": "Không tìm thấy đơn hàng.",
+      "quoteNotice": "Báo giá này dựa trên đơn đặt hàng và số tiền thanh toán thực tế có thể khác.",
+      "confirmationNotice": "Xác nhận này chỉ nhằm mục đích xác minh trạng thái đơn hàng và không phải là biên lai chính thức."
+    },
+    "myOrders": {
+      "badge": "Đơn hàng của tôi",
+      "title": "Lịch sử mua giáo trình",
+      "description": "Kiểm tra trạng thái đơn hàng giáo trình.",
+      "empty": "Chưa có đơn hàng nào.",
+      "browseCatalog": "Xem giáo trình",
+      "loadError": "Không thể tải danh sách đơn hàng.",
+      "status": {
+        "pending": "Chờ xử lý",
+        "confirmed": "Đã xác nhận",
+        "paid": "Đã thanh toán",
+        "printing": "Đang in",
+        "shipped": "Đang giao",
+        "delivered": "Đã giao",
+        "canceled": "Đã hủy"
+      }
     }
   },
   "seo": {
@@ -569,5 +708,17 @@
       "title": "Theo dõi đơn hàng - Amazing Korean",
       "description": "Theo dõi tình trạng đơn hàng giáo trình."
     }
+  },
+  "bookHub": {
+    "badge": "Sách giáo khoa Amazing Korean",
+    "title": "Sách giáo khoa tiếng Hàn",
+    "subtitle": "Khám phá sách giáo khoa tiếng Hàn có sẵn bằng 20 ngôn ngữ",
+    "descriptionTitle": "Amazing Korean là gì?",
+    "description": "Amazing Korean là sách giáo khoa tiếng Hàn có hệ thống dành cho người mới bắt đầu. Từ phụ âm và nguyên âm Hangul đến câu chính, ngữ pháp, bài tập và chuẩn bị TOPIK — tất cả trong một cuốn sách.",
+    "samplePages": "Xem trước trang",
+    "samplePagesNote": "Trang mẫu từ sách giáo khoa thực tế",
+    "ctaTitle": "Duyệt sách",
+    "ctaTextbook": "Danh mục bản in",
+    "ctaEbook": "Danh mục E-book"
   }
 }

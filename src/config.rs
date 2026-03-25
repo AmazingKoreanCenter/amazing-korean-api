@@ -52,10 +52,6 @@ pub struct Config {
     // Password Reset (비밀번호 재설정)
     pub verification_code_ttl_sec: i64,   // 인증코드 유효시간 (초, 기본 600 = 10분)
     pub reset_token_ttl_sec: i64,         // reset_token 유효시간 (초, 기본 1800 = 30분)
-    // Translation Provider
-    pub translate_provider: String,              // "google" | "none" (기본: "none")
-    pub google_translate_api_key: Option<String>,  // GCP Translation API 키
-    pub google_translate_project_id: Option<String>, // GCP 프로젝트 ID
     // MFA (Multi-Factor Authentication)
     pub mfa_token_ttl_sec: i64,                  // MFA 토큰 유효시간 (초, 기본: 300 = 5분)
     pub rate_limit_mfa_max: i64,                 // MFA 코드 검증 최대 시도 횟수 (기본: 5)
@@ -234,32 +230,6 @@ impl Config {
             .unwrap_or_else(|_| "1800".into())
             .parse::<i64>()
             .expect("RESET_TOKEN_TTL_SEC must be a number");
-
-        // Translation Provider: "google" | "none"
-        let translate_provider = env::var("TRANSLATE_PROVIDER")
-            .unwrap_or_else(|_| "none".into())
-            .to_lowercase();
-        let google_translate_api_key = env::var("GOOGLE_TRANSLATE_API_KEY")
-            .ok()
-            .filter(|s| !s.is_empty());
-        let google_translate_project_id = env::var("GOOGLE_TRANSLATE_PROJECT_ID")
-            .ok()
-            .filter(|s| !s.is_empty());
-
-        // Translation provider 검증 (google 선택 시 필수 값 확인)
-        if translate_provider == "google" {
-            if google_translate_api_key.is_none() {
-                panic!("GOOGLE_TRANSLATE_API_KEY must be set when TRANSLATE_PROVIDER=google");
-            }
-            if google_translate_project_id.is_none() {
-                panic!("GOOGLE_TRANSLATE_PROJECT_ID must be set when TRANSLATE_PROVIDER=google");
-            }
-        } else if translate_provider != "none" {
-            panic!(
-                "Unknown TRANSLATE_PROVIDER '{}'. Must be 'google' or 'none'.",
-                translate_provider
-            );
-        }
 
         // MFA (Multi-Factor Authentication)
         let mfa_token_ttl_sec = env::var("MFA_TOKEN_TTL_SEC")
@@ -501,9 +471,6 @@ impl Config {
             email_from_address,
             verification_code_ttl_sec,
             reset_token_ttl_sec,
-            translate_provider,
-            google_translate_api_key,
-            google_translate_project_id,
             mfa_token_ttl_sec,
             rate_limit_mfa_max,
             rate_limit_mfa_window_sec,
@@ -696,9 +663,6 @@ impl fmt::Debug for Config {
             .field("email_from_address", &self.email_from_address)
             .field("verification_code_ttl_sec", &self.verification_code_ttl_sec)
             .field("reset_token_ttl_sec", &self.reset_token_ttl_sec)
-            .field("translate_provider", &self.translate_provider)
-            .field("google_translate_api_key", &self.google_translate_api_key.as_ref().map(|_| "***"))
-            .field("google_translate_project_id", &self.google_translate_project_id)
             .field("mfa_token_ttl_sec", &self.mfa_token_ttl_sec)
             .field("rate_limit_mfa_max", &self.rate_limit_mfa_max)
             .field("rate_limit_mfa_window_sec", &self.rate_limit_mfa_window_sec)

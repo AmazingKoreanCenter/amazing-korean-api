@@ -6,16 +6,12 @@ import type {
   TranslationCreateReq,
   TranslationUpdateReq,
   TranslationStatusUpdateReq,
-  AutoTranslateReq,
-  AutoTranslateBulkReq,
 } from "@/category/admin/translation/types";
 import {
   createAdminTranslation,
   updateAdminTranslation,
   updateAdminTranslationStatus,
   deleteAdminTranslation,
-  autoTranslateContent,
-  autoTranslateBulk,
 } from "../admin_api";
 
 const getErrorMessage = (error: unknown) => {
@@ -90,32 +86,3 @@ export const useDeleteTranslation = () => {
   });
 };
 
-export const useAutoTranslate = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: AutoTranslateReq) => autoTranslateContent(data),
-    onSuccess: (res) => {
-      toast.success(`자동 번역 완료: ${res.success_count}/${res.total} 성공`);
-      queryClient.invalidateQueries({ queryKey: ["admin", "translations"] });
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-};
-
-export const useAutoTranslateBulk = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: AutoTranslateBulkReq) => autoTranslateBulk(data),
-    onSuccess: (res) => {
-      toast.success(`벌크 자동 번역 완료: ${res.success_count}/${res.total} 성공 (실패 ${res.fail_count}건)`);
-      queryClient.invalidateQueries({ queryKey: ["admin", "translations"] });
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-};

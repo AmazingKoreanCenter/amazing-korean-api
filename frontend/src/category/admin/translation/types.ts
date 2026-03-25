@@ -150,34 +150,6 @@ export const translationListResSchema = z.object({
 });
 export type TranslationListRes = z.infer<typeof translationListResSchema>;
 
-// ── 자동 번역 DTO ──────────────────────────
-
-// 자동 번역 요청 (단건)
-export const autoTranslateReqSchema = z.object({
-  content_type: contentTypeSchema,
-  content_id: z.number().int().positive(),
-  field_name: z.string().min(1).max(100),
-  source_text: z.string().min(1),
-  target_langs: z.array(supportedLanguageSchema).min(1).max(20),
-});
-export type AutoTranslateReq = z.infer<typeof autoTranslateReqSchema>;
-
-// 자동 번역 개별 결과
-export interface AutoTranslateItemResult {
-  lang: string;
-  success: boolean;
-  translation_id?: number;
-  translated_text?: string;
-  error?: string;
-}
-
-// 자동 번역 응답
-export interface AutoTranslateRes {
-  total: number;
-  success_count: number;
-  results: AutoTranslateItemResult[];
-}
-
 // ── 콘텐츠 목록 조회 DTO ──────────────────────
 
 // 콘텐츠 레코드 개별 항목
@@ -205,42 +177,6 @@ export interface SourceFieldItem {
 // 원본 필드 응답
 export interface SourceFieldsRes {
   fields: SourceFieldItem[];
-}
-
-// ── 벌크 자동 번역 DTO ──────────────────────
-
-// 벌크 자동 번역 개별 항목
-export interface AutoTranslateBulkItem {
-  content_type: ContentType;
-  content_id: number;
-  field_name: string;
-  source_text: string;
-}
-
-// 벌크 자동 번역 요청
-export interface AutoTranslateBulkReq {
-  items: AutoTranslateBulkItem[];
-  target_langs: SupportedLanguage[];
-}
-
-// 벌크 자동 번역 개별 결과
-export interface AutoTranslateBulkItemResult {
-  content_type: ContentType;
-  content_id: number;
-  field_name: string;
-  lang: string;
-  success: boolean;
-  translation_id?: number;
-  translated_text?: string;
-  error?: string;
-}
-
-// 벌크 자동 번역 응답
-export interface AutoTranslateBulkRes {
-  total: number;
-  success_count: number;
-  fail_count: number;
-  results: AutoTranslateBulkItemResult[];
 }
 
 // ── 번역 검색 DTO ──────────────────────────

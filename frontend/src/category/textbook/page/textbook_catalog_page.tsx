@@ -1,22 +1,54 @@
+import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BookOpen, ArrowRight, Package, CreditCard, Truck } from "lucide-react";
+import { BookOpen, ArrowRight, Package, CreditCard, Truck, LayoutGrid, Disc3, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HeroSection } from "@/components/sections/hero_section";
 import { SectionContainer } from "@/components/sections/section_container";
 import { PageMeta } from "@/components/page_meta";
 
 import { useCatalog } from "../hook/use_catalog";
-import type { CatalogItem } from "../types";
+import { useCatalogView } from "../hook/use_catalog_view";
+import type { CatalogItem, TextbookType } from "../types";
+import { TextbookCarouselView } from "./textbook_carousel_view";
+import { TextbookDetailModal } from "./textbook_detail_modal";
 
-function CoverCard({ item, type }: { item: CatalogItem; type: "student" | "teacher" }) {
+type ViewMode = "grid" | "carousel";
+
+const STORAGE_KEY = "amk_catalog_view_mode";
+
+function getStoredViewMode(): ViewMode {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "grid") return "grid";
+  } catch {
+    // localStorage unavailable
+  }
+  return "carousel";
+}
+
+function CoverCard({
+  item,
+  type,
+  onClick,
+}: {
+  item: CatalogItem;
+  type: "student" | "teacher";
+  onClick: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const langName = i18n.language === "ko" ? item.language_name_ko : item.language_name_en;
 
   return (
-    <div className="bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 border hover:border-accent/50">
+    <button
+      type="button"
+      onClick={onClick}
+      className="bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 border hover:border-accent/50 text-left cursor-pointer"
+    >
       <div className="aspect-[3/4] overflow-hidden bg-muted">
         <img
           src={`/covers/${type}-${item.language}.webp`}
@@ -26,21 +58,48 @@ function CoverCard({ item, type }: { item: CatalogItem; type: "student" | "teach
         />
       </div>
       <div className="p-4 space-y-2">
-        <h3 className="font-semibold text-sm">{langName}</h3>
-        <p className="text-xs text-muted-foreground">{t("textbook.catalog.pricePerUnit")}</p>
-        <Button asChild className="w-full" size="sm">
-          <Link to={`/textbook/order?lang=${item.language}&type=${type}`}>
-            {t("textbook.catalog.orderButton")}
-          </Link>
-        </Button>
+        <h3 className="font-semibold text-sm">{t("textbook.catalog.bookTitle", { language: langName })}</h3>
+        <p className="text-xs text-muted-foreground text-right py-0.3">{t("textbook.catalog.pricePerUnit")}</p>
+        <span className="inline-flex items-center justify-center w-full rounded-md bg-primary text-primary-foreground text-sm font-medium h-8 px-3">
+          {t("textbook.detail.viewDetail")}
+        </span>
       </div>
-    </div>
+    </button>
   );
+}
+
+interface ModalTarget {
+  item: CatalogItem;
+  type: TextbookType;
 }
 
 export function TextbookCatalogPage() {
   const { t } = useTranslation();
   const { data: catalog, isLoading } = useCatalog();
+  const [viewMode, setViewModeState] = useState<ViewMode>(getStoredViewMode);
+  const [modalTarget, setModalTarget] = useState<ModalTarget | null>(null);
+
+  const items = catalog?.items?.filter((item) => item.available) ?? [];
+
+  const {
+    activeType,
+    setActiveType,
+    searchQuery,
+    setSearchQuery,
+    filteredItems,
+    selectedIndex,
+    setSelectedIndex,
+    selectedItem,
+  } = useCatalogView(items);
+
+  const setViewMode = useCallback((mode: ViewMode) => {
+    setViewModeState(mode);
+    try {
+      localStorage.setItem(STORAGE_KEY, mode);
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -58,8 +117,6 @@ export function TextbookCatalogPage() {
       </div>
     );
   }
-
-  const items = catalog?.items?.filter((item) => item.available) ?? [];
 
   return (
     <div className="flex flex-col">
@@ -82,34 +139,111 @@ export function TextbookCatalogPage() {
         ))}
       />
 
-      {/* 학생용 교재 */}
+      {/* Common header: Tabs + Search + View toggle */}
       <SectionContainer>
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold">{t("textbook.catalog.studentSection")}</h2>
-            <p className="text-muted-foreground mt-2">{t("textbook.catalog.studentDescription")}</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {items.map((item) => (
-              <CoverCard key={`student-${item.language}`} item={item} type="student" />
-            ))}
-          </div>
-        </div>
-      </SectionContainer>
+        <Tabs
+          value={activeType}
+          onValueChange={(v) => setActiveType(v as TextbookType)}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <TabsList>
+              <TabsTrigger value="student">{t("textbook.catalog.studentSection")}</TabsTrigger>
+              <TabsTrigger value="teacher">{t("textbook.catalog.teacherSection")}</TabsTrigger>
+            </TabsList>
 
-      {/* 교사용 교재 */}
-      <SectionContainer>
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold">{t("textbook.catalog.teacherSection")}</h2>
-            <p className="text-muted-foreground mt-2">{t("textbook.catalog.teacherDescription")}</p>
+            <div className="flex items-center gap-2">
+              {/* Search bar */}
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={t("textbook.catalog.searchPlaceholder")}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-10"
+                />
+              </div>
+
+              {/* View toggle */}
+              <div className="inline-flex rounded-lg border p-1 gap-1 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  className={`p-2 rounded-md transition-colors ${
+                    viewMode === "grid"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                  title={t("textbook.catalog.viewGrid")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("carousel")}
+                  className={`p-2 rounded-md transition-colors ${
+                    viewMode === "carousel"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  }`}
+                  title={t("textbook.catalog.viewCarousel")}
+                >
+                  <Disc3 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {items.map((item) => (
-              <CoverCard key={`teacher-${item.language}`} item={item} type="teacher" />
-            ))}
-          </div>
-        </div>
+
+          <TextbookDetailModal
+            item={modalTarget?.item ?? null}
+            type={modalTarget?.type ?? "student"}
+            open={modalTarget !== null}
+            onOpenChange={(open) => { if (!open) setModalTarget(null); }}
+          />
+
+          {viewMode === "grid" ? (
+            <>
+              <TabsContent value="student">
+                <GridSection
+                  items={filteredItems}
+                  type="student"
+                  noResultsText={t("textbook.catalog.noResults")}
+                  onCardClick={(item) => setModalTarget({ item, type: "student" })}
+                />
+              </TabsContent>
+              <TabsContent value="teacher">
+                <GridSection
+                  items={filteredItems}
+                  type="teacher"
+                  noResultsText={t("textbook.catalog.noResults")}
+                  onCardClick={(item) => setModalTarget({ item, type: "teacher" })}
+                />
+              </TabsContent>
+            </>
+          ) : (
+            <>
+              <TabsContent value="student">
+                <TextbookCarouselView
+                  items={filteredItems}
+                  type="student"
+                  selectedIndex={selectedIndex}
+                  onSelect={setSelectedIndex}
+                  selectedItem={selectedItem}
+                  onDetailOpen={(item, type) => setModalTarget({ item, type })}
+                />
+              </TabsContent>
+              <TabsContent value="teacher">
+                <TextbookCarouselView
+                  items={filteredItems}
+                  type="teacher"
+                  selectedIndex={selectedIndex}
+                  onSelect={setSelectedIndex}
+                  selectedItem={selectedItem}
+                  onDetailOpen={(item, type) => setModalTarget({ item, type })}
+                />
+              </TabsContent>
+            </>
+          )}
+        </Tabs>
       </SectionContainer>
 
       {/* 주문 안내 */}
@@ -137,13 +271,46 @@ export function TextbookCatalogPage() {
             </div>
           </div>
           <Button asChild size="lg" className="gradient-primary hover:opacity-90 text-white rounded-full px-8 h-12">
-            <Link to="/textbook/order">
+            <Link to="/book/textbook/order">
               {t("textbook.catalog.orderCta")}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>
         </div>
       </SectionContainer>
+    </div>
+  );
+}
+
+function GridSection({
+  items,
+  type,
+  noResultsText,
+  onCardClick,
+}: {
+  items: CatalogItem[];
+  type: TextbookType;
+  noResultsText: string;
+  onCardClick: (item: CatalogItem) => void;
+}) {
+  if (items.length === 0) {
+    return (
+      <div className="py-16 text-center text-muted-foreground">
+        {noResultsText}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 mt-6">
+      {items.map((item) => (
+        <CoverCard
+          key={`${type}-${item.language}`}
+          item={item}
+          type={type}
+          onClick={() => onCardClick(item)}
+        />
+      ))}
     </div>
   );
 }

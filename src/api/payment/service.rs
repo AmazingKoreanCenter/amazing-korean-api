@@ -675,6 +675,31 @@ impl PaymentService {
                     txn_id = %provider_txn_id,
                     "E-book purchase completed via Paddle"
                 );
+
+                // 결제 완료 이메일 발송 (fire-and-forget)
+                if let Some(ref email_sender) = st.email {
+                    use crate::crypto::CryptoService;
+                    use crate::external::email::{send_templated, EmailTemplate};
+                    use crate::api::ebook::service::{language_name_ko, edition_label_ko};
+
+                    let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+                    if let Ok(Some(encrypted_email)) = crate::api::ebook::repo::find_user_encrypted_email(&st.db, row.user_id).await {
+                        if let Ok(user_email) = crypto.decrypt(&encrypted_email, "users.user_email") {
+                            let template = EmailTemplate::EbookPurchaseCompleted {
+                                purchase_code: purchase_code.to_string(),
+                                language_name: language_name_ko(row.language).to_string(),
+                                edition_label: edition_label_ko(row.edition).to_string(),
+                            };
+                            if let Err(e) = send_templated(email_sender.as_ref(), &user_email, template).await {
+                                tracing::warn!(
+                                    purchase_code = %purchase_code,
+                                    error = %e,
+                                    "Failed to send ebook purchase completed email via Paddle webhook"
+                                );
+                            }
+                        }
+                    }
+                }
             }
             None => {
                 tracing::warn!(

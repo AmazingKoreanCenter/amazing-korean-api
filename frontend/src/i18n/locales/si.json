@@ -32,6 +32,7 @@
     "videos": "වීඩියෝ",
     "studies": "අධ්‍යයනය",
     "lessons": "පාඩම්",
+    "book": "පොත",
     "pricing": "මිල ගණන්",
     "myPage": "මගේ පිටුව",
     "login": "පිවිසීම",
@@ -211,6 +212,7 @@
     "myPageDescription": "ඔබගේ පැතිකඩ තොරතුරු බලන්න සහ සංස්කරණය කරන්න",
     "settingsTitle": "සැකසුම්",
     "settingsButton": "සැකසුම්",
+    "purchaseHistory": "මිලදී ගැනීම් ඉතිහාසය",
     "userNotFound": "පරිශීලක තොරතුරු හමු නොවීය.",
     "userLoadFailed": "පරිශීලක තොරතුරු පූරණය අසාර්ථක විය.",
     "settingsLoadFailed": "සැකසුම් පූරණය අසාර්ථක විය.",
@@ -467,28 +469,256 @@
     "promoCodeClear": "මකන්න"
   },
   "ebook": {
-    "catalog": { "title": "ඊ-පොත් පාඨමාලා", "subtitle": "ක්ෂණිකව මාර්ගගතව කියවිය හැකි ඩිජිටල් පාඨමාලා.", "teacherEdition": "ගුරු සංස්කරණය", "studentEdition": "ශිෂ්‍ය සංස්කරණය", "selectLanguage": "කරුණාකර භාෂාවක් තෝරන්න.", "comingSoon": "ඉක්මනින්", "loadError": "නාමාවලිය පූරණය කිරීමට අසමත් විය." },
-    "purchase": { "title": "මිලදී ගැනීමේ විස්තර", "paymentMethod": "ගෙවීම් ක්‍රමය", "bankTransfer": "බැංකු හුවමාරුව", "creditCard": "ක්‍රෙඩිට් කාඩ්පත (Paddle)", "buy": "මිලදී ගන්න", "loginRequired": "මිලදී ගැනීමට පිවිසෙන්න", "success": "මිලදී ගැනීම සම්පූර්ණයි.", "error": "මිලදී ගැනීමේදී දෝෂයක් ඇති විය." },
-    "status": { "pending": "අපේක්ෂාවෙන්", "completed": "ලබා ගත හැක", "refunded": "ආපසු ගෙවා ඇත" },
-    "my": { "title": "මගේ ඊ-පොත්", "empty": "මිලදී ගත් ඊ-පොත් නැත.", "browseCatalog": "ඊ-පොත් බලන්න", "openViewer": "කියවීම් යන්ත්‍රය විවෘත කරන්න", "loadError": "මිලදී ගැනීම් පූරණය කිරීමට අසමත් විය." },
-    "viewer": { "toc": "පටුන", "notFound": "පාඨමාලාව හමු නොවීය.", "loadFailed": "පිටුව පූරණය කිරීමට අසමත් විය." }
+    "catalog": {
+      "title": "ඊ-පොත් පාඨමාලා",
+      "subtitle": "ක්ෂණිකව මාර්ගගතව කියවිය හැකි ඩිජිටල් පාඨමාලා.",
+      "teacherEdition": "ගුරු සංස්කරණය",
+      "studentEdition": "ශිෂ්‍ය සංස්කරණය",
+      "selectLanguage": "කරුණාකර භාෂාවක් තෝරන්න.",
+      "comingSoon": "ඉක්මනින්",
+      "loadError": "නාමාවලිය පූරණය කිරීමට අසමත් විය.",
+      "refundPolicy": "පිරිනැහීම් ප්‍රතිපත්තිය බලන්න",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
+    },
+    "purchase": {
+      "title": "මිලදී ගැනීමේ විස්තර",
+      "paymentMethod": "ගෙවීම් ක්‍රමය",
+      "bankTransfer": "බැංකු හුවමාරුව",
+      "creditCard": "ක්‍රෙඩිට් කාඩ්පත (Paddle)",
+      "buy": "මිලදී ගන්න",
+      "loginRequired": "මිලදී ගැනීමට පිවිසෙන්න",
+      "success": "මිලදී ගැනීම සම්පූර්ණයි.",
+      "error": "මිලදී ගැනීමේදී දෝෂයක් ඇති විය.",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "Purchase Complete",
+      "description": "Your E-book purchase is complete.",
+      "subtitle": "Your order has been received. Please check the purchase details below.",
+      "purchaseCode": "Purchase Code",
+      "codeCopied": "Purchase code copied.",
+      "edition": "Edition",
+      "price": "Price",
+      "paymentMethod": "Payment Method",
+      "bankGuideTitle": "Payment Instructions",
+      "bankAccount": "{{account}}",
+      "bankNote": "Please make the payment within 7 days after order confirmation. Access will be available after payment is verified.",
+      "goToMyEbooks": "Go to My E-books",
+      "browseCatalog": "Browse Catalog",
+      "noData": "Purchase information not found."
+    },
+    "preview": {
+      "button": "පෙරබැලිය",
+      "description": "කවරය, පිටුව සහ නමූනා පිටු පෙරබැලිය.",
+      "cover": "කවරය",
+      "toc": "පිටුව",
+      "sample": "නමූනා {{n}}",
+      "pages": " පිටු",
+      "purchaseButton": "පිළිගන්න",
+      "imageNotAvailable": "පිරිසිදුම සබනු"
+    },
+    "status": {
+      "pending": "අපේක්ෂාවෙන්",
+      "completed": "ලබා ගත හැක",
+      "refunded": "ආපසු ගෙවා ඇත"
+    },
+    "my": {
+      "title": "මගේ ඊ-පොත්",
+      "empty": "මිලදී ගත් ඊ-පොත් නැත.",
+      "browseCatalog": "ඊ-පොත් බලන්න",
+      "openViewer": "කියවීම් යන්ත්‍රය විවෘත කරන්න",
+      "loadError": "මිලදී ගැනීම් පූරණය කිරීමට අසමත් විය."
+    },
+    "viewer": {
+      "toc": "පටුන",
+      "notFound": "පාඨමාලාව හමු නොවීය.",
+      "loadFailed": "පිටුව පූරණය කිරීමට අසමත් විය."
+    }
+  },
+  "textbook": {
+    "heroBadge": "Amazing Korean පෙළපොත්",
+    "heroTitle": "පෙළපොත් ඇණවුම",
+    "heroSubtitle": "භාෂා 20කින් පෙළපොත් ඇණවුම් කරන්න. ශිෂ්‍ය සහ ගුරු සංස්කරණ ලබා ගත හැක.",
+    "catalog": {
+      "badge": "පෙළපොත",
+      "title": "කොරියානු පෙළපොත් එකතුව",
+      "description": "භාෂා 20කින් ශිෂ්‍ය සහ ගුරු සංස්කරණ සමඟ\nක්‍රමානුකූල කොරියානු ඉගෙනුම් ගමන ආරම්භ කරන්න.",
+      "studentSection": "ශිෂ්‍ය සංස්කරණය",
+      "studentDescription": "ඉගෙනුම්ලාභීන් සඳහා කොරියානු පෙළපොත්.",
+      "teacherSection": "ගුරු සංස්කරණය",
+      "teacherDescription": "ගුරුවරුන් සඳහා කොරියානු ඉගැන්වීම් මාර්ගෝපදේශ.",
+      "orderButton": "ඇණවුම් කරන්න",
+      "pricePerUnit": "₩25,000 / පිටපතක්",
+      "orderGuideTitle": "ඇණවුම් තොරතුරු",
+      "orderGuideMinQty": "අවම ඇණවුම් ප්‍රමාණය පිටපත් 10කි.",
+      "orderGuidePayment": "බැංකු මාරුවීම මඟින් ගෙවීම.",
+      "orderGuideBulk": "පිටපත් 100+ ඇණවුම් සඳහා නොමිලේ බෙදා හැරීම",
+      "orderCta": "පෙළපොත් ඇණවුම් කරන්න",
+      "viewGrid": "ජාලක දසුන",
+      "viewCarousel": "කරවුසල් දසුන",
+      "searchPlaceholder": "භාෂාව සොයන්න...",
+      "noResults": "ප්‍රතිඵල හමු නොවීය.",
+      "bookDescription": "ක්‍රමානුකූල කොරියානු ඉගෙනුම් පෙළපොතක්. සෑම භාෂාවකම ස්වභාෂික විශේෂඥයන් විසින් පරිවර්තනය කර ඇත."
+    },
+    "detail": {
+      "modalTitle": "පෙළපොත් විස්තර",
+      "coverImage": "මුහුණ පිටුව",
+      "innerImage": "ඇතුළු පිටුව",
+      "tocImage": "අන්තර්ගත වගුව",
+      "description": "පිටු 120ක ක්‍රමානුකූල කොරියානු ඉගෙනුම් පොත, ආරම්භක සිට මධ්‍යම මට්ටම දක්වා.",
+      "translationNote": "{{language}} මව් භාෂා විශේෂඥයින් විසින් පරිවර්තනය කරන ලදි.",
+      "orderNow": "දැන් ඇණවුම් කරන්න",
+      "viewDetail": "විස්තර බලන්න",
+      "imageNotAvailable": "රූපය සූදානම් වෙමින්"
+    },
+    "myOrders": {
+      "badge": "මගේ ඇණවුම්",
+      "title": "පෙළපොත් මිලදී ගැනීම් ඉතිහාසය",
+      "description": "ඔබේ ඇණවුම් තත්ත්වය පරීක්ෂා කරන්න.",
+      "empty": "තවමත් ඇණවුම් නැත.",
+      "browseCatalog": "පෙළපොත් බලන්න",
+      "loadError": "ඇණවුම් ලැයිස්තුව පූරණය කළ නොහැක.",
+      "status": {
+        "pending": "පොරොත්තුවේ",
+        "confirmed": "තහවුරු කරන ලදි",
+        "paid": "ගෙවා ඇත",
+        "printing": "මුද්‍රණය වෙමින්",
+        "shipped": "යවා ඇත",
+        "delivered": "බෙදා හරින ලදි",
+        "canceled": "අවලංගු කරන ලදි"
+      }
+    },
+    "print": {
+      "quoteTitle": "මිල කැඳවීම",
+      "confirmationTitle": "ඇණවුම් තහවුරුව",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "ලේඛන අංකය",
+      "date": "දිනය",
+      "status": "තත්ත්වය",
+      "recipient": "ලබන්නා",
+      "colItem": "අයිතමය",
+      "colType": "වර්ගය",
+      "colQty": "ප්‍රමාණය",
+      "colPrice": "ඒකක මිල",
+      "colSubtotal": "උප එකතුව",
+      "textbookPrefix": "Amazing Korean",
+      "total": "මුළු එකතුව",
+      "quoteTotal": "මිල කැඳවීම් මුදල",
+      "confirmationTotal": "ඇණවුම් මුදල",
+      "vatIncluded": "VAT ඇතුළත්",
+      "bankInfo": "ගෙවීම් තොරතුරු",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "ඇණවුම තහවුරු කිරීමෙන් දින 7ක් ඇතුළත ගෙවීම සිදු කරන්න.",
+      "taxInvoice": "බදු ඉන්වොයිස තොරතුරු",
+      "bizNumber": "ව්‍යාපාර ලියාපදිංචි අංකය",
+      "taxCompanyName": "සමාගම් නම",
+      "repName": "නියෝජිතයා",
+      "taxEmail": "බදු ඉන්වොයිස ඊමේල්",
+      "taxAddress": "ව්‍යාපාර ලිපිනය",
+      "taxBizType": "ව්‍යාපාර වර්ගය",
+      "taxBizItem": "ව්‍යාපාර අයිතමය",
+      "notes": "සටහන්",
+      "footer": "මෙම ලේඛනය විද්‍යුත් ක්‍රමයෙන් ජනනය කර ඇති අතර අත්සනක් නොමැතිව වලංගු වේ.",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "මුද්‍රණය / PDF ලෙස සුරකින්න",
+      "pdfGuide": "PDF ලෙස සුරැකීමට, මුද්‍රණ සංවාදයේ 'PDF ලෙස සුරකින්න' තෝරන්න.",
+      "notFound": "ඇණවුම හමු නොවීය.",
+      "quoteNotice": "මෙම මිල කැඳවීම ඇණවුම් ඉදිරිපත් කිරීම මත පදනම් වන අතර සැබෑ ගෙවීම් මුදල වෙනස් විය හැක.",
+      "confirmationNotice": "මෙම තහවුරුව ඇණවුම් තත්ත්ව සත්‍යාපන අරමුණු සඳහා පමණක් වන අතර නිල රිසිට්පතක් නොවේ."
+    }
   },
   "seo": {
-    "home": { "title": "Amazing Korean - කොරියානු ඉගෙනුම් වේදිකාව", "description": "ලොව පුරා ඉගෙනුම්ලාභීන් සඳහා හොඳම මාර්ගගත කොරියානු ඉගෙනුම් වේදිකාව." },
-    "about": { "title": "අපි ගැන - Amazing Korean", "description": "Amazing Korean ගැන — ලොව පුරා ඉගෙනුම්ලාභීන්ට ඵලදායී කොරියානු ඉගෙනුම් අත්දැකීම්." },
-    "pricing": { "title": "මිල ගණන් - Amazing Korean", "description": "Amazing Korean මිල ගණන් — වීඩියෝ, අධ්‍යයන ද්‍රව්‍ය සහ පාඩම්වලට අසීමිත ප්‍රවේශය." },
-    "videos": { "title": "වීඩියෝ පාඩම් - Amazing Korean", "description": "වෘත්තීය උපදේශකයන්ගේ වීඩියෝ පාඩම් මගින් කොරියානු ඵලදායී ලෙස ඉගෙන ගන්න." },
-    "studies": { "title": "අධ්‍යයන ද්‍රව්‍ය - Amazing Korean", "description": "ව්‍යුහගත අධ්‍යයන ද්‍රව්‍ය සහ අභ්‍යාස මගින් කොරියානු කුසලතා වැඩිදියුණු කරන්න." },
-    "lessons": { "title": "පාඩම් - Amazing Korean", "description": "ව්‍යුහගත පාඩම් මගින් පියවරෙන් පියවර කොරියානු ඉගෙන ගන්න." },
-    "login": { "title": "පිවිසීම - Amazing Korean", "description": "කොරියානු ඉගෙනීම ආරම්භ කිරීමට Amazing Korean වෙත පිවිසෙන්න." },
-    "signup": { "title": "ලියාපදිංචිය - Amazing Korean", "description": "Amazing Korean හා එක්වී ඔබේ කොරියානු ඉගෙනුම් ගමන ආරම්භ කරන්න." },
-    "terms": { "title": "සේවා නියම - Amazing Korean", "description": "Amazing Korean සේවා නියම." },
-    "privacy": { "title": "රහස්‍යතා ප්‍රතිපත්තිය - Amazing Korean", "description": "Amazing Korean රහස්‍යතා ප්‍රතිපත්තිය." },
-    "refundPolicy": { "title": "ආපසු ගෙවීම් ප්‍රතිපත්තිය - Amazing Korean", "description": "Amazing Korean දායකත්ව ආපසු ගෙවීම් ප්‍රතිපත්තිය." },
-    "faq": { "title": "නිතර අසන ප්‍රශ්න - Amazing Korean", "description": "Amazing Korean ගැන නිතර අසන ප්‍රශ්න." },
-    "findId": { "title": "ගිණුම් ප්‍රතිසාධනය - Amazing Korean", "description": "ඔබේ ලියාපදිංචි ගිණුම් තොරතුරු සොයන්න." },
-    "requestResetPassword": { "title": "මුරපදය යළි සකසන්න - Amazing Korean", "description": "ඔබේ ලියාපදිංචි ලිපිනයට මුරපද යළි සැකසීමේ ඊමේල් යවන්න." },
-    "textbook": { "title": "පාඨමාලා ඇණවුම - Amazing Korean", "description": "Amazing Korean පාඨමාලා මාර්ගගතව ඇණවුම් කරන්න." },
-    "textbookStatus": { "title": "ඇණවුම් තත්ත්වය - Amazing Korean", "description": "ඔබේ පාඨමාලා ඇණවුමේ තත්ත්වය පරීක්ෂා කරන්න." }
+    "home": {
+      "title": "Amazing Korean - කොරියානු ඉගෙනුම් වේදිකාව",
+      "description": "ලොව පුරා ඉගෙනුම්ලාභීන් සඳහා හොඳම මාර්ගගත කොරියානු ඉගෙනුම් වේදිකාව."
+    },
+    "about": {
+      "title": "අපි ගැන - Amazing Korean",
+      "description": "Amazing Korean ගැන — ලොව පුරා ඉගෙනුම්ලාභීන්ට ඵලදායී කොරියානු ඉගෙනුම් අත්දැකීම්."
+    },
+    "pricing": {
+      "title": "මිල ගණන් - Amazing Korean",
+      "description": "Amazing Korean මිල ගණන් — වීඩියෝ, අධ්‍යයන ද්‍රව්‍ය සහ පාඩම්වලට අසීමිත ප්‍රවේශය."
+    },
+    "videos": {
+      "title": "වීඩියෝ පාඩම් - Amazing Korean",
+      "description": "වෘත්තීය උපදේශකයන්ගේ වීඩියෝ පාඩම් මගින් කොරියානු ඵලදායී ලෙස ඉගෙන ගන්න."
+    },
+    "studies": {
+      "title": "අධ්‍යයන ද්‍රව්‍ය - Amazing Korean",
+      "description": "ව්‍යුහගත අධ්‍යයන ද්‍රව්‍ය සහ අභ්‍යාස මගින් කොරියානු කුසලතා වැඩිදියුණු කරන්න."
+    },
+    "lessons": {
+      "title": "පාඩම් - Amazing Korean",
+      "description": "ව්‍යුහගත පාඩම් මගින් පියවරෙන් පියවර කොරියානු ඉගෙන ගන්න."
+    },
+    "login": {
+      "title": "පිවිසීම - Amazing Korean",
+      "description": "කොරියානු ඉගෙනීම ආරම්භ කිරීමට Amazing Korean වෙත පිවිසෙන්න."
+    },
+    "signup": {
+      "title": "ලියාපදිංචිය - Amazing Korean",
+      "description": "Amazing Korean හා එක්වී ඔබේ කොරියානු ඉගෙනුම් ගමන ආරම්භ කරන්න."
+    },
+    "terms": {
+      "title": "සේවා නියම - Amazing Korean",
+      "description": "Amazing Korean සේවා නියම."
+    },
+    "privacy": {
+      "title": "රහස්‍යතා ප්‍රතිපත්තිය - Amazing Korean",
+      "description": "Amazing Korean රහස්‍යතා ප්‍රතිපත්තිය."
+    },
+    "refundPolicy": {
+      "title": "ආපසු ගෙවීම් ප්‍රතිපත්තිය - Amazing Korean",
+      "description": "Amazing Korean දායකත්ව ආපසු ගෙවීම් ප්‍රතිපත්තිය."
+    },
+    "faq": {
+      "title": "නිතර අසන ප්‍රශ්න - Amazing Korean",
+      "description": "Amazing Korean ගැන නිතර අසන ප්‍රශ්න."
+    },
+    "findId": {
+      "title": "ගිණුම් ප්‍රතිසාධනය - Amazing Korean",
+      "description": "ඔබේ ලියාපදිංචි ගිණුම් තොරතුරු සොයන්න."
+    },
+    "requestResetPassword": {
+      "title": "මුරපදය යළි සකසන්න - Amazing Korean",
+      "description": "ඔබේ ලියාපදිංචි ලිපිනයට මුරපද යළි සැකසීමේ ඊමේල් යවන්න."
+    },
+    "textbook": {
+      "title": "පාඨමාලා ඇණවුම - Amazing Korean",
+      "description": "Amazing Korean පාඨමාලා මාර්ගගතව ඇණවුම් කරන්න."
+    },
+    "textbookStatus": {
+      "title": "ඇණවුම් තත්ත්වය - Amazing Korean",
+      "description": "ඔබේ පාඨමාලා ඇණවුමේ තත්ත්වය පරීක්ෂා කරන්න."
+    }
+  },
+  "bookHub": {
+    "badge": "Amazing Korean පෙළපොත",
+    "title": "කොරියානු භාෂා පෙළපොත",
+    "subtitle": "භාෂා 20කින් ලබා ගත හැකි කොරියානු ඉගෙනුම් පෙළපොත් සොයන්න",
+    "descriptionTitle": "Amazing Korean යනු කුමක්ද?",
+    "description": "Amazing Korean යනු ආරම්භකයින් සඳහා නිර්මාණය කළ ක්‍රමානුකූල කොරියානු භාෂා පෙළපොතකි. හංගුල් ව්‍යඤ්ජන හා ස්වර සිට ප්‍රධාන වාක්‍ය, ව්‍යාකරණ, අභ්‍යාස සහ TOPIK සූදානම දක්වා — සියල්ල එක පොතකින්.",
+    "samplePages": "පෙරදසුන් පිටු",
+    "samplePagesNote": "සැබෑ පෙළපොතේ නියැදි පිටු",
+    "ctaTitle": "පොත් පිරික්සන්න",
+    "ctaTextbook": "මුද්‍රිත නාමාවලිය",
+    "ctaEbook": "E-book නාමාවලිය"
   }
 }

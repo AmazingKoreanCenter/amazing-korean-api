@@ -17,6 +17,7 @@ import {
   Shield,
   KeyRound,
   AtSign,
+  Receipt,
 } from "lucide-react";
 
 import { ApiError } from "@/api/client";
@@ -303,20 +304,31 @@ export function MyPage() {
           )}
 
           {/* 프로필 헤더 */}
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarFallback className="text-2xl">{fallbackInitial}</AvatarFallback>
-            </Avatar>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold">
-                  {data.nickname || data.name || t("user.defaultUser")}
-                </h2>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20">
+                <AvatarFallback className="text-2xl">{fallbackInitial}</AvatarFallback>
+              </Avatar>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold">
+                    {data.nickname || data.name || t("user.defaultUser")}
+                  </h2>
+                </div>
+                <Badge variant="secondary">
+                  {authLabels[data.user_auth] || data.user_auth}
+                </Badge>
               </div>
-              <Badge variant="secondary">
-                {authLabels[data.user_auth] || data.user_auth}
-              </Badge>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/book/textbook/my")}
+              className="flex-shrink-0"
+            >
+              <Receipt className="h-4 w-4 mr-2" />
+              {t("user.purchaseHistory")}
+            </Button>
           </div>
 
           <Separator />

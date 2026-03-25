@@ -4,7 +4,9 @@ use image::GenericImageView;
 
 use redis::AsyncCommands;
 
+use crate::crypto::CryptoService;
 use crate::error::{AppError, AppResult};
+use crate::external::email::{send_templated, EmailTemplate};
 use crate::state::AppState;
 use crate::types::{EbookEdition, EbookPaymentMethod, EbookPurchaseStatus, TextbookLanguage};
 
@@ -154,6 +156,31 @@ impl EbookService {
         .await?;
 
         tx.commit().await?;
+
+        // 구매 접수 확인 이메일 발송 (fire-and-forget)
+        if let Some(ref email_sender) = st.email {
+            let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+            if let Ok(Some(encrypted_email)) = repo::find_user_encrypted_email(&st.db, user_id).await {
+                if let Ok(user_email) = crypto.decrypt(&encrypted_email, "users.user_email") {
+                    let lang_name = language_name_ko(req.language);
+                    let edition_label = edition_label_ko(req.edition);
+                    let template = EmailTemplate::EbookPurchaseConfirmation {
+                        purchase_code: row.purchase_code.clone(),
+                        language_name: lang_name.to_string(),
+                        edition_label: edition_label.to_string(),
+                        price: row.price.to_string(),
+                        currency: row.currency.clone(),
+                    };
+                    if let Err(e) = send_templated(email_sender.as_ref(), &user_email, template).await {
+                        tracing::warn!(
+                            purchase_code = %row.purchase_code,
+                            error = %e,
+                            "Failed to send ebook purchase confirmation email"
+                        );
+                    }
+                }
+            }
+        }
 
         Ok(PurchaseRes {
             purchase_code: row.purchase_code,
@@ -652,4 +679,21 @@ fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str)> {
         (TextbookLanguage::Tg, "타지크어", "Tajik"),
         (TextbookLanguage::Tl, "필리핀어", "Filipino"),
     ]
+}
+
+/// 언어 → 한국어 이름 (이메일용)
+pub fn language_name_ko(lang: TextbookLanguage) -> &'static str {
+    catalog_languages()
+        .iter()
+        .find(|(l, _, _)| *l == lang)
+        .map(|(_, ko, _)| *ko)
+        .unwrap_or("알 수 없음")
+}
+
+/// 에디션 → 한국어 라벨 (이메일용)
+pub fn edition_label_ko(edition: EbookEdition) -> &'static str {
+    match edition {
+        EbookEdition::Teacher => "교사용",
+        EbookEdition::Student => "학생용",
+    }
 }

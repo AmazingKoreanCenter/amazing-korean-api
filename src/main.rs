@@ -79,35 +79,6 @@ async fn main() -> anyhow::Result<()> {
     let ipgeo = Arc::new(external::ipgeo::IpGeoClient::new());
     tracing::info!("🌍 IP Geolocation client enabled (ip-api.com)");
 
-    // 6.5) TranslationProvider 생성 (TRANSLATE_PROVIDER 설정에 따라 분기)
-    let translator: Option<Arc<dyn external::translator::TranslationProvider>> =
-        match cfg.translate_provider.as_str() {
-            "google" => {
-                let api_key = cfg
-                    .google_translate_api_key
-                    .clone()
-                    .expect("GOOGLE_TRANSLATE_API_KEY required for google provider");
-                let project_id = cfg
-                    .google_translate_project_id
-                    .clone()
-                    .expect("GOOGLE_TRANSLATE_PROJECT_ID required for google provider");
-                tracing::info!("🔠 Translation provider enabled: Google Cloud Translation v2");
-                Some(Arc::new(
-                    external::translator::GoogleCloudTranslator::new(api_key, project_id),
-                ))
-            }
-            "none" => {
-                tracing::info!("Translation provider disabled (TRANSLATE_PROVIDER=none)");
-                None
-            }
-            other => {
-                panic!(
-                    "Unknown TRANSLATE_PROVIDER '{}'. Must be 'google' or 'none'.",
-                    other
-                );
-            }
-        };
-
     // 6.7) PaymentProvider 생성 (PAYMENT_PROVIDER 설정에 따라 분기)
     let payment: Option<Arc<dyn external::payment::PaymentProvider>> =
         match cfg.payment_provider.as_str() {
@@ -158,7 +129,6 @@ async fn main() -> anyhow::Result<()> {
         started_at: Instant::now(),
         email,
         ipgeo,
-        translator,
         payment,
     };
 
