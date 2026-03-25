@@ -23,7 +23,7 @@
 | 7 | DB 암호화 (Phase 1~3) | 보안 | AES-256-GCM + HMAC Blind Index, 키 로테이션, 55+ call sites 적용 | 2026-02-08 | AWS KMS envelope → HSM |
 | 8 | 프로덕션 배포 + 하드닝 | 인프라 | 통합 마이그레이션, Redis 보안, 보안 헤더, Swagger/Health 숨김, 404 Fallback | 2026-02-10 | — |
 | 9 | 이메일 시스템 (Resend) | 외부 API | 회원가입 인증, 계정 복구, Rate Limiting, 관리자 초대, 도메인 검증 | 2026-02-09 | — |
-| 10 | 다국어 (i18n) | 기능 | 21개 언어, 번역 CRUD API 7개, `?lang=` fallback, Google Translate, Noto Sans 동적 로딩 | 2026-02-14 | — |
+| 10 | 다국어 (i18n) | 기능 | 21개 언어, 번역 CRUD API 7개, `?lang=` fallback, Noto Sans 동적 로딩 (Google Translate 해지 — 2026-03-24) | 2026-02-14 | — |
 | 11 | 세션 보안 + MFA | 보안 | 역할별 TTL, 토큰 재사용 탐지 (409 Conflict), TOTP MFA + 백업 코드 10개, 강제 설정 가드 | 2026-02-14 | 동시 세션 제한, step-up MFA |
 | 12 | 결제 시스템 (Paddle) | 외부 API | Webhook 9종, 구독 취소, 수강권 자동 부여/회수, 관리자 9개 API, Pricing UI (Paddle.js) | 2026-02-16 | Paddle Live 전환 |
 | 13 | Design System v2/v3 | UI | 공유 컴포넌트 6개 (PaginationBar, EmptyState, SkeletonGrid, ListStatsBar, StatCard, Card CVA), 다크모드 (next-themes, CSS 변수 60+ 토큰, 22개 로케일), UI/UX 가이드라인 문서화 | 2026-02-19 | — |
@@ -36,6 +36,21 @@
 | 21 | Coming Soon + 에러 페이지 개선 | 프론트 | 영상/학습/레슨 → ComingSoonPage (HeroSection + Feature 미리보기 + E-book CTA), 에러 페이지 RootLayout 통합 (Header/Footer 유지), i18n `comingSoon.*` 13키 추가 | 2026-03-23 | 콘텐츠 오픈 시 원래 컴포넌트 복원 |
 | 20 | 홈/소개 페이지 문구 & UI 개선 | 프론트 | 플레이스홀더 숫자(1,000+ 영상, 50+ 강사, 10,000+ 수강생) → 실제 차별점(20개 언어, 500+ 핵심 문장, TOPIK 연계)으로 교체, Feature 3번 "1:1 수업" → "교재로 정리하기" (미구현→구현 기능), Trust Indicators text-gradient, Feature/Value 카드 호버 강화, 아이콘 교체 (Layers/Languages/GraduationCap/BookMarked), 문서 검증 후 미구현 기능 5개 수정 | 2026-03-23 | — |
 | 22 | 교재 카탈로그 리디자인 | 프론트 | 표지 이미지 기반 카탈로그 페이지(`/textbook`), 주문 폼 분리(`/textbook/order`), 헤더 "교재" 메뉴 추가, 카탈로그→주문 URL 파라미터 연동, 주문 항목 표지 썸네일 | 2026-03-23 | — |
+| 23 | 교재 카탈로그 캐러셀 뷰 | 프론트 | 그리드 ↔ 캐러셀 뷰 토글 (localStorage, 기본 carousel), Swiper v12 Coverflow 캐러셀 (국가 씰 SVG + Thumbs 동기화), 학생/교사 탭, 언어 검색 필터, 50/50 레이아웃 (씰 리스트 + 선택 교재 상세), ISBN 뱃지, 반응형 (터치 스와이프), 22개 로케일 i18n | 2026-03-25 | — |
+| 24 | 교재 상세 모달 | 프론트 | 교재 클릭 → 상세 모달 (겉표지/속표지/목차 갤러리 + 설명 + 주문 버튼), 그리드/캐러셀 양쪽 뷰에서 재사용, 이미지 fallback 처리, 22개 로케일 i18n | 2026-03-24 | 속표지/목차 이미지 추가 |
+| 25 | 구매이력 + 비회원 주문 차단 | 기능 | `textbook.user_id` 컬럼 추가 (마이그레이션), 주문 생성 인증 필수화 (`AuthUser`), `GET /textbook/my` 내 주문 목록 API, 마이페이지 "구매이력" 버튼, 주문 폼 사용자 정보 자동 채움, `/textbook/order` PrivateRoute 이동 | 2026-03-24 | — |
+| 26 | 견적서/주문확인서 사용자 공개 | 프론트 | 사용자용 견적서/주문확인서 인쇄 페이지 (`/textbook/order/:code/print?type=quote\|confirmation`), 주문 상태 페이지에 견적서/주문확인서 버튼, 주문 완료 화면에 견적서 버튼, `window.print()` + PDF 저장 안내, 22개 로케일 i18n | 2026-03-24 | — |
+| 27 | E-book 구매 완료 안내 페이지 | 프론트 | 구매 완료 전용 페이지 (`/ebook/purchase-complete`), 구매코드 표시+복사, 에디션/가격/결제수단 요약, 계좌이체 입금안내, `location.state` 데이터 전달 (직접 접근 시 fallback), 22개 로케일 i18n | 2026-03-24 | — |
+| 28 | E-book 샘플 미리보기 | 프론트 | 카탈로그 언어 카드에 "미리보기" 버튼, 모달 (표지/목차/샘플1/샘플2 이미지 갤러리 + 가격/페이지수 + 구매 버튼), 정적 이미지 방식 (`/ebook-previews/{edition}/{language}/`), 이미지 fallback, 22개 로케일 i18n | 2026-03-24 | 이미지 업로드 |
+| 29 | E-book 이메일 알림 | 기능 | 구매 접수(pending) 확인 이메일 + 결제 완료(completed) 열람 안내 이메일, Resend 패턴 (fire-and-forget), 관리자 상태 변경 + Paddle webhook 양쪽 대응, 암호화 이메일 복호화(CryptoService) | 2026-03-24 | — |
+| 30 | E-book 환불 정책 | 법적 | 환불 정책 제5조 E-book 섹션 추가 (pending 즉시취소, 미열람 7일 환불, 열람 후 불가, Paddle 별도), 카탈로그에 환불 정책 링크, 22개 로케일 i18n | 2026-03-24 | — |
+| 31 | E-book 모바일 최적화 | 프론트 | 터치 스와이프 페이지 네비게이션 (50px 수평 임계값), 모바일(768px 미만) spread 자동 비활성화+토글 숨김, 모바일 UI 축소 (페이지/줌 텍스트 숨김, 하단 바 compact, 슬라이더 flex 확장) | 2026-03-24 | — |
+| 32 | E-book Paddle 결제 연동 | 기능 | 카탈로그 결제 방식 선택 (계좌이체/카드결제), usePaddle 훅의 openEbookCheckout() 연동, checkout.completed 이벤트 → 완료 페이지, custom_data { type: "ebook", purchase_code } 전달, 22개 로케일 i18n | 2026-03-24 | — |
+| 33 | 교재 ISBN 발급 상태 표시 | 기능 | 카탈로그 API에 isbn_ready 필드 추가 (9개 발급 완료), 카드/캐러셀/모달에 미발급 시 "약 1주 추가 소요" 안내, 주문 페이지 ISBN 미발급 언어 선택 시 알림, tl 누락 수정 | 2026-03-24 | — |
+| 34 | Book 허브 + 라우트 재구성 | 프론트 | `/textbook/*`→`/book/textbook/*`, `/ebook/*`→`/book/ebook/*` 전면 이동, `/book` 허브 랜딩 (교재 소개 + i18n 기반 표지 + 샘플 5장 + CTA), 기존 경로 리다이렉트, 헤더 nav.book, E-book 카탈로그 Tabs 통일, 22개 로케일 i18n | 2026-03-25 | 샘플 이미지 220장 생성 |
+| 35 | 교재 그리드/상세 모달 개선 | 프론트 | 그리드 카드 제목 통일 + ISBN 뱃지→모달 이동 + 버튼 "상세보기", 상세 모달 좌우 스와이프 갤러리 + ISBN 뱃지 우측 배치, 가격 우측 정렬 | 2026-03-25 | — |
+| 36 | 교재 캐러셀 모바일 최적화 | 프론트 | 모바일: 상단 Coverflow 숨김 + 하단 Thumbs만 표시, 교재 상세 세로 쌓기 (표지 위 + 설명 아래) | 2026-03-25 | — |
+| 37 | E-book 카탈로그 출판본 패턴 적용 | 프론트 | E-book 카탈로그 전면 리라이트 (출판본 패턴 통일): 그리드 CoverCard + 캐러셀 SealList + 상세 모달 (좌우 스와이프), HeroSection/Tabs/검색/뷰토글, SealList SealItem 인터페이스 일반화, 표지 이미지 공유, 22개 로케일 i18n 14키 추가 | 2026-03-25 | 구매 섹션 최종 디자인 결정 대기 |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드

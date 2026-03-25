@@ -32,6 +32,7 @@
     "videos": "動画",
     "studies": "学習",
     "lessons": "レッスン",
+    "book": "教材",
     "pricing": "料金プラン",
     "myPage": "マイページ",
     "login": "ログイン",
@@ -211,6 +212,7 @@
     "myPageDescription": "プロフィール情報を確認・編集できます",
     "settingsTitle": "設定",
     "settingsButton": "設定",
+    "purchaseHistory": "購入履歴",
     "userNotFound": "ユーザー情報が見つかりません。",
     "userLoadFailed": "ユーザー情報の読み込みに失敗しました。",
     "settingsLoadFailed": "設定情報の読み込みに失敗しました。",
@@ -474,7 +476,24 @@
       "studentEdition": "学生用",
       "selectLanguage": "言語を選択してください。",
       "comingSoon": "近日公開",
-      "loadError": "カタログの読み込みに失敗しました。"
+      "loadError": "カタログの読み込みに失敗しました。",
+      "refundPolicy": "返金ポリシーを見る",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
     },
     "purchase": {
       "title": "購入詳細",
@@ -484,7 +503,35 @@
       "buy": "購入",
       "loginRequired": "ログインして購入",
       "success": "購入が完了しました。",
-      "error": "購入中にエラーが発生しました。"
+      "error": "購入中にエラーが発生しました。",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "購入完了",
+      "description": "E-bookの購入が完了しました。",
+      "subtitle": "ご注文を受け付けました。以下の購入情報をご確認ください。",
+      "purchaseCode": "購入コード",
+      "codeCopied": "購入コードをコピーしました。",
+      "edition": "エディション",
+      "price": "価格",
+      "paymentMethod": "決済方法",
+      "bankGuideTitle": "入金案内",
+      "bankAccount": "{{account}}",
+      "bankNote": "ご注文確認後7日以内にお振込みください。入金確認後に閲覧可能になります。",
+      "goToMyEbooks": "マイE-bookへ",
+      "browseCatalog": "カタログを見る",
+      "noData": "購入情報が見つかりません。"
+    },
+    "preview": {
+      "button": "プレビュー",
+      "description": "表紙、目次、サンプルページをプレビューできます。",
+      "cover": "表紙",
+      "toc": "目次",
+      "sample": "サンプル {{n}}",
+      "pages": "ページ",
+      "purchaseButton": "購入する",
+      "imageNotAvailable": "画像準備中"
     },
     "status": {
       "pending": "処理中",
@@ -502,6 +549,98 @@
       "toc": "目次",
       "notFound": "教材が見つかりません。",
       "loadFailed": "ページの読み込みに失敗しました。"
+    }
+  },
+  "textbook": {
+    "heroBadge": "Amazing Korean テキスト",
+    "heroTitle": "テキスト注文",
+    "heroSubtitle": "20言語のテキストを注文できます。学生用と教師用をご用意しています。",
+    "catalog": {
+      "badge": "テキスト",
+      "title": "韓国語テキストコレクション",
+      "description": "20言語の学生用・教師用テキストで\n体系的な韓国語学習を始めましょう。",
+      "studentSection": "学生用",
+      "studentDescription": "学習者のための韓国語テキストです。",
+      "teacherSection": "教師用",
+      "teacherDescription": "教師のための韓国語指導書です。",
+      "orderButton": "注文する",
+      "pricePerUnit": "₩25,000 / 1冊",
+      "orderGuideTitle": "注文案内",
+      "orderGuideMinQty": "最小注文数量は10冊です。",
+      "orderGuidePayment": "銀行振込でのお支払いとなります。",
+      "orderGuideBulk": "100冊以上のご注文で送料無料",
+      "orderCta": "テキストを注文する",
+      "viewGrid": "グリッド表示",
+      "viewCarousel": "カルーセル表示",
+      "searchPlaceholder": "言語を検索...",
+      "noResults": "検索結果がありません。",
+      "bookDescription": "体系的な韓国語学習テキストです。各言語のネイティブ専門家が翻訳しました。"
+    },
+    "detail": {
+      "modalTitle": "教材詳細",
+      "coverImage": "表紙",
+      "innerImage": "裏表紙",
+      "tocImage": "目次",
+      "description": "韓国語学習のための体系的な教材です。120ページ構成で、初級から中級まで段階的に学習できます。",
+      "translationNote": "{{language}}のネイティブ専門家が翻訳しました。",
+      "orderNow": "注文する",
+      "viewDetail": "詳細を見る",
+      "imageNotAvailable": "画像準備中"
+    },
+    "myOrders": {
+      "badge": "マイ注文",
+      "title": "教材購入履歴",
+      "description": "教材の注文状況を確認してください。",
+      "empty": "注文履歴がありません。",
+      "browseCatalog": "教材を見る",
+      "loadError": "注文一覧を読み込めません。",
+      "status": {
+        "pending": "受付待ち",
+        "confirmed": "受付完了",
+        "paid": "決済完了",
+        "printing": "印刷中",
+        "shipped": "配送中",
+        "delivered": "配送完了",
+        "canceled": "キャンセル"
+      }
+    },
+    "print": {
+      "quoteTitle": "見積書",
+      "confirmationTitle": "注文確認書",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "文書番号",
+      "date": "日付",
+      "status": "ステータス",
+      "recipient": "宛先",
+      "colItem": "品目",
+      "colType": "種類",
+      "colQty": "数量",
+      "colPrice": "単価",
+      "colSubtotal": "小計",
+      "textbookPrefix": "Amazing Korean",
+      "total": "合計",
+      "quoteTotal": "見積金額",
+      "confirmationTotal": "注文金額",
+      "vatIncluded": "税込",
+      "bankInfo": "お支払い情報",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "注文確認後7日以内にお支払いください。",
+      "taxInvoice": "税務請求書情報",
+      "bizNumber": "事業者登録番号",
+      "taxCompanyName": "会社名",
+      "repName": "代表者",
+      "taxEmail": "税務請求書メール",
+      "taxAddress": "事業所所在地",
+      "taxBizType": "業種",
+      "taxBizItem": "業態",
+      "notes": "備考",
+      "footer": "この文書は電子的に作成されたものであり、署名なしで有効です。",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "印刷 / PDFで保存",
+      "pdfGuide": "PDFで保存するには、印刷ダイアログで「PDFとして保存」を選択してください。",
+      "notFound": "注文が見つかりません。",
+      "quoteNotice": "この見積書は注文申請に基づくものであり、実際のお支払い金額は異なる場合があります。",
+      "confirmationNotice": "この確認書は注文状況の確認用であり、正式な領収書ではありません。"
     }
   },
   "seo": {
@@ -569,5 +708,17 @@
       "title": "注文状況確認 - Amazing Korean",
       "description": "教材の注文状況を確認します。"
     }
+  },
+  "bookHub": {
+    "badge": "Amazing Korean 教材",
+    "title": "韓国語教材のご紹介",
+    "subtitle": "20言語で提供される韓国語学習教材をご覧ください",
+    "descriptionTitle": "Amazing Korean教材とは？",
+    "description": "Amazing Koreanは、韓国語を初めて学ぶ外国人学習者のために設計された体系的な学習教材です。ハングルの子音・母音から重要な文章、文法、練習問題、TOPIK対策まで一冊で学習できます。",
+    "samplePages": "教材プレビュー",
+    "samplePagesNote": "実際の教材ページのサンプルです",
+    "ctaTitle": "教材を見る",
+    "ctaTextbook": "出版本カタログ",
+    "ctaEbook": "E-bookカタログ"
   }
 }

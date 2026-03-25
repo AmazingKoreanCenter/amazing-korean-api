@@ -32,6 +32,7 @@
     "videos": "Video",
     "studies": "Belajar",
     "lessons": "Pelajaran",
+    "book": "Buku",
     "pricing": "Harga",
     "myPage": "Halaman Saya",
     "login": "Masuk",
@@ -211,6 +212,7 @@
     "myPageDescription": "Lihat dan edit informasi profil Anda",
     "settingsTitle": "Pengaturan",
     "settingsButton": "Pengaturan",
+    "purchaseHistory": "Riwayat Pembelian",
     "userNotFound": "Informasi pengguna tidak ditemukan.",
     "userLoadFailed": "Gagal memuat informasi pengguna.",
     "settingsLoadFailed": "Gagal memuat pengaturan.",
@@ -467,28 +469,256 @@
     "promoCodeClear": "Hapus"
   },
   "ebook": {
-    "catalog": { "title": "E-book Buku Teks", "subtitle": "Buku teks digital yang dapat dibaca online secara instan.", "teacherEdition": "Edisi Guru", "studentEdition": "Edisi Siswa", "selectLanguage": "Silakan pilih bahasa.", "comingSoon": "Segera Hadir", "loadError": "Gagal memuat katalog." },
-    "purchase": { "title": "Detail Pembelian", "paymentMethod": "Metode Pembayaran", "bankTransfer": "Transfer Bank", "creditCard": "Kartu Kredit (Paddle)", "buy": "Beli", "loginRequired": "Masuk untuk Membeli", "success": "Pembelian selesai.", "error": "Terjadi kesalahan saat pembelian." },
-    "status": { "pending": "Menunggu", "completed": "Tersedia", "refunded": "Dikembalikan" },
-    "my": { "title": "E-book Saya", "empty": "Belum ada E-book yang dibeli.", "browseCatalog": "Lihat E-book", "openViewer": "Buka Pembaca", "loadError": "Gagal memuat riwayat pembelian." },
-    "viewer": { "toc": "Daftar Isi", "notFound": "Buku teks tidak ditemukan.", "loadFailed": "Gagal memuat halaman." }
+    "catalog": {
+      "title": "E-book Buku Teks",
+      "subtitle": "Buku teks digital yang dapat dibaca online secara instan.",
+      "teacherEdition": "Edisi Guru",
+      "studentEdition": "Edisi Siswa",
+      "selectLanguage": "Silakan pilih bahasa.",
+      "comingSoon": "Segera Hadir",
+      "loadError": "Gagal memuat katalog.",
+      "refundPolicy": "Lihat Kebijakan Pengembalian",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
+    },
+    "purchase": {
+      "title": "Detail Pembelian",
+      "paymentMethod": "Metode Pembayaran",
+      "bankTransfer": "Transfer Bank",
+      "creditCard": "Kartu Kredit (Paddle)",
+      "buy": "Beli",
+      "loginRequired": "Masuk untuk Membeli",
+      "success": "Pembelian selesai.",
+      "error": "Terjadi kesalahan saat pembelian.",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "Pembelian Selesai",
+      "description": "Pembelian E-book Anda telah selesai.",
+      "subtitle": "Pesanan Anda telah diterima. Silakan periksa detail pembelian.",
+      "purchaseCode": "Kode Pembelian",
+      "codeCopied": "Kode disalin.",
+      "edition": "Edisi",
+      "price": "Harga",
+      "paymentMethod": "Metode Pembayaran",
+      "bankGuideTitle": "Petunjuk Pembayaran",
+      "bankAccount": "{{account}}",
+      "bankNote": "Silakan bayar dalam 7 hari. Akses akan tersedia setelah verifikasi.",
+      "goToMyEbooks": "E-book Saya",
+      "browseCatalog": "Lihat Katalog",
+      "noData": "Informasi pembelian tidak ditemukan."
+    },
+    "preview": {
+      "button": "Pratinjau",
+      "description": "Pratinjau sampul, daftar isi, dan halaman contoh.",
+      "cover": "Sampul",
+      "toc": "Daftar Isi",
+      "sample": "Contoh {{n}}",
+      "pages": " halaman",
+      "purchaseButton": "Beli",
+      "imageNotAvailable": "Gambar sedang disiapkan"
+    },
+    "status": {
+      "pending": "Menunggu",
+      "completed": "Tersedia",
+      "refunded": "Dikembalikan"
+    },
+    "my": {
+      "title": "E-book Saya",
+      "empty": "Belum ada E-book yang dibeli.",
+      "browseCatalog": "Lihat E-book",
+      "openViewer": "Buka Pembaca",
+      "loadError": "Gagal memuat riwayat pembelian."
+    },
+    "viewer": {
+      "toc": "Daftar Isi",
+      "notFound": "Buku teks tidak ditemukan.",
+      "loadFailed": "Gagal memuat halaman."
+    }
+  },
+  "textbook": {
+    "heroBadge": "Buku Teks Amazing Korean",
+    "heroTitle": "Pesan Buku Teks",
+    "heroSubtitle": "Pesan buku teks dalam 20 bahasa. Tersedia edisi siswa dan guru.",
+    "catalog": {
+      "badge": "Buku Teks",
+      "title": "Koleksi Buku Teks Bahasa Korea",
+      "description": "Mulai perjalanan belajar bahasa Korea yang sistematis\ndengan edisi siswa dan guru dalam 20 bahasa.",
+      "studentSection": "Edisi Siswa",
+      "studentDescription": "Buku teks bahasa Korea untuk pelajar.",
+      "teacherSection": "Edisi Guru",
+      "teacherDescription": "Panduan pengajaran bahasa Korea untuk guru.",
+      "orderButton": "Pesan",
+      "pricePerUnit": "₩25.000 / eksemplar",
+      "orderGuideTitle": "Informasi Pemesanan",
+      "orderGuideMinQty": "Jumlah pesanan minimum 10 eksemplar.",
+      "orderGuidePayment": "Pembayaran melalui transfer bank.",
+      "orderGuideBulk": "Gratis ongkir untuk pesanan 100+ eksemplar",
+      "orderCta": "Pesan Buku Teks",
+      "viewGrid": "Tampilan Kotak",
+      "viewCarousel": "Tampilan Carousel",
+      "searchPlaceholder": "Cari bahasa...",
+      "noResults": "Tidak ada hasil ditemukan.",
+      "bookDescription": "Buku teks belajar bahasa Korea yang sistematis. Diterjemahkan oleh pakar penutur asli setiap bahasa."
+    },
+    "detail": {
+      "modalTitle": "Detail Buku",
+      "coverImage": "Sampul Depan",
+      "innerImage": "Sampul Dalam",
+      "tocImage": "Daftar Isi",
+      "description": "Buku teks bahasa Korea yang sistematis, 120 halaman, dari tingkat dasar hingga menengah.",
+      "translationNote": "Diterjemahkan oleh ahli penutur asli {{language}}.",
+      "orderNow": "Pesan Sekarang",
+      "viewDetail": "Lihat Detail",
+      "imageNotAvailable": "Gambar segera hadir"
+    },
+    "myOrders": {
+      "badge": "Pesanan Saya",
+      "title": "Riwayat Pembelian Buku",
+      "description": "Cek status pesanan buku Anda.",
+      "empty": "Belum ada pesanan.",
+      "browseCatalog": "Lihat Buku",
+      "loadError": "Gagal memuat daftar pesanan.",
+      "status": {
+        "pending": "Menunggu",
+        "confirmed": "Dikonfirmasi",
+        "paid": "Dibayar",
+        "printing": "Dicetak",
+        "shipped": "Dikirim",
+        "delivered": "Diterima",
+        "canceled": "Dibatalkan"
+      }
+    },
+    "print": {
+      "quoteTitle": "Penawaran",
+      "confirmationTitle": "Konfirmasi Pesanan",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "No. Dokumen",
+      "date": "Tanggal",
+      "status": "Status",
+      "recipient": "Kepada",
+      "colItem": "Barang",
+      "colType": "Tipe",
+      "colQty": "Jumlah",
+      "colPrice": "Harga Satuan",
+      "colSubtotal": "Subtotal",
+      "textbookPrefix": "Amazing Korean",
+      "total": "Total",
+      "quoteTotal": "Jumlah Penawaran",
+      "confirmationTotal": "Jumlah Pesanan",
+      "vatIncluded": "PPN termasuk",
+      "bankInfo": "Info Pembayaran",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "Silakan lakukan pembayaran dalam 7 hari setelah konfirmasi pesanan.",
+      "taxInvoice": "Info Faktur Pajak",
+      "bizNumber": "No. Registrasi Usaha",
+      "taxCompanyName": "Nama Perusahaan",
+      "repName": "Perwakilan",
+      "taxEmail": "Email Faktur Pajak",
+      "taxAddress": "Alamat Usaha",
+      "taxBizType": "Jenis Usaha",
+      "taxBizItem": "Bidang Usaha",
+      "notes": "Catatan",
+      "footer": "Dokumen ini dibuat secara elektronik dan sah tanpa tanda tangan.",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "Cetak / Simpan sebagai PDF",
+      "pdfGuide": "Untuk menyimpan sebagai PDF, pilih 'Simpan sebagai PDF' di dialog cetak.",
+      "notFound": "Pesanan tidak ditemukan.",
+      "quoteNotice": "Penawaran ini berdasarkan pengajuan pesanan dan jumlah pembayaran aktual dapat berbeda.",
+      "confirmationNotice": "Konfirmasi ini hanya untuk verifikasi status pesanan dan bukan merupakan tanda terima resmi."
+    }
   },
   "seo": {
-    "home": { "title": "Amazing Korean - Platform Belajar Bahasa Korea", "description": "Platform belajar bahasa Korea online terbaik untuk pelajar di seluruh dunia." },
-    "about": { "title": "Tentang Kami - Amazing Korean", "description": "Tentang Amazing Korean — Pengalaman belajar bahasa Korea yang efektif dan menyenangkan." },
-    "pricing": { "title": "Harga - Amazing Korean", "description": "Paket harga Amazing Korean — Akses tak terbatas ke video, materi belajar, dan pelajaran." },
-    "videos": { "title": "Pelajaran Video - Amazing Korean", "description": "Belajar bahasa Korea secara efektif dengan pelajaran video dari instruktur profesional." },
-    "studies": { "title": "Materi Belajar - Amazing Korean", "description": "Tingkatkan kemampuan bahasa Korea Anda dengan materi belajar dan latihan terstruktur." },
-    "lessons": { "title": "Pelajaran - Amazing Korean", "description": "Belajar bahasa Korea langkah demi langkah dengan pelajaran terstruktur." },
-    "login": { "title": "Masuk - Amazing Korean", "description": "Masuk ke Amazing Korean untuk mulai belajar bahasa Korea." },
-    "signup": { "title": "Daftar - Amazing Korean", "description": "Bergabung dengan Amazing Korean dan mulai perjalanan belajar bahasa Korea Anda." },
-    "terms": { "title": "Ketentuan Layanan - Amazing Korean", "description": "Ketentuan Layanan Amazing Korean." },
-    "privacy": { "title": "Kebijakan Privasi - Amazing Korean", "description": "Kebijakan Privasi Amazing Korean." },
-    "refundPolicy": { "title": "Kebijakan Pengembalian Dana - Amazing Korean", "description": "Kebijakan pengembalian dana langganan Amazing Korean." },
-    "faq": { "title": "Pertanyaan Umum - Amazing Korean", "description": "Pertanyaan yang sering diajukan tentang Amazing Korean." },
-    "findId": { "title": "Pemulihan Akun - Amazing Korean", "description": "Temukan informasi akun terdaftar Anda." },
-    "requestResetPassword": { "title": "Reset Kata Sandi - Amazing Korean", "description": "Kirim email reset kata sandi ke alamat terdaftar Anda." },
-    "textbook": { "title": "Pemesanan Buku Teks - Amazing Korean", "description": "Pesan buku teks Amazing Korean secara online. Tersedia dalam 20 bahasa." },
-    "textbookStatus": { "title": "Status Pesanan - Amazing Korean", "description": "Periksa status pesanan buku teks Anda." }
+    "home": {
+      "title": "Amazing Korean - Platform Belajar Bahasa Korea",
+      "description": "Platform belajar bahasa Korea online terbaik untuk pelajar di seluruh dunia."
+    },
+    "about": {
+      "title": "Tentang Kami - Amazing Korean",
+      "description": "Tentang Amazing Korean — Pengalaman belajar bahasa Korea yang efektif dan menyenangkan."
+    },
+    "pricing": {
+      "title": "Harga - Amazing Korean",
+      "description": "Paket harga Amazing Korean — Akses tak terbatas ke video, materi belajar, dan pelajaran."
+    },
+    "videos": {
+      "title": "Pelajaran Video - Amazing Korean",
+      "description": "Belajar bahasa Korea secara efektif dengan pelajaran video dari instruktur profesional."
+    },
+    "studies": {
+      "title": "Materi Belajar - Amazing Korean",
+      "description": "Tingkatkan kemampuan bahasa Korea Anda dengan materi belajar dan latihan terstruktur."
+    },
+    "lessons": {
+      "title": "Pelajaran - Amazing Korean",
+      "description": "Belajar bahasa Korea langkah demi langkah dengan pelajaran terstruktur."
+    },
+    "login": {
+      "title": "Masuk - Amazing Korean",
+      "description": "Masuk ke Amazing Korean untuk mulai belajar bahasa Korea."
+    },
+    "signup": {
+      "title": "Daftar - Amazing Korean",
+      "description": "Bergabung dengan Amazing Korean dan mulai perjalanan belajar bahasa Korea Anda."
+    },
+    "terms": {
+      "title": "Ketentuan Layanan - Amazing Korean",
+      "description": "Ketentuan Layanan Amazing Korean."
+    },
+    "privacy": {
+      "title": "Kebijakan Privasi - Amazing Korean",
+      "description": "Kebijakan Privasi Amazing Korean."
+    },
+    "refundPolicy": {
+      "title": "Kebijakan Pengembalian Dana - Amazing Korean",
+      "description": "Kebijakan pengembalian dana langganan Amazing Korean."
+    },
+    "faq": {
+      "title": "Pertanyaan Umum - Amazing Korean",
+      "description": "Pertanyaan yang sering diajukan tentang Amazing Korean."
+    },
+    "findId": {
+      "title": "Pemulihan Akun - Amazing Korean",
+      "description": "Temukan informasi akun terdaftar Anda."
+    },
+    "requestResetPassword": {
+      "title": "Reset Kata Sandi - Amazing Korean",
+      "description": "Kirim email reset kata sandi ke alamat terdaftar Anda."
+    },
+    "textbook": {
+      "title": "Pemesanan Buku Teks - Amazing Korean",
+      "description": "Pesan buku teks Amazing Korean secara online. Tersedia dalam 20 bahasa."
+    },
+    "textbookStatus": {
+      "title": "Status Pesanan - Amazing Korean",
+      "description": "Periksa status pesanan buku teks Anda."
+    }
+  },
+  "bookHub": {
+    "badge": "Buku Teks Amazing Korean",
+    "title": "Buku Teks Bahasa Korea",
+    "subtitle": "Temukan buku teks belajar bahasa Korea dalam 20 bahasa",
+    "descriptionTitle": "Apa itu Amazing Korean?",
+    "description": "Amazing Korean adalah buku teks bahasa Korea yang sistematis untuk pemula. Dari konsonan dan vokal Hangul hingga kalimat kunci, tata bahasa, latihan, dan persiapan TOPIK — semuanya dalam satu buku.",
+    "samplePages": "Halaman Pratinjau",
+    "samplePagesNote": "Halaman contoh dari buku teks",
+    "ctaTitle": "Jelajahi Buku",
+    "ctaTextbook": "Katalog Cetak",
+    "ctaEbook": "Katalog E-book"
   }
 }

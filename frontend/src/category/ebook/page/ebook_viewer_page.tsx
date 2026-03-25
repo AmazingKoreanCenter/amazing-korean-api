@@ -186,8 +186,10 @@ export function EbookViewerPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("single");
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isObscured, setIsObscured] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // ─── Step 1: Canvas 추출 API 무력화 ───
   useEffect(() => {
@@ -290,7 +292,7 @@ export function EbookViewerPage() {
     document.querySelectorAll("canvas").forEach((c) => {
       c.getContext("2d")?.clearRect(0, 0, c.width, c.height);
     });
-    navigate("/ebook/my");
+    navigate("/book/ebook/my");
   }, [navigate]);
 
   // MutationObserver — DOM 변경 감지
@@ -353,7 +355,7 @@ export function EbookViewerPage() {
       try {
         const res = await sendViewerHeartbeat(meta.session_id);
         if (!res.valid) {
-          navigate("/ebook/my");
+          navigate("/book/ebook/my");
         }
       } catch {
         // 네트워크 오류 → 다음 heartbeat에서 재시도
@@ -455,6 +457,49 @@ export function EbookViewerPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [goToPrevPage, goToNextPage]);
 
+  // 모바일 감지 + spread 모드 자동 비활성화
+  useEffect(() => {
+    const onResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) setViewMode("single");
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // 터치 스와이프 네비게이션
+  useEffect(() => {
+    const el = viewerRef.current;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!touchStartRef.current || e.changedTouches.length !== 1) return;
+      const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+      const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+      touchStartRef.current = null;
+
+      // 수평 스와이프만 처리 (세로 이동이 가로보다 크면 무시)
+      if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+
+      if (dx < 0) goToNextPage();
+      else goToPrevPage();
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [goToNextPage, goToPrevPage]);
+
   // 이미지 영역 클릭 (좌=이전, 우=다음)
   const handleViewerClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -537,7 +582,7 @@ export function EbookViewerPage() {
           <p className="text-muted-foreground text-sm max-w-sm">
             {t("ebook.viewer.paymentRequiredDesc")}
           </p>
-          <Button variant="outline" onClick={() => navigate("/ebook/my")}>
+          <Button variant="outline" onClick={() => navigate("/book/ebook/my")}>
             {t("ebook.viewer.goToMyEbooks")}
           </Button>
         </div>
@@ -551,7 +596,7 @@ export function EbookViewerPage() {
         <p className="text-muted-foreground text-sm max-w-sm">
           {t("ebook.viewer.notFoundDesc")}
         </p>
-        <Button variant="outline" onClick={() => navigate("/ebook/my")}>
+        <Button variant="outline" onClick={() => navigate("/book/ebook/my")}>
           {t("ebook.viewer.goToMyEbooks")}
         </Button>
       </div>
@@ -563,7 +608,7 @@ export function EbookViewerPage() {
       <div className="flex flex-col items-center justify-center h-screen gap-4 text-center px-4">
         <ShieldX className="w-12 h-12 text-destructive" />
         <h2 className="text-lg font-semibold">{t("ebook.viewer.notFound")}</h2>
-        <Button variant="outline" onClick={() => navigate("/ebook/my")}>
+        <Button variant="outline" onClick={() => navigate("/book/ebook/my")}>
           {t("ebook.viewer.goToMyEbooks")}
         </Button>
       </div>
@@ -625,22 +670,24 @@ export function EbookViewerPage() {
             >
               <List className="w-5 h-5" />
             </Button>
-            <span className={`text-sm ${isFullscreen ? "text-neutral-300" : "text-muted-foreground"}`}>
+            <span className={`text-sm hidden sm:inline ${isFullscreen ? "text-neutral-300" : "text-muted-foreground"}`}>
               {pageDisplay}
             </span>
           </div>
 
           <div className="flex items-center gap-1">
-            {/* 한 쪽 / 두 쪽 보기 */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setViewMode(viewMode === "single" ? "spread" : "single")}
-              title={viewMode === "single" ? t("ebook.viewer.spreadView") : t("ebook.viewer.singleView")}
-              className={isFullscreen ? "text-white hover:bg-white/10" : ""}
-            >
-              {viewMode === "single" ? <BookOpen className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-            </Button>
+            {/* 한 쪽 / 두 쪽 보기 (모바일에서 숨김) */}
+            {!isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewMode(viewMode === "single" ? "spread" : "single")}
+                title={viewMode === "single" ? t("ebook.viewer.spreadView") : t("ebook.viewer.singleView")}
+                className={isFullscreen ? "text-white hover:bg-white/10" : ""}
+              >
+                {viewMode === "single" ? <BookOpen className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+              </Button>
+            )}
 
             {/* 줌 */}
             <Button
@@ -652,7 +699,7 @@ export function EbookViewerPage() {
             >
               <ZoomOut className="w-4 h-4" />
             </Button>
-            <span className={`text-xs w-10 text-center ${isFullscreen ? "text-neutral-300" : "text-muted-foreground"}`}>
+            <span className={`text-xs w-10 text-center hidden sm:inline ${isFullscreen ? "text-neutral-300" : "text-muted-foreground"}`}>
               {zoom}%
             </span>
             <Button
@@ -805,7 +852,7 @@ export function EbookViewerPage() {
 
         {/* ─── 하단 네비게이션 ─── */}
         <div
-          className={`flex items-center justify-center gap-4 px-4 py-3 border-t backdrop-blur z-20 transition-all duration-300 ${
+          className={`flex items-center justify-center gap-2 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 border-t backdrop-blur z-20 transition-all duration-300 ${
             isFullscreen
               ? `bg-neutral-900/90 border-neutral-700 ${
                   controlsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
@@ -840,7 +887,7 @@ export function EbookViewerPage() {
               setCurrentPage(sliderPage);
               setIsDragging(false);
             }}
-            className="w-48 sm:w-64 accent-primary"
+            className="flex-1 max-w-64 accent-primary"
           />
 
           <Button

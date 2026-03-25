@@ -113,6 +113,7 @@ impl TextbookRepo {
     pub async fn insert_order(
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         order_code: &str,
+        user_id: i64,
         orderer_name: &str,
         orderer_email: &str,
         orderer_phone: &str,
@@ -138,17 +139,18 @@ impl TextbookRepo {
         let order_id = sqlx::query_scalar::<_, i64>(
             r#"
             INSERT INTO textbook (
-                order_code, orderer_name, orderer_email, orderer_phone,
+                order_code, user_id, orderer_name, orderer_email, orderer_phone,
                 org_name, org_type,
                 delivery_postal_code, delivery_address, delivery_detail,
                 payment_method, depositor_name,
                 tax_invoice, tax_biz_number, tax_company_name, tax_rep_name, tax_address, tax_biz_type, tax_biz_item, tax_email,
                 total_quantity, total_amount, notes
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
             RETURNING order_id
             "#,
         )
         .bind(order_code)
+        .bind(user_id)
         .bind(orderer_name)
         .bind(orderer_email)
         .bind(orderer_phone)
@@ -278,6 +280,23 @@ impl TextbookRepo {
         .bind(order_ids)
         .fetch_all(pool)
         .await?;
+
+        Ok(rows)
+    }
+
+    /// 사용자의 주문 목록 조회 (내 주문)
+    pub async fn find_by_user_id(
+        pool: &PgPool,
+        user_id: i64,
+    ) -> AppResult<Vec<TextbookOrderRow>> {
+        let sql = format!(
+            "SELECT {} FROM textbook WHERE user_id = $1 AND is_deleted = false ORDER BY created_at DESC",
+            ORDER_COLUMNS,
+        );
+        let rows = sqlx::query_as::<_, TextbookOrderRow>(&sql)
+            .bind(user_id)
+            .fetch_all(pool)
+            .await?;
 
         Ok(rows)
     }

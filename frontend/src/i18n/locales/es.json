@@ -32,6 +32,7 @@
     "videos": "Videos",
     "studies": "Estudios",
     "lessons": "Lecciones",
+    "book": "Libro",
     "pricing": "Precios",
     "myPage": "Mi página",
     "login": "Iniciar sesión",
@@ -211,6 +212,7 @@
     "myPageDescription": "Vea y edite su información de perfil",
     "settingsTitle": "Configuración",
     "settingsButton": "Configuración",
+    "purchaseHistory": "Historial de compras",
     "userNotFound": "No se encontró información del usuario.",
     "userLoadFailed": "No se pudo cargar la información del usuario.",
     "settingsLoadFailed": "No se pudo cargar la configuración.",
@@ -474,7 +476,24 @@
       "studentEdition": "Edición del estudiante",
       "selectLanguage": "Seleccione un idioma.",
       "comingSoon": "Próximamente",
-      "loadError": "Error al cargar el catálogo."
+      "loadError": "Error al cargar el catálogo.",
+      "refundPolicy": "Ver política de reembolso",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
     },
     "purchase": {
       "title": "Detalles de compra",
@@ -484,7 +503,35 @@
       "buy": "Comprar",
       "loginRequired": "Inicia sesión para comprar",
       "success": "Compra completada.",
-      "error": "Se produjo un error durante la compra."
+      "error": "Se produjo un error durante la compra.",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "Compra completada",
+      "description": "Su compra de E-book se ha completado.",
+      "subtitle": "Su pedido ha sido recibido. Verifique los detalles de compra.",
+      "purchaseCode": "Código de compra",
+      "codeCopied": "Código copiado.",
+      "edition": "Edición",
+      "price": "Precio",
+      "paymentMethod": "Método de pago",
+      "bankGuideTitle": "Instrucciones de pago",
+      "bankAccount": "{{account}}",
+      "bankNote": "Realice el pago dentro de 7 días. El acceso estará disponible tras verificación.",
+      "goToMyEbooks": "Mis E-books",
+      "browseCatalog": "Ver catálogo",
+      "noData": "Información de compra no encontrada."
+    },
+    "preview": {
+      "button": "Vista previa",
+      "description": "Vista previa de la portada, índice y páginas de muestra.",
+      "cover": "Portada",
+      "toc": "Índice",
+      "sample": "Muestra {{n}}",
+      "pages": " páginas",
+      "purchaseButton": "Comprar",
+      "imageNotAvailable": "Imagen en preparación"
     },
     "status": {
       "pending": "Pendiente",
@@ -502,6 +549,98 @@
       "toc": "Índice",
       "notFound": "Libro de texto no encontrado.",
       "loadFailed": "Error al cargar la página."
+    }
+  },
+  "textbook": {
+    "heroBadge": "Libros de texto Amazing Korean",
+    "heroTitle": "Pedido de libros de texto",
+    "heroSubtitle": "Pida libros de texto en 20 idiomas. Ediciones para estudiantes y profesores disponibles.",
+    "catalog": {
+      "badge": "Libro de texto",
+      "title": "Colección de libros de texto de coreano",
+      "description": "Comience su aprendizaje sistemático de coreano\ncon ediciones para estudiantes y profesores en 20 idiomas.",
+      "studentSection": "Edición del estudiante",
+      "studentDescription": "Libros de texto de coreano para estudiantes.",
+      "teacherSection": "Edición del profesor",
+      "teacherDescription": "Guías de enseñanza de coreano para profesores.",
+      "orderButton": "Pedir",
+      "pricePerUnit": "₩25.000 / ejemplar",
+      "orderGuideTitle": "Información del pedido",
+      "orderGuideMinQty": "La cantidad mínima de pedido es de 10 ejemplares.",
+      "orderGuidePayment": "Pago por transferencia bancaria.",
+      "orderGuideBulk": "Envío gratuito para pedidos de más de 100 ejemplares",
+      "orderCta": "Pedir libros de texto",
+      "viewGrid": "Vista de cuadrícula",
+      "viewCarousel": "Vista de carrusel",
+      "searchPlaceholder": "Buscar idioma...",
+      "noResults": "No se encontraron resultados.",
+      "bookDescription": "Un libro de texto sistemático para aprender coreano. Traducido por expertos nativos de cada idioma."
+    },
+    "detail": {
+      "modalTitle": "Detalles del libro",
+      "coverImage": "Portada",
+      "innerImage": "Portada interior",
+      "tocImage": "Índice",
+      "description": "Un libro de texto sistemático de coreano de 120 páginas, desde nivel básico hasta intermedio.",
+      "translationNote": "Traducido por expertos nativos de {{language}}.",
+      "orderNow": "Pedir ahora",
+      "viewDetail": "Ver detalles",
+      "imageNotAvailable": "Imagen próximamente"
+    },
+    "myOrders": {
+      "badge": "Mis pedidos",
+      "title": "Historial de compras de libros",
+      "description": "Compruebe el estado de sus pedidos.",
+      "empty": "Aún no hay pedidos.",
+      "browseCatalog": "Ver libros",
+      "loadError": "No se pudo cargar la lista de pedidos.",
+      "status": {
+        "pending": "Pendiente",
+        "confirmed": "Confirmado",
+        "paid": "Pagado",
+        "printing": "Imprimiendo",
+        "shipped": "Enviado",
+        "delivered": "Entregado",
+        "canceled": "Cancelado"
+      }
+    },
+    "print": {
+      "quoteTitle": "Cotización",
+      "confirmationTitle": "Confirmación de pedido",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "N.º de documento",
+      "date": "Fecha",
+      "status": "Estado",
+      "recipient": "Para",
+      "colItem": "Artículo",
+      "colType": "Tipo",
+      "colQty": "Cant.",
+      "colPrice": "Precio unitario",
+      "colSubtotal": "Subtotal",
+      "textbookPrefix": "Amazing Korean",
+      "total": "Total",
+      "quoteTotal": "Monto de cotización",
+      "confirmationTotal": "Monto del pedido",
+      "vatIncluded": "IVA incluido",
+      "bankInfo": "Información de pago",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "Realice el pago dentro de los 7 días posteriores a la confirmación del pedido.",
+      "taxInvoice": "Factura fiscal",
+      "bizNumber": "N.º de registro comercial",
+      "taxCompanyName": "Nombre de empresa",
+      "repName": "Representante",
+      "taxEmail": "Correo de factura fiscal",
+      "taxAddress": "Dirección comercial",
+      "taxBizType": "Tipo de negocio",
+      "taxBizItem": "Rubro comercial",
+      "notes": "Notas",
+      "footer": "Este documento fue generado electrónicamente y es válido sin firma.",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "Imprimir / Guardar como PDF",
+      "pdfGuide": "Para guardar como PDF, seleccione 'Guardar como PDF' en el diálogo de impresión.",
+      "notFound": "Pedido no encontrado.",
+      "quoteNotice": "Esta cotización se basa en el envío del pedido y el monto real de pago puede diferir.",
+      "confirmationNotice": "Esta confirmación es solo para verificación del estado del pedido y no es un recibo oficial."
     }
   },
   "seo": {
@@ -569,5 +708,17 @@
       "title": "Estado del pedido - Amazing Korean",
       "description": "Consulta el estado de tu pedido de libros de texto."
     }
+  },
+  "bookHub": {
+    "badge": "Libro de texto Amazing Korean",
+    "title": "Libro de texto de coreano",
+    "subtitle": "Descubre libros de texto de coreano disponibles en 20 idiomas",
+    "descriptionTitle": "¿Qué es Amazing Korean?",
+    "description": "Amazing Korean es un libro de texto sistemático de coreano diseñado para principiantes. Desde consonantes y vocales del Hangul hasta oraciones clave, gramática, ejercicios y preparación para el TOPIK, todo en un solo libro.",
+    "samplePages": "Vista previa",
+    "samplePagesNote": "Páginas de muestra del libro de texto",
+    "ctaTitle": "Explorar libros",
+    "ctaTextbook": "Catálogo impreso",
+    "ctaEbook": "Catálogo E-book"
   }
 }

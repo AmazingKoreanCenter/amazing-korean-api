@@ -77,6 +77,7 @@ Layer 7: 동시 세션 제한 (백엔드 + 프론트)
 **앱 확장 로드맵**:
 ```
 Phase 1 [웹] ✅ 페이지 이미지 뷰어 — 온라인 전용, EPUB 미노출
+Phase 1.5 [웹 모바일] ✅ 터치 스와이프 + 반응형 UI + spread 자동 비활성화
 Phase 2 [모바일 앱] React Native + EPUB 암호화 저장 — 오프라인 지원
 Phase 3 [데스크탑 앱] Tauri(Rust) + DevTools 차단 — 오프라인 지원
 ```
@@ -323,8 +324,9 @@ node scripts/textbook/generate_page_images.js all all       # 전체
 - 매니페스트: `docs/textbook/page-images/{edition}/{lang}/manifest.json`
 
 **프론트엔드 페이지**:
-- `/ebook` — e-book 카탈로그 (언어/에디션 선택, 가격, 구매 — 로그인 필수)
-- `/ebook/viewer/{purchaseCode}` — 웹 뷰어 (blob:// URL, 키보드/버튼 네비, TOC, 줌, 풀스크린)
+- `/ebook` — e-book 카탈로그 (언어/에디션 선택, 가격, 결제방식 선택(계좌이체/Paddle 카드), 샘플 미리보기, 환불정책 링크 — 로그인 필수)
+- `/ebook/purchase-complete` — 구매 완료 안내 (구매코드, 요약, 입금안내/Paddle 완료 분기)
+- `/ebook/viewer/{purchaseCode}` — 웹 뷰어 (blob:// URL, 키보드/버튼/터치 스와이프 네비, TOC, 줌, 풀스크린, 모바일 최적화)
 - `/ebook/my` — 내 구매 목록 (상태 배지, 뷰어 열기 버튼)
 - `/admin/ebook/purchases` — 관리자 구매 목록 (필터/검색/페이지네이션)
 - `/admin/ebook/purchases/{id}` — 관리자 구매 상세 (상태 변경, 삭제)

@@ -409,6 +409,20 @@ pub async fn soft_delete_purchase(db: &PgPool, purchase_id: i64) -> AppResult<()
     Ok(())
 }
 
+// ─────────────────────── User Email ───────────────────────
+
+/// 사용자 암호화된 이메일 조회 (이메일 알림용)
+pub async fn find_user_encrypted_email(db: &PgPool, user_id: i64) -> AppResult<Option<String>> {
+    let row = sqlx::query_scalar::<_, String>(
+        "SELECT user_email FROM users WHERE user_id = $1"
+    )
+    .bind(user_id)
+    .fetch_optional(db)
+    .await?;
+
+    Ok(row)
+}
+
 // ─────────────────────── Helpers ───────────────────────
 
 fn escape_like(input: &str) -> String {

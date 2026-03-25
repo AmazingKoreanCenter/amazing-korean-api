@@ -32,6 +32,7 @@
     "videos": "ဗီဒီယို",
     "studies": "လေ့လာရေး",
     "lessons": "သင်ခန်းစာ",
+    "book": "စာအုပ်",
     "pricing": "စျေးနှုန်း",
     "myPage": "ကျွန်ုပ်စာမျက်နှာ",
     "login": "အကောင့်ဝင်မည်",
@@ -211,6 +212,7 @@
     "myPageDescription": "သင့်ပရိုဖိုင် အချက်အလက်များကို ကြည့်ရှု ပြင်ဆင်ပါ",
     "settingsTitle": "ဆက်တင်များ",
     "settingsButton": "ဆက်တင်များ",
+    "purchaseHistory": "ဝယ်ယူမှတ်တမ်း",
     "userNotFound": "အသုံးပြုသူ အချက်အလက် မတွေ့ပါ။",
     "userLoadFailed": "အသုံးပြုသူ အချက်အလက် ဖွင့်၍ မရပါ။",
     "settingsLoadFailed": "ဆက်တင်များ ဖွင့်၍ မရပါ။",
@@ -467,28 +469,256 @@
     "promoCodeClear": "ရှင်းလင်းရန်"
   },
   "ebook": {
-    "catalog": { "title": "E-book ဖတ်စာများ", "subtitle": "ချက်ချင်း အွန်လိုင်းတွင် ဖတ်နိုင်သော ဒစ်ဂျစ်တယ် ဖတ်စာများ။", "teacherEdition": "ဆရာ/ဆရာမ ထုတ်ဝေမှု", "studentEdition": "ကျောင်းသား ထုတ်ဝေမှု", "selectLanguage": "ဘာသာစကား ရွေးချယ်ပါ။", "comingSoon": "မကြာမီ လာမည်", "loadError": "ကတ်တလောက် ဖွင့်၍မရပါ။" },
-    "purchase": { "title": "ဝယ်ယူမှု အသေးစိတ်", "paymentMethod": "ငွေပေးချေမှု နည်းလမ်း", "bankTransfer": "ဘဏ်လွှဲပြောင်းမှု", "creditCard": "ခရက်ဒစ်ကတ် (Paddle)", "buy": "ဝယ်ယူရန်", "loginRequired": "ဝယ်ယူရန် အကောင့်ဝင်ပါ", "success": "ဝယ်ယူမှု ပြီးပါပြီ။", "error": "ဝယ်ယူစဉ် အမှားတစ်ခု ဖြစ်ပေါ်ခဲ့သည်။" },
-    "status": { "pending": "လုပ်ဆောင်နေသည်", "completed": "ရနိုင်ပါပြီ", "refunded": "ငွေပြန်အမ်းပြီး" },
-    "my": { "title": "ကျွန်ုပ်၏ E-book များ", "empty": "ဝယ်ယူထားသော E-book မရှိပါ။", "browseCatalog": "E-book များ ကြည့်ရှုရန်", "openViewer": "ကြည့်ရှုရန် ဖွင့်ပါ", "loadError": "ဝယ်ယူမှု မှတ်တမ်း ဖွင့်၍မရပါ။" },
-    "viewer": { "toc": "မာတိကာ", "notFound": "ဖတ်စာ ရှာမတွေ့ပါ။", "loadFailed": "စာမျက်နှာ ဖွင့်၍မရပါ။" }
+    "catalog": {
+      "title": "E-book ဖတ်စာများ",
+      "subtitle": "ချက်ချင်း အွန်လိုင်းတွင် ဖတ်နိုင်သော ဒစ်ဂျစ်တယ် ဖတ်စာများ။",
+      "teacherEdition": "ဆရာ/ဆရာမ ထုတ်ဝေမှု",
+      "studentEdition": "ကျောင်းသား ထုတ်ဝေမှု",
+      "selectLanguage": "ဘာသာစကား ရွေးချယ်ပါ။",
+      "comingSoon": "မကြာမီ လာမည်",
+      "loadError": "ကတ်တလောက် ဖွင့်၍မရပါ။",
+      "refundPolicy": "ပြန်အမ်းမူဝါဒ ကြည့်ရန်",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
+    },
+    "purchase": {
+      "title": "ဝယ်ယူမှု အသေးစိတ်",
+      "paymentMethod": "ငွေပေးချေမှု နည်းလမ်း",
+      "bankTransfer": "ဘဏ်လွှဲပြောင်းမှု",
+      "creditCard": "ခရက်ဒစ်ကတ် (Paddle)",
+      "buy": "ဝယ်ယူရန်",
+      "loginRequired": "ဝယ်ယူရန် အကောင့်ဝင်ပါ",
+      "success": "ဝယ်ယူမှု ပြီးပါပြီ။",
+      "error": "ဝယ်ယူစဉ် အမှားတစ်ခု ဖြစ်ပေါ်ခဲ့သည်။",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "Purchase Complete",
+      "description": "Your E-book purchase is complete.",
+      "subtitle": "Your order has been received. Please check the purchase details below.",
+      "purchaseCode": "Purchase Code",
+      "codeCopied": "Purchase code copied.",
+      "edition": "Edition",
+      "price": "Price",
+      "paymentMethod": "Payment Method",
+      "bankGuideTitle": "Payment Instructions",
+      "bankAccount": "{{account}}",
+      "bankNote": "Please make the payment within 7 days after order confirmation. Access will be available after payment is verified.",
+      "goToMyEbooks": "Go to My E-books",
+      "browseCatalog": "Browse Catalog",
+      "noData": "Purchase information not found."
+    },
+    "preview": {
+      "button": "အကြိုကြည့်ရှုရန်",
+      "description": "မျက်နှာဖုံး၍ မာတိကာနှင့် နမူနာစာမျက်နှာများကို အကြိုကြည့်ရှုနိုင်ပါသည်။",
+      "cover": "မျက်နှာဖုံး",
+      "toc": "မာတိကာ",
+      "sample": "နမူနာ {{n}}",
+      "pages": " စာမျက်နှာ",
+      "purchaseButton": "ဝယ်ယူရန်",
+      "imageNotAvailable": "ပုံပြင်ဆင်နေသည်"
+    },
+    "status": {
+      "pending": "လုပ်ဆောင်နေသည်",
+      "completed": "ရနိုင်ပါပြီ",
+      "refunded": "ငွေပြန်အမ်းပြီး"
+    },
+    "my": {
+      "title": "ကျွန်ုပ်၏ E-book များ",
+      "empty": "ဝယ်ယူထားသော E-book မရှိပါ။",
+      "browseCatalog": "E-book များ ကြည့်ရှုရန်",
+      "openViewer": "ကြည့်ရှုရန် ဖွင့်ပါ",
+      "loadError": "ဝယ်ယူမှု မှတ်တမ်း ဖွင့်၍မရပါ။"
+    },
+    "viewer": {
+      "toc": "မာတိကာ",
+      "notFound": "ဖတ်စာ ရှာမတွေ့ပါ။",
+      "loadFailed": "စာမျက်နှာ ဖွင့်၍မရပါ။"
+    }
+  },
+  "textbook": {
+    "heroBadge": "Amazing Korean ဖတ်စာအုပ်များ",
+    "heroTitle": "ဖတ်စာအုပ် မှာယူရန်",
+    "heroSubtitle": "ဘာသာစကား 20 မျိုးဖြင့် ဖတ်စာအုပ်များ မှာယူပါ။ ကျောင်းသားနှင့် ဆရာ ဗားရှင်းများ ရနိုင်ပါသည်။",
+    "catalog": {
+      "badge": "ဖတ်စာအုပ်",
+      "title": "ကိုရီးယား ဖတ်စာအုပ် စုစည်းမှု",
+      "description": "ဘာသာစကား 20 မျိုးဖြင့် ကျောင်းသားနှင့် ဆရာ ဗားရှင်းများဖြင့်\nစနစ်တကျ ကိုရီးယား သင်ယူမှုကို စတင်ပါ။",
+      "studentSection": "ကျောင်းသား ဗားရှင်း",
+      "studentDescription": "သင်ယူသူများအတွက် ကိုရီးယား ဖတ်စာအုပ်များ။",
+      "teacherSection": "ဆရာ ဗားရှင်း",
+      "teacherDescription": "ဆရာများအတွက် ကိုရီးယား သင်ကြားရေး လမ်းညွှန်များ။",
+      "orderButton": "မှာယူရန်",
+      "pricePerUnit": "₩25,000 / အုပ်",
+      "orderGuideTitle": "မှာယူမှု အချက်အလက်",
+      "orderGuideMinQty": "အနည်းဆုံး မှာယူမှု အရေအတွက် 10 အုပ် ဖြစ်သည်။",
+      "orderGuidePayment": "ဘဏ်ငွေလွှဲဖြင့် ပေးချေပါ။",
+      "orderGuideBulk": "အုပ် 100 နှင့်အထက် မှာယူပါက အခမဲ့ ပို့ဆောင်မှု",
+      "orderCta": "ဖတ်စာအုပ်များ မှာယူရန်",
+      "viewGrid": "ဂရစ် မြင်ကွင်း",
+      "viewCarousel": "ကာရိုဆယ် မြင်ကွင်း",
+      "searchPlaceholder": "ဘာသာစကား ရှာရန်...",
+      "noResults": "ရလဒ် မတွေ့ပါ။",
+      "bookDescription": "စနစ်တကျ ကိုရီးယား သင်ယူမှု ဖတ်စာအုပ်။ ဘာသာစကားတစ်ခုချင်းစီ၏ ဇာတိ ကျွမ်းကျင်သူများ ဘာသာပြန်ဆိုထားသည်။"
+    },
+    "detail": {
+      "modalTitle": "ဖတ်စာအသေးစိတ်",
+      "coverImage": "မျက်နှာဖုံး",
+      "innerImage": "အတွင်းဖုံး",
+      "tocImage": "မာတိကာ",
+      "description": "ကိုရီးယားဘာသာစကားသင်ကြားရေးစာအုပ် စာမျက်နှာ ၁၂၀၊ အခြေခံမှ အလယ်တန်းအဆင့်အထိ။",
+      "translationNote": "{{language}} ဇာတိပညာရှင်များ ဘာသာပြန်ထားသည်။",
+      "orderNow": "ယခုမှာယူရန်",
+      "viewDetail": "အသေးစိတ်ကြည့်ရန်",
+      "imageNotAvailable": "ပုံပြင်ဆင်နေဆဲ"
+    },
+    "myOrders": {
+      "badge": "ကျွန်ုပ်၏အမှာစာများ",
+      "title": "ဖတ်စာဝယ်ယူမှတ်တမ်း",
+      "description": "ဖတ်စာအမှာစာအခြေအနေကိုစစ်ဆေးပါ။",
+      "empty": "အမှာစာမရှိသေးပါ။",
+      "browseCatalog": "ဖတ်စာများကြည့်ရန်",
+      "loadError": "အမှာစာစာရင်းတင်၍မရပါ။",
+      "status": {
+        "pending": "စောင့်ဆိုင်းနေသည်",
+        "confirmed": "အတည်ပြုပြီး",
+        "paid": "ငွေပေးချေပြီး",
+        "printing": "ပုံနှိပ်နေသည်",
+        "shipped": "ပို့နေသည်",
+        "delivered": "ရောက်ရှိပြီး",
+        "canceled": "ပယ်ဖျက်ပြီး"
+      }
+    },
+    "print": {
+      "quoteTitle": "စျေးနှုန်းအဆိုပြု",
+      "confirmationTitle": "မှာယူမှု အတည်ပြုချက်",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "စာရွက်စာတမ်းအမှတ်",
+      "date": "ရက်စွဲ",
+      "status": "အခြေအနေ",
+      "recipient": "လက်ခံသူ",
+      "colItem": "ပစ္စည်း",
+      "colType": "အမျိုးအစား",
+      "colQty": "အရေအတွက်",
+      "colPrice": "တစ်ခုချင်းစျေးနှုန်း",
+      "colSubtotal": "စုစုပေါင်းခွဲ",
+      "textbookPrefix": "Amazing Korean",
+      "total": "စုစုပေါင်း",
+      "quoteTotal": "စျေးနှုန်းအဆိုပြုပမာဏ",
+      "confirmationTotal": "မှာယူမှုပမာဏ",
+      "vatIncluded": "VAT ပါဝင်",
+      "bankInfo": "ငွေပေးချေမှု အချက်အလက်",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "မှာယူမှု အတည်ပြုပြီး 7 ရက်အတွင်း ငွေပေးချေပါ။",
+      "taxInvoice": "အခွန်ပြေစာ အချက်အလက်",
+      "bizNumber": "စီးပွားရေးမှတ်ပုံတင်အမှတ်",
+      "taxCompanyName": "ကုမ္ပဏီအမည်",
+      "repName": "ကိုယ်စားလှယ်",
+      "taxEmail": "အခွန်ပြေစာ အီးမေးလ်",
+      "taxAddress": "စီးပွားရေးလိပ်စာ",
+      "taxBizType": "စီးပွားရေးအမျိုးအစား",
+      "taxBizItem": "စီးပွားရေးလုပ်ငန်း",
+      "notes": "မှတ်ချက်များ",
+      "footer": "ဤစာရွက်စာတမ်းသည် အီလက်ထရောနစ်နည်းဖြင့် ထုတ်လုပ်ထားပြီး လက်မှတ်မပါဘဲ တရားဝင်ပါသည်။",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "ပုံနှိပ် / PDF အဖြစ် သိမ်းဆည်း",
+      "pdfGuide": "PDF အဖြစ် သိမ်းဆည်းရန် ပုံနှိပ်ဒိုင်ယာလော့ခ်တွင် 'PDF အဖြစ် သိမ်းဆည်း' ကို ရွေးပါ။",
+      "notFound": "မှာယူမှု မတွေ့ပါ။",
+      "quoteNotice": "ဤစျေးနှုန်းအဆိုပြုသည် မှာယူမှုပေးပို့ချက်အပေါ် အခြေခံထားပြီး အမှန်တကယ်ငွေပေးချေမှုပမာဏ ကွာခြားနိုင်ပါသည်။",
+      "confirmationNotice": "ဤအတည်ပြုချက်သည် မှာယူမှုအခြေအနေ စစ်ဆေးရန်အတွက်သာဖြစ်ပြီး တရားဝင်ပြေစာမဟုတ်ပါ။"
+    }
   },
   "seo": {
-    "home": { "title": "Amazing Korean - ကိုရီးယား ဘာသာစကား သင်ကြားရေး ပလက်ဖောင်း", "description": "ကမ္ဘာတစ်ဝှမ်းရှိ သင်ယူသူများအတွက် အကောင်းဆုံး အွန်လိုင်း ကိုရီးယား သင်ကြားရေး ပလက်ဖောင်း။" },
-    "about": { "title": "အကြောင်း - Amazing Korean", "description": "Amazing Korean အကြောင်း — ကမ္ဘာတစ်ဝှမ်းရှိ သင်ယူသူများအတွက် ထိရောက်သော ကိုရီးယား သင်ကြားမှု အတွေ့အကြုံ။" },
-    "pricing": { "title": "စျေးနှုန်း - Amazing Korean", "description": "Amazing Korean စျေးနှုန်း အစီအစဉ်များ — ဗီဒီယို၊ သင်ကြားရေးပစ္စည်းများနှင့် သင်ခန်းစာများကို အကန့်အသတ်မရှိ ဝင်ရောက်ကြည့်ရှုပါ။" },
-    "videos": { "title": "ဗီဒီယို သင်ခန်းစာ - Amazing Korean", "description": "ပညာရှင် ဆရာများ၏ ဗီဒီယို သင်ခန်းစာများဖြင့် ကိုရီးယား ထိရောက်စွာ သင်ယူပါ။" },
-    "studies": { "title": "လေ့လာရေးပစ္စည်းများ - Amazing Korean", "description": "စနစ်ကျသော လေ့လာရေးပစ္စည်းများနှင့် လေ့ကျင့်ခန်းများဖြင့် ကိုရီးယား ကျွမ်းကျင်မှု တိုးတက်စေပါ။" },
-    "lessons": { "title": "သင်ခန်းစာ - Amazing Korean", "description": "စနစ်ကျသော သင်ခန်းစာများဖြင့် ကိုရီးယားကို တစ်ဆင့်ပြီးတစ်ဆင့် သင်ယူပါ။" },
-    "login": { "title": "အကောင့်ဝင်ရန် - Amazing Korean", "description": "ကိုရီးယား သင်ယူမှု စတင်ရန် Amazing Korean သို့ အကောင့်ဝင်ပါ။" },
-    "signup": { "title": "အကောင့်ဖွင့်ရန် - Amazing Korean", "description": "Amazing Korean နှင့် ပူးပေါင်းပြီး ကိုရီးယား သင်ယူမှု ခရီးစတင်ပါ။" },
-    "terms": { "title": "ဝန်ဆောင်မှု စည်းကမ်းချက်များ - Amazing Korean", "description": "Amazing Korean ဝန်ဆောင်မှု စည်းကမ်းချက်များ။" },
-    "privacy": { "title": "ကိုယ်ရေးအချက်အလက် မူဝါဒ - Amazing Korean", "description": "Amazing Korean ကိုယ်ရေးအချက်အလက် မူဝါဒ။" },
-    "refundPolicy": { "title": "ငွေပြန်အမ်းရေး မူဝါဒ - Amazing Korean", "description": "Amazing Korean စာရင်းသွင်းမှု ငွေပြန်အမ်းရေး မူဝါဒ။" },
-    "faq": { "title": "မေးလေ့ရှိသော မေးခွန်းများ - Amazing Korean", "description": "Amazing Korean အကြောင်း မေးလေ့ရှိသော မေးခွန်းများ။" },
-    "findId": { "title": "အကောင့် ပြန်လည်ရယူခြင်း - Amazing Korean", "description": "စာရင်းသွင်းထားသော အကောင့် အချက်အလက် ရှာဖွေပါ။" },
-    "requestResetPassword": { "title": "စကားဝှက် ပြန်လည်သတ်မှတ်ခြင်း - Amazing Korean", "description": "စာရင်းသွင်းထားသော လိပ်စာသို့ စကားဝှက် ပြန်လည်သတ်မှတ်ရေး အီးမေးလ် ပို့ပါ။" },
-    "textbook": { "title": "ဖတ်စာ မှာယူခြင်း - Amazing Korean", "description": "Amazing Korean ဖတ်စာများကို အွန်လိုင်းမှ မှာယူပါ။" },
-    "textbookStatus": { "title": "မှာယူမှု အခြေအနေ - Amazing Korean", "description": "ဖတ်စာ မှာယူမှု အခြေအနေ စစ်ဆေးပါ။" }
+    "home": {
+      "title": "Amazing Korean - ကိုရီးယား ဘာသာစကား သင်ကြားရေး ပလက်ဖောင်း",
+      "description": "ကမ္ဘာတစ်ဝှမ်းရှိ သင်ယူသူများအတွက် အကောင်းဆုံး အွန်လိုင်း ကိုရီးယား သင်ကြားရေး ပလက်ဖောင်း။"
+    },
+    "about": {
+      "title": "အကြောင်း - Amazing Korean",
+      "description": "Amazing Korean အကြောင်း — ကမ္ဘာတစ်ဝှမ်းရှိ သင်ယူသူများအတွက် ထိရောက်သော ကိုရီးယား သင်ကြားမှု အတွေ့အကြုံ။"
+    },
+    "pricing": {
+      "title": "စျေးနှုန်း - Amazing Korean",
+      "description": "Amazing Korean စျေးနှုန်း အစီအစဉ်များ — ဗီဒီယို၊ သင်ကြားရေးပစ္စည်းများနှင့် သင်ခန်းစာများကို အကန့်အသတ်မရှိ ဝင်ရောက်ကြည့်ရှုပါ။"
+    },
+    "videos": {
+      "title": "ဗီဒီယို သင်ခန်းစာ - Amazing Korean",
+      "description": "ပညာရှင် ဆရာများ၏ ဗီဒီယို သင်ခန်းစာများဖြင့် ကိုရီးယား ထိရောက်စွာ သင်ယူပါ။"
+    },
+    "studies": {
+      "title": "လေ့လာရေးပစ္စည်းများ - Amazing Korean",
+      "description": "စနစ်ကျသော လေ့လာရေးပစ္စည်းများနှင့် လေ့ကျင့်ခန်းများဖြင့် ကိုရီးယား ကျွမ်းကျင်မှု တိုးတက်စေပါ။"
+    },
+    "lessons": {
+      "title": "သင်ခန်းစာ - Amazing Korean",
+      "description": "စနစ်ကျသော သင်ခန်းစာများဖြင့် ကိုရီးယားကို တစ်ဆင့်ပြီးတစ်ဆင့် သင်ယူပါ။"
+    },
+    "login": {
+      "title": "အကောင့်ဝင်ရန် - Amazing Korean",
+      "description": "ကိုရီးယား သင်ယူမှု စတင်ရန် Amazing Korean သို့ အကောင့်ဝင်ပါ။"
+    },
+    "signup": {
+      "title": "အကောင့်ဖွင့်ရန် - Amazing Korean",
+      "description": "Amazing Korean နှင့် ပူးပေါင်းပြီး ကိုရီးယား သင်ယူမှု ခရီးစတင်ပါ။"
+    },
+    "terms": {
+      "title": "ဝန်ဆောင်မှု စည်းကမ်းချက်များ - Amazing Korean",
+      "description": "Amazing Korean ဝန်ဆောင်မှု စည်းကမ်းချက်များ။"
+    },
+    "privacy": {
+      "title": "ကိုယ်ရေးအချက်အလက် မူဝါဒ - Amazing Korean",
+      "description": "Amazing Korean ကိုယ်ရေးအချက်အလက် မူဝါဒ။"
+    },
+    "refundPolicy": {
+      "title": "ငွေပြန်အမ်းရေး မူဝါဒ - Amazing Korean",
+      "description": "Amazing Korean စာရင်းသွင်းမှု ငွေပြန်အမ်းရေး မူဝါဒ။"
+    },
+    "faq": {
+      "title": "မေးလေ့ရှိသော မေးခွန်းများ - Amazing Korean",
+      "description": "Amazing Korean အကြောင်း မေးလေ့ရှိသော မေးခွန်းများ။"
+    },
+    "findId": {
+      "title": "အကောင့် ပြန်လည်ရယူခြင်း - Amazing Korean",
+      "description": "စာရင်းသွင်းထားသော အကောင့် အချက်အလက် ရှာဖွေပါ။"
+    },
+    "requestResetPassword": {
+      "title": "စကားဝှက် ပြန်လည်သတ်မှတ်ခြင်း - Amazing Korean",
+      "description": "စာရင်းသွင်းထားသော လိပ်စာသို့ စကားဝှက် ပြန်လည်သတ်မှတ်ရေး အီးမေးလ် ပို့ပါ။"
+    },
+    "textbook": {
+      "title": "ဖတ်စာ မှာယူခြင်း - Amazing Korean",
+      "description": "Amazing Korean ဖတ်စာများကို အွန်လိုင်းမှ မှာယူပါ။"
+    },
+    "textbookStatus": {
+      "title": "မှာယူမှု အခြေအနေ - Amazing Korean",
+      "description": "ဖတ်စာ မှာယူမှု အခြေအနေ စစ်ဆေးပါ။"
+    }
+  },
+  "bookHub": {
+    "badge": "Amazing Korean ဖတ်စာ",
+    "title": "ကိုရီးယားဘာသာစကား ဖတ်စာ",
+    "subtitle": "ဘာသာ 20 ခုဖြင့် ရရှိနိုင်သော ကိုရီးယားဘာသာ သင်ယူရေး ဖတ်စာများကို ရှာဖွေပါ",
+    "descriptionTitle": "Amazing Korean ဆိုတာ ဘာလဲ?",
+    "description": "Amazing Korean သည် အခြေခံသင်ယူသူများအတွက် ဒီဇိုင်းထုတ်ထားသော စနစ်ကျသော ကိုရီးယားဘာသာ ဖတ်စာဖြစ်သည်။ ဟန်ဂုလ် ဗျည်းနှင့် သရများမှ အဓိကဝါကျများ၊ သဒ္ဒါ၊ လေ့ကျင့်ခန်းများနှင့် TOPIK ပြင်ဆင်ခြင်းအထိ — စာအုပ်တစ်အုပ်တည်းတွင် အားလုံးပါဝင်သည်။",
+    "samplePages": "စာမျက်နှာ အကြိုကြည့်ရှု",
+    "samplePagesNote": "အမှန်တကယ် ဖတ်စာမှ နမူနာစာမျက်နှာများ",
+    "ctaTitle": "စာအုပ်များ ကြည့်ရှု",
+    "ctaTextbook": "ပုံနှိပ်ထုတ်ဝေမှု ကတ်တလောက်",
+    "ctaEbook": "E-book ကတ်တလောက်"
   }
 }

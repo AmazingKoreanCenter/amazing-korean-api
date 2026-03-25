@@ -107,13 +107,9 @@ import type {
   TranslationStatusUpdateReq,
   TranslationRes,
   TranslationListRes,
-  AutoTranslateReq,
-  AutoTranslateRes,
   ContentType,
   ContentRecordsRes,
   SourceFieldsRes,
-  AutoTranslateBulkReq,
-  AutoTranslateBulkRes,
   SupportedLanguage,
   TranslationSearchRes,
   TranslationStatsRes,
@@ -674,12 +670,6 @@ export const deleteAdminTranslation = (id: number) =>
     method: "DELETE",
   });
 
-export const autoTranslateContent = (data: AutoTranslateReq) =>
-  request<AutoTranslateRes>("/admin/translations/auto", {
-    method: "POST",
-    data,
-  });
-
 export const getContentRecords = (contentType: ContentType) =>
   request<ContentRecordsRes>("/admin/translations/content-records", {
     method: "GET",
@@ -690,12 +680,6 @@ export const getSourceFields = (contentType: ContentType, contentId: number) =>
   request<SourceFieldsRes>("/admin/translations/source-fields", {
     method: "GET",
     params: { content_type: contentType, content_id: contentId },
-  });
-
-export const autoTranslateBulk = (data: AutoTranslateBulkReq) =>
-  request<AutoTranslateBulkRes>("/admin/translations/auto-bulk", {
-    method: "POST",
-    data,
   });
 
 export const searchTranslations = (lang?: SupportedLanguage) =>

@@ -32,6 +32,7 @@
     "videos": "Vídeos",
     "studies": "Estudos",
     "lessons": "Aulas",
+    "book": "Livro",
     "pricing": "Preços",
     "myPage": "Minha Página",
     "login": "Entrar",
@@ -211,6 +212,7 @@
     "myPageDescription": "Visualize e edite suas informações de perfil",
     "settingsTitle": "Configurações",
     "settingsButton": "Configurações",
+    "purchaseHistory": "Histórico de compras",
     "userNotFound": "Informações do usuário não encontradas.",
     "userLoadFailed": "Falha ao carregar informações do usuário.",
     "settingsLoadFailed": "Falha ao carregar configurações.",
@@ -474,7 +476,24 @@
       "studentEdition": "Edição do estudante",
       "selectLanguage": "Selecione um idioma.",
       "comingSoon": "Em breve",
-      "loadError": "Falha ao carregar catálogo."
+      "loadError": "Falha ao carregar catálogo.",
+      "refundPolicy": "Ver Política de Reembolso",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
     },
     "purchase": {
       "title": "Detalhes da compra",
@@ -484,9 +503,41 @@
       "buy": "Comprar",
       "loginRequired": "Faça login para comprar",
       "success": "Compra concluída.",
-      "error": "Ocorreu um erro durante a compra."
+      "error": "Ocorreu um erro durante a compra.",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
     },
-    "status": { "pending": "Pendente", "completed": "Disponível", "refunded": "Reembolsado" },
+    "purchaseComplete": {
+      "title": "Compra concluída",
+      "description": "Sua compra de E-book foi concluída.",
+      "subtitle": "Seu pedido foi recebido. Verifique os detalhes abaixo.",
+      "purchaseCode": "Código de compra",
+      "codeCopied": "Código copiado.",
+      "edition": "Edição",
+      "price": "Preço",
+      "paymentMethod": "Método de pagamento",
+      "bankGuideTitle": "Instruções de pagamento",
+      "bankAccount": "{{account}}",
+      "bankNote": "Efetue o pagamento em 7 dias. O acesso será disponibilizado após verificação.",
+      "goToMyEbooks": "Meus E-books",
+      "browseCatalog": "Ver catálogo",
+      "noData": "Informações de compra não encontradas."
+    },
+    "preview": {
+      "button": "Prévia",
+      "description": "Prévia da capa, índice e páginas de exemplo.",
+      "cover": "Capa",
+      "toc": "Índice",
+      "sample": "Exemplo {{n}}",
+      "pages": " páginas",
+      "purchaseButton": "Comprar",
+      "imageNotAvailable": "Imagem em preparação"
+    },
+    "status": {
+      "pending": "Pendente",
+      "completed": "Disponível",
+      "refunded": "Reembolsado"
+    },
     "my": {
       "title": "Meus E-books",
       "empty": "Nenhum E-book comprado.",
@@ -494,24 +545,180 @@
       "openViewer": "Abrir leitor",
       "loadError": "Falha ao carregar compras."
     },
-    "viewer": { "toc": "Sumário", "notFound": "Livro não encontrado.", "loadFailed": "Falha ao carregar página." }
+    "viewer": {
+      "toc": "Sumário",
+      "notFound": "Livro não encontrado.",
+      "loadFailed": "Falha ao carregar página."
+    }
+  },
+  "textbook": {
+    "heroBadge": "Livros didáticos Amazing Korean",
+    "heroTitle": "Pedido de livros didáticos",
+    "heroSubtitle": "Peça livros didáticos em 20 idiomas. Edições para alunos e professores disponíveis.",
+    "catalog": {
+      "badge": "Livro didático",
+      "title": "Coleção de livros didáticos de coreano",
+      "description": "Comece sua jornada sistemática de aprendizado de coreano\ncom edições para alunos e professores em 20 idiomas.",
+      "studentSection": "Edição do aluno",
+      "studentDescription": "Livros didáticos de coreano para estudantes.",
+      "teacherSection": "Edição do professor",
+      "teacherDescription": "Guias de ensino de coreano para professores.",
+      "orderButton": "Pedir",
+      "pricePerUnit": "₩25.000 / exemplar",
+      "orderGuideTitle": "Informações do pedido",
+      "orderGuideMinQty": "A quantidade mínima do pedido é de 10 exemplares.",
+      "orderGuidePayment": "Pagamento por transferência bancária.",
+      "orderGuideBulk": "Frete grátis para pedidos acima de 100 exemplares",
+      "orderCta": "Pedir livros didáticos",
+      "viewGrid": "Visualização em grade",
+      "viewCarousel": "Visualização em carrossel",
+      "searchPlaceholder": "Pesquisar idioma...",
+      "noResults": "Nenhum resultado encontrado.",
+      "bookDescription": "Um livro didático sistemático para aprender coreano. Traduzido por especialistas nativos de cada idioma."
+    },
+    "detail": {
+      "modalTitle": "Detalhes do livro",
+      "coverImage": "Capa",
+      "innerImage": "Capa interna",
+      "tocImage": "Índice",
+      "description": "Um livro didático sistemático de coreano com 120 páginas, do nível básico ao intermediário.",
+      "translationNote": "Traduzido por especialistas nativos de {{language}}.",
+      "orderNow": "Pedir agora",
+      "viewDetail": "Ver detalhes",
+      "imageNotAvailable": "Imagem em breve"
+    },
+    "myOrders": {
+      "badge": "Meus pedidos",
+      "title": "Histórico de compras de livros",
+      "description": "Verifique o status dos seus pedidos.",
+      "empty": "Nenhum pedido ainda.",
+      "browseCatalog": "Ver livros",
+      "loadError": "Falha ao carregar a lista de pedidos.",
+      "status": {
+        "pending": "Pendente",
+        "confirmed": "Confirmado",
+        "paid": "Pago",
+        "printing": "Imprimindo",
+        "shipped": "Enviado",
+        "delivered": "Entregue",
+        "canceled": "Cancelado"
+      }
+    },
+    "print": {
+      "quoteTitle": "Orçamento",
+      "confirmationTitle": "Confirmação de Pedido",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "N.º do Documento",
+      "date": "Data",
+      "status": "Status",
+      "recipient": "Para",
+      "colItem": "Item",
+      "colType": "Tipo",
+      "colQty": "Qtd.",
+      "colPrice": "Preço Unitário",
+      "colSubtotal": "Subtotal",
+      "textbookPrefix": "Amazing Korean",
+      "total": "Total",
+      "quoteTotal": "Valor do Orçamento",
+      "confirmationTotal": "Valor do Pedido",
+      "vatIncluded": "IVA incluído",
+      "bankInfo": "Informações de Pagamento",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "Efetue o pagamento dentro de 7 dias após a confirmação do pedido.",
+      "taxInvoice": "Informações de Fatura Fiscal",
+      "bizNumber": "N.º de Registro Comercial",
+      "taxCompanyName": "Nome da Empresa",
+      "repName": "Representante",
+      "taxEmail": "E-mail da Fatura Fiscal",
+      "taxAddress": "Endereço Comercial",
+      "taxBizType": "Tipo de Negócio",
+      "taxBizItem": "Ramo de Negócio",
+      "notes": "Observações",
+      "footer": "Este documento foi gerado eletronicamente e é válido sem assinatura.",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "Imprimir / Salvar como PDF",
+      "pdfGuide": "Para salvar como PDF, selecione 'Salvar como PDF' na caixa de diálogo de impressão.",
+      "notFound": "Pedido não encontrado.",
+      "quoteNotice": "Este orçamento é baseado no envio do pedido e o valor real do pagamento pode diferir.",
+      "confirmationNotice": "Esta confirmação é apenas para verificação do status do pedido e não é um recibo oficial."
+    }
   },
   "seo": {
-    "home": { "title": "Amazing Korean - Plataforma de aprendizagem de coreano", "description": "A melhor plataforma online de aprendizagem de coreano para estudantes do mundo todo. Oferecemos aprendizagem por vídeo, exercícios estruturados e aulas particulares." },
-    "about": { "title": "Sobre - Amazing Korean", "description": "Sobre o Amazing Korean — Proporcionando experiências eficazes e agradáveis de aprendizagem de coreano para estudantes do mundo todo." },
-    "pricing": { "title": "Preços - Amazing Korean", "description": "Planos de preços do Amazing Korean — Acesso ilimitado a vídeos, materiais de estudo e aulas." },
-    "videos": { "title": "Videoaulas - Amazing Korean", "description": "Aprenda coreano de forma eficaz com videoaulas de instrutores profissionais." },
-    "studies": { "title": "Materiais de estudo - Amazing Korean", "description": "Melhore suas habilidades em coreano com materiais de estudo e exercícios estruturados." },
-    "lessons": { "title": "Aulas - Amazing Korean", "description": "Aprenda coreano passo a passo com aulas estruturadas." },
-    "login": { "title": "Entrar - Amazing Korean", "description": "Entre no Amazing Korean para começar a aprender coreano." },
-    "signup": { "title": "Cadastrar - Amazing Korean", "description": "Junte-se ao Amazing Korean e comece sua jornada de aprendizagem de coreano." },
-    "terms": { "title": "Termos de serviço - Amazing Korean", "description": "Termos de serviço do Amazing Korean." },
-    "privacy": { "title": "Política de privacidade - Amazing Korean", "description": "Política de privacidade do Amazing Korean sobre coleta e processamento de dados." },
-    "refundPolicy": { "title": "Política de reembolso - Amazing Korean", "description": "Política de reembolso de assinaturas do Amazing Korean." },
-    "faq": { "title": "Perguntas frequentes - Amazing Korean", "description": "Perguntas frequentes sobre o Amazing Korean." },
-    "findId": { "title": "Recuperação de conta - Amazing Korean", "description": "Encontre as informações da sua conta registrada." },
-    "requestResetPassword": { "title": "Redefinir senha - Amazing Korean", "description": "Envie um e-mail de redefinição de senha para seu endereço registrado." },
-    "textbook": { "title": "Pedido de livros - Amazing Korean", "description": "Peça livros do Amazing Korean online. Disponível em 20 idiomas, edições de estudante e professor." },
-    "textbookStatus": { "title": "Status do pedido - Amazing Korean", "description": "Acompanhe o status do seu pedido de livros." }
+    "home": {
+      "title": "Amazing Korean - Plataforma de aprendizagem de coreano",
+      "description": "A melhor plataforma online de aprendizagem de coreano para estudantes do mundo todo. Oferecemos aprendizagem por vídeo, exercícios estruturados e aulas particulares."
+    },
+    "about": {
+      "title": "Sobre - Amazing Korean",
+      "description": "Sobre o Amazing Korean — Proporcionando experiências eficazes e agradáveis de aprendizagem de coreano para estudantes do mundo todo."
+    },
+    "pricing": {
+      "title": "Preços - Amazing Korean",
+      "description": "Planos de preços do Amazing Korean — Acesso ilimitado a vídeos, materiais de estudo e aulas."
+    },
+    "videos": {
+      "title": "Videoaulas - Amazing Korean",
+      "description": "Aprenda coreano de forma eficaz com videoaulas de instrutores profissionais."
+    },
+    "studies": {
+      "title": "Materiais de estudo - Amazing Korean",
+      "description": "Melhore suas habilidades em coreano com materiais de estudo e exercícios estruturados."
+    },
+    "lessons": {
+      "title": "Aulas - Amazing Korean",
+      "description": "Aprenda coreano passo a passo com aulas estruturadas."
+    },
+    "login": {
+      "title": "Entrar - Amazing Korean",
+      "description": "Entre no Amazing Korean para começar a aprender coreano."
+    },
+    "signup": {
+      "title": "Cadastrar - Amazing Korean",
+      "description": "Junte-se ao Amazing Korean e comece sua jornada de aprendizagem de coreano."
+    },
+    "terms": {
+      "title": "Termos de serviço - Amazing Korean",
+      "description": "Termos de serviço do Amazing Korean."
+    },
+    "privacy": {
+      "title": "Política de privacidade - Amazing Korean",
+      "description": "Política de privacidade do Amazing Korean sobre coleta e processamento de dados."
+    },
+    "refundPolicy": {
+      "title": "Política de reembolso - Amazing Korean",
+      "description": "Política de reembolso de assinaturas do Amazing Korean."
+    },
+    "faq": {
+      "title": "Perguntas frequentes - Amazing Korean",
+      "description": "Perguntas frequentes sobre o Amazing Korean."
+    },
+    "findId": {
+      "title": "Recuperação de conta - Amazing Korean",
+      "description": "Encontre as informações da sua conta registrada."
+    },
+    "requestResetPassword": {
+      "title": "Redefinir senha - Amazing Korean",
+      "description": "Envie um e-mail de redefinição de senha para seu endereço registrado."
+    },
+    "textbook": {
+      "title": "Pedido de livros - Amazing Korean",
+      "description": "Peça livros do Amazing Korean online. Disponível em 20 idiomas, edições de estudante e professor."
+    },
+    "textbookStatus": {
+      "title": "Status do pedido - Amazing Korean",
+      "description": "Acompanhe o status do seu pedido de livros."
+    }
+  },
+  "bookHub": {
+    "badge": "Livro didático Amazing Korean",
+    "title": "Livro didático de coreano",
+    "subtitle": "Descubra livros didáticos de coreano disponíveis em 20 idiomas",
+    "descriptionTitle": "O que é o Amazing Korean?",
+    "description": "Amazing Korean é um livro didático sistemático de coreano projetado para iniciantes. De consoantes e vogais do Hangul a frases-chave, gramática, exercícios e preparação para o TOPIK — tudo em um só livro.",
+    "samplePages": "Páginas de pré-visualização",
+    "samplePagesNote": "Páginas de amostra do livro didático",
+    "ctaTitle": "Explorar livros",
+    "ctaTextbook": "Catálogo impresso",
+    "ctaEbook": "Catálogo E-book"
   }
 }

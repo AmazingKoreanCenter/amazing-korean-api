@@ -129,6 +129,20 @@ pub enum EmailTemplate {
         total_quantity: i32,
         total_amount: i32,
     },
+    /// E-book 구매 접수 확인 (pending)
+    EbookPurchaseConfirmation {
+        purchase_code: String,
+        language_name: String,
+        edition_label: String,
+        price: String,
+        currency: String,
+    },
+    /// E-book 결제 완료 알림 (completed)
+    EbookPurchaseCompleted {
+        purchase_code: String,
+        language_name: String,
+        edition_label: String,
+    },
     /// 교재 주문 상태 변경 알림
     TextbookOrderStatusUpdate {
         order_code: String,
@@ -557,6 +571,154 @@ fn render_template(template: EmailTemplate) -> (String, String, String) {
 
             let text_body = format!(
                 "[Amazing Korean] 교재 주문 상태 변경\n\n{orderer_name}님, 교재 주문의 상태가 변경되었습니다.\n\n주문번호: {order_code}\n상태: {status_label}\n{tracking_text}\n주문 상태 확인: https://amazingkorean.net/textbook/order/{order_code}"
+            );
+            (subject, html_body, text_body)
+        }
+
+        EmailTemplate::EbookPurchaseConfirmation {
+            purchase_code,
+            language_name,
+            edition_label,
+            price,
+            currency,
+        } => {
+            let subject = format!("[Amazing Korean] E-book 구매 접수 확인 ({})", purchase_code);
+            let html_body = format!(
+                r#"<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td style="padding: 40px 0;">
+                <table role="presentation" style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 1px solid #eee;">
+                            <h1 style="margin: 0; color: #333; font-size: 24px;">Amazing Korean</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px;">
+                            <h2 style="margin: 0 0 20px 0; color: #333; font-size: 20px;">E-book 구매가 접수되었습니다</h2>
+                            <p style="margin: 0 0 30px 0; color: #666; font-size: 16px; line-height: 1.6;">
+                                E-book 구매 주문이 정상적으로 접수되었습니다.
+                            </p>
+                            <div style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+                                <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
+                                    <strong>구매코드:</strong> {purchase_code}
+                                </p>
+                                <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
+                                    <strong>교재:</strong> {language_name} ({edition_label})
+                                </p>
+                                <p style="margin: 0; color: #666; font-size: 14px;">
+                                    <strong>금액:</strong> {price} {currency}
+                                </p>
+                            </div>
+                            <h3 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">입금 안내</h3>
+                            <div style="background-color: #fff3cd; border-radius: 8px; padding: 20px; margin-bottom: 30px; border: 1px solid #ffc107;">
+                                <p style="margin: 0 0 10px 0; color: #856404; font-size: 14px;">
+                                    <strong>은행:</strong> 하나은행
+                                </p>
+                                <p style="margin: 0 0 10px 0; color: #856404; font-size: 14px;">
+                                    <strong>계좌번호:</strong> 915-910012-71304
+                                </p>
+                                <p style="margin: 0; color: #856404; font-size: 14px;">
+                                    <strong>예금주:</strong> 주식회사 힘
+                                </p>
+                            </div>
+                            <p style="margin: 0 0 10px 0; color: #999; font-size: 14px;">
+                                입금 확인 후 E-book 열람이 가능합니다.
+                            </p>
+                            <div style="text-align: center; margin-top: 30px;">
+                                <a href="https://amazingkorean.net/ebook/my" style="display: inline-block; background-color: #333; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-size: 16px; font-weight: bold;">
+                                    내 E-book 확인
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 20px 40px; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
+                            <p style="margin: 0; color: #999; font-size: 12px; text-align: center;">
+                                © Amazing Korean. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"#
+            );
+            let text_body = format!(
+                "[Amazing Korean] E-book 구매 접수 확인\n\nE-book 구매 주문이 정상적으로 접수되었습니다.\n\n구매코드: {purchase_code}\n교재: {language_name} ({edition_label})\n금액: {price} {currency}\n\n[입금 안내]\n은행: 하나은행\n계좌번호: 915-910012-71304\n예금주: 주식회사 힘\n\n입금 확인 후 E-book 열람이 가능합니다.\n\n내 E-book 확인: https://amazingkorean.net/ebook/my"
+            );
+            (subject, html_body, text_body)
+        }
+
+        EmailTemplate::EbookPurchaseCompleted {
+            purchase_code,
+            language_name,
+            edition_label,
+        } => {
+            let subject = format!("[Amazing Korean] E-book 결제 완료 — 열람 가능 ({})", purchase_code);
+            let html_body = format!(
+                r#"<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td style="padding: 40px 0;">
+                <table role="presentation" style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 1px solid #eee;">
+                            <h1 style="margin: 0; color: #333; font-size: 24px;">Amazing Korean</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px;">
+                            <h2 style="margin: 0 0 20px 0; color: #333; font-size: 20px;">E-book 결제가 완료되었습니다</h2>
+                            <p style="margin: 0 0 30px 0; color: #666; font-size: 16px; line-height: 1.6;">
+                                결제가 확인되어 E-book을 열람하실 수 있습니다.
+                            </p>
+                            <div style="background-color: #d4edda; border-radius: 8px; padding: 20px; margin-bottom: 30px; border: 1px solid #28a745;">
+                                <p style="margin: 0 0 10px 0; color: #155724; font-size: 14px;">
+                                    <strong>구매코드:</strong> {purchase_code}
+                                </p>
+                                <p style="margin: 0; color: #155724; font-size: 14px;">
+                                    <strong>교재:</strong> {language_name} ({edition_label})
+                                </p>
+                            </div>
+                            <div style="text-align: center; margin-top: 30px;">
+                                <a href="https://amazingkorean.net/ebook/my" style="display: inline-block; background-color: #333; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-size: 16px; font-weight: bold;">
+                                    지금 E-book 열람하기
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 20px 40px; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
+                            <p style="margin: 0; color: #999; font-size: 12px; text-align: center;">
+                                © Amazing Korean. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"#
+            );
+            let text_body = format!(
+                "[Amazing Korean] E-book 결제 완료\n\n결제가 확인되어 E-book을 열람하실 수 있습니다.\n\n구매코드: {purchase_code}\n교재: {language_name} ({edition_label})\n\n지금 E-book 열람하기: https://amazingkorean.net/ebook/my"
             );
             (subject, html_body, text_body)
         }

@@ -13,6 +13,7 @@ import {
   Copy,
   Package,
   ScrollText,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,6 +53,8 @@ import {
 } from "@/components/ui/dialog";
 import { HeroSection } from "@/components/sections/hero_section";
 import { PageMeta } from "@/components/page_meta";
+
+import { useUserMe } from "@/category/user/hook/use_user_me";
 
 import { useCatalog } from "../hook/use_catalog";
 import { useCreateOrder } from "../hook/use_create_order";
@@ -110,6 +113,7 @@ const BANK_ACCOUNT = "하나은행 915-910012-71304 주식회사 힘";
 export function TextbookOrderPage() {
   const { t } = useTranslation();
   const { data: catalog, isLoading: catalogLoading } = useCatalog();
+  const { data: userMe } = useUserMe();
   const createMutation = useCreateOrder();
   const [orderResult, setOrderResult] = useState<OrderRes | null>(null);
   const [termsOpen, setTermsOpen] = useState(false);
@@ -159,6 +163,20 @@ export function TextbookOrderPage() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 로그인 사용자 정보 자동 채움
+  useEffect(() => {
+    if (userMe) {
+      const currentName = form.getValues("orderer_name");
+      const currentEmail = form.getValues("orderer_email");
+      if (!currentName && userMe.name) {
+        form.setValue("orderer_name", userMe.name);
+      }
+      if (!currentEmail && userMe.email) {
+        form.setValue("orderer_email", userMe.email);
+      }
+    }
+  }, [userMe]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const watchItems = form.watch("items");
   const watchTaxInvoice = form.watch("tax_invoice");
 
@@ -172,6 +190,12 @@ export function TextbookOrderPage() {
   const usedCombinations = new Set(
     watchItems.map((item) => `${item.language}:${item.textbook_type}`),
   );
+
+  // ISBN 미발급 언어 포함 여부
+  const hasIsbnPending = watchItems.some((item) => {
+    const cat = catalogItems.find((c) => c.language === item.language);
+    return cat && !cat.isbn_ready;
+  });
 
   // 폼 제출 → 검증 → 약관 모달 표시
   const onSubmit = (values: OrderFormValues) => {
@@ -323,18 +347,32 @@ export function TextbookOrderPage() {
               </div>
 
               {/* 주문 조회 안내 */}
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-3">
+              <div className="text-center space-y-3">
+                <p className="text-sm text-muted-foreground">
                   {t("textbook.order.trackGuide")}
                 </p>
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    (window.location.href = `/textbook/order/${orderResult.order_code}`)
-                  }
-                >
-                  {t("textbook.order.trackButton")}
-                </Button>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      (window.location.href = `/textbook/order/${orderResult.order_code}`)
+                    }
+                  >
+                    {t("textbook.order.trackButton")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      window.open(
+                        `/textbook/order/${orderResult.order_code}/print?type=quote`,
+                        "_blank",
+                      )
+                    }
+                  >
+                    <FileText className="h-4 w-4 mr-1" />
+                    {t("textbook.print.quoteTitle")}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -585,6 +623,13 @@ export function TextbookOrderPage() {
                       </span>
                     </div>
                   </div>
+
+                  {/* ISBN 미발급 언어 안내 */}
+                  {hasIsbnPending && (
+                    <p className="text-sm text-muted-foreground bg-muted rounded-lg p-3">
+                      {t("textbook.order.isbnNotice")}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 

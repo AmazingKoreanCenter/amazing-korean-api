@@ -182,7 +182,7 @@ export default function HomePage() {
                 asChild
                 className="p-0 h-auto text-accent font-medium hover:text-accent/80 group-hover:translate-x-1 transition-transform"
               >
-                <Link to="/ebook/catalog" className="flex items-center gap-1">
+                <Link to="/book/ebook" className="flex items-center gap-1">
                   {t("home.lessonLink")} <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>

@@ -11,6 +11,127 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-25 — E-book 카탈로그 출판본 패턴 적용**
+  - **리디자인**: E-book 카탈로그를 출판본(textbook) 패턴으로 통일 (그리드 CoverCard + 캐러셀 SealList + 상세 모달)
+  - **신규**: `ebook_catalog_page.tsx` 전면 리라이트 — HeroSection, Tabs(학생/교사), 검색, 그리드/캐러셀 뷰 토글
+  - **신규**: `ebook_detail_modal.tsx` — 좌우 스와이프 이미지 갤러리 (겉표지/속표지/목차), E-book 뱃지, 가격/페이지 표시
+  - **신규**: `ebook_carousel_view.tsx` + `ebook_selected_detail.tsx` — 50/50 레이아웃 (SealList 재사용)
+  - **신규**: `use_ebook_catalog_view.ts` — 에디션/검색/선택 상태 관리 훅
+  - **공유**: SealList를 `SealItem` 인터페이스로 일반화하여 textbook/ebook 공유
+  - **이미지**: 출판본과 동일 표지 이미지 공유 (`/covers/{edition}-{lang}.webp`)
+  - **i18n**: 22개 로케일 `ebook.catalog.*` 7키 + `ebook.detail.*` 7키 추가
+  - **구매 섹션**: 사용자 결정 대기 (기존 구매 플로우 유지 가능)
+
+- **2026-03-25 — Book 허브 페이지 + 라우트 재구성**
+  - **라우트**: `/textbook/*` → `/book/textbook/*`, `/ebook/*` → `/book/ebook/*` 전면 이동
+  - **신규**: `/book` Book 허브 랜딩 페이지 (교재 소개 + 표지 + 샘플 페이지 + 출판본/E-book CTA)
+  - **허브 기본 교재**: i18n 언어 기반 자동 선택 (ko/en → 랜덤, 기타 → 매칭 언어)
+  - **리다이렉트**: 기존 `/textbook/*`, `/ebook/*` 경로 → 새 경로로 자동 리다이렉트 (하위 호환)
+  - **헤더**: `nav.textbook` → `nav.book`, 경로 `/textbook` → `/book`
+  - **내부 링크**: 13개 파일 전수 변경 (header, my_page, book_landing, catalog, order, viewer 등)
+  - **E-book 카탈로그**: 에디션 선택 Button → Tabs 컴포넌트 통일 (textbook과 동일 패턴)
+  - **신규 파일**: `book_hub_page.tsx`, `book_data.ts`에 `getDefaultLangKey()`, `SAMPLE_PAGES` 추가
+  - **i18n**: 22개 로케일 `nav.book` + `bookHub.*` 10키 추가
+  - **QR 랜딩**: `/book/:isbn` 유지 (React Router v6 정적 경로 우선 매칭으로 충돌 없음)
+  - **샘플 이미지**: `/book-samples/{type}-{lang}-p{page}.webp` 경로 정의 (220장, amazing-korean-books에서 생성 예정)
+
+- **2026-03-25 — 교재 그리드/상세 모달 개선**
+  - **그리드 CoverCard**: 교재명 `bookTitle` i18n 키 통일, ISBN 뱃지 제거 → 상세 모달로 이동, 버튼 "주문하기" → "상세보기", 가격 오른쪽 정렬
+  - **상세 모달**: 이미지 갤러리 썸네일 선택 → 좌우 화살표 + 인디케이터 도트 스와이프, 교재명 `bookTitle` 좌측 + ISBN 뱃지 우측 (emerald/amber 스타일), 가격 우측 정렬
+
+- **2026-03-25 — 교재 캐러셀 모바일 최적화**
+  - **seal_list.tsx**: 모바일에서 상단 Coverflow 숨김 (`hidden md:flex`), 하단 Thumbs만 표시 + 선택 언어명 표시
+  - **selected_book_detail.tsx**: 모바일 세로 쌓기 (표지 위 → 설명 아래), 텍스트 중앙 정렬
+
+- **2026-03-24 — 교재 ISBN 발급 상태 표시**
+  - **백엔드**: `textbook/dto.rs` CatalogItem에 `isbn_ready: bool` 필드 추가
+  - **백엔드**: `textbook/service.rs` `catalog_languages()` 21개 언어에 ISBN 발급 상태 하드코딩 (9개 완료: ja, zh_cn, vi, th, ne, ru, km, tl, id)
+  - **프론트**: `types.ts` — `textbookLanguageSchema`에 누락된 `"tl"` 추가 (기존 버그 수정), `catalogItemSchema`에 `isbn_ready` 추가
+  - **프론트**: 카탈로그 카드/캐러셀/상세 모달에 ISBN 미발급 시 "약 1주 추가 소요" 안내 텍스트
+  - **프론트**: 주문 페이지에서 ISBN 미발급 언어 선택 시 안내 메시지 표시
+  - **i18n**: ko/en에 `textbook.catalog.isbnPending`, `textbook.order.isbnNotice` 키 추가
+
+- **2026-03-24 — E-book Paddle 결제 연동**
+  - **수정**: `ebook_catalog_page.tsx` — 결제 방식 선택 UI (계좌이체/카드결제), Paddle 선택 시 `openEbookCheckout()` 호출
+  - **수정**: `ebook_catalog_page.tsx` — `usePaddle` 훅 연동 (카탈로그 API의 `client_token`, `sandbox`, `paddle_ebook_price_id` 활용)
+  - **수정**: `ebook_catalog_page.tsx` — Paddle 결제 완료 시 `checkout.completed` 이벤트 → 구매 완료 페이지 이동
+  - **i18n**: 22개 로케일 `ebook.purchase.cardPayment`, `ebook.purchase.paddleNote` 키 추가
+
+- **2026-03-24 — E-book 모바일 최적화**
+  - **수정**: `ebook_viewer_page.tsx` — 터치 스와이프 페이지 네비게이션 (50px 수평 임계값, 세로 스크롤 무시)
+  - **수정**: `ebook_viewer_page.tsx` — 모바일(768px 미만)에서 spread 모드 자동 비활성화 + 토글 버튼 숨김
+  - **수정**: `ebook_viewer_page.tsx` — 모바일 UI 최적화 (페이지 표시/줌% 텍스트 숨김, 하단 바 축소, 슬라이더 flex 확장)
+
+- **2026-03-24 — E-book 환불 정책**
+  - **수정**: `refund_policy_page.tsx` — SECTIONS 4 → 5 (E-book 섹션 추가)
+  - **i18n**: 22개 로케일 `legal.refund.s5Title/s5Content` 추가 (pending 즉시취소, 미열람 7일 환불, 열람 후 불가, Paddle 별도)
+  - **수정**: `ebook_catalog_page.tsx` — 카탈로그 헤더에 "환불 정책 보기" 링크 추가
+  - **i18n**: 22개 로케일 `ebook.catalog.refundPolicy` 키 추가
+
+- **2026-03-24 — E-book 이메일 알림**
+  - **email.rs**: `EbookPurchaseConfirmation` (구매 접수) + `EbookPurchaseCompleted` (결제 완료) 2개 템플릿 추가
+  - **ebook/service.rs**: `create_purchase()` 후 구매 접수 확인 이메일 발송 (fire-and-forget)
+  - **admin/ebook/service.rs**: `update_status()` → Completed 전환 시 결제 완료 이메일 발송
+  - **payment/service.rs**: Paddle webhook `handle_ebook_transaction_completed()` → 결제 완료 이메일 발송
+  - **ebook/repo.rs**: `find_user_encrypted_email()` 추가 (users 테이블에서 암호화 이메일 조회)
+  - **ebook/service.rs**: `language_name_ko()`, `edition_label_ko()` 헬퍼 함수 추가 (pub)
+
+- **2026-03-24 — E-book 샘플 미리보기**
+  - **신규 파일**: `ebook_preview_modal.tsx` — 표지/목차/샘플1/샘플2 이미지 갤러리 모달 (교재 상세 모달 패턴 기반)
+  - **수정**: `ebook_catalog_page.tsx` — 언어 카드에 "미리보기" 버튼 추가, 모달 상태 관리
+  - **이미지 경로**: `/ebook-previews/{edition}/{language}/{cover|toc|sample-1|sample-2}.webp`
+  - **i18n**: 22개 로케일 `ebook.preview` 섹션 8키 추가
+
+- **2026-03-24 — E-book 구매 완료 안내 페이지**
+  - **신규 파일**: `ebook_purchase_complete_page.tsx` — 구매 완료 전용 페이지 (`/ebook/purchase-complete`)
+  - **구성**: 성공 아이콘 + 구매코드 (복사) + 에디션/가격/결제수단 요약 + 계좌이체 입금안내 (bank_transfer일 때) + 내 E-book/카탈로그 버튼
+  - **수정**: `ebook_catalog_page.tsx` — `onSuccess` → `navigate("/ebook/purchase-complete", { state: data })` 변경, `routes.tsx` — PrivateRoute 내 `/ebook/purchase-complete` 추가
+  - **i18n**: 22개 로케일 `ebook.purchaseComplete` 섹션 16키 추가
+
+- **2026-03-24 — 견적서/주문확인서 사용자 공개**
+  - **신규 파일**: `textbook_order_print.tsx` — 사용자용 견적서/주문확인서 인쇄 페이지 (`/textbook/order/:code/print?type=quote|confirmation`)
+  - **수정**: `textbook_order_status_page.tsx` — 견적서/주문확인서 버튼 추가 (새 탭), `textbook_order_page.tsx` — 주문 완료 화면에 견적서 버튼 추가
+  - **라우트**: `/textbook/order/:code/print` Public 라우트 추가
+  - **i18n**: 22개 로케일 `textbook.print` 섹션 추가 (quoteTitle, confirmationTitle, pdfGuide, quoteNotice, confirmationNotice 등)
+  - **방식**: `window.print()` + 브라우저 "PDF로 저장" (별도 PDF 라이브러리 없음)
+
+- **2026-03-24 — 구매이력 + 비회원 주문 차단**
+  - **마이그레이션**: `20260324_textbook_user_id.sql` — `textbook.user_id BIGINT REFERENCES users` + 인덱스 (NULLABLE: 기존 주문 호환)
+  - **백엔드**: `POST /textbook/orders` 인증 필수화 (`AuthUser` extractor), `GET /textbook/my` 내 주문 목록 API 추가, `MyOrdersRes` DTO
+  - **프론트**: `/textbook/order` → PrivateRoute 이동, `/textbook/my` 내 주문 목록 페이지, 마이페이지 "구매이력" 버튼 (Receipt 아이콘), 주문 폼 사용자 정보 자동 채움 (name, email)
+  - **i18n**: 22개 로케일 `textbook.myOrders` 섹션 + `user.purchaseHistory` 키 추가
+
+- **2026-03-24 — 교재 상세 모달 추가**
+  - **신규 파일**: `textbook_detail_modal.tsx` — 겉표지/속표지/목차 이미지 갤러리 + 교재 설명 + 주문 버튼 (shadcn/ui Dialog, max-w-3xl)
+  - **수정**: `textbook_catalog_page.tsx` — CoverCard 클릭 → 모달 열기 (기존 직접 주문 링크 → 모달 경유), `selected_book_detail.tsx` — "상세 보기" 버튼 추가
+  - **i18n**: 22개 로케일 `textbook.detail` 섹션 9키 추가 (`modalTitle`, `coverImage`, `innerImage`, `tocImage`, `description`, `translationNote`, `orderNow`, `viewDetail`, `imageNotAvailable`)
+  - **이미지 fallback**: 속표지/목차 이미지 미준비 시 ImageOff 아이콘 + "이미지 준비 중" 텍스트
+
+- **2026-03-25 — 교재 캐러셀 Swiper 전환 + 국가 씰 SVG**
+  - **전환**: embla-carousel + CSS 3D 수동 구현 → **Swiper v12** (EffectCoverflow + Thumbs + FreeMode 모듈)
+  - **사유**: 커스텀 드래그 구현의 UX 한계 (부자연스러운 드래그, 센터링 이슈) → Swiper 네이티브 coverflow 효과로 해결
+  - **삭제**: `carousel_3d.tsx` (embla-carousel 기반 3D 회전목마)
+  - **신규**: `seal_list.tsx` — 상단 Coverflow 캐러셀 (국가 씰 SVG, center + 좌우 2개, 클릭/드래그 선택) + 하단 Thumbs 스트립 (클릭 동기화, opacity 피드백)
+  - **수정**: `textbook_carousel_view.tsx` — Carousel3D → SealList 교체, 50/50 그리드 레이아웃 (씰 리스트 + 선택 교재 상세)
+  - **수정**: `selected_book_detail.tsx` — 가로 레이아웃 (표지 좌측 고정 + 설명 우측), ISBN 뱃지, 학생용/교사용 설명 분리, i18n 키 추가
+  - **수정**: `index.css` — Swiper CSS 임포트 4종 (swiper/css, effect-coverflow, free-mode, thumbs)
+  - **기능**: 상단↔하단 양방향 동기화 (클릭/드래그 모두), 비가시 슬라이드 자동 숨김 (watchSlidesProgress)
+  - **에셋**: `frontend/public/seals/*.svg` 24개 국가 씰 SVG 파일
+  - **패키지**: `swiper@^12` 추가, `embla-carousel-react` 유지 (다른 곳 사용 가능)
+  - **i18n**: 22개 로케일 — `bookTitle`, `bookDescriptionStudent`, `bookDescriptionTeacher`, `editionInfo` 키 추가
+
+- **2026-03-24 — 교재 카탈로그 캐러셀 뷰 추가**
+  - **신규 파일**: `textbook_carousel_view.tsx` (캐러셀 뷰 메인), `selected_book_detail.tsx` (선택 교재 상세), `use_catalog_view.ts` (캐러셀 상태 훅)
+  - **수정**: `textbook_catalog_page.tsx` — 그리드 ↔ 캐러셀 뷰 토글 (LayoutGrid/Disc3 아이콘, localStorage 저장), 기본 뷰 모드 carousel로 변경
+  - **i18n**: 22개 로케일 5키 추가 (`viewGrid`, `viewCarousel`, `searchPlaceholder`, `noResults`, `bookDescription`)
+
+- **2026-03-24 — Google Cloud Translation API 해지**
+  - **사유**: 번역은 Claude Code에서 직접 수행하고 있어 Google Translate API 불필요. 비용 절감 + 코드 단순화
+  - **삭제**: `src/external/translator.rs` (GoogleCloudTranslator + TranslationProvider trait), `POST /auto`, `POST /auto-bulk` 엔드포인트, AppState.translator 필드
+  - **삭제 (프론트)**: Auto Translate 모드 UI, useAutoTranslate/useAutoTranslateBulk 훅, auto API 함수, 자동번역 타입 스키마
+  - **삭제 (환경변수)**: `TRANSLATE_PROVIDER`, `GOOGLE_TRANSLATE_API_KEY`, `GOOGLE_TRANSLATE_PROJECT_ID`
+  - **유지**: 번역 CRUD (생성/수정/삭제/조회), 상태 관리, 통계, 검색, 콘텐츠 레코드/소스 필드 조회, Manual Input 모드
+
 - **2026-03-23 — sqlx 마이그레이션 버전 순서 수정 (프로덕션 크래시 대응)**
   - **사고 원인 1**: 부트스트랩 스크립트에 프로덕션 미적용 마이그레이션 6개를 "적용됨"으로 등록 → sqlx가 건너뛰어 테이블 미생성
   - **사고 원인 2**: ebook 마이그레이션 파일명 `20260310000001`이 정수 비교 시 `20260312`보다 큰 값 → 테이블 생성 전에 ALTER 시도 → 크래시 루프

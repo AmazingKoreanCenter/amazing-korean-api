@@ -46,7 +46,7 @@ function NotFoundView() {
               <Link to="/">{t("book.goHome")}</Link>
             </Button>
             <Button asChild className="gradient-primary text-white rounded-full">
-              <Link to="/textbook">{t("book.viewCatalog")}</Link>
+              <Link to="/book/textbook">{t("book.viewCatalog")}</Link>
             </Button>
           </div>
         </div>
@@ -116,13 +116,13 @@ function BookInfoView({ book, isLoggedIn }: { book: BookInfo; isLoggedIn: boolea
           </Button>
           <div className="grid grid-cols-2 gap-3">
             <Button asChild variant="outline" className="rounded-full h-12 text-sm border-2">
-              <Link to="/ebook">
+              <Link to="/book/ebook">
                 <BookOpen className="mr-2 h-4 w-4" />
                 {t("book.buyEbook")}
               </Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full h-12 text-sm border-2">
-              <Link to="/textbook">
+              <Link to="/book/textbook">
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 {t("book.orderTextbook")}
               </Link>
@@ -183,10 +183,10 @@ function BookInfoView({ book, isLoggedIn }: { book: BookInfo; isLoggedIn: boolea
           </Button>
           <div className="grid grid-cols-2 gap-3">
             <Button asChild variant="outline" className="rounded-full h-12 text-sm border-2">
-              <Link to="/ebook">{t("book.buyEbook")}</Link>
+              <Link to="/book/ebook">{t("book.buyEbook")}</Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full h-12 text-sm border-2">
-              <Link to={isLoggedIn ? "/ebook/my" : "/signup"}>
+              <Link to={isLoggedIn ? "/book/ebook/my" : "/signup"}>
                 {isLoggedIn ? t("book.myEbooks") : t("book.signupFree")}
               </Link>
             </Button>

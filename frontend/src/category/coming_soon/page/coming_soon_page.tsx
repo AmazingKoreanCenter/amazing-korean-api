@@ -113,7 +113,7 @@ export function ComingSoonPage() {
               asChild
               className="gradient-primary hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all rounded-full px-8 h-14 text-base"
             >
-              <Link to="/ebook">
+              <Link to="/book/ebook">
                 {t("comingSoon.exploreEbook")}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
@@ -124,7 +124,7 @@ export function ComingSoonPage() {
               asChild
               className="rounded-full px-8 h-14 text-base border-2 border-surface-inverted-foreground/30 text-surface-inverted-foreground hover:bg-surface-inverted-foreground/10 hover:border-surface-inverted-foreground/50"
             >
-              <Link to="/textbook">{t("comingSoon.exploreTextbook")}</Link>
+              <Link to="/book/textbook">{t("comingSoon.exploreTextbook")}</Link>
             </Button>
           </div>
         </div>

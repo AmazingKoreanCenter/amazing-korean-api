@@ -41,6 +41,33 @@ export const ALL_STUDENT_BOOKS: BookInfo[] = Object.values(BOOK_MAP).filter(
   (b) => b.edition === "student",
 );
 
+/** 교재가 존재하는 전체 22개 언어 */
+const ALL_LANG_KEYS = [
+  "de", "en", "es", "fr", "hi", "id", "ja", "kk", "km", "mn",
+  "my", "ne", "pt", "ru", "si", "tg", "th", "tl", "uz", "vi",
+  "zh_cn", "zh_tw",
+];
+
+/** i18n 언어 코드 → 교재 langKey 매핑 */
+const I18N_TO_LANG_KEY: Record<string, string> = {
+  "ja": "ja", "zh-CN": "zh_cn", "zh-TW": "zh_tw",
+  "th": "th", "vi": "vi", "ru": "ru", "km": "km", "id": "id",
+  "ne": "ne", "hi": "hi", "de": "de", "es": "es", "fr": "fr",
+  "pt": "pt", "mn": "mn", "kk": "kk", "uz": "uz", "tg": "tg",
+  "my": "my", "si": "si", "tl": "tl",
+};
+
+/** i18n 언어 기반 기본 교재 langKey 반환 (ko/en/매칭없음 → 랜덤) */
+export function getDefaultLangKey(i18nLang: string): string {
+  const mapped = I18N_TO_LANG_KEY[i18nLang];
+  if (mapped) return mapped;
+  // ko, en, or unmapped → random
+  return ALL_LANG_KEYS[Math.floor(Math.random() * ALL_LANG_KEYS.length)];
+}
+
+/** 샘플 페이지 번호 */
+export const SAMPLE_PAGES = [7, 18, 29, 53, 118] as const;
+
 /** ISBN → BookInfo 룩업 (하이픈 자동 제거) */
 export function findBookByISBN(isbn: string): BookInfo | null {
   const normalized = isbn.replace(/-/g, "");

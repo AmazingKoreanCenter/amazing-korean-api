@@ -77,7 +77,7 @@ export function EbookMyPurchasesPage() {
             {t("ebook.my.empty")}
             <div className="mt-4">
               <Button asChild>
-                <Link to="/ebook">{t("ebook.my.browseCatalog")}</Link>
+                <Link to="/book/ebook">{t("ebook.my.browseCatalog")}</Link>
               </Button>
             </div>
           </CardContent>

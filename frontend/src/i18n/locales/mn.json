@@ -32,6 +32,7 @@
     "videos": "Видео",
     "studies": "Сурах",
     "lessons": "Хичээлүүд",
+    "book": "Ном",
     "pricing": "Үнэ",
     "myPage": "Миний хуудас",
     "login": "Нэвтрэх",
@@ -211,6 +212,7 @@
     "myPageDescription": "Профайл мэдээллээ харах, засах",
     "settingsTitle": "Тохиргоо",
     "settingsButton": "Тохиргоо",
+    "purchaseHistory": "Худалдан авалтын түүх",
     "userNotFound": "Хэрэглэгчийн мэдээлэл олдсонгүй.",
     "userLoadFailed": "Хэрэглэгчийн мэдээлэл ачаалахад алдаа гарлаа.",
     "settingsLoadFailed": "Тохиргоо ачаалахад алдаа гарлаа.",
@@ -467,28 +469,256 @@
     "promoCodeClear": "Цэвэрлэх"
   },
   "ebook": {
-    "catalog": { "title": "Цахим сурах бичиг", "subtitle": "Онлайнаар шууд унших боломжтой дижитал сурах бичиг.", "teacherEdition": "Багшийн хувилбар", "studentEdition": "Сурагчийн хувилбар", "selectLanguage": "Хэл сонгоно уу.", "comingSoon": "Удахгүй", "loadError": "Каталог ачаалж чадсангүй." },
-    "purchase": { "title": "Худалдан авалтын дэлгэрэнгүй", "paymentMethod": "Төлбөрийн арга", "bankTransfer": "Банкны шилжүүлэг", "creditCard": "Зээлийн карт (Paddle)", "buy": "Худалдан авах", "loginRequired": "Худалдан авахын тулд нэвтэрнэ үү", "success": "Худалдан авалт амжилттай.", "error": "Худалдан авах үед алдаа гарлаа." },
-    "status": { "pending": "Хүлээгдэж буй", "completed": "Боломжтой", "refunded": "Буцаан олгосон" },
-    "my": { "title": "Миний цахим номнууд", "empty": "Худалдан авсан цахим ном байхгүй.", "browseCatalog": "Цахим ном үзэх", "openViewer": "Уншигч нээх", "loadError": "Худалдан авалтын түүх ачаалж чадсангүй." },
-    "viewer": { "toc": "Агуулга", "notFound": "Сурах бичиг олдсонгүй.", "loadFailed": "Хуудас ачаалж чадсангүй." }
+    "catalog": {
+      "title": "Цахим сурах бичиг",
+      "subtitle": "Онлайнаар шууд унших боломжтой дижитал сурах бичиг.",
+      "teacherEdition": "Багшийн хувилбар",
+      "studentEdition": "Сурагчийн хувилбар",
+      "selectLanguage": "Хэл сонгоно уу.",
+      "comingSoon": "Удахгүй",
+      "loadError": "Каталог ачаалж чадсангүй.",
+      "refundPolicy": "Буцаалтын бодлого харах",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
+    },
+    "purchase": {
+      "title": "Худалдан авалтын дэлгэрэнгүй",
+      "paymentMethod": "Төлбөрийн арга",
+      "bankTransfer": "Банкны шилжүүлэг",
+      "creditCard": "Зээлийн карт (Paddle)",
+      "buy": "Худалдан авах",
+      "loginRequired": "Худалдан авахын тулд нэвтэрнэ үү",
+      "success": "Худалдан авалт амжилттай.",
+      "error": "Худалдан авах үед алдаа гарлаа.",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "Худалдан авалт дууссан",
+      "description": "E-book худалдан авалт дууссан.",
+      "subtitle": "Таны захиалга хүлээн авлаа. Худалдан авалтын мэдээллийг шалгана уу.",
+      "purchaseCode": "Худалдан авалтын код",
+      "codeCopied": "Код хуулагдсан.",
+      "edition": "Хэвлэл",
+      "price": "Үнэ",
+      "paymentMethod": "Төлбөрийн арга",
+      "bankGuideTitle": "Төлбөрийн мэдээлэл",
+      "bankAccount": "{{account}}",
+      "bankNote": "7 хоногийн дотор төлбөрөө хийнэ үү. Төлбөр баталгаажсаны дараа хандах боломжтой.",
+      "goToMyEbooks": "Миний E-book",
+      "browseCatalog": "Каталог үзэх",
+      "noData": "Худалдан авалтын мэдээлэл олдсонгүй."
+    },
+    "preview": {
+      "button": "Урьдчилан үзэх",
+      "description": "Хавтас, агуулга, жишээ хуудсыг урьдчилан үзэх.",
+      "cover": "Хавтас",
+      "toc": "Агуулга",
+      "sample": "Жишээ {{n}}",
+      "pages": " хуудас",
+      "purchaseButton": "Худалдаж авах",
+      "imageNotAvailable": "Зураг бэлтгэгдэж байна"
+    },
+    "status": {
+      "pending": "Хүлээгдэж буй",
+      "completed": "Боломжтой",
+      "refunded": "Буцаан олгосон"
+    },
+    "my": {
+      "title": "Миний цахим номнууд",
+      "empty": "Худалдан авсан цахим ном байхгүй.",
+      "browseCatalog": "Цахим ном үзэх",
+      "openViewer": "Уншигч нээх",
+      "loadError": "Худалдан авалтын түүх ачаалж чадсангүй."
+    },
+    "viewer": {
+      "toc": "Агуулга",
+      "notFound": "Сурах бичиг олдсонгүй.",
+      "loadFailed": "Хуудас ачаалж чадсангүй."
+    }
+  },
+  "textbook": {
+    "heroBadge": "Amazing Korean сурах бичгүүд",
+    "heroTitle": "Сурах бичиг захиалах",
+    "heroSubtitle": "20 хэл дээрх сурах бичиг захиалаарай. Сурагч болон багшийн хувилбар бэлэн.",
+    "catalog": {
+      "badge": "Сурах бичиг",
+      "title": "Солонгос хэлний сурах бичгийн цуглуулга",
+      "description": "20 хэл дээрх сурагч болон багшийн хувилбараар\nсолонгос хэлний системтэй сургалтаа эхлүүлээрэй.",
+      "studentSection": "Сурагчийн хувилбар",
+      "studentDescription": "Суралцагчдад зориулсан солонгос хэлний сурах бичиг.",
+      "teacherSection": "Багшийн хувилбар",
+      "teacherDescription": "Багш нарт зориулсан солонгос хэлний заах арга зүйн гарын авлага.",
+      "orderButton": "Захиалах",
+      "pricePerUnit": "₩25,000 / ширхэг",
+      "orderGuideTitle": "Захиалгын мэдээлэл",
+      "orderGuideMinQty": "Хамгийн бага захиалга 10 ширхэг.",
+      "orderGuidePayment": "Банкны шилжүүлгээр төлбөр хийнэ.",
+      "orderGuideBulk": "100+ ширхэг захиалгад хүргэлт үнэгүй",
+      "orderCta": "Сурах бичиг захиалах",
+      "viewGrid": "Торон харагдац",
+      "viewCarousel": "Карусель харагдац",
+      "searchPlaceholder": "Хэл хайх...",
+      "noResults": "Үр дүн олдсонгүй.",
+      "bookDescription": "Системтэй солонгос хэлний сурах бичиг. Хэл бүрийн төрөлх хэлтэй мэргэжилтнүүд орчуулсан."
+    },
+    "detail": {
+      "modalTitle": "Сурах бичгийн дэлгэрэнгүй",
+      "coverImage": "Нүүр хавтас",
+      "innerImage": "Дотор хавтас",
+      "tocImage": "Гарчиг",
+      "description": "Солонгос хэл сурах системчилсэн сурах бичиг. 120 хуудас, анхан шатнаас дунд шатныг хүртэл.",
+      "translationNote": "{{language}} төрөлх хэлтэн мэргэжилтнүүд орчуулсан.",
+      "orderNow": "Одоо захиалах",
+      "viewDetail": "Дэлгэрэнгүй харах",
+      "imageNotAvailable": "Зураг бэлтгэж байна"
+    },
+    "myOrders": {
+      "badge": "Миний захиалга",
+      "title": "Сурах бичиг худалдан авалтын түүх",
+      "description": "Сурах бичгийн захиалгын төлөвийг шалгана уу.",
+      "empty": "Захиалга байхгүй байна.",
+      "browseCatalog": "Сурах бичиг үзэх",
+      "loadError": "Захиалгын жагсаалтыг ачаалж чадсангүй.",
+      "status": {
+        "pending": "Хүлээгдэж буй",
+        "confirmed": "Баталгаажсан",
+        "paid": "Төлбөр хийгдсэн",
+        "printing": "Хэвлэж байна",
+        "shipped": "Хүргэлтэд гарсан",
+        "delivered": "Хүргэгдсэн",
+        "canceled": "Цуцлагдсан"
+      }
+    },
+    "print": {
+      "quoteTitle": "Үнийн санал",
+      "confirmationTitle": "Захиалгын баталгаа",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "Баримтын дугаар",
+      "date": "Огноо",
+      "status": "Төлөв",
+      "recipient": "Хүлээн авагч",
+      "colItem": "Бараа",
+      "colType": "Төрөл",
+      "colQty": "Тоо",
+      "colPrice": "Нэгж үнэ",
+      "colSubtotal": "Дэд нийт",
+      "textbookPrefix": "Amazing Korean",
+      "total": "Нийт",
+      "quoteTotal": "Үнийн саналын дүн",
+      "confirmationTotal": "Захиалгын дүн",
+      "vatIncluded": "НӨАТ багтсан",
+      "bankInfo": "Төлбөрийн мэдээлэл",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "Захиалга баталгаажсанаас хойш 7 хоногийн дотор төлбөр хийнэ үү.",
+      "taxInvoice": "Татварын нэхэмжлэхийн мэдээлэл",
+      "bizNumber": "Бизнесийн бүртгэлийн дугаар",
+      "taxCompanyName": "Компанийн нэр",
+      "repName": "Төлөөлөгч",
+      "taxEmail": "Татварын нэхэмжлэх имэйл",
+      "taxAddress": "Бизнесийн хаяг",
+      "taxBizType": "Бизнесийн төрөл",
+      "taxBizItem": "Бизнесийн чиглэл",
+      "notes": "Тэмдэглэл",
+      "footer": "Энэ баримт бичиг цахимаар үүсгэгдсэн бөгөөд гарын үсэггүйгээр хүчинтэй.",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "Хэвлэх / PDF хэлбэрээр хадгалах",
+      "pdfGuide": "PDF хэлбэрээр хадгалахын тулд хэвлэх цонхонд 'PDF хэлбэрээр хадгалах' гэснийг сонгоно уу.",
+      "notFound": "Захиалга олдсонгүй.",
+      "quoteNotice": "Энэ үнийн санал нь захиалга илгээсэн дээр үндэслэсэн бөгөөд бодит төлбөрийн дүн өөр байж болно.",
+      "confirmationNotice": "Энэ баталгаа нь зөвхөн захиалгын төлөв шалгах зорилготой бөгөөд албан ёсны баримт биш юм."
+    }
   },
   "seo": {
-    "home": { "title": "Amazing Korean - Солонгос хэл сурах платформ", "description": "Дэлхий даяарх суралцагчдад зориулсан хамгийн шилдэг онлайн солонгос хэл сурах платформ." },
-    "about": { "title": "Бидний тухай - Amazing Korean", "description": "Amazing Korean-ийн тухай — Дэлхий даяарх суралцагчдад үр дүнтэй солонгос хэл сурах туршлага." },
-    "pricing": { "title": "Үнэ - Amazing Korean", "description": "Amazing Korean үнийн төлөвлөгөө — Видео, сургалтын материал, хичээлд хязгааргүй хандалт." },
-    "videos": { "title": "Видео хичээл - Amazing Korean", "description": "Мэргэжлийн багш нарын видео хичээлээр солонгос хэлийг үр дүнтэй суралцаарай." },
-    "studies": { "title": "Сургалтын материал - Amazing Korean", "description": "Зохион байгуулалттай сургалтын материал, дасгалаар солонгос хэлний чадвараа дээшлүүлээрэй." },
-    "lessons": { "title": "Хичээл - Amazing Korean", "description": "Зохион байгуулалттай хичээлээр солонгос хэлийг алхам алхмаар суралцаарай." },
-    "login": { "title": "Нэвтрэх - Amazing Korean", "description": "Солонгос хэл сурч эхлэхийн тулд Amazing Korean руу нэвтэрнэ үү." },
-    "signup": { "title": "Бүртгүүлэх - Amazing Korean", "description": "Amazing Korean-д нэгдэж солонгос хэл сурах аялалаа эхлүүлээрэй." },
-    "terms": { "title": "Үйлчилгээний нөхцөл - Amazing Korean", "description": "Amazing Korean үйлчилгээний нөхцөл." },
-    "privacy": { "title": "Нууцлалын бодлого - Amazing Korean", "description": "Amazing Korean нууцлалын бодлого." },
-    "refundPolicy": { "title": "Буцаан олголтын бодлого - Amazing Korean", "description": "Amazing Korean бүртгэлийн буцаан олголтын бодлого." },
-    "faq": { "title": "Түгээмэл асуултууд - Amazing Korean", "description": "Amazing Korean-ийн тухай түгээмэл асуултууд." },
-    "findId": { "title": "Бүртгэл сэргээх - Amazing Korean", "description": "Бүртгэлтэй бүртгэлийн мэдээллийг хайна уу." },
-    "requestResetPassword": { "title": "Нууц үг шинэчлэх - Amazing Korean", "description": "Бүртгэлтэй хаяг руу нууц үг шинэчлэх имэйл илгээнэ үү." },
-    "textbook": { "title": "Сурах бичиг захиалах - Amazing Korean", "description": "Amazing Korean сурах бичгийг онлайнаар захиалах." },
-    "textbookStatus": { "title": "Захиалгын байдал - Amazing Korean", "description": "Сурах бичгийн захиалгын байдлыг шалгана уу." }
+    "home": {
+      "title": "Amazing Korean - Солонгос хэл сурах платформ",
+      "description": "Дэлхий даяарх суралцагчдад зориулсан хамгийн шилдэг онлайн солонгос хэл сурах платформ."
+    },
+    "about": {
+      "title": "Бидний тухай - Amazing Korean",
+      "description": "Amazing Korean-ийн тухай — Дэлхий даяарх суралцагчдад үр дүнтэй солонгос хэл сурах туршлага."
+    },
+    "pricing": {
+      "title": "Үнэ - Amazing Korean",
+      "description": "Amazing Korean үнийн төлөвлөгөө — Видео, сургалтын материал, хичээлд хязгааргүй хандалт."
+    },
+    "videos": {
+      "title": "Видео хичээл - Amazing Korean",
+      "description": "Мэргэжлийн багш нарын видео хичээлээр солонгос хэлийг үр дүнтэй суралцаарай."
+    },
+    "studies": {
+      "title": "Сургалтын материал - Amazing Korean",
+      "description": "Зохион байгуулалттай сургалтын материал, дасгалаар солонгос хэлний чадвараа дээшлүүлээрэй."
+    },
+    "lessons": {
+      "title": "Хичээл - Amazing Korean",
+      "description": "Зохион байгуулалттай хичээлээр солонгос хэлийг алхам алхмаар суралцаарай."
+    },
+    "login": {
+      "title": "Нэвтрэх - Amazing Korean",
+      "description": "Солонгос хэл сурч эхлэхийн тулд Amazing Korean руу нэвтэрнэ үү."
+    },
+    "signup": {
+      "title": "Бүртгүүлэх - Amazing Korean",
+      "description": "Amazing Korean-д нэгдэж солонгос хэл сурах аялалаа эхлүүлээрэй."
+    },
+    "terms": {
+      "title": "Үйлчилгээний нөхцөл - Amazing Korean",
+      "description": "Amazing Korean үйлчилгээний нөхцөл."
+    },
+    "privacy": {
+      "title": "Нууцлалын бодлого - Amazing Korean",
+      "description": "Amazing Korean нууцлалын бодлого."
+    },
+    "refundPolicy": {
+      "title": "Буцаан олголтын бодлого - Amazing Korean",
+      "description": "Amazing Korean бүртгэлийн буцаан олголтын бодлого."
+    },
+    "faq": {
+      "title": "Түгээмэл асуултууд - Amazing Korean",
+      "description": "Amazing Korean-ийн тухай түгээмэл асуултууд."
+    },
+    "findId": {
+      "title": "Бүртгэл сэргээх - Amazing Korean",
+      "description": "Бүртгэлтэй бүртгэлийн мэдээллийг хайна уу."
+    },
+    "requestResetPassword": {
+      "title": "Нууц үг шинэчлэх - Amazing Korean",
+      "description": "Бүртгэлтэй хаяг руу нууц үг шинэчлэх имэйл илгээнэ үү."
+    },
+    "textbook": {
+      "title": "Сурах бичиг захиалах - Amazing Korean",
+      "description": "Amazing Korean сурах бичгийг онлайнаар захиалах."
+    },
+    "textbookStatus": {
+      "title": "Захиалгын байдал - Amazing Korean",
+      "description": "Сурах бичгийн захиалгын байдлыг шалгана уу."
+    }
+  },
+  "bookHub": {
+    "badge": "Amazing Korean сурах бичиг",
+    "title": "Солонгос хэлний сурах бичиг",
+    "subtitle": "20 хэл дээр боломжтой солонгос хэлний сурах бичгүүдийг олоорой",
+    "descriptionTitle": "Amazing Korean гэж юу вэ?",
+    "description": "Amazing Korean бол эхлэн суралцагчдад зориулсан системтэй солонгос хэлний сурах бичиг юм. Хангыл гийгүүлэгч, эгшигээс эхлэн гол өгүүлбэрүүд, дүрэм, дасгал, TOPIK бэлтгэл хүртэл — бүгд нэг номонд.",
+    "samplePages": "Урьдчилж харах",
+    "samplePagesNote": "Жинхэнэ сурах бичгийн жишээ хуудсууд",
+    "ctaTitle": "Номнууд үзэх",
+    "ctaTextbook": "Хэвлэмэл каталог",
+    "ctaEbook": "E-book каталог"
   }
 }

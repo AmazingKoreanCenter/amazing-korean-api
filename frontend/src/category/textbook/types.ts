@@ -6,7 +6,7 @@ import { z } from "zod";
 
 export const textbookLanguageSchema = z.enum([
   "ja", "zh_cn", "zh_tw", "vi", "th", "id", "my", "mn",
-  "ru", "es", "pt", "fr", "de", "hi", "ne", "si", "km", "uz", "kk", "tg",
+  "ru", "es", "pt", "fr", "de", "hi", "ne", "si", "km", "uz", "kk", "tg", "tl",
 ]);
 export type TextbookLanguage = z.infer<typeof textbookLanguageSchema>;
 
@@ -32,6 +32,7 @@ export const catalogItemSchema = z.object({
   available_types: z.array(textbookTypeSchema),
   unit_price: z.number().int(),
   available: z.boolean(),
+  isbn_ready: z.boolean(),
 });
 export type CatalogItem = z.infer<typeof catalogItemSchema>;
 
@@ -127,3 +128,8 @@ export const orderResSchema = z.object({
   updated_at: z.string(),
 });
 export type OrderRes = z.infer<typeof orderResSchema>;
+
+export const myOrdersResSchema = z.object({
+  orders: z.array(orderResSchema),
+});
+export type MyOrdersRes = z.infer<typeof myOrdersResSchema>;

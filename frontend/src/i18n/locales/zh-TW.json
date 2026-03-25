@@ -32,6 +32,7 @@
     "videos": "影片",
     "studies": "學習",
     "lessons": "課程",
+    "book": "教材",
     "pricing": "價格",
     "myPage": "我的頁面",
     "login": "登入",
@@ -211,6 +212,7 @@
     "myPageDescription": "查看和編輯個人資料",
     "settingsTitle": "設定",
     "settingsButton": "設定",
+    "purchaseHistory": "購買記錄",
     "userNotFound": "未找到使用者資訊。",
     "userLoadFailed": "載入使用者資訊失敗。",
     "settingsLoadFailed": "載入設定資訊失敗。",
@@ -474,7 +476,24 @@
       "studentEdition": "學生版",
       "selectLanguage": "請選擇語言。",
       "comingSoon": "即將推出",
-      "loadError": "載入目錄失敗。"
+      "loadError": "載入目錄失敗。",
+      "refundPolicy": "查看退款政策",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
     },
     "purchase": {
       "title": "購買詳情",
@@ -484,7 +503,35 @@
       "buy": "購買",
       "loginRequired": "登入後購買",
       "success": "購買完成。",
-      "error": "購買過程中發生錯誤。"
+      "error": "購買過程中發生錯誤。",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "購買完成",
+      "description": "您的E-book購買已完成。",
+      "subtitle": "訂單已受理，請確認以下購買資訊。",
+      "purchaseCode": "購買碼",
+      "codeCopied": "購買碼已複製。",
+      "edition": "版本",
+      "price": "價格",
+      "paymentMethod": "付款方式",
+      "bankGuideTitle": "付款說明",
+      "bankAccount": "{{account}}",
+      "bankNote": "請於訂單確認後7天內付款。確認付款後即可閱讀。",
+      "goToMyEbooks": "我的E-book",
+      "browseCatalog": "瀏覽目錄",
+      "noData": "找不到購買資訊。"
+    },
+    "preview": {
+      "button": "預覽",
+      "description": "預覽封面、目錄和範例頁面。",
+      "cover": "封面",
+      "toc": "目錄",
+      "sample": "範例 {{n}}",
+      "pages": " 頁",
+      "purchaseButton": "購買",
+      "imageNotAvailable": "圖片準備中"
     },
     "status": {
       "pending": "處理中",
@@ -502,6 +549,98 @@
       "toc": "目錄",
       "notFound": "找不到教材。",
       "loadFailed": "頁面載入失敗。"
+    }
+  },
+  "textbook": {
+    "heroBadge": "Amazing Korean 教材",
+    "heroTitle": "教材訂購",
+    "heroSubtitle": "訂購20種語言的教材。提供學生版和教師版。",
+    "catalog": {
+      "badge": "教材",
+      "title": "韓語教材系列",
+      "description": "透過20種語言的學生版和教師版教材\n開啟系統化的韓語學習之旅。",
+      "studentSection": "學生版",
+      "studentDescription": "為學習者設計的韓語教材。",
+      "teacherSection": "教師版",
+      "teacherDescription": "為教師設計的韓語教學指導書。",
+      "orderButton": "訂購",
+      "pricePerUnit": "₩25,000 / 冊",
+      "orderGuideTitle": "訂購須知",
+      "orderGuideMinQty": "最低訂購數量為10冊。",
+      "orderGuidePayment": "透過銀行轉帳付款。",
+      "orderGuideBulk": "100冊以上免運費",
+      "orderCta": "訂購教材",
+      "viewGrid": "網格檢視",
+      "viewCarousel": "輪播檢視",
+      "searchPlaceholder": "搜尋語言...",
+      "noResults": "找不到結果。",
+      "bookDescription": "系統化的韓語學習教材。由各語言母語專家翻譯。"
+    },
+    "detail": {
+      "modalTitle": "教材詳情",
+      "coverImage": "封面",
+      "innerImage": "內頁",
+      "tocImage": "目錄",
+      "description": "系統化的韓語學習教材，共120頁，從初級到中級循序漸進。",
+      "translationNote": "由{{language}}母語專家翻譯。",
+      "orderNow": "立即訂購",
+      "viewDetail": "查看詳情",
+      "imageNotAvailable": "圖片準備中"
+    },
+    "print": {
+      "quoteTitle": "報價單",
+      "confirmationTitle": "訂單確認書",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "文件編號",
+      "date": "日期",
+      "status": "狀態",
+      "recipient": "收件人",
+      "colItem": "品項",
+      "colType": "類型",
+      "colQty": "數量",
+      "colPrice": "單價",
+      "colSubtotal": "小計",
+      "textbookPrefix": "Amazing Korean",
+      "total": "合計",
+      "quoteTotal": "報價金額",
+      "confirmationTotal": "訂單金額",
+      "vatIncluded": "含營業稅",
+      "bankInfo": "付款資訊",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "請於訂單確認後7天內付款。",
+      "taxInvoice": "統一發票資訊",
+      "bizNumber": "統一編號",
+      "taxCompanyName": "公司名稱",
+      "repName": "負責人",
+      "taxEmail": "統一發票電子信箱",
+      "taxAddress": "營業地址",
+      "taxBizType": "營業類別",
+      "taxBizItem": "營業項目",
+      "notes": "備註",
+      "footer": "本文件為電子產生，無須簽名即具效力。",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "列印 / 儲存為PDF",
+      "pdfGuide": "如需儲存為PDF，請在列印對話框中選擇「儲存為PDF」。",
+      "notFound": "找不到訂單。",
+      "quoteNotice": "本報價單以訂單提交時之資訊為基準，實際付款金額可能有所不同。",
+      "confirmationNotice": "本確認書僅供訂單狀態確認之用，非正式收據。"
+    },
+    "myOrders": {
+      "badge": "我的訂單",
+      "title": "教材購買記錄",
+      "description": "查看教材訂單狀態。",
+      "empty": "暫無訂單記錄。",
+      "browseCatalog": "瀏覽教材",
+      "loadError": "無法載入訂單列表。",
+      "status": {
+        "pending": "待處理",
+        "confirmed": "已確認",
+        "paid": "已支付",
+        "printing": "印刷中",
+        "shipped": "運送中",
+        "delivered": "已送達",
+        "canceled": "已取消"
+      }
     }
   },
   "seo": {
@@ -569,5 +708,17 @@
       "title": "訂單查詢 - Amazing Korean",
       "description": "查詢教材訂單狀態。"
     }
+  },
+  "bookHub": {
+    "badge": "Amazing Korean 教材",
+    "title": "韓語教材介紹",
+    "subtitle": "探索20種語言版本的韓語學習教材",
+    "descriptionTitle": "什麼是Amazing Korean教材？",
+    "description": "Amazing Korean是一本專為初學韓語的外國學習者設計的系統性學習教材。從韓文子音母音到核心句子、文法、練習題和TOPIK備考，一本書全部搞定。",
+    "samplePages": "教材預覽",
+    "samplePagesNote": "實際教材頁面樣本",
+    "ctaTitle": "瀏覽教材",
+    "ctaTextbook": "出版本目錄",
+    "ctaEbook": "E-book目錄"
   }
 }

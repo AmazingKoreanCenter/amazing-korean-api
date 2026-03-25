@@ -4,11 +4,12 @@ use axum::Json;
 use redis::AsyncCommands;
 use validator::Validate;
 
+use crate::api::auth::extractor::AuthUser;
 use crate::api::util::extract_client_ip;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
-use super::dto::{CatalogRes, CreateOrderReq, OrderRes};
+use super::dto::{CatalogRes, CreateOrderReq, MyOrdersRes, OrderRes};
 use super::service::TextbookService;
 
 /// GET /textbook/catalog
@@ -29,23 +30,26 @@ pub async fn get_catalog() -> AppResult<Json<CatalogRes>> {
 
 /// POST /textbook/orders
 ///
-/// 교재 주문 생성. 비회원도 주문 가능 (인증 불필요).
+/// 교재 주문 생성. 로그인 필수.
 #[utoipa::path(
     post,
     path = "/textbook/orders",
     tag = "Textbook",
     request_body = CreateOrderReq,
+    security(("bearer_auth" = [])),
     responses(
         (status = 200, description = "주문 생성 완료", body = OrderRes),
-        (status = 400, description = "유효성 검증 실패")
+        (status = 400, description = "유효성 검증 실패"),
+        (status = 401, description = "인증 필요")
     )
 )]
 pub async fn create_order(
     State(st): State<AppState>,
+    AuthUser(claims): AuthUser,
     headers: HeaderMap,
     Json(req): Json<CreateOrderReq>,
 ) -> AppResult<Json<OrderRes>> {
-    // IP 기반 Rate Limiting (비회원 주문 스팸 방지)
+    // IP 기반 Rate Limiting (주문 스팸 방지)
     let client_ip = extract_client_ip(&headers);
     let rl_key = format!("rl:textbook_order:{}", client_ip);
     let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
@@ -61,8 +65,29 @@ pub async fn create_order(
     // 입력 검증 (length, email 형식 등)
     req.validate().map_err(|e| AppError::BadRequest(e.to_string()))?;
 
-    let res = TextbookService::create_order(&st, req).await?;
+    let res = TextbookService::create_order(&st, claims.sub, req).await?;
     Ok(Json(res))
+}
+
+/// GET /textbook/my
+///
+/// 내 주문 목록 조회. 로그인 필수.
+#[utoipa::path(
+    get,
+    path = "/textbook/my",
+    tag = "Textbook",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "내 주문 목록", body = MyOrdersRes),
+        (status = 401, description = "인증 필요")
+    )
+)]
+pub async fn get_my_orders(
+    State(st): State<AppState>,
+    AuthUser(claims): AuthUser,
+) -> AppResult<Json<MyOrdersRes>> {
+    let orders = TextbookService::get_my_orders(&st, claims.sub).await?;
+    Ok(Json(MyOrdersRes { orders }))
 }
 
 /// GET /textbook/orders/:code

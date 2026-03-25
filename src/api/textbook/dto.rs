@@ -20,6 +20,7 @@ pub struct CatalogItem {
     pub unit_price: i32,
     pub currency: String,
     pub available: bool,
+    pub isbn_ready: bool,
 }
 
 /// GET /textbook/catalog 응답
@@ -112,6 +113,12 @@ pub struct OrderItemRes {
     pub quantity: i32,
     pub unit_price: i32,
     pub subtotal: i32,
+}
+
+/// GET /textbook/my 응답
+#[derive(Debug, Serialize, ToSchema)]
+pub struct MyOrdersRes {
+    pub orders: Vec<OrderRes>,
 }
 
 /// 주문 응답

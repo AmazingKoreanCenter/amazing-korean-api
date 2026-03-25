@@ -32,6 +32,7 @@
     "videos": "Videolar",
     "studies": "O'rganish",
     "lessons": "Darslar",
+    "book": "Kitob",
     "pricing": "Narxlar",
     "myPage": "Mening sahifam",
     "login": "Kirish",
@@ -211,6 +212,7 @@
     "myPageDescription": "Profil ma'lumotlaringizni ko'ring va tahrirlang",
     "settingsTitle": "Sozlamalar",
     "settingsButton": "Sozlamalar",
+    "purchaseHistory": "Xarid tarixi",
     "userNotFound": "Foydalanuvchi ma'lumoti topilmadi.",
     "userLoadFailed": "Foydalanuvchi ma'lumotini yuklash muvaffaqiyatsiz.",
     "settingsLoadFailed": "Sozlamalarni yuklash muvaffaqiyatsiz.",
@@ -467,28 +469,256 @@
     "promoCodeClear": "Tozalash"
   },
   "ebook": {
-    "catalog": { "title": "Elektron darsliklar", "subtitle": "Onlayn tezda o'qish mumkin bo'lgan raqamli darsliklar.", "teacherEdition": "O'qituvchi nashri", "studentEdition": "Talaba nashri", "selectLanguage": "Iltimos, tilni tanlang.", "comingSoon": "Tez kunda", "loadError": "Katalogni yuklashda xatolik." },
-    "purchase": { "title": "Xarid tafsilotlari", "paymentMethod": "To'lov usuli", "bankTransfer": "Bank o'tkazmasi", "creditCard": "Kredit karta (Paddle)", "buy": "Sotib olish", "loginRequired": "Sotib olish uchun tizimga kiring", "success": "Xarid yakunlandi.", "error": "Xarid paytida xatolik yuz berdi." },
-    "status": { "pending": "Kutilmoqda", "completed": "Mavjud", "refunded": "Qaytarilgan" },
-    "my": { "title": "Mening elektron kitoblarim", "empty": "Sotib olingan elektron kitoblar yo'q.", "browseCatalog": "Elektron kitoblarni ko'rish", "openViewer": "O'qish dasturini ochish", "loadError": "Xarid tarixini yuklashda xatolik." },
-    "viewer": { "toc": "Mundarija", "notFound": "Darslik topilmadi.", "loadFailed": "Sahifani yuklashda xatolik." }
+    "catalog": {
+      "title": "Elektron darsliklar",
+      "subtitle": "Onlayn tezda o'qish mumkin bo'lgan raqamli darsliklar.",
+      "teacherEdition": "O'qituvchi nashri",
+      "studentEdition": "Talaba nashri",
+      "selectLanguage": "Iltimos, tilni tanlang.",
+      "comingSoon": "Tez kunda",
+      "loadError": "Katalogni yuklashda xatolik.",
+      "refundPolicy": "Qaytarish siyosatini ko'rish",
+      "badge": "E-book",
+      "viewGrid": "Grid View",
+      "viewCarousel": "Carousel View",
+      "searchPlaceholder": "Search language...",
+      "noResults": "No results found.",
+      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
+      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+    },
+    "detail": {
+      "viewDetail": "View Details",
+      "coverImage": "Cover",
+      "innerImage": "Inner Cover",
+      "tocImage": "Table of Contents",
+      "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
+      "pages": " pages",
+      "imageNotAvailable": "Image not available"
+    },
+    "purchase": {
+      "title": "Xarid tafsilotlari",
+      "paymentMethod": "To'lov usuli",
+      "bankTransfer": "Bank o'tkazmasi",
+      "creditCard": "Kredit karta (Paddle)",
+      "buy": "Sotib olish",
+      "loginRequired": "Sotib olish uchun tizimga kiring",
+      "success": "Xarid yakunlandi.",
+      "error": "Xarid paytida xatolik yuz berdi.",
+      "cardPayment": "Card Payment",
+      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+    },
+    "purchaseComplete": {
+      "title": "Xarid yakunlandi",
+      "description": "E-book xaridi yakunlandi.",
+      "subtitle": "Buyurtmangiz qabul qilindi. Quyidagi ma'lumotlarni tekshiring.",
+      "purchaseCode": "Xarid kodi",
+      "codeCopied": "Kod nusxalandi.",
+      "edition": "Nashr",
+      "price": "Narx",
+      "paymentMethod": "To'lov usuli",
+      "bankGuideTitle": "To'lov ko'rsatmalari",
+      "bankAccount": "{{account}}",
+      "bankNote": "7 kun ichida to'lang. To'lov tasdiqlanganidan keyin kirish mumkin.",
+      "goToMyEbooks": "Mening E-book",
+      "browseCatalog": "Katalogni ko'rish",
+      "noData": "Xarid ma'lumotlari topilmadi."
+    },
+    "preview": {
+      "button": "Oldindan ko‘rish",
+      "description": "Muqova, mundarija va namuna sahifalarni oldindan ko‘ring.",
+      "cover": "Muqova",
+      "toc": "Mundarija",
+      "sample": "Namuna {{n}}",
+      "pages": " sahifa",
+      "purchaseButton": "Sotib olish",
+      "imageNotAvailable": "Rasm tayyorlanmoqda"
+    },
+    "status": {
+      "pending": "Kutilmoqda",
+      "completed": "Mavjud",
+      "refunded": "Qaytarilgan"
+    },
+    "my": {
+      "title": "Mening elektron kitoblarim",
+      "empty": "Sotib olingan elektron kitoblar yo'q.",
+      "browseCatalog": "Elektron kitoblarni ko'rish",
+      "openViewer": "O'qish dasturini ochish",
+      "loadError": "Xarid tarixini yuklashda xatolik."
+    },
+    "viewer": {
+      "toc": "Mundarija",
+      "notFound": "Darslik topilmadi.",
+      "loadFailed": "Sahifani yuklashda xatolik."
+    }
+  },
+  "textbook": {
+    "heroBadge": "Amazing Korean darsliklari",
+    "heroTitle": "Darslik buyurtmasi",
+    "heroSubtitle": "20 tilda darsliklarni buyurtma qiling. Talaba va o'qituvchi nashrlari mavjud.",
+    "catalog": {
+      "badge": "Darslik",
+      "title": "Koreys tili darsliklari to'plami",
+      "description": "20 tilda talaba va o'qituvchi nashrlari bilan\ntizimli koreys tilini o'rganish sayohatingizni boshlang.",
+      "studentSection": "Talaba nashriyoti",
+      "studentDescription": "O'quvchilar uchun koreys tili darsliklari.",
+      "teacherSection": "O'qituvchi nashriyoti",
+      "teacherDescription": "O'qituvchilar uchun koreys tilini o'qitish qo'llanmalari.",
+      "orderButton": "Buyurtma berish",
+      "pricePerUnit": "₩25,000 / nusxa",
+      "orderGuideTitle": "Buyurtma ma'lumotlari",
+      "orderGuideMinQty": "Minimal buyurtma miqdori 10 nusxa.",
+      "orderGuidePayment": "Bank o'tkazmasi orqali to'lov.",
+      "orderGuideBulk": "100+ nusxadan bepul yetkazib berish",
+      "orderCta": "Darsliklarni buyurtma qilish",
+      "viewGrid": "Katakchali ko'rinish",
+      "viewCarousel": "Karusel ko'rinishi",
+      "searchPlaceholder": "Tilni qidirish...",
+      "noResults": "Natija topilmadi.",
+      "bookDescription": "Tizimli koreys tilini o'rganish darsligi. Har bir tilning ona tilida so'zlashuvchi mutaxassislari tomonidan tarjima qilingan."
+    },
+    "myOrders": {
+      "badge": "Mening buyurtmalarim",
+      "title": "Darslik xarid tarixi",
+      "description": "Darslik buyurtmangiz holatini tekshiring.",
+      "empty": "Hali buyurtmalar yo'q.",
+      "browseCatalog": "Darsliklarni ko'rish",
+      "loadError": "Buyurtmalar ro'yxatini yuklab bo'lmadi.",
+      "status": {
+        "pending": "Kutilmoqda",
+        "confirmed": "Tasdiqlangan",
+        "paid": "To'langan",
+        "printing": "Chop etilmoqda",
+        "shipped": "Jo'natilgan",
+        "delivered": "Yetkazilgan",
+        "canceled": "Bekor qilingan"
+      }
+    },
+    "print": {
+      "quoteTitle": "Narx taklifi",
+      "confirmationTitle": "Buyurtma tasdiqi",
+      "companyName": "HYMN Co., Ltd.",
+      "docNumber": "Hujjat raqami",
+      "date": "Sana",
+      "status": "Holat",
+      "recipient": "Qabul qiluvchi",
+      "colItem": "Tovar",
+      "colType": "Tur",
+      "colQty": "Miqdor",
+      "colPrice": "Birlik narxi",
+      "colSubtotal": "Oraliq jami",
+      "textbookPrefix": "Amazing Korean",
+      "total": "Jami",
+      "quoteTotal": "Taklif summasi",
+      "confirmationTotal": "Buyurtma summasi",
+      "vatIncluded": "QQS bilan",
+      "bankInfo": "To'lov ma'lumotlari",
+      "bankAccount": "Hana Bank 915-910012-71304 HYMN Co., Ltd.",
+      "bankNote": "Buyurtma tasdiqlanganidan so'ng 7 kun ichida to'lang.",
+      "taxInvoice": "Soliq hisob-faktura ma'lumotlari",
+      "bizNumber": "Biznes ro'yxat raqami",
+      "taxCompanyName": "Kompaniya nomi",
+      "repName": "Vakil",
+      "taxEmail": "Soliq hisob-faktura emaili",
+      "taxAddress": "Biznes manzili",
+      "taxBizType": "Biznes turi",
+      "taxBizItem": "Biznes sohasi",
+      "notes": "Eslatmalar",
+      "footer": "Ushbu hujjat elektron shaklda yaratilgan va imzosiz amal qiladi.",
+      "companyInfo": "HYMN Co., Ltd. | amazingkorean.net",
+      "printButton": "Chop etish / PDF saqlash",
+      "pdfGuide": "PDF sifatida saqlash uchun chop dialog oynasida 'PDF saqlash' ni tanlang.",
+      "notFound": "Buyurtma topilmadi.",
+      "quoteNotice": "Ushbu narx taklifi buyurtma topshirilgan vaqtda tuzilgan va haqiqiy summa farq qilishi mumkin.",
+      "confirmationNotice": "Ushbu tasdiq faqat buyurtma holatini tekshirish uchun mo'ljallangan va rasmiy kvitansiya emas."
+    },
+    "detail": {
+      "modalTitle": "Darslik tafsilotlari",
+      "coverImage": "Muqova",
+      "innerImage": "Ichki muqova",
+      "tocImage": "Mundarija",
+      "description": "120 sahifali tizimli koreys tili darsligi, boshlang'ichdan o'rta darajagacha.",
+      "translationNote": "{{language}} ona tilida gaplashuvchi mutaxassislar tomonidan tarjima qilingan.",
+      "orderNow": "Hozir buyurtma bering",
+      "viewDetail": "Batafsil ko'rish",
+      "imageNotAvailable": "Rasm tayyorlanmoqda"
+    }
   },
   "seo": {
-    "home": { "title": "Amazing Korean - Koreys tilini o'rganish platformasi", "description": "Butun dunyo bo'ylab o'quvchilar uchun eng yaxshi onlayn koreys tilini o'rganish platformasi." },
-    "about": { "title": "Biz haqimizda - Amazing Korean", "description": "Amazing Korean haqida — Butun dunyo o'quvchilari uchun samarali koreys tilini o'rganish tajribasi." },
-    "pricing": { "title": "Narxlar - Amazing Korean", "description": "Amazing Korean narx rejalari — Video, o'quv materiallari va darslarga cheksiz kirish." },
-    "videos": { "title": "Video darslar - Amazing Korean", "description": "Professional o'qituvchilarning video darslari bilan koreys tilini samarali o'rganing." },
-    "studies": { "title": "O'quv materiallari - Amazing Korean", "description": "Tizimli o'quv materiallari va mashqlar bilan koreys tili ko'nikmalaringizni oshiring." },
-    "lessons": { "title": "Darslar - Amazing Korean", "description": "Tizimli darslar bilan koreys tilini bosqichma-bosqich o'rganing." },
-    "login": { "title": "Kirish - Amazing Korean", "description": "Koreys tilini o'rganishni boshlash uchun Amazing Korean ga kiring." },
-    "signup": { "title": "Ro'yxatdan o'tish - Amazing Korean", "description": "Amazing Korean ga qo'shiling va koreys tilini o'rganish sayohatingizni boshlang." },
-    "terms": { "title": "Xizmat shartlari - Amazing Korean", "description": "Amazing Korean xizmat shartlari." },
-    "privacy": { "title": "Maxfiylik siyosati - Amazing Korean", "description": "Amazing Korean maxfiylik siyosati." },
-    "refundPolicy": { "title": "Pul qaytarish siyosati - Amazing Korean", "description": "Amazing Korean obuna pul qaytarish siyosati." },
-    "faq": { "title": "Ko'p so'raladigan savollar - Amazing Korean", "description": "Amazing Korean haqida ko'p so'raladigan savollar." },
-    "findId": { "title": "Hisobni tiklash - Amazing Korean", "description": "Ro'yxatdan o'tgan hisob ma'lumotlaringizni toping." },
-    "requestResetPassword": { "title": "Parolni tiklash - Amazing Korean", "description": "Ro'yxatdan o'tgan manzilingizga parolni tiklash elektron xatini yuboring." },
-    "textbook": { "title": "Darslik buyurtmasi - Amazing Korean", "description": "Amazing Korean darsliklarini onlayn buyurtma qiling." },
-    "textbookStatus": { "title": "Buyurtma holati - Amazing Korean", "description": "Darslik buyurtmangiz holatini tekshiring." }
+    "home": {
+      "title": "Amazing Korean - Koreys tilini o'rganish platformasi",
+      "description": "Butun dunyo bo'ylab o'quvchilar uchun eng yaxshi onlayn koreys tilini o'rganish platformasi."
+    },
+    "about": {
+      "title": "Biz haqimizda - Amazing Korean",
+      "description": "Amazing Korean haqida — Butun dunyo o'quvchilari uchun samarali koreys tilini o'rganish tajribasi."
+    },
+    "pricing": {
+      "title": "Narxlar - Amazing Korean",
+      "description": "Amazing Korean narx rejalari — Video, o'quv materiallari va darslarga cheksiz kirish."
+    },
+    "videos": {
+      "title": "Video darslar - Amazing Korean",
+      "description": "Professional o'qituvchilarning video darslari bilan koreys tilini samarali o'rganing."
+    },
+    "studies": {
+      "title": "O'quv materiallari - Amazing Korean",
+      "description": "Tizimli o'quv materiallari va mashqlar bilan koreys tili ko'nikmalaringizni oshiring."
+    },
+    "lessons": {
+      "title": "Darslar - Amazing Korean",
+      "description": "Tizimli darslar bilan koreys tilini bosqichma-bosqich o'rganing."
+    },
+    "login": {
+      "title": "Kirish - Amazing Korean",
+      "description": "Koreys tilini o'rganishni boshlash uchun Amazing Korean ga kiring."
+    },
+    "signup": {
+      "title": "Ro'yxatdan o'tish - Amazing Korean",
+      "description": "Amazing Korean ga qo'shiling va koreys tilini o'rganish sayohatingizni boshlang."
+    },
+    "terms": {
+      "title": "Xizmat shartlari - Amazing Korean",
+      "description": "Amazing Korean xizmat shartlari."
+    },
+    "privacy": {
+      "title": "Maxfiylik siyosati - Amazing Korean",
+      "description": "Amazing Korean maxfiylik siyosati."
+    },
+    "refundPolicy": {
+      "title": "Pul qaytarish siyosati - Amazing Korean",
+      "description": "Amazing Korean obuna pul qaytarish siyosati."
+    },
+    "faq": {
+      "title": "Ko'p so'raladigan savollar - Amazing Korean",
+      "description": "Amazing Korean haqida ko'p so'raladigan savollar."
+    },
+    "findId": {
+      "title": "Hisobni tiklash - Amazing Korean",
+      "description": "Ro'yxatdan o'tgan hisob ma'lumotlaringizni toping."
+    },
+    "requestResetPassword": {
+      "title": "Parolni tiklash - Amazing Korean",
+      "description": "Ro'yxatdan o'tgan manzilingizga parolni tiklash elektron xatini yuboring."
+    },
+    "textbook": {
+      "title": "Darslik buyurtmasi - Amazing Korean",
+      "description": "Amazing Korean darsliklarini onlayn buyurtma qiling."
+    },
+    "textbookStatus": {
+      "title": "Buyurtma holati - Amazing Korean",
+      "description": "Darslik buyurtmangiz holatini tekshiring."
+    }
+  },
+  "bookHub": {
+    "badge": "Amazing Korean darsligi",
+    "title": "Koreys tili darsligi",
+    "subtitle": "20 tilda mavjud koreys tilini o'rganish darsliklarini kashf eting",
+    "descriptionTitle": "Amazing Korean nima?",
+    "description": "Amazing Korean — bu boshlang'ichlar uchun mo'ljallangan tizimli koreys tili darsligi. Hangul undosh va unlillaridan tortib asosiy jumlalar, grammatika, mashqlar va TOPIK tayyorgarligiga qadar — hammasi bitta kitobda.",
+    "samplePages": "Oldindan ko'rish",
+    "samplePagesNote": "Haqiqiy darslik sahifalaridan namunalar",
+    "ctaTitle": "Kitoblarni ko'rish",
+    "ctaTextbook": "Bosma katalog",
+    "ctaEbook": "E-book katalogi"
   }
 }

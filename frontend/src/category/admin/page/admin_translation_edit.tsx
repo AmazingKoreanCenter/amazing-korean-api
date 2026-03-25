@@ -36,7 +36,6 @@ import {
 import {
   useCreateTranslation,
   useUpdateTranslation,
-  useAutoTranslateBulk,
 } from "../hook/use_translation_mutations";
 import {
   translationUpdateReqSchema,
@@ -47,8 +46,6 @@ import {
   type TopCategory,
   type StudySubType,
   type SourceFieldItem,
-  type AutoTranslateBulkReq,
-  type AutoTranslateBulkRes,
 } from "../translation/types";
 import {
   TOP_CATEGORIES,
@@ -112,12 +109,9 @@ function TranslationCreateWizard() {
   // Step 3: Field selection
   const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
 
-  // Step 4: Translation mode + langs
-  const [translateMode, setTranslateMode] = useState<"auto" | "manual">("auto");
-  const [selectedLangs, setSelectedLangs] = useState<Set<string>>(new Set());
+  // Step 4: Translation
   const [manualLang, setManualLang] = useState<string>("en");
   const [manualTexts, setManualTexts] = useState<Record<string, string>>({});
-  const [bulkResult, setBulkResult] = useState<AutoTranslateBulkRes | null>(null);
 
   // Derived content_type
   const contentType: ContentType | undefined =
@@ -128,7 +122,6 @@ function TranslationCreateWizard() {
   // Hooks
   const contentRecords = useContentRecords(contentType);
   const sourceFields = useSourceFields(contentType, selectedRecordId ?? undefined);
-  const autoTranslateBulk = useAutoTranslateBulk();
   const createTranslation = useCreateTranslation();
 
   // Reset downstream state when upstream changes
@@ -136,14 +129,11 @@ function TranslationCreateWizard() {
     if (fromStep <= 2) {
       setSelectedRecordId(null);
       setSelectedFields(new Set());
-      setBulkResult(null);
     }
     if (fromStep <= 3) {
       setSelectedFields(new Set());
-      setBulkResult(null);
     }
     if (fromStep <= 4) {
-      setBulkResult(null);
     }
   };
 
@@ -190,49 +180,12 @@ function TranslationCreateWizard() {
   };
 
   // ── Step 4: Translation ──
-  const toggleLang = (code: string) => {
-    setSelectedLangs((prev) => {
-      const next = new Set(prev);
-      if (next.has(code)) next.delete(code);
-      else next.add(code);
-      return next;
-    });
-  };
-
-  const selectAllLangs = () => {
-    if (selectedLangs.size === LANG_OPTIONS.length) {
-      setSelectedLangs(new Set());
-    } else {
-      setSelectedLangs(new Set(LANG_OPTIONS.map((l) => l.code)));
-    }
-  };
-
   const fieldKey = (f: SourceFieldItem) =>
     `${f.content_type}:${f.content_id}:${f.field_name}`;
 
   const getSelectedSourceFields = (): SourceFieldItem[] => {
     if (!sourceFields.data) return [];
     return sourceFields.data.fields.filter((f) => selectedFields.has(fieldKey(f)));
-  };
-
-  const handleAutoTranslate = () => {
-    const fields = getSelectedSourceFields();
-    if (fields.length === 0 || selectedLangs.size === 0) return;
-
-    const req: AutoTranslateBulkReq = {
-      items: fields.map((f) => ({
-        content_type: f.content_type,
-        content_id: f.content_id,
-        field_name: f.field_name,
-        source_text: f.source_text ?? "",
-      })),
-      target_langs: Array.from(selectedLangs) as SupportedLanguage[],
-    };
-
-    setBulkResult(null);
-    autoTranslateBulk.mutate(req, {
-      onSuccess: (res) => setBulkResult(res),
-    });
   };
 
   const handleManualSave = () => {
@@ -431,113 +384,7 @@ function TranslationCreateWizard() {
             <CardTitle className="text-base">Step 4 — Translate</CardTitle>
           </CardHeader>
           <CardContent>
-            {/* Mode Tabs */}
-            <div className="flex gap-2 mb-4">
-              <Button
-                variant={translateMode === "auto" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTranslateMode("auto")}
-              >
-                Auto Translate
-              </Button>
-              <Button
-                variant={translateMode === "manual" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTranslateMode("manual")}
-              >
-                Manual Input
-              </Button>
-            </div>
-
-            {/* ── Auto Translate ── */}
-            {translateMode === "auto" && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Target Languages ({selectedLangs.size})</Label>
-                    <Button type="button" variant="ghost" size="sm" onClick={selectAllLangs}>
-                      {selectedLangs.size === LANG_OPTIONS.length ? "Deselect All" : "Select All"}
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto border rounded-md p-3">
-                    {LANG_OPTIONS.map((lang) => (
-                      <label key={lang.code} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Checkbox
-                          checked={selectedLangs.has(lang.code)}
-                          onCheckedChange={() => toggleLang(lang.code)}
-                        />
-                        <span>
-                          {lang.nativeName}{" "}
-                          <span className="text-muted-foreground/70 text-xs">({lang.code})</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-muted rounded-md p-3 text-sm text-muted-foreground">
-                  {selectedFields.size} field(s) x {selectedLangs.size} language(s) ={" "}
-                  <strong>{selectedFields.size * selectedLangs.size}</strong> translation(s)
-                </div>
-
-                <Button
-                  className="w-full"
-                  disabled={selectedLangs.size === 0 || autoTranslateBulk.isPending}
-                  onClick={handleAutoTranslate}
-                >
-                  {autoTranslateBulk.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {autoTranslateBulk.isPending
-                    ? "Translating..."
-                    : `Auto Translate ${selectedFields.size * selectedLangs.size} items`}
-                </Button>
-
-                {/* Result */}
-                {bulkResult && (
-                  <div className="border rounded-md p-3 space-y-2">
-                    <p className="text-sm font-medium">
-                      Result: {bulkResult.success_count}/{bulkResult.total} success
-                      {bulkResult.fail_count > 0 && (
-                        <span className="text-destructive ml-2">({bulkResult.fail_count} failed)</span>
-                      )}
-                    </p>
-                    <div className="space-y-1 max-h-48 overflow-y-auto">
-                      {bulkResult.results.map((r, i) => (
-                        <div
-                          key={i}
-                          className={`text-xs px-2 py-1 rounded ${
-                            r.success ? "bg-status-success/10 text-status-success" : "bg-destructive/10 text-destructive"
-                          }`}
-                        >
-                          <span className="font-mono font-medium">{r.lang}</span>
-                          <span className="mx-1 text-muted-foreground/70">|</span>
-                          <span>{r.field_name}</span>
-                          {r.success ? (
-                            <span className="ml-2 text-muted-foreground">
-                              {r.translated_text && r.translated_text.length > 40
-                                ? r.translated_text.slice(0, 40) + "..."
-                                : r.translated_text}
-                            </span>
-                          ) : (
-                            <span className="ml-2">{r.error}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <Button
-                      variant="outline"
-                      className="w-full mt-2"
-                      onClick={() => navigate("/admin/translations")}
-                    >
-                      Done — Back to List
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Manual Input ── */}
-            {translateMode === "manual" && (
-              <div className="space-y-4">
+            <div className="space-y-4">
                 <div className="space-y-1.5">
                   <Label>Target Language</Label>
                   <Select value={manualLang} onValueChange={setManualLang}>
@@ -591,8 +438,7 @@ function TranslationCreateWizard() {
                   {createTranslation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Save Translations
                 </Button>
-              </div>
-            )}
+            </div>
           </CardContent>
         </Card>
       )}
