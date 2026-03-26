@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BookOpen, LayoutGrid, Disc3, Search } from "lucide-react";
 
@@ -40,7 +41,6 @@ function EbookCoverCard({
 }) {
   const { t, i18n } = useTranslation();
   const langName = i18n.language === "ko" ? item.language_name_ko : item.language_name_en;
-  const editionInfo = item.editions.find((e) => e.edition === edition);
 
   return (
     <button
@@ -48,7 +48,7 @@ function EbookCoverCard({
       onClick={onClick}
       className="bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 border hover:border-accent/50 text-left cursor-pointer"
     >
-      <div className="aspect-[3/4] overflow-hidden bg-muted">
+      <div className="aspect-[3/4] overflow-hidden bg-muted border-b">
         <img
           src={`/covers/${edition}-${item.language}.webp`}
           alt={`${langName} ${edition}`}
@@ -58,11 +58,7 @@ function EbookCoverCard({
       </div>
       <div className="p-4 space-y-2">
         <h3 className="font-semibold text-sm">{t("ebook.catalog.bookTitle", { language: langName })}</h3>
-        {editionInfo && (
-          <p className="text-xs text-muted-foreground text-right py-0.5">
-            {editionInfo.price.toLocaleString()} {editionInfo.currency}
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground text-right py-0.5">{t("ebook.catalog.pricePerUnit")}</p>
         <span className="inline-flex items-center justify-center w-full rounded-md bg-primary text-primary-foreground text-sm font-medium h-8 px-3">
           {t("ebook.detail.viewDetail")}
         </span>
@@ -149,10 +145,13 @@ export function EbookCatalogPage() {
           onValueChange={(v) => setActiveEdition(v as EbookEdition)}
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <TabsList>
-              <TabsTrigger value="student">{t("ebook.catalog.studentEdition")}</TabsTrigger>
-              <TabsTrigger value="teacher">{t("ebook.catalog.teacherEdition")}</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-3">
+              <CatalogTypeToggle active="ebook" />
+              <TabsList>
+                <TabsTrigger value="student">{t("ebook.catalog.studentEdition")}</TabsTrigger>
+                <TabsTrigger value="teacher">{t("ebook.catalog.teacherEdition")}</TabsTrigger>
+              </TabsList>
+            </div>
 
             <div className="flex items-center gap-2">
               {/* Search bar */}
@@ -281,6 +280,38 @@ function EbookGridSection({
           onClick={() => onCardClick(item)}
         />
       ))}
+    </div>
+  );
+}
+
+function CatalogTypeToggle({ active }: { active: "textbook" | "ebook" }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  return (
+    <div className="inline-flex items-center rounded-lg border bg-muted p-1 gap-1">
+      <button
+        type="button"
+        onClick={() => active !== "textbook" && navigate("/book/textbook")}
+        className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+          active === "textbook"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        {t("bookHub.tabTextbook")}
+      </button>
+      <button
+        type="button"
+        onClick={() => active !== "ebook" && navigate("/book/ebook")}
+        className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+          active === "ebook"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        {t("bookHub.tabEbook")}
+      </button>
     </div>
   );
 }

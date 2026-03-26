@@ -1,9 +1,8 @@
 import { useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BookOpen, ArrowRight, Package, CreditCard, Truck, LayoutGrid, Disc3, Search } from "lucide-react";
+import { BookOpen, LayoutGrid, Disc3, Search } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,7 +48,7 @@ function CoverCard({
       onClick={onClick}
       className="bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 border hover:border-accent/50 text-left cursor-pointer"
     >
-      <div className="aspect-[3/4] overflow-hidden bg-muted">
+      <div className="aspect-[3/4] overflow-hidden bg-muted border-b">
         <img
           src={`/covers/${type}-${item.language}.webp`}
           alt={`${langName} ${type}`}
@@ -59,7 +58,7 @@ function CoverCard({
       </div>
       <div className="p-4 space-y-2">
         <h3 className="font-semibold text-sm">{t("textbook.catalog.bookTitle", { language: langName })}</h3>
-        <p className="text-xs text-muted-foreground text-right py-0.3">{t("textbook.catalog.pricePerUnit")}</p>
+        <p className="text-xs text-muted-foreground text-right py-0.5">{t("textbook.catalog.pricePerUnit")}</p>
         <span className="inline-flex items-center justify-center w-full rounded-md bg-primary text-primary-foreground text-sm font-medium h-8 px-3">
           {t("textbook.detail.viewDetail")}
         </span>
@@ -146,10 +145,13 @@ export function TextbookCatalogPage() {
           onValueChange={(v) => setActiveType(v as TextbookType)}
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <TabsList>
-              <TabsTrigger value="student">{t("textbook.catalog.studentSection")}</TabsTrigger>
-              <TabsTrigger value="teacher">{t("textbook.catalog.teacherSection")}</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-3">
+              <CatalogTypeToggle active="textbook" />
+              <TabsList>
+                <TabsTrigger value="student">{t("textbook.catalog.studentSection")}</TabsTrigger>
+                <TabsTrigger value="teacher">{t("textbook.catalog.teacherSection")}</TabsTrigger>
+              </TabsList>
+            </div>
 
             <div className="flex items-center gap-2">
               {/* Search bar */}
@@ -246,38 +248,6 @@ export function TextbookCatalogPage() {
         </Tabs>
       </SectionContainer>
 
-      {/* 주문 안내 */}
-      <SectionContainer className="border-t">
-        <div className="max-w-3xl mx-auto text-center space-y-8">
-          <h2 className="text-2xl md:text-3xl font-bold">{t("textbook.catalog.orderGuideTitle")}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card shadow-card border">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Package className="h-6 w-6 text-primary" />
-              </div>
-              <p className="text-sm text-muted-foreground text-center">{t("textbook.catalog.orderGuideMinQty")}</p>
-            </div>
-            <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card shadow-card border">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <CreditCard className="h-6 w-6 text-primary" />
-              </div>
-              <p className="text-sm text-muted-foreground text-center">{t("textbook.catalog.orderGuidePayment")}</p>
-            </div>
-            <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card shadow-card border">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Truck className="h-6 w-6 text-primary" />
-              </div>
-              <p className="text-sm text-muted-foreground text-center">{t("textbook.catalog.orderGuideBulk")}</p>
-            </div>
-          </div>
-          <Button asChild size="lg" className="gradient-primary hover:opacity-90 text-white rounded-full px-8 h-12">
-            <Link to="/book/textbook/order">
-              {t("textbook.catalog.orderCta")}
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
-        </div>
-      </SectionContainer>
     </div>
   );
 }
@@ -311,6 +281,38 @@ function GridSection({
           onClick={() => onCardClick(item)}
         />
       ))}
+    </div>
+  );
+}
+
+function CatalogTypeToggle({ active }: { active: "textbook" | "ebook" }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  return (
+    <div className="inline-flex items-center rounded-lg border bg-muted p-1 gap-1">
+      <button
+        type="button"
+        onClick={() => active !== "textbook" && navigate("/book/textbook")}
+        className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+          active === "textbook"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        {t("bookHub.tabTextbook")}
+      </button>
+      <button
+        type="button"
+        onClick={() => active !== "ebook" && navigate("/book/ebook")}
+        className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+          active === "ebook"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        {t("bookHub.tabEbook")}
+      </button>
     </div>
   );
 }

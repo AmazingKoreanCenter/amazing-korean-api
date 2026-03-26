@@ -25,20 +25,20 @@ export type UserGender = z.infer<typeof userGenderSchema>;
 // ==========================================
 
 export const signupReqSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email(i18n.t("auth.validationEmail")),
   password: z.string()
-    .min(8)
-    .max(72)
+    .min(8, i18n.t("auth.validationPasswordMin"))
+    .max(72, i18n.t("auth.validationPasswordMax"))
     .regex(/[a-zA-Z]/, i18n.t("auth.validationPasswordLetter"))
     .regex(/[0-9]/, i18n.t("auth.validationPasswordDigit")),
-  name: z.string().min(1).max(50),
-  nickname: z.string().min(1).max(100),
+  name: z.string().min(1, i18n.t("auth.validationNameRequired")).max(50, i18n.t("auth.validationNameMax")),
+  nickname: z.string().min(1, i18n.t("auth.validationNicknameRequired")).max(100, i18n.t("auth.validationNicknameMax")),
   // 약관 동의 (백엔드 필드명 확인 필수: terms_service vs terms_agreed)
   terms_service: z.boolean(),
   terms_personal: z.boolean(),
-  language: z.string().min(2).max(2),
-  country: z.string().min(2).max(50),
-  birthday: z.string().date(), // YYYY-MM-DD 형식
+  language: z.string().min(2, i18n.t("auth.validationLanguageRequired")).max(2),
+  country: z.string().min(2, i18n.t("auth.validationCountryRequired")).max(50),
+  birthday: z.string().date(i18n.t("auth.validationBirthdayFormat")),
   gender: userGenderSchema,
 });
 export type SignupReq = z.infer<typeof signupReqSchema>;
@@ -54,8 +54,8 @@ export type SignupRes = z.infer<typeof signupResSchema>;
 // ==========================================
 
 export const loginReqSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8).max(72),
+  email: z.string().email(i18n.t("auth.validationEmail")),
+  password: z.string().min(8, i18n.t("auth.validationPasswordMin")).max(72, i18n.t("auth.validationPasswordMax")),
 });
 export type LoginReq = z.infer<typeof loginReqSchema>;
 
@@ -73,8 +73,8 @@ export type LoginRes = z.infer<typeof loginResSchema>;
 export const resetPasswordReqSchema = z.object({
   reset_token: z.string().min(1),
   new_password: z.string()
-    .min(8)
-    .max(72)
+    .min(8, i18n.t("auth.validationPasswordMin"))
+    .max(72, i18n.t("auth.validationPasswordMax"))
     .regex(/[a-zA-Z]/, i18n.t("auth.validationPasswordLetter"))
     .regex(/[0-9]/, i18n.t("auth.validationPasswordDigit")),
 });
@@ -90,7 +90,7 @@ export type ResetPwRes = z.infer<typeof resetPwResSchema>;
 // ==========================================
 
 export const requestResetReqSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email(i18n.t("auth.validationEmail")),
 });
 export type RequestResetReq = z.infer<typeof requestResetReqSchema>;
 
@@ -101,8 +101,8 @@ export const requestResetResSchema = z.object({
 export type RequestResetRes = z.infer<typeof requestResetResSchema>;
 
 export const verifyResetReqSchema = z.object({
-  email: z.string().email(),
-  code: z.string().min(6).max(6),
+  email: z.string().email(i18n.t("auth.validationEmail")),
+  code: z.string().min(6, i18n.t("auth.validationCodeLength")).max(6),
 });
 export type VerifyResetReq = z.infer<typeof verifyResetReqSchema>;
 
@@ -117,8 +117,8 @@ export type VerifyResetRes = z.infer<typeof verifyResetResSchema>;
 // ==========================================
 
 export const findIdReqSchema = z.object({
-  name: z.string().min(1).max(100),
-  birthday: z.string().date(),
+  name: z.string().min(1, i18n.t("auth.validationNameRequired")).max(100),
+  birthday: z.string().date(i18n.t("auth.validationBirthdayFormat")),
 });
 export type FindIdReq = z.infer<typeof findIdReqSchema>;
 
@@ -133,9 +133,9 @@ export type FindIdRes = z.infer<typeof findIdResSchema>;
 // ==========================================
 
 export const findPasswordReqSchema = z.object({
-  name: z.string().min(1).max(100),
-  birthday: z.string().date(),
-  email: z.string().email(),
+  name: z.string().min(1, i18n.t("auth.validationNameRequired")).max(100),
+  birthday: z.string().date(i18n.t("auth.validationBirthdayFormat")),
+  email: z.string().email(i18n.t("auth.validationEmail")),
 });
 export type FindPasswordReq = z.infer<typeof findPasswordReqSchema>;
 
@@ -188,8 +188,8 @@ export type GoogleAuthUrlRes = z.infer<typeof googleAuthUrlResSchema>;
 // ==========================================
 
 export const verifyEmailReqSchema = z.object({
-  email: z.string().email(),
-  code: z.string().min(6).max(6),
+  email: z.string().email(i18n.t("auth.validationEmail")),
+  code: z.string().min(6, i18n.t("auth.validationCodeLength")).max(6),
 });
 export type VerifyEmailReq = z.infer<typeof verifyEmailReqSchema>;
 
@@ -200,7 +200,7 @@ export const verifyEmailResSchema = z.object({
 export type VerifyEmailRes = z.infer<typeof verifyEmailResSchema>;
 
 export const resendVerificationReqSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email(i18n.t("auth.validationEmail")),
 });
 export type ResendVerificationReq = z.infer<typeof resendVerificationReqSchema>;
 

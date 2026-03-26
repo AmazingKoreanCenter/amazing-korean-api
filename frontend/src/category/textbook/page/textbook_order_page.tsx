@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import i18n from "@/i18n";
 import {
   BookOpen,
   Plus,
@@ -12,6 +13,8 @@ import {
   CheckCircle2,
   Copy,
   Package,
+  CreditCard,
+  Truck,
   ScrollText,
   FileText,
 } from "lucide-react";
@@ -69,19 +72,21 @@ import type {
 // =============================================================================
 
 const orderItemSchema = z.object({
-  language: z.string().min(1),
+  language: z.string().min(1, i18n.t("textbook.order.validationLanguageRequired")),
   textbook_type: z.enum(["student", "teacher"]),
-  quantity: z.number().int().min(1).max(9999),
+  quantity: z.number().int()
+    .min(1, i18n.t("textbook.order.validationQuantityMin"))
+    .max(9999, i18n.t("textbook.order.validationQuantityMax")),
 });
 
 const orderFormSchema = z.object({
-  orderer_name: z.string().min(1).max(100),
-  orderer_email: z.string().email().max(255),
-  orderer_phone: z.string().min(1).max(30),
+  orderer_name: z.string().min(1, i18n.t("textbook.order.validationNameRequired")).max(100),
+  orderer_email: z.string().email(i18n.t("textbook.order.validationEmailFormat")).max(255),
+  orderer_phone: z.string().min(1, i18n.t("textbook.order.validationPhoneRequired")).max(30),
   org_name: z.string().max(200),
   org_type: z.string().max(100),
   delivery_postal_code: z.string().max(20),
-  delivery_address: z.string().min(1),
+  delivery_address: z.string().min(1, i18n.t("textbook.order.validationAddressRequired")),
   delivery_detail: z.string().max(200),
   depositor_name: z.string().max(100),
   tax_invoice: z.boolean(),
@@ -91,8 +96,8 @@ const orderFormSchema = z.object({
   tax_address: z.string().max(500),
   tax_biz_type: z.string().max(100),
   tax_biz_item: z.string().max(100),
-  tax_email: z.string().email().max(255).or(z.literal("")),
-  items: z.array(orderItemSchema).min(1),
+  tax_email: z.string().email(i18n.t("textbook.order.validationEmailFormat")).max(255).or(z.literal("")),
+  items: z.array(orderItemSchema).min(1, i18n.t("textbook.order.validationItemsRequired")),
   notes: z.string(),
 });
 
@@ -192,6 +197,7 @@ export function TextbookOrderPage() {
   );
 
   // ISBN 미발급 언어 포함 여부
+  const catalogItems = catalog?.items ?? [];
   const hasIsbnPending = watchItems.some((item) => {
     const cat = catalogItems.find((c) => c.language === item.language);
     return cat && !cat.isbn_ready;
@@ -355,7 +361,7 @@ export function TextbookOrderPage() {
                   <Button
                     variant="outline"
                     onClick={() =>
-                      (window.location.href = `/textbook/order/${orderResult.order_code}`)
+                      (window.location.href = `/book/textbook/order/${orderResult.order_code}`)
                     }
                   >
                     {t("textbook.order.trackButton")}
@@ -364,7 +370,7 @@ export function TextbookOrderPage() {
                     variant="outline"
                     onClick={() =>
                       window.open(
-                        `/textbook/order/${orderResult.order_code}/print?type=quote`,
+                        `/book/textbook/order/${orderResult.order_code}/print?type=quote`,
                         "_blank",
                       )
                     }
@@ -395,8 +401,6 @@ export function TextbookOrderPage() {
     );
   }
 
-  const catalogItems = catalog?.items ?? [];
-
   // =========================================================================
   // 주문 폼
   // =========================================================================
@@ -420,6 +424,33 @@ export function TextbookOrderPage() {
         title={t("textbook.heroTitle")}
         subtitle={t("textbook.heroSubtitle")}
       />
+
+      {/* 주문 안내 */}
+      <section className="py-8 lg:py-10">
+        <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center space-y-8">
+          <h2 className="text-2xl md:text-3xl font-bold">{t("textbook.catalog.orderGuideTitle")}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card shadow-card border">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Package className="h-6 w-6 text-primary" />
+              </div>
+              <p className="text-sm text-muted-foreground text-center">{t("textbook.catalog.orderGuideMinQty")}</p>
+            </div>
+            <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card shadow-card border">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <CreditCard className="h-6 w-6 text-primary" />
+              </div>
+              <p className="text-sm text-muted-foreground text-center">{t("textbook.catalog.orderGuidePayment")}</p>
+            </div>
+            <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card shadow-card border">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Truck className="h-6 w-6 text-primary" />
+              </div>
+              <p className="text-sm text-muted-foreground text-center">{t("textbook.catalog.orderGuideBulk")}</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="py-12 lg:py-16">
         <div className="max-w-4xl mx-auto px-6 lg:px-8">

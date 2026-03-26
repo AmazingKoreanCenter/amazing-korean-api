@@ -17,11 +17,10 @@ use super::dto::{
 use super::repo;
 use super::watermark;
 
-/// E-book 가격 (KRW, 계좌이체용)
-const TEACHER_PRICE_KRW: i32 = 15_000;
-const STUDENT_PRICE_KRW: i32 = 12_000;
-/// E-book 가격 (USD cents, Paddle용 — $10.00)
-const EBOOK_PRICE_USD_CENTS: i32 = 10_00;
+/// E-book 가격 (KRW, 계좌이체용) — 학생/교사 동일
+const EBOOK_PRICE_KRW: i32 = 15_000;
+/// E-book 가격 (USD cents, Paddle용 — $9.99)
+const EBOOK_PRICE_USD_CENTS: i32 = 9_99;
 
 pub struct EbookService;
 
@@ -69,10 +68,7 @@ impl EbookService {
                     (0, false)
                 };
 
-                let price = match edition {
-                    EbookEdition::Teacher => TEACHER_PRICE_KRW,
-                    EbookEdition::Student => STUDENT_PRICE_KRW,
-                };
+                let price = EBOOK_PRICE_KRW;
 
                 editions.push(EbookEditionInfo {
                     edition,
@@ -132,10 +128,7 @@ impl EbookService {
 
         let (price, currency) = match req.payment_method {
             EbookPaymentMethod::Paddle => (EBOOK_PRICE_USD_CENTS, "USD"),
-            EbookPaymentMethod::BankTransfer => match req.edition {
-                EbookEdition::Teacher => (TEACHER_PRICE_KRW, "KRW"),
-                EbookEdition::Student => (STUDENT_PRICE_KRW, "KRW"),
-            },
+            EbookPaymentMethod::BankTransfer => (EBOOK_PRICE_KRW, "KRW"),
         };
 
         // 트랜잭션으로 주문코드 생성 + INSERT

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageOff, AlertTriangle } from "lucide-react";
 
 import {
   Dialog,
@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { ImageLightbox } from "@/components/image_lightbox";
 import type { EbookCatalogItem, EbookEdition } from "../types";
 
 interface EbookDetailModalProps {
@@ -18,13 +19,13 @@ interface EbookDetailModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type ImageVariant = "cover" | "inner" | "toc";
+const SAMPLE_PAGES = [7, 18, 29, 53, 118] as const;
+const SLIDE_COUNT = 6; // cover + 5 sample pages
 
-const VARIANTS: ImageVariant[] = ["cover", "inner", "toc"];
-
-function imageSrc(edition: EbookEdition, language: string, variant: ImageVariant) {
-  const suffix = variant === "cover" ? "" : `-${variant}`;
-  return `/covers/${edition}-${language}${suffix}.webp`;
+function getImageSrc(edition: EbookEdition, language: string, index: number): string {
+  if (index === 0) return `/covers/${edition}-${language}.webp`;
+  const page = SAMPLE_PAGES[index - 1];
+  return `/book-samples/${edition}-${language}-p${page}.webp`;
 }
 
 export function EbookDetailModal({
@@ -34,55 +35,50 @@ export function EbookDetailModal({
   onOpenChange,
 }: EbookDetailModalProps) {
   const { t, i18n } = useTranslation();
-  const [variantIndex, setVariantIndex] = useState(0);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const goPrev = useCallback(() => {
-    setVariantIndex((i) => (i - 1 + VARIANTS.length) % VARIANTS.length);
+    setSlideIndex((i) => (i - 1 + SLIDE_COUNT) % SLIDE_COUNT);
   }, []);
 
   const goNext = useCallback(() => {
-    setVariantIndex((i) => (i + 1) % VARIANTS.length);
+    setSlideIndex((i) => (i + 1) % SLIDE_COUNT);
   }, []);
 
   if (!item) return null;
 
   const langName = i18n.language === "ko" ? item.language_name_ko : item.language_name_en;
-  const editionInfo = item.editions.find((e) => e.edition === edition);
-  const activeVariant = VARIANTS[variantIndex];
-
-  const variantLabels: Record<ImageVariant, string> = {
-    cover: t("ebook.detail.coverImage"),
-    inner: t("ebook.detail.innerImage"),
-    toc: t("ebook.detail.tocImage"),
-  };
+  const currentSrc = getImageSrc(edition, item.language, slideIndex);
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) setVariantIndex(0); onOpenChange(o); }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { setSlideIndex(0); setLightboxOpen(false); } onOpenChange(o); }}>
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+        onEscapeKeyDown={(e) => { if (lightboxOpen) { e.preventDefault(); setLightboxOpen(false); } }}
+      >
         <DialogHeader>
           <div className="flex items-center justify-between gap-3">
             <DialogTitle className="text-left">
               {t("ebook.catalog.bookTitle", { language: langName })}
             </DialogTitle>
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 border border-primary/20 rounded-md px-2.5 py-1 flex-shrink-0">
-              E-book
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5 flex-shrink-0">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {edition === "teacher" ? t("ebook.detail.teacherComingSoon") : t("ebook.detail.studentComingSoon")}
             </span>
           </div>
-          <DialogDescription>
-            {edition === "student"
-              ? t("ebook.catalog.studentEdition")
-              : t("ebook.catalog.teacherEdition")}
+          <DialogDescription className="sr-only">
+            {t("ebook.catalog.bookTitle", { language: langName })}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 mt-4">
           {/* Image gallery with left/right navigation */}
           <div className="relative">
             <GalleryPreview
-              edition={edition}
-              language={item.language}
-              variant={activeVariant}
-              langName={langName}
+              src={currentSrc}
+              alt={langName}
+              onImageClick={() => setLightboxOpen(true)}
             />
 
             {/* Navigation arrows */}
@@ -101,60 +97,64 @@ export function EbookDetailModal({
               <ChevronRight className="h-5 w-5" />
             </button>
 
-            {/* Indicator dots + label */}
+            {/* Indicator dots */}
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 rounded-full px-3 py-1.5">
-              {VARIANTS.map((v, i) => (
+              {Array.from({ length: SLIDE_COUNT }).map((_, i) => (
                 <button
-                  key={v}
+                  key={i}
                   type="button"
-                  onClick={() => setVariantIndex(i)}
+                  onClick={() => setSlideIndex(i)}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    i === variantIndex ? "bg-primary" : "bg-muted-foreground/30"
+                    i === slideIndex ? "bg-primary" : "bg-muted-foreground/30"
                   }`}
                 />
               ))}
-              <span className="text-xs text-muted-foreground ml-1">{variantLabels[activeVariant]}</span>
             </div>
           </div>
 
-          {/* Description + Price */}
+          {/* Slide description + Price */}
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {t("ebook.detail.description", { language: langName })}
-            </p>
-            {editionInfo && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  {editionInfo.total_pages}{t("ebook.detail.pages")}
-                </span>
-                <span className="text-sm font-semibold">
-                  {editionInfo.price.toLocaleString()} {editionInfo.currency}
-                </span>
-              </div>
-            )}
+            <h3 className="text-base font-semibold">{t(`bookHub.slideTitle${slideIndex}`)}</h3>
+            <div className="text-sm text-muted-foreground leading-relaxed space-y-1">
+              {t(`bookHub.slideDesc${slideIndex}`).split("\n").map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+            </div>
+            <div className="flex items-center justify-end">
+              <span className="text-sm font-semibold">
+                {t("ebook.catalog.pricePerUnit")}
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Lightbox - inside DialogContent for focus trap compatibility */}
+        <ImageLightbox
+          src={currentSrc}
+          alt={langName}
+          open={lightboxOpen}
+          onOpenChange={setLightboxOpen}
+          onPrev={goPrev}
+          onNext={goNext}
+        />
       </DialogContent>
     </Dialog>
   );
 }
 
 function GalleryPreview({
-  edition,
-  language,
-  variant,
-  langName,
+  src,
+  alt,
+  onImageClick,
 }: {
-  edition: EbookEdition;
-  language: string;
-  variant: ImageVariant;
-  langName: string;
+  src: string;
+  alt: string;
+  onImageClick: () => void;
 }) {
   const [error, setError] = useState(false);
   const { t } = useTranslation();
-  const src = imageSrc(edition, language, variant);
 
-  // Reset error when variant changes
+  // Reset error when src changes
   const [prevSrc, setPrevSrc] = useState(src);
   if (src !== prevSrc) {
     setPrevSrc(src);
@@ -162,7 +162,10 @@ function GalleryPreview({
   }
 
   return (
-    <div className="aspect-[3/4] max-h-[50vh] mx-auto overflow-hidden rounded-xl bg-muted">
+    <div
+      className="aspect-[3/4] max-h-[50vh] mx-auto overflow-hidden rounded-xl bg-muted cursor-pointer"
+      onClick={() => !error && onImageClick()}
+    >
       {error ? (
         <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-3">
           <ImageOff className="h-12 w-12" />
@@ -171,7 +174,7 @@ function GalleryPreview({
       ) : (
         <img
           src={src}
-          alt={langName}
+          alt={alt}
           className="w-full h-full object-contain"
           onError={() => setError(true)}
         />

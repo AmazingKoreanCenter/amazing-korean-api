@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { EbookCatalogItem, EbookEdition } from "../types";
@@ -12,7 +13,6 @@ interface EbookSelectedDetailProps {
 export function EbookSelectedDetail({ item, edition, onDetailOpen }: EbookSelectedDetailProps) {
   const { t, i18n } = useTranslation();
   const langName = i18n.language === "ko" ? item.language_name_ko : item.language_name_en;
-  const editionInfo = item.editions.find((e) => e.edition === edition);
 
   return (
     <div className="flex flex-col md:flex-row gap-5 md:h-[420px]">
@@ -34,8 +34,9 @@ export function EbookSelectedDetail({ item, edition, onDetailOpen }: EbookSelect
 
         {/* 2. Badge */}
         <div className="h-8 flex items-center justify-center md:justify-start">
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 border border-primary/20 rounded-md px-2.5 py-1">
-            E-book · {edition === "student" ? t("ebook.catalog.studentEdition") : t("ebook.catalog.teacherEdition")}
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {edition === "teacher" ? t("ebook.detail.teacherComingSoon") : t("ebook.detail.studentComingSoon")}
           </span>
         </div>
 
@@ -49,11 +50,9 @@ export function EbookSelectedDetail({ item, edition, onDetailOpen }: EbookSelect
         {/* 4. Price */}
         <div className="flex gap-3">
           {onDetailOpen && <div className="flex-1 hidden md:block" />}
-          {editionInfo && (
-            <p className="flex-1 text-center text-base md:text-lg font-bold">
-              {editionInfo.price.toLocaleString()} {editionInfo.currency}
-            </p>
-          )}
+          <p className="flex-1 text-center text-base md:text-lg font-bold">
+            {t("ebook.catalog.pricePerUnit")}
+          </p>
         </div>
 
         {/* 5. Buttons */}

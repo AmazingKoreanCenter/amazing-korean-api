@@ -99,10 +99,10 @@ export function SealList({ items, selectedIndex, onSelect }: SealListProps) {
             >
               {({ isActive }) => (
                 <div className="flex flex-col items-center gap-2 py-4">
-                  <div className={`rounded-full transition-all duration-300 ${isActive ? "ring-2 ring-primary ring-offset-2" : ""}`}>
+                  <div className="rounded-full transition-all duration-300">
                     <SealImage
                       language={item.language}
-                      size={isActive ? "w-24 h-24 md:w-28 md:h-28" : "w-14 h-14 md:w-18 md:h-18"}
+                      size={isActive ? "w-26 h-26 md:w-32 md:h-32" : "w-14 h-14 md:w-18 md:h-18"}
                     />
                   </div>
                   {isActive && (
