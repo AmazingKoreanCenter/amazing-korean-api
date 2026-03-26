@@ -472,7 +472,7 @@
 - **Fallback 순서**: 사용자 언어(`?lang=`) → `en` → `ko` (한국어 원본)
 - **공개 조건**: `status = 'approved'` 인 번역만 콘텐츠 API에서 제공
 - **기존 콘텐츠 API 확장**: 레슨, 코스, 학습, 비디오 등 기존 API에 `?lang=` 쿼리 파라미터 추가
-- **번역 API**: Google Cloud Translation v2 Basic 연동 완료 (AI 자동 초안 → 관리자 검수 → 승인)
+- **번역 방식**: Claude Code에서 직접 번역 수행 (관리자 검수 → 승인)
 
 **지원 언어 (21개, 아랍어 RTL 별도)**
 

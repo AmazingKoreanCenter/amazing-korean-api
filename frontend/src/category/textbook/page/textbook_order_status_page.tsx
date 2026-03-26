@@ -308,7 +308,7 @@ export function TextbookOrderStatusPage() {
                     size="sm"
                     onClick={() =>
                       window.open(
-                        `/textbook/order/${order.order_code}/print?type=quote`,
+                        `/book/textbook/order/${order.order_code}/print?type=quote`,
                         "_blank",
                       )
                     }
@@ -321,7 +321,7 @@ export function TextbookOrderStatusPage() {
                     size="sm"
                     onClick={() =>
                       window.open(
-                        `/textbook/order/${order.order_code}/print?type=confirmation`,
+                        `/book/textbook/order/${order.order_code}/print?type=confirmation`,
                         "_blank",
                       )
                     }

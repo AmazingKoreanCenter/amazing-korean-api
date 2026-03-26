@@ -205,7 +205,17 @@
     "mfaVerifying": "အတည်ပြုနေသည်...",
     "mfaVerifyButton": "အတည်ပြုမည်",
     "mfaBackToLogin": "အကောင့်ဝင်ရန် ပြန်သွားမည်",
-    "mfaInvalidCode": "အတည်ပြုကုဒ် မမှန်ပါ"
+    "mfaInvalidCode": "အတည်ပြုကုဒ် မမှန်ပါ",
+    "validationRequired": "This field is required.",
+    "validationEmail": "Please enter a valid email address.",
+    "validationNameRequired": "Please enter your name.",
+    "validationNameMax": "Name must be 50 characters or less.",
+    "validationNicknameRequired": "Please enter a nickname.",
+    "validationNicknameMax": "Nickname must be 100 characters or less.",
+    "validationBirthdayFormat": "Please enter a valid date (YYYY-MM-DD).",
+    "validationCountryRequired": "Please select a country.",
+    "validationLanguageRequired": "Please select a language.",
+    "validationPasswordMax": "Password must be 72 characters or less."
   },
   "user": {
     "myPageTitle": "ကျွန်ုပ်စာမျက်နှာ",
@@ -483,8 +493,8 @@
       "viewCarousel": "Carousel View",
       "searchPlaceholder": "Search language...",
       "noResults": "No results found.",
-      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
-      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+      "bookTitle": "Amazing Korean Basics - {{language}}",
+      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK."
     },
     "detail": {
       "viewDetail": "View Details",
@@ -554,11 +564,11 @@
   "textbook": {
     "heroBadge": "Amazing Korean ဖတ်စာအုပ်များ",
     "heroTitle": "ဖတ်စာအုပ် မှာယူရန်",
-    "heroSubtitle": "ဘာသာစကား 20 မျိုးဖြင့် ဖတ်စာအုပ်များ မှာယူပါ။ ကျောင်းသားနှင့် ဆရာ ဗားရှင်းများ ရနိုင်ပါသည်။",
+    "heroSubtitle": "ဘာသာစကား 22 မျိုးဖြင့် ဖတ်စာအုပ်များ မှာယူပါ။ ကျောင်းသားနှင့် ဆရာ ဗားရှင်းများ ရနိုင်ပါသည်။",
     "catalog": {
       "badge": "ဖတ်စာအုပ်",
       "title": "ကိုရီးယား ဖတ်စာအုပ် စုစည်းမှု",
-      "description": "ဘာသာစကား 20 မျိုးဖြင့် ကျောင်းသားနှင့် ဆရာ ဗားရှင်းများဖြင့်\nစနစ်တကျ ကိုရီးယား သင်ယူမှုကို စတင်ပါ။",
+      "description": "ဘာသာစကား 22 မျိုးဖြင့် ကျောင်းသားနှင့် ဆရာ ဗားရှင်းများဖြင့်\nစနစ်တကျ ကိုရီးယား သင်ယူမှုကို စတင်ပါ။",
       "studentSection": "ကျောင်းသား ဗားရှင်း",
       "studentDescription": "သင်ယူသူများအတွက် ကိုရီးယား ဖတ်စာအုပ်များ။",
       "teacherSection": "ဆရာ ဗားရှင်း",
@@ -712,13 +722,32 @@
   "bookHub": {
     "badge": "Amazing Korean ဖတ်စာ",
     "title": "ကိုရီးယားဘာသာစကား ဖတ်စာ",
-    "subtitle": "ဘာသာ 20 ခုဖြင့် ရရှိနိုင်သော ကိုရီးယားဘာသာ သင်ယူရေး ဖတ်စာများကို ရှာဖွေပါ",
-    "descriptionTitle": "Amazing Korean ဆိုတာ ဘာလဲ?",
-    "description": "Amazing Korean သည် အခြေခံသင်ယူသူများအတွက် ဒီဇိုင်းထုတ်ထားသော စနစ်ကျသော ကိုရီးယားဘာသာ ဖတ်စာဖြစ်သည်။ ဟန်ဂုလ် ဗျည်းနှင့် သရများမှ အဓိကဝါကျများ၊ သဒ္ဒါ၊ လေ့ကျင့်ခန်းများနှင့် TOPIK ပြင်ဆင်ခြင်းအထိ — စာအုပ်တစ်အုပ်တည်းတွင် အားလုံးပါဝင်သည်။",
-    "samplePages": "စာမျက်နှာ အကြိုကြည့်ရှု",
+    "subtitle": "ဘာသာ 22 ခုဖြင့် ရရှိနိုင်သော ကိုရီးယားဘာသာ သင်ယူရေး ဖတ်စာများကို ရှာဖွေပါ",
     "samplePagesNote": "အမှန်တကယ် ဖတ်စာမှ နမူနာစာမျက်နှာများ",
-    "ctaTitle": "စာအုပ်များ ကြည့်ရှု",
     "ctaTextbook": "ပုံနှိပ်ထုတ်ဝေမှု ကတ်တလောက်",
-    "ctaEbook": "E-book ကတ်တလောက်"
+    "ctaEbook": "E-book ကတ်တလောက်",
+    "slideTitle0": "Amazing Korean Basics",
+    "slideDesc0": "Amazing Korean makes learning Korean easy.\nYou can understand Korean in any of 22 languages.\nAmazing Korean Basics is the first step to study TOPIK and EPS-TOPIK.\nFrom pronunciation to basic grammar, sentence structure, and 500 sentences to build your Korean foundation.",
+    "slideTitle1": "Hangul",
+    "slideDesc1": "Learn Korean consonants and vowels by writing and speaking them.\nSystematically study the combination principles of 14 consonants and 21 vowels.\nPractice writing with stroke order guides while mastering accurate pronunciation.\nLearn complex characters like double consonants and compound vowels step by step.",
+    "slideTitle2": "Pronunciation",
+    "slideDesc2": "Korean pronunciation is organized by characteristics with key vocabulary to help you learn easily.\nCovers major phonological rules including liaison, tensification, aspiration, and nasalization.\nPractice natural pronunciation with frequently used real-life vocabulary.\nLearn to understand and accurately reproduce Korean speakers' pronunciation patterns.",
+    "slideTitle3": "Grammar Basics",
+    "slideDesc3": "Master Korean tenses and particles through foundational vocabulary and expressions.\nLearn essential particles like 은/는, 이/가, 을/를 and past, present, and future tenses.\nPractice real usage through example sentences and exercises for each grammar point.\nNaturally learn the characteristics of Korean word order (Subject-Object-Verb).",
+    "slideTitle4": "Sentence Structure",
+    "slideDesc4": "500 essential sentences built from commonly used\nKorean expressions to help you master the basics.\nOrganized by frequency and difficulty, learn from\nimportant grammar to complex expressions step by step.",
+    "slideTitle5": "Grammar Summary",
+    "slideDesc5": "Frequently used and complex grammar points organized in tables for quick reference.\nCovers tricky topics like irregular conjugations, formal/informal speech, and connective endings.\nServes as a grammar dictionary you can refer to anytime during your studies.\nSystematically presents key grammar frequently appearing in Korean language exams.",
+    "slideTags0": "22 Languages,500 Sentences,TOPIK & EPS-TOPIK",
+    "slideTags1": "Consonants,Vowels,Writing Practice",
+    "slideTags2": "Tense Consonants,Final Consonants,Liaison",
+    "slideTags3": "Tenses,Particles,Interrogatives",
+    "slideTags4": "500 Sentences,By Frequency,By Difficulty",
+    "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
+    "specPages": "{{count}} Pages",
+    "specLanguages": "{{count}} Languages",
+    "specPrice": "₩25,000",
+    "tabTextbook": "Textbook",
+    "tabEbook": "E-book"
   }
 }

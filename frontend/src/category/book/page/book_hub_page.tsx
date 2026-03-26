@@ -1,17 +1,46 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BookOpen, ArrowRight, Tablet } from "lucide-react";
+import { BookOpen, ArrowRight, Tablet, ChevronLeft, ChevronRight, ImageOff, FileText, Globe, Tag } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PageMeta } from "@/components/page_meta";
 import { HeroSection } from "@/components/sections/hero_section";
 import { SectionContainer } from "@/components/sections/section_container";
-import { getDefaultLangKey, SAMPLE_PAGES } from "../book_data";
+import { ImageLightbox } from "@/components/image_lightbox";
+import { getDefaultLangKey, SAMPLE_PAGES, BOOK_PAGES } from "../book_data";
+
+const SLIDE_COUNT = 6; // cover + 5 sample pages
+
+const SLIDE_COLORS: Record<number, { bg: string; text: string; border: string }> = {
+  0: { bg: "bg-blue-500/10", text: "text-blue-600", border: "border-blue-500/20" },
+  1: { bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20" },
+  2: { bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/20" },
+  3: { bg: "bg-violet-500/10", text: "text-violet-600", border: "border-violet-500/20" },
+  4: { bg: "bg-rose-500/10", text: "text-rose-600", border: "border-rose-500/20" },
+  5: { bg: "bg-teal-500/10", text: "text-teal-600", border: "border-teal-500/20" },
+};
+
+function getSlideImage(langKey: string, index: number): string {
+  if (index === 0) return `/covers/student-${langKey}.webp`;
+  const page = SAMPLE_PAGES[index - 1];
+  return `/book-samples/student-${langKey}-p${page}.webp`;
+}
 
 export function BookHubPage() {
   const { t, i18n } = useTranslation();
   const langKey = getDefaultLangKey(i18n.language);
-  const langName = t(`bookHub.langName`, { defaultValue: "" });
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [imgError, setImgError] = useState<Record<number, boolean>>({});
+
+  const goPrev = () => setSlideIndex((i) => (i - 1 + SLIDE_COUNT) % SLIDE_COUNT);
+  const goNext = () => setSlideIndex((i) => (i + 1) % SLIDE_COUNT);
+
+  const currentSrc = getSlideImage(langKey, slideIndex);
+
+  // Reset error state when slide changes
+  const handleImgError = () => setImgError((prev) => ({ ...prev, [slideIndex]: true }));
 
   return (
     <div className="flex flex-col">
@@ -30,73 +59,138 @@ export function BookHubPage() {
         subtitle={t("bookHub.subtitle")}
       />
 
-      {/* Main: Cover + Description + Sample Pages */}
+      {/* Main: Gallery + Description */}
       <SectionContainer>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-          {/* Left: Cover image */}
-          <div className="flex justify-center">
-            <img
-              src={`/covers/student-${langKey}.webp`}
-              alt={langName}
-              className="w-64 md:w-80 rounded-xl shadow-lg"
-            />
+          {/* Left: Image gallery */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="relative">
+              <div
+                className="h-48 md:h-[420px] w-auto aspect-[3/4] overflow-hidden rounded-xl bg-muted shadow-lg cursor-pointer"
+                onClick={() => !imgError[slideIndex] && setLightboxOpen(true)}
+              >
+                {imgError[slideIndex] ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-3">
+                    <ImageOff className="h-12 w-12" />
+                  </div>
+                ) : (
+                  <img
+                    src={currentSrc}
+                    alt={t(`bookHub.slideTitle${slideIndex}`)}
+                    className="w-full h-full object-contain"
+                    onError={handleImgError}
+                  />
+                )}
+              </div>
+
+              {/* Navigation arrows */}
+              <button
+                type="button"
+                onClick={goPrev}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Indicator dots */}
+            <div className="flex items-center gap-2">
+              {Array.from({ length: SLIDE_COUNT }).map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setSlideIndex(i)}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    i === slideIndex ? "bg-primary" : "bg-muted-foreground/30"
+                  }`}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* Right: Description + Sample pages */}
-          <div className="space-y-6">
-            <h2 className="text-xl md:text-2xl font-bold">
-              {t("bookHub.descriptionTitle")}
-            </h2>
-            <p className="text-muted-foreground leading-relaxed">
-              {t("bookHub.description")}
-            </p>
+          {/* Right: Title + Description + Buttons (fixed positions) */}
+          <div className="flex flex-col justify-between md:h-[420px] md:py-1">
+            {/* Title (top) */}
+            <h3 className="text-lg md:text-xl font-bold text-center md:text-left">
+              {t(`bookHub.slideTitle${slideIndex}`)}
+            </h3>
 
-            {/* Sample pages */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold">{t("bookHub.samplePages")}</h3>
-              <div className="grid grid-cols-5 gap-2">
-                {SAMPLE_PAGES.map((page) => (
-                  <div key={page} className="aspect-[3/4] rounded-lg bg-muted overflow-hidden">
-                    <img
-                      src={`/book-samples/student-${langKey}-p${page}.webp`}
-                      alt={`Page ${page}`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  </div>
-                ))}
+            {/* Keyword tags (fixed below title) */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              {t(`bookHub.slideTags${slideIndex}`).split(",").map((tag) => {
+                const color = SLIDE_COLORS[slideIndex];
+                return (
+                  <span
+                    key={tag}
+                    className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-1 border ${color.bg} ${color.text} ${color.border}`}
+                  >
+                    <Tag className="h-3 w-3" />
+                    {tag}
+                  </span>
+                );
+              })}
+            </div>
+
+            {/* Description (middle) */}
+            <div className="text-muted-foreground leading-relaxed space-y-2 my-4">
+              {t(`bookHub.slideDesc${slideIndex}`).split("\n").map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+            </div>
+
+            {/* Spec summary card */}
+            <div className="grid grid-cols-3 gap-3 my-3">
+              <div className="flex items-center justify-center gap-2 rounded-lg border bg-muted/50 py-3">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-semibold">{t("bookHub.specPages", { count: BOOK_PAGES })}</span>
               </div>
-              <p className="text-xs text-muted-foreground">{t("bookHub.samplePagesNote")}</p>
+              <div className="flex items-center justify-center gap-2 rounded-lg border bg-muted/50 py-3">
+                <Globe className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-semibold">{t("bookHub.specLanguages", { count: 22 })}</span>
+              </div>
+              <div className="flex items-center justify-center gap-2 rounded-lg border bg-muted/50 py-3">
+                <BookOpen className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-semibold">{t("bookHub.specPrice")}</span>
+              </div>
+            </div>
+
+            {/* CTA buttons (bottom) */}
+            <div className="flex gap-3">
+              <Button asChild size="default" className="rounded-full flex-1">
+                <Link to="/book/textbook">
+                  <BookOpen className="mr-2 h-5 w-5" />
+                  {t("bookHub.ctaTextbook")}
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild size="default" variant="outline" className="rounded-full flex-1">
+                <Link to="/book/ebook">
+                  <Tablet className="mr-2 h-5 w-5" />
+                  {t("bookHub.ctaEbook")}
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
       </SectionContainer>
 
-      {/* CTA: Textbook / E-book */}
-      <SectionContainer className="border-t">
-        <div className="max-w-2xl mx-auto text-center space-y-6">
-          <h2 className="text-2xl md:text-3xl font-bold">{t("bookHub.ctaTitle")}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Button asChild size="lg" className="rounded-full h-12">
-              <Link to="/book/textbook">
-                <BookOpen className="mr-2 h-5 w-5" />
-                {t("bookHub.ctaTextbook")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-full h-12">
-              <Link to="/book/ebook">
-                <Tablet className="mr-2 h-5 w-5" />
-                {t("bookHub.ctaEbook")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </SectionContainer>
+      {/* Lightbox */}
+      <ImageLightbox
+        src={currentSrc}
+        alt={t(`bookHub.slideTitle${slideIndex}`)}
+        open={lightboxOpen}
+        onOpenChange={setLightboxOpen}
+        onPrev={goPrev}
+        onNext={goNext}
+      />
     </div>
   );
 }

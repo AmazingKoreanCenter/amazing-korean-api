@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-02-26
+updated: 2026-03-26
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,31 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-03-26 — Book 허브 갤러리 재구성 + 상세 모달 확장 + 라이트박스 + 가격 통일 + 유효성 검증 i18n**
+  - **허브 페이지 재구성**: `/book` 허브 페이지를 인터랙티브 6슬라이드 갤러리로 전면 개편 (커버 + 샘플 5장), 좌=이미지 갤러리(좌우 네비게이션+인디케이터 점), 우=제목+키워드 태그+설명+스펙 요약 카드+CTA 버튼
+  - **슬라이드별 키워드 태그**: 슬라이드마다 3개 색상 태그 (SLIDE_COLORS 6색 매핑: blue, emerald, amber, violet, rose, teal)
+  - **스펙 요약 카드**: 124 페이지 / 22개 언어 / 가격 — 아이콘+텍스트 가로 3열 그리드
+  - **상세 모달 6이미지 확장**: textbook/ebook 상세 모달 3장(cover/inner/toc) → 6장(cover + p7/p18/p29/p53/p118), `SAMPLE_PAGES` 배열 + `getImageSrc()` 함수, 슬라이드별 설명(`bookHub.slideTitle/Desc0~5`) 추가
+  - **신규 라이트박스**: `image_lightbox.tsx` — `createPortal`로 `document.body`에 렌더링, blur 배경(`bg-background/60 backdrop-blur-sm`), 좌우 ChevronLeft/Right 네비게이션, ESC/Arrow 키보드 지원
+  - **Radix Dialog 호환**: Radix Dialog가 `document.body`에 `pointer-events: none`을 설정하므로 라이트박스에 `pointer-events-auto` + `z-[100]` + `stopPropagation` 적용, 라이트박스를 DialogContent 내부에서 포탈로 렌더링하여 포커스 트랩 우회
+  - **카탈로그 타입 토글**: textbook/ebook 카탈로그 페이지에 "도서 | E-book" 전환 탭 추가 (학생/교사 탭 좌측), `CatalogTypeToggle` 컴포넌트 양쪽에 추가
+  - **E-book 가격 단일화 (백엔드)**: `ebook/service.rs` — 학생/교사 분리 가격(`TEACHER_PRICE_KRW` 15,000 / `STUDENT_PRICE_KRW` 12,000) → 통일 `EBOOK_PRICE_KRW` 15,000, USD $10.00 → $9.99
+  - **가격 표시 통일 (프론트)**: E-book 카드/모달/캐러셀에서 API 동적 가격 → i18n 고정 문자열(`15,000 KRW`) 변경, 도서도 `25,000 KRW` 통일 형식
+  - **Zod 유효성 검증 i18n**: `auth/types.ts` — signup/login/reset/find 전 스키마의 `.email()`/`.min()`/`.max()`/`.date()` 에러 메시지를 `i18n.t()` 다국어 키로 교체 (10키 추가), `textbook_order_page.tsx` — 주문 폼 스키마 유효성 메시지 i18n화 (9키 추가)
+  - **주문 안내 섹션 이동**: 교재 카탈로그 하단 주문 안내 3카드(최소수량/결제방법/배송) + CTA 버튼 → 주문 페이지 상단으로 이동
+  - **내부 링크 수정**: `ebook_my_purchases_page.tsx` 뷰어 링크 `/ebook/viewer/` → `/book/ebook/viewer/`, `textbook_order_status_page.tsx` 견적서/주문확인서 링크 `/textbook/order/` → `/book/textbook/order/`, `textbook_order_page.tsx` 주문 추적/견적서 링크 동일 수정
+  - **Google Translation API 잔여물 정리**: `types.rs` `to_gcp_code()` dead code 삭제, `deploy.yml` 환경변수 3개 제거, `docs/AMK_API_LEARNING.md` 문구 수정
+  - **캐러셀 씰 선택 링 제거**: `seal_list.tsx` — 선택된 국기 씰의 `ring-2 ring-primary ring-offset-2` 제거 (크기 차이+언어명+opacity로 충분히 구분)
+  - **캐러셀 씰 크기 조정**: 선택된 씰 `w-24 h-24 md:w-28 md:h-28` → `w-26 h-26 md:w-32 md:h-32`로 확대
+  - **카탈로그 카드 이미지 구분선**: textbook/ebook 그리드 카드 이미지 영역에 `border-b` 추가 (이미지↔메타정보 시각 구분)
+  - **상세 모달 학생/교사 표기 제거**: textbook/ebook 상세 모달 DialogDescription에서 학생용/교사용 텍스트 숨김 (`sr-only`)
+  - **상세 모달 간격 조정**: textbook/ebook 상세 모달 교재명↔이미지 갤러리 사이 `mt-4` 추가
+  - **E-book 모달 페이지 수 제거**: E-book 상세 모달에서 `total_pages` 표시 삭제
+  - **E-book "곧 출판 예정" 뱃지**: E-book 상세 모달+캐러셀 우측 패널에 학생/교사 모두 amber warning 뱃지 (`AlertTriangle` + "E-book · 학생용/교사용 · 곧 출판 예정")
+  - **뱃지 크기 통일**: textbook/ebook 전체 뱃지 `text-xs px-2.5 py-1` → `text-sm px-3 py-1.5`로 통일
+  - **i18n**: 22개 로케일 일괄 업데이트 — `bookHub.slideTitle/Desc/Tags0~5` 18키, `bookHub.spec*` 3키, `bookHub.tab*` 2키, `auth.validation*` 10키, `textbook.order.validation*` 9키, `ebook.catalog.pricePerUnit/bookTitle/bookDescription` 3키, `ebook.detail.teacherComingSoon/studentComingSoon` 2키, "20개"→"22개" 전역 수정
+  - **문구 수정**: 카탈로그 제목 "놀라운 한국어 도서"/"놀라운 한국어 E-book", 탭 "학생용"/"교사용", CTA "도서 보기"/"E-book 보기"
 
 - **2026-03-25 — E-book 카탈로그 출판본 패턴 적용**
   - **리디자인**: E-book 카탈로그를 출판본(textbook) 패턴으로 통일 (그리드 CoverCard + 캐러셀 SealList + 상세 모달)

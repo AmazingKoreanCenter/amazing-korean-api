@@ -256,36 +256,6 @@ pub enum SupportedLanguage {
     Tg,
 }
 
-impl SupportedLanguage {
-    /// Google Cloud Translation API용 언어 코드 반환
-    pub fn to_gcp_code(&self) -> &'static str {
-        match self {
-            Self::Ko => "ko",
-            Self::En => "en",
-            Self::Ja => "ja",
-            Self::ZhCn => "zh-CN",
-            Self::ZhTw => "zh-TW",
-            Self::Vi => "vi",
-            Self::Th => "th",
-            Self::Id => "id",
-            Self::My => "my",
-            Self::Mn => "mn",
-            Self::Ru => "ru",
-            Self::Es => "es",
-            Self::Pt => "pt",
-            Self::Fr => "fr",
-            Self::De => "de",
-            Self::Hi => "hi",
-            Self::Ne => "ne",
-            Self::Si => "si",
-            Self::Km => "km",
-            Self::Uz => "uz",
-            Self::Kk => "kk",
-            Self::Tg => "tg",
-        }
-    }
-}
-
 // -----------------------------------------------------------------------------
 // 5. Content (Video, Study, Lesson) Enums
 // -----------------------------------------------------------------------------

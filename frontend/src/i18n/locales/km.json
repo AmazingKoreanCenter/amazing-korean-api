@@ -205,7 +205,17 @@
     "mfaVerifying": "កំពុងផ្ទៀងផ្ទាត់...",
     "mfaVerifyButton": "ផ្ទៀងផ្ទាត់",
     "mfaBackToLogin": "ត្រឡប់ទៅចូលគណនី",
-    "mfaInvalidCode": "លេខកូដផ្ទៀងផ្ទាត់មិនត្រឹមត្រូវ"
+    "mfaInvalidCode": "លេខកូដផ្ទៀងផ្ទាត់មិនត្រឹមត្រូវ",
+    "validationRequired": "This field is required.",
+    "validationEmail": "Please enter a valid email address.",
+    "validationNameRequired": "Please enter your name.",
+    "validationNameMax": "Name must be 50 characters or less.",
+    "validationNicknameRequired": "Please enter a nickname.",
+    "validationNicknameMax": "Nickname must be 100 characters or less.",
+    "validationBirthdayFormat": "Please enter a valid date (YYYY-MM-DD).",
+    "validationCountryRequired": "Please select a country.",
+    "validationLanguageRequired": "Please select a language.",
+    "validationPasswordMax": "Password must be 72 characters or less."
   },
   "user": {
     "myPageTitle": "ទំព័ររបស់ខ្ញុំ",
@@ -483,8 +493,8 @@
       "viewCarousel": "Carousel View",
       "searchPlaceholder": "Search language...",
       "noResults": "No results found.",
-      "bookTitle": "Amazing Korean Basics E-book - {{language}}",
-      "bookDescription": "A foundational digital textbook for learning Korean.\nComposed in Korean - English - {{language}},\navailable to read online instantly."
+      "bookTitle": "Amazing Korean Basics - {{language}}",
+      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK."
     },
     "detail": {
       "viewDetail": "View Details",
@@ -554,11 +564,11 @@
   "textbook": {
     "heroBadge": "សៀវភៅសិក្សា Amazing Korean",
     "heroTitle": "បញ្ជាទិញសៀវភៅសិក្សា",
-    "heroSubtitle": "បញ្ជាទិញសៀវភៅសិក្សាជា 20 ភាសា។ មានកំណែសិស្សនិងគ្រូបង្រៀន។",
+    "heroSubtitle": "បញ្ជាទិញសៀវភៅសិក្សាជា 22 ភាសា។ មានកំណែសិស្សនិងគ្រូបង្រៀន។",
     "catalog": {
       "badge": "សៀវភៅសិក្សា",
       "title": "បណ្ដុំសៀវភៅសិក្សាភាសាកូរ៉េ",
-      "description": "ចាប់ផ្ដើមការសិក្សាភាសាកូរ៉េជាប្រព័ន្ធ\nជាមួយកំណែសិស្សនិងគ្រូបង្រៀនជា 20 ភាសា។",
+      "description": "ចាប់ផ្ដើមការសិក្សាភាសាកូរ៉េជាប្រព័ន្ធ\nជាមួយកំណែសិស្សនិងគ្រូបង្រៀនជា 22 ភាសា។",
       "studentSection": "កំណែសិស្ស",
       "studentDescription": "សៀវភៅសិក្សាភាសាកូរ៉េសម្រាប់អ្នកសិក្សា។",
       "teacherSection": "កំណែគ្រូបង្រៀន",
@@ -712,13 +722,32 @@
   "bookHub": {
     "badge": "សៀវភៅសិក្សា Amazing Korean",
     "title": "សៀវភៅសិក្សាភាសាកូរ៉េ",
-    "subtitle": "ស្វែងរកសៀវភៅសិក្សាភាសាកូរ៉េដែលមានជា 20 ភាសា",
-    "descriptionTitle": "Amazing Korean ជាអ្វី?",
-    "description": "Amazing Korean គឺជាសៀវភៅសិក្សាភាសាកូរ៉េជាប្រព័ន្ធសម្រាប់អ្នកចាប់ផ្តើម។ ពីព្យញ្ជនៈ និងស្រៈហង្គុលដល់ប្រយោគសំខាន់ៗ វេយ្យាករណ៍ លំហាត់ និងការរៀបចំ TOPIK — ទាំងអស់ក្នុងសៀវភៅមួយ។",
-    "samplePages": "មើលជាមុន",
+    "subtitle": "ស្វែងរកសៀវភៅសិក្សាភាសាកូរ៉េដែលមានជា 22 ភាសា",
     "samplePagesNote": "ទំព័រគំរូពីសៀវភៅសិក្សាពិត",
-    "ctaTitle": "រុករកសៀវភៅ",
     "ctaTextbook": "កាតាឡុកបោះពុម្ព",
-    "ctaEbook": "កាតាឡុក E-book"
+    "ctaEbook": "កាតាឡុក E-book",
+    "slideTitle0": "Amazing Korean Basics",
+    "slideDesc0": "Amazing Korean makes learning Korean easy.\nYou can understand Korean in any of 22 languages.\nAmazing Korean Basics is the first step to study TOPIK and EPS-TOPIK.\nFrom pronunciation to basic grammar, sentence structure, and 500 sentences to build your Korean foundation.",
+    "slideTitle1": "Hangul",
+    "slideDesc1": "Learn Korean consonants and vowels by writing and speaking them.\nSystematically study the combination principles of 14 consonants and 21 vowels.\nPractice writing with stroke order guides while mastering accurate pronunciation.\nLearn complex characters like double consonants and compound vowels step by step.",
+    "slideTitle2": "Pronunciation",
+    "slideDesc2": "Korean pronunciation is organized by characteristics with key vocabulary to help you learn easily.\nCovers major phonological rules including liaison, tensification, aspiration, and nasalization.\nPractice natural pronunciation with frequently used real-life vocabulary.\nLearn to understand and accurately reproduce Korean speakers' pronunciation patterns.",
+    "slideTitle3": "Grammar Basics",
+    "slideDesc3": "Master Korean tenses and particles through foundational vocabulary and expressions.\nLearn essential particles like 은/는, 이/가, 을/를 and past, present, and future tenses.\nPractice real usage through example sentences and exercises for each grammar point.\nNaturally learn the characteristics of Korean word order (Subject-Object-Verb).",
+    "slideTitle4": "Sentence Structure",
+    "slideDesc4": "500 essential sentences built from commonly used\nKorean expressions to help you master the basics.\nOrganized by frequency and difficulty, learn from\nimportant grammar to complex expressions step by step.",
+    "slideTitle5": "Grammar Summary",
+    "slideDesc5": "Frequently used and complex grammar points organized in tables for quick reference.\nCovers tricky topics like irregular conjugations, formal/informal speech, and connective endings.\nServes as a grammar dictionary you can refer to anytime during your studies.\nSystematically presents key grammar frequently appearing in Korean language exams.",
+    "slideTags0": "22 Languages,500 Sentences,TOPIK & EPS-TOPIK",
+    "slideTags1": "Consonants,Vowels,Writing Practice",
+    "slideTags2": "Tense Consonants,Final Consonants,Liaison",
+    "slideTags3": "Tenses,Particles,Interrogatives",
+    "slideTags4": "500 Sentences,By Frequency,By Difficulty",
+    "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
+    "specPages": "{{count}} Pages",
+    "specLanguages": "{{count}} Languages",
+    "specPrice": "₩25,000",
+    "tabTextbook": "Textbook",
+    "tabEbook": "E-book"
   }
 }

@@ -113,7 +113,7 @@ export function EbookMyPurchasesPage() {
                     <div className="flex gap-2">
                       {purchase.status === "completed" && (
                         <Button size="sm" asChild>
-                          <Link to={`/ebook/viewer/${purchase.purchase_code}`}>
+                          <Link to={`/book/ebook/viewer/${purchase.purchase_code}`}>
                             <Eye className="w-4 h-4 mr-1" />
                             {t("ebook.my.openViewer")}
                           </Link>

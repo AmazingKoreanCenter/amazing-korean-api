@@ -173,16 +173,16 @@ export function EbookPreviewModal({
           </div>
 
           {/* Info */}
-          {editionInfo && (
-            <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-sm">
+            {editionInfo && (
               <span className="text-muted-foreground">
                 {editionInfo.total_pages}{t("ebook.preview.pages")}
               </span>
-              <span className="text-lg font-semibold">
-                {editionInfo.price.toLocaleString()} {editionInfo.currency}
-              </span>
-            </div>
-          )}
+            )}
+            <span className="text-lg font-semibold">
+              {t("ebook.catalog.pricePerUnit")}
+            </span>
+          </div>
 
           {/* Purchase button */}
           <Button
