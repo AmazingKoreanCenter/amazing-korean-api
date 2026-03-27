@@ -15,6 +15,7 @@ import {
   Package,
   CreditCard,
   Truck,
+  BadgePercent,
   ScrollText,
   FileText,
 } from "lucide-react";
@@ -427,32 +428,38 @@ export function TextbookOrderPage() {
 
       {/* 주문 안내 */}
       <section className="py-8 lg:py-10">
-        <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center space-y-8">
+        <div className="max-w-3xl mx-auto px-6 lg:px-8 text-center space-y-6">
           <h2 className="text-2xl md:text-3xl font-bold">{t("textbook.catalog.orderGuideTitle")}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card shadow-card border">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Package className="h-6 w-6 text-primary" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-card shadow-card border">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <Package className="h-6 w-6 text-blue-600" />
               </div>
-              <p className="text-sm text-muted-foreground text-center">{t("textbook.catalog.orderGuideMinQty")}</p>
+              <p className="text-sm text-muted-foreground text-center whitespace-pre-line">{t("textbook.catalog.orderGuideMinQty")}</p>
             </div>
-            <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card shadow-card border">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <CreditCard className="h-6 w-6 text-primary" />
+            <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-card shadow-card border">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                <CreditCard className="h-6 w-6 text-emerald-600" />
               </div>
-              <p className="text-sm text-muted-foreground text-center">{t("textbook.catalog.orderGuidePayment")}</p>
+              <p className="text-sm text-muted-foreground text-center whitespace-pre-line">{t("textbook.catalog.orderGuidePayment")}</p>
             </div>
-            <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card shadow-card border">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Truck className="h-6 w-6 text-primary" />
+            <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-card shadow-card border">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                <Truck className="h-6 w-6 text-violet-600" />
               </div>
-              <p className="text-sm text-muted-foreground text-center">{t("textbook.catalog.orderGuideBulk")}</p>
+              <p className="text-sm text-muted-foreground text-center whitespace-pre-line">{t("textbook.catalog.orderGuideBulk")}</p>
+            </div>
+            <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-card shadow-card border">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <BadgePercent className="h-6 w-6 text-amber-600" />
+              </div>
+              <p className="text-sm text-muted-foreground text-center whitespace-pre-line">{t("textbook.catalog.orderGuideDiscount")}</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-12 lg:py-16">
+      <section className="lg:py-2">
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
           <Form {...form}>
             <form
