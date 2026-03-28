@@ -39,11 +39,10 @@ pub async fn create_purchase(
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
     let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-    if attempts == 1 {
-        let _: () = redis_conn
-            .expire(&rl_key, st.cfg.rate_limit_ebook_purchase_window_sec)
-            .await?;
-    }
+    // 매번 EXPIRE 호출 — TOCTOU 경합 방지 (동시 요청 시 첫 요청만 TTL 설정하는 문제 해결)
+    let _: () = redis_conn
+        .expire(&rl_key, st.cfg.rate_limit_ebook_purchase_window_sec)
+        .await?;
     if attempts > st.cfg.rate_limit_ebook_purchase_max {
         return Err(AppError::TooManyRequests(
             "EBOOK_429_TOO_MANY_PURCHASES".into(),
@@ -123,8 +122,12 @@ pub async fn get_page_image(
         return Err(AppError::Forbidden("Direct access not allowed".into()));
     }
 
-    // 뷰어 세션 검증 (Redis 장애 시 fail closed)
-    EbookService::verify_session(&st, claims.sub).await?;
+    // 뷰어 세션 검증 (Redis 장애 시 fail closed, session_id 비교)
+    let session_id = headers
+        .get("x-ebook-session")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+    EbookService::verify_session(&st, claims.sub, session_id.as_deref()).await?;
 
     // User-level Rate Limiting (페이지 크롤링 방지)
     let rl_key = format!("rl:ebook_page:{}", claims.sub);
@@ -135,11 +138,9 @@ pub async fn get_page_image(
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
     let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-    if attempts == 1 {
-        let _: () = redis_conn
-            .expire(&rl_key, st.cfg.rate_limit_ebook_page_window_sec)
-            .await?;
-    }
+    let _: () = redis_conn
+        .expire(&rl_key, st.cfg.rate_limit_ebook_page_window_sec)
+        .await?;
     if attempts > st.cfg.rate_limit_ebook_page_max {
         return Err(AppError::TooManyRequests(
             "EBOOK_429_TOO_MANY_PAGE_REQUESTS".into(),
@@ -166,8 +167,10 @@ pub async fn get_page_image(
     let response = Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "image/webp")
-        .header("Cache-Control", "private, max-age=300")
+        .header("Content-Disposition", "inline")
+        .header("Cache-Control", "private, no-store")
         .header("X-Content-Type-Options", "nosniff")
+        .header("Referrer-Policy", "no-referrer")
         .body(Body::from(image_bytes))
         .map_err(|e| AppError::Internal(format!("Failed to build response: {e}").into()))?;
 
@@ -193,8 +196,12 @@ pub async fn get_page_tile(
         return Err(AppError::Forbidden("Direct access not allowed".into()));
     }
 
-    // 뷰어 세션 검증 (Redis 장애 시 fail closed)
-    EbookService::verify_session(&st, claims.sub).await?;
+    // 뷰어 세션 검증 (Redis 장애 시 fail closed, session_id 비교)
+    let session_id = headers
+        .get("x-ebook-session")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+    EbookService::verify_session(&st, claims.sub, session_id.as_deref()).await?;
 
     // User-level Rate Limiting (타일 전용)
     let rl_key = format!("rl:ebook_tile:{}", claims.sub);
@@ -205,11 +212,9 @@ pub async fn get_page_tile(
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
     let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-    if attempts == 1 {
-        let _: () = redis_conn
-            .expire(&rl_key, st.cfg.rate_limit_ebook_tile_window_sec)
-            .await?;
-    }
+    let _: () = redis_conn
+        .expire(&rl_key, st.cfg.rate_limit_ebook_tile_window_sec)
+        .await?;
     if attempts > st.cfg.rate_limit_ebook_tile_max {
         return Err(AppError::TooManyRequests(
             "EBOOK_429_TOO_MANY_TILE_REQUESTS".into(),
@@ -237,8 +242,10 @@ pub async fn get_page_tile(
     let response = Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "image/webp")
-        .header("Cache-Control", "private, max-age=300")
+        .header("Content-Disposition", "inline")
+        .header("Cache-Control", "private, no-store")
         .header("X-Content-Type-Options", "nosniff")
+        .header("Referrer-Policy", "no-referrer")
         .body(Body::from(tile_bytes))
         .map_err(|e| AppError::Internal(format!("Failed to build response: {e}").into()))?;
 

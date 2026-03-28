@@ -503,7 +503,9 @@
       "tocImage": "Table of Contents",
       "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
       "pages": " pages",
-      "imageNotAvailable": "Image not available"
+      "imageNotAvailable": "Image not available",
+      "teacherComingSoon": "E-book · O'qituvchi · Tez orada chiqadi",
+      "studentComingSoon": "E-book · Talaba · Tez orada chiqadi"
     },
     "purchase": {
       "title": "Xarid tafsilotlari",
@@ -576,9 +578,10 @@
       "orderButton": "Buyurtma berish",
       "pricePerUnit": "₩25,000 / nusxa",
       "orderGuideTitle": "Buyurtma ma'lumotlari",
-      "orderGuideMinQty": "Minimal buyurtma miqdori 10 nusxa.",
-      "orderGuidePayment": "Bank o'tkazmasi orqali to'lov.",
-      "orderGuideBulk": "100+ nusxadan bepul yetkazib berish",
+      "orderGuideMinQty": "Minimal buyurtma\nmiqdori 10 nusxa.",
+      "orderGuidePayment": "Bank o'tkazmasi\norqali to'lov.",
+      "orderGuideBulk": "Bepul yetkazib berish",
+      "orderGuideDiscount": "30+ nusxa buyurtmada\nhar biri 20 000 von",
       "orderCta": "Darsliklarni buyurtma qilish",
       "viewGrid": "Katakchali ko'rinish",
       "viewCarousel": "Karusel ko'rinishi",

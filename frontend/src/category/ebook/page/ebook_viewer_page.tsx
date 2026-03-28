@@ -100,7 +100,7 @@ function TiledPageCanvas({
     const images: HTMLImageElement[] = [];
     const urls: string[] = [];
 
-    Promise.all(
+    Promise.allSettled(
       tiles.map((buf) => {
         const blob = new Blob([buf!], { type: "image/webp" });
         const url = URL.createObjectURL(blob);
@@ -112,8 +112,17 @@ function TiledPageCanvas({
           img.src = url;
         });
       })
-    ).then((imgs) => {
+    ).then((results) => {
       if (cancelled) return;
+
+      // 실패한 타일은 1x1 빈 이미지로 대체
+      const imgs = results.map((r) => {
+        if (r.status === "fulfilled") return r.value;
+        const fallback = new Image();
+        fallback.width = 1;
+        fallback.height = 1;
+        return fallback;
+      });
       images.push(...imgs);
 
       // 캔버스 크기 계산 (타일 크기 합산)
@@ -355,6 +364,10 @@ export function EbookViewerPage() {
       try {
         const res = await sendViewerHeartbeat(meta.session_id);
         if (!res.valid) {
+          // 세션 무효 → Canvas 즉시 클리어 후 리다이렉트
+          document.querySelectorAll("canvas").forEach((c) => {
+            c.getContext("2d")?.clearRect(0, 0, c.width, c.height);
+          });
           navigate("/book/ebook/my");
         }
       } catch {
@@ -377,13 +390,16 @@ export function EbookViewerPage() {
   const gridRows = meta?.grid_rows ?? 3;
   const gridCols = meta?.grid_cols ?? 3;
 
+  const sessionId = meta?.session_id;
+
   // 단일 이미지 모드 (tile_mode=false)
   const { data: imageData, isLoading: imageLoading } = usePageImage(
     purchaseCode ?? "",
     currentPage,
     totalPages,
     !!meta && !tileMode,
-    viewMode
+    viewMode,
+    sessionId,
   );
 
   const { data: imageDataRight, isLoading: imageLoadingRight } = usePageImage(
@@ -391,7 +407,8 @@ export function EbookViewerPage() {
     spreadRightPage ?? 0,
     totalPages,
     !!meta && !tileMode && spreadRightPage !== null,
-    viewMode
+    viewMode,
+    sessionId,
   );
 
   // 타일 분할 모드 (tile_mode=true)
@@ -401,7 +418,8 @@ export function EbookViewerPage() {
     totalPages,
     gridRows,
     gridCols,
-    !!meta && tileMode
+    !!meta && tileMode,
+    sessionId,
   );
 
   const { tiles: tilesRight, isLoading: tilesRightLoading } = usePageTiles(
@@ -410,7 +428,8 @@ export function EbookViewerPage() {
     totalPages,
     gridRows,
     gridCols,
-    !!meta && tileMode && spreadRightPage !== null
+    !!meta && tileMode && spreadRightPage !== null,
+    sessionId,
   );
 
   // 통합 로딩 상태
@@ -633,11 +652,10 @@ export function EbookViewerPage() {
     <>
       {/* 풀스크린 시 사이트 전체 숨기고 뷰어만 표시 */}
       <style>{`
-        @media print { .ebook-viewer { display: none !important; } }
+        @media print { body * { display: none !important; visibility: hidden !important; } }
         :fullscreen .site-header,
         :fullscreen .site-nav,
-        :fullscreen .site-footer,
-        :fullscreen > body > *:not(.ebook-viewer-fs) { }
+        :fullscreen .site-footer { display: none !important; }
       `}</style>
 
       <div

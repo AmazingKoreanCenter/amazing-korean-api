@@ -256,12 +256,10 @@ impl StudyService {
             .incr(&rl_key, 1)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
-        if attempts == 1 {
-            let _: () = redis_conn
-                .expire(&rl_key, st.cfg.rate_limit_study_window_sec)
-                .await
-                .map_err(|e| AppError::Internal(e.to_string()))?;
-        }
+        let _: () = redis_conn
+            .expire(&rl_key, st.cfg.rate_limit_study_window_sec)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
         if attempts > st.cfg.rate_limit_study_max {
             return Err(AppError::TooManyRequests(
                 "STUDY_429_TOO_MANY_SUBMISSIONS".into(),

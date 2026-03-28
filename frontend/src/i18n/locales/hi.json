@@ -503,7 +503,9 @@
       "tocImage": "Table of Contents",
       "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
       "pages": " pages",
-      "imageNotAvailable": "Image not available"
+      "imageNotAvailable": "Image not available",
+      "teacherComingSoon": "E-book · शिक्षक · जल्द प्रकाशित",
+      "studentComingSoon": "E-book · छात्र · जल्द प्रकाशित"
     },
     "purchase": {
       "title": "खरीद विवरण",
@@ -576,9 +578,10 @@
       "orderButton": "ऑर्डर करें",
       "pricePerUnit": "₩25,000 / प्रति",
       "orderGuideTitle": "ऑर्डर जानकारी",
-      "orderGuideMinQty": "न्यूनतम ऑर्डर मात्रा 10 प्रतियाँ है।",
-      "orderGuidePayment": "बैंक ट्रांसफर द्वारा भुगतान।",
-      "orderGuideBulk": "100+ प्रतियों के ऑर्डर पर मुफ्त शिपिंग",
+      "orderGuideMinQty": "न्यूनतम ऑर्डर\n10 प्रतियाँ।",
+      "orderGuidePayment": "बैंक ट्रांसफर से\nभुगतान।",
+      "orderGuideBulk": "मुफ़्त शिपिंग",
+      "orderGuideDiscount": "30+ प्रतियों का ऑर्डर\n20,000 KRW प्रति",
       "orderCta": "पाठ्यपुस्तकें ऑर्डर करें",
       "viewGrid": "ग्रिड दृश्य",
       "viewCarousel": "कैरोसेल दृश्य",

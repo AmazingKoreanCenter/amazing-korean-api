@@ -12,7 +12,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 // [CORS] 필요한 모듈 추가
 use tower_http::cors::CorsLayer;
-use http::{Method, HeaderValue, header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT}};
+use http::{Method, HeaderValue, HeaderName, header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT}};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -153,7 +153,7 @@ async fn main() -> anyhow::Result<()> {
             Method::DELETE,
             Method::OPTIONS
         ])
-        .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT, HeaderName::from_static("x-ebook-viewer"), HeaderName::from_static("x-ebook-session")])
         .allow_credentials(true); // 쿠키(Refresh Token) 교환을 위해 필수
 
     // 8) 라우터에 CORS + 보안 헤더 레이어 적용

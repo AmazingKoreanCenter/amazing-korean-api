@@ -330,7 +330,7 @@ migrations/YYYYMMDD_description.sql
 
 ```bash
 # 1. 마이그레이션 파일 작성
-touch migrations/20260324120000_add_new_feature.sql
+touch migrations/20260325_add_new_feature.sql
 # SQL 작성...
 
 # 2. 로컬 DB에서 테스트

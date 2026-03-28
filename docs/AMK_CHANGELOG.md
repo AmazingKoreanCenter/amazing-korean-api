@@ -11,6 +11,16 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-28 — E-book 보안 강화 + Gemini 코드 리뷰 반영**
+  - **보안 강화 (커밋 9247413)**: CORS `x-ebook-viewer`/`x-ebook-session` 허용, verify_session session_id 비교, Content-Disposition/Referrer-Policy/Cache-Control `no-store` 헤더, Rate Limit TOCTOU 경합 수정 (3곳), 마이크로도트 y좌표 ±3px 분산, Heartbeat 실패 시 Canvas 즉시 클리어, print CSS `body *` 전체 숨김 강화
+  - **Gemini 리뷰 반영 (커밋 7854e87)**: `AMK_DEPLOY_OPS.md` 마이그레이션 예시 HHMMSS 모순 수정, `AMK_CHANGELOG.md` embla 표현 수정, `embla-carousel-react` 미사용 패키지 제거, `use_page_image.ts` queryClient 불필요 의존성 제거, TiledPageCanvas `Promise.all` → `Promise.allSettled` (부분 렌더링 지원)
+
+- **2026-03-27 — 교재 주문 안내 카드 UI 개선 + 30부 할인 안내 추가**
+  - 주문 안내 카드 3열 → 4열 그리드 (sm:2 lg:4), 30부 이상 할인 카드 추가 (BadgePercent 아이콘)
+  - 카드별 아이콘 색상 차별화 (blue/emerald/violet/amber)
+  - 배송 문구 "무료 배송"으로 변경, 카드 텍스트 줄바꿈 (whitespace-pre-line)
+  - ko/en locale 업데이트 (orderGuideDiscount 추가, 기존 키 줄바꿈 반영)
+
 - **2026-03-26 — Book 허브 갤러리 재구성 + 상세 모달 확장 + 라이트박스 + 가격 통일 + 유효성 검증 i18n**
   - **허브 페이지 재구성**: `/book` 허브 페이지를 인터랙티브 6슬라이드 갤러리로 전면 개편 (커버 + 샘플 5장), 좌=이미지 갤러리(좌우 네비게이션+인디케이터 점), 우=제목+키워드 태그+설명+스펙 요약 카드+CTA 버튼
   - **슬라이드별 키워드 태그**: 슬라이드마다 3개 색상 태그 (SLIDE_COLORS 6색 매핑: blue, emerald, amber, violet, rose, teal)
@@ -142,7 +152,7 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - **수정**: `index.css` — Swiper CSS 임포트 4종 (swiper/css, effect-coverflow, free-mode, thumbs)
   - **기능**: 상단↔하단 양방향 동기화 (클릭/드래그 모두), 비가시 슬라이드 자동 숨김 (watchSlidesProgress)
   - **에셋**: `frontend/public/seals/*.svg` 24개 국가 씰 SVG 파일
-  - **패키지**: `swiper@^12` 추가, `embla-carousel-react` 유지 (다른 곳 사용 가능)
+  - **패키지**: `swiper@^12` 추가, `embla-carousel-react` 제거 (미사용)
   - **i18n**: 22개 로케일 — `bookTitle`, `bookDescriptionStudent`, `bookDescriptionTeacher`, `editionInfo` 키 추가
 
 - **2026-03-24 — 교재 카탈로그 캐러셀 뷰 추가**
