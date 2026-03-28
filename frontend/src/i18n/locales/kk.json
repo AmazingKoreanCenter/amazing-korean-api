@@ -503,7 +503,9 @@
       "tocImage": "Table of Contents",
       "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
       "pages": " pages",
-      "imageNotAvailable": "Image not available"
+      "imageNotAvailable": "Image not available",
+      "teacherComingSoon": "E-book · Мұғалім · Жақын арада шығады",
+      "studentComingSoon": "E-book · Оқушы · Жақын арада шығады"
     },
     "purchase": {
       "title": "Сатып алу мәліметтері",
@@ -576,9 +578,10 @@
       "orderButton": "Тапсырыс беру",
       "pricePerUnit": "₩25,000 / дана",
       "orderGuideTitle": "Тапсырыс туралы ақпарат",
-      "orderGuideMinQty": "Ең аз тапсырыс саны — 10 дана.",
-      "orderGuidePayment": "Банк аударымы арқылы төлем.",
-      "orderGuideBulk": "100+ данадан тегін жеткізу",
+      "orderGuideMinQty": "Ең аз тапсырыс\nсаны 10 дана.",
+      "orderGuidePayment": "Банк аударымы\nарқылы төлем.",
+      "orderGuideBulk": "Тегін жеткізу",
+      "orderGuideDiscount": "30+ дана тапсырыста\nдана бойынша 20 000 вон",
       "orderCta": "Оқулықтарды тапсырыс беру",
       "viewGrid": "Тор көрінісі",
       "viewCarousel": "Карусель көрінісі",

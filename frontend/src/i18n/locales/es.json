@@ -503,7 +503,9 @@
       "tocImage": "Table of Contents",
       "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
       "pages": " pages",
-      "imageNotAvailable": "Image not available"
+      "imageNotAvailable": "Image not available",
+      "teacherComingSoon": "E-book · Profesor · Próximamente",
+      "studentComingSoon": "E-book · Estudiante · Próximamente"
     },
     "purchase": {
       "title": "Detalles de compra",
@@ -576,9 +578,10 @@
       "orderButton": "Pedir",
       "pricePerUnit": "₩25.000 / ejemplar",
       "orderGuideTitle": "Información del pedido",
-      "orderGuideMinQty": "La cantidad mínima de pedido es de 10 ejemplares.",
-      "orderGuidePayment": "Pago por transferencia bancaria.",
-      "orderGuideBulk": "Envío gratuito para pedidos de más de 100 ejemplares",
+      "orderGuideMinQty": "Cantidad mínima\nde pedido: 10.",
+      "orderGuidePayment": "Pago mediante\ntransferencia bancaria.",
+      "orderGuideBulk": "Envío gratuito",
+      "orderGuideDiscount": "Pedidos de 30+\n20.000 KRW c/u",
       "orderCta": "Pedir libros de texto",
       "viewGrid": "Vista de cuadrícula",
       "viewCarousel": "Vista de carrusel",

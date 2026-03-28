@@ -503,7 +503,9 @@
       "tocImage": "Table of Contents",
       "description": "A foundational digital textbook for learning Korean. Composed in Korean - English - {{language}}, available to read online instantly.",
       "pages": " pages",
-      "imageNotAvailable": "Image not available"
+      "imageNotAvailable": "Image not available",
+      "teacherComingSoon": "E-book · Муаллим · Ба наздикӣ нашр мешавад",
+      "studentComingSoon": "E-book · Донишҷӯ · Ба наздикӣ нашр мешавад"
     },
     "purchase": {
       "title": "Тафсилоти харид",
@@ -576,9 +578,10 @@
       "orderButton": "Фармоиш додан",
       "pricePerUnit": "₩25,000 / нусха",
       "orderGuideTitle": "Маълумоти фармоиш",
-      "orderGuideMinQty": "Ҳадди ақали фармоиш 10 нусха.",
-      "orderGuidePayment": "Пардохт тавассути интиқоли бонкӣ.",
-      "orderGuideBulk": "Интиқоли ройгон барои фармоиши 100+ нусха",
+      "orderGuideMinQty": "Миқдори ҳадди ақали\nфармоиш 10 нусха.",
+      "orderGuidePayment": "Пардохт тавассути\nинтиқоли бонкӣ.",
+      "orderGuideBulk": "Интиқоли ройгон",
+      "orderGuideDiscount": "Фармоиши 30+ нусха\nҳар як 20,000 вон",
       "orderCta": "Китобҳои дарсиро фармоиш диҳед",
       "viewGrid": "Намоиши тӯрӣ",
       "viewCarousel": "Намоиши карусел",
