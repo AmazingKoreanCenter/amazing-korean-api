@@ -55,9 +55,7 @@ pub async fn create_order(
     let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
 
     let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-    if attempts == 1 {
-        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_textbook_window_sec).await?;
-    }
+    let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_textbook_window_sec).await?;
     if attempts > st.cfg.rate_limit_textbook_max {
         return Err(AppError::TooManyRequests("TEXTBOOK_429_TOO_MANY_ORDERS".into()));
     }

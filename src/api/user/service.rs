@@ -101,9 +101,7 @@ impl UserService {
         let mut redis = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis.incr(&rl_key, 1).await?;
-        if attempts == 1 {
-            let _: () = redis.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
-        }
+        let _: () = redis.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
         if attempts > st.cfg.rate_limit_login_max {
             return Err(AppError::TooManyRequests("Too many signup attempts".into()));
         }

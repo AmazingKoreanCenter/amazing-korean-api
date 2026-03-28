@@ -153,9 +153,7 @@ impl AuthService {
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        if attempts == 1 {
-            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
-        }
+        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
         if attempts > st.cfg.rate_limit_login_max {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
         }
@@ -544,9 +542,7 @@ impl AuthService {
         let rl_key = format!("rl:find_id:{}", client_ip);
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        if attempts == 1 {
-            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
-        }
+        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
         if attempts > st.cfg.rate_limit_login_max {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
         }
@@ -614,9 +610,7 @@ impl AuthService {
         let rl_key = format!("rl:find_password:{}", client_ip);
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        if attempts == 1 {
-            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
-        }
+        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
         if attempts > st.cfg.rate_limit_email_max {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
         }
@@ -713,9 +707,7 @@ impl AuthService {
         let rl_key = format!("rl:reset_pw:{}", client_ip);
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        if attempts == 1 {
-            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
-        }
+        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
         if attempts > st.cfg.rate_limit_login_max {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
         }
@@ -905,9 +897,7 @@ impl AuthService {
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        if attempts == 1 {
-            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
-        }
+        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
         if attempts > st.cfg.rate_limit_email_max {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_RESET_REQUESTS".into()));
         }
@@ -994,9 +984,7 @@ impl AuthService {
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        if attempts == 1 {
-            let _: () = redis_conn.expire(&rl_key, 3600).await?; // 1시간 윈도우
-        }
+        let _: () = redis_conn.expire(&rl_key, 3600).await?;
         if attempts > 10 {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_VERIFY_ATTEMPTS".into()));
         }
@@ -1063,9 +1051,7 @@ impl AuthService {
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        if attempts == 1 {
-            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
-        }
+        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
         if attempts > st.cfg.rate_limit_login_max {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
         }
@@ -1152,9 +1138,7 @@ impl AuthService {
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        if attempts == 1 {
-            let _: () = redis_conn.expire(&rl_key, 3600).await?; // 1시간 윈도우
-        }
+        let _: () = redis_conn.expire(&rl_key, 3600).await?;
         if attempts > 10 {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_VERIFY_ATTEMPTS".into()));
         }
@@ -1217,9 +1201,7 @@ impl AuthService {
         let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        if attempts == 1 {
-            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
-        }
+        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
         if attempts > st.cfg.rate_limit_email_max {
             return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_RESEND_REQUESTS".into()));
         }
@@ -1837,9 +1819,7 @@ impl AuthService {
         // [Step 2] Rate limit: MFA 코드 검증
         let rl_key = format!("rl:mfa:{}:{}", user_id, login_ip);
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        if attempts == 1 {
-            let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_mfa_window_sec).await?;
-        }
+        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_mfa_window_sec).await?;
         if attempts > st.cfg.rate_limit_mfa_max {
             return Err(AppError::TooManyRequests("MFA_429_TOO_MANY_ATTEMPTS".into()));
         }
