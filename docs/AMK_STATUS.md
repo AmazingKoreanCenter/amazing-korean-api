@@ -52,6 +52,9 @@
 | 36 | 교재 캐러셀 모바일 최적화 | 프론트 | 모바일: 상단 Coverflow 숨김 + 하단 Thumbs만 표시, 교재 상세 세로 쌓기 (표지 위 + 설명 아래) | 2026-03-25 | — |
 | 37 | E-book 카탈로그 출판본 패턴 적용 | 프론트 | E-book 카탈로그 전면 리라이트 (출판본 패턴 통일): 그리드 CoverCard + 캐러셀 SealList + 상세 모달 (좌우 스와이프), HeroSection/Tabs/검색/뷰토글, SealList SealItem 인터페이스 일반화, 표지 이미지 공유, 22개 로케일 i18n 14키 추가 | 2026-03-25 | 구매 섹션 최종 디자인 결정 대기 |
 | 38 | Book 허브 갤러리 + 라이트박스 + 가격 통일 + UI 개선 | 풀스택 | 허브 6슬라이드 갤러리(키워드 태그+스펙 카드), 상세 모달 3→6이미지 확장, blur 라이트박스(createPortal+Radix Dialog 호환), 카탈로그 도서/E-book 전환 탭, E-book 백엔드 가격 단일화(15,000 KRW/$9.99), Zod 유효성 검증 i18n(auth+주문), 주문 안내 이동, /book/ 링크 수정, Google Translation API 잔여물 정리, 캐러셀 씰 링 제거+크기 조정, 카드 이미지 구분선, 모달 학생/교사 표기 숨김+간격 조정, E-book "곧 출판 예정" warning 뱃지, 뱃지 크기 통일, 22개 로케일 i18n 50+키 | 2026-03-26 | — |
+| 39 | 교재 주문 안내 카드 UI 개선 | 프론트 | 주문 안내 4열 그리드, 30부 할인 카드(BadgePercent), 카드별 색상(blue/emerald/violet/amber), "무료 배송" 문구, whitespace-pre-line | 2026-03-27 | 20개 locale 미반영 |
+| 40 | E-book 뷰어 보안 강화 | 보안 | CORS `x-ebook-viewer`/`x-ebook-session` 허용, session_id 비교, Content-Disposition/Referrer-Policy/Cache-Control `no-store`, Rate Limit TOCTOU 수정(3곳), 마이크로도트 y분산, Heartbeat Canvas 클리어, print CSS 강화 | 2026-03-28 | Error Boundary 보류 |
+| 41 | Gemini 코드 리뷰 반영 | 코드 품질 | 마이그레이션 문서 HHMMSS 예시 모순 수정, embla-carousel-react 미사용 패키지 제거, queryClient 불필요 의존성 제거, TiledPageCanvas Promise.allSettled 부분 렌더링 | 2026-03-28 | — |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드
