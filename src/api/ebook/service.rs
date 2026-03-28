@@ -362,19 +362,29 @@ impl EbookService {
         }
     }
 
-    /// 뷰어 세션 존재 확인 (페이지/타일 요청 시, Redis 장애 = fail closed)
-    pub async fn verify_session(st: &AppState, user_id: i64) -> AppResult<()> {
+    /// 뷰어 세션 검증 (페이지/타일 요청 시, Redis 장애 = fail closed)
+    /// session_id가 제공되면 저장된 값과 비교, 미제공 시 존재만 확인 (하위 호환)
+    pub async fn verify_session(st: &AppState, user_id: i64, session_id: Option<&str>) -> AppResult<()> {
         let session_key = format!("ebook_viewer:{}", user_id);
         let mut redis_conn = st
             .redis
             .get()
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
-        let session_exists: Option<String> = redis_conn.get(&session_key).await?;
-        if session_exists.is_none() {
-            return Err(AppError::Forbidden("Viewer session expired".into()));
+        let stored: Option<String> = redis_conn.get(&session_key).await?;
+        match stored {
+            Some(data) => {
+                if let Some(sid) = session_id {
+                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&data) {
+                        if parsed["session_id"].as_str() != Some(sid) {
+                            return Err(AppError::Forbidden("Viewer session invalid".into()));
+                        }
+                    }
+                }
+                Ok(())
+            }
+            None => Err(AppError::Forbidden("Viewer session expired".into())),
         }
-        Ok(())
     }
 
     // ─────────────────────── Page Image ───────────────────────

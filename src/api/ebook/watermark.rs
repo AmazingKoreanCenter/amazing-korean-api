@@ -126,7 +126,7 @@ fn apply_microdot_watermark(img: &mut RgbaImage, user_id: i64) {
     let dot_spacing = 4u32; // 도트 간격 4px
 
     for (corner_idx, &(start_x, start_y)) in corners.iter().enumerate() {
-        // 각 코너에 16비트 배치
+        // 각 코너에 16비트 배치 — y좌표 분산으로 단일 직선 패턴 방지
         for bit_offset in 0..16u32 {
             let global_bit = corner_idx * 16 + bit_offset as usize;
             let byte_idx = global_bit / 8;
@@ -135,7 +135,13 @@ fn apply_microdot_watermark(img: &mut RgbaImage, user_id: i64) {
 
             if bit_val == 1 {
                 let x = start_x + bit_offset * dot_spacing;
-                let y = start_y;
+                // y좌표를 비트 인덱스 기반으로 ±3px 분산 (짝수:+, 홀수:-)
+                let y_offset = if bit_offset % 2 == 0 {
+                    (bit_offset % 4) as i32
+                } else {
+                    -((bit_offset % 3) as i32 + 1)
+                };
+                let y = (start_y as i32 + y_offset).clamp(0, height as i32 - 1) as u32;
 
                 // 범위 체크 후 1px 도트 배치
                 if x < width && y < height {

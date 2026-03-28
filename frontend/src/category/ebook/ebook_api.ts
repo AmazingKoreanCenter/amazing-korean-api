@@ -28,11 +28,15 @@ export const getViewerMeta = (code: string) =>
  */
 export const fetchPageImage = async (
   code: string,
-  page: number
+  page: number,
+  sessionId?: string
 ): Promise<ArrayBuffer> => {
   const res = await api.get(`/ebook/viewer/${code}/pages/${page}`, {
     responseType: "arraybuffer",
-    headers: { "X-Ebook-Viewer": "1" },
+    headers: {
+      "X-Ebook-Viewer": "1",
+      ...(sessionId ? { "X-Ebook-Session": sessionId } : {}),
+    },
   });
   return res.data as ArrayBuffer;
 };
@@ -50,13 +54,17 @@ export const fetchPageTile = async (
   code: string,
   page: number,
   row: number,
-  col: number
+  col: number,
+  sessionId?: string
 ): Promise<ArrayBuffer> => {
   const res = await api.get(
     `/ebook/viewer/${code}/pages/${page}/tiles/${row}/${col}`,
     {
       responseType: "arraybuffer",
-      headers: { "X-Ebook-Viewer": "1" },
+      headers: {
+        "X-Ebook-Viewer": "1",
+        ...(sessionId ? { "X-Ebook-Session": sessionId } : {}),
+      },
     }
   );
   return res.data as ArrayBuffer;
