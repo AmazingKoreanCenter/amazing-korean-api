@@ -100,7 +100,7 @@ function TiledPageCanvas({
     const images: HTMLImageElement[] = [];
     const urls: string[] = [];
 
-    Promise.all(
+    Promise.allSettled(
       tiles.map((buf) => {
         const blob = new Blob([buf!], { type: "image/webp" });
         const url = URL.createObjectURL(blob);
@@ -112,8 +112,17 @@ function TiledPageCanvas({
           img.src = url;
         });
       })
-    ).then((imgs) => {
+    ).then((results) => {
       if (cancelled) return;
+
+      // 실패한 타일은 1x1 빈 이미지로 대체
+      const imgs = results.map((r) => {
+        if (r.status === "fulfilled") return r.value;
+        const fallback = new Image();
+        fallback.width = 1;
+        fallback.height = 1;
+        return fallback;
+      });
       images.push(...imgs);
 
       // 캔버스 크기 계산 (타일 크기 합산)

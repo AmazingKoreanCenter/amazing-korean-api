@@ -142,7 +142,7 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - **수정**: `index.css` — Swiper CSS 임포트 4종 (swiper/css, effect-coverflow, free-mode, thumbs)
   - **기능**: 상단↔하단 양방향 동기화 (클릭/드래그 모두), 비가시 슬라이드 자동 숨김 (watchSlidesProgress)
   - **에셋**: `frontend/public/seals/*.svg` 24개 국가 씰 SVG 파일
-  - **패키지**: `swiper@^12` 추가, `embla-carousel-react` 유지 (다른 곳 사용 가능)
+  - **패키지**: `swiper@^12` 추가, `embla-carousel-react` 제거 (미사용)
   - **i18n**: 22개 로케일 — `bookTitle`, `bookDescriptionStudent`, `bookDescriptionTeacher`, `editionInfo` 키 추가
 
 - **2026-03-24 — 교재 카탈로그 캐러셀 뷰 추가**

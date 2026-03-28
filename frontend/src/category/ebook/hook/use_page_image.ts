@@ -45,7 +45,8 @@ export const usePageImage = (
         });
       }
     }
-  }, [code, page, totalPages, enabled, viewMode, sessionId, queryClient]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, page, totalPages, enabled, viewMode, sessionId]);
 
   return query;
 };
@@ -100,7 +101,7 @@ export const usePageTiles = (
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, page, totalPages, enabled, gridRows, gridCols, sessionId, queryClient]);
+  }, [code, page, totalPages, enabled, gridRows, gridCols, sessionId]);
 
   const isLoading = results.some((r) => r.isLoading);
   const tiles = results.map((r) => r.data);
