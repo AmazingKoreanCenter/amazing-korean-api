@@ -752,5 +752,14 @@
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
     "tabEbook": "E-book"
+  },
+  "ebook": {
+    "viewer": {
+      "copyrightTitle": "कॉपीराइट सुरक्षा सूचना",
+      "copyrightNotice": "यह सामग्री कॉपीराइट कानून द्वारा सुरक्षित है।",
+      "copyrightLegal": "तकनीकी सुरक्षा उपायों को दरकिनार करना कोरियाई कॉपीराइट अधिनियम की धारा 104-2 के तहत दंडनीय है।",
+      "copyrightWatermark": "इस E-book में खरीदार की पहचान के लिए डिजिटल वॉटरमार्क शामिल है।",
+      "copyrightConfirm": "मैं समझ गया/गई"
+    }
   }
 }

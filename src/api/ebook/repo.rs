@@ -431,3 +431,36 @@ fn escape_like(input: &str) -> String {
         .replace('%', "\\%")
         .replace('_', "\\_")
 }
+
+// ─────────────────────── Watermark Verification ───────────────────────
+
+#[derive(Debug, sqlx::FromRow)]
+pub struct WatermarkLogRow {
+    pub watermark_id: Option<String>,
+    pub purchase_code: String,
+    pub user_id: i64,
+    pub page_number: i32,
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// 워터마크 ID로 접근 로그 조회 (진위확인용)
+pub async fn find_access_log_by_watermark_id(
+    db: &PgPool,
+    watermark_id: &str,
+) -> AppResult<Option<WatermarkLogRow>> {
+    let row = sqlx::query_as::<_, WatermarkLogRow>(
+        "SELECT l.watermark_id, p.purchase_code, l.user_id, l.page_number,
+                l.ip_address::text AS ip_address, l.user_agent, l.created_at
+         FROM ebook_access_log l
+         JOIN ebook_purchase p ON p.purchase_id = l.purchase_id
+         WHERE l.watermark_id = $1
+         LIMIT 1"
+    )
+    .bind(watermark_id)
+    .fetch_optional(db)
+    .await?;
+
+    Ok(row)
+}

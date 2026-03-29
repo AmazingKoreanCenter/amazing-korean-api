@@ -1171,7 +1171,12 @@
       "goToMyEbooks": "내 E-book으로 이동",
       "loadFailed": "페이지를 불러올 수 없습니다.",
       "spreadView": "두 쪽 보기",
-      "singleView": "한 쪽 보기"
+      "singleView": "한 쪽 보기",
+      "copyrightTitle": "저작권 보호 안내",
+      "copyrightNotice": "이 콘텐츠는 저작권법에 의해 보호됩니다.",
+      "copyrightLegal": "기술적 보호조치의 무력화는 저작권법 제104조의2에 의거 처벌됩니다.",
+      "copyrightWatermark": "본 E-book에는 구매자 식별을 위한 디지털 워터마크가 적용되어 있습니다.",
+      "copyrightConfirm": "확인했습니다"
     }
   },
   "seo": {

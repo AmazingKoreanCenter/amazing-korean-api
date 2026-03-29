@@ -15,6 +15,7 @@ import {
   FileText,
   Lock,
   ShieldX,
+  ShieldCheck,
 } from "lucide-react";
 
 import { ApiError } from "@/api/client";
@@ -196,6 +197,9 @@ export function EbookViewerPage() {
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isObscured, setIsObscured] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [showCopyrightNotice, setShowCopyrightNotice] = useState(
+    () => !sessionStorage.getItem("ebook_copyright_ack")
+  );
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -648,8 +652,33 @@ export function EbookViewerPage() {
     ? tilesLeft.every((t) => !!t)
     : !!imageData;
 
+  const handleCopyrightAck = () => {
+    sessionStorage.setItem("ebook_copyright_ack", "1");
+    setShowCopyrightNotice(false);
+  };
+
   return (
     <>
+      {/* ─── 저작권 보호 고지 모달 ─── */}
+      {showCopyrightNotice && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="mx-4 max-w-md rounded-2xl bg-background p-6 shadow-2xl border space-y-4">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="h-8 w-8 text-primary flex-shrink-0" />
+              <h2 className="text-lg font-semibold">{t("ebook.viewer.copyrightTitle")}</h2>
+            </div>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>{t("ebook.viewer.copyrightNotice")}</p>
+              <p>{t("ebook.viewer.copyrightLegal")}</p>
+              <p>{t("ebook.viewer.copyrightWatermark")}</p>
+            </div>
+            <Button className="w-full" onClick={handleCopyrightAck}>
+              {t("ebook.viewer.copyrightConfirm")}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* 풀스크린 시 사이트 전체 숨기고 뷰어만 표시 */}
       <style>{`
         @media print { body * { display: none !important; visibility: hidden !important; } }

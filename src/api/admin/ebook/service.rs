@@ -185,6 +185,26 @@ impl AdminEbookService {
 
         Ok(())
     }
+
+    /// 워터마크 진위확인 (관리자)
+    pub async fn verify_watermark(
+        st: &AppState,
+        watermark_id: &str,
+    ) -> AppResult<super::dto::WatermarkVerifyRes> {
+        let row = repo::find_access_log_by_watermark_id(&st.db, watermark_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        Ok(super::dto::WatermarkVerifyRes {
+            watermark_id: row.watermark_id.unwrap_or_default(),
+            purchase_code: row.purchase_code,
+            user_id: row.user_id,
+            page_number: row.page_number,
+            ip_address: row.ip_address,
+            user_agent: row.user_agent,
+            created_at: row.created_at,
+        })
+    }
 }
 
 fn is_valid_status_transition(from: EbookPurchaseStatus, to: EbookPurchaseStatus) -> bool {

@@ -1171,7 +1171,12 @@
       "goToMyEbooks": "Go to My E-books",
       "loadFailed": "Failed to load page.",
       "spreadView": "Two-page view",
-      "singleView": "Single page view"
+      "singleView": "Single page view",
+      "copyrightTitle": "Copyright Protection Notice",
+      "copyrightNotice": "This content is protected by copyright law.",
+      "copyrightLegal": "Circumvention of technological protection measures is punishable under the Korean Copyright Act, Article 104-2.",
+      "copyrightWatermark": "This E-book contains digital watermarks for purchaser identification.",
+      "copyrightConfirm": "I understand"
     }
   },
   "seo": {

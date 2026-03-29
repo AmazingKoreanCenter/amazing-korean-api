@@ -560,7 +560,12 @@
     "viewer": {
       "toc": "目次",
       "notFound": "教材が見つかりません。",
-      "loadFailed": "ページの読み込みに失敗しました。"
+      "loadFailed": "ページの読み込みに失敗しました。",
+      "copyrightTitle": "著作権保護のお知らせ",
+      "copyrightNotice": "このコンテンツは著作権法により保護されています。",
+      "copyrightLegal": "技術的保護手段の回避は韓国著作権法第104条の2に基づき処罰されます。",
+      "copyrightWatermark": "本E-bookには購入者識別用のデジタル透かしが適用されています。",
+      "copyrightConfirm": "確認しました"
     }
   },
   "textbook": {
