@@ -2,7 +2,9 @@ use std::path::Path;
 
 use image::GenericImageView;
 
+use hmac::{Hmac, Mac};
 use redis::AsyncCommands;
+use sha2::Sha256;
 
 use crate::crypto::CryptoService;
 use crate::error::{AppError, AppResult};
@@ -296,6 +298,7 @@ impl EbookService {
             total_pages,
             toc,
             session_id: String::new(), // handler에서 Redis 세션 등록 후 설정
+            hmac_secret: String::new(), // handler에서 Redis 세션 등록 후 설정
             tile_mode,
             grid_rows,
             grid_cols,
@@ -305,16 +308,24 @@ impl EbookService {
     // ─────────────────────── Session ───────────────────────
 
     /// 뷰어 세션 등록 (Redis SET EX, 새 기기가 기존 세션 덮어쓰기 = Last Writer Wins)
+    /// 32바이트 HMAC secret을 함께 생성하여 Redis에 저장, 클라이언트에 hex로 반환.
+    /// 반환: (session_id, hmac_secret_hex)
     pub async fn register_session(
         st: &AppState,
         user_id: i64,
         purchase_code: &str,
-    ) -> AppResult<String> {
+    ) -> AppResult<(String, String)> {
+        use rand::RngCore;
         let session_id = uuid::Uuid::new_v4().to_string();
+        let mut hmac_secret = [0u8; 32];
+        rand::thread_rng().fill_bytes(&mut hmac_secret);
+        let hmac_secret_hex = hex::encode(hmac_secret);
+
         let session_key = format!("ebook_viewer:{}", user_id);
         let session_data = serde_json::json!({
             "session_id": &session_id,
             "purchase_code": purchase_code,
+            "hmac_secret": &hmac_secret_hex,
         });
         let mut redis_conn = st
             .redis
@@ -329,7 +340,7 @@ impl EbookService {
             .query_async(&mut redis_conn)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
-        Ok(session_id)
+        Ok((session_id, hmac_secret_hex))
     }
 
     /// 뷰어 세션 heartbeat (세션 유효 시 TTL 갱신, 무효 시 valid=false)
@@ -385,6 +396,63 @@ impl EbookService {
             }
             None => Err(AppError::Forbidden("Viewer session expired".into())),
         }
+    }
+
+    // ─────────────────────── HMAC Signature ───────────────────────
+
+    /// 요청별 HMAC 서명 검증.
+    /// payload = "{session_id}:{path}:{timestamp}" (path 예: "VN-ST-.../3" 또는 "VN-ST-.../3/1/2")
+    /// timestamp: Unix epoch 초, ±30초 허용.
+    pub async fn verify_hmac_signature(
+        st: &AppState,
+        user_id: i64,
+        path: &str,
+        signature: &str,
+        timestamp: &str,
+    ) -> AppResult<()> {
+        // 1. timestamp 파싱 + 윈도우 검증 (±30초)
+        let ts: i64 = timestamp
+            .parse()
+            .map_err(|_| AppError::BadRequest("Invalid timestamp".into()))?;
+        let now = chrono::Utc::now().timestamp();
+        if (now - ts).abs() > 30 {
+            return Err(AppError::Forbidden("Signature expired".into()));
+        }
+
+        // 2. Redis에서 세션 데이터 조회 → hmac_secret 추출
+        let session_key = format!("ebook_viewer:{}", user_id);
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let stored: Option<String> = redis_conn.get(&session_key).await?;
+        let data = stored.ok_or_else(|| AppError::Forbidden("Viewer session expired".into()))?;
+        let parsed: serde_json::Value = serde_json::from_str(&data)
+            .map_err(|_| AppError::Internal("Invalid session data".into()))?;
+        let secret_hex = parsed["hmac_secret"]
+            .as_str()
+            .ok_or_else(|| AppError::Internal("Missing hmac_secret in session".into()))?;
+        let secret_bytes = hex::decode(secret_hex)
+            .map_err(|_| AppError::Internal("Invalid hmac_secret hex".into()))?;
+
+        // 3. 서명 계산 + 비교
+        let session_id = parsed["session_id"]
+            .as_str()
+            .ok_or_else(|| AppError::Internal("Missing session_id in session".into()))?;
+        let payload = format!("{session_id}:{path}:{timestamp}");
+
+        type HmacSha256 = Hmac<Sha256>;
+        let mut mac = HmacSha256::new_from_slice(&secret_bytes)
+            .map_err(|e| AppError::Internal(format!("HMAC init failed: {e}")))?;
+        mac.update(payload.as_bytes());
+        let expected = hex::encode(mac.finalize().into_bytes());
+
+        if !constant_time_eq(signature.as_bytes(), expected.as_bytes()) {
+            return Err(AppError::Forbidden("Invalid signature".into()));
+        }
+
+        Ok(())
     }
 
     // ─────────────────────── Page Image ───────────────────────
@@ -446,7 +514,8 @@ impl EbookService {
                 .join(lang_code)
                 .join(format!("page-{:03}.webp.enc", page_num));
             let encrypted = tokio::fs::read(&enc_path).await.map_err(|_| AppError::NotFound)?;
-            let key = st.cfg.encryption_ring.current_key();
+            let key = st.cfg.ebook_image_key.as_ref()
+                .unwrap_or_else(|| st.cfg.encryption_ring.current_key());
             crate::crypto::cipher::decrypt_bytes(key, &encrypted, "ebook.page_image")?
         } else {
             let image_path = Path::new(&st.cfg.ebook_page_images_dir)
@@ -549,7 +618,8 @@ impl EbookService {
                 .join(lang_code)
                 .join(format!("page-{:03}.webp.enc", page_num));
             let encrypted = tokio::fs::read(&enc_path).await.map_err(|_| AppError::NotFound)?;
-            let key = st.cfg.encryption_ring.current_key();
+            let key = st.cfg.ebook_image_key.as_ref()
+                .unwrap_or_else(|| st.cfg.encryption_ring.current_key());
             crate::crypto::cipher::decrypt_bytes(key, &encrypted, "ebook.page_image")?
         } else {
             let image_path = Path::new(&st.cfg.ebook_page_images_dir)
@@ -713,4 +783,15 @@ pub fn edition_label_ko(edition: EbookEdition) -> &'static str {
         EbookEdition::Teacher => "교사용",
         EbookEdition::Student => "학생용",
     }
+}
+
+/// 상수 시간 바이트 비교 (타이밍 공격 방지)
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    a.iter()
+        .zip(b.iter())
+        .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+        == 0
 }

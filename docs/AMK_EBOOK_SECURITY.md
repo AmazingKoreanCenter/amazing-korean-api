@@ -24,14 +24,14 @@
 
 ### 1.2 미구현 (검증된 격차)
 
-| # | 항목 | 격차 근거 |
-|---|------|----------|
-| 1 | 페이지 이미지 암호화 저장 | Fasoo 자동 암호화 (fasoo.com), 리디 AES-128 (GitHub ridi-decrypt) — 현재 WebP 평문 |
-| 2 | 요청별 HMAC 서명 | 전자서명법 "변경 여부 확인" 원칙 (law.go.kr) |
-| 3 | 진위확인 시스템 | 정부24 발급번호 조회 (gov.kr/confrm) |
-| 4 | DevTools 감지 | 마크애니 소스보기 차단 (markany.com) |
-| 5 | 저작권 보호 고지 | 저작권법 제104조의2 TPM 보호 (casenote.kr) |
-| 6 | OS 레벨 스크린샷 차단 | Android FLAG_SECURE (developer.android.com) — 웹에서 불가, 네이티브 앱 필요 |
+| # | 항목 | 격차 근거 | 상태 |
+|---|------|----------|------|
+| 1 | 페이지 이미지 암호화 저장 | Fasoo 자동 암호화 (fasoo.com), 리디 AES-128 (GitHub ridi-decrypt) — 현재 WebP 평문 | ✅ 완료 |
+| 2 | 요청별 HMAC 서명 | 전자서명법 "변경 여부 확인" 원칙 (law.go.kr) | ✅ 완료 |
+| 3 | 진위확인 시스템 | 정부24 발급번호 조회 (gov.kr/confrm) | ✅ 완료 |
+| 4 | DevTools 감지 | 마크애니 소스보기 차단 (markany.com) | ✅ 완료 |
+| 5 | 저작권 보호 고지 | 저작권법 제104조의2 TPM 보호 (casenote.kr) | ✅ 완료 |
+| 6 | OS 레벨 스크린샷 차단 | Android FLAG_SECURE (developer.android.com) — 웹에서 불가, 네이티브 앱 필요 | Phase 2 |
 
 ---
 
@@ -163,3 +163,22 @@
 - **Android FLAG_SECURE도 루팅 기기에서 우회 가능** (Xposed DisableFlagSecure)
 - **iOS는 OS 레벨 스크린샷 차단 API 자체가 없음** — isSecureTextEntry 해킹은 비공식, Apple 업데이트 시 깨질 수 있음
 - **핵심 전략**: "완벽한 차단"이 아닌 "비용 대비 효과" — 다층 방어 + 포렌식 추적 + 법적 억제력
+
+### 5.0 Phase 1 구현 리스크 검수 (2026-03-29)
+
+| # | 리스크 | 심각도 | 상태 | 비고 |
+|---|--------|--------|------|------|
+| R1 | HMAC secret ViewerMetaRes 평문 전송 | 중 | 현행 유지 | HTTPS + JWT + 세션 3중 보호. 세션 TTL(90초)과 동일 소멸 |
+| R2 | DevTools 감지 `setupConsoleDetection` 메모리 누수 + 중복 호출 | 중 | **수정 완료** | intervalId 반환 + cleanup + 중복 방지 가드 |
+| R3 | `constant_time_eq` 길이 불일치 조기 반환 | 낮 | 현행 유지 | HMAC 출력 항상 64자 hex, 공격 시나리오 없음 |
+| R4 | 이미지/PII 암호화 키 공유 (KeyRing) | 중 | **수정 완료** | `EBOOK_IMAGE_ENCRYPTION_KEY` 별도 환경변수 분리 |
+| R5 | DevTools 창 크기 감지 오탐 (번역 확장 등) | 중 | **수정 완료** | console getter를 주력으로, 창 크기는 보조 신호로 변경 |
+
+### 5.1 HMAC 서명 (Phase 1-2) 알려진 제약사항
+
+| 항목 | 내용 | 영향 |
+|------|------|------|
+| 클라이언트 시계 오차 | ±30초 윈도우. PC 시계가 30초+ 차이나면 "Signature expired" | NTP 기본 활성화 PC는 ±1초 이내. 수동 시계 변경 사용자만 해당 |
+| Redis 이중 조회 | `verify_session` + `verify_hmac_signature`가 동일 키 2회 GET | 로컬 Redis ~0.1ms 추가. 현 트래픽에서 무시 가능. ElastiCache 이전 시 리팩토링 고려 |
+| hmac_secret JSON 노출 | ViewerMetaRes 응답에 평문 포함 | TLS 암호화 + DevTools 감지 블러로 완화. 세션 TTL(90초)과 동일하게 소멸 |
+| 배포 중 SPA 캐시 | 뷰어 열린 상태에서 백엔드 업데이트 시 구 프론트 403 | 새로고침으로 즉시 해결. 자연 배포 순서(프론트 먼저)는 안전 |

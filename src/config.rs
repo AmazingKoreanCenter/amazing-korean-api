@@ -83,6 +83,7 @@ pub struct Config {
     pub rate_limit_ebook_tile_max: i64,            // RATE_LIMIT_EBOOK_TILE_MAX (기본 270/분)
     pub rate_limit_ebook_tile_window_sec: i64,     // RATE_LIMIT_EBOOK_TILE_WINDOW_SEC (기본 60)
     pub ebook_images_encrypted: bool,              // EBOOK_IMAGES_ENCRYPTED (기본 false, .webp.enc 암호화 모드)
+    pub ebook_image_key: Option<[u8; 32]>,         // EBOOK_IMAGE_ENCRYPTION_KEY (이미지 전용, 미설정 시 encryption_ring 사용)
     // Field Encryption (AES-256-GCM + HMAC-SHA256 Blind Index)
     pub app_env: String,                         // "production" | "development" (기본)
     pub encryption_ring: KeyRing,                // 다중 키 버전 (ENCRYPTION_KEY_V{n})
@@ -349,6 +350,18 @@ impl Config {
             .unwrap_or_else(|_| "false".into())
             .parse::<bool>()
             .expect("EBOOK_IMAGES_ENCRYPTED must be true or false");
+        let ebook_image_key: Option<[u8; 32]> = env::var("EBOOK_IMAGE_ENCRYPTION_KEY")
+            .ok()
+            .map(|hex_str| {
+                let bytes = hex::decode(&hex_str)
+                    .unwrap_or_else(|_| panic!("EBOOK_IMAGE_ENCRYPTION_KEY must be valid hex (64 chars)"));
+                let mut key = [0u8; 32];
+                if bytes.len() != 32 {
+                    panic!("EBOOK_IMAGE_ENCRYPTION_KEY must be exactly 32 bytes (64 hex chars)");
+                }
+                key.copy_from_slice(&bytes);
+                key
+            });
 
         // Field Encryption (AES-256-GCM + HMAC-SHA256)
         let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".into());
@@ -504,6 +517,7 @@ impl Config {
             rate_limit_ebook_tile_max,
             rate_limit_ebook_tile_window_sec,
             ebook_images_encrypted,
+            ebook_image_key,
             app_env,
             encryption_ring,
             hmac_key,
@@ -693,6 +707,7 @@ impl fmt::Debug for Config {
             .field("rate_limit_ebook_tile_max", &self.rate_limit_ebook_tile_max)
             .field("rate_limit_ebook_tile_window_sec", &self.rate_limit_ebook_tile_window_sec)
             .field("ebook_images_encrypted", &self.ebook_images_encrypted)
+            .field("ebook_image_key", &self.ebook_image_key.map(|_| "***"))
             .field("app_env", &self.app_env)
             .field("encryption_ring", &self.encryption_ring)
             .field("hmac_key", &"***")
