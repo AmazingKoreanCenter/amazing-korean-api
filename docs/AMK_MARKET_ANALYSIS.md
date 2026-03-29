@@ -460,11 +460,13 @@ Apple/Google 모두 국가별 가격 설정 지원 (Apple 800+ 가격 포인트)
 
 ## 7. 실행 로드맵
 
-### 7.1 모바일 앱 개발 전 준비 (지금 ~ Mac Mini 도착)
+### 7.1 모바일 앱 개발 전 준비
+
+> 기술 스택 확정: **Flutter** (2026-03-29). 상세: [`AMK_APP_ROADMAP.md`](./AMK_APP_ROADMAP.md)
 
 | # | 작업 | 산출물 |
 |---|------|--------|
-| 1 | 모바일 기술 스택 최종 결정 | 기술 결정 문서 |
+| 1 | ~~모바일 기술 스택 최종 결정~~ | ~~기술 결정 문서~~ **✅ Flutter 확정 (AMK_APP_ROADMAP.md)** |
 | 2 | API 모바일 호환성 검토 | 필요 시 API 수정 |
 | 3 | Apple Developer Account 등록 ($99/년) | 계정 생성 |
 | 4 | Google Play Developer Account 등록 ($25 일회) | 계정 생성 |
@@ -475,15 +477,19 @@ Apple/Google 모두 국가별 가격 설정 지원 (Apple 800+ 가격 포인트)
 | 9 | Apple/Google Webhook 엔드포인트 설계 | API 설계 문서 |
 | 10 | 모바일 UI/UX 와이어프레임 | Figma/스케치 |
 
-### 7.2 모바일 앱 개발 (Mac Mini 도착 후)
+### 7.2 모바일 앱 개발
+
+> **프레임워크 확정**: Flutter + flutter_rust_bridge (2026-03-29).
+> 상세 작업 목록: [`AMK_APP_ROADMAP.md`](./AMK_APP_ROADMAP.md)
 
 | Phase | 작업 | 의존성 |
 |-------|------|--------|
-| **M-1** | iOS 앱 프로토타입 (SwiftUI/RN) + StoreKit 2 | Mac Mini, Apple 계정 |
-| **M-2** | Android 앱 프로토타입 + Play Billing | Google 계정 |
-| **M-3** | Apple/Google Webhook 백엔드 구현 | §4.4 스키마 확장 |
-| **M-4** | 통합 테스트 (3 provider 동시 구독 시나리오) | M-1~M-3 |
-| **M-5** | TestFlight / Internal Testing 배포 | M-4 |
+| **B1-B3** | 백엔드 모바일 인증 엔드포인트 (login-mobile, refresh-mobile) | — |
+| **M-1** | Flutter 프로젝트 + flutter_rust_bridge + Rust 크레이트 | Mac Mini |
+| **M-2** | 인증 + E-book 뷰어 (Flutter) | B1-B3, Apple/Google 계정 |
+| **M-3** | 스크린샷 차단 (FLAG_SECURE + isSecureTextEntry) | M-2 |
+| **M-4** | Apple/Google IAP + Webhook 백엔드 구현 | §5 스키마 확장 |
+| **M-5** | 실기기 테스트 + TestFlight / Internal Testing | M-3, M-4 |
 | **M-6** | 앱스토어 / 플레이스토어 심사 제출 | M-5 |
 
 ### 7.3 Paddle Live 전환 (이번 주)

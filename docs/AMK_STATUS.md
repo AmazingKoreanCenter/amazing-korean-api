@@ -82,8 +82,8 @@
 | 5 | K6 성능 테스트 | 테스트 | 인증/조회/진도저장 부하 테스트, CI 연계 | SLA 기준 검증 (아래 표 참조) | CI 구축 시 |
 | 6 | ~~디자인 시스템~~ | ~~UI~~ | ~~브랜딩, 타이포그래피, 반응형 점검~~ | ~~일관된 UI/UX 체계~~ | ✅ §8.1 #13 |
 | 7 | ~~**E-book 웹 보안 강화**~~ | ~~보안~~ | ~~이미지 AES-256 암호화 저장, 요청별 HMAC 서명, DevTools 감지, 워터마크 진위확인 API, 저작권 보호 고지~~ | ~~공문서/상용 DRM 수준 접근~~ | **✅ Phase 1 완료 (§8.1 #42~#46)** |
-| 8 | **모바일 앱 (Android/iOS)** | 앱 | Android FLAG_SECURE + Play Integrity, iOS isSecureTextEntry + isCaptured 감지. 프레임워크: Flutter 또는 Tauri Mobile | OS 레벨 스크린샷 차단 | Phase 2 |
-| 9 | **데스크탑 앱 (Tauri)** | 앱 | Windows SetWindowDisplayAffinity 캡처 방지, macOS 워터마크 강화 (캡처 방지 불가). Rust 백엔드 코드 공유 | 전용 뷰어 앱 | Phase 3 |
+| 8 | **모바일 앱 (Android/iOS)** | 앱 | **Flutter** + flutter_rust_bridge. Android FLAG_SECURE + iOS isSecureTextEntry. 상세: [`AMK_APP_ROADMAP.md`](./AMK_APP_ROADMAP.md) | OS 레벨 스크린샷 차단 | Phase 2 |
+| 9 | **데스크탑 앱** | 앱 | **Tauri 2.x** + React 프론트 재사용. Windows SetWindowDisplayAffinity. 상세: [`AMK_APP_ROADMAP.md`](./AMK_APP_ROADMAP.md) | 전용 뷰어 앱 | Phase 3 |
 
 **K6 성능 목표치 (엔드포인트별)**:
 
@@ -226,7 +226,7 @@
 | 2 | 교육 앱 UX/UI 트렌드 | 시장 | 주요 교육 앱 UI 변화, 온보딩 플로우, 게이미피케이션 패턴, 접근성 트렌드 | 월 1회 | — |
 | 3 | 결제/수익 모델 동향 | 시장 | Apple/Google IAP 정책 변경, 수수료율 변동, 지역별 가격 전략, 프로모션 사례 | 분기 1회 | [`AMK_MARKET_ANALYSIS.md §4`](./AMK_MARKET_ANALYSIS.md#4-모바일-앱-결제-전략) |
 | 4 | AI/ML 기술 동향 | 기술 | LLM 경량화 (BitNet 후속), 음성인식 (Whisper 후속), 온디바이스 AI SDK, 발음 평가 API | 월 1회 | [`AMK_PIPELINE.md §11`](./AMK_PIPELINE.md) |
-| 5 | 모바일 프레임워크 동향 | 기술 | React Native / SwiftUI / Kotlin Multiplatform 변화, 크로스플랫폼 AI 통합 사례 | 분기 1회 | — |
+| 5 | 모바일 프레임워크 동향 | 기술 | Flutter / Tauri / Kotlin Multiplatform 변화, flutter_rust_bridge 업데이트, 크로스플랫폼 보안 사례 | 분기 1회 | [`AMK_APP_ROADMAP.md`](./AMK_APP_ROADMAP.md) |
 | 6 | 인프라/보안 동향 | 기술 | AWS 신규 서비스, 컨테이너 오케스트레이션, 인증 표준 (Passkey 등), OWASP 업데이트 | 분기 1회 | [`AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md) |
 | 7 | 규제/법률 동향 | 사업 | 교육 앱 개인정보보호 (COPPA, GDPR-K), DMA/DSA 후속 조치, 각국 앱스토어 규제 | 분기 1회 | — |
 

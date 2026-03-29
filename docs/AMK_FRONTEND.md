@@ -43,7 +43,7 @@
   3. **모바일 퍼스트 & 앱 확장성 (Mobile First Architecture)**
      - **반응형**: 모든 UI는 모바일(`sm`) 기준으로 먼저 설계하고, 태블릿(`md`) 및 데스크톱(`lg`)으로 확장한다.
      - **로직 분리 (Hook Separation)**:
-       - 향후 **React Native 모바일 앱** 확장을 고려하여, 비즈니스 로직은 컴포넌트(UI) 내부에 작성하지 않는다.
+       - 향후 **Flutter 모바일 앱** / **Tauri 데스크탑 앱** 확장을 고려하여, 비즈니스 로직은 컴포넌트(UI) 내부에 작성하지 않는다.
        - 반드시 **Custom Hook** (`useAuth`, `useVideoPlayer` 등)으로 추출하여 UI와 로직을 100% 분리한다.
 
   4. **도메인(Category) 주도 구조**

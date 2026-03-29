@@ -12,7 +12,7 @@
 > 자체 사이트에서 교재(학생용/교사용) e-book을 구매하고 열람할 수 있는 웹 뷰어 시스템.
 > **회원 전용** — 로그인 필수 (비회원 구매 불가), `user_id`로 구매 연동.
 > **웹 전용** — 페이지 이미지 기반 렌더링 (EPUB/PDF 원본 미노출, 다운로드 없음).
-> 향후 모바일 앱(React Native) 및 데스크탑 앱(Tauri)에서 오프라인 EPUB 뷰어로 확장.
+> 향후 모바일 앱(Flutter) 및 데스크탑 앱(Tauri 2.x)에서 오프라인 EPUB 뷰어로 확장. 상세: [`AMK_APP_ROADMAP.md`](./AMK_APP_ROADMAP.md)
 
 **교재 3종 유통 정책**:
 | 종류 | 용도 | 유통 채널 |
@@ -86,8 +86,8 @@ Layer 8: 요청별 HMAC 서명 (백엔드 + 프론트)
 ```
 Phase 1 [웹] ✅ 페이지 이미지 뷰어 — 온라인 전용, EPUB 미노출
 Phase 1.5 [웹 모바일] ✅ 터치 스와이프 + 반응형 UI + spread 자동 비활성화
-Phase 2 [모바일 앱] React Native + EPUB 암호화 저장 — 오프라인 지원
-Phase 3 [데스크탑 앱] Tauri(Rust) + DevTools 차단 — 오프라인 지원
+Phase 2 [모바일 앱] Flutter + FLAG_SECURE/isSecureTextEntry + Rust FFI — 오프라인 지원
+Phase 3 [데스크탑 앱] Tauri 2.x + SetWindowDisplayAffinity (Windows) — 오프라인 지원
 ```
 
 **DB**: ENUM 3개 (`ebook_edition_enum`, `ebook_purchase_status_enum`, `ebook_payment_method_enum`) + 테이블 3개 (`ebook_purchase`, `ebook_access_log`, `admin_ebook_log`)

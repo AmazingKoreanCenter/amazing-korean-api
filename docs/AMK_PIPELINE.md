@@ -333,8 +333,8 @@ audience: AI agents / lead / developer
 | 플랫폼 | 실행 AI | 기획 AI |
 |--------|---------|---------|
 | Web (React + Rust API) | Claude | 공유 |
-| Android (스택 TBD) | TBD | 공유 |
-| iOS (스택 TBD) | TBD | 공유 |
+| Mobile (Flutter + flutter_rust_bridge) | Claude | 공유 |
+| Desktop (Tauri 2.x + React WebView) | Claude | 공유 |
 
 **원칙:** 기획은 플랫폼 간 **공유** (비즈니스 로직은 동일), 실행은 플랫폼별 **전담**.
 
@@ -537,15 +537,15 @@ AI가 사용자 개입이 필요한 상황:
 |----------|----------|------|
 | 백엔드 API | Rust + Axum + SQLx + PostgreSQL + Redis | 운영 중 |
 | 프론트엔드 (Web) | React + Vite + TypeScript + shadcn/ui | 운영 중 |
-| 모바일 (Android) | - | 미착수 |
-| 모바일 (iOS) | - | 미착수 |
+| 모바일 (Android + iOS) | Flutter + flutter_rust_bridge | 미착수 (Phase 2) |
+| 데스크탑 (Windows/macOS/Linux) | Tauri 2.x + React WebView | 미착수 (Phase 3) |
 
 ### 7.2 확장 계획
 
 | 플랫폼 | 기술 스택 | 빌드 환경 | 비고 |
 |--------|----------|----------|------|
-| Android | TBD | TBD | - |
-| iOS | TBD | **Mac (필수)** | Mac Mini 필요 |
+| Mobile (Flutter) | Flutter + Dart + Rust FFI | Mac Mini (iOS 필수) | [`AMK_APP_ROADMAP.md`](./AMK_APP_ROADMAP.md) |
+| Desktop (Tauri 2.x) | Tauri + React + Rust | 크로스 컴파일 | [`AMK_APP_ROADMAP.md`](./AMK_APP_ROADMAP.md) |
 | 온디바이스 AI | BitNet.cpp / Ollama | Mac Mini (개발/검증) → 모바일 배포 | §11 참조 |
 
 ### 7.3 플랫폼 간 공유 계층
