@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useViewerMeta } from "../hook/use_viewer_meta";
 import { usePageImage, usePageTiles } from "../hook/use_page_image";
 import { sendViewerHeartbeat } from "../ebook_api";
+import { useDevToolsDetection } from "../utils/devtools_detect";
 
 const ZOOM_LEVELS = [50, 75, 100, 120, 150];
 const DEFAULT_ZOOM_INDEX = 2; // 100%
@@ -355,6 +356,12 @@ export function EbookViewerPage() {
 
     return () => clearInterval(interval);
   }, [handleTampering]);
+
+  // ─── Step 5: DevTools 감지 → 콘텐츠 블러 ───
+  useDevToolsDetection(
+    useCallback(() => setIsObscured(true), []),
+    useCallback(() => setIsObscured(false), []),
+  );
 
   const { data: meta, isLoading: metaLoading, error: metaError } = useViewerMeta(
     purchaseCode ?? ""
