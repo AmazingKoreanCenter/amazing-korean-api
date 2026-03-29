@@ -55,6 +55,8 @@
 | 39 | 교재 주문 안내 카드 UI 개선 | 프론트 | 주문 안내 4열 그리드, 30부 할인 카드(BadgePercent), 카드별 색상(blue/emerald/violet/amber), "무료 배송" 문구, whitespace-pre-line | 2026-03-27 | 20개 locale 미반영 |
 | 40 | E-book 뷰어 보안 강화 | 보안 | CORS `x-ebook-viewer`/`x-ebook-session` 허용, session_id 비교, Content-Disposition/Referrer-Policy/Cache-Control `no-store`, Rate Limit TOCTOU 수정(3곳), 마이크로도트 y분산, Heartbeat Canvas 클리어, print CSS 강화 | 2026-03-28 | Error Boundary 보류 |
 | 41 | Gemini 코드 리뷰 반영 | 코드 품질 | 마이그레이션 문서 HHMMSS 예시 모순 수정, embla-carousel-react 미사용 패키지 제거, queryClient 불필요 의존성 제거, TiledPageCanvas Promise.allSettled 부분 렌더링 | 2026-03-28 | — |
+| 42 | E-book 저작권 보호 고지 | 보안/법적 | 뷰어 최초 진입 시 저작권법 제104조의2 고지 모달 (ShieldCheck + sessionStorage), 22개 locale 번역 5키 | 2026-03-29 | — |
+| 43 | 워터마크 진위확인 API | 보안 | `GET /admin/ebook/verify/{watermark_id}` — 관리자 전용, ebook_access_log + ebook_purchase JOIN 조회 | 2026-03-29 | — |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드

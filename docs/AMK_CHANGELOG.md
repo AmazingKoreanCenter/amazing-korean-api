@@ -11,6 +11,10 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-29 — E-book 보안 Phase 1 착수 + 보안 전략 문서**
+  - **저작권 보호 고지 모달**: 뷰어 최초 진입 시 저작권법 제104조의2 고지 모달 표시 (ShieldCheck 아이콘, sessionStorage 중복 방지), 22개 locale 번역 (`copyrightTitle`/`copyrightNotice`/`copyrightLegal`/`copyrightWatermark`/`copyrightConfirm`)
+  - **워터마크 진위확인 API**: `GET /admin/ebook/verify/{watermark_id}` — 관리자 전용, ebook_access_log JOIN ebook_purchase로 purchase_code/user_id/page_number/ip/user_agent/created_at 반환
+
 - **2026-03-29 — E-book 보안 전략 문서 신규 작성**
   - **신규**: `docs/AMK_EBOOK_SECURITY.md` — 대한민국 공문서 발급 보안 체계, 한국 E-book DRM 사례 (교보/리디/알라딘), 알라딘 2023 유출 사건 분석, 플랫폼별 보안 역량 (Android/iOS/macOS/Windows), 앱 프레임워크 비교, 저작권법 법적 근거 정리
   - **조사 방법**: WebSearch 150+회 실증 검증 (AMK_WORKS_RULE.md 절차 준수), 모든 항목 출처 URL 명시
