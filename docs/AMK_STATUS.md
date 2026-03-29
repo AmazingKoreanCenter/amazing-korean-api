@@ -58,6 +58,7 @@
 | 42 | E-book 저작권 보호 고지 | 보안/법적 | 뷰어 최초 진입 시 저작권법 제104조의2 고지 모달 (ShieldCheck + sessionStorage), 22개 locale 번역 5키 | 2026-03-29 | — |
 | 43 | 워터마크 진위확인 API | 보안 | `GET /admin/ebook/verify/{watermark_id}` — 관리자 전용, ebook_access_log + ebook_purchase JOIN 조회 | 2026-03-29 | — |
 | 44 | 이미지 AES-256-GCM 암호화 저장 | 보안 | `encrypt_bytes`/`decrypt_bytes` + `EBOOK_IMAGES_ENCRYPTED` 피처 플래그, 페이지+타일 복호화 로직, 테스트 25개 | 2026-03-29 | CLI 암호화 도구 별도 |
+| 45 | DevTools 감지 | 보안 | `devtools_detect.ts` 신규, 창 크기+console getter 2초 폴링, 3초 유예 블러, DevTools 닫으면 복원 | 2026-03-29 | — |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드
