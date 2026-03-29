@@ -82,6 +82,7 @@ pub struct Config {
     pub ebook_tile_grid_cols: u32,                 // EBOOK_TILE_GRID_COLS (기본 3)
     pub rate_limit_ebook_tile_max: i64,            // RATE_LIMIT_EBOOK_TILE_MAX (기본 270/분)
     pub rate_limit_ebook_tile_window_sec: i64,     // RATE_LIMIT_EBOOK_TILE_WINDOW_SEC (기본 60)
+    pub ebook_images_encrypted: bool,              // EBOOK_IMAGES_ENCRYPTED (기본 false, .webp.enc 암호화 모드)
     // Field Encryption (AES-256-GCM + HMAC-SHA256 Blind Index)
     pub app_env: String,                         // "production" | "development" (기본)
     pub encryption_ring: KeyRing,                // 다중 키 버전 (ENCRYPTION_KEY_V{n})
@@ -344,6 +345,10 @@ impl Config {
             .unwrap_or_else(|_| "60".into())
             .parse::<i64>()
             .expect("RATE_LIMIT_EBOOK_TILE_WINDOW_SEC must be a number");
+        let ebook_images_encrypted = env::var("EBOOK_IMAGES_ENCRYPTED")
+            .unwrap_or_else(|_| "false".into())
+            .parse::<bool>()
+            .expect("EBOOK_IMAGES_ENCRYPTED must be true or false");
 
         // Field Encryption (AES-256-GCM + HMAC-SHA256)
         let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".into());
@@ -498,6 +503,7 @@ impl Config {
             ebook_tile_grid_cols,
             rate_limit_ebook_tile_max,
             rate_limit_ebook_tile_window_sec,
+            ebook_images_encrypted,
             app_env,
             encryption_ring,
             hmac_key,
@@ -686,6 +692,7 @@ impl fmt::Debug for Config {
             .field("ebook_tile_grid_cols", &self.ebook_tile_grid_cols)
             .field("rate_limit_ebook_tile_max", &self.rate_limit_ebook_tile_max)
             .field("rate_limit_ebook_tile_window_sec", &self.rate_limit_ebook_tile_window_sec)
+            .field("ebook_images_encrypted", &self.ebook_images_encrypted)
             .field("app_env", &self.app_env)
             .field("encryption_ring", &self.encryption_ring)
             .field("hmac_key", &"***")

@@ -440,14 +440,21 @@ impl EbookService {
             }
         }
 
-        let image_path = Path::new(&st.cfg.ebook_page_images_dir)
-            .join(edition_dir)
-            .join(lang_code)
-            .join(format!("page-{:03}.webp", page_num));
-
-        let image_bytes = tokio::fs::read(&image_path).await.map_err(|_| {
-            AppError::NotFound
-        })?;
+        let image_bytes = if st.cfg.ebook_images_encrypted {
+            let enc_path = Path::new(&st.cfg.ebook_page_images_dir)
+                .join(edition_dir)
+                .join(lang_code)
+                .join(format!("page-{:03}.webp.enc", page_num));
+            let encrypted = tokio::fs::read(&enc_path).await.map_err(|_| AppError::NotFound)?;
+            let key = st.cfg.encryption_ring.current_key();
+            crate::crypto::cipher::decrypt_bytes(key, &encrypted, "ebook.page_image")?
+        } else {
+            let image_path = Path::new(&st.cfg.ebook_page_images_dir)
+                .join(edition_dir)
+                .join(lang_code)
+                .join(format!("page-{:03}.webp", page_num));
+            tokio::fs::read(&image_path).await.map_err(|_| AppError::NotFound)?
+        };
 
         // 5. 워터마크 적용 (4중 비가시적 보안: 풋터+마이크로도트+LSB+접근로그)
         let watermark_id = uuid::Uuid::new_v4().to_string();
@@ -535,15 +542,22 @@ impl EbookService {
             }
         }
 
-        // 2. 이미지 로드
-        let image_path = Path::new(&st.cfg.ebook_page_images_dir)
-            .join(edition_dir)
-            .join(lang_code)
-            .join(format!("page-{:03}.webp", page_num));
-
-        let image_bytes = tokio::fs::read(&image_path).await.map_err(|_| {
-            AppError::NotFound
-        })?;
+        // 2. 이미지 로드 (암호화 모드 시 .webp.enc → AES-256-GCM 복호화)
+        let image_bytes = if st.cfg.ebook_images_encrypted {
+            let enc_path = Path::new(&st.cfg.ebook_page_images_dir)
+                .join(edition_dir)
+                .join(lang_code)
+                .join(format!("page-{:03}.webp.enc", page_num));
+            let encrypted = tokio::fs::read(&enc_path).await.map_err(|_| AppError::NotFound)?;
+            let key = st.cfg.encryption_ring.current_key();
+            crate::crypto::cipher::decrypt_bytes(key, &encrypted, "ebook.page_image")?
+        } else {
+            let image_path = Path::new(&st.cfg.ebook_page_images_dir)
+                .join(edition_dir)
+                .join(lang_code)
+                .join(format!("page-{:03}.webp", page_num));
+            tokio::fs::read(&image_path).await.map_err(|_| AppError::NotFound)?
+        };
 
         // 3. 워터마크 적용 (전체 이미지에 먼저 적용 후 분할)
         let watermark_id = uuid::Uuid::new_v4().to_string();
