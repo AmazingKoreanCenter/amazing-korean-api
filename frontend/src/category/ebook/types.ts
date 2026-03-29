@@ -84,6 +84,7 @@ export const viewerMetaResSchema = z.object({
   total_pages: z.number(),
   toc: z.array(tocEntrySchema),
   session_id: z.string(),
+  hmac_secret: z.string(),
   tile_mode: z.boolean(),
   grid_rows: z.number().nullable().optional(),
   grid_cols: z.number().nullable().optional(),

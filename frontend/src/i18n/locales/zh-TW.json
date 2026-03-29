@@ -560,7 +560,12 @@
     "viewer": {
       "toc": "目錄",
       "notFound": "找不到教材。",
-      "loadFailed": "頁面載入失敗。"
+      "loadFailed": "頁面載入失敗。",
+      "copyrightTitle": "版權保護聲明",
+      "copyrightNotice": "本內容受版權法保護。",
+      "copyrightLegal": "規避技術保護措施將依據韓國著作權法第104條之2受到處罰。",
+      "copyrightWatermark": "本E-book已嵌入用於購買者識別的數位浮水印。",
+      "copyrightConfirm": "我已了解"
     }
   },
   "textbook": {

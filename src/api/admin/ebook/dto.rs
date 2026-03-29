@@ -47,3 +47,15 @@ pub struct AdminEbookListRes {
 pub struct AdminUpdateEbookStatusReq {
     pub status: EbookPurchaseStatus,
 }
+
+/// 워터마크 진위확인 응답
+#[derive(Debug, Serialize, ToSchema)]
+pub struct WatermarkVerifyRes {
+    pub watermark_id: String,
+    pub purchase_code: String,
+    pub user_id: i64,
+    pub page_number: i32,
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+    pub created_at: DateTime<Utc>,
+}

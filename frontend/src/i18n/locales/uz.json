@@ -752,5 +752,14 @@
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
     "tabEbook": "E-book"
+  },
+  "ebook": {
+    "viewer": {
+      "copyrightTitle": "Mualliflik huquqi himoyasi haqida xabar",
+      "copyrightNotice": "Ushbu kontent mualliflik huquqi qonuni bilan himoyalangan.",
+      "copyrightLegal": "Texnik himoya choralarini chetlab o'tish Koreya Mualliflik huquqi to'g'risidagi qonunning 104-2-moddasi asosida jazolanadi.",
+      "copyrightWatermark": "Ushbu E-book xaridor identifikatsiyasi uchun raqamli suv belgilarini o'z ichiga oladi.",
+      "copyrightConfirm": "Tushunarli"
+    }
   }
 }

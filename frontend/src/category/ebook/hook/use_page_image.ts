@@ -15,12 +15,13 @@ export const usePageImage = (
   enabled = true,
   viewMode: "single" | "spread" = "single",
   sessionId?: string,
+  hmacSecret?: string,
 ) => {
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: ["ebook", "page", code, page],
-    queryFn: () => fetchPageImage(code, page, sessionId),
+    queryFn: () => fetchPageImage(code, page, sessionId, hmacSecret),
     enabled: enabled && !!code && page > 0,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -40,13 +41,13 @@ export const usePageImage = (
       if (adjacentPage > 0 && adjacentPage <= totalPages) {
         queryClient.prefetchQuery({
           queryKey: ["ebook", "page", code, adjacentPage],
-          queryFn: () => fetchPageImage(code, adjacentPage, sessionId),
+          queryFn: () => fetchPageImage(code, adjacentPage, sessionId, hmacSecret),
           staleTime: 5 * 60 * 1000,
         });
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, page, totalPages, enabled, viewMode, sessionId]);
+  }, [code, page, totalPages, enabled, viewMode, sessionId, hmacSecret]);
 
   return query;
 };
@@ -63,6 +64,7 @@ export const usePageTiles = (
   gridCols: number,
   enabled = true,
   sessionId?: string,
+  hmacSecret?: string,
 ) => {
   const queryClient = useQueryClient();
 
@@ -77,7 +79,7 @@ export const usePageTiles = (
   const results = useQueries({
     queries: tileCoords.map(({ row, col }) => ({
       queryKey: ["ebook", "tile", code, page, row, col],
-      queryFn: () => fetchPageTile(code, page, row, col, sessionId),
+      queryFn: () => fetchPageTile(code, page, row, col, sessionId, hmacSecret),
       enabled: enabled && !!code && page > 0,
       staleTime: 5 * 60 * 1000,
       gcTime: 10 * 60 * 1000,
@@ -94,14 +96,14 @@ export const usePageTiles = (
         for (const { row, col } of tileCoords) {
           queryClient.prefetchQuery({
             queryKey: ["ebook", "tile", code, adjPage, row, col],
-            queryFn: () => fetchPageTile(code, adjPage, row, col, sessionId),
+            queryFn: () => fetchPageTile(code, adjPage, row, col, sessionId, hmacSecret),
             staleTime: 5 * 60 * 1000,
           });
         }
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, page, totalPages, enabled, gridRows, gridCols, sessionId]);
+  }, [code, page, totalPages, enabled, gridRows, gridCols, sessionId, hmacSecret]);
 
   const isLoading = results.some((r) => r.isLoading);
   const tiles = results.map((r) => r.data);

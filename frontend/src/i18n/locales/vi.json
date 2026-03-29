@@ -560,7 +560,12 @@
     "viewer": {
       "toc": "Mục lục",
       "notFound": "Không tìm thấy giáo trình.",
-      "loadFailed": "Không thể tải trang."
+      "loadFailed": "Không thể tải trang.",
+      "copyrightTitle": "Thông báo bảo vệ bản quyền",
+      "copyrightNotice": "Nội dung này được bảo vệ bởi luật bản quyền.",
+      "copyrightLegal": "Việc phá vỡ các biện pháp bảo vệ kỹ thuật sẽ bị xử phạt theo Điều 104-2 Luật Bản quyền Hàn Quốc.",
+      "copyrightWatermark": "E-book này có chứa hình mờ kỹ thuật số để nhận dạng người mua.",
+      "copyrightConfirm": "Tôi đã hiểu"
     }
   },
   "textbook": {

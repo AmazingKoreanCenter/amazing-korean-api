@@ -12,7 +12,7 @@
 > 자체 사이트에서 교재(학생용/교사용) e-book을 구매하고 열람할 수 있는 웹 뷰어 시스템.
 > **회원 전용** — 로그인 필수 (비회원 구매 불가), `user_id`로 구매 연동.
 > **웹 전용** — 페이지 이미지 기반 렌더링 (EPUB/PDF 원본 미노출, 다운로드 없음).
-> 향후 모바일 앱(React Native) 및 데스크탑 앱(Tauri)에서 오프라인 EPUB 뷰어로 확장.
+> 향후 모바일 앱(Flutter) 및 데스크탑 앱(Tauri 2.x)에서 오프라인 EPUB 뷰어로 확장. 상세: [`AMK_APP_ROADMAP.md`](./AMK_APP_ROADMAP.md)
 
 **교재 3종 유통 정책**:
 | 종류 | 용도 | 유통 채널 |
@@ -21,7 +21,7 @@
 | 교사용 | 교사가 학생을 가르칠 때 사용 | **자체 사이트만** (인쇄물 + e-book) |
 | 해설용 | 학생이 혼자 공부 | 자체 사이트 + 외부 플랫폼 (Amazon/Apple/Google/Kobo/교보/Yes24) |
 
-**7중 보안 아키텍처**:
+**8중 보안 아키텍처**:
 ```
 Layer 1: 구조적 보안
   • 회원 전용 — AuthUser JWT 필수 (비회원 구매 불가)
@@ -62,6 +62,14 @@ Layer 7: 동시 세션 제한 (백엔드 + 프론트)
   • 90초 TTL / 30초 heartbeat (3:1 비율)
   • 새 기기 접속 시 기존 세션 자동 만료
   • Redis 장애 시 fail closed (접근 거부)
+
+Layer 8: 요청별 HMAC 서명 (백엔드 + 프론트)
+  • 세션 등록 시 32바이트 랜덤 secret 생성 → Redis 저장 + 클라이언트 전달
+  • 페이지/타일 요청: X-Ebook-Signature + X-Ebook-Timestamp 헤더 필수
+  • HMAC-SHA256(secret, "{session_id}:{path}:{timestamp}")
+  • ±30초 타임스탬프 윈도우 (리플레이 공격 방지)
+  • 상수 시간 비교 (타이밍 공격 방지)
+  • 프론트: Web Crypto API crypto.subtle.sign("HMAC")
 ```
 
 **타일 분할 전송** (기능 플래그: `EBOOK_TILE_MODE`):
@@ -78,8 +86,8 @@ Layer 7: 동시 세션 제한 (백엔드 + 프론트)
 ```
 Phase 1 [웹] ✅ 페이지 이미지 뷰어 — 온라인 전용, EPUB 미노출
 Phase 1.5 [웹 모바일] ✅ 터치 스와이프 + 반응형 UI + spread 자동 비활성화
-Phase 2 [모바일 앱] React Native + EPUB 암호화 저장 — 오프라인 지원
-Phase 3 [데스크탑 앱] Tauri(Rust) + DevTools 차단 — 오프라인 지원
+Phase 2 [모바일 앱] Flutter + FLAG_SECURE/isSecureTextEntry + Rust FFI — 오프라인 지원
+Phase 3 [데스크탑 앱] Tauri 2.x + SetWindowDisplayAffinity (Windows) — 오프라인 지원
 ```
 
 **DB**: ENUM 3개 (`ebook_edition_enum`, `ebook_purchase_status_enum`, `ebook_payment_method_enum`) + 테이블 3개 (`ebook_purchase`, `ebook_access_log`, `admin_ebook_log`)
@@ -208,6 +216,7 @@ Phase 3 [데스크탑 앱] Tauri(Rust) + DevTools 차단 — 오프라인 지원
     { "title": "Part II. 어휘", "page": 25 }
   ],
   "session_id": "uuid-v4",
+  "hmac_secret": "hex-encoded-32-bytes",
   "tile_mode": false,
   "grid_rows": null,
   "grid_cols": null
@@ -215,6 +224,7 @@ Phase 3 [데스크탑 앱] Tauri(Rust) + DevTools 차단 — 오프라인 지원
 ```
 
 - `session_id`: Redis 동시 세션 관리용 UUID (뷰어 진입 시 발급, heartbeat에 사용)
+- `hmac_secret`: 세션별 HMAC-SHA256 서명 키 (32바이트, hex 인코딩). 페이지/타일 요청 시 서명 계산에 사용
 - `tile_mode`: true이면 타일 분할 전송 모드 (서버 `EBOOK_TILE_MODE` 설정)
 - `grid_rows`, `grid_cols`: 타일 그리드 크기 (tile_mode=true 시 값 존재)
 
@@ -243,10 +253,18 @@ Phase 3 [데스크탑 앱] Tauri(Rust) + DevTools 차단 — 오프라인 지원
 
 **Rate Limit**: 30페이지/분/user_id (Redis INCR)
 
-**보안 헤더**:
+**필수 요청 헤더**:
+```
+X-Ebook-Viewer: 1
+X-Ebook-Session: {session_id}
+X-Ebook-Signature: HMAC-SHA256("{session_id}:{code}/{page_num}:{timestamp}")
+X-Ebook-Timestamp: {unix_seconds}
+```
+
+**응답 보안 헤더**:
 ```
 Content-Type: image/webp
-Cache-Control: private, max-age=300
+Cache-Control: private, no-store
 X-Content-Type-Options: nosniff
 ```
 
@@ -261,6 +279,8 @@ X-Content-Type-Options: nosniff
 - 커버 페이지(1~4)에도 풋터 워터마크 적용됨 — 커버 디자인에 따라 시각 QA 필요
 - `Cache-Control: private, max-age=300` — 5분 내 동일 페이지 재방문 시 캐시 히트로 새 워터마크 미적용 (기존 watermark_id와 이미지 일치하므로 포렌식 추적 정상)
 - 감사 로그는 `tokio::spawn` fire-and-forget — DB 일시 장애 시 로그 유실 가능 (이미지 반환 우선)
+- HMAC 타임스탬프 ±30초 윈도우 — PC 시계가 30초+ 차이나면 요청 거부 (NTP 기본 활성화 PC는 영향 없음)
+- HMAC 검증 시 Redis GET 2회 (verify_session + verify_hmac_signature) — 현 트래픽에서 무시 가능
 
 #### 12.5-5.5 : `GET /ebook/viewer/{code}/pages/{page_num}/tiles/{row}/{col}` (타일 이미지 조회)
 

@@ -752,5 +752,14 @@
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
     "tabEbook": "E-book"
+  },
+  "ebook": {
+    "viewer": {
+      "copyrightTitle": "प्रतिलिपि अधिकार सुरक्षा सूचना",
+      "copyrightNotice": "यो सामग्री प्रतिलिपि अधिकार कानूनद्वारा सुरक्षित छ।",
+      "copyrightLegal": "प्राविधिक सुरक्षा उपायहरूलाई उल्लंघन गर्नु कोरियाली प्रतिलिपि अधिकार ऐन धारा 104-2 अनुसार दण्डनीय छ।",
+      "copyrightWatermark": "यो E-book मा खरिदकर्ता पहिचानका लागि डिजिटल वाटरमार्क समावेश छ।",
+      "copyrightConfirm": "मैले बुझें"
+    }
   }
 }

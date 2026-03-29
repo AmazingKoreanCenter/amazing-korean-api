@@ -7,6 +7,7 @@ use crate::state::AppState;
 
 use super::dto::{
     AdminEbookListReq, AdminEbookListRes, AdminEbookPurchaseItem, AdminUpdateEbookStatusReq,
+    WatermarkVerifyRes,
 };
 use super::service::AdminEbookService;
 
@@ -38,6 +39,18 @@ pub async fn update_status(
     Json(req): Json<AdminUpdateEbookStatusReq>,
 ) -> AppResult<Json<AdminEbookPurchaseItem>> {
     let res = AdminEbookService::update_status(&st, claims.sub, id, req).await?;
+    Ok(Json(res))
+}
+
+/// GET /admin/ebook/verify/:watermark_id
+///
+/// 워터마크 진위확인 — 유출된 이미지에서 추출한 watermark_id로 구매자 정보 조회.
+pub async fn verify_watermark(
+    State(st): State<AppState>,
+    AuthUser(_claims): AuthUser,
+    Path(watermark_id): Path<String>,
+) -> AppResult<Json<WatermarkVerifyRes>> {
+    let res = AdminEbookService::verify_watermark(&st, &watermark_id).await?;
     Ok(Json(res))
 }
 

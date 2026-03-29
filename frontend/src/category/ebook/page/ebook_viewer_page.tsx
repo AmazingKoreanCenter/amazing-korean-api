@@ -15,6 +15,7 @@ import {
   FileText,
   Lock,
   ShieldX,
+  ShieldCheck,
 } from "lucide-react";
 
 import { ApiError } from "@/api/client";
@@ -24,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useViewerMeta } from "../hook/use_viewer_meta";
 import { usePageImage, usePageTiles } from "../hook/use_page_image";
 import { sendViewerHeartbeat } from "../ebook_api";
+import { useDevToolsDetection } from "../utils/devtools_detect";
 
 const ZOOM_LEVELS = [50, 75, 100, 120, 150];
 const DEFAULT_ZOOM_INDEX = 2; // 100%
@@ -196,6 +198,9 @@ export function EbookViewerPage() {
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isObscured, setIsObscured] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [showCopyrightNotice, setShowCopyrightNotice] = useState(
+    () => !sessionStorage.getItem("ebook_copyright_ack")
+  );
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -352,6 +357,12 @@ export function EbookViewerPage() {
     return () => clearInterval(interval);
   }, [handleTampering]);
 
+  // ─── Step 5: DevTools 감지 → 콘텐츠 블러 ───
+  useDevToolsDetection(
+    useCallback(() => setIsObscured(true), []),
+    useCallback(() => setIsObscured(false), []),
+  );
+
   const { data: meta, isLoading: metaLoading, error: metaError } = useViewerMeta(
     purchaseCode ?? ""
   );
@@ -391,6 +402,7 @@ export function EbookViewerPage() {
   const gridCols = meta?.grid_cols ?? 3;
 
   const sessionId = meta?.session_id;
+  const hmacSecret = meta?.hmac_secret;
 
   // 단일 이미지 모드 (tile_mode=false)
   const { data: imageData, isLoading: imageLoading } = usePageImage(
@@ -400,6 +412,7 @@ export function EbookViewerPage() {
     !!meta && !tileMode,
     viewMode,
     sessionId,
+    hmacSecret,
   );
 
   const { data: imageDataRight, isLoading: imageLoadingRight } = usePageImage(
@@ -409,6 +422,7 @@ export function EbookViewerPage() {
     !!meta && !tileMode && spreadRightPage !== null,
     viewMode,
     sessionId,
+    hmacSecret,
   );
 
   // 타일 분할 모드 (tile_mode=true)
@@ -420,6 +434,7 @@ export function EbookViewerPage() {
     gridCols,
     !!meta && tileMode,
     sessionId,
+    hmacSecret,
   );
 
   const { tiles: tilesRight, isLoading: tilesRightLoading } = usePageTiles(
@@ -430,6 +445,7 @@ export function EbookViewerPage() {
     gridCols,
     !!meta && tileMode && spreadRightPage !== null,
     sessionId,
+    hmacSecret,
   );
 
   // 통합 로딩 상태
@@ -648,8 +664,33 @@ export function EbookViewerPage() {
     ? tilesLeft.every((t) => !!t)
     : !!imageData;
 
+  const handleCopyrightAck = () => {
+    sessionStorage.setItem("ebook_copyright_ack", "1");
+    setShowCopyrightNotice(false);
+  };
+
   return (
     <>
+      {/* ─── 저작권 보호 고지 모달 ─── */}
+      {showCopyrightNotice && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="mx-4 max-w-md rounded-2xl bg-background p-6 shadow-2xl border space-y-4">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="h-8 w-8 text-primary flex-shrink-0" />
+              <h2 className="text-lg font-semibold">{t("ebook.viewer.copyrightTitle")}</h2>
+            </div>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>{t("ebook.viewer.copyrightNotice")}</p>
+              <p>{t("ebook.viewer.copyrightLegal")}</p>
+              <p>{t("ebook.viewer.copyrightWatermark")}</p>
+            </div>
+            <Button className="w-full" onClick={handleCopyrightAck}>
+              {t("ebook.viewer.copyrightConfirm")}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* 풀스크린 시 사이트 전체 숨기고 뷰어만 표시 */}
       <style>{`
         @media print { body * { display: none !important; visibility: hidden !important; } }

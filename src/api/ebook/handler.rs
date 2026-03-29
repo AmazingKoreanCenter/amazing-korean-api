@@ -85,8 +85,9 @@ pub async fn get_viewer_meta(
     Path(code): Path<String>,
 ) -> AppResult<Json<ViewerMetaRes>> {
     let mut res = EbookService::get_viewer_meta(&st, claims.sub, &code).await?;
-    let session_id = EbookService::register_session(&st, claims.sub, &code).await?;
+    let (session_id, hmac_secret) = EbookService::register_session(&st, claims.sub, &code).await?;
     res.session_id = session_id;
+    res.hmac_secret = hmac_secret;
     Ok(Json(res))
 }
 
@@ -128,6 +129,21 @@ pub async fn get_page_image(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
     EbookService::verify_session(&st, claims.sub, session_id.as_deref()).await?;
+
+    // HMAC 서명 검증 (요청 무결성 + 리플레이 방지)
+    let signature = headers
+        .get("x-ebook-signature")
+        .and_then(|v| v.to_str().ok());
+    let timestamp = headers
+        .get("x-ebook-timestamp")
+        .and_then(|v| v.to_str().ok());
+    match (signature, timestamp) {
+        (Some(sig), Some(ts)) => {
+            let path = format!("{}/{}", code, page_num);
+            EbookService::verify_hmac_signature(&st, claims.sub, &path, sig, ts).await?;
+        }
+        _ => return Err(AppError::Forbidden("Missing signature headers".into())),
+    }
 
     // User-level Rate Limiting (페이지 크롤링 방지)
     let rl_key = format!("rl:ebook_page:{}", claims.sub);
@@ -202,6 +218,21 @@ pub async fn get_page_tile(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
     EbookService::verify_session(&st, claims.sub, session_id.as_deref()).await?;
+
+    // HMAC 서명 검증 (요청 무결성 + 리플레이 방지)
+    let signature = headers
+        .get("x-ebook-signature")
+        .and_then(|v| v.to_str().ok());
+    let timestamp = headers
+        .get("x-ebook-timestamp")
+        .and_then(|v| v.to_str().ok());
+    match (signature, timestamp) {
+        (Some(sig), Some(ts)) => {
+            let path = format!("{}/{}/{}/{}", code, page_num, tile_row, tile_col);
+            EbookService::verify_hmac_signature(&st, claims.sub, &path, sig, ts).await?;
+        }
+        _ => return Err(AppError::Forbidden("Missing signature headers".into())),
+    }
 
     // User-level Rate Limiting (타일 전용)
     let rl_key = format!("rl:ebook_tile:{}", claims.sub);

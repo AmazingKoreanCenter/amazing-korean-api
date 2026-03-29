@@ -123,6 +123,58 @@ pub fn has_enc_prefix(value: &str) -> bool {
     value.starts_with("enc:v")
 }
 
+// ─────────────────────── Bytes-level Encryption (파일 암호화용) ───────────────────────
+
+/// 임의 바이트를 AES-256-GCM으로 암호화한다. (파일 저장용, base64 미사용)
+///
+/// 출력 포맷: raw bytes `nonce_12bytes || ciphertext || tag_16bytes`
+/// 파일 확장자 `.enc`로 암호화 여부를 식별한다 (문자열 암호화의 `enc:v{n}:` prefix 미사용).
+pub fn encrypt_bytes(key: &[u8; 32], plaintext: &[u8], aad: &str) -> AppResult<Vec<u8>> {
+    let cipher = Aes256Gcm::new_from_slice(key)
+        .map_err(|e| AppError::Internal(format!("AES key init failed: {e}")))?;
+
+    let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+
+    let payload = aes_gcm::aead::Payload {
+        msg: plaintext,
+        aad: aad.as_bytes(),
+    };
+
+    let ciphertext = cipher
+        .encrypt(&nonce, payload)
+        .map_err(|e| AppError::Internal(format!("AES encrypt_bytes failed: {e}")))?;
+
+    let mut combined = Vec::with_capacity(12 + ciphertext.len());
+    combined.extend_from_slice(nonce.as_slice());
+    combined.extend_from_slice(&ciphertext);
+
+    Ok(combined)
+}
+
+/// AES-256-GCM으로 암호화된 바이트를 복호화한다. (파일 로드용)
+///
+/// 입력 포맷: raw bytes `nonce_12bytes || ciphertext || tag_16bytes`
+pub fn decrypt_bytes(key: &[u8; 32], encrypted: &[u8], aad: &str) -> AppResult<Vec<u8>> {
+    if encrypted.len() < 12 + 16 {
+        return Err(AppError::Internal("Encrypted bytes too short".into()));
+    }
+
+    let (nonce_bytes, ciphertext) = encrypted.split_at(12);
+    let nonce = Nonce::from_slice(nonce_bytes);
+
+    let cipher = Aes256Gcm::new_from_slice(key)
+        .map_err(|e| AppError::Internal(format!("AES key init failed: {e}")))?;
+
+    let payload = aes_gcm::aead::Payload {
+        msg: ciphertext,
+        aad: aad.as_bytes(),
+    };
+
+    cipher
+        .decrypt(nonce, payload)
+        .map_err(|e| AppError::Internal(format!("AES decrypt_bytes failed: {e}")))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -283,5 +335,55 @@ mod tests {
         assert!(!has_enc_prefix("192.168.1.1"));
         assert!(!has_enc_prefix("user@example.com"));
         assert!(!has_enc_prefix(""));
+    }
+
+    // --- encrypt_bytes / decrypt_bytes 테스트 ---
+
+    #[test]
+    fn test_encrypt_decrypt_bytes_roundtrip() {
+        let key = test_key();
+        let plaintext = b"WebP image binary data here \x00\x01\x02\xFF";
+        let aad = "ebook.page_image";
+
+        let encrypted = encrypt_bytes(&key, plaintext, aad).unwrap();
+        assert_ne!(encrypted.as_slice(), plaintext);
+        assert!(encrypted.len() >= 12 + 16); // nonce + tag
+
+        let decrypted = decrypt_bytes(&key, &encrypted, aad).unwrap();
+        assert_eq!(decrypted.as_slice(), plaintext);
+    }
+
+    #[test]
+    fn test_encrypt_bytes_different_ciphertext() {
+        let key = test_key();
+        let plaintext = b"same input";
+        let aad = "ebook.page_image";
+
+        let enc1 = encrypt_bytes(&key, plaintext, aad).unwrap();
+        let enc2 = encrypt_bytes(&key, plaintext, aad).unwrap();
+        assert_ne!(enc1, enc2); // 랜덤 nonce
+    }
+
+    #[test]
+    fn test_decrypt_bytes_wrong_key() {
+        let key1: [u8; 32] = [0x42; 32];
+        let key2: [u8; 32] = [0x43; 32];
+        let aad = "ebook.page_image";
+
+        let encrypted = encrypt_bytes(&key1, b"secret", aad).unwrap();
+        assert!(decrypt_bytes(&key2, &encrypted, aad).is_err());
+    }
+
+    #[test]
+    fn test_decrypt_bytes_wrong_aad() {
+        let key = test_key();
+        let encrypted = encrypt_bytes(&key, b"data", "ebook.page_image").unwrap();
+        assert!(decrypt_bytes(&key, &encrypted, "wrong.aad").is_err());
+    }
+
+    #[test]
+    fn test_decrypt_bytes_too_short() {
+        let key = test_key();
+        assert!(decrypt_bytes(&key, &[0u8; 20], "aad").is_err());
     }
 }

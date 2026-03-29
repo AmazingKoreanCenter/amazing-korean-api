@@ -560,7 +560,12 @@
     "viewer": {
       "toc": "目录",
       "notFound": "未找到教材。",
-      "loadFailed": "页面加载失败。"
+      "loadFailed": "页面加载失败。",
+      "copyrightTitle": "版权保护声明",
+      "copyrightNotice": "本内容受版权法保护。",
+      "copyrightLegal": "规避技术保护措施将依据韩国著作权法第104条之2受到处罚。",
+      "copyrightWatermark": "本E-book已嵌入用于购买者识别的数字水印。",
+      "copyrightConfirm": "我已了解"
     }
   },
   "textbook": {

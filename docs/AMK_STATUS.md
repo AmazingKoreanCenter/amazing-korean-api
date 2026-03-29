@@ -55,6 +55,11 @@
 | 39 | 교재 주문 안내 카드 UI 개선 | 프론트 | 주문 안내 4열 그리드, 30부 할인 카드(BadgePercent), 카드별 색상(blue/emerald/violet/amber), "무료 배송" 문구, whitespace-pre-line | 2026-03-27 | 20개 locale 미반영 |
 | 40 | E-book 뷰어 보안 강화 | 보안 | CORS `x-ebook-viewer`/`x-ebook-session` 허용, session_id 비교, Content-Disposition/Referrer-Policy/Cache-Control `no-store`, Rate Limit TOCTOU 수정(3곳), 마이크로도트 y분산, Heartbeat Canvas 클리어, print CSS 강화 | 2026-03-28 | Error Boundary 보류 |
 | 41 | Gemini 코드 리뷰 반영 | 코드 품질 | 마이그레이션 문서 HHMMSS 예시 모순 수정, embla-carousel-react 미사용 패키지 제거, queryClient 불필요 의존성 제거, TiledPageCanvas Promise.allSettled 부분 렌더링 | 2026-03-28 | — |
+| 42 | E-book 저작권 보호 고지 | 보안/법적 | 뷰어 최초 진입 시 저작권법 제104조의2 고지 모달 (ShieldCheck + sessionStorage), 22개 locale 번역 5키 | 2026-03-29 | — |
+| 43 | 워터마크 진위확인 API | 보안 | `GET /admin/ebook/verify/{watermark_id}` — 관리자 전용, ebook_access_log + ebook_purchase JOIN 조회 | 2026-03-29 | — |
+| 44 | 이미지 AES-256-GCM 암호화 저장 | 보안 | `encrypt_bytes`/`decrypt_bytes` + `EBOOK_IMAGES_ENCRYPTED` 피처 플래그, 페이지+타일 복호화 로직, 테스트 25개 | 2026-03-29 | CLI 암호화 도구 별도 |
+| 45 | DevTools 감지 | 보안 | `devtools_detect.ts` 신규, 창 크기+console getter 2초 폴링, 3초 유예 블러, DevTools 닫으면 복원 | 2026-03-29 | — |
+| 46 | 요청별 HMAC 서명 | 보안 | 세션별 32바이트 secret, Web Crypto HMAC-SHA256, ±30초 타임스탬프 윈도우, 상수시간 비교, 페이지/타일 요청 서명 검증 | 2026-03-29 | — |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드
@@ -62,20 +67,27 @@
 
 ### 8.2 진행 예정 항목
 
-#### 핵심 (우선순위 순)
+> **실행 순서 SSoT**: [`AMK_APP_ROADMAP.md §4`](./AMK_APP_ROADMAP.md) — 의존성 그래프, 크리티컬 패스, 병행 가능 구간 포함.
 
-| # | 항목 | 카테고리 | 내역 | 예상 결과 | 조건/시점 |
-|:-:|------|---------|------|----------|----------|
-| 0 | **Paddle Live 전환** | 결제 | Sandbox → 프로덕션 전환. KYB 승인 완료. Dashboard 설정 + Discount 코드 적용 완료. **남은: GitHub Secrets 교체 + 배포 + E2E 검증** | 실결제 수신 가능 | **최우선** |
-| 0.5 | ~~**e-book Paddle 연동**~~ | e-book | ~~Paddle checkout overlay, 가격 분기 (USD/KRW), 구매 취소, 환불 웹훅~~ | ~~카드결제로 e-book 구매~~ | **✅ 코드 구현 완료 (배포 대기)** |
-| 0.6 | **학습 콘텐츠 시딩** | 콘텐츠 | 교재 JSON → DB 시딩 (Phase 13), 기존 테스트 데이터 삭제 후 실 콘텐츠 투입 | 웹 학습 서비스 실데이터 | Paddle Live 전환 후 |
-| 0.6 | **교재 번역 Wave 2~5** | 콘텐츠 | 잔여 16개 언어 번역 (zh_tw, es, hi 완료 → km 진행 중 → Wave 3~5) | 20개 언어 교재 + 학습 콘텐츠 완성 | 병행 진행 |
-| 1 | 동시 세션 수 제한 | 보안 | 역할별 동시 세션 상한 설정 | 다중 기기 무분별 로그인 방지 | RDS 이전 후 |
-| 2 | RDS/ElastiCache 이전 | 인프라 | EC2 단일 DB → AWS RDS + ElastiCache | TLS, 자동 백업, maxmemory 자동 적용 | 다음 우선순위 |
-| 3 | 다중 서버 구성 (HA) | 인프라 | ①nginx+컨테이너 복제 → ②ALB+EC2 → ③ECS Fargate | 고가용성, 무중단 배포, Auto Scaling | RDS 완료 후 |
-| 4 | 시스템 모니터링 | 인프라 | DB/Redis 상태, 서버 리소스 실시간 확인 | Admin 대시보드 통합 | 필요 시 |
-| 5 | K6 성능 테스트 | 테스트 | 인증/조회/진도저장 부하 테스트, CI 연계 | SLA 기준 검증 (아래 표 참조) | CI 구축 시 |
-| 6 | ~~디자인 시스템~~ | ~~UI~~ | ~~브랜딩, 타이포그래피, 반응형 점검~~ | ~~일관된 UI/UX 체계~~ | ✅ §8.1 #13 |
+#### 핵심 (실행 순서)
+
+| 순서 | 항목 | 카테고리 | 예상 | 내역 | 조건 |
+|:----:|------|---------|:----:|------|------|
+| 1 | **Paddle Live 전환** | 결제 | 1일 | GitHub Secrets 교체 + 배포 + E2E 검증 | **최우선** |
+| — | ~~e-book Paddle 연동~~ | — | — | — | **✅ 코드 구현 완료 (배포 대기)** |
+| 2 | **교재 번역 Wave 2~5** | 콘텐츠 | 병행 | 잔여 16개 언어 (zh_tw, es, hi 완료 → 진행 중) | 전 기간 병행 |
+| 3 | **학습 콘텐츠 시딩** | 콘텐츠 | 2-3일 | 교재 JSON → DB 시딩, 실 콘텐츠 투입 | Paddle Live 후 |
+| 4 | **RDS/ElastiCache 이전** | 인프라 | 3-5일 | EC2 단일 DB → AWS RDS + ElastiCache | 모바일 출시 전 안정화 |
+| 5 | **동시 세션 수 제한** | 보안 | 2-3일 | 역할별 동시 세션 상한. 모바일 세션 표면 증가 대비 | RDS 이전 후 |
+| 6 | **모바일 인증 엔드포인트** | 백엔드 | 1일 | `login-mobile` + `refresh-mobile` (httpOnly 쿠키 대안) | 모바일 앱 선행 |
+| 7 | **공유 Rust 크레이트 추출** | 아키텍처 | 1.5일 | `amazing-korean-crypto` — 백엔드+모바일+데스크탑 공유 | 모바일/데스크탑 양쪽 의존 |
+| 8 | **모바일 앱 (Phase 2)** | 앱 | ~21-23일 | **Flutter** + flutter_rust_bridge. 상세: [`AMK_APP_ROADMAP.md §2`](./AMK_APP_ROADMAP.md) | 순서 5-7 |
+| 9 | **데스크탑 앱 (Phase 3)** | 앱 | ~7.5일 | **Tauri 2.x** + React 프론트 재사용. 상세: [`AMK_APP_ROADMAP.md §3`](./AMK_APP_ROADMAP.md) | 순서 7 |
+| — | ~~디자인 시스템~~ | — | — | — | ✅ §8.1 #13 |
+| — | ~~E-book 웹 보안~~ | — | — | — | ✅ Phase 1 완료 (§8.1 #42~#46) |
+| 10 | 다중 서버 구성 (HA) | 인프라 | — | ①nginx 복제 → ②ALB+EC2 → ③ECS Fargate | RDS 완료 후 |
+| 11 | 시스템 모니터링 | 인프라 | — | DB/Redis 상태, Admin 대시보드 | 필요 시 |
+| 12 | K6 성능 테스트 | 테스트 | — | 인증/조회/진도저장 부하 테스트, CI 연계 | CI 구축 시 |
 
 **K6 성능 목표치 (엔드포인트별)**:
 
@@ -218,7 +230,7 @@
 | 2 | 교육 앱 UX/UI 트렌드 | 시장 | 주요 교육 앱 UI 변화, 온보딩 플로우, 게이미피케이션 패턴, 접근성 트렌드 | 월 1회 | — |
 | 3 | 결제/수익 모델 동향 | 시장 | Apple/Google IAP 정책 변경, 수수료율 변동, 지역별 가격 전략, 프로모션 사례 | 분기 1회 | [`AMK_MARKET_ANALYSIS.md §4`](./AMK_MARKET_ANALYSIS.md#4-모바일-앱-결제-전략) |
 | 4 | AI/ML 기술 동향 | 기술 | LLM 경량화 (BitNet 후속), 음성인식 (Whisper 후속), 온디바이스 AI SDK, 발음 평가 API | 월 1회 | [`AMK_PIPELINE.md §11`](./AMK_PIPELINE.md) |
-| 5 | 모바일 프레임워크 동향 | 기술 | React Native / SwiftUI / Kotlin Multiplatform 변화, 크로스플랫폼 AI 통합 사례 | 분기 1회 | — |
+| 5 | 모바일 프레임워크 동향 | 기술 | Flutter / Tauri / Kotlin Multiplatform 변화, flutter_rust_bridge 업데이트, 크로스플랫폼 보안 사례 | 분기 1회 | [`AMK_APP_ROADMAP.md`](./AMK_APP_ROADMAP.md) |
 | 6 | 인프라/보안 동향 | 기술 | AWS 신규 서비스, 컨테이너 오케스트레이션, 인증 표준 (Passkey 등), OWASP 업데이트 | 분기 1회 | [`AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md) |
 | 7 | 규제/법률 동향 | 사업 | 교육 앱 개인정보보호 (COPPA, GDPR-K), DMA/DSA 후속 조치, 각국 앱스토어 규제 | 분기 1회 | — |
 

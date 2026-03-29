@@ -752,5 +752,14 @@
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
     "tabEbook": "E-book"
+  },
+  "ebook": {
+    "viewer": {
+      "copyrightTitle": "Aviso de proteção de direitos autorais",
+      "copyrightNotice": "Este conteúdo é protegido pela lei de direitos autorais.",
+      "copyrightLegal": "A violação de medidas de proteção tecnológica é punível nos termos do Artigo 104-2 da Lei de Direitos Autorais da Coreia.",
+      "copyrightWatermark": "Este E-book contém marcas d'água digitais para identificação do comprador.",
+      "copyrightConfirm": "Entendi"
+    }
   }
 }

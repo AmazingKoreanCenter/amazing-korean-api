@@ -11,6 +11,24 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-29 — E-book 요청별 HMAC 서명 (Phase 1-2 완료)**
+  - **HMAC 서명 검증**: 페이지/타일 요청마다 `X-Ebook-Signature` + `X-Ebook-Timestamp` 헤더 필수화, 세션 등록 시 32바이트 랜덤 secret 생성 → Redis 저장, `ViewerMetaRes`에 `hmac_secret` 추가
+  - **서명 알고리즘**: HMAC-SHA256, payload = `{session_id}:{path}:{timestamp}`, ±30초 타임스탬프 윈도우, 상수 시간 비교 (타이밍 공격 방지)
+  - **프론트엔드**: Web Crypto API `crypto.subtle.sign("HMAC")`, hex 인코딩, `fetchPageImage`/`fetchPageTile` 호출 시 자동 서명
+  - **CORS**: `x-ebook-signature` + `x-ebook-timestamp` 헤더 허용 추가
+  - **Phase 1 웹 보안 5/5 완료**: 저작권고지 + 진위확인 + 이미지암호화 + DevTools감지 + HMAC서명
+
+- **2026-03-29 — E-book 보안 Phase 1 착수 + 보안 전략 문서**
+  - **저작권 보호 고지 모달**: 뷰어 최초 진입 시 저작권법 제104조의2 고지 모달 표시 (ShieldCheck 아이콘, sessionStorage 중복 방지), 22개 locale 번역 (`copyrightTitle`/`copyrightNotice`/`copyrightLegal`/`copyrightWatermark`/`copyrightConfirm`)
+  - **워터마크 진위확인 API**: `GET /admin/ebook/verify/{watermark_id}` — 관리자 전용, ebook_access_log JOIN ebook_purchase로 purchase_code/user_id/page_number/ip/user_agent/created_at 반환
+  - **이미지 AES-256-GCM 암호화 저장**: `cipher.rs`에 `encrypt_bytes()`/`decrypt_bytes()` 추가, `EBOOK_IMAGES_ENCRYPTED=true` 시 `.webp.enc` 파일 복호화 후 워터마크 적용 (페이지+타일 모두), 테스트 25개 통과
+  - **DevTools 감지**: `devtools_detect.ts` 신규 — 창 크기 변화(200px+) + console.log getter 호출 감지, `useDevToolsDetection` 훅 2초 폴링, 감지 시 3초 유예 후 콘텐츠 블러 (isObscured), DevTools 닫으면 자동 복원
+
+- **2026-03-29 — E-book 보안 전략 문서 신규 작성**
+  - **신규**: `docs/AMK_EBOOK_SECURITY.md` — 대한민국 공문서 발급 보안 체계, 한국 E-book DRM 사례 (교보/리디/알라딘), 알라딘 2023 유출 사건 분석, 플랫폼별 보안 역량 (Android/iOS/macOS/Windows), 앱 프레임워크 비교, 저작권법 법적 근거 정리
+  - **조사 방법**: WebSearch 150+회 실증 검증 (AMK_WORKS_RULE.md 절차 준수), 모든 항목 출처 URL 명시
+  - **AMK_STATUS.md**: 진행 예정 항목에 E-book 웹 보안 강화(Phase 1), 모바일 앱(Phase 2), 데스크탑 앱(Phase 3) 추가
+
 - **2026-03-28 — E-book 보안 강화 + Gemini 코드 리뷰 반영**
   - **보안 강화 (커밋 9247413)**: CORS `x-ebook-viewer`/`x-ebook-session` 허용, verify_session session_id 비교, Content-Disposition/Referrer-Policy/Cache-Control `no-store` 헤더, Rate Limit TOCTOU 경합 수정 (3곳), 마이크로도트 y좌표 ±3px 분산, Heartbeat 실패 시 Canvas 즉시 클리어, print CSS `body *` 전체 숨김 강화
   - **Gemini 리뷰 반영 (커밋 7854e87)**: `AMK_DEPLOY_OPS.md` 마이그레이션 예시 HHMMSS 모순 수정, `AMK_CHANGELOG.md` embla 표현 수정, `embla-carousel-react` 미사용 패키지 제거, `use_page_image.ts` queryClient 불필요 의존성 제거, TiledPageCanvas `Promise.all` → `Promise.allSettled` (부분 렌더링 지원)

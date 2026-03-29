@@ -560,7 +560,12 @@
     "viewer": {
       "toc": "Daftar Isi",
       "notFound": "Buku teks tidak ditemukan.",
-      "loadFailed": "Gagal memuat halaman."
+      "loadFailed": "Gagal memuat halaman.",
+      "copyrightTitle": "Pemberitahuan Perlindungan Hak Cipta",
+      "copyrightNotice": "Konten ini dilindungi oleh undang-undang hak cipta.",
+      "copyrightLegal": "Pelanggaran terhadap langkah perlindungan teknis dapat dihukum berdasarkan Pasal 104-2 UU Hak Cipta Korea.",
+      "copyrightWatermark": "E-book ini mengandung watermark digital untuk identifikasi pembeli.",
+      "copyrightConfirm": "Saya mengerti"
     }
   },
   "textbook": {
