@@ -41,6 +41,7 @@
 
 | 문서 | 역할 |
 |------|------|
+| `docs/AMK_EBOOK_SECURITY.md` | E-book 보안 전략, DRM 조사, 앱 개발 로드맵 |
 | `docs/AMK_FRONTEND.md` | 프론트엔드 구조, 라우팅, 상태관리, UI/UX |
 | `docs/AMK_STATUS.md` | 작업 현황, 로드맵, 체크리스트 |
 | `docs/AMK_MARKET_ANALYSIS.md` | 시장 분석, 교육 방법론, 비즈니스 전략 |

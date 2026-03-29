@@ -11,6 +11,11 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-29 — E-book 보안 전략 문서 신규 작성**
+  - **신규**: `docs/AMK_EBOOK_SECURITY.md` — 대한민국 공문서 발급 보안 체계, 한국 E-book DRM 사례 (교보/리디/알라딘), 알라딘 2023 유출 사건 분석, 플랫폼별 보안 역량 (Android/iOS/macOS/Windows), 앱 프레임워크 비교, 저작권법 법적 근거 정리
+  - **조사 방법**: WebSearch 150+회 실증 검증 (AMK_WORKS_RULE.md 절차 준수), 모든 항목 출처 URL 명시
+  - **AMK_STATUS.md**: 진행 예정 항목에 E-book 웹 보안 강화(Phase 1), 모바일 앱(Phase 2), 데스크탑 앱(Phase 3) 추가
+
 - **2026-03-28 — E-book 보안 강화 + Gemini 코드 리뷰 반영**
   - **보안 강화 (커밋 9247413)**: CORS `x-ebook-viewer`/`x-ebook-session` 허용, verify_session session_id 비교, Content-Disposition/Referrer-Policy/Cache-Control `no-store` 헤더, Rate Limit TOCTOU 경합 수정 (3곳), 마이크로도트 y좌표 ±3px 분산, Heartbeat 실패 시 Canvas 즉시 클리어, print CSS `body *` 전체 숨김 강화
   - **Gemini 리뷰 반영 (커밋 7854e87)**: `AMK_DEPLOY_OPS.md` 마이그레이션 예시 HHMMSS 모순 수정, `AMK_CHANGELOG.md` embla 표현 수정, `embla-carousel-react` 미사용 패키지 제거, `use_page_image.ts` queryClient 불필요 의존성 제거, TiledPageCanvas `Promise.all` → `Promise.allSettled` (부분 렌더링 지원)

@@ -76,6 +76,9 @@
 | 4 | 시스템 모니터링 | 인프라 | DB/Redis 상태, 서버 리소스 실시간 확인 | Admin 대시보드 통합 | 필요 시 |
 | 5 | K6 성능 테스트 | 테스트 | 인증/조회/진도저장 부하 테스트, CI 연계 | SLA 기준 검증 (아래 표 참조) | CI 구축 시 |
 | 6 | ~~디자인 시스템~~ | ~~UI~~ | ~~브랜딩, 타이포그래피, 반응형 점검~~ | ~~일관된 UI/UX 체계~~ | ✅ §8.1 #13 |
+| 7 | **E-book 웹 보안 강화** | 보안 | 이미지 AES-256 암호화 저장, 요청별 HMAC 서명, DevTools 감지, 워터마크 진위확인 API, 저작권 보호 고지. 상세: [`AMK_EBOOK_SECURITY.md`](./AMK_EBOOK_SECURITY.md) | 공문서/상용 DRM 수준 접근 | Phase 1 |
+| 8 | **모바일 앱 (Android/iOS)** | 앱 | Android FLAG_SECURE + Play Integrity, iOS isSecureTextEntry + isCaptured 감지. 프레임워크: Flutter 또는 Tauri Mobile | OS 레벨 스크린샷 차단 | Phase 2 |
+| 9 | **데스크탑 앱 (Tauri)** | 앱 | Windows SetWindowDisplayAffinity 캡처 방지, macOS 워터마크 강화 (캡처 방지 불가). Rust 백엔드 코드 공유 | 전용 뷰어 앱 | Phase 3 |
 
 **K6 성능 목표치 (엔드포인트별)**:
 
