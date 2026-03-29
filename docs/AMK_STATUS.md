@@ -59,6 +59,7 @@
 | 43 | 워터마크 진위확인 API | 보안 | `GET /admin/ebook/verify/{watermark_id}` — 관리자 전용, ebook_access_log + ebook_purchase JOIN 조회 | 2026-03-29 | — |
 | 44 | 이미지 AES-256-GCM 암호화 저장 | 보안 | `encrypt_bytes`/`decrypt_bytes` + `EBOOK_IMAGES_ENCRYPTED` 피처 플래그, 페이지+타일 복호화 로직, 테스트 25개 | 2026-03-29 | CLI 암호화 도구 별도 |
 | 45 | DevTools 감지 | 보안 | `devtools_detect.ts` 신규, 창 크기+console getter 2초 폴링, 3초 유예 블러, DevTools 닫으면 복원 | 2026-03-29 | — |
+| 46 | 요청별 HMAC 서명 | 보안 | 세션별 32바이트 secret, Web Crypto HMAC-SHA256, ±30초 타임스탬프 윈도우, 상수시간 비교, 페이지/타일 요청 서명 검증 | 2026-03-29 | — |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드
@@ -80,7 +81,7 @@
 | 4 | 시스템 모니터링 | 인프라 | DB/Redis 상태, 서버 리소스 실시간 확인 | Admin 대시보드 통합 | 필요 시 |
 | 5 | K6 성능 테스트 | 테스트 | 인증/조회/진도저장 부하 테스트, CI 연계 | SLA 기준 검증 (아래 표 참조) | CI 구축 시 |
 | 6 | ~~디자인 시스템~~ | ~~UI~~ | ~~브랜딩, 타이포그래피, 반응형 점검~~ | ~~일관된 UI/UX 체계~~ | ✅ §8.1 #13 |
-| 7 | **E-book 웹 보안 강화** | 보안 | 이미지 AES-256 암호화 저장, 요청별 HMAC 서명, DevTools 감지, 워터마크 진위확인 API, 저작권 보호 고지. 상세: [`AMK_EBOOK_SECURITY.md`](./AMK_EBOOK_SECURITY.md) | 공문서/상용 DRM 수준 접근 | Phase 1 |
+| 7 | ~~**E-book 웹 보안 강화**~~ | ~~보안~~ | ~~이미지 AES-256 암호화 저장, 요청별 HMAC 서명, DevTools 감지, 워터마크 진위확인 API, 저작권 보호 고지~~ | ~~공문서/상용 DRM 수준 접근~~ | **✅ Phase 1 완료 (§8.1 #42~#46)** |
 | 8 | **모바일 앱 (Android/iOS)** | 앱 | Android FLAG_SECURE + Play Integrity, iOS isSecureTextEntry + isCaptured 감지. 프레임워크: Flutter 또는 Tauri Mobile | OS 레벨 스크린샷 차단 | Phase 2 |
 | 9 | **데스크탑 앱 (Tauri)** | 앱 | Windows SetWindowDisplayAffinity 캡처 방지, macOS 워터마크 강화 (캡처 방지 불가). Rust 백엔드 코드 공유 | 전용 뷰어 앱 | Phase 3 |
 

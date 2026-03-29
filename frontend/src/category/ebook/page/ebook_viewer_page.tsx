@@ -402,6 +402,7 @@ export function EbookViewerPage() {
   const gridCols = meta?.grid_cols ?? 3;
 
   const sessionId = meta?.session_id;
+  const hmacSecret = meta?.hmac_secret;
 
   // 단일 이미지 모드 (tile_mode=false)
   const { data: imageData, isLoading: imageLoading } = usePageImage(
@@ -411,6 +412,7 @@ export function EbookViewerPage() {
     !!meta && !tileMode,
     viewMode,
     sessionId,
+    hmacSecret,
   );
 
   const { data: imageDataRight, isLoading: imageLoadingRight } = usePageImage(
@@ -420,6 +422,7 @@ export function EbookViewerPage() {
     !!meta && !tileMode && spreadRightPage !== null,
     viewMode,
     sessionId,
+    hmacSecret,
   );
 
   // 타일 분할 모드 (tile_mode=true)
@@ -431,6 +434,7 @@ export function EbookViewerPage() {
     gridCols,
     !!meta && tileMode,
     sessionId,
+    hmacSecret,
   );
 
   const { tiles: tilesRight, isLoading: tilesRightLoading } = usePageTiles(
@@ -441,6 +445,7 @@ export function EbookViewerPage() {
     gridCols,
     !!meta && tileMode && spreadRightPage !== null,
     sessionId,
+    hmacSecret,
   );
 
   // 통합 로딩 상태

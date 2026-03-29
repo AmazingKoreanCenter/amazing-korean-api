@@ -11,6 +11,13 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-29 — E-book 요청별 HMAC 서명 (Phase 1-2 완료)**
+  - **HMAC 서명 검증**: 페이지/타일 요청마다 `X-Ebook-Signature` + `X-Ebook-Timestamp` 헤더 필수화, 세션 등록 시 32바이트 랜덤 secret 생성 → Redis 저장, `ViewerMetaRes`에 `hmac_secret` 추가
+  - **서명 알고리즘**: HMAC-SHA256, payload = `{session_id}:{path}:{timestamp}`, ±30초 타임스탬프 윈도우, 상수 시간 비교 (타이밍 공격 방지)
+  - **프론트엔드**: Web Crypto API `crypto.subtle.sign("HMAC")`, hex 인코딩, `fetchPageImage`/`fetchPageTile` 호출 시 자동 서명
+  - **CORS**: `x-ebook-signature` + `x-ebook-timestamp` 헤더 허용 추가
+  - **Phase 1 웹 보안 5/5 완료**: 저작권고지 + 진위확인 + 이미지암호화 + DevTools감지 + HMAC서명
+
 - **2026-03-29 — E-book 보안 Phase 1 착수 + 보안 전략 문서**
   - **저작권 보호 고지 모달**: 뷰어 최초 진입 시 저작권법 제104조의2 고지 모달 표시 (ShieldCheck 아이콘, sessionStorage 중복 방지), 22개 locale 번역 (`copyrightTitle`/`copyrightNotice`/`copyrightLegal`/`copyrightWatermark`/`copyrightConfirm`)
   - **워터마크 진위확인 API**: `GET /admin/ebook/verify/{watermark_id}` — 관리자 전용, ebook_access_log JOIN ebook_purchase로 purchase_code/user_id/page_number/ip/user_agent/created_at 반환

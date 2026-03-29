@@ -76,6 +76,7 @@ pub struct ViewerMetaRes {
     pub total_pages: i32,
     pub toc: Vec<TocEntry>,
     pub session_id: String,
+    pub hmac_secret: String,
     pub tile_mode: bool,
     pub grid_rows: Option<u32>,
     pub grid_cols: Option<u32>,
