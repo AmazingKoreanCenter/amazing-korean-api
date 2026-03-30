@@ -60,6 +60,8 @@
 | 44 | 이미지 AES-256-GCM 암호화 저장 | 보안 | `encrypt_bytes`/`decrypt_bytes` + `EBOOK_IMAGES_ENCRYPTED` 피처 플래그, 페이지+타일 복호화 로직, 테스트 25개 | 2026-03-29 | CLI 암호화 도구 별도 |
 | 45 | DevTools 감지 | 보안 | `devtools_detect.ts` 신규, 창 크기+console getter 2초 폴링, 3초 유예 블러, DevTools 닫으면 복원 | 2026-03-29 | — |
 | 46 | 요청별 HMAC 서명 | 보안 | 세션별 32바이트 secret, Web Crypto HMAC-SHA256, ±30초 타임스탬프 윈도우, 상수시간 비교, 페이지/타일 요청 서명 검증 | 2026-03-29 | — |
+| 47 | 홈/소개 페이지 리디자인 | 프론트 | Hero 한 줄 타이틀, 핵심가치 3카드, 기능 4카드(준비중 뱃지), 소개 차별점 3카드 상세, Stats 카드(2블록), "30,000" 삭제, 22개 locale 전면 교체, HeroSection 다국어 정렬 | 2026-03-30 | 다국어 반응형 디자인 규격 |
+| 48 | 앱 로드맵 + 문서 정비 | 문서 | AMK_APP_ROADMAP.md 신규(Flutter+Tauri, 리스크 11건), STATUS 순서 재정렬, 6개 문서 참조 갱신, archive 4건 삭제, 메모리 정비 | 2026-03-30 | — |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드

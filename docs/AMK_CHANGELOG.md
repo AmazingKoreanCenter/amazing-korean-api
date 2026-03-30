@@ -11,6 +11,25 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-30 — 홈/소개 페이지 리디자인 + 22개 locale 전면 업데이트**
+  - **홈 페이지**: Hero 한 줄 타이틀 + 핵심가치 3카드(학습 보다 습득/효율적 학습/이해 중심) + 기능 4카드(교재/E-book/영상[준비중]/문제[준비중]) + CTA
+  - **소개 페이지**: Hero("한국어는 어렵지 않습니다") + Why(Amazing Korean란?) + 차별점 3카드 상세(습득하는 한국어/학습 시간 단축/모국어 중심 이해) + Stats 카드(2블록) + CTA
+  - **"30,000 표현" 전체 삭제**: ko/en 포함 22개 locale에서 완전 제거 (근거 없는 수치)
+  - **숫자 갱신**: 20→34 언어, 44→68종 교재, 900→500 문장 (마스터 문서 동시 수정)
+  - **HeroSection**: `whitespace-nowrap` + `max-w` 제거로 22개 언어 타이틀 한 줄 가운데 정렬
+  - **22개 locale**: home/about 키 전면 교체 (5개 Agent 병렬 처리)
+  - **SEO**: home/about description 갱신 ("1:1 수업" 등 미구현 기능 제거)
+
+- **2026-03-30 — 앱 로드맵 + 문서/메모리 정비**
+  - **신규**: `docs/AMK_APP_ROADMAP.md` — Flutter(모바일) + Tauri 2.x(데스크탑) 확정, 리스크 11건 검증, 전체 우선순위
+  - **STATUS §8.2**: 의존성 기반 실행 순서 재정렬, 다국어 반응형 디자인 규격(#7.5) 추가
+  - **기존 6개 문서**: React Native/TBD → Flutter/Tauri 참조 갱신
+  - **archive**: 완료/1회성 문서 4건 삭제 (DEVELOP_POINT, FOOTER_ISSUE, GSC_REDIRECT, MEMORY_AUDIT)
+  - **메모리**: project_completed_systems 축소(문서 포인터), plan_task6 축소(로드맵 포인터), decisions 갱신(이메일 완료, Flutter 확정)
+  - **DB 암호화 Bug#1**: 재검증 결과 service.rs에서 이미 복호화 구현됨 → 해결됨 처리
+  - **교재 번역**: amazing-korean-books 조사 — 22→34언어 확장 완료, PDF 재생성 남음
+  - **마스터 문서**: 900문장 → 500문장 정정, basic_900 enum 레거시 표기
+
 - **2026-03-29 — E-book 요청별 HMAC 서명 (Phase 1-2 완료)**
   - **HMAC 서명 검증**: 페이지/타일 요청마다 `X-Ebook-Signature` + `X-Ebook-Timestamp` 헤더 필수화, 세션 등록 시 32바이트 랜덤 secret 생성 → Redis 저장, `ViewerMetaRes`에 `hmac_secret` 추가
   - **서명 알고리즘**: HMAC-SHA256, payload = `{session_id}:{path}:{timestamp}`, ±30초 타임스탬프 윈도우, 상수 시간 비교 (타이밍 공격 방지)
