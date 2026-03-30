@@ -68,7 +68,7 @@ export function HeroSection({
           size === "default" ? "py-section-lg lg:py-hero-lg" : "py-section-md lg:py-section-lg",
         )}
       >
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="text-center">
           {badge && (
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background shadow-sm border mb-8">
               {badge}
@@ -77,10 +77,10 @@ export function HeroSection({
 
           <h1
             className={cn(
-              "font-bold tracking-tight mb-4 break-keep",
+              "font-bold tracking-tight mb-4 break-keep whitespace-nowrap",
               size === "default"
-                ? "text-4xl md:text-5xl lg:text-6xl mb-6"
-                : "text-4xl md:text-5xl",
+                ? "text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-6"
+                : "text-3xl sm:text-4xl md:text-5xl",
             )}
           >
             {title}
@@ -92,7 +92,9 @@ export function HeroSection({
             </p>
           )}
 
-          {children}
+          <div className="max-w-3xl mx-auto">
+            {children}
+          </div>
         </div>
       </div>
     </section>

@@ -132,7 +132,7 @@ audience: server / database / backend / frontend / lead / AI agent
 - **Target Audience**:
   - **EPS-TOPIK & TOPIK 준비생**: 한국 취업 및 유학을 목표로 하는 해외 학습자
   - **수준별 학습**:
-    - **기초(Foundation)**: 900문장 패턴 습득을 통한 문법/회화 기초 완성
+    - **기초(Foundation)**: 500문장 패턴 습득을 통한 문법/회화 기초 완성
     - **급수별 과정**: 초급(TOPIK 1~2), 중급(TOPIK 3~4), 고급(TOPIK 5~6) 맞춤형 커리큘럼
 - **Core Value (차별점)**:
   - **습득(Acquisition) 중심**: 암기가 아닌, 실제 한국인의 언어 사용 패턴(Context) 기반 자연적 습득 유도

@@ -304,7 +304,7 @@ CREATE TABLE study (
   study_idx varchar(100) UNIQUE NOT NULL,                     -- 학습 문제 인덱스 : 외부 공개용 인덱스
   study_state study_state_enum NOT NULL DEFAULT 'ready',      -- 학습 문제 상태 : 학습 문제 준비, 학습 문제 공개, 학습 문제 비공개로 구분
   study_access study_access_enum NOT NULL DEFAULT 'public',   -- 학습 문제 접근 : 공용, 유료, 일부공개, 광고로 구분
-  study_program study_program_enum NOT NULL DEFAULT 'tbc',    -- 학습 문제 프로그램 : 기초 발음, 기초 단어, 기초 900문장, 토픽 읽기, 토픽 듣기, 토픽 쓰기, 추후 확정으로 구분
+  study_program study_program_enum NOT NULL DEFAULT 'tbc',    -- 학습 문제 프로그램 : 기초 발음, 기초 단어, 기초 500문장 (enum값 basic_900은 레거시), 토픽 읽기, 토픽 듣기, 토픽 쓰기, 추후 확정으로 구분
   study_title varchar(80),                                    -- 학습 문제 제목 : 학습 문제들을 모아놓은 
   study_subtitle varchar(120),                                -- 학습 문제 부제목 : 
   study_description text,                                     -- 학습 문제 설명 : 
