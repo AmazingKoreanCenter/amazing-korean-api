@@ -81,7 +81,8 @@
 | 5 | **동시 세션 수 제한** | 보안 | 2-3일 | 역할별 동시 세션 상한. 모바일 세션 표면 증가 대비 | RDS 이전 후 |
 | 6 | **모바일 인증 엔드포인트** | 백엔드 | 1일 | `login-mobile` + `refresh-mobile` (httpOnly 쿠키 대안) | 모바일 앱 선행 |
 | 7 | **공유 Rust 크레이트 추출** | 아키텍처 | 1.5일 | `amazing-korean-crypto` — 백엔드+모바일+데스크탑 공유 | 모바일/데스크탑 양쪽 의존 |
-| 8 | **모바일 앱 (Phase 2)** | 앱 | ~21-23일 | **Flutter** + flutter_rust_bridge. 상세: [`AMK_APP_ROADMAP.md §2`](./AMK_APP_ROADMAP.md) | 순서 5-7 |
+| 7.5 | **다국어 반응형 디자인 규격** | UI | 2-3일 | 22개 언어 텍스트 길이 차이 대응, 폰트/컨테이너/줄바꿈 규격화, Figma F1~F3 동기화 | 모바일 앱 전 |
+| 8 | **모바일 앱 (Phase 2)** | 앱 | ~21-23일 | **Flutter** + flutter_rust_bridge. 상세: [`AMK_APP_ROADMAP.md §2`](./AMK_APP_ROADMAP.md) | 순서 5-7.5 |
 | 9 | **데스크탑 앱 (Phase 3)** | 앱 | ~7.5일 | **Tauri 2.x** + React 프론트 재사용. 상세: [`AMK_APP_ROADMAP.md §3`](./AMK_APP_ROADMAP.md) | 순서 7 |
 | — | ~~디자인 시스템~~ | — | — | — | ✅ §8.1 #13 |
 | — | ~~E-book 웹 보안~~ | — | — | — | ✅ Phase 1 완료 (§8.1 #42~#46) |

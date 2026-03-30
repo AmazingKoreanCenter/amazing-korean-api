@@ -1,16 +1,30 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Play, BookOpen, BookMarked, ArrowRight, CheckCircle2 } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Lightbulb,
+  Timer,
+  Heart,
+  BookOpen,
+  Smartphone,
+  Play,
+  PenTool,
+  Clock,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/sections/hero_section";
 import { SectionContainer } from "@/components/sections/section_container";
 import { PageMeta } from "@/components/page_meta";
+
 export default function HomePage() {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col">
       <PageMeta titleKey="seo.home.title" descriptionKey="seo.home.description" />
+
+      {/* ─── Hero ─── */}
       <HeroSection
         badge={
           <>
@@ -20,20 +34,11 @@ export default function HomePage() {
             </span>
           </>
         }
-        title={t("home.heroTitle").split("\n").map((line, i) => (
-          <span key={i}>
-            {i > 0 && <br className="hidden sm:block" />}
-            {line}
-          </span>
-        ))}
-        subtitle={t("home.heroDescription").split("\n").map((line, i) => (
-          <span key={i}>
-            {i > 0 && <br className="hidden sm:block" />}
-            {line}
-          </span>
-        ))}
+        title={t("home.heroTitle")}
+        subtitle={
+          <span className="text-lg md:text-xl">{t("home.heroDescription")}</span>
+        }
       >
-        {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
           <Button
             size="lg"
@@ -56,153 +61,208 @@ export default function HomePage() {
         </div>
 
         {/* Trust Indicators */}
-        <div className="flex flex-wrap justify-center gap-8 mt-12 pt-12 border-t">
-          <div className="text-center">
+        <div className="grid grid-cols-3 mt-12 pt-12 border-t max-w-2xl mx-auto w-full">
+          <div className="flex flex-col items-center">
             <div className="text-2xl font-bold text-gradient">{t("home.stat1Value")}</div>
             <div className="text-sm text-muted-foreground">{t("home.stat1Label")}</div>
           </div>
-          <div className="text-center">
+          <div className="flex flex-col items-center">
             <div className="text-2xl font-bold text-gradient">{t("home.stat2Value")}</div>
             <div className="text-sm text-muted-foreground">{t("home.stat2Label")}</div>
           </div>
-          <div className="text-center">
+          <div className="flex flex-col items-center">
             <div className="text-2xl font-bold text-gradient">{t("home.stat3Value")}</div>
             <div className="text-sm text-muted-foreground">{t("home.stat3Label")}</div>
           </div>
         </div>
       </HeroSection>
 
-      {/* Features Section */}
+      {/* ─── Core Values (What) — 3 Cards ─── */}
       <SectionContainer size="lg">
-          {/* Section Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              {t("home.featureTitle")}
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              {t("home.featureDescription")}
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            {t("home.valueTitle")}
+          </h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            {t("home.valueDescription")}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Acquisition */}
+          <div className="bg-card rounded-2xl p-8 shadow-card text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
+            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
+              <Lightbulb className="h-8 w-8 text-white" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3">{t("home.valueAcquisitionTitle")}</h3>
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+              {t("home.valueAcquisitionDesc")}
             </p>
           </div>
 
-          {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Video Learning */}
-            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover hover:border-accent/50 transition-all duration-300 border">
-              <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Play className="h-7 w-7 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">{t("home.videoLearningTitle")}</h3>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                {t("home.videoLearningDescription")}
-              </p>
-              <ul className="space-y-2 mb-6">
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>{t("home.videoFeature1")}</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>{t("home.videoFeature2")}</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>{t("home.videoFeature3")}</span>
-                </li>
-              </ul>
-              <Button
-                variant="ghost"
-                asChild
-                className="p-0 h-auto text-accent font-medium hover:text-accent/80 group-hover:translate-x-1 transition-transform"
-              >
-                <Link to="/videos" className="flex items-center gap-1">
-                  {t("home.videoLink")} <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
+          {/* Efficiency */}
+          <div className="bg-card rounded-2xl p-8 shadow-card text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
+            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
+              <Timer className="h-8 w-8 text-white" />
             </div>
-
-            {/* Structured Learning */}
-            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover hover:border-accent/50 transition-all duration-300 border">
-              <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <BookOpen className="h-7 w-7 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">{t("home.structuredLearningTitle")}</h3>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                {t("home.structuredLearningDescription")}
-              </p>
-              <ul className="space-y-2 mb-6">
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>{t("home.studyFeature1")}</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>{t("home.studyFeature2")}</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>{t("home.studyFeature3")}</span>
-                </li>
-              </ul>
-              <Button
-                variant="ghost"
-                asChild
-                className="p-0 h-auto text-accent font-medium hover:text-accent/80 group-hover:translate-x-1 transition-transform"
-              >
-                <Link to="/studies" className="flex items-center gap-1">
-                  {t("home.studyLink")} <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-
-            {/* 1:1 Lessons */}
-            <div className="group relative bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover hover:border-accent/50 transition-all duration-300 border">
-              <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <BookMarked className="h-7 w-7 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">{t("home.lessonTitle")}</h3>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                {t("home.lessonDescription")}
-              </p>
-              <ul className="space-y-2 mb-6">
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>{t("home.lessonFeature1")}</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>{t("home.lessonFeature2")}</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span>{t("home.lessonFeature3")}</span>
-                </li>
-              </ul>
-              <Button
-                variant="ghost"
-                asChild
-                className="p-0 h-auto text-accent font-medium hover:text-accent/80 group-hover:translate-x-1 transition-transform"
-              >
-                <Link to="/book/ebook" className="flex items-center gap-1">
-                  {t("home.lessonLink")} <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+            <h3 className="text-xl font-semibold mb-3">{t("home.valueEfficiencyTitle")}</h3>
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+              {t("home.valueEfficiencyDesc")}
+            </p>
           </div>
+
+          {/* Understanding */}
+          <div className="bg-card rounded-2xl p-8 shadow-card text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
+            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
+              <Heart className="h-8 w-8 text-white" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3">{t("home.valueUnderstandingTitle")}</h3>
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+              {t("home.valueUnderstandingDesc")}
+            </p>
+          </div>
+        </div>
       </SectionContainer>
 
-      {/* CTA Section */}
+      {/* ─── Features — 4 Cards ─── */}
+      <SectionContainer size="lg" className="bg-muted/30">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            {t("home.featureTitle")}
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Textbook */}
+          <div className="group relative bg-card rounded-2xl p-6 shadow-card hover:shadow-card-hover hover:border-accent/50 transition-all duration-300 border">
+            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+              <BookOpen className="h-6 w-6 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">{t("home.textbookTitle")}</h3>
+            <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
+              {t("home.textbookDesc")}
+            </p>
+            <ul className="space-y-1.5 mb-5">
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>{t("home.textbookFeature1")}</span>
+              </li>
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>{t("home.textbookFeature2")}</span>
+              </li>
+            </ul>
+            <Button
+              variant="ghost"
+              asChild
+              className="p-0 h-auto text-accent font-medium hover:text-accent/80 group-hover:translate-x-1 transition-transform"
+            >
+              <Link to="/book/textbook" className="flex items-center gap-1">
+                {t("home.textbookLink")} <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          {/* E-book */}
+          <div className="group relative bg-card rounded-2xl p-6 shadow-card hover:shadow-card-hover hover:border-accent/50 transition-all duration-300 border">
+            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+              <Smartphone className="h-6 w-6 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">{t("home.ebookTitle")}</h3>
+            <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
+              {t("home.ebookDesc")}
+            </p>
+            <ul className="space-y-1.5 mb-5">
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>{t("home.ebookFeature1")}</span>
+              </li>
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>{t("home.ebookFeature2")}</span>
+              </li>
+            </ul>
+            <Button
+              variant="ghost"
+              asChild
+              className="p-0 h-auto text-accent font-medium hover:text-accent/80 group-hover:translate-x-1 transition-transform"
+            >
+              <Link to="/book/ebook" className="flex items-center gap-1">
+                {t("home.ebookLink")} <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          {/* Video — Coming Soon */}
+          <div className="group relative bg-card rounded-2xl p-6 shadow-card hover:shadow-card-hover hover:border-accent/50 transition-all duration-300 border">
+            <div className="flex items-center justify-between mb-5">
+              <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Play className="h-6 w-6 text-white" />
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                <Clock className="h-3 w-3" />
+                {t("home.videoComingSoon")}
+              </span>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">{t("home.videoTitle")}</h3>
+            <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
+              {t("home.videoDesc")}
+            </p>
+            <ul className="space-y-1.5 mb-5">
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>{t("home.videoFeature1")}</span>
+              </li>
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>{t("home.videoFeature2")}</span>
+              </li>
+            </ul>
+            <span className="text-sm text-muted-foreground/50 flex items-center gap-1">
+              {t("home.videoLink")} <ArrowRight className="h-4 w-4" />
+            </span>
+          </div>
+
+          {/* Study — Coming Soon */}
+          <div className="group relative bg-card rounded-2xl p-6 shadow-card hover:shadow-card-hover hover:border-accent/50 transition-all duration-300 border">
+            <div className="flex items-center justify-between mb-5">
+              <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                <PenTool className="h-6 w-6 text-white" />
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                <Clock className="h-3 w-3" />
+                {t("home.studyComingSoon")}
+              </span>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">{t("home.studyTitle")}</h3>
+            <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
+              {t("home.studyDesc")}
+            </p>
+            <ul className="space-y-1.5 mb-5">
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>{t("home.studyFeature1")}</span>
+              </li>
+              <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span>{t("home.studyFeature2")}</span>
+              </li>
+            </ul>
+            <span className="text-sm text-muted-foreground/50 flex items-center gap-1">
+              {t("home.studyLink")} <ArrowRight className="h-4 w-4" />
+            </span>
+          </div>
+        </div>
+      </SectionContainer>
+
+      {/* ─── CTA ─── */}
       <SectionContainer size="lg" className="bg-surface-inverted">
         <div className="text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-surface-inverted-foreground mb-4">
             {t("home.ctaSectionTitle")}
           </h2>
           <p className="text-surface-inverted-foreground/70 text-lg max-w-xl mx-auto mb-10">
-            {t("home.ctaSectionDescription").split("\n").map((line, i) => (
-              <span key={i}>
-                {i > 0 && <br />}
-                {line}
-              </span>
-            ))}
+            {t("home.ctaSectionDescription")}
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button
