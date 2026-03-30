@@ -75,7 +75,7 @@
 |:----:|------|---------|:----:|------|------|
 | 1 | **Paddle Live 전환** | 결제 | 1일 | GitHub Secrets 교체 + 배포 + E2E 검증 | **최우선** |
 | — | ~~e-book Paddle 연동~~ | — | — | — | **✅ 코드 구현 완료 (배포 대기)** |
-| 2 | **교재 번역 Wave 2~5** | 콘텐츠 | 병행 | 잔여 16개 언어 (zh_tw, es, hi 완료 → 진행 중) | 전 기간 병행 |
+| 2 | **교재 번역 + PDF 생성** | 콘텐츠 | 병행 | 22→34언어 확장 완료. 번역 33언어 검증 완료. **남은: 13언어 PDF 재생성 + 22언어 PDF 갱신** (`amazing-korean-books` 프로젝트) | 전 기간 병행 |
 | 3 | **학습 콘텐츠 시딩** | 콘텐츠 | 2-3일 | 교재 JSON → DB 시딩, 실 콘텐츠 투입 | Paddle Live 후 |
 | 4 | **RDS/ElastiCache 이전** | 인프라 | 3-5일 | EC2 단일 DB → AWS RDS + ElastiCache | 모바일 출시 전 안정화 |
 | 5 | **동시 세션 수 제한** | 보안 | 2-3일 | 역할별 동시 세션 상한. 모바일 세션 표면 증가 대비 | RDS 이전 후 |
@@ -425,9 +425,9 @@ API 응답마다 구매자별 고유 마킹 패턴을 **실시간 동적 생성*
 
 | # | 위치 | 내용 | 심각도 |
 |:-:|------|------|:------:|
-| 1 | `src/api/admin/user/repo.rs:453` | `admin_get_user_logs()`에서 `u.user_email as admin_email` 직접 SELECT — COALESCE 미적용 + 서비스 레이어 복호화 없음. 암호화된 이메일이 그대로 반환될 수 있음 | Medium |
+| ~~1~~ | ~~`src/api/admin/user/repo.rs:453`~~ | ~~`admin_get_user_logs()` 복호화 미적용~~ — **확인 결과 service.rs:822-826에서 복호화 구현 완료됨** (2026-03-30 검증). DTO `Option<String>`으로 LEFT JOIN NULL도 안전 처리 | ~~Medium~~ **해결됨** |
 
-> DB 암호화 Phase 2 계획(Bug 1~8) 중 유일하게 미완료된 항목. 나머지 7개 Bug + Sub-Phase 2B~2D는 모두 구현 완료 확인 (2026-03-18 검증).
+> DB 암호화 Phase 2 계획(Bug 1~8) — **전체 완료** 확인 (2026-03-30 재검증). 8개 Bug + Sub-Phase 2B~2D 모두 구현 완료.
 
 #### 학습 콘텐츠 개선 방안
 
