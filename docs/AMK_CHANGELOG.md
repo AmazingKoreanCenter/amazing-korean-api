@@ -11,6 +11,13 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-31 — 디자인 시스템 v4 Phase V1-1~V1-3 (토큰 정리 + 아키텍처 전환)**
+  - **Phase V1-1 토큰 정리**: `--table-header` CSS 변수 삭제 (light/dark, 0회 사용), Badge `info` variant 삭제 (manager→secondary 교체), Button `link` variant 삭제, `maxWidth` 컨테이너 토큰 3종 추가 (`container-default` 1350px, `container-narrow` 768px, `container-form` 448px), 글로벌 `prefers-reduced-motion` CSS 리셋 추가 (98.5% 애니메이션 접근성 갭 해소)
+  - **Phase V1-2 컨테이너 마이그레이션**: `max-w-[1350px]` 하드코딩 17회 → `max-w-container-default` 토큰 교체 (11개 파일: header, footer, hero_section, section_container, 카탈로그, 리스트 페이지 등)
+  - **Phase V1-3 아키텍처 전환**: `components/sections/` → `components/blocks/` 리네이밍 (3계층 아키텍처: ui/ → blocks/ → category/), 20개 소비 파일 41개 import 경로 교체
+  - **디자인 시스템 v4 플랜**: 14개 영역 전수 감사 + 실증 검증 완료, 과잉 설계 5건 제거 (text-white 유지, Card elevated 유지, Layout 8→1개, text-sm 유지, Style Dictionary 연기)
+  - **QA 자동화**: 3계층 QA 체계 설계 — Playwright 픽셀 비교 + Browser Use/Ollama AI 스모크 + Claude API 정밀 분석, `docs/AMK_MACMINI_SETUP.md` Day 6 추가
+
 - **2026-03-30 — 홈/소개 페이지 리디자인 + 22개 locale 전면 업데이트**
   - **홈 페이지**: Hero 한 줄 타이틀 + 핵심가치 3카드(학습 보다 습득/효율적 학습/이해 중심) + 기능 4카드(교재/E-book/영상[준비중]/문제[준비중]) + CTA
   - **소개 페이지**: Hero("한국어는 어렵지 않습니다") + Why(Amazing Korean란?) + 차별점 3카드 상세(습득하는 한국어/학습 시간 단축/모국어 중심 이해) + Stats 카드(2블록) + CTA

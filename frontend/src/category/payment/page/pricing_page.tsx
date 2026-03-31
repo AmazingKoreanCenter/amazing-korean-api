@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HeroSection } from "@/components/sections/hero_section";
+import { HeroSection } from "@/components/blocks/hero_section";
 import { PageMeta } from "@/components/page_meta";
 import {
   Dialog,
@@ -85,7 +85,7 @@ export function PricingPage() {
 
   if (plansLoading || (isLoggedIn && subLoading)) {
     return (
-      <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-20">
+      <div className="max-w-container-default mx-auto px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
           <Skeleton className="h-10 w-64 mx-auto mb-4" />
           <Skeleton className="h-6 w-96 mx-auto" />
@@ -120,7 +120,7 @@ export function PricingPage() {
 
       {/* Pricing Cards */}
       <section className="py-16 lg:py-24">
-        <div className="max-w-[1350px] mx-auto px-6 lg:px-8">
+        <div className="max-w-container-default mx-auto px-6 lg:px-8">
           {/* Subscription Banner */}
           {hasSub && subscription && (() => {
             const status = subscription.status;

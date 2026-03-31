@@ -6,9 +6,9 @@ import { ArrowLeft, BookOpen, ClipboardList, Keyboard, Mic } from "lucide-react"
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/sections/empty_state";
-import { PaginationBar } from "@/components/sections/pagination_bar";
-import { SkeletonGrid } from "@/components/sections/skeleton_grid";
+import { EmptyState } from "@/components/blocks/empty_state";
+import { PaginationBar } from "@/components/blocks/pagination_bar";
+import { SkeletonGrid } from "@/components/blocks/skeleton_grid";
 import type { StudyDetailReq, StudyProgram, StudyTaskKind } from "@/category/study/types";
 
 import { useStudyDetail } from "../hook/use_study_detail";
@@ -89,7 +89,7 @@ export function StudyDetailPage() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="bg-hero-gradient border-b">
-        <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-10 lg:py-14">
+        <div className="max-w-container-default mx-auto px-6 lg:px-8 py-10 lg:py-14">
           {isPending ? (
             <div className="space-y-4">
               <Skeleton className="h-6 w-24 rounded-full" />
@@ -130,7 +130,7 @@ export function StudyDetailPage() {
 
       {/* Content Section */}
       <section className="py-10 lg:py-14">
-        <div className="max-w-[1350px] mx-auto px-6 lg:px-8">
+        <div className="max-w-container-default mx-auto px-6 lg:px-8">
           {/* Stats Bar */}
           {meta && (
             <div className="mb-8 flex items-center justify-between">

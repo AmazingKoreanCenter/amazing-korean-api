@@ -2,6 +2,13 @@
 
 > tailwind.config.js + index.css = Single Source of Truth.
 > 이 문서는 코드에 정의된 토큰/컴포넌트의 **사용법과 금지 규칙**을 설명한다.
+>
+> **v4 변경 (2026-03-31):**
+> - 3계층 아키텍처: `components/ui/` (Layer 1) → `components/blocks/` (Layer 2) → `category/` (Layer 3)
+> - 삭제: `--table-header` CSS 변수, Badge `info` variant, Button `link` variant
+> - 추가: `max-w-container-default`(1350px), `max-w-container-narrow`(768px), `max-w-container-form`(448px)
+> - 추가: 글로벌 `prefers-reduced-motion` CSS 리셋 (접근성)
+> - `max-w-[1350px]` 하드코딩 금지 → `max-w-container-default` 사용
 
 ---
 

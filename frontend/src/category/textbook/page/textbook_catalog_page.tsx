@@ -6,8 +6,8 @@ import { BookOpen, LayoutGrid, Disc3, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HeroSection } from "@/components/sections/hero_section";
-import { SectionContainer } from "@/components/sections/section_container";
+import { HeroSection } from "@/components/blocks/hero_section";
+import { SectionContainer } from "@/components/blocks/section_container";
 import { PageMeta } from "@/components/page_meta";
 
 import { useCatalog } from "../hook/use_catalog";
@@ -104,7 +104,7 @@ export function TextbookCatalogPage() {
     return (
       <div className="flex flex-col">
         <PageMeta titleKey="textbook.catalog.title" descriptionKey="textbook.catalog.description" />
-        <div className="max-w-[1350px] mx-auto px-6 py-20 space-y-6">
+        <div className="max-w-container-default mx-auto px-6 py-20 space-y-6">
           <Skeleton className="h-10 w-64 mx-auto" />
           <Skeleton className="h-6 w-96 mx-auto" />
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
