@@ -9,12 +9,12 @@ import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AuthLayout } from "@/components/layouts/auth_layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -94,8 +94,7 @@ export function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
-      <Card className="w-full max-w-md">
+    <AuthLayout>
         <CardHeader>
           <CardTitle>{t("auth.resetPasswordNewTitle")}</CardTitle>
           <CardDescription>{t("auth.resetPasswordNewDescription")}</CardDescription>
@@ -169,7 +168,6 @@ export function ResetPasswordPage() {
             </form>
           </Form>
         </CardContent>
-      </Card>
-    </div>
+    </AuthLayout>
   );
 }

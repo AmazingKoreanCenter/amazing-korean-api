@@ -9,12 +9,12 @@ import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AuthLayout } from "@/components/layouts/auth_layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -142,9 +142,8 @@ export function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
+    <AuthLayout>
       <PageMeta titleKey="seo.signup.title" descriptionKey="seo.signup.description" />
-      <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <CardTitle className="text-2xl">{t("auth.signupTitle")}</CardTitle>
           <CardDescription>
@@ -516,7 +515,6 @@ export function SignupPage() {
             </a>
           </p>
         </CardContent>
-      </Card>
-    </div>
+    </AuthLayout>
   );
 }

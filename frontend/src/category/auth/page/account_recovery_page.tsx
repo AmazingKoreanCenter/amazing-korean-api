@@ -18,11 +18,11 @@ import { findPassword, verifyResetCode } from "../auth_api";
 import { useFindId } from "../hook/use_find_id";
 
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AuthLayout } from "@/components/layouts/auth_layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageMeta } from "@/components/page_meta";
@@ -427,9 +427,8 @@ export function AccountRecoveryPage() {
   const [activeTab, setActiveTab] = useState("find-id");
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
+    <AuthLayout>
       <PageMeta titleKey="seo.findId.title" descriptionKey="seo.findId.description" />
-      <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>{t("auth.accountRecoveryTitle")}</CardTitle>
         </CardHeader>
@@ -461,7 +460,6 @@ export function AccountRecoveryPage() {
             </Link>
           </div>
         </CardContent>
-      </Card>
-    </div>
+    </AuthLayout>
   );
 }
