@@ -11,6 +11,12 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-31 — 디자인 시스템 v4 Phase V1-4~V1-8 (레이아웃/블록 추출 + 접근성)**
+  - **Phase V1-4 AuthLayout**: `components/layouts/auth_layout.tsx` 신규, 6개 인증 페이지 8곳의 동일 래퍼(`flex min-h-screen` + `Card max-w-md`) → `<AuthLayout>` 추출 (login, signup, verify_email, reset_password, request_reset_password, account_recovery)
+  - **Phase V1-6 CoverCard + FeatureGrid**: `blocks/cover_card.tsx` — textbook/ebook 카탈로그 인라인 표지 카드 → 공통 블록, `blocks/feature_grid.tsx` — home/about 가치 카드 3개 → 공통 블록 (4파일 적용)
+  - **Phase V1-7 SectionContainer 확대**: study_list/detail, lesson_list, pricing 4파일 6곳의 수동 `<section>/<div>` 래퍼 → `<SectionContainer>` 교체 (ebook_purchase_complete, textbook_order는 컨테이너 불일치로 제외)
+  - **Phase V1-8 lazy loading**: book_landing_page 국기 이미지 2곳 `loading="lazy"` 추가, 전체 `<img>` 누락 0건 확인
+
 - **2026-03-31 — 디자인 시스템 v4 Phase V1-1~V1-3 (토큰 정리 + 아키텍처 전환)**
   - **Phase V1-1 토큰 정리**: `--table-header` CSS 변수 삭제 (light/dark, 0회 사용), Badge `info` variant 삭제 (manager→secondary 교체), Button `link` variant 삭제, `maxWidth` 컨테이너 토큰 3종 추가 (`container-default` 1350px, `container-narrow` 768px, `container-form` 448px), 글로벌 `prefers-reduced-motion` CSS 리셋 추가 (98.5% 애니메이션 접근성 갭 해소)
   - **Phase V1-2 컨테이너 마이그레이션**: `max-w-[1350px]` 하드코딩 17회 → `max-w-container-default` 토큰 교체 (11개 파일: header, footer, hero_section, section_container, 카탈로그, 리스트 페이지 등)

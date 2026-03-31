@@ -9,6 +9,10 @@
 > - 추가: `max-w-container-default`(1350px), `max-w-container-narrow`(768px), `max-w-container-form`(448px)
 > - 추가: 글로벌 `prefers-reduced-motion` CSS 리셋 (접근성)
 > - `max-w-[1350px]` 하드코딩 금지 → `max-w-container-default` 사용
+> - 추가: `components/layouts/auth_layout.tsx` (인증 페이지 공통 래퍼)
+> - 추가: `components/blocks/cover_card.tsx` (카탈로그 표지 카드)
+> - 추가: `components/blocks/feature_grid.tsx` (아이콘+제목+설명 카드 그리드)
+> - 전체 `<img>` 태그 `loading="lazy"` 적용 완료
 
 ---
 
@@ -206,10 +210,10 @@ Dialog/Alert인가? → rounded-lg
 
 ### SectionContainer
 
-`components/sections/section_container.tsx` — 섹션 래퍼. padding + container 동시 제공.
+`components/blocks/section_container.tsx` — 섹션 래퍼. padding + container 동시 제공.
 
 ```tsx
-import { SectionContainer } from "@/components/sections/section_container";
+import { SectionContainer } from "@/components/blocks/section_container";
 
 // 기본 사용 (64px 고정 패딩)
 <SectionContainer>내용</SectionContainer>
@@ -235,11 +239,26 @@ import { SectionContainer } from "@/components/sections/section_container";
 | as | `React.ElementType` | `'section'` | HTML 태그 (SEO 시맨틱) |
 | className | `string` | — | 추가 클래스 (bg 등) |
 
+### AuthLayout
+
+`components/layouts/auth_layout.tsx` — 인증 페이지 공통 래퍼. 전체 화면 중앙 정렬 + Card(max-w-md).
+
+```tsx
+import { AuthLayout } from "@/components/layouts/auth_layout";
+
+<AuthLayout>
+  <CardHeader>...</CardHeader>
+  <CardContent>...</CardContent>
+</AuthLayout>
+```
+
+**적용 페이지** (6개): login, signup, verify_email, reset_password, request_reset_password, account_recovery
+
 ### Container Sizes
 
 | 토큰 | 값 | 용도 |
 |------|-----|------|
-| Default | `max-w-[1350px]` | SectionContainer 기본 (카드 그리드 등) |
+| Default | `max-w-container-default` (1350px) | SectionContainer 기본 (카드 그리드 등) |
 | Narrow | `max-w-3xl` | Legal 페이지, SectionContainer `container="narrow"` |
 | Form | `max-w-md` | 인증 페이지 (로그인, 회원가입) |
 | Text | `max-w-2xl` | Hero subtitle, 설명문 (가독성 최적화) |
@@ -256,10 +275,10 @@ import { SectionContainer } from "@/components/sections/section_container";
 
 ### HeroSection
 
-`components/sections/hero_section.tsx` — Hero 블록. `variant` prop으로 마케팅/리스트 레이아웃 전환.
+`components/blocks/hero_section.tsx` — Hero 블록. `variant` prop으로 마케팅/리스트 레이아웃 전환.
 
 ```tsx
-import { HeroSection } from "@/components/sections/hero_section";
+import { HeroSection } from "@/components/blocks/hero_section";
 
 // 마케팅 페이지 (기본)
 <HeroSection
@@ -328,7 +347,6 @@ shadcn CVA 기반 버튼. `components/ui/button.tsx`.
 | `outline` | `border border-input bg-background` | 보조 액션 |
 | `secondary` | `bg-secondary text-secondary-foreground` | 2차 액션 |
 | `ghost` | 투명, hover시 `bg-accent` | 인라인 액션, nav |
-| `link` | 텍스트만, 밑줄 | 텍스트 링크 |
 
 #### Sizes
 
@@ -382,10 +400,10 @@ Hero, 마케팅 섹션의 주요 CTA 버튼:
 
 ### PaginationBar
 
-`components/sections/pagination_bar.tsx` — 페이지네이션 로직+UI 통합 컴포넌트.
+`components/blocks/pagination_bar.tsx` — 페이지네이션 로직+UI 통합 컴포넌트.
 
 ```tsx
-import { PaginationBar } from "@/components/sections/pagination_bar";
+import { PaginationBar } from "@/components/blocks/pagination_bar";
 
 <PaginationBar
   currentPage={currentPage}
@@ -410,10 +428,10 @@ import { PaginationBar } from "@/components/sections/pagination_bar";
 
 ### EmptyState
 
-`components/sections/empty_state.tsx` — 데이터 없음 상태 표시.
+`components/blocks/empty_state.tsx` — 데이터 없음 상태 표시.
 
 ```tsx
-import { EmptyState } from "@/components/sections/empty_state";
+import { EmptyState } from "@/components/blocks/empty_state";
 
 <EmptyState
   icon={<BookOpen className="h-10 w-10 text-muted-foreground" />}
@@ -437,10 +455,10 @@ import { EmptyState } from "@/components/sections/empty_state";
 
 ### SkeletonGrid
 
-`components/sections/skeleton_grid.tsx` — 로딩 스켈레톤 그리드.
+`components/blocks/skeleton_grid.tsx` — 로딩 스켈레톤 그리드.
 
 ```tsx
-import { SkeletonGrid } from "@/components/sections/skeleton_grid";
+import { SkeletonGrid } from "@/components/blocks/skeleton_grid";
 
 <SkeletonGrid count={10} variant="video-card" columns={3} />
 ```
@@ -458,10 +476,10 @@ import { SkeletonGrid } from "@/components/sections/skeleton_grid";
 
 ### ListStatsBar
 
-`components/sections/list_stats_bar.tsx` — 리스트 페이지 통계 바.
+`components/blocks/list_stats_bar.tsx` — 리스트 페이지 통계 바.
 
 ```tsx
-import { ListStatsBar } from "@/components/sections/list_stats_bar";
+import { ListStatsBar } from "@/components/blocks/list_stats_bar";
 
 <ListStatsBar
   icon={Film}
@@ -486,10 +504,10 @@ import { ListStatsBar } from "@/components/sections/list_stats_bar";
 
 ### StatCard
 
-`components/sections/stat_card.tsx` — **대시보드 KPI 카드** 전용.
+`components/blocks/stat_card.tsx` — **대시보드 KPI 카드** 전용.
 
 ```tsx
-import { StatCard } from "@/components/sections/stat_card";
+import { StatCard } from "@/components/blocks/stat_card";
 
 <StatCard icon={Users} label="총 사용자" value={1234} loading={false} />
 ```
@@ -502,7 +520,59 @@ import { StatCard } from "@/components/sections/stat_card";
 | value | `number \| string?` | 표시값 |
 | loading | `boolean?` | 스켈레톤 표시 |
 
-> **용도 제한**: Admin Dashboard KPI 카드 목적. `sections/` 폴더의 범용 컴포넌트화 방지.
+> **용도 제한**: Admin Dashboard KPI 카드 목적. `blocks/` 폴더의 범용 컴포넌트화 방지.
+
+### CoverCard
+
+`components/blocks/cover_card.tsx` — 카탈로그 표지 카드 (교재/E-book 공유).
+
+```tsx
+import { CoverCard } from "@/components/blocks/cover_card";
+
+<CoverCard
+  imageSrc="/covers/student-en.webp"
+  imageAlt="English student"
+  title="영어 학생용 교재"
+  subtitle="1권당 ₩25,000"
+  actionLabel="상세보기"
+  onClick={() => openModal(item)}
+/>
+```
+
+**Props**:
+| Prop | 타입 | 설명 |
+|------|------|------|
+| imageSrc | `string` | 표지 이미지 경로 |
+| imageAlt | `string` | alt 텍스트 |
+| title | `string` | 카드 제목 |
+| subtitle | `string` | 부가 텍스트 (가격 등) |
+| actionLabel | `string` | 하단 액션 버튼 텍스트 |
+| onClick | `() => void` | 클릭 핸들러 |
+
+**적용 페이지**: textbook_catalog_page (GridSection), ebook_catalog_page (EbookGridSection)
+
+### FeatureGrid
+
+`components/blocks/feature_grid.tsx` — 아이콘 + 제목 + 설명 카드 그리드 (3열).
+
+```tsx
+import { FeatureGrid } from "@/components/blocks/feature_grid";
+
+<FeatureGrid
+  items={[
+    { icon: <Lightbulb className="h-8 w-8 text-white" />, title: "습득", description: "..." },
+    { icon: <Timer className="h-8 w-8 text-white" />, title: "효율", description: "..." },
+    { icon: <Heart className="h-8 w-8 text-white" />, title: "이해", description: "..." },
+  ]}
+/>
+```
+
+**Props**:
+| Prop | 타입 | 설명 |
+|------|------|------|
+| items | `{ icon: ReactNode, title: string, description: string }[]` | 카드 배열 |
+
+**적용 페이지**: home_page (핵심가치 섹션), about_page (차별점 섹션)
 
 ### Dark Mode (Theme Toggle)
 
