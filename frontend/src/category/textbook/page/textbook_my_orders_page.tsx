@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HeroSection } from "@/components/sections/hero_section";
-import { SectionContainer } from "@/components/sections/section_container";
+import { HeroSection } from "@/components/blocks/hero_section";
+import { SectionContainer } from "@/components/blocks/section_container";
 import { PageMeta } from "@/components/page_meta";
 
 import { useMyTextbookOrders } from "../hook/use_my_orders";

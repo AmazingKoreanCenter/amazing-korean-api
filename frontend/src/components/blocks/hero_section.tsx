@@ -24,7 +24,7 @@ export function HeroSection({
       <section
         className={cn("bg-hero-gradient border-b", className)}
       >
-        <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-section-sm lg:py-section-md">
+        <div className="max-w-container-default mx-auto px-6 lg:px-8 py-section-sm lg:py-section-md">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div className="space-y-4">
               {badge && (
@@ -64,7 +64,7 @@ export function HeroSection({
 
       <div
         className={cn(
-          "relative max-w-[1350px] mx-auto px-6 lg:px-8",
+          "relative max-w-container-default mx-auto px-6 lg:px-8",
           size === "default" ? "py-section-lg lg:py-hero-lg" : "py-section-md lg:py-section-lg",
         )}
       >

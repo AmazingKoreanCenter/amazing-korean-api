@@ -191,7 +191,7 @@ export function AdminUsersPage() {
       case "admin":
         return "orange" as const;
       case "manager":
-        return "info" as const;
+        return "secondary" as const;
       case "learner":
         return "success" as const;
       default:

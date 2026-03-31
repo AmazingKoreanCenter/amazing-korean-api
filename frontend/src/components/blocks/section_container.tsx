@@ -7,7 +7,7 @@ const sizeMap = {
 } as const;
 
 const containerMap = {
-  default: "max-w-[1350px]",
+  default: "max-w-container-default",
   narrow: "max-w-3xl",
 } as const;
 

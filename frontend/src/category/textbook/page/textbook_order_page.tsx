@@ -55,7 +55,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { HeroSection } from "@/components/sections/hero_section";
+import { HeroSection } from "@/components/blocks/hero_section";
 import { PageMeta } from "@/components/page_meta";
 
 import { useUserMe } from "@/category/user/hook/use_user_me";

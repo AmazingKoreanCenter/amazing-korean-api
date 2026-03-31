@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/sections/empty_state";
+import { EmptyState } from "@/components/blocks/empty_state";
 import { useAuthStore } from "@/hooks/use_auth_store";
 import type { LessonItemRes, LessonAccess } from "@/category/lesson/types";
 

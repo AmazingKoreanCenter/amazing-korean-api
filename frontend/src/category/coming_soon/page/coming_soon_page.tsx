@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { HeroSection } from "@/components/sections/hero_section";
-import { SectionContainer } from "@/components/sections/section_container";
+import { HeroSection } from "@/components/blocks/hero_section";
+import { SectionContainer } from "@/components/blocks/section_container";
 import { PageMeta } from "@/components/page_meta";
 
 const FEATURES = [

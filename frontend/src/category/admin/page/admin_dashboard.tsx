@@ -3,7 +3,7 @@ import { Users, Activity, Video, BookOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatCard } from "@/components/sections/stat_card";
+import { StatCard } from "@/components/blocks/stat_card";
 import {
   useUserStatsSummary,
   useLoginStatsSummary,
