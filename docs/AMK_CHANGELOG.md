@@ -11,6 +11,12 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-03-31 — 디자인 시스템 v4 Phase V1-5 (DataTable 블록 추출)**
+  - **Phase V1-5 DataTable**: `components/blocks/data_table.tsx` 신규 — 제네릭 `DataTable<T>` 컴포넌트 + `useDataTable` 훅 (검색/정렬/선택/페이지네이션 상태 일괄 관리)
+  - **적용**: admin_users_page (573→275줄), admin_lessons_page (502→235줄), admin_videos_page (483→240줄) — 각 ~200줄 보일러플레이트 제거
+  - **Column 정의 방식**: `DataTableColumn<T>` 인터페이스 (key, header, sortField?, skeletonWidth, render)
+  - **데이터 구조 차이 흡수**: 각 페이지의 다른 응답 구조(meta/pagination/flat)를 props로 정규화 (data, totalPages, totalCount, getId)
+
 - **2026-03-31 — 디자인 시스템 v4 Phase V1-4~V1-8 (레이아웃/블록 추출 + 접근성)**
   - **Phase V1-4 AuthLayout**: `components/layouts/auth_layout.tsx` 신규, 6개 인증 페이지 8곳의 동일 래퍼(`flex min-h-screen` + `Card max-w-md`) → `<AuthLayout>` 추출 (login, signup, verify_email, reset_password, request_reset_password, account_recovery)
   - **Phase V1-6 CoverCard + FeatureGrid**: `blocks/cover_card.tsx` — textbook/ebook 카탈로그 인라인 표지 카드 → 공통 블록, `blocks/feature_grid.tsx` — home/about 가치 카드 3개 → 공통 블록 (4파일 적용)

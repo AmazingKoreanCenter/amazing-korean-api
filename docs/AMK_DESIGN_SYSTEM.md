@@ -574,6 +574,58 @@ import { FeatureGrid } from "@/components/blocks/feature_grid";
 
 **적용 페이지**: home_page (핵심가치 섹션), about_page (차별점 섹션)
 
+### DataTable
+
+`components/blocks/data_table.tsx` — 관리자 테이블 공통 블록 (검색 + 정렬 + 선택 + 페이지네이션).
+
+```tsx
+import { DataTable, useDataTable, type DataTableColumn } from "@/components/blocks/data_table";
+
+const columns: DataTableColumn<Item>[] = [
+  { key: "id", header: "ID", sortField: "id", skeletonWidth: "w-8", render: (item) => item.id },
+  { key: "actions", header: "Actions", skeletonWidth: "w-16", render: (item) => <Button>Edit</Button> },
+];
+
+const table = useDataTable({ defaultSortField: "id" });
+
+<DataTable
+  columns={columns}
+  data={data?.items}
+  isLoading={isLoading}
+  isError={isError}
+  entityName="items"
+  getId={(item) => item.id}
+  searchPlaceholder="Search..."
+  searchInput={table.searchInput}
+  onSearchInputChange={table.setSearchInput}
+  onSearch={table.handleSearch}
+  sortField={table.sortField}
+  sortOrder={table.sortOrder}
+  onSort={table.handleSort}
+  selectedIds={table.selectedIds}
+  onSelectAll={table.setSelectedIds}
+  onSelectOne={table.handleSelectOne}
+  bulkActionSlot={<Button>Edit Selected</Button>}
+  page={table.params.page}
+  totalPages={totalPages}
+  totalCount={totalCount}
+  onPageChange={table.handlePageChange}
+/>
+```
+
+**useDataTable Hook**: 검색/정렬/페이지네이션/선택 상태 + 핸들러 일괄 관리.
+
+**DataTableColumn Props**:
+| Prop | 타입 | 설명 |
+|------|------|------|
+| key | `string` | 고유 키 |
+| header | `string` | 헤더 텍스트 |
+| sortField? | `string` | 정렬 필드 (없으면 비정렬 컬럼) |
+| skeletonWidth | `string` | 로딩 스켈레톤 너비 (`w-8`, `w-40` 등) |
+| render | `(item: T) => ReactNode` | 셀 렌더링 함수 |
+
+**적용 페이지**: admin_users_page, admin_lessons_page, admin_videos_page (각 ~200줄 감소)
+
 ### Dark Mode (Theme Toggle)
 
 `components/ui/theme_toggle.tsx` — 테마 전환 토글. next-themes 기반.

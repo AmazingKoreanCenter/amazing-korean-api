@@ -1,13 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, ChevronUp, ChevronDown, BookOpen } from "lucide-react";
+import { Plus, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -24,45 +21,108 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 
+import { DataTable, useDataTable, type DataTableColumn } from "@/components/blocks/data_table";
 import { useAdminLessons } from "../hook/use_admin_lessons";
 import { updateAdminLessonsBulk } from "../admin_api";
-import type {
-  LessonListReq,
-  AdminLessonRes,
-  LessonState,
-  LessonAccess,
-} from "../lesson/types";
+import type { AdminLessonRes, LessonState, LessonAccess } from "../lesson/types";
 
-// Backend allows: lesson_id, lesson_idx, lesson_title, lesson_subtitle, lesson_state, lesson_access, created_at
-type SortField =
-  | "lesson_id"
-  | "lesson_idx"
-  | "lesson_title"
-  | "lesson_subtitle"
-  | "lesson_state"
-  | "lesson_access"
-  | "created_at";
-type SortOrder = "asc" | "desc";
+const getStateBadgeVariant = (state: string) => {
+  switch (state) {
+    case "open":
+      return "success" as const;
+    case "ready":
+      return "warning" as const;
+    case "close":
+      return "destructive" as const;
+    default:
+      return "outline" as const;
+  }
+};
+
+const getAccessBadgeVariant = (access: string) => {
+  switch (access) {
+    case "public":
+      return "success" as const;
+    case "paid":
+      return "destructive" as const;
+    case "private":
+      return "blue" as const;
+    case "promote":
+      return "warning" as const;
+    default:
+      return "outline" as const;
+  }
+};
+
+const columns: DataTableColumn<AdminLessonRes>[] = [
+  { key: "id", header: "ID", sortField: "lesson_id", skeletonWidth: "w-8", render: (l) => l.lesson_id },
+  {
+    key: "idx",
+    header: "IDX",
+    sortField: "lesson_idx",
+    skeletonWidth: "w-24",
+    render: (l) => (
+      <code className="text-xs bg-muted px-1 py-0.5 rounded">{l.lesson_idx}</code>
+    ),
+  },
+  {
+    key: "title",
+    header: "Title",
+    sortField: "lesson_title",
+    skeletonWidth: "w-32",
+    render: (l) => (
+      <div className="max-w-xs truncate" title={l.lesson_title ?? ""}>
+        {l.lesson_title || "-"}
+      </div>
+    ),
+  },
+  {
+    key: "subtitle",
+    header: "Subtitle",
+    sortField: "lesson_subtitle",
+    skeletonWidth: "w-32",
+    render: (l) => (
+      <div className="max-w-xs truncate text-muted-foreground" title={l.lesson_subtitle ?? ""}>
+        {l.lesson_subtitle || "-"}
+      </div>
+    ),
+  },
+  {
+    key: "state",
+    header: "State",
+    sortField: "lesson_state",
+    skeletonWidth: "w-14",
+    render: (l) => <Badge variant={getStateBadgeVariant(l.lesson_state)}>{l.lesson_state}</Badge>,
+  },
+  {
+    key: "access",
+    header: "Access",
+    sortField: "lesson_access",
+    skeletonWidth: "w-14",
+    render: (l) => <Badge variant={getAccessBadgeVariant(l.lesson_access)}>{l.lesson_access}</Badge>,
+  },
+  {
+    key: "created_at",
+    header: "Created At",
+    sortField: "created_at",
+    skeletonWidth: "w-28",
+    render: (l) => new Date(l.lesson_created_at).toLocaleDateString(),
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    skeletonWidth: "w-16",
+    render: (l) => (
+      <Button variant="ghost" size="sm" asChild>
+        <Link to={`/admin/lessons/${l.lesson_id}`}>Edit</Link>
+      </Button>
+    ),
+  },
+];
 
 export function AdminLessonsPage() {
-  const [params, setParams] = useState<LessonListReq>({
-    page: 1,
-    size: 20,
-  });
-  const [searchInput, setSearchInput] = useState("");
-  const [sortField, setSortField] = useState<SortField>("lesson_id");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const table = useDataTable({ defaultSortField: "lesson_id" });
 
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkState, setBulkState] = useState<string>("");
@@ -70,58 +130,20 @@ export function AdminLessonsPage() {
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const { data, isLoading, isError, refetch } = useAdminLessons({
-    ...params,
-    sort: sortField,
-    order: sortOrder,
+    ...table.params,
+    sort: table.sortField,
+    order: table.sortOrder,
   });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setParams((prev) => ({ ...prev, page: 1, q: searchInput || undefined }));
-    setSelectedIds(new Set());
-  };
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortOrder("desc");
-    }
-  };
-
-  const handlePageChange = (page: number) => {
-    setParams((prev) => ({ ...prev, page }));
-    setSelectedIds(new Set());
-  };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked && data?.list) {
-      setSelectedIds(new Set(data.list.map((l) => l.lesson_id)));
-    } else {
-      setSelectedIds(new Set());
-    }
-  };
-
-  const handleSelectOne = (id: number, checked: boolean) => {
-    const newSet = new Set(selectedIds);
-    if (checked) {
-      newSet.add(id);
-    } else {
-      newSet.delete(id);
-    }
-    setSelectedIds(newSet);
-  };
-
   const handleBulkUpdate = async () => {
-    if (selectedIds.size === 0) return;
+    if (table.selectedIds.size === 0) return;
 
     if (!bulkState && !bulkAccess) {
       toast.error("Please select at least one field to update");
       return;
     }
 
-    const items = Array.from(selectedIds).map((id) => ({
+    const items = Array.from(table.selectedIds).map((id) => ({
       lesson_id: id,
       ...(bulkState && { lesson_state: bulkState as LessonState }),
       ...(bulkAccess && { lesson_access: bulkAccess as LessonAccess }),
@@ -131,12 +153,12 @@ export function AdminLessonsPage() {
     try {
       const result = await updateAdminLessonsBulk({ items });
       toast.success(
-        `Updated ${result.success_count} of ${result.success_count + result.failure_count} lessons`
+        `Updated ${result.success_count} of ${result.success_count + result.failure_count} lessons`,
       );
       setBulkEditOpen(false);
       setBulkState("");
       setBulkAccess("");
-      setSelectedIds(new Set());
+      table.clearSelection();
       refetch();
     } catch {
       toast.error("Bulk update failed");
@@ -144,49 +166,6 @@ export function AdminLessonsPage() {
       setBulkUpdating(false);
     }
   };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return null;
-    return sortOrder === "asc" ? (
-      <ChevronUp className="ml-1 h-4 w-4 inline" />
-    ) : (
-      <ChevronDown className="ml-1 h-4 w-4 inline" />
-    );
-  };
-
-  const getStateBadgeVariant = (state: string) => {
-    switch (state) {
-      case "open":
-        return "success" as const;
-      case "ready":
-        return "warning" as const;
-      case "close":
-        return "destructive" as const;
-      default:
-        return "outline" as const;
-    }
-  };
-
-  const getAccessBadgeVariant = (access: string) => {
-    switch (access) {
-      case "public":
-        return "success" as const;
-      case "paid":
-        return "destructive" as const;
-      case "private":
-        return "blue" as const;
-      case "promote":
-        return "warning" as const;
-      default:
-        return "outline" as const;
-    }
-  };
-
-  const allSelected = !!(
-    data?.list &&
-    data.list.length > 0 &&
-    data.list.every((l) => selectedIds.has(l.lesson_id))
-  );
 
   return (
     <div className="space-y-4">
@@ -205,243 +184,34 @@ export function AdminLessonsPage() {
         </div>
       </div>
 
-      {/* Search & Bulk Actions */}
-      <div className="bg-card rounded-lg border border-foreground/15 p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by idx, title..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9 border-foreground/20"
-              />
-            </div>
-            <Button type="submit" variant="secondary">
-              Search
-            </Button>
-          </form>
-
-          {selectedIds.size > 0 && (
-            <Button variant="outline" onClick={() => setBulkEditOpen(true)}>
-              <BookOpen className="mr-2 h-4 w-4" />
-              Edit {selectedIds.size} Selected
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-card rounded-lg border overflow-hidden shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="border-b-2 bg-secondary">
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground w-10">
-                <Checkbox checked={allSelected} onCheckedChange={handleSelectAll} />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("lesson_id")}
-              >
-                ID
-                <SortIcon field="lesson_id" />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("lesson_idx")}
-              >
-                IDX
-                <SortIcon field="lesson_idx" />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("lesson_title")}
-              >
-                Title
-                <SortIcon field="lesson_title" />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("lesson_subtitle")}
-              >
-                Subtitle
-                <SortIcon field="lesson_subtitle" />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("lesson_state")}
-              >
-                State
-                <SortIcon field="lesson_state" />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("lesson_access")}
-              >
-                Access
-                <SortIcon field="lesson_access" />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("created_at")}
-              >
-                Created At
-                <SortIcon field="created_at" />
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="border-b">
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-4" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-8" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-24" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-32" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-32" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-5 w-14" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-5 w-14" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-28" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-8 w-16" />
-                  </td>
-                </tr>
-              ))
-            ) : isError ? (
-              <tr>
-                <td colSpan={9} className="p-4 text-center text-destructive">
-                  Failed to load lessons
-                </td>
-              </tr>
-            ) : data?.list.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="p-4 text-center text-muted-foreground">
-                  No lessons found
-                </td>
-              </tr>
-            ) : (
-              data?.list.map((lesson: AdminLessonRes) => (
-                <tr key={lesson.lesson_id} className="border-b hover:bg-accent/10">
-                  <td className="px-4 py-3">
-                    <Checkbox
-                      checked={selectedIds.has(lesson.lesson_id)}
-                      onCheckedChange={(checked) =>
-                        handleSelectOne(lesson.lesson_id, !!checked)
-                      }
-                    />
-                  </td>
-                  <td className="px-4 py-3">{lesson.lesson_id}</td>
-                  <td className="px-4 py-3">
-                    <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                      {lesson.lesson_idx}
-                    </code>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="max-w-xs truncate" title={lesson.lesson_title ?? ""}>
-                      {lesson.lesson_title || "-"}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div
-                      className="max-w-xs truncate text-muted-foreground"
-                      title={lesson.lesson_subtitle ?? ""}
-                    >
-                      {lesson.lesson_subtitle || "-"}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={getStateBadgeVariant(lesson.lesson_state)}>
-                      {lesson.lesson_state}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={getAccessBadgeVariant(lesson.lesson_access)}>
-                      {lesson.lesson_access}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    {new Date(lesson.lesson_created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/lessons/${lesson.lesson_id}`}>Edit</Link>
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      {data && data.total_pages > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={() => handlePageChange(Math.max(1, params.page! - 1))}
-                className={
-                  params.page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
-                }
-              />
-            </PaginationItem>
-
-            {Array.from({ length: Math.min(5, data.total_pages) }, (_, i) => {
-              const page = i + 1;
-              return (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    onClick={() => handlePageChange(page)}
-                    isActive={params.page === page}
-                    className="cursor-pointer"
-                  >
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              );
-            })}
-
-            <PaginationItem>
-              <PaginationNext
-                onClick={() =>
-                  handlePageChange(Math.min(data.total_pages, params.page! + 1))
-                }
-                className={
-                  params.page === data.total_pages
-                    ? "pointer-events-none opacity-50"
-                    : "cursor-pointer"
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
-
-      {/* Stats */}
-      {data && (
-        <p className="text-sm text-muted-foreground text-center">
-          Showing {data.list.length} of {data.total} lessons
-        </p>
-      )}
+      <DataTable
+        columns={columns}
+        data={data?.list}
+        isLoading={isLoading}
+        isError={isError}
+        entityName="lessons"
+        getId={(l) => l.lesson_id}
+        searchPlaceholder="Search by idx, title..."
+        searchInput={table.searchInput}
+        onSearchInputChange={table.setSearchInput}
+        onSearch={table.handleSearch}
+        sortField={table.sortField}
+        sortOrder={table.sortOrder}
+        onSort={table.handleSort}
+        selectedIds={table.selectedIds}
+        onSelectAll={table.setSelectedIds}
+        onSelectOne={table.handleSelectOne}
+        bulkActionSlot={
+          <Button variant="outline" onClick={() => setBulkEditOpen(true)}>
+            <BookOpen className="mr-2 h-4 w-4" />
+            Edit {table.selectedIds.size} Selected
+          </Button>
+        }
+        page={table.params.page}
+        totalPages={data?.total_pages}
+        totalCount={data?.total}
+        onPageChange={table.handlePageChange}
+      />
 
       {/* Bulk Edit Dialog */}
       <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
@@ -449,7 +219,7 @@ export function AdminLessonsPage() {
           <DialogHeader>
             <DialogTitle>Bulk Edit Lessons</DialogTitle>
             <DialogDescription>
-              Update {selectedIds.size} selected lessons. Leave empty to skip.
+              Update {table.selectedIds.size} selected lessons. Leave empty to skip.
             </DialogDescription>
           </DialogHeader>
 
