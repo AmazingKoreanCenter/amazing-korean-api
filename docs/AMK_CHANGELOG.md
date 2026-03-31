@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-03-26
+updated: 2026-03-31
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,17 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-03-31 — 디자인 시스템 v4 Phase V1-9~V1-10 (색상 토큰 교체 + 최종 문서)**
+  - **Phase V1-9 색상 토큰 교체** (7파일):
+    - status badge: `text-amber-600 bg-amber-50 border-amber-200` → `text-status-warning bg-status-warning/5 border-status-warning/20` (ebook_selected_detail, ebook_detail_modal, textbook_detail_modal, selected_book_detail)
+    - status badge: `text-emerald-600 bg-emerald-50 border-emerald-200` → `text-status-success bg-status-success/5 border-status-success/20` (textbook_detail_modal, selected_book_detail)
+    - order status: `text-emerald-600 bg-emerald-600/10` → `text-status-success bg-status-success/10` (textbook_order_status_page paid)
+    - coming-soon badge: `bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400` → `bg-status-warning/10 text-status-warning` (home_page 2곳, dark: 접두사 불필요 — CSS 변수 자동 처리)
+    - fullscreen viewer: `bg-neutral-900` → `bg-surface-inverted`, `text-white` → `text-surface-inverted-foreground`, `bg-neutral-100 dark:bg-neutral-800` → `bg-muted` (ebook_viewer_page 4곳)
+    - warning icon: `text-amber-500` → `text-status-warning` (ebook_viewer_page 403 에러)
+  - **의도적 유지** (장식용 8건): book_hub_page SLIDE_COLORS 6색 팔레트, textbook_order_page 주문 안내 4색 아이콘 — 시각 구분 목적, 시맨틱 의미 없음
+  - **Phase V1-10 문서**: AMK_DESIGN_SYSTEM.md V1-9 반영 (changelog, surface-inverted 용도 확대, lint:ui 예외 기록), AMK_STATUS.md #51 추가, 메모리 갱신
 
 - **2026-03-31 — 디자인 시스템 v4 Phase V1-5 (DataTable 블록 추출)**
   - **Phase V1-5 DataTable**: `components/blocks/data_table.tsx` 신규 — 제네릭 `DataTable<T>` 컴포넌트 + `useDataTable` 훅 (검색/정렬/선택/페이지네이션 상태 일괄 관리)

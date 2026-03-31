@@ -62,7 +62,7 @@ export function EbookDetailModal({
             <DialogTitle className="text-left">
               {t("ebook.catalog.bookTitle", { language: langName })}
             </DialogTitle>
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5 flex-shrink-0">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-status-warning bg-status-warning/5 border border-status-warning/20 rounded-md px-3 py-1.5 flex-shrink-0">
               <AlertTriangle className="h-3.5 w-3.5" />
               {edition === "teacher" ? t("ebook.detail.teacherComingSoon") : t("ebook.detail.studentComingSoon")}
             </span>

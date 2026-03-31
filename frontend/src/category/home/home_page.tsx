@@ -185,7 +185,7 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Play className="h-6 w-6 text-white" />
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-status-warning/10 px-2.5 py-1 text-xs font-medium text-status-warning">
                 <Clock className="h-3 w-3" />
                 {t("home.videoComingSoon")}
               </span>
@@ -215,7 +215,7 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform">
                 <PenTool className="h-6 w-6 text-white" />
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-status-warning/10 px-2.5 py-1 text-xs font-medium text-status-warning">
                 <Clock className="h-3 w-3" />
                 {t("home.studyComingSoon")}
               </span>

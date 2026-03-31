@@ -13,6 +13,8 @@
 > - 추가: `components/blocks/cover_card.tsx` (카탈로그 표지 카드)
 > - 추가: `components/blocks/feature_grid.tsx` (아이콘+제목+설명 카드 그리드)
 > - 전체 `<img>` 태그 `loading="lazy"` 적용 완료
+> - V1-9: Tailwind 기본색 → 디자인 시스템 토큰 교체 (7파일, status badge/surface-inverted/coming-soon)
+> - V1-9: `text-white` → `text-surface-inverted-foreground` (ebook_viewer fullscreen)
 
 ---
 
@@ -56,8 +58,8 @@ Footer, CTA 섹션 등 항상 어두운 배경이 필요한 곳에 사용. `bg-p
 |------|-----------|----------|------|
 | footer | `222 90% 18%` | `222 47% 8%` | Footer 배경 |
 | footer-foreground | `210 40% 98%` | `210 40% 98%` | Footer 텍스트 |
-| surface-inverted | `222 90% 18%` | `222 47% 10%` | CTA 섹션 배경 |
-| surface-inverted-foreground | `210 40% 98%` | `210 40% 98%` | CTA 섹션 텍스트 |
+| surface-inverted | `222 90% 18%` | `222 47% 10%` | CTA 섹션, fullscreen 뷰어 배경 |
+| surface-inverted-foreground | `210 40% 98%` | `210 40% 98%` | CTA 섹션, fullscreen 뷰어 텍스트 |
 
 ### Status Color 사용 패턴
 
@@ -768,7 +770,13 @@ cd frontend && npm run lint:ui
 
 위반 시 exit 1 반환 → CI/PR 체크에서 차단 가능.
 
-**현재 상태**: .tsx 파일 전체 0건 위반 (Admin 포함).
+**현재 상태**: 8건 잔여 — 전부 장식용 색상 팔레트 (의도적 예외).
+
+**의도적 예외 (장식용 색상)**:
+- `book_hub_page.tsx` SLIDE_COLORS: 6색 순환 팔레트 (blue/emerald/amber/violet/rose/teal). 개별 슬라이드 시각 구분 목적.
+- `textbook_order_page.tsx` 주문 안내 아이콘: 4색 (blue/emerald/violet/amber). 정보 카드 시각 구분 목적.
+
+이 색상들은 status/semantic 의미 없이 순수 장식용이므로 토큰 교체 불필요.
 
 ### PR 체크리스트
 

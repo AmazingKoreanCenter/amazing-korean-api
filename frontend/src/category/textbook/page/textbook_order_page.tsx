@@ -486,6 +486,7 @@ export function TextbookOrderPage() {
                           <img
                             src={`/covers/${watchItems[index]?.textbook_type ?? "student"}-${watchItems[index]?.language}.webp`}
                             alt=""
+                            loading="lazy"
                             className="w-12 h-16 rounded object-cover border"
                           />
                         </div>

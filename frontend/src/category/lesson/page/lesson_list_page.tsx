@@ -118,6 +118,7 @@ export function LessonListPage() {
                           <img
                             src={lesson.thumbnail_url}
                             alt={lesson.title}
+                            loading="lazy"
                             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         </div>
