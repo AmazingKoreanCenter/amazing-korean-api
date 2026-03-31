@@ -6,6 +6,7 @@ import { BookMarked, Layers, Lock, Crown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { HeroSection } from "@/components/blocks/hero_section";
+import { SectionContainer } from "@/components/blocks/section_container";
 import { ListStatsBar } from "@/components/blocks/list_stats_bar";
 import { EmptyState } from "@/components/blocks/empty_state";
 import { PaginationBar } from "@/components/blocks/pagination_bar";
@@ -85,8 +86,7 @@ export function LessonListPage() {
       />
 
       {/* Content Section */}
-      <section className="py-10 lg:py-14">
-        <div className="max-w-container-default mx-auto px-6 lg:px-8">
+      <SectionContainer size="sm">
           {meta && (
             <ListStatsBar
               icon={BookMarked}
@@ -153,8 +153,7 @@ export function LessonListPage() {
               />
             </>
           )}
-        </div>
-      </section>
+      </SectionContainer>
     </div>
   );
 }

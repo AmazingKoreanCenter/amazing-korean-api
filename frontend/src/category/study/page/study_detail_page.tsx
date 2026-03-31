@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/blocks/empty_state";
+import { SectionContainer } from "@/components/blocks/section_container";
 import { PaginationBar } from "@/components/blocks/pagination_bar";
 import { SkeletonGrid } from "@/components/blocks/skeleton_grid";
 import type { StudyDetailReq, StudyProgram, StudyTaskKind } from "@/category/study/types";
@@ -88,8 +89,7 @@ export function StudyDetailPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-hero-gradient border-b">
-        <div className="max-w-container-default mx-auto px-6 lg:px-8 py-10 lg:py-14">
+      <SectionContainer size="sm" className="bg-hero-gradient border-b">
           {isPending ? (
             <div className="space-y-4">
               <Skeleton className="h-6 w-24 rounded-full" />
@@ -125,12 +125,10 @@ export function StudyDetailPage() {
               </p>
             </div>
           ) : null}
-        </div>
-      </section>
+      </SectionContainer>
 
       {/* Content Section */}
-      <section className="py-10 lg:py-14">
-        <div className="max-w-container-default mx-auto px-6 lg:px-8">
+      <SectionContainer size="sm">
           {/* Stats Bar */}
           {meta && (
             <div className="mb-8 flex items-center justify-between">
@@ -201,8 +199,7 @@ export function StudyDetailPage() {
               />
             </>
           )}
-        </div>
-      </section>
+      </SectionContainer>
     </div>
   );
 }

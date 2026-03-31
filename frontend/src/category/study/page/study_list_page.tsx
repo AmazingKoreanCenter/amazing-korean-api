@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { HeroSection } from "@/components/blocks/hero_section";
+import { SectionContainer } from "@/components/blocks/section_container";
 import { ListStatsBar } from "@/components/blocks/list_stats_bar";
 import { EmptyState } from "@/components/blocks/empty_state";
 import { PaginationBar } from "@/components/blocks/pagination_bar";
@@ -135,8 +136,7 @@ export function StudyListPage() {
       </HeroSection>
 
       {/* Content Section */}
-      <section className="py-10 lg:py-14">
-        <div className="max-w-container-default mx-auto px-6 lg:px-8">
+      <SectionContainer size="sm">
           {meta && (
             <ListStatsBar
               icon={BookOpen}
@@ -199,8 +199,7 @@ export function StudyListPage() {
               />
             </>
           )}
-        </div>
-      </section>
+      </SectionContainer>
     </div>
   );
 }
