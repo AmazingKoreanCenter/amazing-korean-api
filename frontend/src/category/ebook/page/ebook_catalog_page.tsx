@@ -6,6 +6,7 @@ import { BookOpen, LayoutGrid, Disc3, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CoverCard } from "@/components/blocks/cover_card";
 import { HeroSection } from "@/components/blocks/hero_section";
 import { SectionContainer } from "@/components/blocks/section_container";
 import { PageMeta } from "@/components/page_meta";
@@ -28,43 +29,6 @@ function getStoredViewMode(): ViewMode {
     // localStorage unavailable
   }
   return "carousel";
-}
-
-function EbookCoverCard({
-  item,
-  edition,
-  onClick,
-}: {
-  item: EbookCatalogItem;
-  edition: EbookEdition;
-  onClick: () => void;
-}) {
-  const { t, i18n } = useTranslation();
-  const langName = i18n.language === "ko" ? item.language_name_ko : item.language_name_en;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 border hover:border-accent/50 text-left cursor-pointer"
-    >
-      <div className="aspect-[3/4] overflow-hidden bg-muted border-b">
-        <img
-          src={`/covers/${edition}-${item.language}.webp`}
-          alt={`${langName} ${edition}`}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
-      </div>
-      <div className="p-4 space-y-2">
-        <h3 className="font-semibold text-sm">{t("ebook.catalog.bookTitle", { language: langName })}</h3>
-        <p className="text-xs text-muted-foreground text-right py-0.5">{t("ebook.catalog.pricePerUnit")}</p>
-        <span className="inline-flex items-center justify-center w-full rounded-md bg-primary text-primary-foreground text-sm font-medium h-8 px-3">
-          {t("ebook.detail.viewDetail")}
-        </span>
-      </div>
-    </button>
-  );
 }
 
 interface ModalTarget {
@@ -262,6 +226,8 @@ function EbookGridSection({
   noResultsText: string;
   onCardClick: (item: EbookCatalogItem) => void;
 }) {
+  const { t, i18n } = useTranslation();
+
   if (items.length === 0) {
     return (
       <div className="py-16 text-center text-muted-foreground">
@@ -272,14 +238,20 @@ function EbookGridSection({
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 mt-6">
-      {items.map((item) => (
-        <EbookCoverCard
-          key={`${edition}-${item.language}`}
-          item={item}
-          edition={edition}
-          onClick={() => onCardClick(item)}
-        />
-      ))}
+      {items.map((item) => {
+        const langName = i18n.language === "ko" ? item.language_name_ko : item.language_name_en;
+        return (
+          <CoverCard
+            key={`${edition}-${item.language}`}
+            imageSrc={`/covers/${edition}-${item.language}.webp`}
+            imageAlt={`${langName} ${edition}`}
+            title={t("ebook.catalog.bookTitle", { language: langName })}
+            subtitle={t("ebook.catalog.pricePerUnit")}
+            actionLabel={t("ebook.detail.viewDetail")}
+            onClick={() => onCardClick(item)}
+          />
+        );
+      })}
     </div>
   );
 }
