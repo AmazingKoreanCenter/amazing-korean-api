@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { HeroSection } from "@/components/sections/hero_section";
-import { SectionContainer } from "@/components/sections/section_container";
+import { FeatureGrid } from "@/components/blocks/feature_grid";
+import { HeroSection } from "@/components/blocks/hero_section";
+import { SectionContainer } from "@/components/blocks/section_container";
 import { PageMeta } from "@/components/page_meta";
 
 export default function HomePage() {
@@ -88,40 +89,25 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Acquisition */}
-          <div className="bg-card rounded-2xl p-8 shadow-card text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
-            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
-              <Lightbulb className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">{t("home.valueAcquisitionTitle")}</h3>
-            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-              {t("home.valueAcquisitionDesc")}
-            </p>
-          </div>
-
-          {/* Efficiency */}
-          <div className="bg-card rounded-2xl p-8 shadow-card text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
-            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
-              <Timer className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">{t("home.valueEfficiencyTitle")}</h3>
-            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-              {t("home.valueEfficiencyDesc")}
-            </p>
-          </div>
-
-          {/* Understanding */}
-          <div className="bg-card rounded-2xl p-8 shadow-card text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
-            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
-              <Heart className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">{t("home.valueUnderstandingTitle")}</h3>
-            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-              {t("home.valueUnderstandingDesc")}
-            </p>
-          </div>
-        </div>
+        <FeatureGrid
+          items={[
+            {
+              icon: <Lightbulb className="h-8 w-8 text-white" />,
+              title: t("home.valueAcquisitionTitle"),
+              description: t("home.valueAcquisitionDesc"),
+            },
+            {
+              icon: <Timer className="h-8 w-8 text-white" />,
+              title: t("home.valueEfficiencyTitle"),
+              description: t("home.valueEfficiencyDesc"),
+            },
+            {
+              icon: <Heart className="h-8 w-8 text-white" />,
+              title: t("home.valueUnderstandingTitle"),
+              description: t("home.valueUnderstandingDesc"),
+            },
+          ]}
+        />
       </SectionContainer>
 
       {/* ─── Features — 4 Cards ─── */}
@@ -199,7 +185,7 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Play className="h-6 w-6 text-white" />
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-status-warning/10 px-2.5 py-1 text-xs font-medium text-status-warning">
                 <Clock className="h-3 w-3" />
                 {t("home.videoComingSoon")}
               </span>
@@ -229,7 +215,7 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform">
                 <PenTool className="h-6 w-6 text-white" />
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-status-warning/10 px-2.5 py-1 text-xs font-medium text-status-warning">
                 <Clock className="h-3 w-3" />
                 {t("home.studyComingSoon")}
               </span>

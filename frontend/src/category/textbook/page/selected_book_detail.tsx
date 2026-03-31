@@ -22,6 +22,7 @@ export function SelectedBookDetail({ item, type, onDetailOpen }: SelectedBookDet
         <img
           src={`/covers/${type}-${item.language}.webp`}
           alt={langName}
+          loading="lazy"
           className="h-48 md:h-full w-auto rounded-xl bg-muted shadow-lg"
         />
       </div>
@@ -34,12 +35,12 @@ export function SelectedBookDetail({ item, type, onDetailOpen }: SelectedBookDet
         {/* 2. Status badge */}
         <div className="h-8 flex items-center justify-center md:justify-start">
           {item.isbn_ready ? (
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-1.5">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-status-success bg-status-success/5 border border-status-success/20 rounded-md px-3 py-1.5">
               <CircleCheck className="h-3.5 w-3.5" />
               {t("textbook.catalog.editionInfo", { edition: type === "student" ? t("textbook.catalog.studentSection") : t("textbook.catalog.teacherSection") })}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-status-warning bg-status-warning/5 border border-status-warning/20 rounded-md px-3 py-1.5">
               <AlertTriangle className="h-3.5 w-3.5" />
               {t("textbook.catalog.isbnPending")}
             </span>

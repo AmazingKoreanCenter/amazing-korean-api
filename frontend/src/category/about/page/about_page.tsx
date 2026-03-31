@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { Lightbulb, Timer, Languages, ArrowRight, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { HeroSection } from "@/components/sections/hero_section";
-import { SectionContainer } from "@/components/sections/section_container";
+import { FeatureGrid } from "@/components/blocks/feature_grid";
+import { HeroSection } from "@/components/blocks/hero_section";
+import { SectionContainer } from "@/components/blocks/section_container";
 import { PageMeta } from "@/components/page_meta";
 
 export function AboutPage() {
@@ -85,40 +86,25 @@ export function AboutPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Why Acquisition Works */}
-          <div className="bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
-            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mb-6">
-              <Lightbulb className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold mb-4">{t("about.valueAcquisitionTitle")}</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              {t("about.valueAcquisitionDesc")}
-            </p>
-          </div>
-
-          {/* Shorter Learning Time */}
-          <div className="bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
-            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mb-6">
-              <Timer className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold mb-4">{t("about.valueEfficiencyTitle")}</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              {t("about.valueEfficiencyDesc")}
-            </p>
-          </div>
-
-          {/* Native Language Understanding */}
-          <div className="bg-card rounded-2xl p-8 shadow-card hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border">
-            <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mb-6">
-              <Languages className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-xl font-semibold mb-4">{t("about.valueUnderstandingTitle")}</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              {t("about.valueUnderstandingDesc")}
-            </p>
-          </div>
-        </div>
+        <FeatureGrid
+          items={[
+            {
+              icon: <Lightbulb className="h-8 w-8 text-white" />,
+              title: t("about.valueAcquisitionTitle"),
+              description: t("about.valueAcquisitionDesc"),
+            },
+            {
+              icon: <Timer className="h-8 w-8 text-white" />,
+              title: t("about.valueEfficiencyTitle"),
+              description: t("about.valueEfficiencyDesc"),
+            },
+            {
+              icon: <Languages className="h-8 w-8 text-white" />,
+              title: t("about.valueUnderstandingTitle"),
+              description: t("about.valueUnderstandingDesc"),
+            },
+          ]}
+        />
       </SectionContainer>
 
       {/* ─── CTA ─── */}

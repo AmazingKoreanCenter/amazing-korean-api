@@ -15,7 +15,6 @@ const badgeVariants = cva(
         outline: "text-foreground",
         success: "border-transparent bg-status-success text-status-success-foreground",
         warning: "border-transparent bg-status-warning text-status-warning-foreground",
-        info: "border-transparent bg-status-info text-status-info-foreground",
         // Badge-only fixed colors (theme-independent for enum display)
         blue: "border-transparent bg-badge-blue text-badge-blue-foreground",
         orange: "border-transparent bg-badge-orange text-badge-orange-foreground",

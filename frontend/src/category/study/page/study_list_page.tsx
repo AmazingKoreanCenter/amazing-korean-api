@@ -12,11 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HeroSection } from "@/components/sections/hero_section";
-import { ListStatsBar } from "@/components/sections/list_stats_bar";
-import { EmptyState } from "@/components/sections/empty_state";
-import { PaginationBar } from "@/components/sections/pagination_bar";
-import { SkeletonGrid } from "@/components/sections/skeleton_grid";
+import { HeroSection } from "@/components/blocks/hero_section";
+import { SectionContainer } from "@/components/blocks/section_container";
+import { ListStatsBar } from "@/components/blocks/list_stats_bar";
+import { EmptyState } from "@/components/blocks/empty_state";
+import { PaginationBar } from "@/components/blocks/pagination_bar";
+import { SkeletonGrid } from "@/components/blocks/skeleton_grid";
 import { PageMeta } from "@/components/page_meta";
 import type { StudyListReq, StudyProgram } from "@/category/study/types";
 import { studyProgramSchema } from "@/category/study/types";
@@ -135,8 +136,7 @@ export function StudyListPage() {
       </HeroSection>
 
       {/* Content Section */}
-      <section className="py-10 lg:py-14">
-        <div className="max-w-[1350px] mx-auto px-6 lg:px-8">
+      <SectionContainer size="sm">
           {meta && (
             <ListStatsBar
               icon={BookOpen}
@@ -199,8 +199,7 @@ export function StudyListPage() {
               />
             </>
           )}
-        </div>
-      </section>
+      </SectionContainer>
     </div>
   );
 }

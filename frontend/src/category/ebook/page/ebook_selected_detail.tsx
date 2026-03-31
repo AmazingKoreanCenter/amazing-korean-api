@@ -21,6 +21,7 @@ export function EbookSelectedDetail({ item, edition, onDetailOpen }: EbookSelect
         <img
           src={`/covers/${edition}-${item.language}.webp`}
           alt={langName}
+          loading="lazy"
           className="h-48 md:h-full w-auto rounded-xl bg-muted shadow-lg"
         />
       </div>
@@ -34,7 +35,7 @@ export function EbookSelectedDetail({ item, edition, onDetailOpen }: EbookSelect
 
         {/* 2. Badge */}
         <div className="h-8 flex items-center justify-center md:justify-start">
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-status-warning bg-status-warning/5 border border-status-warning/20 rounded-md px-3 py-1.5">
             <AlertTriangle className="h-3.5 w-3.5" />
             {edition === "teacher" ? t("ebook.detail.teacherComingSoon") : t("ebook.detail.studentComingSoon")}
           </span>

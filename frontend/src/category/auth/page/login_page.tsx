@@ -8,12 +8,12 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AuthLayout } from "@/components/layouts/auth_layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -175,105 +175,102 @@ export function LoginPage() {
   // MFA 코드 입력 화면
   if (activeMfaPending) {
     return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-2 text-center">
-            <div className="flex justify-center mb-2">
-              <ShieldCheck className="h-12 w-12 text-primary" />
-            </div>
-            <CardTitle className="text-2xl">{t("auth.mfaTitle")}</CardTitle>
-            <CardDescription>
-              {t("auth.mfaDescription")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <form onSubmit={handleMfaSubmit} className="space-y-4">
-              <div className="space-y-3">
-                <label className="text-sm font-medium">
-                  {t("auth.mfaCodeLabel")}
-                </label>
-                {useBackupCode ? (
-                  <Input
-                    type="text"
-                    autoComplete="one-time-code"
-                    placeholder={t("auth.mfaBackupPlaceholder")}
+      <AuthLayout>
+        <CardHeader className="space-y-2 text-center">
+          <div className="flex justify-center mb-2">
+            <ShieldCheck className="h-12 w-12 text-primary" />
+          </div>
+          <CardTitle className="text-2xl">{t("auth.mfaTitle")}</CardTitle>
+          <CardDescription>
+            {t("auth.mfaDescription")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form onSubmit={handleMfaSubmit} className="space-y-4">
+            <div className="space-y-3">
+              <label className="text-sm font-medium">
+                {t("auth.mfaCodeLabel")}
+              </label>
+              {useBackupCode ? (
+                <Input
+                  type="text"
+                  autoComplete="one-time-code"
+                  placeholder={t("auth.mfaBackupPlaceholder")}
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\s/g, ""))}
+                  maxLength={8}
+                  autoFocus
+                />
+              ) : (
+                <div className="flex justify-center">
+                  <InputOTP
+                    maxLength={6}
                     value={mfaCode}
-                    onChange={(e) => setMfaCode(e.target.value.replace(/\s/g, ""))}
-                    maxLength={8}
+                    onChange={setMfaCode}
                     autoFocus
-                  />
-                ) : (
-                  <div className="flex justify-center">
-                    <InputOTP
-                      maxLength={6}
-                      value={mfaCode}
-                      onChange={setMfaCode}
-                      autoFocus
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                      </InputOTPGroup>
-                      <InputOTPSeparator />
-                      <InputOTPGroup>
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  className="text-xs text-primary hover:underline"
-                  onClick={() => {
-                    setUseBackupCode(!useBackupCode);
-                    setMfaCode("");
-                  }}
-                >
-                  {useBackupCode
-                    ? t("auth.mfaUseAuthApp")
-                    : t("auth.mfaUseBackupCode")}
-                </button>
-              </div>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={mfaLoginMutation.isPending || mfaCode.length < 6}
-              >
-                {mfaLoginMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    {t("auth.mfaVerifying")}
-                  </>
-                ) : (
-                  t("auth.mfaVerifyButton")
-                )}
-              </Button>
-            </form>
-            {/* OAuth MFA에서는 뒤로가기 불가 (URL 파라미터 기반) */}
-            {loginMutation.mfaPending && (
-              <Button
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                    </InputOTPGroup>
+                    <InputOTPSeparator />
+                    <InputOTPGroup>
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+              )}
+              <button
                 type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={handleMfaBack}
+                className="text-xs text-primary hover:underline"
+                onClick={() => {
+                  setUseBackupCode(!useBackupCode);
+                  setMfaCode("");
+                }}
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                {t("auth.mfaBackToLogin")}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                {useBackupCode
+                  ? t("auth.mfaUseAuthApp")
+                  : t("auth.mfaUseBackupCode")}
+              </button>
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={mfaLoginMutation.isPending || mfaCode.length < 6}
+            >
+              {mfaLoginMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {t("auth.mfaVerifying")}
+                </>
+              ) : (
+                t("auth.mfaVerifyButton")
+              )}
+            </Button>
+          </form>
+          {/* OAuth MFA에서는 뒤로가기 불가 (URL 파라미터 기반) */}
+          {loginMutation.mfaPending && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={handleMfaBack}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              {t("auth.mfaBackToLogin")}
+            </Button>
+          )}
+        </CardContent>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-10">
+    <AuthLayout>
       <PageMeta titleKey="seo.login.title" descriptionKey="seo.login.description" />
-      <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <CardTitle className="text-2xl">{t("auth.loginTitle")}</CardTitle>
           <CardDescription>
@@ -455,7 +452,6 @@ export function LoginPage() {
             </Link>
           </p>
         </CardContent>
-      </Card>
-    </div>
+    </AuthLayout>
   );
 }

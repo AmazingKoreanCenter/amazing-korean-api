@@ -2,7 +2,7 @@ import { ShieldX, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { HeroSection } from "@/components/sections/hero_section";
+import { HeroSection } from "@/components/blocks/hero_section";
 import { PageMeta } from "@/components/page_meta";
 
 export function AccessDeniedPage() {

@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-03-26
+updated: 2026-03-31
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,55 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-03-31 — 디자인 시스템 v4 Phase V1-9~V1-10 (색상 토큰 교체 + 최종 문서)**
+  - **Phase V1-9 색상 토큰 교체** (7파일):
+    - status badge: `text-amber-600 bg-amber-50 border-amber-200` → `text-status-warning bg-status-warning/5 border-status-warning/20` (ebook_selected_detail, ebook_detail_modal, textbook_detail_modal, selected_book_detail)
+    - status badge: `text-emerald-600 bg-emerald-50 border-emerald-200` → `text-status-success bg-status-success/5 border-status-success/20` (textbook_detail_modal, selected_book_detail)
+    - order status: `text-emerald-600 bg-emerald-600/10` → `text-status-success bg-status-success/10` (textbook_order_status_page paid)
+    - coming-soon badge: `bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400` → `bg-status-warning/10 text-status-warning` (home_page 2곳, dark: 접두사 불필요 — CSS 변수 자동 처리)
+    - fullscreen viewer: `bg-neutral-900` → `bg-surface-inverted`, `text-white` → `text-surface-inverted-foreground`, `bg-neutral-100 dark:bg-neutral-800` → `bg-muted` (ebook_viewer_page 4곳)
+    - warning icon: `text-amber-500` → `text-status-warning` (ebook_viewer_page 403 에러)
+  - **의도적 유지** (장식용 8건): book_hub_page SLIDE_COLORS 6색 팔레트, textbook_order_page 주문 안내 4색 아이콘 — 시각 구분 목적, 시맨틱 의미 없음
+  - **Phase V1-10 문서**: AMK_DESIGN_SYSTEM.md V1-9 반영 (changelog, surface-inverted 용도 확대, lint:ui 예외 기록), AMK_STATUS.md #51 추가, 메모리 갱신
+
+- **2026-03-31 — 디자인 시스템 v4 Phase V1-5 (DataTable 블록 추출)**
+  - **Phase V1-5 DataTable**: `components/blocks/data_table.tsx` 신규 — 제네릭 `DataTable<T>` 컴포넌트 + `useDataTable` 훅 (검색/정렬/선택/페이지네이션 상태 일괄 관리)
+  - **적용**: admin_users_page (573→275줄), admin_lessons_page (502→235줄), admin_videos_page (483→240줄) — 각 ~200줄 보일러플레이트 제거
+  - **Column 정의 방식**: `DataTableColumn<T>` 인터페이스 (key, header, sortField?, skeletonWidth, render)
+  - **데이터 구조 차이 흡수**: 각 페이지의 다른 응답 구조(meta/pagination/flat)를 props로 정규화 (data, totalPages, totalCount, getId)
+
+- **2026-03-31 — 디자인 시스템 v4 Phase V1-4~V1-8 (레이아웃/블록 추출 + 접근성)**
+  - **Phase V1-4 AuthLayout**: `components/layouts/auth_layout.tsx` 신규, 6개 인증 페이지 8곳의 동일 래퍼(`flex min-h-screen` + `Card max-w-md`) → `<AuthLayout>` 추출 (login, signup, verify_email, reset_password, request_reset_password, account_recovery)
+  - **Phase V1-6 CoverCard + FeatureGrid**: `blocks/cover_card.tsx` — textbook/ebook 카탈로그 인라인 표지 카드 → 공통 블록, `blocks/feature_grid.tsx` — home/about 가치 카드 3개 → 공통 블록 (4파일 적용)
+  - **Phase V1-7 SectionContainer 확대**: study_list/detail, lesson_list, pricing 4파일 6곳의 수동 `<section>/<div>` 래퍼 → `<SectionContainer>` 교체 (ebook_purchase_complete, textbook_order는 컨테이너 불일치로 제외)
+  - **Phase V1-8 lazy loading**: book_landing_page 국기 이미지 2곳 `loading="lazy"` 추가, 전체 `<img>` 누락 0건 확인
+
+- **2026-03-31 — 디자인 시스템 v4 Phase V1-1~V1-3 (토큰 정리 + 아키텍처 전환)**
+  - **Phase V1-1 토큰 정리**: `--table-header` CSS 변수 삭제 (light/dark, 0회 사용), Badge `info` variant 삭제 (manager→secondary 교체), Button `link` variant 삭제, `maxWidth` 컨테이너 토큰 3종 추가 (`container-default` 1350px, `container-narrow` 768px, `container-form` 448px), 글로벌 `prefers-reduced-motion` CSS 리셋 추가 (98.5% 애니메이션 접근성 갭 해소)
+  - **Phase V1-2 컨테이너 마이그레이션**: `max-w-[1350px]` 하드코딩 17회 → `max-w-container-default` 토큰 교체 (11개 파일: header, footer, hero_section, section_container, 카탈로그, 리스트 페이지 등)
+  - **Phase V1-3 아키텍처 전환**: `components/sections/` → `components/blocks/` 리네이밍 (3계층 아키텍처: ui/ → blocks/ → category/), 20개 소비 파일 41개 import 경로 교체
+  - **디자인 시스템 v4 플랜**: 14개 영역 전수 감사 + 실증 검증 완료, 과잉 설계 5건 제거 (text-white 유지, Card elevated 유지, Layout 8→1개, text-sm 유지, Style Dictionary 연기)
+  - **QA 자동화**: 3계층 QA 체계 설계 — Playwright 픽셀 비교 + Browser Use/Ollama AI 스모크 + Claude API 정밀 분석, `docs/AMK_MACMINI_SETUP.md` Day 6 추가
+
+- **2026-03-30 — 홈/소개 페이지 리디자인 + 22개 locale 전면 업데이트**
+  - **홈 페이지**: Hero 한 줄 타이틀 + 핵심가치 3카드(학습 보다 습득/효율적 학습/이해 중심) + 기능 4카드(교재/E-book/영상[준비중]/문제[준비중]) + CTA
+  - **소개 페이지**: Hero("한국어는 어렵지 않습니다") + Why(Amazing Korean란?) + 차별점 3카드 상세(습득하는 한국어/학습 시간 단축/모국어 중심 이해) + Stats 카드(2블록) + CTA
+  - **"30,000 표현" 전체 삭제**: ko/en 포함 22개 locale에서 완전 제거 (근거 없는 수치)
+  - **숫자 갱신**: 20→34 언어, 44→68종 교재, 900→500 문장 (마스터 문서 동시 수정)
+  - **HeroSection**: `whitespace-nowrap` + `max-w` 제거로 22개 언어 타이틀 한 줄 가운데 정렬
+  - **22개 locale**: home/about 키 전면 교체 (5개 Agent 병렬 처리)
+  - **SEO**: home/about description 갱신 ("1:1 수업" 등 미구현 기능 제거)
+
+- **2026-03-30 — 앱 로드맵 + 문서/메모리 정비**
+  - **신규**: `docs/AMK_APP_ROADMAP.md` — Flutter(모바일) + Tauri 2.x(데스크탑) 확정, 리스크 11건 검증, 전체 우선순위
+  - **STATUS §8.2**: 의존성 기반 실행 순서 재정렬, 다국어 반응형 디자인 규격(#7.5) 추가
+  - **기존 6개 문서**: React Native/TBD → Flutter/Tauri 참조 갱신
+  - **archive**: 완료/1회성 문서 4건 삭제 (DEVELOP_POINT, FOOTER_ISSUE, GSC_REDIRECT, MEMORY_AUDIT)
+  - **메모리**: project_completed_systems 축소(문서 포인터), plan_task6 축소(로드맵 포인터), decisions 갱신(이메일 완료, Flutter 확정)
+  - **DB 암호화 Bug#1**: 재검증 결과 service.rs에서 이미 복호화 구현됨 → 해결됨 처리
+  - **교재 번역**: amazing-korean-books 조사 — 22→34언어 확장 완료, PDF 재생성 남음
+  - **마스터 문서**: 900문장 → 500문장 정정, basic_900 enum 레거시 표기
 
 - **2026-03-29 — E-book 요청별 HMAC 서명 (Phase 1-2 완료)**
   - **HMAC 서명 검증**: 페이지/타일 요청마다 `X-Ebook-Signature` + `X-Ebook-Timestamp` 헤더 필수화, 세션 등록 시 32바이트 랜덤 secret 생성 → Redis 저장, `ViewerMetaRes`에 `hmac_secret` 추가

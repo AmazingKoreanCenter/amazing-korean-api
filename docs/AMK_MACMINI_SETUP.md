@@ -15,6 +15,7 @@
 - [Day 3: 개발 환경](#day-3-개발-환경)
 - [Day 4: 원격 접속 + 자동화](#day-4-원격-접속--자동화)
 - [Day 5: 검증 + 최적화](#day-5-검증--최적화)
+- [Day 6: 시각적 QA 자동화](#day-6-시각적-qa-자동화-browser-use--playwright)
 - [참고: 포트 정리](#참고-포트-정리)
 - [참고: 리소스 예산](#참고-리소스-예산)
 - [트러블슈팅](#트러블슈팅)
@@ -791,6 +792,224 @@ Layer 1 (항시)           ~1.7GB
 | AX 3.1 Lite 7B | ~4.5GB | 빠른 한국어 응답 |
 | NLLB-200-3.3B | ~3.5GB | 22개 언어 번역 |
 | ENERZAi Korean Whisper | ~0.5GB | 한국어 STT/발음 평가 |
+
+---
+
+## Day 6: 시각적 QA 자동화 (Browser Use + Playwright)
+
+> **목표**: 프론트엔드 배포 후 자동 시각 검증 파이프라인 구축
+> **관련**: 디자인 시스템 v4 플랜 (`plans/keen-kindling-fountain.md`)
+
+### 6.1 Playwright 설치 (픽셀 단위 회귀 감지)
+
+```bash
+# 프로젝트 루트에서
+cd ~/dev/amazing-korean-api
+npm install -D @playwright/test
+npx playwright install chromium  # Chromium만 설치 (최소)
+
+# 설정 파일 생성
+cat > playwright.config.ts << 'EOF'
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests/visual',
+  snapshotDir: './tests/visual/snapshots',
+  use: {
+    baseURL: 'https://amazingkorean.net',  # 프로덕션 또는 localhost
+    screenshot: 'only-on-failure',
+  },
+  projects: [
+    { name: 'desktop', use: { viewport: { width: 1440, height: 900 } } },
+    { name: 'mobile', use: { viewport: { width: 375, height: 812 } } },
+  ],
+});
+EOF
+```
+
+### 6.2 시각 회귀 테스트 작성
+
+```bash
+mkdir -p tests/visual
+
+cat > tests/visual/pages.spec.ts << 'EOF'
+import { test, expect } from '@playwright/test';
+
+// 핵심 10페이지 — 매 배포 후 검증
+const CRITICAL_PAGES = [
+  { name: 'home', path: '/' },
+  { name: 'about', path: '/about' },
+  { name: 'login', path: '/login' },
+  { name: 'signup', path: '/signup' },
+  { name: 'textbook-catalog', path: '/book/textbook' },
+  { name: 'ebook-catalog', path: '/book/ebook' },
+  { name: 'book-hub', path: '/book' },
+  { name: 'terms', path: '/terms' },
+  { name: 'faq', path: '/faq' },
+  { name: 'health', path: '/health' },
+];
+
+for (const page of CRITICAL_PAGES) {
+  test(`visual: ${page.name}`, async ({ page: p }) => {
+    await p.goto(page.path);
+    await p.waitForLoadState('networkidle');
+    await expect(p).toHaveScreenshot(`${page.name}.png`, {
+      fullPage: true,
+      animations: 'disabled',
+      maxDiffPixelRatio: 0.01,
+    });
+  });
+
+  // 다크모드
+  test(`visual: ${page.name} (dark)`, async ({ page: p }) => {
+    await p.emulateMedia({ colorScheme: 'dark' });
+    await p.goto(page.path);
+    await p.waitForLoadState('networkidle');
+    await expect(p).toHaveScreenshot(`${page.name}-dark.png`, {
+      fullPage: true,
+      animations: 'disabled',
+      maxDiffPixelRatio: 0.01,
+    });
+  });
+}
+EOF
+```
+
+### 6.3 Baseline 생성 및 실행
+
+```bash
+# 최초 baseline 생성
+npx playwright test --update-snapshots
+
+# 이후 비교 실행
+npx playwright test
+
+# 특정 페이지만
+npx playwright test -g "visual: home"
+
+# 리포트 확인
+npx playwright show-report
+```
+
+### 6.4 Browser Use + Ollama (AI 스모크 테스트)
+
+```bash
+# Python 환경 (기존 conda 또는 별도 venv)
+conda create -n browser-qa python=3.12 -y
+conda activate browser-qa
+
+# Browser Use 설치
+pip install browser-use
+
+# 비전 모델 다운로드 (64GB RAM → 대형 모델도 가능)
+ollama pull qwen2.5vl:7b      # 기본 (5-6GB, 빠름)
+ollama pull qwen2.5vl:32b     # 고품질 (18GB, 64GB RAM에서 여유)
+```
+
+**QA 스크립트:**
+
+```bash
+cat > ~/dev/amazing-korean-api/scripts/qa_smoke_test.py << 'PYEOF'
+"""
+Browser Use + Ollama 시각적 스모크 테스트
+- 각 페이지 순회 → 스크린샷 + AI 분석
+- 이상 감지 시 결과 저장
+- cron으로 자동 실행
+"""
+import asyncio
+import json
+from datetime import datetime
+from pathlib import Path
+from browser_use import Agent, Browser, ChatOllama
+
+PAGES = [
+    "/", "/about", "/login", "/signup",
+    "/book", "/book/textbook", "/book/ebook",
+    "/terms", "/faq", "/health",
+]
+BASE_URL = "https://amazingkorean.net"
+RESULTS_DIR = Path.home() / "dev/amazing-korean-api/tests/qa-results"
+
+async def check_page(browser, llm, path: str) -> dict:
+    agent = Agent(
+        task=f"""Navigate to {BASE_URL}{path} and check:
+1. Does the page load without errors?
+2. Are all major sections visible (header, main content, footer)?
+3. Is text readable and properly formatted?
+4. Are there any visual glitches, overlapping elements, or broken layouts?
+5. Are images loading correctly?
+Report ONLY issues found. If everything looks good, say "OK".""",
+        llm=llm,
+        browser=browser,
+        use_vision=True,
+    )
+    try:
+        result = await asyncio.wait_for(agent.run(max_steps=5), timeout=120)
+        return {"path": path, "status": "ok" if "OK" in str(result) else "issue", "detail": str(result)}
+    except Exception as e:
+        return {"path": path, "status": "error", "detail": str(e)}
+
+async def main():
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    llm = ChatOllama(model="qwen2.5vl:7b")
+    browser = Browser()
+    results = []
+    try:
+        for path in PAGES:
+            print(f"Checking {path}...")
+            result = await check_page(browser, llm, path)
+            results.append(result)
+            print(f"  → {result['status']}")
+    finally:
+        await browser.close()
+
+    # 결과 저장
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    report_path = RESULTS_DIR / f"qa_{timestamp}.json"
+    with open(report_path, "w") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
+
+    # 이슈 있으면 출력
+    issues = [r for r in results if r["status"] != "ok"]
+    if issues:
+        print(f"\n⚠️ {len(issues)}건 이슈 발견:")
+        for issue in issues:
+            print(f"  {issue['path']}: {issue['detail'][:200]}")
+    else:
+        print("\n✅ 전체 페이지 정상")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+PYEOF
+```
+
+### 6.5 Cron 자동 실행
+
+```bash
+# 매 6시간마다 QA 스모크 테스트 실행
+crontab -e
+
+# 추가:
+0 */6 * * * /opt/homebrew/bin/conda run -n browser-qa python ~/dev/amazing-korean-api/scripts/qa_smoke_test.py >> /tmp/qa_smoke.log 2>&1
+```
+
+### 6.6 리소스 예산 추가
+
+```
+Browser Use + Qwen2.5-VL 7B  → ~6GB RAM, ~3분/10페이지
+Browser Use + Qwen2.5-VL 32B → ~18GB RAM, ~5분/10페이지 (고품질)
+Playwright (스크린샷 비교)     → ~0.5GB RAM, ~30초/10페이지
+```
+
+64GB RAM 기준: Layer 1 (1.7GB) + Browser Use (6-18GB) + Playwright (0.5GB) = **최대 ~20GB 사용**, 여유 충분.
+
+### 6.7 3계층 QA 체계 요약
+
+| 계층 | 도구 | 용도 | 실행 | 비용 |
+|:---:|------|------|------|:---:|
+| 1 | Playwright `toHaveScreenshot()` | 픽셀 단위 회귀 감지 (핵심) | 코드 변경 시 | $0 |
+| 2 | Browser Use + Ollama (Qwen2.5-VL) | AI 스모크 테스트 "페이지 깨졌나?" | cron 6시간 | $0 |
+| 3 | Browser Use + Claude API | 정밀 시각 분석 (출시 전) | 수동 | ~$10/회 |
 
 ---
 

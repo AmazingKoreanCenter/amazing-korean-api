@@ -5,8 +5,8 @@ import { BookOpen, ShoppingCart, GraduationCap, Video, FileText, Globe } from "l
 
 import { Button } from "@/components/ui/button";
 import { PageMeta } from "@/components/page_meta";
-import { HeroSection } from "@/components/sections/hero_section";
-import { SectionContainer } from "@/components/sections/section_container";
+import { HeroSection } from "@/components/blocks/hero_section";
+import { SectionContainer } from "@/components/blocks/section_container";
 import { useAuthStore } from "@/hooks/use_auth_store";
 import { changeLanguage } from "@/i18n";
 
@@ -80,7 +80,7 @@ function BookInfoView({ book, isLoggedIn }: { book: BookInfo; isLoggedIn: boolea
       <HeroSection
         badge={
           <>
-            <img src={`/flags/${book.flagFile}`} alt="" className="w-6 h-6" />
+            <img src={`/flags/${book.flagFile}`} alt="" className="w-6 h-6" loading="lazy" />
             <span className="font-medium">{book.nameLocal}</span>
             <span className="text-muted-foreground">·</span>
             <span className="text-muted-foreground">{book.nameKorean}</span>
@@ -159,7 +159,7 @@ function BookInfoView({ book, isLoggedIn }: { book: BookInfo; isLoggedIn: boolea
                   to={`/book/${b.isbn13}`}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-full border hover:bg-muted/50 transition-colors text-sm"
                 >
-                  <img src={`/flags/${b.flagFile}`} alt="" className="w-5 h-5" />
+                  <img src={`/flags/${b.flagFile}`} alt="" className="w-5 h-5" loading="lazy" />
                   <span>{b.nameLocal}</span>
                 </Link>
               ))}

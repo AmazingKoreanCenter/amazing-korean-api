@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, ChevronUp, ChevronDown, Upload, Users, BarChart3, LogIn, UserPlus, Loader2 } from "lucide-react";
+import { Plus, Upload, Users, BarChart3, LogIn, UserPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -9,8 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import {
   Select,
   SelectContent,
@@ -28,14 +27,6 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
   Form,
   FormControl,
   FormField,
@@ -44,26 +35,59 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
+import { DataTable, useDataTable, type DataTableColumn } from "@/components/blocks/data_table";
 import { useAdminUsers } from "../hook/use_admin_users";
 import { updateAdminUsersBulk, createAdminInvite } from "../admin_api";
-import type { AdminListReq, AdminUserSummary, UpgradeInviteReq } from "../types";
+import type { AdminUserSummary, UpgradeInviteReq } from "../types";
 import { upgradeInviteReqSchema } from "../types";
 
-// 백엔드가 허용하는 정렬 필드: id, created_at, email, nickname, role
-type SortField = "id" | "email" | "nickname" | "role" | "created_at";
-type SortOrder = "asc" | "desc";
+const getRoleBadgeVariant = (role: string) => {
+  switch (role) {
+    case "HYMN":
+      return "purple" as const;
+    case "admin":
+      return "orange" as const;
+    case "manager":
+      return "secondary" as const;
+    case "learner":
+      return "success" as const;
+    default:
+      return "outline" as const;
+  }
+};
+
+const columns: DataTableColumn<AdminUserSummary>[] = [
+  { key: "id", header: "ID", sortField: "id", skeletonWidth: "w-8", render: (u) => u.id },
+  { key: "email", header: "Email", sortField: "email", skeletonWidth: "w-40", render: (u) => u.email },
+  { key: "nickname", header: "Nickname", sortField: "nickname", skeletonWidth: "w-24", render: (u) => u.nickname || "-" },
+  {
+    key: "role",
+    header: "Role",
+    sortField: "role",
+    skeletonWidth: "w-16",
+    render: (u) => <Badge variant={getRoleBadgeVariant(u.role)}>{u.role}</Badge>,
+  },
+  {
+    key: "created_at",
+    header: "Created At",
+    sortField: "created_at",
+    skeletonWidth: "w-28",
+    render: (u) => new Date(u.created_at).toLocaleDateString(),
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    skeletonWidth: "w-16",
+    render: (u) => (
+      <Button variant="ghost" size="sm" asChild>
+        <Link to={`/admin/users/${u.id}`}>Edit</Link>
+      </Button>
+    ),
+  },
+];
 
 export function AdminUsersPage() {
-  const [params, setParams] = useState<AdminListReq>({
-    page: 1,
-    size: 20,
-  });
-  const [searchInput, setSearchInput] = useState("");
-  const [sortField, setSortField] = useState<SortField>("id");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-
-  // 체크박스 선택 상태
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const table = useDataTable({ defaultSortField: "id" });
 
   // 벌크 수정 다이얼로그
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
@@ -74,16 +98,11 @@ export function AdminUsersPage() {
   // 관리자 초대 다이얼로그
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  // 초대 폼
   const inviteForm = useForm<UpgradeInviteReq>({
     resolver: zodResolver(upgradeInviteReqSchema),
-    defaultValues: {
-      email: "",
-      role: "manager",
-    },
+    defaultValues: { email: "", role: "manager" },
   });
 
-  // 초대 뮤테이션
   const inviteMutation = useMutation({
     mutationFn: createAdminInvite,
     onSuccess: (data) => {
@@ -101,63 +120,24 @@ export function AdminUsersPage() {
   };
 
   const { data, isLoading, isError, refetch } = useAdminUsers({
-    ...params,
-    sort: sortField,
-    order: sortOrder,
+    ...table.params,
+    sort: table.sortField,
+    order: table.sortOrder,
   });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setParams((prev) => ({ ...prev, page: 1, q: searchInput || undefined }));
-    setSelectedIds(new Set());
-  };
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortOrder("desc");
-    }
-  };
-
-  const handlePageChange = (page: number) => {
-    setParams((prev) => ({ ...prev, page }));
-    setSelectedIds(new Set());
-  };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked && data?.items) {
-      setSelectedIds(new Set(data.items.map((u) => u.id)));
-    } else {
-      setSelectedIds(new Set());
-    }
-  };
-
-  const handleSelectOne = (id: number, checked: boolean) => {
-    const newSet = new Set(selectedIds);
-    if (checked) {
-      newSet.add(id);
-    } else {
-      newSet.delete(id);
-    }
-    setSelectedIds(newSet);
-  };
-
   const handleBulkUpdate = async () => {
-    if (selectedIds.size === 0) return;
+    if (table.selectedIds.size === 0) return;
 
-    const items = Array.from(selectedIds).map((id) => ({
-      id,
-      ...(bulkRole ? { user_auth: bulkRole as "learner" | "manager" | "admin" } : {}),
-      ...(bulkState ? { user_state: bulkState === "active" } : {}),
-    }));
-
-    // 아무 변경사항이 없으면 return
     if (!bulkRole && !bulkState) {
       toast.error("Please select at least one field to update");
       return;
     }
+
+    const items = Array.from(table.selectedIds).map((id) => ({
+      id,
+      ...(bulkRole ? { user_auth: bulkRole as "learner" | "manager" | "admin" } : {}),
+      ...(bulkState ? { user_state: bulkState === "active" } : {}),
+    }));
 
     setBulkUpdating(true);
     try {
@@ -166,7 +146,7 @@ export function AdminUsersPage() {
       setBulkEditOpen(false);
       setBulkRole("");
       setBulkState("");
-      setSelectedIds(new Set());
+      table.clearSelection();
       refetch();
     } catch {
       toast.error("Bulk update failed");
@@ -174,32 +154,6 @@ export function AdminUsersPage() {
       setBulkUpdating(false);
     }
   };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return null;
-    return sortOrder === "asc" ? (
-      <ChevronUp className="ml-1 h-4 w-4 inline" />
-    ) : (
-      <ChevronDown className="ml-1 h-4 w-4 inline" />
-    );
-  };
-
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
-      case "HYMN":
-        return "purple" as const;
-      case "admin":
-        return "orange" as const;
-      case "manager":
-        return "info" as const;
-      case "learner":
-        return "success" as const;
-      default:
-        return "outline" as const;
-    }
-  };
-
-  const allSelected = !!(data?.items && data.items.length > 0 && data.items.every((u) => selectedIds.has(u.id)));
 
   return (
     <div className="space-y-4">
@@ -237,208 +191,34 @@ export function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Search & Bulk Actions */}
-      <div className="bg-card rounded-lg border border-foreground/15 p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by email or nickname..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9 border-foreground/20"
-              />
-            </div>
-            <Button type="submit" variant="secondary">
-              Search
-            </Button>
-          </form>
-
-          {selectedIds.size > 0 && (
-            <Button
-              variant="outline"
-              onClick={() => setBulkEditOpen(true)}
-            >
-              <Users className="mr-2 h-4 w-4" />
-              Edit {selectedIds.size} Selected
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-card rounded-lg border overflow-hidden shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="border-b-2 bg-secondary">
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground w-10">
-                <Checkbox
-                  checked={allSelected}
-                  onCheckedChange={handleSelectAll}
-                />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("id")}
-              >
-                ID
-                <SortIcon field="id" />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("email")}
-              >
-                Email
-                <SortIcon field="email" />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("nickname")}
-              >
-                Nickname
-                <SortIcon field="nickname" />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("role")}
-              >
-                Role
-                <SortIcon field="role" />
-              </th>
-              <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
-                onClick={() => handleSort("created_at")}
-              >
-                Created At
-                <SortIcon field="created_at" />
-              </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="border-b">
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-4" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-8" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-40" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-24" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-5 w-16" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-28" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-8 w-16" />
-                  </td>
-                </tr>
-              ))
-            ) : isError ? (
-              <tr>
-                <td colSpan={7} className="p-4 text-center text-destructive">
-                  Failed to load users
-                </td>
-              </tr>
-            ) : data?.items.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="p-4 text-center text-muted-foreground">
-                  No users found
-                </td>
-              </tr>
-            ) : (
-              data?.items.map((user: AdminUserSummary) => (
-                <tr key={user.id} className="border-b hover:bg-accent/10">
-                  <td className="px-4 py-3">
-                    <Checkbox
-                      checked={selectedIds.has(user.id)}
-                      onCheckedChange={(checked) => handleSelectOne(user.id, !!checked)}
-                    />
-                  </td>
-                  <td className="px-4 py-3">{user.id}</td>
-                  <td className="px-4 py-3">{user.email}</td>
-                  <td className="px-4 py-3">{user.nickname || "-"}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={getRoleBadgeVariant(user.role)}>
-                      {user.role}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/users/${user.id}`}>Edit</Link>
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      {data?.meta && data.meta.total_pages > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={() => handlePageChange(Math.max(1, params.page! - 1))}
-                className={
-                  params.page === 1
-                    ? "pointer-events-none opacity-50"
-                    : "cursor-pointer"
-                }
-              />
-            </PaginationItem>
-
-            {Array.from({ length: Math.min(5, data.meta.total_pages) }, (_, i) => {
-              const page = i + 1;
-              return (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    onClick={() => handlePageChange(page)}
-                    isActive={params.page === page}
-                    className="cursor-pointer"
-                  >
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              );
-            })}
-
-            <PaginationItem>
-              <PaginationNext
-                onClick={() =>
-                  handlePageChange(Math.min(data.meta.total_pages, params.page! + 1))
-                }
-                className={
-                  params.page === data.meta.total_pages
-                    ? "pointer-events-none opacity-50"
-                    : "cursor-pointer"
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
-
-      {/* Stats */}
-      {data?.meta && (
-        <p className="text-sm text-muted-foreground text-center">
-          Showing {data.items.length} of {data.meta.total_count} users
-        </p>
-      )}
+      <DataTable
+        columns={columns}
+        data={data?.items}
+        isLoading={isLoading}
+        isError={isError}
+        entityName="users"
+        getId={(u) => u.id}
+        searchPlaceholder="Search by email or nickname..."
+        searchInput={table.searchInput}
+        onSearchInputChange={table.setSearchInput}
+        onSearch={table.handleSearch}
+        sortField={table.sortField}
+        sortOrder={table.sortOrder}
+        onSort={table.handleSort}
+        selectedIds={table.selectedIds}
+        onSelectAll={table.setSelectedIds}
+        onSelectOne={table.handleSelectOne}
+        bulkActionSlot={
+          <Button variant="outline" onClick={() => setBulkEditOpen(true)}>
+            <Users className="mr-2 h-4 w-4" />
+            Edit {table.selectedIds.size} Selected
+          </Button>
+        }
+        page={table.params.page}
+        totalPages={data?.meta?.total_pages}
+        totalCount={data?.meta?.total_count}
+        onPageChange={table.handlePageChange}
+      />
 
       {/* Bulk Edit Dialog */}
       <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
@@ -446,7 +226,7 @@ export function AdminUsersPage() {
           <DialogHeader>
             <DialogTitle>Bulk Edit Users</DialogTitle>
             <DialogDescription>
-              Update {selectedIds.size} selected users. Leave fields empty to keep current values.
+              Update {table.selectedIds.size} selected users. Leave fields empty to keep current values.
             </DialogDescription>
           </DialogHeader>
 

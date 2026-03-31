@@ -72,7 +72,6 @@ theme: {
         DEFAULT: 'hsl(var(--surface-inverted))',
         foreground: 'hsl(var(--surface-inverted-foreground))',
       },
-      'table-header': 'hsl(var(--table-header))',
       badge: {
         blue: 'hsl(var(--badge-blue))',
         'blue-foreground': 'hsl(var(--badge-blue-foreground))',
@@ -93,6 +92,11 @@ theme: {
       'section-md': '4rem',
       'section-lg': '5rem',
       'hero-lg': '8rem',
+    },
+    maxWidth: {
+      'container-default': '1350px',
+      'container-narrow': '768px',
+      'container-form': '448px',
     },
     borderRadius: {
       lg: 'var(--radius)',

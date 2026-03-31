@@ -612,7 +612,7 @@ export function EbookViewerPage() {
     if (status === 403) {
       return (
         <div className="flex flex-col items-center justify-center h-screen gap-4 text-center px-4">
-          <Lock className="w-12 h-12 text-amber-500" />
+          <Lock className="w-12 h-12 text-status-warning" />
           <h2 className="text-lg font-semibold">{t("ebook.viewer.paymentRequired")}</h2>
           <p className="text-muted-foreground text-sm max-w-sm">
             {t("ebook.viewer.paymentRequiredDesc")}
@@ -703,7 +703,7 @@ export function EbookViewerPage() {
         ref={viewerRef}
         className={`ebook-viewer flex flex-col select-none ${
           isFullscreen
-            ? "fixed inset-0 z-[9999] bg-neutral-900"
+            ? "fixed inset-0 z-[9999] bg-surface-inverted"
             : "h-screen bg-background"
         }`}
         onContextMenu={(e) => e.preventDefault()}
@@ -714,7 +714,7 @@ export function EbookViewerPage() {
         <div
           className={`flex items-center justify-between px-4 py-2 border-b backdrop-blur z-20 transition-all duration-300 ${
             isFullscreen
-              ? `bg-neutral-900/90 border-neutral-700 text-white ${
+              ? `bg-surface-inverted/90 border-neutral-700 text-surface-inverted-foreground ${
                   controlsVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"
                 }`
               : "bg-background/95 border-border"
@@ -824,7 +824,7 @@ export function EbookViewerPage() {
         {/* ─── 이미지 영역 ─── */}
         <div
           className={`flex-1 overflow-auto flex items-center justify-center cursor-pointer ${
-            isFullscreen ? "bg-neutral-900" : "bg-neutral-100 dark:bg-neutral-800"
+            isFullscreen ? "bg-surface-inverted" : "bg-muted"
           }`}
           onClick={handleViewerClick}
         >
@@ -913,7 +913,7 @@ export function EbookViewerPage() {
         <div
           className={`flex items-center justify-center gap-2 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 border-t backdrop-blur z-20 transition-all duration-300 ${
             isFullscreen
-              ? `bg-neutral-900/90 border-neutral-700 ${
+              ? `bg-surface-inverted/90 border-neutral-700 ${
                   controlsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
                 }`
               : "bg-background/95 border-border"

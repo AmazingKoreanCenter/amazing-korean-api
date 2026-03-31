@@ -39,7 +39,7 @@ const STATUS_CONFIG: Record<
 > = {
   pending: { icon: Clock, color: "text-status-warning", bgColor: "bg-status-warning/10" },
   confirmed: { icon: CheckCircle2, color: "text-blue-600", bgColor: "bg-blue-600/10" },
-  paid: { icon: CreditCard, color: "text-emerald-600", bgColor: "bg-emerald-600/10" },
+  paid: { icon: CreditCard, color: "text-status-success", bgColor: "bg-status-success/10" },
   printing: { icon: Printer, color: "text-purple-600", bgColor: "bg-purple-600/10" },
   shipped: { icon: Truck, color: "text-indigo-600", bgColor: "bg-indigo-600/10" },
   delivered: { icon: CheckCircle2, color: "text-status-success", bgColor: "bg-status-success/10" },

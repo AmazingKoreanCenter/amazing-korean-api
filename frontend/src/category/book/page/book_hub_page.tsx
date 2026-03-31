@@ -5,8 +5,8 @@ import { BookOpen, ArrowRight, Tablet, ChevronLeft, ChevronRight, ImageOff, File
 
 import { Button } from "@/components/ui/button";
 import { PageMeta } from "@/components/page_meta";
-import { HeroSection } from "@/components/sections/hero_section";
-import { SectionContainer } from "@/components/sections/section_container";
+import { HeroSection } from "@/components/blocks/hero_section";
+import { SectionContainer } from "@/components/blocks/section_container";
 import { ImageLightbox } from "@/components/image_lightbox";
 import { getDefaultLangKey, SAMPLE_PAGES, BOOK_PAGES } from "../book_data";
 
@@ -77,6 +77,7 @@ export function BookHubPage() {
                   <img
                     src={currentSrc}
                     alt={t(`bookHub.slideTitle${slideIndex}`)}
+                    loading="lazy"
                     className="w-full h-full object-contain"
                     onError={handleImgError}
                   />

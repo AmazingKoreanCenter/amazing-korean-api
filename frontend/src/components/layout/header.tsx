@@ -65,7 +65,7 @@ export function Header() {
           : "bg-background border-b border-transparent"
       )}
     >
-      <div className="max-w-[1350px] mx-auto flex h-[72px] items-center justify-between px-6 lg:px-8">
+      <div className="max-w-container-default mx-auto flex h-[72px] items-center justify-between px-6 lg:px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 group">
           <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
@@ -185,7 +185,7 @@ export function Header() {
           mobileMenuOpen ? "max-h-[400px] border-t" : "max-h-0"
         )}
       >
-        <nav className="max-w-[1350px] mx-auto px-6 py-4 flex flex-col gap-1 bg-background">
+        <nav className="max-w-container-default mx-auto px-6 py-4 flex flex-col gap-1 bg-background">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.path}

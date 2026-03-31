@@ -31,7 +31,7 @@ export function Footer() {
   return (
     <footer className="bg-footer text-footer-foreground">
       {/* Main Footer Content */}
-      <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-16">
+      <div className="max-w-container-default mx-auto px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
           {/* Brand */}
           <div className="lg:col-span-1">
@@ -156,7 +156,7 @@ export function Footer() {
 
       {/* Business Info Bar */}
       <div className="border-t border-footer-foreground/10">
-        <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-5">
+        <div className="max-w-container-default mx-auto px-6 lg:px-8 py-5">
           <p className="text-footer-foreground/50 text-xs leading-relaxed text-center md:text-left">
             {t("footer.businessInfo")}
           </p>
@@ -165,7 +165,7 @@ export function Footer() {
 
       {/* Bottom Bar */}
       <div className="border-t border-footer-foreground/10">
-        <div className="max-w-[1350px] mx-auto px-6 lg:px-8 py-6">
+        <div className="max-w-container-default mx-auto px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-footer-foreground/50 text-sm">
               {t("footer.copyright", { year: currentYear })}

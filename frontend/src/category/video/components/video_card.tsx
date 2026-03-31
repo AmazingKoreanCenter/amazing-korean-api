@@ -48,6 +48,7 @@ export function VideoCard({ video }: VideoCardProps) {
                 "https://placehold.co/600x400?text=No+Thumbnail"
               }
               alt={video.title ?? "Video Thumbnail"}
+              loading="lazy"
               className="h-full w-full object-cover transition-transform hover:scale-105"
             />
           </AspectRatio>

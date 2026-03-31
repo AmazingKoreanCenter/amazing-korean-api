@@ -63,9 +63,6 @@
     --chart-5: 340 75% 55%;
     --chart-6: 280 65% 60%;
 
-    /* Table header — stronger than muted for clear distinction */
-    --table-header: 222 20% 93%;
-
     /* Badge-only colors (theme-independent, won't affect buttons/headers) */
     --badge-blue: 224 76% 48%;
     --badge-blue-foreground: 0 0% 100%;
@@ -134,9 +131,6 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
     --chart-6: 280 65% 65%;
-
-    /* Table header — stronger than muted for clear distinction */
-    --table-header: 222 35% 20%;
 
     /* Badge-only colors (slightly brighter for dark bg readability) */
     --badge-blue: 224 76% 55%;
@@ -217,6 +211,18 @@
   /* Hero Gradient — via-background for dark mode compatibility */
   .bg-hero-gradient {
     @apply bg-gradient-to-br from-brand-soft via-background to-brand-soft-alt;
+  }
+}
+
+/* Accessibility — respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
