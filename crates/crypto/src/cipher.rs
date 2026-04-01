@@ -4,7 +4,7 @@ use aes_gcm::{
 };
 use base64::engine::{general_purpose::STANDARD, Engine};
 
-use crate::error::{AppError, AppResult};
+use crate::error::{CryptoError, CryptoResult};
 
 /// AES-256-GCM으로 평문을 암호화한다.
 ///
@@ -14,9 +14,9 @@ use crate::error::{AppError, AppResult};
 /// - `aad`: Associated Authenticated Data (예: "users.user_email") — ciphertext 스왑 방지
 ///
 /// 출력 포맷: `enc:v{version}:` + base64(nonce_12bytes || ciphertext || tag_16bytes)
-pub fn encrypt(key: &[u8; 32], version: u8, plaintext: &str, aad: &str) -> AppResult<String> {
+pub fn encrypt(key: &[u8; 32], version: u8, plaintext: &str, aad: &str) -> CryptoResult<String> {
     let cipher = Aes256Gcm::new_from_slice(key)
-        .map_err(|e| AppError::Internal(format!("AES key init failed: {e}")))?;
+        .map_err(|e| CryptoError::Internal(format!("AES key init failed: {e}")))?;
 
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
 
@@ -27,7 +27,7 @@ pub fn encrypt(key: &[u8; 32], version: u8, plaintext: &str, aad: &str) -> AppRe
 
     let ciphertext = cipher
         .encrypt(&nonce, payload)
-        .map_err(|e| AppError::Internal(format!("AES encrypt failed: {e}")))?;
+        .map_err(|e| CryptoError::Internal(format!("AES encrypt failed: {e}")))?;
 
     let mut combined = Vec::with_capacity(12 + ciphertext.len());
     combined.extend_from_slice(nonce.as_slice());
@@ -41,23 +41,23 @@ pub fn encrypt(key: &[u8; 32], version: u8, plaintext: &str, aad: &str) -> AppRe
 /// - `key`: 32바이트 AES-256 키 (버전에 맞는 키를 외부에서 제공)
 /// - `encrypted`: `enc:v{version}:` + base64(nonce || ciphertext || tag)
 /// - `aad`: 암호화 시 사용한 동일한 AAD
-pub fn decrypt(key: &[u8; 32], encrypted: &str, aad: &str) -> AppResult<String> {
+pub fn decrypt(key: &[u8; 32], encrypted: &str, aad: &str) -> CryptoResult<String> {
     // "enc:v{digits}:" 이후의 base64 부분 추출
     let b64 = strip_enc_prefix(encrypted)?;
 
     let combined = STANDARD
         .decode(b64)
-        .map_err(|e| AppError::Internal(format!("Base64 decode failed: {e}")))?;
+        .map_err(|e| CryptoError::Internal(format!("Base64 decode failed: {e}")))?;
 
     if combined.len() < 12 + 16 {
-        return Err(AppError::Internal("Encrypted data too short".into()));
+        return Err(CryptoError::Internal("Encrypted data too short".into()));
     }
 
     let (nonce_bytes, ciphertext) = combined.split_at(12);
     let nonce = Nonce::from_slice(nonce_bytes);
 
     let cipher = Aes256Gcm::new_from_slice(key)
-        .map_err(|e| AppError::Internal(format!("AES key init failed: {e}")))?;
+        .map_err(|e| CryptoError::Internal(format!("AES key init failed: {e}")))?;
 
     let payload = aes_gcm::aead::Payload {
         msg: ciphertext,
@@ -66,10 +66,10 @@ pub fn decrypt(key: &[u8; 32], encrypted: &str, aad: &str) -> AppResult<String> 
 
     let plaintext = cipher
         .decrypt(nonce, payload)
-        .map_err(|e| AppError::Internal(format!("AES decrypt failed: {e}")))?;
+        .map_err(|e| CryptoError::Internal(format!("AES decrypt failed: {e}")))?;
 
     String::from_utf8(plaintext)
-        .map_err(|e| AppError::Internal(format!("UTF-8 decode failed: {e}")))
+        .map_err(|e| CryptoError::Internal(format!("UTF-8 decode failed: {e}")))
 }
 
 /// 암호문에서 키 버전을 추출한다 — 엄격한 파싱.
@@ -78,34 +78,34 @@ pub fn decrypt(key: &[u8; 32], encrypted: &str, aad: &str) -> AppResult<String> 
 /// - "enc:v" 접두사 없음 → 에러
 /// - 버전 숫자 파싱 실패 (비숫자, u8 오버플로, 빈 문자열) → 에러
 /// - ":" 구분자 누락 → 에러
-pub fn extract_version(encrypted: &str) -> AppResult<u8> {
+pub fn extract_version(encrypted: &str) -> CryptoResult<u8> {
     let rest = encrypted
         .strip_prefix("enc:v")
-        .ok_or_else(|| AppError::Internal("Not an encrypted value (missing 'enc:v' prefix)".into()))?;
+        .ok_or_else(|| CryptoError::Internal("Not an encrypted value (missing 'enc:v' prefix)".into()))?;
 
     let colon_pos = rest
         .find(':')
-        .ok_or_else(|| AppError::Internal("Corrupted encrypted value (missing ':' after version)".into()))?;
+        .ok_or_else(|| CryptoError::Internal("Corrupted encrypted value (missing ':' after version)".into()))?;
 
     let version_str = &rest[..colon_pos];
     if version_str.is_empty() {
-        return Err(AppError::Internal("Corrupted encrypted value (empty version number)".into()));
+        return Err(CryptoError::Internal("Corrupted encrypted value (empty version number)".into()));
     }
 
     version_str.parse::<u8>().map_err(|e| {
-        AppError::Internal(format!("Corrupted encrypted value (invalid version '{version_str}'): {e}"))
+        CryptoError::Internal(format!("Corrupted encrypted value (invalid version '{version_str}'): {e}"))
     })
 }
 
 /// 암호문의 `enc:v{digits}:` prefix를 제거하고 base64 부분만 반환.
-fn strip_enc_prefix(encrypted: &str) -> AppResult<&str> {
+fn strip_enc_prefix(encrypted: &str) -> CryptoResult<&str> {
     let rest = encrypted
         .strip_prefix("enc:v")
-        .ok_or_else(|| AppError::Internal("Not an encrypted value (missing prefix)".into()))?;
+        .ok_or_else(|| CryptoError::Internal("Not an encrypted value (missing prefix)".into()))?;
 
     let colon_pos = rest
         .find(':')
-        .ok_or_else(|| AppError::Internal("Corrupted encrypted value (missing ':' delimiter)".into()))?;
+        .ok_or_else(|| CryptoError::Internal("Corrupted encrypted value (missing ':' delimiter)".into()))?;
 
     Ok(&rest[colon_pos + 1..])
 }
@@ -129,9 +129,9 @@ pub fn has_enc_prefix(value: &str) -> bool {
 ///
 /// 출력 포맷: raw bytes `nonce_12bytes || ciphertext || tag_16bytes`
 /// 파일 확장자 `.enc`로 암호화 여부를 식별한다 (문자열 암호화의 `enc:v{n}:` prefix 미사용).
-pub fn encrypt_bytes(key: &[u8; 32], plaintext: &[u8], aad: &str) -> AppResult<Vec<u8>> {
+pub fn encrypt_bytes(key: &[u8; 32], plaintext: &[u8], aad: &str) -> CryptoResult<Vec<u8>> {
     let cipher = Aes256Gcm::new_from_slice(key)
-        .map_err(|e| AppError::Internal(format!("AES key init failed: {e}")))?;
+        .map_err(|e| CryptoError::Internal(format!("AES key init failed: {e}")))?;
 
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
 
@@ -142,7 +142,7 @@ pub fn encrypt_bytes(key: &[u8; 32], plaintext: &[u8], aad: &str) -> AppResult<V
 
     let ciphertext = cipher
         .encrypt(&nonce, payload)
-        .map_err(|e| AppError::Internal(format!("AES encrypt_bytes failed: {e}")))?;
+        .map_err(|e| CryptoError::Internal(format!("AES encrypt_bytes failed: {e}")))?;
 
     let mut combined = Vec::with_capacity(12 + ciphertext.len());
     combined.extend_from_slice(nonce.as_slice());
@@ -154,16 +154,16 @@ pub fn encrypt_bytes(key: &[u8; 32], plaintext: &[u8], aad: &str) -> AppResult<V
 /// AES-256-GCM으로 암호화된 바이트를 복호화한다. (파일 로드용)
 ///
 /// 입력 포맷: raw bytes `nonce_12bytes || ciphertext || tag_16bytes`
-pub fn decrypt_bytes(key: &[u8; 32], encrypted: &[u8], aad: &str) -> AppResult<Vec<u8>> {
+pub fn decrypt_bytes(key: &[u8; 32], encrypted: &[u8], aad: &str) -> CryptoResult<Vec<u8>> {
     if encrypted.len() < 12 + 16 {
-        return Err(AppError::Internal("Encrypted bytes too short".into()));
+        return Err(CryptoError::Internal("Encrypted bytes too short".into()));
     }
 
     let (nonce_bytes, ciphertext) = encrypted.split_at(12);
     let nonce = Nonce::from_slice(nonce_bytes);
 
     let cipher = Aes256Gcm::new_from_slice(key)
-        .map_err(|e| AppError::Internal(format!("AES key init failed: {e}")))?;
+        .map_err(|e| CryptoError::Internal(format!("AES key init failed: {e}")))?;
 
     let payload = aes_gcm::aead::Payload {
         msg: ciphertext,
@@ -172,7 +172,7 @@ pub fn decrypt_bytes(key: &[u8; 32], encrypted: &[u8], aad: &str) -> AppResult<V
 
     cipher
         .decrypt(nonce, payload)
-        .map_err(|e| AppError::Internal(format!("AES decrypt_bytes failed: {e}")))
+        .map_err(|e| CryptoError::Internal(format!("AES decrypt_bytes failed: {e}")))
 }
 
 #[cfg(test)]

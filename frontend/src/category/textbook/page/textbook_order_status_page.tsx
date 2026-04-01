@@ -83,7 +83,7 @@ export function TextbookOrderStatusPage() {
         descriptionKey="seo.textbookStatus.description"
       />
 
-      <div className="max-w-3xl mx-auto px-6 py-16 w-full">
+      <div className="max-w-3xl mx-auto px-6 py-section-sm md:py-section-md w-full">
         {/* 검색 */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold mb-2">
@@ -180,7 +180,7 @@ export function TextbookOrderStatusPage() {
                                 ? "text-primary font-semibold"
                                 : isCompleted
                                   ? "text-muted-foreground"
-                                  : "text-muted-foreground/50"
+                                  : "text-muted-foreground/60"
                             }`}
                           >
                             {t(`textbook.status.step.${step}`)}
@@ -337,7 +337,7 @@ export function TextbookOrderStatusPage() {
 
         {/* 초기 상태 (검색 전) */}
         {!searchCode && (
-          <div className="text-center py-16 text-muted-foreground">
+          <div className="text-center py-8 md:py-16 text-muted-foreground">
             <Search className="h-16 w-16 mx-auto mb-4 opacity-30" />
             <p>{t("textbook.status.initialHint")}</p>
           </div>

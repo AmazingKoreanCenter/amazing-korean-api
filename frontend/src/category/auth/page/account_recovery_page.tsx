@@ -405,7 +405,7 @@ function FindPasswordTab() {
               </button>
             </div>
             {remainingAttempts !== null && (
-              <p className="text-xs text-muted-foreground text-center">
+              <p className="text-sm text-muted-foreground text-center">
                 {remainingAttempts > 0
                   ? t("auth.remainingAttempts", { count: remainingAttempts })
                   : t("auth.noAttemptsRemaining")}

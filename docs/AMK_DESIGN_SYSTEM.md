@@ -15,6 +15,7 @@
 > - 전체 `<img>` 태그 `loading="lazy"` 적용 완료
 > - V1-9: Tailwind 기본색 → 디자인 시스템 토큰 교체 (7파일, status badge/surface-inverted/coming-soon)
 > - V1-9: `text-white` → `text-surface-inverted-foreground` (ebook_viewer fullscreen)
+> - 모바일 UX 79건 수정: `@media (pointer: coarse)` 터치 타겟 44px, 고정 그리드 반응형, 모달 뷰포트 제한, 패딩/간격 반응형, header 스크롤 잠금
 
 ---
 
@@ -667,10 +668,27 @@ import { ThemeToggle } from "@/components/ui/theme_toggle";
 
 ## 04 Mobile Checklist
 
-- [ ] Touch target 최소 44px (버튼 `h-11` 이상)
-- [ ] Hover-only 인터랙션 금지 (hover와 함께 항상 click/tap도 제공)
-- [ ] Input 16px+ (iOS zoom 방지 — `@supports (-webkit-touch-callout: none)` 자동 적용)
-- [ ] `break-keep` 한글 줄바꿈 최적화
+- [x] Touch target 최소 44px — `@media (pointer: coarse)` 글로벌 CSS로 강제 (`index.css`)
+- [x] Hover-only 인터랙션 금지 (hover와 함께 항상 click/tap도 제공)
+- [x] Input 16px+ (iOS zoom 방지 — `@supports (-webkit-touch-callout: none)` 자동 적용)
+- [x] `break-keep` 한글 줄바꿈 최적화
+- [x] 모바일 메뉴 body 스크롤 잠금 (`header.tsx`)
+- [x] 모달 뷰포트 초과 방지 (`max-w-[calc(100vw-2rem)]`)
+- [x] 고정 그리드 반응형 전환 (`grid-cols-1 sm:grid-cols-*`)
+- [x] 콘텐츠/섹션 패딩 반응형 (`py-section-sm md:py-section-lg`)
+
+**Touch Target 구현**:
+```css
+/* index.css — 터치 기기에서만 적용, 데스크탑 UI 유지 */
+@media (pointer: coarse) {
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+```
+- shadcn DropdownMenuItem(`role="menuitem"`), SelectItem(`role="option"`) 미영향
+- Dialog 닫기 버튼: `h-5 w-5` 아이콘 + `p-1` 패딩 (20px 시각 + 44px 터치)
 
 ---
 

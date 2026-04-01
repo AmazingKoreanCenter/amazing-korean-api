@@ -32,6 +32,7 @@ pub enum LoginOutcome {
     Success {
         login_res: LoginRes,
         cookie: Cookie<'static>,
+        refresh_token: String,
         ttl: i64,
     },
     MfaChallenge {
@@ -382,7 +383,7 @@ impl AuthService {
         ).await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         let mut refresh_cookie =
-        Cookie::new(st.cfg.refresh_cookie_name.clone(), refresh_token_value);
+        Cookie::new(st.cfg.refresh_cookie_name.clone(), refresh_token_value.clone());
         refresh_cookie.set_path("/");
         refresh_cookie.set_http_only(true);
         refresh_cookie.set_secure(st.cfg.refresh_cookie_secure);
@@ -390,11 +391,11 @@ impl AuthService {
             "Strict" => SameSite::Strict,
             "Lax" => SameSite::Lax,
             "None" => SameSite::None,
-            _ => SameSite::Lax, 
+            _ => SameSite::Lax,
         });
         refresh_cookie
             .set_expires(OffsetDateTime::now_utc() + time::Duration::seconds(refresh_ttl_secs));
-        
+
         // 도메인이 있을 때만 설정 (빈 문자열 방지)
         if let Some(domain) = &st.cfg.refresh_cookie_domain {
             refresh_cookie.set_domain(domain.clone());
@@ -407,6 +408,7 @@ impl AuthService {
                 session_id,
             },
             cookie: refresh_cookie.into_owned(),
+            refresh_token: refresh_token_value,
             ttl: refresh_ttl_secs,
         })
     }

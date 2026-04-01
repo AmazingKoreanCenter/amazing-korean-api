@@ -10,6 +10,10 @@ pub fn auth_router() -> Router<AppState> {
         .route("/logout/all", post(handler::logout_all)) // 모든 기기 로그아웃
         .route("/refresh", post(handler::refresh))
 
+        // 모바일 (쿠키 대신 JSON body로 refresh token 전달)
+        .route("/login-mobile", post(handler::login_mobile))
+        .route("/refresh-mobile", post(handler::refresh_mobile))
+
         // 계정 찾기/복구
         .route("/find-id", post(handler::find_id))
         .route("/find-password", post(handler::find_password))

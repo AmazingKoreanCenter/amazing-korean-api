@@ -3,7 +3,7 @@ use std::fmt::Write;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
-use crate::error::{AppError, AppResult};
+use crate::error::{CryptoError, CryptoResult};
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -13,7 +13,7 @@ type HmacSha256 = Hmac<Sha256>;
 /// - 출력: 64자 hex 문자열 (256비트)
 /// - 동일 입력 → 항상 동일 출력 (결정적)
 /// - 이메일, 이름 등 대소문자 구분 불필요한 필드에 사용
-pub fn compute_blind_index(key: &[u8; 32], plaintext: &str) -> AppResult<String> {
+pub fn compute_blind_index(key: &[u8; 32], plaintext: &str) -> CryptoResult<String> {
     let normalized = plaintext.trim().to_lowercase();
     compute_hmac(key, &normalized)
 }
@@ -22,14 +22,14 @@ pub fn compute_blind_index(key: &[u8; 32], plaintext: &str) -> AppResult<String>
 ///
 /// - OAuth subject 등 case-sensitive 식별자에 사용
 /// - Google subject는 숫자라 현재 영향 없지만, 다른 provider 대비
-pub fn compute_blind_index_preserve_case(key: &[u8; 32], plaintext: &str) -> AppResult<String> {
+pub fn compute_blind_index_preserve_case(key: &[u8; 32], plaintext: &str) -> CryptoResult<String> {
     let trimmed = plaintext.trim();
     compute_hmac(key, trimmed)
 }
 
-fn compute_hmac(key: &[u8; 32], input: &str) -> AppResult<String> {
+fn compute_hmac(key: &[u8; 32], input: &str) -> CryptoResult<String> {
     let mut mac = HmacSha256::new_from_slice(key)
-        .map_err(|e| AppError::Internal(format!("HMAC key init failed: {e}")))?;
+        .map_err(|e| CryptoError::Internal(format!("HMAC key init failed: {e}")))?;
 
     mac.update(input.as_bytes());
     let result = mac.finalize().into_bytes();

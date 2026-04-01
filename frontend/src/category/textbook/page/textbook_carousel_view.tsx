@@ -25,7 +25,7 @@ export function TextbookCarouselView({
 
   if (items.length === 0) {
     return (
-      <div className="py-16 text-center text-muted-foreground">
+      <div className="py-8 md:py-16 text-center text-muted-foreground">
         {t("textbook.catalog.noResults")}
       </div>
     );

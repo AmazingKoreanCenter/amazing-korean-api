@@ -25,6 +25,8 @@
 | 3-11 | `POST /auth/mfa/verify-setup` | `/admin/mfa/setup` | MFA 설정 확인 | ***TOTP 코드 검증 → MFA 활성화 + 백업코드 10개 생성/반환***<br>성공: **200** `{ enabled: true, backup_codes: [...] }`<br>실패(미인증): **401** / 실패(코드 무효): **401** | [✅] |
 | 3-12 | `POST /auth/mfa/login` | `/login` | MFA 2단계 인증 | ***MFA 토큰 + TOTP/백업코드 검증 → 세션 완료***<br>성공: **200** `{ access_token, ... }` + Set-Cookie(refresh_token)<br>실패(토큰 만료): **401** / 실패(코드 무효): **401** / 실패(레이트리밋): **429** (5회/5분) | [✅] |
 | 3-13 | `POST /auth/mfa/disable` | (관리자) | MFA 비활성화 | ***HYMN 전용: 대상 사용자의 MFA 해제 + 전체 세션 무효화***<br>성공: **200** `{ disabled: true }`<br>실패(미인증): **401** / 실패(권한 없음): **403** | [✅] |
+| 3-14 | `POST /auth/login-mobile` | (앱) | 모바일 로그인 | ***3-1과 동일 로직, refresh token을 쿠키 대신 JSON body로 반환***<br>성공: **200** `LoginMobileRes { user_id, access, session_id, refresh_token, refresh_expires_in }`<br>실패: 3-1과 동일 | [✅] |
+| 3-15 | `POST /auth/refresh-mobile` | (앱) | 모바일 토큰 재발급 | ***3-3과 동일 로직, body에서 refresh_token 추출 + `X-Platform: mobile` 헤더 필수***<br>성공: **200** `LoginMobileRes`<br>실패(헤더 누락): **400** / 나머지: 3-3과 동일 | [✅] |
 
 ---
 

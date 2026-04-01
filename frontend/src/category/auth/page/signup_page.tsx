@@ -206,7 +206,7 @@ export function SignupPage() {
           </div>
 
           {/* 소셜 가입 안내 */}
-          <p className="text-center text-xs text-muted-foreground whitespace-pre-line">
+          <p className="text-center text-sm text-muted-foreground whitespace-pre-line">
             {t("auth.socialSignupNotice")}
           </p>
 

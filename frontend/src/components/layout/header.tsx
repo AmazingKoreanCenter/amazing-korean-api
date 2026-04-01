@@ -56,6 +56,16 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileMenuOpen]);
+
   return (
     <header
       className={cn(
@@ -166,7 +176,7 @@ export function Header() {
         {/* Mobile Menu Button */}
         <button
           type="button"
-          className="lg:hidden p-2 rounded-lg hover:bg-muted/50 transition-colors"
+          className="lg:hidden p-2.5 rounded-lg hover:bg-muted/50 transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >

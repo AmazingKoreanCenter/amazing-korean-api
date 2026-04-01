@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use crate::error::{AppError, AppResult};
+use crate::error::{CryptoError, CryptoResult};
 
-use super::{blind_index, cipher};
+use crate::{blind_index, cipher};
 
 /// 다중 키 버전을 관리하는 키링.
 ///
@@ -15,14 +15,14 @@ pub struct KeyRing {
 }
 
 impl KeyRing {
-    pub fn new(keys: HashMap<u8, [u8; 32]>, current_version: u8) -> AppResult<Self> {
+    pub fn new(keys: HashMap<u8, [u8; 32]>, current_version: u8) -> CryptoResult<Self> {
         if current_version < 1 {
-            return Err(AppError::Internal(
+            return Err(CryptoError::Internal(
                 "KeyRing: current_version must be >= 1".into(),
             ));
         }
         if !keys.contains_key(&current_version) {
-            return Err(AppError::Internal(format!(
+            return Err(CryptoError::Internal(format!(
                 "KeyRing: current_version v{} key not found in provided keys",
                 current_version
             )));
@@ -41,9 +41,9 @@ impl KeyRing {
         self.current_version
     }
 
-    pub fn get_key(&self, version: u8) -> AppResult<&[u8; 32]> {
+    pub fn get_key(&self, version: u8) -> CryptoResult<&[u8; 32]> {
         self.keys.get(&version).ok_or_else(|| {
-            AppError::Internal(format!(
+            CryptoError::Internal(format!(
                 "Unknown encryption key version: v{} (available: {:?})",
                 version,
                 self.keys.keys().collect::<Vec<_>>()
@@ -79,14 +79,14 @@ impl<'a> CryptoService<'a> {
     }
 
     /// 필드 값을 현재 버전 키로 암호화한다.
-    pub fn encrypt(&self, plaintext: &str, aad: &str) -> AppResult<String> {
+    pub fn encrypt(&self, plaintext: &str, aad: &str) -> CryptoResult<String> {
         let key = self.encryption.current_key();
         let ver = self.encryption.current_version();
         cipher::encrypt(key, ver, plaintext, aad)
     }
 
     /// 필드 값을 복호화한다. 암호문에 포함된 버전으로 적절한 키를 선택.
-    pub fn decrypt(&self, value: &str, aad: &str) -> AppResult<String> {
+    pub fn decrypt(&self, value: &str, aad: &str) -> CryptoResult<String> {
         let ver = cipher::extract_version(value)?;
         let key = self.encryption.get_key(ver)?;
         cipher::decrypt(key, value, aad)
@@ -109,12 +109,12 @@ impl<'a> CryptoService<'a> {
     }
 
     /// Blind index를 계산한다 (trim + lowercase 정규화).
-    pub fn blind_index(&self, plaintext: &str) -> AppResult<String> {
+    pub fn blind_index(&self, plaintext: &str) -> CryptoResult<String> {
         blind_index::compute_blind_index(self.hmac_key, plaintext)
     }
 
     /// Case-sensitive blind index를 계산한다 (trim만 적용).
-    pub fn blind_index_preserve_case(&self, plaintext: &str) -> AppResult<String> {
+    pub fn blind_index_preserve_case(&self, plaintext: &str) -> CryptoResult<String> {
         blind_index::compute_blind_index_preserve_case(self.hmac_key, plaintext)
     }
 }

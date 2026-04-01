@@ -136,7 +136,7 @@ function BookInfoView({ book, isLoggedIn }: { book: BookInfo; isLoggedIn: boolea
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-center mb-8 break-keep">
           {t("book.benefitsTitle")}
         </h2>
-        <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto text-center">
           {benefits.map((item) => (
             <div key={item.label} className="space-y-2">
               <div className="w-12 h-12 rounded-xl gradient-primary mx-auto flex items-center justify-center">

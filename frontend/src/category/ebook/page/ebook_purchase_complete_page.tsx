@@ -31,7 +31,7 @@ export function EbookPurchaseCompletePage() {
           titleKey="ebook.purchaseComplete.title"
           descriptionKey="ebook.purchaseComplete.description"
         />
-        <div className="max-w-2xl mx-auto px-6 py-20 text-center space-y-4">
+        <div className="max-w-2xl mx-auto px-6 py-section-sm md:py-section-lg text-center space-y-4">
           <p className="text-muted-foreground">
             {t("ebook.purchaseComplete.noData")}
           </p>
@@ -60,7 +60,7 @@ export function EbookPurchaseCompletePage() {
         titleKey="ebook.purchaseComplete.title"
         descriptionKey="ebook.purchaseComplete.description"
       />
-      <div className="max-w-2xl mx-auto px-6 py-20">
+      <div className="max-w-2xl mx-auto px-6 py-section-sm md:py-section-lg">
         <Card>
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 rounded-full bg-status-success/10 flex items-center justify-center mb-4">

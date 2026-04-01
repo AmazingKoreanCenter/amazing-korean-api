@@ -1,3 +1,6 @@
+[workspace]
+members = [".", "crates/crypto"]
+
 [package]
 name = "amazing-korean-api"
 version = "1.0.0"
@@ -5,6 +8,7 @@ edition = "2021"
 default-run = "amazing-korean-api"
 
 [dependencies]
+amazing-korean-crypto = { path = "crates/crypto" }
 axum = { version = "0.8.4", features =  ["macros", "tokio", "http1", "http2"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
 tracing = "0.1"

@@ -809,7 +809,7 @@ export function EbookViewerPage() {
                       }}
                     >
                       <span className="text-muted-foreground mr-2 tabular-nums">p.{entry.page}</span>
-                      <span className="flex flex-col leading-tight">
+                      <span className="flex flex-col leading-snug">
                         <span>{entry.title_ko}</span>
                         <span className="text-xs text-muted-foreground">{entry.title}</span>
                       </span>

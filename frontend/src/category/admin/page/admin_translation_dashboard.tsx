@@ -144,7 +144,7 @@ export function AdminTranslationDashboard() {
                         title={`${lang.nativeName} (${lang.name})`}
                       >
                         <div>{lang.flag}</div>
-                        <div className="text-[10px] text-muted-foreground/70">
+                        <div className="text-xs text-muted-foreground/70">
                           {lang.code}
                         </div>
                       </th>

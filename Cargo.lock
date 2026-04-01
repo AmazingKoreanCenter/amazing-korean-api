@@ -98,6 +98,7 @@ version = "1.0.0"
 dependencies = [
  "ab_glyph",
  "aes-gcm",
+ "amazing-korean-crypto",
  "anyhow",
  "argon2",
  "async-trait",
@@ -143,6 +144,17 @@ dependencies = [
  "uuid",
  "validator",
  "woothee",
+]
+
+[[package]]
+name = "amazing-korean-crypto"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "base64",
+ "hmac",
+ "sha2",
+ "thiserror",
 ]
 
 [[package]]

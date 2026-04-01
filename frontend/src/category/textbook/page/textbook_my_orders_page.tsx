@@ -33,7 +33,7 @@ export function TextbookMyOrdersPage() {
     return (
       <div className="flex flex-col">
         <PageMeta titleKey="textbook.myOrders.title" descriptionKey="textbook.myOrders.description" />
-        <div className="max-w-3xl mx-auto px-6 py-20 w-full space-y-4">
+        <div className="max-w-3xl mx-auto px-6 py-section-sm md:py-section-lg w-full space-y-4">
           <Skeleton className="h-10 w-48" />
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
@@ -48,7 +48,7 @@ export function TextbookMyOrdersPage() {
       <div className="flex flex-col">
         <PageMeta titleKey="textbook.myOrders.title" descriptionKey="textbook.myOrders.description" />
         <SectionContainer>
-          <p className="text-center text-muted-foreground py-16">
+          <p className="text-center text-muted-foreground py-8 md:py-16">
             {t("textbook.myOrders.loadError")}
           </p>
         </SectionContainer>
@@ -74,7 +74,7 @@ export function TextbookMyOrdersPage() {
 
       <SectionContainer>
         {orders.length === 0 ? (
-          <div className="text-center py-16 space-y-4">
+          <div className="text-center py-8 md:py-16 space-y-4">
             <Package className="h-12 w-12 text-muted-foreground mx-auto" />
             <p className="text-muted-foreground">{t("textbook.myOrders.empty")}</p>
             <Button asChild>

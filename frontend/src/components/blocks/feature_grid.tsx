@@ -16,7 +16,7 @@ export function FeatureGrid({ items }: FeatureGridProps) {
       {items.map((item) => (
         <div
           key={item.title}
-          className="bg-card rounded-2xl p-8 shadow-card text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border"
+          className="bg-card rounded-2xl p-5 md:p-8 shadow-card text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-accent/50 transition-all duration-300 border"
         >
           <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
             {item.icon}

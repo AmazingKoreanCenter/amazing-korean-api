@@ -12,8 +12,8 @@ use axum::response::IntoResponse;
 
 use crate::api::auth::dto::{
     FindIdReq, FindIdRes, FindPasswordReq, FindPasswordRes,
-    GoogleAuthUrlRes, GoogleCallbackQuery, LoginReq, LoginRes, LogoutAllReq,
-    LogoutRes, /* RefreshReq, */ ResetPwReq, ResetPwRes,
+    GoogleAuthUrlRes, GoogleCallbackQuery, LoginReq, LoginRes, LoginMobileRes,
+    LogoutAllReq, LogoutRes, RefreshReq, ResetPwReq, ResetPwRes,
     RequestResetReq, RequestResetRes, VerifyResetReq, VerifyResetRes,
     VerifyEmailReq, VerifyEmailRes, ResendVerificationReq, ResendVerificationRes,
     MfaChallengeRes, MfaLoginReq, MfaSetupRes, MfaVerifySetupReq,
@@ -157,6 +157,94 @@ pub async fn refresh(
     let jar = jar.add(refresh_cookie);
 
     Ok((jar, Json(refresh_res)))
+}
+
+// =========================================================================
+// Mobile Handlers (쿠키 대신 JSON body로 refresh token 반환)
+// =========================================================================
+
+#[utoipa::path(
+    post,
+    path = "/auth/login-mobile",
+    tag = "auth",
+    request_body = LoginReq,
+    responses(
+        (status = 200, description = "Login successful (mobile)", body = LoginMobileRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 429, description = "Too Many Requests", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn login_mobile(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<LoginReq>,
+) -> Result<axum::response::Response, AppError> {
+    let ip = extract_client_ip(&headers);
+    let ua = extract_user_agent(&headers);
+    let parsed_ua = parse_user_agent(&headers);
+
+    match AuthService::login(&st, req, ip, ua, parsed_ua).await? {
+        LoginOutcome::Success { login_res, refresh_token, ttl, .. } => {
+            Ok(Json(LoginMobileRes {
+                user_id: login_res.user_id,
+                access: login_res.access,
+                session_id: login_res.session_id,
+                refresh_token,
+                refresh_expires_in: ttl,
+            }).into_response())
+        }
+        LoginOutcome::MfaChallenge { mfa_token, user_id } => {
+            Ok(Json(MfaChallengeRes {
+                mfa_required: true,
+                mfa_token,
+                user_id,
+            }).into_response())
+        }
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/auth/refresh-mobile",
+    tag = "auth",
+    request_body = RefreshReq,
+    responses(
+        (status = 200, description = "Token refreshed (mobile)", body = LoginMobileRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 409, description = "Reuse detected", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn refresh_mobile(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<RefreshReq>,
+) -> Result<Json<LoginMobileRes>, AppError> {
+    // X-Platform 헤더 검증 (웹 클라이언트의 쿠키 보안 우회 방지)
+    let platform = headers
+        .get("x-platform")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    if platform != "mobile" {
+        return Err(AppError::BadRequest(
+            "X-Platform: mobile header required".into(),
+        ));
+    }
+
+    let ip = extract_client_ip(&headers);
+    let ua = extract_user_agent(&headers);
+
+    let (refresh_res, new_token_str, ttl_secs) =
+        AuthService::refresh(&st, &req.refresh_token, ip, ua).await?;
+
+    Ok(Json(LoginMobileRes {
+        user_id: refresh_res.user_id,
+        access: refresh_res.access,
+        session_id: refresh_res.session_id,
+        refresh_token: new_token_str,
+        refresh_expires_in: ttl_secs,
+    }))
 }
 
 #[utoipa::path(
