@@ -1,0 +1,12 @@
+[package]
+name = "amazing-korean-crypto"
+version = "0.1.0"
+edition = "2021"
+description = "AES-256-GCM encryption + HMAC-SHA256 blind index for Amazing Korean"
+
+[dependencies]
+aes-gcm = "0.10"
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+thiserror = "2.0.14"

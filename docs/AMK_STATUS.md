@@ -85,8 +85,8 @@
 | 3 | **학습 콘텐츠 시딩** | 콘텐츠 | 2-3일 | 교재 JSON → DB 시딩, 실 콘텐츠 투입 | Paddle Live 후 |
 | 4 | **RDS/ElastiCache 이전** | 인프라 | 3-5일 | EC2 단일 DB → AWS RDS + ElastiCache | 모바일 출시 전 안정화 |
 | 5 | **동시 세션 수 제한** | 보안 | 2-3일 | 역할별 동시 세션 상한. 모바일 세션 표면 증가 대비 | RDS 이전 후 |
-| 6 | **모바일 인증 엔드포인트** | 백엔드 | 1일 | `login-mobile` + `refresh-mobile` (httpOnly 쿠키 대안) | 모바일 앱 선행 |
-| 7 | **공유 Rust 크레이트 추출** | 아키텍처 | 1.5일 | `amazing-korean-crypto` — 백엔드+모바일+데스크탑 공유 | 모바일/데스크탑 양쪽 의존 |
+| 6 | ~~**모바일 인증 엔드포인트**~~ | 백엔드 | ✅ | `login-mobile` + `refresh-mobile` 구현 완료 | — |
+| 7 | ~~**공유 Rust 크레이트 추출**~~ | 아키텍처 | ✅ | `amazing-korean-crypto` 크레이트 추출 완료 (Cargo 워크스페이스) | — |
 | 7.5 | **다국어 반응형 디자인 규격** | UI | 2-3일 | 22개 언어 텍스트 길이 차이 대응, 폰트/컨테이너/줄바꿈 규격화, Figma F1~F3 동기화 | 모바일 앱 전 |
 | 8 | **모바일 앱 (Phase 2)** | 앱 | ~21-23일 | **Flutter** + flutter_rust_bridge. 상세: [`AMK_APP_ROADMAP.md §2`](./AMK_APP_ROADMAP.md) | 순서 5-7.5 |
 | 9 | **데스크탑 앱 (Phase 3)** | 앱 | ~7.5일 | **Tauri 2.x** + React 프론트 재사용. 상세: [`AMK_APP_ROADMAP.md §3`](./AMK_APP_ROADMAP.md) | 순서 7 |
@@ -120,9 +120,9 @@
 | RDS 이전 | SSL 연결 필수 (현재 미사용) | HIGH | config.rs:97 (localhost 기본값) |
 | RDS 이전 | ElastiCache AUTH 토큰 필요 (현재 인증 없음) | HIGH | config.rs:101 (redis://127.0.0.1:6379) |
 | 동시 세션 | 제한 로직 미구현 (세션 카운팅 없음) | MEDIUM | auth/service.rs — smembers만 사용, scard/제한 없음 |
-| 모바일 인증 | login-mobile/refresh-mobile 미구현 | HIGH | auth/router.rs — 해당 라우트 없음 |
-| 모바일 인증 | X-Platform 헤더 검증 미구현 | HIGH | 전체 .rs 검색 0건 |
-| Rust 크레이트 | amazing-korean-crypto 미존재 | HIGH | Cargo.toml — 참조 없음 |
+| ~~모바일 인증~~ | ~~login-mobile/refresh-mobile~~ ✅ 구현 완료 | — | auth/router.rs, handler.rs |
+| ~~모바일 인증~~ | ~~X-Platform 헤더 검증~~ ✅ refresh-mobile에 적용 | — | auth/handler.rs:refresh_mobile |
+| ~~Rust 크레이트~~ | ~~amazing-korean-crypto~~ ✅ 추출 완료 | — | crates/crypto/, Cargo.toml 워크스페이스 |
 | Flutter | flutter_rust_bridge 버전 핀닝 필수 | HIGH | AMK_APP_ROADMAP.md R1 |
 | Flutter | E-book 뷰어 메모리 OOM (14MB/페이지) | HIGH | AMK_APP_ROADMAP.md R7 |
 | Flutter | IAP receipt 검증 엔드포인트 미구현 | HIGH | 전체 .rs 검색 0건 |

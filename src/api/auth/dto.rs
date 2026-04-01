@@ -117,6 +117,29 @@ pub struct LoginRes {
     pub session_id: String,
 }
 
+/// 모바일 로그인/리프레시 응답 (refresh_token을 JSON body로 반환)
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[schema(example = json!({
+    "user_id": 123,
+    "access": {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "token_type": "Bearer",
+        "expires_in": 3600,
+        "expires_at": "2025-01-01T12:00:00Z"
+    },
+    "session_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+    "refresh_token": "c2Vzc2lvbl9pZDp5Yy1yYW5kb20tdXVpZA",
+    "refresh_expires_in": 2592000
+}))]
+pub struct LoginMobileRes {
+    pub user_id: i64,
+    pub access: AccessTokenRes,
+    pub session_id: String,
+    pub refresh_token: String,
+    pub refresh_expires_in: i64, // 초 단위
+}
+
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 #[schema(example = json!({

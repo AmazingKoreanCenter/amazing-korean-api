@@ -50,6 +50,12 @@ impl From<std::convert::Infallible> for AppError {
     }
 }
 
+impl From<amazing_korean_crypto::CryptoError> for AppError {
+    fn from(err: amazing_korean_crypto::CryptoError) -> Self {
+        AppError::Internal(err.to_string())
+    }
+}
+
 pub type AppResult<T> = Result<T, AppError>;
 
 impl IntoResponse for AppError {
