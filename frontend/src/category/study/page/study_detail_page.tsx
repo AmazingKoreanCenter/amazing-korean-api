@@ -117,7 +117,7 @@ export function StudyDetailPage() {
               </h1>
 
               {data.subtitle && (
-                <p className="text-lg text-muted-foreground">{data.subtitle}</p>
+                <p className="text-lg text-muted-foreground max-w-2xl">{data.subtitle}</p>
               )}
 
               <p className="text-sm text-muted-foreground/60">

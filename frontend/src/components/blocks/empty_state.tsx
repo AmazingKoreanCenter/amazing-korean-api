@@ -21,7 +21,7 @@ export function EmptyState({
     <div
       role="status"
       className={cn(
-        "text-center py-20 animate-in fade-in duration-300",
+        "text-center py-10 md:py-20 animate-in fade-in duration-300",
         className,
       )}
     >

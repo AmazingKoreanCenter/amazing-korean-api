@@ -141,7 +141,7 @@ export function EbookPreviewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {langName} — {editionLabel}
@@ -159,7 +159,7 @@ export function EbookPreviewModal({
           />
 
           {/* Thumbnail gallery */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {variants.map((v) => (
               <GalleryImage
                 key={v.key}

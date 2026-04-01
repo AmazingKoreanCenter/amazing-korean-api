@@ -65,6 +65,7 @@
 | 49 | 디자인 시스템 v4 (V1-1~V1-8) | UI | 토큰 정리(dead code 삭제+container/motion-reduce), max-w-[1350px]→토큰, sections/→blocks/ 리네이밍, AuthLayout 추출(6 인증 페이지), CoverCard+FeatureGrid 블록, SectionContainer 확대(4파일), lazy loading 전수, 문서 동기화 | 2026-03-31 | — |
 | 50 | 디자인 시스템 v4 (V1-5 DataTable) | UI | DataTable+useDataTable 블록 추출(`blocks/data_table.tsx`), 관리자 3페이지(users/lessons/videos) 적용, 검색+정렬+선택+페이지네이션 공통화, 각 ~200줄 감소 | 2026-03-31 | — |
 | 51 | 디자인 시스템 v4 (V1-9~V1-10) | UI | 색상 토큰 교체(7파일): status badge→status-warning/success, neutral-900→surface-inverted, coming-soon 배지 토큰화, text-white→surface-inverted-foreground, 장식용 8건 의도적 유지, 문서 최종 동기화 | 2026-03-31 | — |
+| 52 | 모바일 UX 79건 수정 | UI | `@media (pointer: coarse)` 터치 타겟 44px(45건), 고정 그리드 반응형(5건), 모달 뷰포트 제한(3건), 타이포그래피 가독성(7건), 패딩/간격 반응형(13건), Dialog 닫기·라이트박스·모달 네비 확대(4건), header 스크롤 잠금+햄버거 확대(2건). §04 Mobile Checklist 완료 | 2026-04-01 | — |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드
@@ -106,6 +107,30 @@
 
 **대표 시나리오**: 회원가입 → 로그인 → 비디오 조회 → 시청 → 진도 저장 → 학습 문제 풀이
 | 7 | 마케팅/데이터 분석 | 기능 | 사용자 세그먼트, 리텐션 분석, 마케팅 자동화 | 데이터 기반 의사결정 | 사용자 확보 후 |
+
+#### 검증된 리스크 (2026-03-31 코드베이스 팩트체크 완료)
+
+| 작업 | 리스크 | 심각도 | 근거 |
+|------|--------|:------:|------|
+| Paddle Live | 12개 PADDLE_* Secret 일괄 교체 (누락 시 결제 실패) | CRITICAL | deploy.yml:87-98 |
+| Paddle Live | Webhook Secret 1회성 (재확인 불가) | CRITICAL | AMK_DEPLOY_OPS.md:819 |
+| Paddle Live | KYB/Onfido 인증 지연 가능 | HIGH | AMK_DEPLOY_OPS.md:781 |
+| Paddle Live | SPF 레코드 병합 (Resend + Cloudflare) | MEDIUM | AMK_DEPLOY_OPS.md:857 |
+| RDS 이전 | E-book 로컬 파일시스템 의존 (9곳 fs read) | CRITICAL | ebook/service.rs:51,261,502,516,525,605,620,629 + watermark.rs:13 |
+| RDS 이전 | SSL 연결 필수 (현재 미사용) | HIGH | config.rs:97 (localhost 기본값) |
+| RDS 이전 | ElastiCache AUTH 토큰 필요 (현재 인증 없음) | HIGH | config.rs:101 (redis://127.0.0.1:6379) |
+| 동시 세션 | 제한 로직 미구현 (세션 카운팅 없음) | MEDIUM | auth/service.rs — smembers만 사용, scard/제한 없음 |
+| 모바일 인증 | login-mobile/refresh-mobile 미구현 | HIGH | auth/router.rs — 해당 라우트 없음 |
+| 모바일 인증 | X-Platform 헤더 검증 미구현 | HIGH | 전체 .rs 검색 0건 |
+| Rust 크레이트 | amazing-korean-crypto 미존재 | HIGH | Cargo.toml — 참조 없음 |
+| Flutter | flutter_rust_bridge 버전 핀닝 필수 | HIGH | AMK_APP_ROADMAP.md R1 |
+| Flutter | E-book 뷰어 메모리 OOM (14MB/페이지) | HIGH | AMK_APP_ROADMAP.md R7 |
+| Flutter | IAP receipt 검증 엔드포인트 미구현 | HIGH | 전체 .rs 검색 0건 |
+| Flutter | iOS isSecureTextEntry 비공식 API | MEDIUM | AMK_APP_ROADMAP.md R2 |
+| Flutter | 앱 백그라운드 시 세션 만료 (TTL 90초) | MEDIUM | config.rs:325 |
+| Tauri | macOS 캡처 방지 불가 (Apple 정책) | MEDIUM | AMK_APP_ROADMAP.md R5 (수용) |
+
+> **팩트체크 방법**: 코드베이스 전수 grep + 파일별 라인 검증. 총 32개 주장 중 31개 확인, 1개 수정 (Secret 13→12개).
 
 #### 보류/조건부
 

@@ -74,7 +74,7 @@ export function ComingSoonPage() {
           {FEATURES.map(({ icon: Icon, titleKey, descKey }) => (
             <div
               key={titleKey}
-              className="group relative bg-card rounded-2xl p-8 shadow-card border text-center"
+              className="group relative bg-card rounded-2xl p-5 md:p-8 shadow-card border text-center"
             >
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-6 opacity-60">
                 <Icon className="h-7 w-7 text-white" />

@@ -289,7 +289,7 @@ export function TextbookOrderPage() {
           titleKey="seo.textbook.title"
           descriptionKey="seo.textbook.description"
         />
-        <div className="max-w-2xl mx-auto px-6 py-20">
+        <div className="max-w-2xl mx-auto px-6 py-section-sm md:py-section-lg">
           <Card>
             <CardHeader className="text-center">
               <div className="mx-auto w-16 h-16 rounded-full bg-status-success/10 flex items-center justify-center mb-4">
@@ -394,7 +394,7 @@ export function TextbookOrderPage() {
 
   if (catalogLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-20 space-y-6">
+      <div className="max-w-4xl mx-auto px-6 py-section-sm md:py-section-lg space-y-6">
         <Skeleton className="h-10 w-64 mx-auto" />
         <Skeleton className="h-6 w-96 mx-auto" />
         <Skeleton className="h-96 rounded-2xl" />

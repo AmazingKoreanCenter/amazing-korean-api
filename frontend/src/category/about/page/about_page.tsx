@@ -63,7 +63,7 @@ export function AboutPage() {
 
           {/* Stats Card */}
           <div className="relative">
-            <div className="bg-gradient-to-br from-secondary to-accent rounded-3xl p-10 text-white space-y-8">
+            <div className="bg-gradient-to-br from-secondary to-accent rounded-3xl p-6 md:p-10 text-white space-y-8">
               <div>
                 <div className="text-2xl font-bold mb-2">{t("about.stat1Title")}</div>
                 <div className="text-white/70 leading-relaxed">{t("about.stat1Desc")}</div>

@@ -56,7 +56,7 @@ export function ImageLightbox({ src, alt, open, onOpenChange, onPrev, onNext }: 
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onOpenChange(false); }}
-        className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+        className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
       >
         <X className="h-5 w-5" />
       </button>
@@ -66,7 +66,7 @@ export function ImageLightbox({ src, alt, open, onOpenChange, onPrev, onNext }: 
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onPrev(); }}
-          className="absolute left-4 z-10 w-10 h-10 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+          className="absolute left-4 z-10 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -85,7 +85,7 @@ export function ImageLightbox({ src, alt, open, onOpenChange, onPrev, onNext }: 
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onNext(); }}
-          className="absolute right-4 z-10 w-10 h-10 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+          className="absolute right-4 z-10 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
         >
           <ChevronRight className="h-5 w-5" />
         </button>

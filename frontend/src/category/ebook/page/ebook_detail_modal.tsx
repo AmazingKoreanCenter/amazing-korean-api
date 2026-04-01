@@ -54,7 +54,7 @@ export function EbookDetailModal({
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { setSlideIndex(0); setLightboxOpen(false); } onOpenChange(o); }}>
       <DialogContent
-        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+        className="max-w-[calc(100vw-2rem)] sm:max-w-3xl max-h-[90vh] overflow-y-auto"
         onEscapeKeyDown={(e) => { if (lightboxOpen) { e.preventDefault(); setLightboxOpen(false); } }}
       >
         <DialogHeader>
@@ -85,14 +85,14 @@ export function EbookDetailModal({
             <button
               type="button"
               onClick={goPrev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
             <button
               type="button"
               onClick={goNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
             >
               <ChevronRight className="h-5 w-5" />
             </button>

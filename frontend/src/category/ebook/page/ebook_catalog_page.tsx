@@ -68,7 +68,7 @@ export function EbookCatalogPage() {
     return (
       <div className="flex flex-col">
         <PageMeta titleKey="ebook.catalog.title" descriptionKey="ebook.catalog.subtitle" />
-        <div className="max-w-container-default mx-auto px-6 py-20 space-y-6">
+        <div className="max-w-container-default mx-auto px-6 py-section-sm md:py-section-lg space-y-6">
           <Skeleton className="h-10 w-64 mx-auto" />
           <Skeleton className="h-6 w-96 mx-auto" />
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -230,7 +230,7 @@ function EbookGridSection({
 
   if (items.length === 0) {
     return (
-      <div className="py-16 text-center text-muted-foreground">
+      <div className="py-8 md:py-16 text-center text-muted-foreground">
         {noResultsText}
       </div>
     );

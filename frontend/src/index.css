@@ -226,6 +226,15 @@
   }
 }
 
+/* Touch device minimum targets — WCAG 2.5.8 + §04 Mobile Checklist */
+@media (pointer: coarse) {
+  button,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
 /* Mobile Input zoom prevention — iOS only */
 @supports (-webkit-touch-callout: none) {
   input, select, textarea { font-size: 16px; }

@@ -88,14 +88,14 @@ export function BookHubPage() {
               <button
                 type="button"
                 onClick={goPrev}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <button
                 type="button"
                 onClick={goNext}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -147,7 +147,7 @@ export function BookHubPage() {
             </div>
 
             {/* Spec summary card */}
-            <div className="grid grid-cols-3 gap-3 my-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-3">
               <div className="flex items-center justify-center gap-2 rounded-lg border bg-muted/50 py-3">
                 <FileText className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm font-semibold">{t("bookHub.specPages", { count: BOOK_PAGES })}</span>

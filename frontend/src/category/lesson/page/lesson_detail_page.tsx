@@ -299,7 +299,7 @@ export function LessonDetailPage() {
               icon={<BookMarked className="h-10 w-10 text-muted-foreground" />}
               title={t("lesson.emptyItemsTitle")}
               description={t("lesson.emptyItemsDescription")}
-              className="py-16"
+              className="py-8 md:py-16"
             />
           ) : (
             <div className="space-y-3">

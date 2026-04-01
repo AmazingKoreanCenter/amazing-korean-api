@@ -210,7 +210,7 @@ export function PricingPage() {
                       {t(`payment.interval.${plan.interval}`)}
                     </h3>
                     <div className="mt-4">
-                      <span className="text-4xl font-bold">{plan.price_display}</span>
+                      <span className="text-2xl sm:text-4xl font-bold">{plan.price_display}</span>
                       {plan.months > 1 && (
                         <span className="text-sm text-muted-foreground ml-1">
                           / {plan.months}{t("payment.months")}

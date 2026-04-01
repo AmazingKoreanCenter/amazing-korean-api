@@ -190,7 +190,7 @@ export function Footer() {
 
       {/* Certification Modal */}
       <Dialog open={!!selectedCert} onOpenChange={() => setSelectedCert(null)}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle className="text-lg font-semibold">
               {selectedCert && t(selectedCert.titleKey)}

@@ -11,6 +11,21 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-01 — 모바일 UX 79건 전수 수정 (§04 Mobile Checklist 완료)**
+  - **Phase 1 터치 타겟**: `@media (pointer: coarse)` 글로벌 CSS — 모든 button/[role="button"]에 min-h/w 44px 강제 (터치 기기 전용, 데스크탑 유지). shadcn DropdownMenuItem/SelectItem 미영향 검증
+  - **Phase 2 컴포넌트**: Dialog 닫기 아이콘 h-4→h-5 + p-1 패딩, EmptyState py-20→py-10 md:py-20, Lightbox 버튼 w-10→w-11
+  - **Phase 3 오버플로우**: home/book_landing/book_hub grid-cols-3→grid-cols-1 sm:grid-cols-3, ebook_preview grid-cols-4→2 sm:4, textbook/ebook detail modal max-w-3xl→max-w-[calc(100vw-2rem)] sm:max-w-3xl, footer cert modal 동일
+  - **Phase 4 타이포**: pricing text-4xl→2xl sm:4xl, order status 명암비 50→60%, verify_email/signup text-xs→sm, TOC leading-tight→snug, translation 10px→xs, study subtitle max-w-2xl
+  - **Phase 5 간격**: empty state py-16→py-8 md:py-16 (7곳), 섹션 py-20→py-section-sm md:py-section-lg (6곳), 카드 p-8/p-10→p-5/p-6 md:p-8/p-10 (4곳), order status py-16→py-section-sm md:py-section-md
+  - **Phase 6 모달 네비**: textbook/ebook detail modal 화살표 w-9→w-11 (44px)
+  - **Phase 7 네비게이션**: header 햄버거 p-2→p-2.5 (44px), body 스크롤 잠금 useEffect 추가
+  - **iOS safe area**: AMK_APP_ROADMAP에서 "보류 — 모바일 앱 개발 시" 확인, 명시적 제외
+
+- **2026-03-31 — 남은 작업 리스크 분석 + 코드베이스 팩트체크**
+  - 남은 작업 9개(Paddle Live~Tauri)에 대해 리스크 17건 식별, 코드베이스 전수 검증
+  - 32개 주장 팩트체크: 31개 확인, 1개 수정 (Paddle Secret 13→12개)
+  - `docs/AMK_STATUS.md §8.2` 검증된 리스크 테이블 추가 (근거 파일:라인 포함)
+
 - **2026-03-31 — 디자인 시스템 v4 Phase V1-9~V1-10 (색상 토큰 교체 + 최종 문서)**
   - **Phase V1-9 색상 토큰 교체** (7파일):
     - status badge: `text-amber-600 bg-amber-50 border-amber-200` → `text-status-warning bg-status-warning/5 border-status-warning/20` (ebook_selected_detail, ebook_detail_modal, textbook_detail_modal, selected_book_detail)

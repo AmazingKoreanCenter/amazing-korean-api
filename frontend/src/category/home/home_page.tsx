@@ -62,7 +62,7 @@ export default function HomePage() {
         </div>
 
         {/* Trust Indicators */}
-        <div className="grid grid-cols-3 mt-12 pt-12 border-t max-w-2xl mx-auto w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-0 mt-12 pt-12 border-t max-w-2xl mx-auto w-full">
           <div className="flex flex-col items-center">
             <div className="text-2xl font-bold text-gradient">{t("home.stat1Value")}</div>
             <div className="text-sm text-muted-foreground">{t("home.stat1Label")}</div>
