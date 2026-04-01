@@ -34,7 +34,7 @@ COPY migrations ./migrations
 COPY .sqlx ./.sqlx
 
 # Build the application
-RUN touch src/main.rs src/lib.rs src/bin/rekey_encryption.rs && cargo build --release
+RUN touch src/main.rs src/lib.rs src/bin/rekey_encryption.rs crates/crypto/src/lib.rs && cargo build --release
 
 # Stage 2: Runtime
 FROM debian:bookworm-slim
