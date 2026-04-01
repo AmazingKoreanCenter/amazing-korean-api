@@ -14,17 +14,21 @@ RUN apt-get update && apt-get install -y \
 
 # Copy manifests
 COPY Cargo.toml Cargo.lock ./
+COPY crates/crypto/Cargo.toml ./crates/crypto/Cargo.toml
 
 # Create dummy sources for dependency caching
 RUN mkdir -p src/bin && \
     echo "fn main() {}" > src/main.rs && \
     echo "fn main() {}" > src/bin/rekey_encryption.rs && \
-    echo "" > src/lib.rs
+    echo "" > src/lib.rs && \
+    mkdir -p crates/crypto/src && \
+    echo "" > crates/crypto/src/lib.rs
 
 # Build dependencies only (cache layer)
-RUN cargo build --release && rm -rf src
+RUN cargo build --release && rm -rf src crates/crypto/src
 
 # Copy actual source code
+COPY crates/crypto ./crates/crypto
 COPY src ./src
 COPY migrations ./migrations
 COPY .sqlx ./.sqlx
