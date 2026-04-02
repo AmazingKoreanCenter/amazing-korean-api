@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-01
+updated: 2026-04-02
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,11 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-02 — Dockerfile 워크스페이스 빌드 수정 (2회 실패 → 해결)**
+  - 1차: `crates/crypto/` 매니페스트+소스 COPY 누락 → Cargo 워크스페이스 멤버 미발견으로 빌드 실패
+  - 2차: 2차 빌드 `touch`에 `crates/crypto/src/lib.rs` 누락 → Cargo가 더미 캐시 사용으로 빌드 실패
+  - `docs/AMK_DEPLOY_OPS.md` §8-2에 워크스페이스 멤버 추가 시 Dockerfile 수정 체크리스트 추가
 
 - **2026-04-01 — 순서 7: amazing-korean-crypto 크레이트 추출 (Cargo 워크스페이스)**
   - `src/crypto/{cipher,blind_index,service}.rs` → `crates/crypto/src/`로 이동

@@ -424,7 +424,7 @@ docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "SELECT user_emai
 
 | 파일 | 설명 |
 |------|------|
-| `Dockerfile` | Rust 백엔드 멀티스테이지 빌드 (rust:1.88, 멀티바이너리: api + rekey_encryption) |
+| `Dockerfile` | Rust 백엔드 멀티스테이지 빌드 (rust:1.88, 멀티바이너리: api + rekey_encryption, Cargo 워크스페이스: `crates/crypto`) |
 | `docker-compose.prod.yml` | 프로덕션 구성 (API + DB + Redis + Nginx + Certbot) |
 | `nginx/nginx.conf` | 리버스 프록시 (`api.amazingkorean.net` → api:3000), SSL은 Cloudflare Flexible |
 | `.sqlx/` | SQLx 오프라인 캐시 (Docker 빌드 시 필수) |
@@ -488,6 +488,21 @@ docker stats
 - 1차: 최초 환경변수 추가 시 docker-compose.prod.yml 누락
 - 2차: Paddle 변수 추가 시 `PADDLE_*` 9개 전부 누락
 - 3차: Paddle 변수 추가 수정 시 `PAYMENT_PROVIDER` 누락 (`PADDLE_*` 접두사에만 집중해서 놓침)
+
+##### 8-2. Cargo 워크스페이스 멤버 추가 시 Dockerfile 동시 수정 필수
+
+> **2회 실수 발생** — `crates/crypto` 워크스페이스 멤버 추가 후 Dockerfile 미수정 → Docker 빌드 2회 연속 실패.
+
+**필수 수정 사항** (새 워크스페이스 멤버 추가 시):
+1. 매니페스트 복사: `COPY crates/{name}/Cargo.toml ./crates/{name}/Cargo.toml`
+2. 더미 소스 생성: `mkdir -p crates/{name}/src && echo "" > crates/{name}/src/lib.rs`
+3. 캐시 레이어 정리: `rm -rf` 대상에 `crates/{name}/src` 추가
+4. 실제 소스 복사: `COPY crates/{name} ./crates/{name}`
+5. **2차 빌드 touch**: `touch` 대상에 `crates/{name}/src/lib.rs` 추가 (누락 시 Cargo가 더미 캐시 사용 → 빌드 실패)
+
+**실수 이력:**
+- 1차: `crates/crypto/` 디렉토리 자체를 COPY하지 않아 빌드 실패
+- 2차: 2차 빌드 `touch`에 `crates/crypto/src/lib.rs` 누락 → Cargo가 더미 빈 lib.rs 캐시 사용 → 빌드 실패
 
 ##### 9. Cloudflare SSL & 보안 설정
 
