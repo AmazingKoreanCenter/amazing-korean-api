@@ -167,9 +167,29 @@
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight;
   }
+
+  /* 복합 자모/상하 결합 스크립트: tracking-tight 해제 (th, my, km, si, hi, ne, mn) */
+  .lang-relaxed-tracking h1,
+  .lang-relaxed-tracking h2,
+  .lang-relaxed-tracking h3,
+  .lang-relaxed-tracking h4,
+  .lang-relaxed-tracking h5,
+  .lang-relaxed-tracking h6 {
+    letter-spacing: 0;
+  }
+
+  /* Tall script (th, my, km): 성조 부호/모음 마크 위아래 확장 대응 */
+  .lang-tall-script {
+    line-height: 1.8;
+  }
 }
 
 @layer utilities {
+  /* CJK 전용 break-keep: .lang-cjk 하위에서만 word-break: keep-all 적용 */
+  .lang-cjk .break-keep-cjk {
+    word-break: keep-all;
+  }
+
   /* Gradient utilities — CSS 변수 참조 (HEX 직접 사용 금지) */
   .gradient-primary {
     background: linear-gradient(90deg, hsl(var(--secondary)) 0%, hsl(var(--accent)) 100%);

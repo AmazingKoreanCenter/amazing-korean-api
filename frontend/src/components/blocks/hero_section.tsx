@@ -33,7 +33,7 @@ export function HeroSection({
                 </div>
               )}
 
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight break-keep">
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight break-keep-cjk">
                 {title}
               </h1>
 
@@ -77,7 +77,7 @@ export function HeroSection({
 
           <h1
             className={cn(
-              "font-bold tracking-tight mb-4 break-keep whitespace-nowrap",
+              "font-bold tracking-tight mb-4 break-keep-cjk",
               size === "default"
                 ? "text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-6"
                 : "text-3xl sm:text-4xl md:text-5xl",

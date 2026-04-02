@@ -11,6 +11,13 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-02 — 순서 7.5: 다국어 반응형 디자인 규격**
+  - `utils/language_groups.ts` 신규: CJK / Tall Script / Relaxed Tracking 언어 그룹 분류
+  - `i18n/index.ts`: `changeLanguage` 시 `<html>`에 `lang-cjk`, `lang-tall-script`, `lang-relaxed-tracking` CSS 클래스 동적 관리 + 초기 로드 대응
+  - `index.css`: tracking-tight 조건부 해제 (th, my, km, si, hi, ne, mn), tall script line-height 1.8 (th, my, km), `break-keep-cjk` 유틸리티 클래스
+  - `hero_section.tsx`: `whitespace-nowrap` 제거 + `break-keep` → `break-keep-cjk` (marketing + list variant)
+  - `book_landing_page.tsx`, `coming_soon_page.tsx`: `break-keep` → `break-keep-cjk`
+
 - **2026-04-02 — Dockerfile 워크스페이스 빌드 수정 (2회 실패 → 해결)**
   - 1차: `crates/crypto/` 매니페스트+소스 COPY 누락 → Cargo 워크스페이스 멤버 미발견으로 빌드 실패
   - 2차: 2차 빌드 `touch`에 `crates/crypto/src/lib.rs` 누락 → Cargo가 더미 캐시 사용으로 빌드 실패
