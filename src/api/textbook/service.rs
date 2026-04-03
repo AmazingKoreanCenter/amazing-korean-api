@@ -87,22 +87,22 @@ impl TextbookService {
 
         // 세금계산서 요청 시 홈택스 필수 항목 검증
         if req.tax_invoice {
-            if req.tax_biz_number.as_ref().map_or(true, |s| s.is_empty()) {
+            if req.tax_biz_number.as_ref().is_none_or(|s| s.is_empty()) {
                 return Err(AppError::BadRequest(
                     "Business registration number is required for tax invoice".into(),
                 ));
             }
-            if req.tax_company_name.as_ref().map_or(true, |s| s.is_empty()) {
+            if req.tax_company_name.as_ref().is_none_or(|s| s.is_empty()) {
                 return Err(AppError::BadRequest(
                     "Company name (상호) is required for tax invoice".into(),
                 ));
             }
-            if req.tax_rep_name.as_ref().map_or(true, |s| s.is_empty()) {
+            if req.tax_rep_name.as_ref().is_none_or(|s| s.is_empty()) {
                 return Err(AppError::BadRequest(
                     "Representative name (대표자명) is required for tax invoice".into(),
                 ));
             }
-            if req.tax_email.as_ref().map_or(true, |s| s.is_empty()) {
+            if req.tax_email.as_ref().is_none_or(|s| s.is_empty()) {
                 return Err(AppError::BadRequest(
                     "Tax invoice email is required for tax invoice".into(),
                 ));

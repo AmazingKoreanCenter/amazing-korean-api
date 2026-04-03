@@ -188,7 +188,7 @@ pub async fn get_page_image(
         .header("X-Content-Type-Options", "nosniff")
         .header("Referrer-Policy", "no-referrer")
         .body(Body::from(image_bytes))
-        .map_err(|e| AppError::Internal(format!("Failed to build response: {e}").into()))?;
+        .map_err(|e| AppError::Internal(format!("Failed to build response: {e}")))?;
 
     Ok(response)
 }
@@ -278,7 +278,7 @@ pub async fn get_page_tile(
         .header("X-Content-Type-Options", "nosniff")
         .header("Referrer-Policy", "no-referrer")
         .body(Body::from(tile_bytes))
-        .map_err(|e| AppError::Internal(format!("Failed to build response: {e}").into()))?;
+        .map_err(|e| AppError::Internal(format!("Failed to build response: {e}")))?;
 
     Ok(response)
 }

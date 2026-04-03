@@ -260,10 +260,10 @@ impl EbookService {
 
         let manifest_content = tokio::fs::read_to_string(&manifest_path)
             .await
-            .map_err(|e| AppError::Internal(format!("Manifest not found: {e}").into()))?;
+            .map_err(|e| AppError::Internal(format!("Manifest not found: {e}")))?;
 
         let manifest: serde_json::Value = serde_json::from_str(&manifest_content)
-            .map_err(|e| AppError::Internal(format!("Invalid manifest JSON: {e}").into()))?;
+            .map_err(|e| AppError::Internal(format!("Invalid manifest JSON: {e}")))?;
 
         let total_pages = manifest["total_pages"].as_i64().unwrap_or(0) as i32;
 

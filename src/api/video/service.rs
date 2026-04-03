@@ -84,7 +84,7 @@ impl VideoService {
         let progress = VideoRepo::get_progress(&st.db, user_id, video_id).await?;
 
         // 3. 없으면 기본값 반환 (0%)
-        Ok(progress.unwrap_or_else(|| VideoProgressRes {
+        Ok(progress.unwrap_or(VideoProgressRes {
             video_id,
             progress_rate: 0,
             is_completed: false,

@@ -105,7 +105,7 @@ impl GoogleOAuthClient {
             ("prompt", "consent"),
         ];
 
-        let query = serde_urlencoded::to_string(&params).unwrap_or_default();
+        let query = serde_urlencoded::to_string(params).unwrap_or_default();
         format!("{}?{}", GOOGLE_AUTH_URL, query)
     }
 
