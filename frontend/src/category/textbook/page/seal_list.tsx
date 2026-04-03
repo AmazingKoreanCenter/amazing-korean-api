@@ -41,23 +41,15 @@ function SealImage({ language, size }: { language: string; size: string }) {
 export function SealList({ items, selectedIndex, onSelect }: SealListProps) {
   const { i18n } = useTranslation();
   const mainSwiperRef = useRef<SwiperType | null>(null);
-  const thumbsSwiperRef = useRef<SwiperType | null>(null);
-  const [thumbsReady, setThumbsReady] = useState(false);
-
-  const len = items.length;
-  if (len === 0) return null;
-
-  const langName = i18n.language === "ko"
-    ? items[selectedIndex]?.language_name_ko
-    : items[selectedIndex]?.language_name_en;
+  const [thumbsSwiper, setThumbsSwiper] = useState<SwiperType | null>(null);
 
   const handleMainSlideChange = useCallback((swiper: SwiperType) => {
     const idx = swiper.realIndex;
     onSelect(idx);
-    if (thumbsSwiperRef.current) {
-      thumbsSwiperRef.current.slideTo(idx);
+    if (thumbsSwiper) {
+      thumbsSwiper.slideTo(idx);
     }
-  }, [onSelect]);
+  }, [onSelect, thumbsSwiper]);
 
   const handleThumbClick = useCallback((index: number) => {
     if (mainSwiperRef.current) {
@@ -65,6 +57,13 @@ export function SealList({ items, selectedIndex, onSelect }: SealListProps) {
     }
     onSelect(index);
   }, [onSelect]);
+
+  const len = items.length;
+  if (len === 0) return null;
+
+  const langName = i18n.language === "ko"
+    ? items[selectedIndex]?.language_name_ko
+    : items[selectedIndex]?.language_name_en;
 
   return (
     <div className="flex flex-col md:h-[420px]">
@@ -86,7 +85,7 @@ export function SealList({ items, selectedIndex, onSelect }: SealListProps) {
             modifier: 1.5,
             slideShadows: false,
           }}
-          thumbs={thumbsReady && thumbsSwiperRef.current ? { swiper: thumbsSwiperRef.current } : undefined}
+          thumbs={thumbsSwiper ? { swiper: thumbsSwiper } : undefined}
           onSwiper={(swiper) => { mainSwiperRef.current = swiper; }}
           onSlideChange={handleMainSlideChange}
           className="w-full [&_.swiper-slide:not(.swiper-slide-visible)]:opacity-0 [&_.swiper-slide:not(.swiper-slide-visible)]:pointer-events-none"
@@ -126,10 +125,7 @@ export function SealList({ items, selectedIndex, onSelect }: SealListProps) {
       <div className="flex-shrink-0 py-2">
         <Swiper
           modules={[FreeMode]}
-          onSwiper={(swiper) => {
-            thumbsSwiperRef.current = swiper;
-            setThumbsReady(true);
-          }}
+          onSwiper={setThumbsSwiper}
           slidesPerView={Math.min(len, 10)}
           freeMode
           centeredSlides
