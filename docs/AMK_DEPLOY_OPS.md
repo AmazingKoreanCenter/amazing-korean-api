@@ -102,12 +102,14 @@ APP_ENV=production                 # production | development (production + EMAI
 
 # ─── Database ───
 POSTGRES_PASSWORD=<secure-password>
+# SKIP_DB=0                          # 기본: false. "1"이면 DB 초기화 건너뛰기 (테스트/CI 용)
 
 # ─── Redis ───
 REDIS_PASSWORD=<secure-password>
 
 # ─── JWT ───
 JWT_SECRET=<min-32-bytes-secret>
+# JWT_EXPIRE_HOURS=24               # 기본: 24시간. 액세스 토큰 만료 시간
 DOMAIN=api.amazingkorean.net
 
 # ─── Domain & CORS ───
@@ -118,6 +120,8 @@ CORS_ORIGINS=https://amazingkorean.net,https://www.amazingkorean.net
 # 프로덕션 키 ≠ 로컬 키 (반드시 다른 키 사용)
 # 키 분실 시 암호화된 데이터 복구 불가 — 안전한 곳에 별도 백업 필수
 ENCRYPTION_KEY_V1=<base64-encoded-32-bytes>
+# ENCRYPTION_KEY_V2=<base64-encoded-32-bytes>  # 키 로테이션 시 추가 (V2~V255)
+# ENCRYPTION_KEY_V3=<base64-encoded-32-bytes>  # 복호화 시 암호문 버전으로 자동 선택
 HMAC_KEY=<base64-encoded-32-bytes>
 ENCRYPTION_CURRENT_VERSION=1
 
@@ -135,11 +139,23 @@ RESEND_API_KEY=re_xxx              # 필수 (Resend 대시보드에서 발급)
 # RATE_LIMIT_EMAIL_WINDOW_SEC=18000  # 기본: 18000초 (5시간)
 # RATE_LIMIT_EMAIL_MAX=5             # 기본: 5회/윈도우
 
+# ─── Rate Limiting (스터디 답안 제출) ───
+# RATE_LIMIT_STUDY_WINDOW_SEC=60     # 기본: 60초
+# RATE_LIMIT_STUDY_MAX=30            # 기본: 30회/윈도우
+
+# ─── Rate Limiting (교재 주문) ───
+# RATE_LIMIT_TEXTBOOK_WINDOW_SEC=3600  # 기본: 3600초 (1시간)
+# RATE_LIMIT_TEXTBOOK_MAX=5            # 기본: 5회/윈도우
+
 # ─── Swagger UI ───
 # ENABLE_DOCS=0                       # 기본: 0 (비활성화). 1로 설정 시 /docs Swagger UI 노출
 
 # ─── Admin ───
 # ADMIN_IP_ALLOWLIST=1.2.3.4,10.0.0.0/8
+
+# ─── E-book ───
+# EBOOK_PAGE_IMAGES_DIR=docs/textbook/page-images  # 기본: "docs/textbook/page-images". 페이지 이미지 경로
+# EBOOK_IMAGES_ENCRYPTED=0           # 기본: false. "1"이면 이미지 암호화 모드
 
 # ─── Paddle Billing (결제) ───
 PADDLE_API_KEY=apikey_xxx             # Paddle API Key (Sandbox/Production)

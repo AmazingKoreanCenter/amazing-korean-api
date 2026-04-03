@@ -322,6 +322,18 @@ X-Content-Type-Options: nosniff
 
 **인증**: Admin
 
+#### 12.5-10 : `GET /admin/ebook/verify/{watermark_id}` (워터마크 진위확인)
+
+> 유출된 이미지에서 추출한 watermark_id로 구매자 정보를 조회한다. 포렌식 추적용.
+
+**인증**: Admin (JWT + Admin role)
+
+**경로 파라미터**: `watermark_id` (UUID)
+
+---
+
+> **페이지네이션 필드명 참고**: e-book 관리자 목록의 페이지네이션 필드명은 `page` (textbook의 `current_page`와 다름).
+
 </details>
 
 **Paddle 연동 (일회성 결제)**:
