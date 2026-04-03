@@ -11,13 +11,15 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
-- **2026-04-03 — 코드 점검 1~4단계 전체 완료**
+- **2026-04-03 — 코드 점검 1~4단계 + 일괄 수정 완료**
   - `docs/AMK_CODE_AUDIT_PLAN.md` 신규: 4단계 점검 계획 (의존성 취약점, 코드 품질, 보안 리뷰, 문서 정합성)
-  - 점검 1: 의존성 취약점 — Rust 4건 (Critical 0), npm 8건 (전부 devDep), 프로덕션 즉시 위험 없음
-  - 점검 2: 코드 품질 — clippy 42건 (20건 자동수정), ESLint 41건 (hooks 위반 2건 최우선), unwrap() 위험 5건, tsc 0건
-  - 점검 3: 보안 리뷰 — 9/12 통과, 수정 필요 6건 (HIGH 2: courses 인증 누락 + MFA verify-setup RL 누락)
-  - 점검 4: 문서 정합성 — 32건 (HIGH 5: 스키마 암호화 미반영 + FindIdReq 오기재, MEDIUM 8, LOW 19)
-  - 전수 검증 완료: 38건 중 37건 CONFIRMED, 1건 FALSE POSITIVE (ENCRYPTION_KEY 레거시)
+  - 점검 1: 의존성 취약점 — cargo update (time/rustls-webpki 패치), npm audit fix (8건→0건), npm update
+  - 점검 2: 코드 품질 — clippy --fix 20건 자동 + 수동 2건, unwrap() 위험 5건 수정, hooks 위반 2건 수정
+  - 점검 3: 보안 — POST /courses AuthUser 추가, MFA rate limit 3건 추가, anti-enum 에러 메시지 2건 수정
+  - 점검 4: 문서 정합성 — 스키마 9건 수정, API 문서 10건, 환경변수 9건 추가, 미구현 DTO 4건 표시
+  - 미사용 의존성: aes-gcm 루트에서 제거 (hmac은 루트에서 사용 중 — 감사 오판 정정)
+  - 전수 검증: 38건 중 37건 CONFIRMED, 2건 FALSE POSITIVE (ENCRYPTION_KEY + hmac)
+  - 잔여: clippy too_many_arguments 17건 + large_enum_variant 2건 (리팩토링급)
   - 결과 기록: `docs/AMK_CODE_AUDIT_RESULT.md`
 
 - **2026-04-02 — 순서 7.5: 다국어 반응형 디자인 규격**

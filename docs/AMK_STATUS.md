@@ -90,7 +90,7 @@
 | — | ~~**모바일 인증 엔드포인트**~~ | 백엔드 | ✅ | `login-mobile` + `refresh-mobile` 구현 완료 | — |
 | — | ~~**공유 Rust 크레이트 추출**~~ | 아키텍처 | ✅ | `amazing-korean-crypto` 크레이트 추출 완료 (Cargo 워크스페이스) | — |
 | — | ~~**다국어 반응형 디자인 규격**~~ | UI | ✅ | 언어 그룹별 CSS 클래스 동적 관리, tracking-tight 조건부 해제, tall script line-height 보정, break-keep CJK 한정 | — |
-| — | ~~**코드 점검**~~ | 품질 | ✅ | 점검 1~4 전체 완료 (37건 CONFIRMED). 일괄 수정 대기. 결과: `AMK_CODE_AUDIT_RESULT.md` | — |
+| — | ~~**코드 점검**~~ | 품질 | ✅ | 점검 1~4 + 일괄 수정 완료. 잔여: clippy 리팩토링급 19건. 결과: `AMK_CODE_AUDIT_RESULT.md` | — |
 | — | ~~디자인 시스템~~ | — | — | — | ✅ §8.1 #13 |
 | — | ~~E-book 웹 보안~~ | — | — | — | ✅ Phase 1 완료 (§8.1 #42~#46) |
 | 10 | 다중 서버 구성 (HA) | 인프라 | — | ①nginx 복제 → ②ALB+EC2 → ③ECS Fargate | RDS 완료 후 |
