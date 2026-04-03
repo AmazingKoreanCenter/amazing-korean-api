@@ -48,8 +48,7 @@ urlencoding = "2.1.3"
 serde_urlencoded = "0.7.1"
 # User-Agent parsing (server-side)
 woothee = "0.13"
-# Field-level encryption (AES-256-GCM) + Blind Index (HMAC-SHA256)
-aes-gcm = "0.10"
+# Blind Index (HMAC-SHA256) — user/service.rs, ebook/service.rs에서 직접 사용
 hmac = "0.12"
 # TOTP MFA (Google Authenticator)
 totp-rs = { version = "5", features = ["qr", "gen_secret"] }
