@@ -63,8 +63,8 @@ impl StudyTaskDetailRow {
                 }
                 TaskPayload::Choice(ChoicePayload {
                     question,
-                    choice_1: self.choice_1.unwrap(),
-                    choice_2: self.choice_2.unwrap(),
+                    choice_1: self.choice_1.unwrap_or_default(),
+                    choice_2: self.choice_2.unwrap_or_default(),
                     choice_3: self.choice_3.unwrap_or_default(),
                     choice_4: self.choice_4.unwrap_or_default(),
                     audio_url: self.choice_audio_url,
