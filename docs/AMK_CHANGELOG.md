@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-02
+updated: 2026-04-03
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,15 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-03 — 코드 점검 1~4단계 전체 완료**
+  - `docs/AMK_CODE_AUDIT_PLAN.md` 신규: 4단계 점검 계획 (의존성 취약점, 코드 품질, 보안 리뷰, 문서 정합성)
+  - 점검 1: 의존성 취약점 — Rust 4건 (Critical 0), npm 8건 (전부 devDep), 프로덕션 즉시 위험 없음
+  - 점검 2: 코드 품질 — clippy 42건 (20건 자동수정), ESLint 41건 (hooks 위반 2건 최우선), unwrap() 위험 5건, tsc 0건
+  - 점검 3: 보안 리뷰 — 9/12 통과, 수정 필요 6건 (HIGH 2: courses 인증 누락 + MFA verify-setup RL 누락)
+  - 점검 4: 문서 정합성 — 32건 (HIGH 5: 스키마 암호화 미반영 + FindIdReq 오기재, MEDIUM 8, LOW 19)
+  - 전수 검증 완료: 38건 중 37건 CONFIRMED, 1건 FALSE POSITIVE (ENCRYPTION_KEY 레거시)
+  - 결과 기록: `docs/AMK_CODE_AUDIT_RESULT.md`
 
 - **2026-04-02 — 순서 7.5: 다국어 반응형 디자인 규격**
   - `utils/language_groups.ts` 신규: CJK / Tall Script / Relaxed Tracking 언어 그룹 분류
