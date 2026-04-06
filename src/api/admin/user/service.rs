@@ -130,18 +130,15 @@ impl AdminUserService {
         });
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let ip_enc = ip_address
-            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-            .transpose()?;
 
-        repo::create_audit_log(
-            &st.db,
+        repo::write_audit_log(
+            st,
             actor_user_id,
             "LIST_USERS",
-            Some("users"),
+            "users",
             None,
             &details,
-            ip_enc.as_deref(),
+            ip_address,
             user_agent.as_deref(),
         )
         .await?;
@@ -194,18 +191,15 @@ impl AdminUserService {
         });
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let ip_enc = ip_address
-            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-            .transpose()?;
 
-        repo::create_audit_log(
-            &st.db,
+        repo::write_audit_log(
+            st,
             actor_user_id,
             "GET_USER",
-            Some("users"),
+            "users",
             Some(user_id),
             &details,
-            ip_enc.as_deref(),
+            ip_address,
             user_agent.as_deref(),
         )
         .await?;
@@ -368,19 +362,14 @@ impl AdminUserService {
             "failure": summary.failure
         });
 
-        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let ip_enc = ip_address
-            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-            .transpose()?;
-
-        repo::create_audit_log(
-            &st.db,
+        repo::write_audit_log(
+            st,
             actor_user_id,
             "BULK_CREATE_USERS",
-            Some("users"),
+            "users",
             None,
             &details,
-            ip_enc.as_deref(),
+            ip_address,
             user_agent.as_deref(),
         )
         .await?;
@@ -593,13 +582,15 @@ impl AdminUserService {
 
         repo::create_audit_log_tx(
             &mut tx,
-            actor_user_id,
-            "UPDATE_USER",
-            Some("users"),
-            Some(updated.id),
-            &details,
-            ip_enc.as_deref(),
-            user_agent.as_deref(),
+            &repo::AuditLogParams {
+                admin_id: actor_user_id,
+                action_type: "UPDATE_USER",
+                target_table: "users",
+                target_id: Some(updated.id),
+                details: &details,
+                ip_address: ip_enc.as_deref(),
+                user_agent: user_agent.as_deref(),
+            },
         )
         .await?;
 
@@ -776,19 +767,14 @@ impl AdminUserService {
             "failure": summary.failure
         });
     
-        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let ip_enc = ip_address
-            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-            .transpose()?;
-
-        super::repo::create_audit_log(
-            &st.db,
+        super::repo::write_audit_log(
+            st,
             actor_user_id,
             "BULK_UPDATE_USERS",
-            Some("users"),
+            "users",
             None,
             &details,
-            ip_enc.as_deref(),
+            ip_address,
             user_agent.as_deref(),
         ).await?;
     

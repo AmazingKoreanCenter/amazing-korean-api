@@ -44,19 +44,14 @@ impl AdminPaymentService {
         ip: Option<IpAddr>,
         ua: Option<&str>,
     ) -> AppResult<()> {
-        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let ip_enc = ip
-            .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-            .transpose()?;
-
-        crate::api::admin::user::repo::create_audit_log(
-            &st.db,
+        crate::api::admin::user::repo::write_audit_log(
+            st,
             actor_id,
             action_type,
-            Some("subscriptions"),
+            "subscriptions",
             target_id,
             details,
-            ip_enc.as_deref(),
+            ip,
             ua,
         )
         .await

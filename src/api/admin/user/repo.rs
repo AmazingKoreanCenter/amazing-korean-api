@@ -223,13 +223,15 @@ pub async fn admin_create_user(
     if audit {
         create_audit_log_tx(
             &mut tx,
-            actor_user_id,
-            "CREATE_USER",
-            Some("users"),
-            Some(user.id),
-            &details,
-            ip_address,
-            user_agent,
+            &AuditLogParams {
+                admin_id: actor_user_id,
+                action_type: "CREATE_USER",
+                target_table: "users",
+                target_id: Some(user.id),
+                details: &details,
+                ip_address,
+                user_agent,
+            },
         )
         .await?;
     }
@@ -322,15 +324,51 @@ pub async fn exists_email_idx(pool: &PgPool, email_idx: &str) -> AppResult<bool>
     Ok(exists)
 }
 
-pub async fn create_audit_log(
-    pool: &PgPool,
+/// 감사 로그 파라미터
+pub struct AuditLogParams<'a> {
+    pub admin_id: i64,
+    pub action_type: &'a str,
+    pub target_table: &'a str,
+    pub target_id: Option<i64>,
+    pub details: &'a Value,
+    pub ip_address: Option<&'a str>,
+    pub user_agent: Option<&'a str>,
+}
+
+/// 감사 로그 기록 헬퍼 — IP 암호화 포함
+pub async fn write_audit_log(
+    st: &crate::state::AppState,
     admin_id: i64,
     action_type: &str,
-    target_table: Option<&str>,
+    target_table: &str,
     target_id: Option<i64>,
     details: &Value,
-    ip_address: Option<&str>,
-    user_agent: Option<&str>,
+    ip: Option<std::net::IpAddr>,
+    ua: Option<&str>,
+) -> AppResult<()> {
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
+    create_audit_log(
+        &st.db,
+        &AuditLogParams {
+            admin_id,
+            action_type,
+            target_table,
+            target_id,
+            details,
+            ip_address: ip_enc.as_deref(),
+            user_agent: ua,
+        },
+    )
+    .await
+}
+
+pub async fn create_audit_log(
+    pool: &PgPool,
+    p: &AuditLogParams<'_>,
 ) -> AppResult<()> {
     sqlx::query(
         r#"
@@ -341,13 +379,13 @@ pub async fn create_audit_log(
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         "#,
     )
-    .bind(admin_id)
-    .bind(action_type)
-    .bind(target_table)
-    .bind(target_id)
-    .bind(details)
-    .bind(ip_address)
-    .bind(user_agent)
+    .bind(p.admin_id)
+    .bind(p.action_type)
+    .bind(Some(p.target_table))
+    .bind(p.target_id)
+    .bind(p.details)
+    .bind(p.ip_address)
+    .bind(p.user_agent)
     .execute(pool)
     .await?;
 
@@ -356,13 +394,7 @@ pub async fn create_audit_log(
 
 pub async fn create_audit_log_tx(
     tx: &mut Transaction<'_, Postgres>,
-    admin_id: i64,
-    action_type: &str,
-    target_table: Option<&str>,
-    target_id: Option<i64>,
-    details: &Value,
-    ip_address: Option<&str>,
-    user_agent: Option<&str>,
+    p: &AuditLogParams<'_>,
 ) -> AppResult<()> {
     sqlx::query(
         r#"
@@ -373,13 +405,13 @@ pub async fn create_audit_log_tx(
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         "#,
     )
-    .bind(admin_id)
-    .bind(action_type)
-    .bind(target_table)
-    .bind(target_id)
-    .bind(details)
-    .bind(ip_address)
-    .bind(user_agent)
+    .bind(p.admin_id)
+    .bind(p.action_type)
+    .bind(Some(p.target_table))
+    .bind(p.target_id)
+    .bind(p.details)
+    .bind(p.ip_address)
+    .bind(p.user_agent)
     .execute(&mut **tx)
     .await?;
 
