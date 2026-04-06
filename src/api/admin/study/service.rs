@@ -81,7 +81,7 @@ pub async fn admin_list_studies(
         &st.db,
         actor_user_id,
         "LIST_STUDIES",
-        Some("STUDY"), // target_id
+        Some("study"), // target_id
         None, // target_sub_id (5번째 인자)
         &details,
         ip_enc.as_deref(),
@@ -138,7 +138,7 @@ pub async fn admin_get_study(
         &st.db,
         actor_user_id,
         "GET_STUDY",
-        Some("STUDY"),
+        Some("study"),
         Some(study_id),
         &details,
         ip_enc.as_deref(),
@@ -199,7 +199,7 @@ pub async fn admin_create_study(
         &st.db,
         actor_user_id,
         "CREATE_STUDY",
-        Some("STUDY"),
+        Some("study"),
         None,
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
         ip_enc.as_deref(),
@@ -419,7 +419,7 @@ pub async fn admin_update_study(
         &st.db,
         actor_user_id,
         "UPDATE_STUDY",
-        Some("STUDY"),
+        Some("study"),
         Some(study_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
         ip_enc.as_deref(),
@@ -524,7 +524,7 @@ pub async fn admin_list_study_tasks(
         &st.db,
         actor_user_id,
         "LIST_STUDY_TASKS",
-        Some("STUDY_TASK"),
+        Some("study_task"),
         Some(req.study_id as i64),
         &details,
         ip_enc.as_deref(),
@@ -573,7 +573,7 @@ pub async fn admin_get_study_task(
         &st.db,
         actor_user_id,
         "VIEW_STUDY_TASK",
-        Some("STUDY_TASK"),
+        Some("study_task"),
         Some(task_id),
         &details,
         ip_enc.as_deref(),
@@ -629,7 +629,7 @@ pub async fn admin_list_task_explains(
         &st.db,
         actor_user_id,
         "LIST_TASK_EXPLAINS",
-        Some("STUDY_TASK_EXPLAIN"),
+        Some("study_task_explain"),
         Some(req.task_id as i64),
         &details,
         ip_enc.as_deref(),
@@ -696,7 +696,7 @@ pub async fn admin_list_task_status(
         &st.db,
         actor_user_id,
         "LIST_TASK_STATUS",
-        Some("STUDY_TASK_STATUS"),
+        Some("study_task_status"),
         req.task_id.map(|id| id as i64),
         &details,
         ip_enc.as_deref(),
@@ -741,7 +741,7 @@ pub async fn admin_update_task_status(
         &st.db,
         actor_user_id,
         "UPDATE_TASK_STATUS",
-        Some("STUDY_TASK_STATUS"),
+        Some("study_task_status"),
         Some(task_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
         ip_enc.as_deref(),
@@ -818,7 +818,7 @@ pub async fn admin_create_task_explain(
         &st.db,
         actor_user_id,
         "CREATE_TASK_EXPLAIN",
-        Some("STUDY_TASK_EXPLAIN"),
+        Some("study_task_explain"),
         Some(task_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
         ip_enc.as_deref(),
@@ -888,7 +888,7 @@ pub async fn admin_update_task_explain(
         &st.db,
         actor_user_id,
         "UPDATE_TASK_EXPLAIN",
-        Some("STUDY_TASK_EXPLAIN"),
+        Some("study_task_explain"),
         Some(task_id),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
         ip_enc.as_deref(),
@@ -973,7 +973,7 @@ pub async fn admin_bulk_create_task_explains(
         &st.db,
         actor_user_id,
         "BULK_CREATE_TASK_EXPLAINS",
-        Some("STUDY_TASK_EXPLAIN"),
+        Some("study_task_explain"),
         None,
         &details,
         ip_enc.as_deref(),
@@ -1107,7 +1107,7 @@ pub async fn admin_bulk_update_task_explains(
         &st.db,
         actor_user_id,
         "BULK_UPDATE_TASK_EXPLAINS",
-        Some("STUDY_TASK_EXPLAIN"),
+        Some("study_task_explain"),
         None,
         &details,
         ip_enc.as_deref(),
@@ -1248,7 +1248,7 @@ pub async fn admin_bulk_update_task_status(
         &st.db,
         actor_user_id,
         "BULK_UPDATE_TASK_STATUS",
-        Some("STUDY_TASK_STATUS"),
+        Some("study_task_status"),
         None,
         &details,
         ip_enc.as_deref(),
@@ -1369,7 +1369,7 @@ pub async fn admin_create_study_task(
         &st.db,
         actor_user_id,
         "CREATE_TASK",           // action_type
-        Some("STUDY_TASK"),      // target_table
+        Some("study_task"),      // target_table
         Some(req.study_id as i64), // target_id (생성 전이라 부모 ID 기록)
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null), // ✅ [수정 후] 변환 실패 시 Null을 사용하고, 참조(&)를 전달
         ip_enc.as_deref(),
@@ -1694,7 +1694,7 @@ pub async fn admin_bulk_update_study_tasks(
         &st.db,
         actor_user_id,
         "BULK_UPDATE_TASKS",
-        Some("STUDY_TASK"),
+        Some("study_task"),
         None,
         &details,
         ip_enc.as_deref(),
@@ -1838,7 +1838,7 @@ pub async fn admin_update_study_task(
         &st.db,
         actor_user_id,
         "UPDATE_TASK",           // action_type (API 로그는 보통 대문자 사용)
-        Some("STUDY_TASK"),      // target_table
+        Some("study_task"),      // target_table
         Some(study_task_id),    // target_id
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null), // details
         ip_enc.as_deref(),
