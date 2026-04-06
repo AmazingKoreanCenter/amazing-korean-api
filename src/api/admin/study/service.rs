@@ -85,14 +85,16 @@ pub async fn admin_list_studies(
     // 4. Repo Call
     let (total, list) = repo::admin_list_studies(
         &st.db,
-        q,
-        page,
-        size,
-        sort,
-        order,
-        req.study_state,
-        req.study_access,
-        req.study_program,
+        &repo::AdminStudyListQuery {
+            q,
+            page,
+            size,
+            sort,
+            order,
+            study_state: req.study_state,
+            study_access: req.study_access,
+            study_program: req.study_program,
+        },
     )
     .await?;
 
@@ -194,14 +196,16 @@ pub async fn admin_create_study(
 
     let created = repo::admin_create_study(
         &mut tx,
-        actor_user_id,
-        study_idx,
-        study_title,
-        study_subtitle,
-        study_description,
-        study_program,
-        study_state,
-        study_access,
+        &repo::CreateStudyParams {
+            actor_user_id,
+            study_idx,
+            study_title,
+            study_subtitle,
+            study_description,
+            study_program,
+            study_state,
+            study_access,
+        },
     )
     .await;
 
@@ -299,14 +303,16 @@ pub async fn admin_bulk_create_studies(
 
             let created = repo::admin_create_study(
                 &mut tx,
-                actor_user_id,
-                &study_idx,
-                study_title,
-                study_subtitle,
-                study_description,
-                study_program,
-                study_state,
-                study_access,
+                &repo::CreateStudyParams {
+                    actor_user_id,
+                    study_idx: &study_idx,
+                    study_title,
+                    study_subtitle,
+                    study_description,
+                    study_program,
+                    study_state,
+                    study_access,
+                },
             )
             .await;
 

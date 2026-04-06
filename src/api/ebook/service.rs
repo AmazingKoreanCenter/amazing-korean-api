@@ -24,6 +24,17 @@ const EBOOK_PRICE_KRW: i32 = 15_000;
 /// E-book 가격 (USD cents, Paddle용 — $9.99)
 const EBOOK_PRICE_USD_CENTS: i32 = 9_99;
 
+/// 타일 요청 파라미터
+pub struct TileRequest<'a> {
+    pub user_id: i64,
+    pub purchase_code: &'a str,
+    pub page_num: i32,
+    pub tile_row: u32,
+    pub tile_col: u32,
+    pub ip_address: Option<&'a str>,
+    pub user_agent: Option<&'a str>,
+}
+
 pub struct EbookService;
 
 impl EbookService {
@@ -140,13 +151,15 @@ impl EbookService {
 
         let row = repo::insert_purchase(
             &mut tx,
-            &code,
-            user_id,
-            req.language,
-            req.edition,
-            req.payment_method,
-            price,
-            currency,
+            &repo::InsertPurchaseParams {
+                purchase_code: &code,
+                user_id,
+                language: req.language,
+                edition: req.edition,
+                payment_method: req.payment_method,
+                price,
+                currency,
+            },
         )
         .await?;
 
@@ -556,14 +569,15 @@ impl EbookService {
     /// 타일 분할 이미지 반환 (3×3 그리드 → 9개 타일)
     pub async fn get_page_tile(
         st: &AppState,
-        user_id: i64,
-        purchase_code: &str,
-        page_num: i32,
-        tile_row: u32,
-        tile_col: u32,
-        ip_address: Option<&str>,
-        user_agent: Option<&str>,
+        req: &TileRequest<'_>,
     ) -> AppResult<Vec<u8>> {
+        let user_id = req.user_id;
+        let purchase_code = req.purchase_code;
+        let page_num = req.page_num;
+        let tile_row = req.tile_row;
+        let tile_col = req.tile_col;
+        let ip_address = req.ip_address;
+        let user_agent = req.user_agent;
         let grid_rows = st.cfg.ebook_tile_grid_rows;
         let grid_cols = st.cfg.ebook_tile_grid_cols;
 

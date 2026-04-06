@@ -260,18 +260,20 @@ impl PaymentService {
 
         PaymentRepo::create_subscription(
             &st.db,
-            user_id,
-            PaymentProvider::Paddle,
-            &provider_sub_id,
-            Some(&customer_id),
-            SubscriptionStatus::Trialing,
-            billing_interval.unwrap_or(BillingInterval::Month1),
-            price_cents,
-            trial_starts,
-            trial_ends,
-            period_start,
-            period_end,
-            sub.custom_data.clone(),
+            &super::repo::CreateSubscriptionParams {
+                user_id,
+                provider: PaymentProvider::Paddle,
+                provider_subscription_id: &provider_sub_id,
+                provider_customer_id: Some(&customer_id),
+                status: SubscriptionStatus::Trialing,
+                billing_interval: billing_interval.unwrap_or(BillingInterval::Month1),
+                current_price_cents: price_cents,
+                trial_started_at: trial_starts,
+                trial_ends_at: trial_ends,
+                current_period_start: period_start,
+                current_period_end: period_end,
+                provider_data: sub.custom_data.clone(),
+            },
         )
         .await?;
 
@@ -560,17 +562,19 @@ impl PaymentService {
 
         PaymentRepo::create_transaction(
             &st.db,
-            subscription_id,
-            user_id,
-            PaymentProvider::Paddle,
-            &provider_txn_id,
-            TransactionStatus::Completed,
-            amount_cents,
-            tax_cents,
-            &currency,
-            billing_interval,
-            txn.custom_data.clone(),
-            txn.created_at,
+            &super::repo::CreateTransactionParams {
+                subscription_id,
+                user_id,
+                provider: PaymentProvider::Paddle,
+                provider_transaction_id: &provider_txn_id,
+                status: TransactionStatus::Completed,
+                amount_cents,
+                tax_cents,
+                currency: &currency,
+                billing_interval,
+                provider_data: txn.custom_data.clone(),
+                occurred_at: txn.created_at,
+            },
         )
         .await?;
 

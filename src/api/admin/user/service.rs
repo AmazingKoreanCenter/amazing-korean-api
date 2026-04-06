@@ -268,23 +268,25 @@ impl AdminUserService {
 
         let res = repo::admin_create_user(
             &st.db,
-            &email_enc,
-            &password_hash,
-            &name_enc,
-            &req.nickname,
-            &user_auth_str,
-            language,
-            country,
-            &birthday_enc,
-            gender,
-            false,
-            false,
-            actor_user_id,
-            ip_enc.as_deref(),
-            user_agent.as_deref(),
-            true,
-            &email_idx,
-            &name_idx,
+            &repo::AdminCreateUserParams {
+                email: &email_enc,
+                password_hash: &password_hash,
+                name: &name_enc,
+                nickname: &req.nickname,
+                user_auth: &user_auth_str,
+                language,
+                country,
+                birthday: &birthday_enc,
+                gender,
+                terms_service: false,
+                terms_personal: false,
+                actor_user_id,
+                ip_address: ip_enc.as_deref(),
+                user_agent: user_agent.as_deref(),
+                audit: true,
+                email_idx: &email_idx,
+                name_idx: &name_idx,
+            },
         )
         .await;
 
@@ -458,23 +460,25 @@ impl AdminUserService {
 
         match repo::admin_create_user(
             &st.db,
-            &email_enc,
-            &password_hash,
-            &name_enc,
-            &req.nickname,
-            &user_auth_str,
-            language,
-            country,
-            &birthday_enc,
-            gender,
-            false,
-            false,
-            actor_user_id,
-            ip_enc.as_deref(),
-            user_agent,
-            false,
-            &email_idx,
-            &name_idx,
+            &repo::AdminCreateUserParams {
+                email: &email_enc,
+                password_hash: &password_hash,
+                name: &name_enc,
+                nickname: &req.nickname,
+                user_auth: &user_auth_str,
+                language,
+                country,
+                birthday: &birthday_enc,
+                gender,
+                terms_service: false,
+                terms_personal: false,
+                actor_user_id,
+                ip_address: ip_enc.as_deref(),
+                user_agent,
+                audit: false,
+                email_idx: &email_idx,
+                name_idx: &name_idx,
+            },
         )
         .await
         {
@@ -552,14 +556,16 @@ impl AdminUserService {
 
         let updated = repo::admin_update_user(
             &mut tx,
-            user_id,
-            &req,
-            password_hash.as_deref(),
-            email_enc.as_deref(),
-            email_idx.as_deref(),
-            name_enc.as_deref(),
-            name_idx.as_deref(),
-            birthday_enc.as_deref(),
+            &repo::AdminUpdateUserParams {
+                user_id,
+                req: &req,
+                password_hash: password_hash.as_deref(),
+                email_encrypted: email_enc.as_deref(),
+                email_idx: email_idx.as_deref(),
+                name_encrypted: name_enc.as_deref(),
+                name_idx: name_idx.as_deref(),
+                birthday_encrypted: birthday_enc.as_deref(),
+            },
         )
         .await?;
 
@@ -708,14 +714,16 @@ impl AdminUserService {
 
                 let updated_user = super::repo::admin_update_user(
                     &mut tx,
-                    item.id,
-                    &update_req,
-                    password_hash.as_deref(),
-                    email_enc.as_deref(),
-                    email_idx.as_deref(),
-                    name_enc.as_deref(),
-                    name_idx.as_deref(),
-                    birthday_enc.as_deref(),
+                    &super::repo::AdminUpdateUserParams {
+                        user_id: item.id,
+                        req: &update_req,
+                        password_hash: password_hash.as_deref(),
+                        email_encrypted: email_enc.as_deref(),
+                        email_idx: email_idx.as_deref(),
+                        name_encrypted: name_enc.as_deref(),
+                        name_idx: name_idx.as_deref(),
+                        birthday_encrypted: birthday_enc.as_deref(),
+                    },
                 ).await?;
     
                 // 2-5. 커밋

@@ -41,13 +41,15 @@ impl TranslationService {
 
         let items = TranslationRepo::find_all(
             pool,
-            req.content_type,
-            content_types_csv,
-            req.content_id,
-            req.lang,
-            req.status,
-            per_page,
-            offset,
+            &super::repo::TranslationListQuery {
+                content_type: req.content_type,
+                content_types_csv: content_types_csv.map(|s| s.to_string()),
+                content_id: req.content_id,
+                lang: req.lang,
+                status: req.status,
+                limit: per_page,
+                offset,
+            },
         )
         .await?;
 

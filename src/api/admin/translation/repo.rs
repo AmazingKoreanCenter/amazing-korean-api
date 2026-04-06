@@ -7,6 +7,17 @@ use crate::types::{ContentType, SupportedLanguage, TranslationStatus};
 
 use super::dto::{ContentRecordItem, SourceFieldItem, TranslatedField, TranslationRes, TranslationSearchItem};
 
+/// 번역 목록 쿼리 파라미터
+pub struct TranslationListQuery {
+    pub content_type: Option<ContentType>,
+    pub content_types_csv: Option<String>,
+    pub content_id: Option<i64>,
+    pub lang: Option<SupportedLanguage>,
+    pub status: Option<TranslationStatus>,
+    pub limit: i64,
+    pub offset: i64,
+}
+
 pub struct TranslationRepo;
 
 impl TranslationRepo {
@@ -109,14 +120,15 @@ impl TranslationRepo {
     /// content_types_csv: 쉼표 구분 복수 content_type (content_type보다 우선)
     pub async fn find_all(
         pool: &PgPool,
-        content_type: Option<ContentType>,
-        content_types_csv: Option<&str>,
-        content_id: Option<i64>,
-        lang: Option<SupportedLanguage>,
-        status: Option<TranslationStatus>,
-        limit: i64,
-        offset: i64,
+        query: &TranslationListQuery,
     ) -> AppResult<Vec<TranslationRes>> {
+        let content_type = query.content_type;
+        let content_types_csv = query.content_types_csv.as_deref();
+        let content_id = query.content_id;
+        let lang = query.lang;
+        let status = query.status;
+        let limit = query.limit;
+        let offset = query.offset;
         let rows = sqlx::query_as::<_, TranslationRes>(
             r#"
             SELECT

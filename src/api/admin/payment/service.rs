@@ -107,13 +107,15 @@ impl AdminPaymentService {
 
         let (total_count, mut items) = AdminPaymentRepo::list_subscriptions(
             &st.db,
-            email_idx.as_deref(),
-            nickname,
-            req.status.as_deref(),
-            page,
-            size,
-            sort,
-            order,
+            &super::repo::SubscriptionListQuery {
+                q_email_idx: email_idx.as_deref(),
+                q_nickname: nickname,
+                status_filter: req.status.as_deref(),
+                page,
+                size,
+                sort,
+                order,
+            },
         )
         .await?;
 

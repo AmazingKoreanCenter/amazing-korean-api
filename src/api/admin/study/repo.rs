@@ -93,25 +93,30 @@ fn apply_task_status_filters<'a>(
     }
 }
 
+/// 스터디 목록 쿼리 파라미터
+pub struct AdminStudyListQuery<'a> {
+    pub q: Option<String>,
+    pub page: u64,
+    pub size: u64,
+    pub sort: &'a str,
+    pub order: &'a str,
+    pub study_state: Option<StudyState>,
+    pub study_access: Option<StudyAccess>,
+    pub study_program: Option<StudyProgram>,
+}
+
 pub async fn admin_list_studies(
     pool: &PgPool,
-    q: Option<String>,
-    page: u64,
-    size: u64,
-    sort: &str,
-    order: &str,
-    study_state: Option<StudyState>,
-    study_access: Option<StudyAccess>,
-    study_program: Option<StudyProgram>,
+    query: &AdminStudyListQuery<'_>,
 ) -> AppResult<(i64, Vec<AdminStudyRes>)> {
     // 검색어 포매팅 (%검색어%)
-    let search = q.map(|s| format!("%{}%", s));
+    let search = query.q.as_ref().map(|s| format!("%{}%", s));
 
     // -------------------------------------------------------------------------
     // 1. Total Count Query
     // -------------------------------------------------------------------------
     let mut count_builder = QueryBuilder::new("SELECT count(*) FROM study");
-    apply_filters(&mut count_builder, search.as_ref(), study_state, study_access, study_program);
+    apply_filters(&mut count_builder, search.as_ref(), query.study_state, query.study_access, query.study_program);
 
     let total_count: i64 = count_builder
         .build()
@@ -138,11 +143,11 @@ pub async fn admin_list_studies(
         "#
     );
 
-    apply_filters(&mut builder, search.as_ref(), study_state, study_access, study_program);
+    apply_filters(&mut builder, search.as_ref(), query.study_state, query.study_access, query.study_program);
 
     // 정렬 (Sorting)
     builder.push(" ORDER BY ");
-    let sort_col = match sort {
+    let sort_col = match query.sort {
         "study_id" => "study_id",
         "idx" | "study_idx" => "study_idx",
         "title" | "study_title" => "study_title",
@@ -154,13 +159,13 @@ pub async fn admin_list_studies(
         _ => "study_created_at", // 기본값
     };
     builder.push(sort_col);
-    builder.push(if order == "asc" { " ASC" } else { " DESC" });
+    builder.push(if query.order == "asc" { " ASC" } else { " DESC" });
 
     // 페이지네이션 (Pagination)
     builder.push(" LIMIT ");
-    builder.push_bind(size as i64);
+    builder.push_bind(query.size as i64);
     builder.push(" OFFSET ");
-    builder.push_bind(((page - 1) * size) as i64);
+    builder.push_bind(((query.page - 1) * query.size) as i64);
 
     let rows = builder
         .build_query_as::<AdminStudyRes>()
@@ -770,16 +775,21 @@ pub async fn exists_study_idx_for_update(
     Ok(exists)
 }
 
+/// 스터디 생성 파라미터
+pub struct CreateStudyParams<'a> {
+    pub actor_user_id: i64,
+    pub study_idx: &'a str,
+    pub study_title: Option<&'a str>,
+    pub study_subtitle: Option<&'a str>,
+    pub study_description: Option<&'a str>,
+    pub study_program: StudyProgram,
+    pub study_state: StudyState,
+    pub study_access: StudyAccess,
+}
+
 pub async fn admin_create_study(
     tx: &mut Transaction<'_, Postgres>,
-    actor_user_id: i64,
-    study_idx: &str,
-    study_title: Option<&str>,
-    study_subtitle: Option<&str>,
-    study_description: Option<&str>,
-    study_program: StudyProgram,
-    study_state: StudyState,
-    study_access: StudyAccess,
+    params: &CreateStudyParams<'_>,
 ) -> AppResult<AdminStudyRes> {
     let row = sqlx::query_as::<_, AdminStudyRes>(
         r#"
@@ -806,14 +816,14 @@ pub async fn admin_create_study(
             study_updated_at
         "#,
     )
-    .bind(actor_user_id)
-    .bind(study_idx)
-    .bind(study_state)
-    .bind(study_access)
-    .bind(study_program)
-    .bind(study_title)
-    .bind(study_subtitle)
-    .bind(study_description)
+    .bind(params.actor_user_id)
+    .bind(params.study_idx)
+    .bind(params.study_state)
+    .bind(params.study_access)
+    .bind(params.study_program)
+    .bind(params.study_title)
+    .bind(params.study_subtitle)
+    .bind(params.study_description)
     .fetch_one(&mut **tx)
     .await?;
 

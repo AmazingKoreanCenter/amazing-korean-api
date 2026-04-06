@@ -18,7 +18,7 @@ use super::dto::{
     LessonProgressBulkUpdateReq, LessonProgressBulkUpdateRes, LessonProgressBulkUpdateResult,
     LessonProgressListReq, LessonProgressUpdateReq, LessonUpdateItem, LessonUpdateReq,
 };
-use super::repo;
+use super::repo::{self, LessonLogParams};
 
 const PG_UNIQUE_VIOLATION: &str = "23505";
 
@@ -80,13 +80,15 @@ pub async fn admin_list_lessons(
 
     let (total, list) = repo::admin_list_lessons(
         &st.db,
-        q,
-        page,
-        size,
-        sort,
-        order,
-        req.lesson_state,
-        req.lesson_access,
+        &repo::AdminLessonListQuery {
+            q,
+            page,
+            size,
+            sort,
+            order,
+            lesson_state: req.lesson_state,
+            lesson_access: req.lesson_access,
+        },
     )
     .await?;
 
@@ -294,14 +296,16 @@ pub async fn admin_update_lesson_progress(
 
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "update",
-        lesson_id,
-        after.lesson_progress_last_item_seq,
-        None,
-        None,
-        Some(&before_val),
-        Some(&after_val),
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "update",
+            lesson_id,
+            lesson_item_seq: after.lesson_progress_last_item_seq,
+            video_id: None,
+            task_id: None,
+            before: Some(&before_val),
+            after: Some(&after_val),
+        },
     )
     .await?;
 
@@ -384,14 +388,16 @@ pub async fn admin_bulk_update_lesson_progress(
 
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "update",
-                lesson_id,
-                after.lesson_progress_last_item_seq,
-                None,
-                None,
-                Some(&before_val),
-                Some(&after_val),
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "update",
+                    lesson_id,
+                    lesson_item_seq: after.lesson_progress_last_item_seq,
+                    video_id: None,
+                    task_id: None,
+                    before: Some(&before_val),
+                    after: Some(&after_val),
+                },
             )
             .await?;
 
@@ -532,14 +538,16 @@ pub async fn admin_create_lesson_item(
     let after = serde_json::to_value(&created).unwrap_or_default();
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "create",
-        lesson_id,
-        Some(req.lesson_item_seq),
-        video_id,
-        study_task_id,
-        None,
-        Some(&after),
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "create",
+            lesson_id,
+            lesson_item_seq: Some(req.lesson_item_seq),
+            video_id,
+            task_id: study_task_id,
+            before: None,
+            after: Some(&after),
+        },
     )
     .await?;
 
@@ -639,14 +647,16 @@ pub async fn admin_bulk_create_lesson_items(
             let after = serde_json::to_value(&created).unwrap_or_default();
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "create",
-                lesson_id,
-                Some(lesson_item_seq),
-                video_id,
-                study_task_id,
-                None,
-                Some(&after),
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "create",
+                    lesson_id,
+                    lesson_item_seq: Some(lesson_item_seq),
+                    video_id,
+                    task_id: study_task_id,
+                    before: None,
+                    after: Some(&after),
+                },
             )
             .await?;
 
@@ -848,14 +858,16 @@ pub async fn admin_update_lesson_item(
 
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "update",
-        lesson_id,
-        Some(after.lesson_item_seq),
-        after.video_id,
-        after.study_task_id,
-        Some(&before_val),
-        Some(&after_val),
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "update",
+            lesson_id,
+            lesson_item_seq: Some(after.lesson_item_seq),
+            video_id: after.video_id,
+            task_id: after.study_task_id,
+            before: Some(&before_val),
+            after: Some(&after_val),
+        },
     )
     .await?;
 
@@ -1041,14 +1053,16 @@ pub async fn admin_bulk_update_lesson_items(
 
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "update",
-                lesson_id,
-                Some(after.lesson_item_seq),
-                after.video_id,
-                after.study_task_id,
-                Some(&before_val),
-                Some(&after_val),
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "update",
+                    lesson_id,
+                    lesson_item_seq: Some(after.lesson_item_seq),
+                    video_id: after.video_id,
+                    task_id: after.study_task_id,
+                    before: Some(&before_val),
+                    after: Some(&after_val),
+                },
             )
             .await?;
 
@@ -1150,14 +1164,16 @@ async fn admin_bulk_reorder_lesson_items(
 
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "update", // Use "update" action for reorder (as reorder is a type of update)
-        lesson_id,
-        None,
-        None,
-        None,
-        Some(&reorder_details),
-        None,
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "update", // Use "update" action for reorder (as reorder is a type of update)
+            lesson_id,
+            lesson_item_seq: None,
+            video_id: None,
+            task_id: None,
+            before: Some(&reorder_details),
+            after: None,
+        },
     )
     .await?;
 
@@ -1243,14 +1259,16 @@ pub async fn admin_bulk_delete_lesson_items(
             let before_val = serde_json::to_value(&before).unwrap_or_default();
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "delete",
-                lesson_id,
-                Some(seq),
-                before.video_id,
-                before.study_task_id,
-                Some(&before_val),
-                None,
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "delete",
+                    lesson_id,
+                    lesson_item_seq: Some(seq),
+                    video_id: before.video_id,
+                    task_id: before.study_task_id,
+                    before: Some(&before_val),
+                    after: None,
+                },
             )
             .await?;
 
@@ -1356,13 +1374,15 @@ pub async fn admin_create_lesson(
 
     let created = repo::create_lesson(
         &mut tx,
-        actor_user_id,
-        lesson_idx,
-        lesson_title,
-        lesson_subtitle,
-        lesson_description,
-        lesson_state,
-        lesson_access,
+        &repo::CreateLessonParams {
+            actor_user_id,
+            lesson_idx,
+            lesson_title,
+            lesson_subtitle,
+            lesson_description,
+            lesson_state,
+            lesson_access,
+        },
     )
     .await;
 
@@ -1377,14 +1397,16 @@ pub async fn admin_create_lesson(
     let after = serde_json::to_value(&created).unwrap_or_default();
     repo::create_lesson_log(
         &mut tx,
-        actor_user_id,
-        "create",
-        created.lesson_id,
-        None,
-        None,
-        None,
-        None,
-        Some(&after),
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "create",
+            lesson_id: created.lesson_id,
+            lesson_item_seq: None,
+            video_id: None,
+            task_id: None,
+            before: None,
+            after: Some(&after),
+        },
     )
     .await?;
 
@@ -1465,13 +1487,15 @@ pub async fn admin_bulk_create_lessons(
 
             let created = repo::create_lesson_tx(
                 &mut tx,
-                actor_user_id,
-                &lesson_idx,
-                &lesson_title,
-                lesson_subtitle,
-                lesson_description,
-                lesson_state,
-                lesson_access,
+                &repo::CreateLessonParams {
+                    actor_user_id,
+                    lesson_idx: &lesson_idx,
+                    lesson_title: &lesson_title,
+                    lesson_subtitle,
+                    lesson_description,
+                    lesson_state,
+                    lesson_access,
+                },
             )
             .await;
 
@@ -1486,14 +1510,16 @@ pub async fn admin_bulk_create_lessons(
             let after = serde_json::to_value(&created).unwrap_or_default();
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "create",
-                created.lesson_id,
-                None,
-                None,
-                None,
-                None,
-                Some(&after),
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "create",
+                    lesson_id: created.lesson_id,
+                    lesson_item_seq: None,
+                    video_id: None,
+                    task_id: None,
+                    before: None,
+                    after: Some(&after),
+                },
             )
             .await?;
 
@@ -1655,14 +1681,16 @@ pub async fn admin_bulk_update_lessons(
 
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "update",
-                lesson_id,
-                None,
-                None,
-                None,
-                Some(&before_val),
-                Some(&after_val),
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "update",
+                    lesson_id,
+                    lesson_item_seq: None,
+                    video_id: None,
+                    task_id: None,
+                    before: Some(&before_val),
+                    after: Some(&after_val),
+                },
             )
             .await?;
 
@@ -1808,14 +1836,16 @@ pub async fn admin_update_lesson(
 
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "update",
-        lesson_id,
-        None,
-        None,
-        None,
-        Some(&before_val),
-        Some(&after_val),
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "update",
+            lesson_id,
+            lesson_item_seq: None,
+            video_id: None,
+            task_id: None,
+            before: Some(&before_val),
+            after: Some(&after_val),
+        },
     )
     .await?;
 
@@ -1999,14 +2029,16 @@ pub async fn admin_delete_lesson_item(
     let before_val = serde_json::to_value(&before).unwrap_or_default();
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "delete",
-        lesson_id,
-        Some(seq),
-        before.video_id,
-        before.study_task_id,
-        Some(&before_val),
-        None,
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "delete",
+            lesson_id,
+            lesson_item_seq: Some(seq),
+            video_id: before.video_id,
+            task_id: before.study_task_id,
+            before: Some(&before_val),
+            after: None,
+        },
     )
     .await?;
 

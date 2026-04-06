@@ -94,15 +94,20 @@ pub async fn generate_purchase_code(
 
 // ─────────────────────── Insert ───────────────────────
 
+/// E-book 구매 생성 파라미터
+pub struct InsertPurchaseParams<'a> {
+    pub purchase_code: &'a str,
+    pub user_id: i64,
+    pub language: TextbookLanguage,
+    pub edition: EbookEdition,
+    pub payment_method: EbookPaymentMethod,
+    pub price: i32,
+    pub currency: &'a str,
+}
+
 pub async fn insert_purchase(
     tx: &mut Transaction<'_, Postgres>,
-    purchase_code: &str,
-    user_id: i64,
-    language: TextbookLanguage,
-    edition: EbookEdition,
-    payment_method: EbookPaymentMethod,
-    price: i32,
-    currency: &str,
+    params: &InsertPurchaseParams<'_>,
 ) -> AppResult<EbookPurchaseRow> {
     let sql = format!(
         "INSERT INTO ebook_purchase (
@@ -113,13 +118,13 @@ pub async fn insert_purchase(
     );
 
     let row = sqlx::query(&sql)
-        .bind(purchase_code)
-        .bind(user_id)
-        .bind(language)
-        .bind(edition)
-        .bind(payment_method)
-        .bind(price)
-        .bind(currency)
+        .bind(params.purchase_code)
+        .bind(params.user_id)
+        .bind(params.language)
+        .bind(params.edition)
+        .bind(params.payment_method)
+        .bind(params.price)
+        .bind(params.currency)
         .fetch_one(&mut **tx)
         .await?;
 

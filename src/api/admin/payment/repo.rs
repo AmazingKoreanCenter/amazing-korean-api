@@ -4,6 +4,17 @@ use crate::error::AppResult;
 
 use super::dto::{AdminGrantSummary, AdminSubDetail, AdminSubSummary, AdminSubUser, AdminTxnSummary};
 
+/// 구독 목록 쿼리 파라미터
+pub struct SubscriptionListQuery<'a> {
+    pub q_email_idx: Option<&'a str>,
+    pub q_nickname: Option<&'a str>,
+    pub status_filter: Option<&'a str>,
+    pub page: i64,
+    pub size: i64,
+    pub sort: &'a str,
+    pub order: &'a str,
+}
+
 pub struct AdminPaymentRepo;
 
 impl AdminPaymentRepo {
@@ -14,14 +25,15 @@ impl AdminPaymentRepo {
     /// 구독 목록 (검색/필터/정렬/페이지네이션)
     pub async fn list_subscriptions(
         pool: &PgPool,
-        q_email_idx: Option<&str>,
-        q_nickname: Option<&str>,
-        status_filter: Option<&str>,
-        page: i64,
-        size: i64,
-        sort: &str,
-        order: &str,
+        query: &SubscriptionListQuery<'_>,
     ) -> AppResult<(i64, Vec<AdminSubSummary>)> {
+        let q_email_idx = query.q_email_idx;
+        let q_nickname = query.q_nickname;
+        let status_filter = query.status_filter;
+        let page = query.page;
+        let size = query.size;
+        let sort = query.sort;
+        let order = query.order;
         let mut count_sql = String::from(
             "SELECT COUNT(*) FROM subscriptions s JOIN users u ON s.user_id = u.user_id WHERE 1=1",
         );
