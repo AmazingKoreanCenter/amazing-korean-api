@@ -92,9 +92,9 @@ pub async fn login(
     let parsed_ua = parse_user_agent(&headers);
 
     match AuthService::login(&st, req, ip, ua, parsed_ua).await? {
-        LoginOutcome::Success { login_res, cookie, .. } => {
-            let jar = jar.add(cookie);
-            Ok((jar, Json(login_res)).into_response())
+        LoginOutcome::Success(s) => {
+            let jar = jar.add(s.cookie);
+            Ok((jar, Json(s.login_res)).into_response())
         }
         LoginOutcome::MfaChallenge { mfa_token, user_id } => {
             Ok(Json(MfaChallengeRes {
@@ -185,13 +185,13 @@ pub async fn login_mobile(
     let parsed_ua = parse_user_agent(&headers);
 
     match AuthService::login(&st, req, ip, ua, parsed_ua).await? {
-        LoginOutcome::Success { login_res, refresh_token, ttl, .. } => {
+        LoginOutcome::Success(s) => {
             Ok(Json(LoginMobileRes {
-                user_id: login_res.user_id,
-                access: login_res.access,
-                session_id: login_res.session_id,
-                refresh_token,
-                refresh_expires_in: ttl,
+                user_id: s.login_res.user_id,
+                access: s.login_res.access,
+                session_id: s.login_res.session_id,
+                refresh_token: s.refresh_token,
+                refresh_expires_in: s.ttl,
             }).into_response())
         }
         LoginOutcome::MfaChallenge { mfa_token, user_id } => {
@@ -575,14 +575,14 @@ pub async fn google_auth_callback(
     let result = AuthService::google_auth_callback(&st, &code, &query.state, ip, ua, parsed_ua).await;
 
     match result {
-        Ok(OAuthLoginOutcome::Success { login_res, cookie, is_new_user, .. }) => {
+        Ok(OAuthLoginOutcome::Success(s)) => {
             let success_url = format!(
                 "{}/login?login=success&user_id={}&is_new_user={}",
                 st.cfg.frontend_url,
-                login_res.user_id,
-                is_new_user
+                s.login_res.user_id,
+                s.is_new_user
             );
-            let jar = jar.add(cookie);
+            let jar = jar.add(s.cookie);
             Ok((jar, Redirect::temporary(&success_url)))
         }
         Ok(OAuthLoginOutcome::MfaChallenge { mfa_token, user_id }) => {
