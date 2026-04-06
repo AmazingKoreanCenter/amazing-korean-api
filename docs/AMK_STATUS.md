@@ -79,17 +79,18 @@
 
 | 순서 | 항목 | 카테고리 | 예상 | 내역 | 조건 |
 |:----:|------|---------|:----:|------|------|
-| 1 | **Paddle Live 전환** | 결제 | 1일 | GitHub Secrets 교체 + 배포 + E2E 검증 | **최우선** |
+| 1 | **Paddle Live 전환** | 결제 | 1일 | GitHub Secrets 교체 + 배포 + E2E 검증 | 언제든 가능 |
 | — | ~~e-book Paddle 연동~~ | — | — | — | **✅ 코드 구현 완료 (배포 대기)** |
 | 2 | **교재 번역 + PDF 생성** | 콘텐츠 | 병행 | 22→34언어 확장 완료. 번역 33언어 검증 완료. **남은: 13언어 PDF 재생성 + 22언어 PDF 갱신** (`amazing-korean-books` 프로젝트) | 전 기간 병행 |
-| 3 | **학습 콘텐츠 시딩** | 콘텐츠 | 2-3일 | 교재 JSON → DB 시딩, 실 콘텐츠 투입 | Paddle Live 후 |
-| 4 | **RDS/ElastiCache 이전** | 인프라 | 3-5일 | EC2 단일 DB → AWS RDS + ElastiCache | 모바일 출시 전 안정화 |
-| 5 | **동시 세션 수 제한** | 보안 | 2-3일 | 역할별 동시 세션 상한. 모바일 세션 표면 증가 대비 | RDS 이전 후 |
-| 6 | ~~**모바일 인증 엔드포인트**~~ | 백엔드 | ✅ | `login-mobile` + `refresh-mobile` 구현 완료 | — |
-| 7 | ~~**공유 Rust 크레이트 추출**~~ | 아키텍처 | ✅ | `amazing-korean-crypto` 크레이트 추출 완료 (Cargo 워크스페이스) | — |
-| 7.5 | **다국어 반응형 디자인 규격** | UI | 2-3일 | 22개 언어 텍스트 길이 차이 대응, 폰트/컨테이너/줄바꿈 규격화, Figma F1~F3 동기화 | 모바일 앱 전 |
-| 8 | **모바일 앱 (Phase 2)** | 앱 | ~21-23일 | **Flutter** + flutter_rust_bridge. 상세: [`AMK_APP_ROADMAP.md §2`](./AMK_APP_ROADMAP.md) | 순서 5-7.5 |
-| 9 | **데스크탑 앱 (Phase 3)** | 앱 | ~7.5일 | **Tauri 2.x** + React 프론트 재사용. 상세: [`AMK_APP_ROADMAP.md §3`](./AMK_APP_ROADMAP.md) | 순서 7 |
+| 3 | **학습 콘텐츠 시딩** | 콘텐츠 | 2-3일 | 교재 JSON → DB 시딩, 실 콘텐츠 투입 | 해설용 출판본 완성 후 |
+| 4 | **모바일 앱** | 앱 | ~21-23일 | **Flutter** (`amazing-korean-mobile` 별도 리포). 상세: [`AMK_APP_ROADMAP.md §2`](./AMK_APP_ROADMAP.md) | **지금 착수** |
+| 5 | **데스크탑 앱** | 앱 | ~7.5일 | **Tauri 2.x** (`amazing-korean-desktop` 별도 리포). 상세: [`AMK_APP_ROADMAP.md §3`](./AMK_APP_ROADMAP.md) | **지금 착수** |
+| 6 | **RDS/ElastiCache 이전** | 인프라 | 3-5일 | EC2 단일 DB → AWS RDS + ElastiCache | 앱 개발 이후 |
+| 7 | **동시 세션 수 제한** | 보안 | 2-3일 | 역할별 동시 세션 상한. 모바일 세션 표면 증가 대비 | 앱 개발 이후 |
+| — | ~~**모바일 인증 엔드포인트**~~ | 백엔드 | ✅ | `login-mobile` + `refresh-mobile` 구현 완료 | — |
+| — | ~~**공유 Rust 크레이트 추출**~~ | 아키텍처 | ✅ | `amazing-korean-crypto` 크레이트 추출 완료 (Cargo 워크스페이스) | — |
+| — | ~~**다국어 반응형 디자인 규격**~~ | UI | ✅ | 언어 그룹별 CSS 클래스 동적 관리, tracking-tight 조건부 해제, tall script line-height 보정, break-keep CJK 한정 | — |
+| — | ~~**코드 점검**~~ | 품질 | ✅ | 점검 1~4 + 일괄 수정 완료. 잔여: clippy 리팩토링급 20건 (too_many_args 18 + large_enum_variant 2). 결과: `AMK_CODE_AUDIT_RESULT.md` | — |
 | — | ~~디자인 시스템~~ | — | — | — | ✅ §8.1 #13 |
 | — | ~~E-book 웹 보안~~ | — | — | — | ✅ Phase 1 완료 (§8.1 #42~#46) |
 | 10 | 다중 서버 구성 (HA) | 인프라 | — | ①nginx 복제 → ②ALB+EC2 → ③ECS Fargate | RDS 완료 후 |

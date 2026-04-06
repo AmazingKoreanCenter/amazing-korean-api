@@ -707,9 +707,9 @@ impl AdminUserService {
                     language: item.language.clone(),
                     country: item.country.clone(),
                     birthday: item.birthday,
-                    gender: item.gender.clone(),
+                    gender: item.gender,
                     user_state: item.user_state,
-                    user_auth: item.user_auth.clone(),
+                    user_auth: item.user_auth,
                 };
 
                 // 2-4. 쓰기 작업: Transaction 시작
@@ -765,7 +765,7 @@ impl AdminUserService {
     
         // 4. Audit Log
         let summary = BulkSummary {
-            total: (success_count + failure_count) as i64,
+            total: (success_count + failure_count),
             success: success_count,
             failure: failure_count,
         };

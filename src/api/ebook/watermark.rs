@@ -35,7 +35,7 @@ pub fn apply_watermark(
 ) -> AppResult<Vec<u8>> {
     // WebP 디코드
     let img = image::load_from_memory(image_bytes)
-        .map_err(|e| AppError::Internal(format!("Failed to decode image: {e}").into()))?;
+        .map_err(|e| AppError::Internal(format!("Failed to decode image: {e}")))?;
 
     let mut rgba_img = img.to_rgba8();
 
@@ -55,7 +55,7 @@ pub fn apply_watermark(
     let mut buf = std::io::Cursor::new(Vec::new());
     dynamic
         .write_to(&mut buf, image::ImageFormat::WebP)
-        .map_err(|e| AppError::Internal(format!("Failed to encode watermarked image: {e}").into()))?;
+        .map_err(|e| AppError::Internal(format!("Failed to encode watermarked image: {e}")))?;
 
     Ok(buf.into_inner())
 }

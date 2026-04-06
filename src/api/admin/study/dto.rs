@@ -496,7 +496,7 @@ fn validate_study_idx(value: &str) -> Result<(), validator::ValidationError> {
 
 // [수정] 인자 타입을 &Option<String> -> &String으로 변경
 // validator는 값이 Some일 때만 이 함수를 호출하며, 내부 값을 전달합니다.
-fn validate_optional_study_idx(value: &String) -> Result<(), ValidationError> {
+fn validate_optional_study_idx(value: &str) -> Result<(), ValidationError> {
     if value.len() < 2 {
         return Err(ValidationError::new("length_too_short"));
     }

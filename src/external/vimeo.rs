@@ -171,7 +171,7 @@ impl VimeoClient {
         let video_id = data
             .uri
             .split('/')
-            .last()
+            .next_back()
             .unwrap_or_default()
             .to_string();
 

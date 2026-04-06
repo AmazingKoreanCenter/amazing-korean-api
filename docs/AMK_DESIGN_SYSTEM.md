@@ -16,6 +16,14 @@
 > - V1-9: Tailwind 기본색 → 디자인 시스템 토큰 교체 (7파일, status badge/surface-inverted/coming-soon)
 > - V1-9: `text-white` → `text-surface-inverted-foreground` (ebook_viewer fullscreen)
 > - 모바일 UX 79건 수정: `@media (pointer: coarse)` 터치 타겟 44px, 고정 그리드 반응형, 모달 뷰포트 제한, 패딩/간격 반응형, header 스크롤 잠금
+>
+> **v4.1 변경 (2026-04-02) — 다국어 반응형 디자인 규격:**
+> - 언어 그룹 유틸리티 (`utils/language_groups.ts`): CJK / Tall Script / Relaxed Tracking 분류
+> - `changeLanguage` 시 `<html>`에 `lang-cjk`, `lang-tall-script`, `lang-relaxed-tracking` CSS 클래스 동적 관리
+> - `tracking-tight` 조건부 해제: `.lang-relaxed-tracking h1~h6 { letter-spacing: 0 }` (th, my, km, si, hi, ne, mn)
+> - Tall script line-height 보정: `.lang-tall-script { line-height: 1.8 }` (th, my, km)
+> - `break-keep` → `break-keep-cjk` 전환 (4곳): CJK에서만 `word-break: keep-all` 적용
+> - 히어로 제목 `whitespace-nowrap` 제거: 장문 언어(de, ru, pt 등) 컨테이너 넘침 방지
 
 ---
 

@@ -425,7 +425,7 @@ impl Config {
             }
 
             // 하위 호환: ENCRYPTION_KEY (레거시) → v1으로 매핑 (V1 미설정 시에만)
-            if !keys.contains_key(&1) {
+            if let std::collections::hash_map::Entry::Vacant(e) = keys.entry(1) {
                 if let Ok(b64) = env::var("ENCRYPTION_KEY") {
                     if !b64.is_empty() {
                         let decoded = STANDARD.decode(&b64)
@@ -434,7 +434,7 @@ impl Config {
                             .unwrap_or_else(|_| panic!(
                                 "ENCRYPTION_KEY must be exactly 32 bytes (got {})", decoded.len()
                             ));
-                        keys.insert(1, key);
+                        e.insert(key);
                     }
                 }
             }

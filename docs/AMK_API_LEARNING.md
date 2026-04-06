@@ -10,7 +10,8 @@
 ### 5.1 Phase 1 — health ✅🆗
 | 번호 | 엔드포인트 | 화면 경로 | 기능 명칭 | 점검사항 | 기능 완료 |
 |---|---|---|---|---|---|
-| 1-1 | `GET /healthz` | `/health` | 라이브 헬스 | ***서버 작동 여부 확인***<br>**성공:** Auth pass / Page : healthz init→ready / Request : healthz pending→success / Data : healthz present → **200**<br>**실패:** Auth pass / Page : healthz init→ready / Request : healthz pending→error / Data : healthz error → **500** | [✅🆗] |
+| 1-1 | `GET /healthz`<br>`GET /health` | `/health` | 라이브 헬스 | ***서버 작동 여부 확인. `/health`는 `/healthz`의 별칭(동일 핸들러)***<br>**성공:** Auth pass / Page : healthz init→ready / Request : healthz pending→success / Data : healthz present → **200**<br>**실패:** Auth pass / Page : healthz init→ready / Request : healthz pending→error / Data : healthz error → **500** | [✅🆗] |
+| 1-1a | `GET /ready` | - | 레디니스 프로브 | ***DB/Redis 연결 상태 확인***<br>**성공(정상):** → **200**<br>**실패(의존성 불가):** → **503** | [✅] |
 | 1-2 | `GET /docs` | `/docs` | API 문서 | ***Swagger 태그 순서 고정(health → auth → user → videos → study → lesson → admin)***<br>**성공:** Auth pass / Page : docs init→ready / Request : docs pending→success / Data : docs present → **200**<br>**실패(스키마 집계 실패):** Auth pass / Page : docs init→ready / Request : docs pending→error / Data : docs error → **500**<br>**실패(정적 경로 누락):** Auth pass / Page : docs init→ready / Request : docs pending→error / Data : docs error → **404** | [✅] |
 
 ---
@@ -18,9 +19,11 @@
 <details>
   <summary>Phase 1 — health 시나리오</summary>
 
-#### 5.1-1 : `GET /healthz` 시나리오
+#### 5.1-1 : `GET /healthz` | `GET /health` 시나리오
+> `GET /health`는 `GET /healthz`의 별칭(alias)으로, 동일한 핸들러를 공유한다.
+
 - **성공**
-  - When: 클라이언트가 `GET /healthz` 호출, Swagger에서만 실행
+  - When: 클라이언트가 `GET /healthz` 또는 `GET /health` 호출
   - Then: `200 OK`, JSON 바디 `{"status":"live","uptime_ms":..., "version":"v1.0.0"}`
   - **PROD-5**: `APP_ENV=production`이면 `version` 필드 생략 (`Option<String>`, `skip_serializing_if`)
   - 상태축: Auth=pass / Page=init→ready / Request=pending→success / Data=present
@@ -28,6 +31,16 @@
   - When: 헬스 핸들러 내부 예외
   - Then: `500 Internal Server Error`, 에러 바디 `{"error":{"http_status":500,"code":"HEALTH_INTERNAL"}}`
   - 상태축: Auth=pass / Page=init→ready / Request=pending→error / Data=error
+
+---
+
+#### 5.1-1a : `GET /ready` (레디니스 프로브)
+- **성공(정상)**
+  - When: 클라이언트가 `GET /ready` 호출
+  - Then: `200 OK`, DB 및 Redis 연결이 정상임을 확인
+- **실패(의존성 불가)**
+  - When: DB 또는 Redis 연결 실패
+  - Then: `503 Service Unavailable`
 
 ---
 
@@ -458,6 +471,7 @@
 | 9-10 | `GET /admin/translations/source-fields` | - | 원본 텍스트 조회 | ***content_type+content_id로 한국어 원본 필드 조회, RBAC***<br>성공: **200**<br>실패: **401/403/400** | [✅] |
 | ~~9-11~~ | ~~`POST /admin/translations/auto-bulk`~~ | — | ~~벌크 자동 번역~~ | **삭제됨** (2026-03-24, Google Translate API 해지) | — |
 | 9-12 | `GET /admin/translations/search` | - | 번역 검색 (재사용) | ***lang으로 최근 approved/reviewed 번역 조회, RBAC***<br>성공: **200**<br>실패: **401/403** | [✅] |
+| 9-13 | `GET /admin/translations/stats` | - | 번역 통계 조회 | ***번역 현황 통계 반환, RBAC***<br>성공: **200**<br>실패: **401/403** | [✅] |
 
 ---
 
@@ -693,6 +707,22 @@ draft → reviewed → approved
   ]
 }
 ```
+
+---
+
+#### 9-13 : `GET /admin/translations/stats` (번역 통계 조회)
+
+> 번역 현황 통계를 반환한다. 콘텐츠 타입별, 언어별, 상태별 번역 커버리지 등을 확인할 수 있다.
+
+**응답 (성공 200)**
+```json
+{
+  "stats": { ... }
+}
+```
+
+- **실패(미인증)**: **401**
+- **실패(권한 없음)**: **403**
 
 ---
 

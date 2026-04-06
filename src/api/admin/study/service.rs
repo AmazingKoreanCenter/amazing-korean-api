@@ -1839,7 +1839,7 @@ pub async fn admin_update_study_task(
         actor_user_id,
         "UPDATE_TASK",           // action_type (API 로그는 보통 대문자 사용)
         Some("STUDY_TASK"),      // target_table
-        Some(study_task_id as i64),    // target_id
+        Some(study_task_id),    // target_id
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null), // details
         ip_enc.as_deref(),
         user_agent.as_deref(),

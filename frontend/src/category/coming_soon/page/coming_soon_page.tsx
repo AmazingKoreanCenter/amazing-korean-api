@@ -82,7 +82,7 @@ export function ComingSoonPage() {
               <h3 className="text-xl font-semibold mb-3">
                 {t(titleKey)}
               </h3>
-              <p className="text-muted-foreground leading-relaxed break-keep">
+              <p className="text-muted-foreground leading-relaxed break-keep-cjk">
                 {t(descKey).split("\n").map((line, i) => (
                   <span key={i}>
                     {i > 0 && <br />}

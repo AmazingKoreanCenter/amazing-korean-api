@@ -102,12 +102,14 @@ APP_ENV=production                 # production | development (production + EMAI
 
 # ─── Database ───
 POSTGRES_PASSWORD=<secure-password>
+# SKIP_DB=0                          # 기본: false. "1"이면 DB 초기화 건너뛰기 (테스트/CI 용)
 
 # ─── Redis ───
 REDIS_PASSWORD=<secure-password>
 
 # ─── JWT ───
 JWT_SECRET=<min-32-bytes-secret>
+# JWT_EXPIRE_HOURS=24               # 기본: 24시간. 액세스 토큰 만료 시간
 DOMAIN=api.amazingkorean.net
 
 # ─── Domain & CORS ───
@@ -118,6 +120,8 @@ CORS_ORIGINS=https://amazingkorean.net,https://www.amazingkorean.net
 # 프로덕션 키 ≠ 로컬 키 (반드시 다른 키 사용)
 # 키 분실 시 암호화된 데이터 복구 불가 — 안전한 곳에 별도 백업 필수
 ENCRYPTION_KEY_V1=<base64-encoded-32-bytes>
+# ENCRYPTION_KEY_V2=<base64-encoded-32-bytes>  # 키 로테이션 시 추가 (V2~V255)
+# ENCRYPTION_KEY_V3=<base64-encoded-32-bytes>  # 복호화 시 암호문 버전으로 자동 선택
 HMAC_KEY=<base64-encoded-32-bytes>
 ENCRYPTION_CURRENT_VERSION=1
 
@@ -135,11 +139,23 @@ RESEND_API_KEY=re_xxx              # 필수 (Resend 대시보드에서 발급)
 # RATE_LIMIT_EMAIL_WINDOW_SEC=18000  # 기본: 18000초 (5시간)
 # RATE_LIMIT_EMAIL_MAX=5             # 기본: 5회/윈도우
 
+# ─── Rate Limiting (스터디 답안 제출) ───
+# RATE_LIMIT_STUDY_WINDOW_SEC=60     # 기본: 60초
+# RATE_LIMIT_STUDY_MAX=30            # 기본: 30회/윈도우
+
+# ─── Rate Limiting (교재 주문) ───
+# RATE_LIMIT_TEXTBOOK_WINDOW_SEC=3600  # 기본: 3600초 (1시간)
+# RATE_LIMIT_TEXTBOOK_MAX=5            # 기본: 5회/윈도우
+
 # ─── Swagger UI ───
 # ENABLE_DOCS=0                       # 기본: 0 (비활성화). 1로 설정 시 /docs Swagger UI 노출
 
 # ─── Admin ───
 # ADMIN_IP_ALLOWLIST=1.2.3.4,10.0.0.0/8
+
+# ─── E-book ───
+# EBOOK_PAGE_IMAGES_DIR=docs/textbook/page-images  # 기본: "docs/textbook/page-images". 페이지 이미지 경로
+# EBOOK_IMAGES_ENCRYPTED=0           # 기본: false. "1"이면 이미지 암호화 모드
 
 # ─── Paddle Billing (결제) ───
 PADDLE_API_KEY=apikey_xxx             # Paddle API Key (Sandbox/Production)
@@ -424,7 +440,7 @@ docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c "SELECT user_emai
 
 | 파일 | 설명 |
 |------|------|
-| `Dockerfile` | Rust 백엔드 멀티스테이지 빌드 (rust:1.88, 멀티바이너리: api + rekey_encryption) |
+| `Dockerfile` | Rust 백엔드 멀티스테이지 빌드 (rust:1.88, 멀티바이너리: api + rekey_encryption, Cargo 워크스페이스: `crates/crypto`) |
 | `docker-compose.prod.yml` | 프로덕션 구성 (API + DB + Redis + Nginx + Certbot) |
 | `nginx/nginx.conf` | 리버스 프록시 (`api.amazingkorean.net` → api:3000), SSL은 Cloudflare Flexible |
 | `.sqlx/` | SQLx 오프라인 캐시 (Docker 빌드 시 필수) |
@@ -488,6 +504,21 @@ docker stats
 - 1차: 최초 환경변수 추가 시 docker-compose.prod.yml 누락
 - 2차: Paddle 변수 추가 시 `PADDLE_*` 9개 전부 누락
 - 3차: Paddle 변수 추가 수정 시 `PAYMENT_PROVIDER` 누락 (`PADDLE_*` 접두사에만 집중해서 놓침)
+
+##### 8-2. Cargo 워크스페이스 멤버 추가 시 Dockerfile 동시 수정 필수
+
+> **2회 실수 발생** — `crates/crypto` 워크스페이스 멤버 추가 후 Dockerfile 미수정 → Docker 빌드 2회 연속 실패.
+
+**필수 수정 사항** (새 워크스페이스 멤버 추가 시):
+1. 매니페스트 복사: `COPY crates/{name}/Cargo.toml ./crates/{name}/Cargo.toml`
+2. 더미 소스 생성: `mkdir -p crates/{name}/src && echo "" > crates/{name}/src/lib.rs`
+3. 캐시 레이어 정리: `rm -rf` 대상에 `crates/{name}/src` 추가
+4. 실제 소스 복사: `COPY crates/{name} ./crates/{name}`
+5. **2차 빌드 touch**: `touch` 대상에 `crates/{name}/src/lib.rs` 추가 (누락 시 Cargo가 더미 캐시 사용 → 빌드 실패)
+
+**실수 이력:**
+- 1차: `crates/crypto/` 디렉토리 자체를 COPY하지 않아 빌드 실패
+- 2차: 2차 빌드 `touch`에 `crates/crypto/src/lib.rs` 누락 → Cargo가 더미 빈 lib.rs 캐시 사용 → 빌드 실패
 
 ##### 9. Cloudflare SSL & 보안 설정
 

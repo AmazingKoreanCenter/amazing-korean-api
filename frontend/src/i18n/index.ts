@@ -2,6 +2,12 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
 import { loadFontForLanguage } from "@/utils/font_loader";
+import {
+  isCJK,
+  isTallScript,
+  needsRelaxedTracking,
+  LANG_CLASSES,
+} from "@/utils/language_groups";
 
 import ko from "./locales/ko.json";
 import en from "./locales/en.json";
@@ -80,7 +86,21 @@ export const changeLanguage = async (lang: string): Promise<void> => {
   localStorage.setItem(LANGUAGE_KEY, lang);
   // 5. html lang 속성 업데이트
   document.documentElement.lang = lang;
+  // 6. 언어 그룹 CSS 클래스 업데이트
+  applyLangClasses(lang);
 };
+
+// ── 언어 그룹 CSS 클래스 적용 ──────────────────────────────────────
+function applyLangClasses(lang: string): void {
+  const root = document.documentElement.classList;
+  root.remove(...LANG_CLASSES);
+  if (isCJK(lang)) root.add("lang-cjk");
+  if (isTallScript(lang)) root.add("lang-tall-script");
+  if (needsRelaxedTracking(lang)) root.add("lang-relaxed-tracking");
+}
+
+// 초기 로드 시 현재 언어에 맞는 클래스 설정
+applyLangClasses(i18n.language);
 
 /** localStorage에 저장된 언어 코드 반환 */
 export const getSavedLanguage = (): string => {

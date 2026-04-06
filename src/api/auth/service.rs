@@ -476,7 +476,7 @@ impl AuthService {
         // [Step 4] Fetch user role for TTL calculation (before rotate)
         let user = user_repo::find_user(&st.db, login_record.user_id)
             .await?
-            .ok_or(AppError::Unauthorized("User not found".into()))?;
+            .ok_or(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
         let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;
 
         // [Step 5] Rotate Token & Issue new Access Token
@@ -1011,7 +1011,7 @@ impl AuthService {
         // [Step 4] 코드 삭제 (일회용)
         let _: () = redis_conn.del(&code_key).await.unwrap_or(());
         let user = AuthRepo::find_user_by_email_idx(&st.db, &idx).await?
-            .ok_or_else(|| AppError::Unauthorized("AUTH_401_USER_NOT_FOUND".into()))?;
+            .ok_or_else(|| AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()))?;
 
         // [Step 6] reset_token 생성 (Redis에 저장, JWT 대신 단순 토큰 사용)
         let reset_token = format!("ak_reset_{}", Uuid::new_v4());
@@ -1675,6 +1675,16 @@ impl AuthService {
         user_id: i64,
         user_email_enc: &str,
     ) -> AppResult<MfaSetupRes> {
+        // Rate limit: 반복 MFA 설정 요청 방지
+        let mut redis_conn = st.redis.get().await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let rl_key = format!("rl:mfa_setup:{}", user_id);
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        let _: () = redis_conn.expire(&rl_key, 3600).await?; // 5회/1시간
+        if attempts > 5 {
+            return Err(AppError::TooManyRequests("MFA_429_TOO_MANY_ATTEMPTS".into()));
+        }
+
         // 이미 MFA 활성화된 경우 에러
         let mfa_enabled = AuthRepo::find_user_mfa_enabled(&st.db, user_id).await?;
         if mfa_enabled {
@@ -1722,6 +1732,16 @@ impl AuthService {
         user_id: i64,
         code: &str,
     ) -> AppResult<MfaVerifySetupRes> {
+        // Rate limit: TOTP 6자리 brute-force 방지
+        let mut redis_conn = st.redis.get().await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let rl_key = format!("rl:mfa_verify_setup:{}", user_id);
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_mfa_window_sec).await?;
+        if attempts > st.cfg.rate_limit_mfa_max {
+            return Err(AppError::TooManyRequests("MFA_429_TOO_MANY_ATTEMPTS".into()));
+        }
+
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
 
         // DB에서 MFA secret 조회 + 복호화
@@ -1915,6 +1935,16 @@ impl AuthService {
         auth_user_auth: UserAuth,
         target_user_id: i64,
     ) -> AppResult<MfaDisableRes> {
+        // Rate limit: 반복 MFA 비활성화 시도 방지
+        let mut redis_conn = st.redis.get().await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let rl_key = format!("rl:mfa_disable:{}", auth_user_id);
+        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+        let _: () = redis_conn.expire(&rl_key, 3600).await?; // 5회/1시간
+        if attempts > 5 {
+            return Err(AppError::TooManyRequests("MFA_429_TOO_MANY_ATTEMPTS".into()));
+        }
+
         // HYMN만 가능
         if auth_user_auth != UserAuth::Hymn {
             return Err(AppError::Forbidden("MFA_DISABLE_HYMN_ONLY".into()));

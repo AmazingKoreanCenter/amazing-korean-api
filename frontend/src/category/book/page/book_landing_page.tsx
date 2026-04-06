@@ -133,7 +133,7 @@ function BookInfoView({ book, isLoggedIn }: { book: BookInfo; isLoggedIn: boolea
 
       {/* Section 2: 서비스 안내 + 다른 언어 */}
       <SectionContainer size="md">
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-center mb-8 break-keep">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-center mb-8 break-keep-cjk">
           {t("book.benefitsTitle")}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto text-center">

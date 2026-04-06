@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-01
+updated: 2026-04-03
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,29 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-03 — 코드 점검 1~4단계 + 일괄 수정 완료**
+  - `docs/AMK_CODE_AUDIT_PLAN.md` 신규: 4단계 점검 계획 (의존성 취약점, 코드 품질, 보안 리뷰, 문서 정합성)
+  - 점검 1: 의존성 취약점 — cargo update (time/rustls-webpki 패치), npm audit fix (8건→0건), npm update
+  - 점검 2: 코드 품질 — clippy --fix 20건 자동 + 수동 2건, unwrap() 위험 5건 수정, hooks 위반 2건 수정
+  - 점검 3: 보안 — POST /courses AuthUser 추가, MFA rate limit 3건 추가, anti-enum 에러 메시지 2건 수정
+  - 점검 4: 문서 정합성 — 스키마 9건 수정, API 문서 10건, 환경변수 9건 추가, 미구현 DTO 4건 표시
+  - 미사용 의존성: aes-gcm 루트에서 제거 (hmac은 루트에서 사용 중 — 감사 오판 정정)
+  - 전수 검증: 38건 중 37건 CONFIRMED, 2건 FALSE POSITIVE (ENCRYPTION_KEY + hmac)
+  - 잔여: clippy too_many_arguments 17건 + large_enum_variant 2건 (리팩토링급)
+  - 결과 기록: `docs/AMK_CODE_AUDIT_RESULT.md`
+
+- **2026-04-02 — 순서 7.5: 다국어 반응형 디자인 규격**
+  - `utils/language_groups.ts` 신규: CJK / Tall Script / Relaxed Tracking 언어 그룹 분류
+  - `i18n/index.ts`: `changeLanguage` 시 `<html>`에 `lang-cjk`, `lang-tall-script`, `lang-relaxed-tracking` CSS 클래스 동적 관리 + 초기 로드 대응
+  - `index.css`: tracking-tight 조건부 해제 (th, my, km, si, hi, ne, mn), tall script line-height 1.8 (th, my, km), `break-keep-cjk` 유틸리티 클래스
+  - `hero_section.tsx`: `whitespace-nowrap` 제거 + `break-keep` → `break-keep-cjk` (marketing + list variant)
+  - `book_landing_page.tsx`, `coming_soon_page.tsx`: `break-keep` → `break-keep-cjk`
+
+- **2026-04-02 — Dockerfile 워크스페이스 빌드 수정 (2회 실패 → 해결)**
+  - 1차: `crates/crypto/` 매니페스트+소스 COPY 누락 → Cargo 워크스페이스 멤버 미발견으로 빌드 실패
+  - 2차: 2차 빌드 `touch`에 `crates/crypto/src/lib.rs` 누락 → Cargo가 더미 캐시 사용으로 빌드 실패
+  - `docs/AMK_DEPLOY_OPS.md` §8-2에 워크스페이스 멤버 추가 시 Dockerfile 수정 체크리스트 추가
 
 - **2026-04-01 — 순서 7: amazing-korean-crypto 크레이트 추출 (Cargo 워크스페이스)**
   - `src/crypto/{cipher,blind_index,service}.rs` → `crates/crypto/src/`로 이동

@@ -77,7 +77,7 @@ impl AdminTextbookService {
 
         // Shipped 전환 시 추적 정보 필수
         if new_status == TextbookOrderStatus::Shipped
-            && order.tracking_number.as_ref().map_or(true, |s| s.is_empty())
+            && order.tracking_number.as_ref().is_none_or(|s| s.is_empty())
         {
             return Err(AppError::BadRequest(
                 "Tracking number is required before marking as shipped".into(),

@@ -52,12 +52,10 @@ impl UpgradeService {
     /// - Admin -> manager
     /// - Manager -> 불가
     fn can_invite_role(actor_auth: &UserAuth, target_role: &str) -> bool {
-        match (actor_auth, target_role) {
-            (UserAuth::Hymn, "admin") => true,
-            (UserAuth::Hymn, "manager") => true,
-            (UserAuth::Admin, "manager") => true,
-            _ => false,
-        }
+        matches!(
+            (actor_auth, target_role),
+            (UserAuth::Hymn, "admin") | (UserAuth::Hymn, "manager") | (UserAuth::Admin, "manager")
+        )
     }
 
     /// role 문자열을 UserAuth로 변환
@@ -281,7 +279,7 @@ impl UpgradeService {
             &birthday_enc,
             req.gender,
             req.language,
-            user_auth.clone(),
+            user_auth,
             &email_idx,
             &name_idx,
         )

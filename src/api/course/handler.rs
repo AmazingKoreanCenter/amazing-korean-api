@@ -3,6 +3,7 @@ use super::{
     service::CourseService,
 };
 use crate::{
+    api::auth::extractor::AuthUser,
     error::{AppError, AppResult},
     state::AppState,
 };
@@ -22,6 +23,7 @@ pub async fn list(
 
 pub async fn create(
     State(st): State<AppState>,
+    AuthUser(_claims): AuthUser,
     Json(payload): Json<CreateCourseReq>,
 ) -> AppResult<Json<serde_json::Value>> {
     payload
