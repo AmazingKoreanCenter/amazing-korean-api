@@ -920,7 +920,8 @@ import asyncio
 import json
 from datetime import datetime
 from pathlib import Path
-from browser_use import Agent, Browser, ChatOllama
+from browser_use import Agent, Browser
+from langchain_ollama import ChatOllama
 
 PAGES = [
     "/", "/about", "/login", "/signup",

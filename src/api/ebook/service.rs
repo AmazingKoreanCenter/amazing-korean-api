@@ -372,15 +372,20 @@ impl EbookService {
         let stored: Option<String> = redis_conn.get(&session_key).await?;
         match stored {
             Some(data) => {
-                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&data) {
-                    if parsed["session_id"].as_str() == Some(session_id) {
-                        let _: () = redis_conn
-                            .expire(&session_key, st.cfg.ebook_session_ttl_sec)
-                            .await?;
-                        return Ok(HeartbeatRes { valid: true });
-                    }
+                let parsed: serde_json::Value = serde_json::from_str(&data)
+                    .map_err(|_| AppError::Internal("ebook session data corrupted".into()))?;
+
+                let stored_sid = parsed.get("session_id").and_then(|v| v.as_str())
+                    .ok_or_else(|| AppError::Internal("ebook session missing session_id".into()))?;
+
+                if stored_sid != session_id {
+                    return Ok(HeartbeatRes { valid: false });
                 }
-                Ok(HeartbeatRes { valid: false })
+
+                let _: () = redis_conn
+                    .expire(&session_key, st.cfg.ebook_session_ttl_sec)
+                    .await?;
+                Ok(HeartbeatRes { valid: true })
             }
             None => Ok(HeartbeatRes { valid: false }),
         }
@@ -388,6 +393,7 @@ impl EbookService {
 
     /// 뷰어 세션 검증 (페이지/타일 요청 시, Redis 장애 = fail closed)
     /// session_id가 제공되면 저장된 값과 비교, 미제공 시 존재만 확인 (하위 호환)
+    /// TODO: session_id 필수화 — 프론트엔드 x-ebook-session 헤더 전송 확인 후 None → Forbidden 전환
     pub async fn verify_session(st: &AppState, user_id: i64, session_id: Option<&str>) -> AppResult<()> {
         let session_key = format!("ebook_viewer:{}", user_id);
         let mut redis_conn = st
@@ -399,10 +405,14 @@ impl EbookService {
         match stored {
             Some(data) => {
                 if let Some(sid) = session_id {
-                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&data) {
-                        if parsed["session_id"].as_str() != Some(sid) {
-                            return Err(AppError::Forbidden("Viewer session invalid".into()));
-                        }
+                    let parsed: serde_json::Value = serde_json::from_str(&data)
+                        .map_err(|_| AppError::Forbidden("Viewer session invalid".into()))?;
+
+                    let stored_sid = parsed.get("session_id").and_then(|v| v.as_str())
+                        .ok_or_else(|| AppError::Forbidden("Viewer session invalid".into()))?;
+
+                    if stored_sid != sid {
+                        return Err(AppError::Forbidden("Viewer session invalid".into()));
                     }
                 }
                 Ok(())

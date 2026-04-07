@@ -66,9 +66,8 @@ export function useDevToolsDetection(onDetected: () => void, onCleared?: () => v
     setupConsoleDetection();
 
     const interval = setInterval(() => {
-      // 주력: console getter, 보조: 창 크기 (둘 다 true일 때만 확정)
-      // console만으로도 감지 가능, 창 크기만으로는 감지하지 않음 (오탐 방지)
-      const detected = consoleDetected || (consoleDetected && checkWindowSize());
+      // console getter + 창 크기 둘 다 true일 때만 확정 (오탐 방지)
+      const detected = consoleDetected && checkWindowSize();
 
       if (detected && !detectedRef.current) {
         if (!graceTimerRef.current) {

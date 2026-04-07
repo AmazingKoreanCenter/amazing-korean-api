@@ -123,8 +123,6 @@ amazing-korean-mobile/              # 별도 리포지토리
 
 | 플랫폼 | 결제 수단 | 수수료 | 구현 |
 |--------|----------|--------|------|
-| 플랫폼 | 결제 수단 | 수수료 | 구현 |
-|--------|----------|--------|------|
 | iOS | StoreKit 2 (IAP 의무) | 15% (Small Business) | Apple ASN V2 웹훅 |
 | Android | Play Billing | 15% (구독) | Google RTDN 웹훅 |
 | 웹 | Paddle (기존) | 5% + 결제 수수료 | 구현 완료 |
@@ -194,13 +192,13 @@ crates/crypto/                      # Cargo 워크스페이스 멤버
   Cargo.toml                        # aes-gcm, hmac, sha2, base64, thiserror
   src/
     lib.rs                          # pub use CryptoService, KeyRing, CryptoError, CryptoResult
-    error.rs                        # CryptoError (독립 에러 타입, thiserror)
+    error.rs                        # CryptoError: InvalidFormat | DecryptionFailed | Internal (thiserror)
     cipher.rs                       # AES-256-GCM encrypt/decrypt/encrypt_bytes/decrypt_bytes
     blind_index.rs                  # HMAC-SHA256 블라인드 인덱스
     service.rs                      # KeyRing + CryptoService
 ```
 
-백엔드: `amazing-korean-crypto = { path = "crates/crypto" }` + `From<CryptoError> for AppError` 변환.
+백엔드: `amazing-korean-crypto = { path = "crates/crypto" }` + `From<CryptoError> for AppError` 변환 (전 variant → `AppError::Internal` 통일, format oracle 방지).
 `src/crypto/mod.rs`는 re-export 래퍼로 유지 (기존 `use crate::crypto::*` 호환).
 
 ### 3.3 데스크탑 보안

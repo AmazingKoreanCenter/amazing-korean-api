@@ -221,7 +221,7 @@ pub async fn fetch_daily_stats(
     let items = rows
         .into_iter()
         .map(|r| DailyStatItem {
-            date: r.try_get::<chrono::NaiveDate, _>("stat_date").unwrap_or(chrono::NaiveDate::MIN),
+            date: r.try_get::<chrono::NaiveDate, _>("stat_date").unwrap_or_default(),
             attempts: r.try_get::<i64, _>("attempts").unwrap_or(0),
             solves: r.try_get::<i64, _>("solves").unwrap_or(0),
             active_users: r.try_get::<i64, _>("active_users").unwrap_or(0),

@@ -11,6 +11,17 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-07 — 코드 품질/보안 점검 11건 수정 + 추가 보안 강화 2건**
+  - [보안] ebook `verify_session` fail-open → fail-closed: JSON 파싱 실패 시 접근 거부 (OWASP fail-secure)
+  - [보안] ebook `heartbeat` fail-open → fail-closed: 동일 패턴 수정
+  - [보안] `CryptoError→AppError` 매핑: `InvalidFormat→BadRequest(400)` → `Internal(500)` 통일 (format oracle 방지, CWE-209/203)
+  - [보안] DevTools 감지 `||` → `&&` (consoleDetected && checkWindowSize): 오탐 방지 우선, 5중 보안 최하위 레이어
+  - [리팩토링] `CryptoError` 단일 variant → 3개 분리 (InvalidFormat/DecryptionFailed/Internal), `parse_enc_parts()` 공통 함수
+  - [리팩토링] `NaiveDate::MIN` → `unwrap_or_default()` (5곳), `provider_data.clone()` → 참조 (2곳), `Some(target_table)` → 직접 바인딩 (2곳)
+  - [수정] DataTable 페이지네이션: 하드코딩 1-5 → 슬라이딩 윈도우
+  - [문서] ROADMAP 테이블 헤더 중복 제거, QA 스크립트 import 수정 (browser_use → langchain_ollama)
+  - [TODO] `verify_session` session_id 필수화 — 프론트엔드 전송 확인 후 None → Forbidden 전환 예정
+
 - **2026-04-06 — clippy 리팩토링 20건 완료 → clippy 경고 0건 달성**
   - target_table 대소문자 소문자 통일 (video 8, study 21, lesson 18건) + AMK_API_MASTER §3.2.3 감사 로그 규칙 추가
   - large_enum_variant 2건: LoginOutcome/OAuthLoginOutcome Success Box 래핑

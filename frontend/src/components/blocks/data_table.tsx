@@ -290,9 +290,16 @@ export function DataTable<T>({
               />
             </PaginationItem>
 
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const p = i + 1;
-              return (
+            {(() => {
+              const maxVisible = 5;
+              let start = Math.max(1, page - Math.floor(maxVisible / 2));
+              let end = Math.min(totalPages, start + maxVisible - 1);
+              if (end - start + 1 < maxVisible) {
+                start = Math.max(1, end - maxVisible + 1);
+              }
+              const pages = [];
+              for (let i = start; i <= end; i++) pages.push(i);
+              return pages.map((p) => (
                 <PaginationItem key={p}>
                   <PaginationLink
                     onClick={() => onPageChange(p)}
@@ -302,8 +309,8 @@ export function DataTable<T>({
                     {p}
                   </PaginationLink>
                 </PaginationItem>
-              );
-            })}
+              ));
+            })()}
 
             <PaginationItem>
               <PaginationNext

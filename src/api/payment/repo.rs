@@ -200,7 +200,7 @@ impl PaymentRepo {
         .bind(params.trial_ends_at)
         .bind(params.current_period_start)
         .bind(params.current_period_end)
-        .bind(params.provider_data.clone())
+        .bind(&params.provider_data)
         .fetch_one(pool)
         .await?;
 
@@ -270,7 +270,7 @@ impl PaymentRepo {
         .bind(params.tax_cents)
         .bind(params.currency)
         .bind(params.billing_interval)
-        .bind(params.provider_data.clone())
+        .bind(&params.provider_data)
         .bind(params.occurred_at)
         .fetch_one(pool)
         .await?;
