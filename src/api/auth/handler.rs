@@ -18,6 +18,7 @@ use crate::api::auth::dto::{
     VerifyEmailReq, VerifyEmailRes, ResendVerificationReq, ResendVerificationRes,
     MfaChallengeRes, MfaLoginReq, MfaSetupRes, MfaVerifySetupReq,
     MfaVerifySetupRes, MfaDisableReq, MfaDisableRes,
+    GoogleMobileLoginReq, AppleMobileLoginReq,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::api::auth::service::{AuthService, LoginOutcome, OAuthLoginOutcome};
@@ -674,7 +675,7 @@ pub async fn mfa_login(
 ) -> Result<(CookieJar, Json<LoginRes>), AppError> {
     let ip = extract_client_ip(&headers);
 
-    let (login_res, cookie, _) = AuthService::mfa_login(&st, req, ip).await?;
+    let (login_res, cookie, _, _refresh_token) = AuthService::mfa_login(&st, req, ip).await?;
     let jar = jar.add(cookie);
 
     Ok((jar, Json(login_res)))
@@ -700,4 +701,120 @@ pub async fn mfa_disable(
 ) -> Result<Json<MfaDisableRes>, AppError> {
     let res = AuthService::mfa_disable(&st, auth_user.sub, auth_user.role, req.target_user_id).await?;
     Ok(Json(res))
+}
+
+// =============================================================================
+// 모바일 OAuth (Google/Apple) + MFA 모바일
+// =============================================================================
+
+/// 모바일 Google OAuth 로그인 (ID token 직접 검증)
+#[utoipa::path(
+    post,
+    path = "/auth/google-mobile",
+    tag = "auth",
+    request_body = GoogleMobileLoginReq,
+    responses(
+        (status = 200, description = "Google OAuth login successful (mobile)", body = LoginMobileRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn google_mobile_login(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<GoogleMobileLoginReq>,
+) -> Result<axum::response::Response, AppError> {
+    let ip = extract_client_ip(&headers);
+    let ua = extract_user_agent(&headers);
+    let parsed_ua = parse_user_agent(&headers);
+
+    match AuthService::google_mobile_login(&st, req, ip, ua, parsed_ua).await? {
+        OAuthLoginOutcome::Success(s) => {
+            Ok(Json(LoginMobileRes {
+                user_id: s.login_res.user_id,
+                access: s.login_res.access,
+                session_id: s.login_res.session_id,
+                refresh_token: s.refresh_token,
+                refresh_expires_in: s.ttl,
+            }).into_response())
+        }
+        OAuthLoginOutcome::MfaChallenge { mfa_token, user_id } => {
+            Ok(Json(MfaChallengeRes {
+                mfa_required: true,
+                mfa_token,
+                user_id,
+            }).into_response())
+        }
+    }
+}
+
+/// 모바일 Apple OAuth 로그인 (ID token 직접 검증)
+#[utoipa::path(
+    post,
+    path = "/auth/apple-mobile",
+    tag = "auth",
+    request_body = AppleMobileLoginReq,
+    responses(
+        (status = 200, description = "Apple OAuth login successful (mobile)", body = LoginMobileRes),
+        (status = 400, description = "Bad request", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn apple_mobile_login(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<AppleMobileLoginReq>,
+) -> Result<axum::response::Response, AppError> {
+    let ip = extract_client_ip(&headers);
+    let ua = extract_user_agent(&headers);
+    let parsed_ua = parse_user_agent(&headers);
+
+    match AuthService::apple_mobile_login(&st, req, ip, ua, parsed_ua).await? {
+        OAuthLoginOutcome::Success(s) => {
+            Ok(Json(LoginMobileRes {
+                user_id: s.login_res.user_id,
+                access: s.login_res.access,
+                session_id: s.login_res.session_id,
+                refresh_token: s.refresh_token,
+                refresh_expires_in: s.ttl,
+            }).into_response())
+        }
+        OAuthLoginOutcome::MfaChallenge { mfa_token, user_id } => {
+            Ok(Json(MfaChallengeRes {
+                mfa_required: true,
+                mfa_token,
+                user_id,
+            }).into_response())
+        }
+    }
+}
+
+/// 모바일 MFA 2단계 인증 (refresh_token을 JSON body로 반환)
+#[utoipa::path(
+    post,
+    path = "/auth/mfa/login-mobile",
+    tag = "auth",
+    request_body = MfaLoginReq,
+    responses(
+        (status = 200, description = "MFA login successful (mobile)", body = LoginMobileRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 429, description = "Too Many Requests", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn mfa_login_mobile(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<MfaLoginReq>,
+) -> Result<Json<LoginMobileRes>, AppError> {
+    let ip = extract_client_ip(&headers);
+
+    let (login_res, _cookie, ttl, refresh_token) = AuthService::mfa_login(&st, req, ip).await?;
+
+    Ok(Json(LoginMobileRes {
+        user_id: login_res.user_id,
+        access: login_res.access,
+        session_id: login_res.session_id,
+        refresh_token,
+        refresh_expires_in: ttl,
+    }))
 }

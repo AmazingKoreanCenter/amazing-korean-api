@@ -131,6 +131,51 @@ pub async fn insert_purchase(
     Ok(map_purchase_row(&row))
 }
 
+/// IAP 구매 생성 파라미터 (status=completed, iap_* 컬럼 포함)
+pub struct InsertIapPurchaseParams<'a> {
+    pub purchase_code: &'a str,
+    pub user_id: i64,
+    pub language: TextbookLanguage,
+    pub edition: EbookEdition,
+    pub payment_method: EbookPaymentMethod,
+    pub price: i32,
+    pub currency: &'a str,
+    pub iap_platform: &'a str,
+    pub iap_transaction_id: &'a str,
+    pub iap_product_id: &'a str,
+}
+
+pub async fn insert_iap_purchase(
+    tx: &mut Transaction<'_, Postgres>,
+    params: &InsertIapPurchaseParams<'_>,
+) -> AppResult<EbookPurchaseRow> {
+    let sql = format!(
+        "INSERT INTO ebook_purchase (
+            purchase_code, user_id, language, edition, payment_method,
+            price, currency, status, completed_at,
+            iap_platform, iap_transaction_id, iap_product_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'completed', NOW(),
+                  $8, $9, $10)
+        RETURNING {PURCHASE_COLUMNS}"
+    );
+
+    let row = sqlx::query(&sql)
+        .bind(params.purchase_code)
+        .bind(params.user_id)
+        .bind(params.language)
+        .bind(params.edition)
+        .bind(params.payment_method)
+        .bind(params.price)
+        .bind(params.currency)
+        .bind(params.iap_platform)
+        .bind(params.iap_transaction_id)
+        .bind(params.iap_product_id)
+        .fetch_one(&mut **tx)
+        .await?;
+
+    Ok(map_purchase_row(&row))
+}
+
 // ─────────────────────── Find ───────────────────────
 
 pub async fn find_by_code(db: &PgPool, code: &str) -> AppResult<Option<EbookPurchaseRow>> {

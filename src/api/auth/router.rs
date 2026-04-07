@@ -13,6 +13,8 @@ pub fn auth_router() -> Router<AppState> {
         // 모바일 (쿠키 대신 JSON body로 refresh token 전달)
         .route("/login-mobile", post(handler::login_mobile))
         .route("/refresh-mobile", post(handler::refresh_mobile))
+        .route("/google-mobile", post(handler::google_mobile_login))
+        .route("/apple-mobile", post(handler::apple_mobile_login))
 
         // 계정 찾기/복구
         .route("/find-id", post(handler::find_id))
@@ -35,5 +37,6 @@ pub fn auth_router() -> Router<AppState> {
         .route("/mfa/setup", post(handler::mfa_setup))
         .route("/mfa/verify-setup", post(handler::mfa_verify_setup))
         .route("/mfa/login", post(handler::mfa_login))
+        .route("/mfa/login-mobile", post(handler::mfa_login_mobile))
         .route("/mfa/disable", post(handler::mfa_disable))
 }

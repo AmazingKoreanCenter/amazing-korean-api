@@ -66,6 +66,7 @@
 | 50 | 디자인 시스템 v4 (V1-5 DataTable) | UI | DataTable+useDataTable 블록 추출(`blocks/data_table.tsx`), 관리자 3페이지(users/lessons/videos) 적용, 검색+정렬+선택+페이지네이션 공통화, 각 ~200줄 감소 | 2026-03-31 | — |
 | 51 | 디자인 시스템 v4 (V1-9~V1-10) | UI | 색상 토큰 교체(7파일): status badge→status-warning/success, neutral-900→surface-inverted, coming-soon 배지 토큰화, text-white→surface-inverted-foreground, 장식용 8건 의도적 유지, 문서 최종 동기화 | 2026-03-31 | — |
 | 52 | 모바일 UX 79건 수정 | UI | `@media (pointer: coarse)` 터치 타겟 44px(45건), 고정 그리드 반응형(5건), 모달 뷰포트 제한(3건), 타이포그래피 가독성(7건), 패딩/간격 반응형(13건), Dialog 닫기·라이트박스·모달 네비 확대(4건), header 스크롤 잠금+햄버거 확대(2건). §04 Mobile Checklist 완료 | 2026-04-01 | — |
+| 53 | 모바일 백엔드 API 5건 | 백엔드 | `POST /auth/google-mobile` (Google ID token 직접 검증), `POST /auth/apple-mobile` (Apple JWKS RS256, email 부재 처리), `POST /auth/mfa/login-mobile` (MFA JSON body), `POST /ebook/purchase/iap` (RevenueCat 영수증 검증, status=completed), `POST /payment/webhook/revenuecat` (Bearer 인증, 멱등성). OAuthUserInfo 일반화, `src/external/apple.rs`·`revenuecat.rs` 신규, DB enum 확장, 환경변수 5개 추가 | 2026-04-07 | 개발자 계정 등록 후 실 테스트 |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
 > **키 관리**: `ENCRYPTION_KEY_V{n}` (AES-256, 다중 버전) + `HMAC_KEY` (blind index), KeyRing 로드
@@ -87,8 +88,10 @@
 | 5 | **데스크탑 앱** | 앱 | ~7.5일 | **Tauri 2.x** (`amazing-korean-desktop` 별도 리포). 상세: [`AMK_APP_ROADMAP.md §3`](./AMK_APP_ROADMAP.md) | **지금 착수** |
 | 6 | **RDS/ElastiCache 이전** | 인프라 | 3-5일 | EC2 단일 DB → AWS RDS + ElastiCache | 앱 개발 이후 |
 | 7 | **동시 세션 수 제한** | 보안 | 2-3일 | 역할별 동시 세션 상한. 모바일 세션 표면 증가 대비 | 앱 개발 이후 |
+| — | ~~**모바일 OAuth 엔드포인트**~~ | 백엔드 | ✅ | `google-mobile` + `apple-mobile` + `mfa/login-mobile` 3건 구현 완료. `src/external/apple.rs` 신규. | — |
+| — | ~~**IAP 결제 연동**~~ | 백엔드 | ✅ | DB enum 확장 + `POST /ebook/purchase/iap` + `POST /payment/webhook/revenuecat` 구현 완료. `src/external/revenuecat.rs` 신규. | — |
 | — | ~~**모바일 인증 엔드포인트**~~ | 백엔드 | ✅ | `login-mobile` + `refresh-mobile` 구현 완료 | — |
-| — | ~~**공유 Rust 크레이트 추출**~~ | 아키텍처 | ✅ | `amazing-korean-crypto` 크레이트 추출 완료 (Cargo 워크스페이스) | — |
+| — | ~~**공유 Rust 크레이트 추출**~~ | 아키텍처 | ✅ | `amazing-korean-crypto` 크레이트 추출 완료 (Cargo 워크스페이���) | — |
 | — | ~~**다국어 반응형 디자인 규격**~~ | UI | ✅ | 언어 그룹별 CSS 클래스 동적 관리, tracking-tight 조건부 해제, tall script line-height 보정, break-keep CJK 한정 | — |
 | — | ~~**코드 점검**~~ | 품질 | ✅ | 점검 1~4 + 일괄 수정 + clippy 리팩토링 20건 완료. **clippy 0건**. 결과: `AMK_CODE_AUDIT_RESULT.md` | — |
 | — | ~~디자인 시스템~~ | — | — | — | ✅ §8.1 #13 |
@@ -126,7 +129,7 @@
 | ~~Rust 크레이트~~ | ~~amazing-korean-crypto~~ ✅ 추출 완료 | — | crates/crypto/, Cargo.toml 워크스페이스 |
 | Flutter | flutter_rust_bridge 버전 핀닝 필수 | HIGH | AMK_APP_ROADMAP.md R1 |
 | Flutter | E-book 뷰어 메모리 OOM (14MB/페이지) | HIGH | AMK_APP_ROADMAP.md R7 |
-| Flutter | IAP receipt 검증 엔드포인트 미구현 | HIGH | 전체 .rs 검색 0건 |
+| ~~Flutter~~ | ~~IAP receipt 검증 엔드포인트~~ ✅ 구현 완료 | — | POST /ebook/purchase/iap + POST /payment/webhook/revenuecat |
 | Flutter | iOS isSecureTextEntry 비공식 API | MEDIUM | AMK_APP_ROADMAP.md R2 |
 | Flutter | 앱 백그라운드 시 세션 만료 (TTL 90초) | MEDIUM | config.rs:325 |
 | Tauri | macOS 캡처 방지 불가 (Apple 정책) | MEDIUM | AMK_APP_ROADMAP.md R5 (수용) |
@@ -137,7 +140,7 @@
 
 | # | 항목 | 카테고리 | 내역 | 예상 결과 | 조건/시점 |
 |:-:|------|---------|------|----------|----------|
-| 8 | Apple OAuth | 외부 API | Apple Sign In 구현 | iOS 사용자 편의성 | 비용/환경 해결 시 |
+| 8 | ~~Apple OAuth~~ | 외부 API | Apple Sign In 구현 → **§8.2 핵심 순서 4a로 이동** | iOS 사용자 편의성 | 스펙 완료 (AMK_API_AUTH.md §5.3-17) |
 | 9 | GeoIP 전환 | 인프라 | ip-api.com → MaxMind GeoLite2 로컬 DB | HTTPS, 무제한 쿼리 | 트래픽 증가 시 |
 | 10 | step-up MFA | 보안 | 민감 작업 시 추가 인증 요구 | 결제/비밀번호 변경 시 보안 강화 | 필요 시 |
 | 11 | ~~이메일 수신~~ | ~~외부 API~~ | ~~`support@amazingkorean.net` 수신~~ | ~~사용자 문의 처리~~ | ✅ Cloudflare Email Routing 설정 완료 (→ Gmail 포워딩) |

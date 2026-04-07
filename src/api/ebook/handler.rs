@@ -9,7 +9,7 @@ use crate::api::util::extract_client_ip;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
-use super::dto::{CreatePurchaseReq, EbookCatalogRes, HeartbeatReq, HeartbeatRes, MyPurchasesRes, ViewerMetaRes};
+use super::dto::{CreateIapPurchaseReq, CreatePurchaseReq, EbookCatalogRes, HeartbeatReq, HeartbeatRes, MyPurchasesRes, ViewerMetaRes};
 use super::service::EbookService;
 
 /// GET /ebook/catalog
@@ -50,6 +50,38 @@ pub async fn create_purchase(
     }
 
     let res = EbookService::create_purchase(&st, claims.sub, req).await?;
+    Ok(Json(res))
+}
+
+/// POST /ebook/purchase/iap
+///
+/// 모바일 IAP 구매 확정. 로그인 필수. RevenueCat 영수증 검증 후 구매 생성 (status=completed).
+pub async fn create_iap_purchase(
+    State(st): State<AppState>,
+    AuthUser(claims): AuthUser,
+    headers: HeaderMap,
+    Json(req): Json<CreateIapPurchaseReq>,
+) -> AppResult<Json<super::dto::PurchaseRes>> {
+    // IP 기반 Rate Limiting (기존 purchase와 동일)
+    let client_ip = extract_client_ip(&headers);
+    let rl_key = format!("rl:ebook_purchase:{}", client_ip);
+    let mut redis_conn = st
+        .redis
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+
+    let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
+    let _: () = redis_conn
+        .expire(&rl_key, st.cfg.rate_limit_ebook_purchase_window_sec)
+        .await?;
+    if attempts > st.cfg.rate_limit_ebook_purchase_max {
+        return Err(AppError::TooManyRequests(
+            "EBOOK_429_TOO_MANY_PURCHASES".into(),
+        ));
+    }
+
+    let res = EbookService::create_iap_purchase(&st, claims.sub, req).await?;
     Ok(Json(res))
 }
 

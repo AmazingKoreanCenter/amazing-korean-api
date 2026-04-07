@@ -428,3 +428,25 @@ pub struct MfaDisableReq {
 pub struct MfaDisableRes {
     pub message: String,
 }
+
+// =============================================================================
+// 모바일 OAuth (Google/Apple)
+// =============================================================================
+
+/// 모바일 Google OAuth 요청 (ID token 직접 검증)
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct GoogleMobileLoginReq {
+    #[validate(length(min = 1, message = "id_token is required"))]
+    pub id_token: String,
+}
+
+/// 모바일 Apple OAuth 요청 (ID token 직접 검증)
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct AppleMobileLoginReq {
+    #[validate(length(min = 1, message = "id_token is required"))]
+    pub id_token: String,
+    /// Apple은 최초 인증에만 이름 제공 — 클라이언트에서 캐싱 후 전달
+    pub user_name: Option<String>,
+}
