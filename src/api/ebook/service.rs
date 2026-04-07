@@ -13,8 +13,9 @@ use crate::state::AppState;
 use crate::types::{EbookEdition, EbookPaymentMethod, EbookPurchaseStatus, TextbookLanguage};
 
 use super::dto::{
-    CreatePurchaseReq, EbookCatalogItem, EbookCatalogRes, EbookEditionInfo, HeartbeatRes,
-    MyPurchasesRes, PurchaseRes, TocEntry, ViewerMetaRes,
+    CreateIapPurchaseReq, CreatePurchaseReq, EbookCatalogItem, EbookCatalogRes,
+    EbookEditionInfo, HeartbeatRes, IapPlatform, MyPurchasesRes, PurchaseRes,
+    TocEntry, ViewerMetaRes,
 };
 use super::repo;
 use super::watermark;
@@ -142,6 +143,9 @@ impl EbookService {
         let (price, currency) = match req.payment_method {
             EbookPaymentMethod::Paddle => (EBOOK_PRICE_USD_CENTS, "USD"),
             EbookPaymentMethod::BankTransfer => (EBOOK_PRICE_KRW, "KRW"),
+            EbookPaymentMethod::AppleIap | EbookPaymentMethod::GoogleIap => {
+                return Err(AppError::BadRequest("IAP 결제는 /ebook/purchase/iap 엔드포인트를 사용하세요".into()));
+            }
         };
 
         // 트랜잭션으로 주문코드 생성 + INSERT
@@ -184,6 +188,109 @@ impl EbookService {
                             purchase_code = %row.purchase_code,
                             error = %e,
                             "Failed to send ebook purchase confirmation email"
+                        );
+                    }
+                }
+            }
+        }
+
+        Ok(PurchaseRes {
+            purchase_code: row.purchase_code,
+            status: row.status,
+            language: row.language,
+            edition: row.edition,
+            payment_method: row.payment_method,
+            price: row.price,
+            currency: row.currency,
+            created_at: row.created_at,
+        })
+    }
+
+    // ─────────────────────── IAP Purchase ───────────────────────
+
+    /// 모바일 IAP 구매 확정 (RevenueCat 영수증 검증 → 구매 생성, status=completed)
+    pub async fn create_iap_purchase(
+        st: &AppState,
+        user_id: i64,
+        req: CreateIapPurchaseReq,
+    ) -> AppResult<PurchaseRes> {
+        // 중복 구매 검사
+        let existing = repo::find_existing_purchase(&st.db, user_id, req.language, req.edition).await?;
+        if let Some(row) = &existing {
+            let msg = if row.status == EbookPurchaseStatus::Completed {
+                "이미 해당 교재를 구매하셨습니다."
+            } else {
+                "해당 교재의 결제 대기 중인 주문이 있습니다."
+            };
+            return Err(AppError::Conflict(msg.into()));
+        }
+
+        // RevenueCat 영수증 검증 (설정된 경우)
+        if let Some(ref rc_client) = st.revenuecat {
+            let subscriber = rc_client.get_subscriber(&user_id.to_string()).await?;
+            // transaction_id가 non_subscriptions 또는 entitlements에 존재하는지 확인
+            let has_valid_purchase = subscriber.non_subscriptions.values()
+                .any(|purchases| purchases.iter().any(|p| p.id == req.transaction_id))
+                || subscriber.entitlements.values()
+                    .any(|e| e.is_active && e.product_identifier == req.product_id);
+
+            if !has_valid_purchase {
+                return Err(AppError::BadRequest("IAP 영수증 검증 실패: 유효한 구매를 찾을 수 없습니다".into()));
+            }
+        }
+
+        let payment_method = match req.platform {
+            IapPlatform::Apple => EbookPaymentMethod::AppleIap,
+            IapPlatform::Google => EbookPaymentMethod::GoogleIap,
+        };
+
+        let platform_str = match req.platform {
+            IapPlatform::Apple => "apple",
+            IapPlatform::Google => "google",
+        };
+
+        // IAP 가격 (USD cents — 스토어 가격과 동일하게 기록)
+        let (price, currency) = (EBOOK_PRICE_USD_CENTS, "USD");
+
+        // 트랜잭션으로 주문코드 생성 + INSERT (status=completed)
+        let mut tx = st.db.begin().await?;
+        let code = repo::generate_purchase_code(&mut tx, req.language, req.edition, payment_method).await?;
+        let row = repo::insert_iap_purchase(
+            &mut tx,
+            &repo::InsertIapPurchaseParams {
+                purchase_code: &code,
+                user_id,
+                language: req.language,
+                edition: req.edition,
+                payment_method,
+                price,
+                currency,
+                iap_platform: platform_str,
+                iap_transaction_id: &req.transaction_id,
+                iap_product_id: &req.product_id,
+            },
+        ).await?;
+        tx.commit().await?;
+
+        // 이메일 (fire-and-forget)
+        if let Some(ref email_sender) = st.email {
+            let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+            if let Ok(Some(encrypted_email)) = repo::find_user_encrypted_email(&st.db, user_id).await {
+                if let Ok(user_email) = crypto.decrypt(&encrypted_email, "users.user_email") {
+                    let lang_name = language_name_ko(req.language);
+                    let edition_label = edition_label_ko(req.edition);
+                    let template = EmailTemplate::EbookPurchaseConfirmation {
+                        purchase_code: row.purchase_code.clone(),
+                        language_name: lang_name.to_string(),
+                        edition_label: edition_label.to_string(),
+                        price: row.price.to_string(),
+                        currency: row.currency.clone(),
+                    };
+                    if let Err(e) = send_templated(email_sender.as_ref(), &user_email, template).await {
+                        tracing::warn!(
+                            purchase_code = %row.purchase_code,
+                            error = %e,
+                            "Failed to send IAP purchase confirmation email"
                         );
                     }
                 }
@@ -372,15 +479,20 @@ impl EbookService {
         let stored: Option<String> = redis_conn.get(&session_key).await?;
         match stored {
             Some(data) => {
-                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&data) {
-                    if parsed["session_id"].as_str() == Some(session_id) {
-                        let _: () = redis_conn
-                            .expire(&session_key, st.cfg.ebook_session_ttl_sec)
-                            .await?;
-                        return Ok(HeartbeatRes { valid: true });
-                    }
+                let parsed: serde_json::Value = serde_json::from_str(&data)
+                    .map_err(|_| AppError::Internal("ebook session data corrupted".into()))?;
+
+                let stored_sid = parsed.get("session_id").and_then(|v| v.as_str())
+                    .ok_or_else(|| AppError::Internal("ebook session missing session_id".into()))?;
+
+                if stored_sid != session_id {
+                    return Ok(HeartbeatRes { valid: false });
                 }
-                Ok(HeartbeatRes { valid: false })
+
+                let _: () = redis_conn
+                    .expire(&session_key, st.cfg.ebook_session_ttl_sec)
+                    .await?;
+                Ok(HeartbeatRes { valid: true })
             }
             None => Ok(HeartbeatRes { valid: false }),
         }
@@ -388,6 +500,7 @@ impl EbookService {
 
     /// 뷰어 세션 검증 (페이지/타일 요청 시, Redis 장애 = fail closed)
     /// session_id가 제공되면 저장된 값과 비교, 미제공 시 존재만 확인 (하위 호환)
+    /// TODO: session_id 필수화 — 프론트엔드 x-ebook-session 헤더 전송 확인 후 None → Forbidden 전환
     pub async fn verify_session(st: &AppState, user_id: i64, session_id: Option<&str>) -> AppResult<()> {
         let session_key = format!("ebook_viewer:{}", user_id);
         let mut redis_conn = st
@@ -399,10 +512,14 @@ impl EbookService {
         match stored {
             Some(data) => {
                 if let Some(sid) = session_id {
-                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&data) {
-                        if parsed["session_id"].as_str() != Some(sid) {
-                            return Err(AppError::Forbidden("Viewer session invalid".into()));
-                        }
+                    let parsed: serde_json::Value = serde_json::from_str(&data)
+                        .map_err(|_| AppError::Forbidden("Viewer session invalid".into()))?;
+
+                    let stored_sid = parsed.get("session_id").and_then(|v| v.as_str())
+                        .ok_or_else(|| AppError::Forbidden("Viewer session invalid".into()))?;
+
+                    if stored_sid != sid {
+                        return Err(AppError::Forbidden("Viewer session invalid".into()));
                     }
                 }
                 Ok(())

@@ -117,6 +117,16 @@ async fn main() -> anyhow::Result<()> {
             }
         };
 
+    // 6.5) RevenueCat 클라이언트 (모바일 IAP)
+    let revenuecat: Option<Arc<dyn external::revenuecat::RevenueCatClient>> =
+        if let Some(api_key) = &cfg.revenuecat_api_key {
+            tracing::info!("RevenueCat client initialized");
+            Some(Arc::new(external::revenuecat::RevenueCatApiClient::new(api_key.clone())))
+        } else {
+            tracing::info!("RevenueCat client disabled (REVENUECAT_API_KEY not set)");
+            None
+        };
+
     // 6.9) E-book 워터마크 폰트 초기화
     let watermark_font_path = format!("{}/NotoSans-Regular.ttf", cfg.ebook_page_images_dir);
     amazing_korean_api::api::ebook::watermark::init_font(&watermark_font_path);
@@ -130,6 +140,7 @@ async fn main() -> anyhow::Result<()> {
         email,
         ipgeo,
         payment,
+        revenuecat,
     };
 
     // 8) [CORS] 설정 정의

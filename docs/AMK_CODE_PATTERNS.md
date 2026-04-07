@@ -26,6 +26,8 @@
    - 관리자 RBAC: HYMN(전체) > admin(전체 읽기/쓰기) > manager(담당 class, 향후) > learner(자신만)
    - 구현: `src/api/admin/role_guard.rs`, `admin_ip_guard.rs`, 프론트 `AdminRoute`
    - HTTPS 필수, 토큰/세션 ID를 URL에 노출 금지
+   - **Fail-closed 원칙**: 세션/인증 데이터 파싱 실패 시 반드시 접근 거부 (`if let Ok(...)` 패턴으로 실패 무시 금지)
+   - **암호화 에러 불투명화**: `CryptoError` variant(InvalidFormat/DecryptionFailed/Internal)는 내부 로깅용으로만 구분, HTTP 응답은 전부 500 + generic 메시지 (format oracle 방지, OWASP CWE-209/203)
 
 ### 0.2 개발 플로우
 

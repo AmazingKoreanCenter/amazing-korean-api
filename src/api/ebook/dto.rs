@@ -59,6 +59,28 @@ pub struct MyPurchasesRes {
     pub items: Vec<PurchaseRes>,
 }
 
+// ─────────────────────── IAP Purchase ───────────────────────
+
+/// IAP 플랫폼
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum IapPlatform {
+    Apple,
+    Google,
+}
+
+/// 모바일 IAP 구매 확정 요청 (RevenueCat 영수증 검증 후 구매 생성)
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct CreateIapPurchaseReq {
+    pub language: TextbookLanguage,
+    pub edition: EbookEdition,
+    pub platform: IapPlatform,
+    #[validate(length(min = 1, message = "product_id is required"))]
+    pub product_id: String,
+    #[validate(length(min = 1, message = "transaction_id is required"))]
+    pub transaction_id: String,
+}
+
 // ─────────────────────── Viewer ───────────────────────
 
 #[derive(Debug, Serialize, ToSchema)]

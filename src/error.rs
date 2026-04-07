@@ -52,7 +52,12 @@ impl From<std::convert::Infallible> for AppError {
 
 impl From<amazing_korean_crypto::CryptoError> for AppError {
     fn from(err: amazing_korean_crypto::CryptoError) -> Self {
-        AppError::Internal(err.to_string())
+        use amazing_korean_crypto::CryptoError;
+        match err {
+            CryptoError::InvalidFormat(msg) => AppError::Internal(msg),
+            CryptoError::DecryptionFailed(msg) => AppError::Internal(msg),
+            CryptoError::Internal(msg) => AppError::Internal(msg),
+        }
     }
 }
 

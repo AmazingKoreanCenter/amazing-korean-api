@@ -27,6 +27,9 @@
 | 3-13 | `POST /auth/mfa/disable` | (관리자) | MFA 비활성화 | ***HYMN 전용: 대상 사용자의 MFA 해제 + 전체 세션 무효화***<br>성공: **200** `{ disabled: true }`<br>실패(미인증): **401** / 실패(권한 없음): **403** | [✅] |
 | 3-14 | `POST /auth/login-mobile` | (앱) | 모바일 로그인 | ***3-1과 동일 로직, refresh token을 쿠키 대신 JSON body로 반환***<br>성공: **200** `LoginMobileRes { user_id, access, session_id, refresh_token, refresh_expires_in }`<br>실패: 3-1과 동일 | [✅] |
 | 3-15 | `POST /auth/refresh-mobile` | (앱) | 모바일 토큰 재발급 | ***3-3과 동일 로직, body에서 refresh_token 추출 + `X-Platform: mobile` 헤더 필수***<br>성공: **200** `LoginMobileRes`<br>실패(헤더 누락): **400** / 나머지: 3-3과 동일 | [✅] |
+| 3-16 | `POST /auth/google-mobile` | (앱) | 모바일 Google OAuth | ***Google ID token 직접 검증 → 계정 연결/생성 → LoginMobileRes 반환***<br>성공: **200** `LoginMobileRes`<br>실패(토큰 무효): **401** / 실패(형식): **400** | [✅] |
+| 3-17 | `POST /auth/apple-mobile` | (앱) | 모바일 Apple OAuth | ***Apple ID token JWKS 검증 → 계정 연결/생성 → LoginMobileRes 반환. Apple은 최초 로그인에만 email 제공***<br>성공: **200** `LoginMobileRes`<br>실패(토큰 무효): **401** / 실패(형식): **400** | [✅] |
+| 3-18 | `POST /auth/mfa/login-mobile` | (앱) | 모바일 MFA 2단계 | ***3-12와 동일 로직, LoginMobileRes 반환 (JSON body refresh_token)***<br>성공: **200** `LoginMobileRes`<br>실패: 3-12와 동일 | [✅] |
 
 ---
 
@@ -381,6 +384,105 @@ Location: http://localhost:5173/login?error=oauth_failed&error_description=...
 | `user_mfa_enabled` | BOOLEAN DEFAULT false | MFA 활성화 여부 |
 | `user_mfa_backup_codes` | TEXT | 백업 코드 (SHA-256 해시 JSON, AES-256-GCM 암호화) |
 | `user_mfa_enabled_at` | TIMESTAMPTZ | MFA 최초 활성화 시각 |
+
+---
+
+#### 5.3-16 : `POST /auth/google-mobile` (모바일 Google OAuth)
+
+> **개요**: 모바일 앱에서 `google_sign_in` 플러그인으로 획득한 Google ID token을 직접 검증하여 로그인/가입 처리. 웹 Authorization Code Flow와 달리 ID token 직접 검증 방식.
+
+**인증**: 없음 (공개)
+
+**요청**
+```json
+{
+  "id_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**응답 (성공 200)**
+```json
+{
+  "user_id": 123,
+  "access": { "token": "...", "expires_in": 900 },
+  "session_id": "uuid",
+  "refresh_token": "...",
+  "refresh_expires_in": 604800
+}
+```
+
+**처리 흐름**:
+1. Google JWKS로 ID token RS256 서명 검증 (기존 `GoogleOAuthClient::decode_id_token()` 재사용)
+2. Audience(client_id), Issuer(`accounts.google.com`), exp 검증
+3. 사용자 조회/생성 (웹 OAuth 콜백과 동일 로직):
+   - OAuth subject로 기존 연결 조회 → 있으면 로그인
+   - 없으면 이메일로 기존 계정 조회 → 있으면 자동 연결
+   - 없으면 신규 계정 생성
+4. MFA 활성화 사용자 → `{ mfa_required: true, mfa_token, user_id }` (세션 미생성)
+5. 세션 생성 → `LoginMobileRes` 반환 (refresh_token JSON body)
+
+**실패**:
+- **400**: id_token 누락/형식 오류
+- **401**: 서명 검증 실패, 만료, audience 불일치
+- **403**: 계정 비활성, 이메일 미인증
+- **429**: Rate Limit 초과
+
+---
+
+#### 5.3-17 : `POST /auth/apple-mobile` (모바일 Apple OAuth)
+
+> **개요**: Apple Sign in with Apple에서 획득한 ID token을 JWKS 검증하여 로그인/가입 처리. Apple 정책상 소셜 로그인 제공 시 필수.
+
+**인증**: 없음 (공개)
+
+**요청**
+```json
+{
+  "id_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user_name": "홍길동"
+}
+```
+
+- `user_name`: Apple은 최초 인증에만 이름 제공 → 클라이언트에서 캐싱 후 전달. 이후 요청에서는 null 가능.
+
+**응답**: `LoginMobileRes` (google-mobile과 동일 형식)
+
+**처리 흐름**:
+1. Apple JWKS(`https://appleid.apple.com/auth/keys`)로 ID token RS256 서명 검증
+2. Audience(Apple Service ID/Bundle ID), Issuer(`https://appleid.apple.com`), exp 검증
+3. 사용자 조회/생성 (Google mobile과 동일 로직)
+4. **Apple 특이사항**: 최초 로그인에만 email 제공, 이후 subject만 전달 → subject 기반 조회 우선
+5. MFA → 동일 분기
+6. 세션 생성 → `LoginMobileRes` 반환
+
+**실패**: google-mobile과 동일 에러 코드
+
+**환경변수**: `APPLE_TEAM_ID`, `APPLE_SERVICE_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`
+
+**신규 파일**: `src/external/apple.rs` — Apple JWKS 클라이언트 (`GoogleOAuthClient` 패턴 복제)
+
+---
+
+#### 5.3-18 : `POST /auth/mfa/login-mobile` (모바일 MFA 2단계)
+
+> **개요**: 5.3-12와 동일 로직. refresh_token을 쿠키 대신 JSON body로 반환.
+
+**인증**: 없음 (mfa_token 기반)
+
+**요청**
+```json
+{
+  "mfa_token": "uuid",
+  "code": "123456"
+}
+```
+
+**응답 (성공 200)**: `LoginMobileRes` (동일 형식)
+
+**MFA 로그인 흐름 (모바일 OAuth)**:
+1. `POST /auth/google-mobile` 또는 `POST /auth/apple-mobile` → MFA 활성화 사용자
+2. 응답: `{ mfa_required: true, mfa_token: "uuid", user_id: 123 }`
+3. `POST /auth/mfa/login-mobile` → TOTP/백업 코드 검증 → `LoginMobileRes` 반환
 
 </details>
 

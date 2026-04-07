@@ -47,10 +47,10 @@ pub fn decrypt(key: &[u8; 32], encrypted: &str, aad: &str) -> CryptoResult<Strin
 
     let combined = STANDARD
         .decode(b64)
-        .map_err(|e| CryptoError::Internal(format!("Base64 decode failed: {e}")))?;
+        .map_err(|e| CryptoError::InvalidFormat(format!("Base64 decode failed: {e}")))?;
 
     if combined.len() < 12 + 16 {
-        return Err(CryptoError::Internal("Encrypted data too short".into()));
+        return Err(CryptoError::InvalidFormat("Encrypted data too short".into()));
     }
 
     let (nonce_bytes, ciphertext) = combined.split_at(12);
@@ -66,10 +66,10 @@ pub fn decrypt(key: &[u8; 32], encrypted: &str, aad: &str) -> CryptoResult<Strin
 
     let plaintext = cipher
         .decrypt(nonce, payload)
-        .map_err(|e| CryptoError::Internal(format!("AES decrypt failed: {e}")))?;
+        .map_err(|e| CryptoError::DecryptionFailed(format!("AES decrypt failed: {e}")))?;
 
     String::from_utf8(plaintext)
-        .map_err(|e| CryptoError::Internal(format!("UTF-8 decode failed: {e}")))
+        .map_err(|e| CryptoError::InvalidFormat(format!("UTF-8 decode failed: {e}")))
 }
 
 /// 암호문에서 키 버전을 추출한다 — 엄격한 파싱.
@@ -79,35 +79,36 @@ pub fn decrypt(key: &[u8; 32], encrypted: &str, aad: &str) -> CryptoResult<Strin
 /// - 버전 숫자 파싱 실패 (비숫자, u8 오버플로, 빈 문자열) → 에러
 /// - ":" 구분자 누락 → 에러
 pub fn extract_version(encrypted: &str) -> CryptoResult<u8> {
-    let rest = encrypted
-        .strip_prefix("enc:v")
-        .ok_or_else(|| CryptoError::Internal("Not an encrypted value (missing 'enc:v' prefix)".into()))?;
-
-    let colon_pos = rest
-        .find(':')
-        .ok_or_else(|| CryptoError::Internal("Corrupted encrypted value (missing ':' after version)".into()))?;
-
-    let version_str = &rest[..colon_pos];
-    if version_str.is_empty() {
-        return Err(CryptoError::Internal("Corrupted encrypted value (empty version number)".into()));
-    }
-
-    version_str.parse::<u8>().map_err(|e| {
-        CryptoError::Internal(format!("Corrupted encrypted value (invalid version '{version_str}'): {e}"))
-    })
+    let (version, _) = parse_enc_parts(encrypted)?;
+    Ok(version)
 }
 
 /// 암호문의 `enc:v{digits}:` prefix를 제거하고 base64 부분만 반환.
 fn strip_enc_prefix(encrypted: &str) -> CryptoResult<&str> {
+    let (_, b64) = parse_enc_parts(encrypted)?;
+    Ok(b64)
+}
+
+/// `enc:v{digits}:{base64}` 형식의 암호문을 파싱하여 (버전, base64 부분)을 반환.
+fn parse_enc_parts(encrypted: &str) -> CryptoResult<(u8, &str)> {
     let rest = encrypted
         .strip_prefix("enc:v")
-        .ok_or_else(|| CryptoError::Internal("Not an encrypted value (missing prefix)".into()))?;
+        .ok_or_else(|| CryptoError::InvalidFormat("Not an encrypted value (missing 'enc:v' prefix)".into()))?;
 
     let colon_pos = rest
         .find(':')
-        .ok_or_else(|| CryptoError::Internal("Corrupted encrypted value (missing ':' delimiter)".into()))?;
+        .ok_or_else(|| CryptoError::InvalidFormat("Corrupted encrypted value (missing ':' after version)".into()))?;
 
-    Ok(&rest[colon_pos + 1..])
+    let version_str = &rest[..colon_pos];
+    if version_str.is_empty() {
+        return Err(CryptoError::InvalidFormat("Corrupted encrypted value (empty version number)".into()));
+    }
+
+    let version = version_str.parse::<u8>().map_err(|e| {
+        CryptoError::InvalidFormat(format!("Corrupted encrypted value (invalid version '{version_str}'): {e}"))
+    })?;
+
+    Ok((version, &rest[colon_pos + 1..]))
 }
 
 /// 값이 유효한 암호화 프리픽스를 가지고 있는지 확인 (엄격).
@@ -156,7 +157,7 @@ pub fn encrypt_bytes(key: &[u8; 32], plaintext: &[u8], aad: &str) -> CryptoResul
 /// 입력 포맷: raw bytes `nonce_12bytes || ciphertext || tag_16bytes`
 pub fn decrypt_bytes(key: &[u8; 32], encrypted: &[u8], aad: &str) -> CryptoResult<Vec<u8>> {
     if encrypted.len() < 12 + 16 {
-        return Err(CryptoError::Internal("Encrypted bytes too short".into()));
+        return Err(CryptoError::InvalidFormat("Encrypted bytes too short".into()));
     }
 
     let (nonce_bytes, ciphertext) = encrypted.split_at(12);
@@ -172,7 +173,7 @@ pub fn decrypt_bytes(key: &[u8; 32], encrypted: &[u8], aad: &str) -> CryptoResul
 
     cipher
         .decrypt(nonce, payload)
-        .map_err(|e| CryptoError::Internal(format!("AES decrypt_bytes failed: {e}")))
+        .map_err(|e| CryptoError::DecryptionFailed(format!("AES decrypt_bytes failed: {e}")))
 }
 
 #[cfg(test)]

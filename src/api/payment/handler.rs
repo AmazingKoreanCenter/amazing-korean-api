@@ -139,3 +139,67 @@ pub async fn handle_webhook(
 
     StatusCode::OK
 }
+
+/// POST /payment/webhook/revenuecat
+///
+/// RevenueCat Webhook 수신 엔드포인트.
+/// Authorization: Bearer {token} 헤더로 인증.
+/// Apple ASN V2 / Google RTDN을 직접 구현하지 않고 RevenueCat 단일 웹훅으로 통합.
+pub async fn handle_revenuecat_webhook(
+    State(st): State<AppState>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> StatusCode {
+    // 1. Bearer 토큰 인증
+    let expected_token = match &st.cfg.revenuecat_webhook_auth_token {
+        Some(t) => t.clone(),
+        None => {
+            tracing::error!("RevenueCat webhook auth token not configured (REVENUECAT_WEBHOOK_AUTH_TOKEN)");
+            return StatusCode::OK; // 재시도 방지
+        }
+    };
+
+    let auth_header = match headers.get("Authorization") {
+        Some(v) => match v.to_str() {
+            Ok(s) => s.to_string(),
+            Err(_) => {
+                tracing::warn!("RevenueCat webhook: invalid Authorization header encoding");
+                return StatusCode::UNAUTHORIZED;
+            }
+        },
+        None => {
+            tracing::warn!("RevenueCat webhook: missing Authorization header");
+            return StatusCode::UNAUTHORIZED;
+        }
+    };
+
+    let token = auth_header.strip_prefix("Bearer ").unwrap_or("");
+    if token != expected_token {
+        tracing::warn!("RevenueCat webhook: invalid bearer token");
+        return StatusCode::UNAUTHORIZED;
+    }
+
+    // 2. Body → JSON
+    let body_str = match std::str::from_utf8(&body) {
+        Ok(s) => s.to_string(),
+        Err(_) => {
+            tracing::warn!("RevenueCat webhook: invalid UTF-8 body");
+            return StatusCode::BAD_REQUEST;
+        }
+    };
+
+    let payload: serde_json::Value = match serde_json::from_str(&body_str) {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::warn!(error = %e, "RevenueCat webhook: invalid JSON body");
+            return StatusCode::BAD_REQUEST;
+        }
+    };
+
+    // 3. 이벤트 처리 (항상 200 반환)
+    if let Err(e) = PaymentService::process_revenuecat_webhook(&st, &payload).await {
+        tracing::error!(error = %e, "Failed to process RevenueCat webhook event");
+    }
+
+    StatusCode::OK
+}

@@ -8,6 +8,7 @@ use crate::config::Config;
 use crate::external::email::EmailSender;
 use crate::external::ipgeo::IpGeoClient;
 use crate::external::payment::PaymentProvider;
+use crate::external::revenuecat::RevenueCatClient;
 
 #[derive(Clone, FromRef)]
 pub struct AppState {
@@ -21,6 +22,8 @@ pub struct AppState {
     pub ipgeo: Arc<IpGeoClient>,
     /// 결제 프로바이더 (PAYMENT_PROVIDER 설정에 따라 Paddle Billing 사용)
     pub payment: Option<Arc<dyn PaymentProvider>>,
+    /// RevenueCat 클라이언트 (모바일 IAP 영수증 검증)
+    pub revenuecat: Option<Arc<dyn RevenueCatClient>>,
 }
 
 impl AsRef<AppState> for AppState {

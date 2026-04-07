@@ -381,6 +381,11 @@ pub enum LessonItemKind {
 #[serde(rename_all = "lowercase")]
 pub enum PaymentProvider {
     Paddle,
+    Apple,
+    Google,
+    #[sqlx(rename = "revenuecat")]
+    #[serde(rename = "revenuecat")]
+    RevenueCat,
 }
 
 /// 구독 상태
@@ -620,14 +625,18 @@ pub enum EbookPurchaseStatus {
 pub enum EbookPaymentMethod {
     Paddle,
     BankTransfer,
+    AppleIap,
+    GoogleIap,
 }
 
 impl EbookPaymentMethod {
-    /// 구매코드용 결제 방법 코드: Paddle→CA(Card), BankTransfer→BT
+    /// 구매코드용 결제 방법 코드: Paddle→CA(Card), BankTransfer→BT, AppleIap→AI, GoogleIap→GI
     pub fn to_purchase_code(&self) -> &'static str {
         match self {
             Self::Paddle => "CA",
             Self::BankTransfer => "BT",
+            Self::AppleIap => "AI",
+            Self::GoogleIap => "GI",
         }
     }
 }

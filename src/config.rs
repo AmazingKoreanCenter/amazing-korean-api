@@ -43,8 +43,12 @@ pub struct Config {
     pub google_client_id: Option<String>,
     pub google_client_secret: Option<String>,
     pub google_redirect_uri: Option<String>,
+    pub google_mobile_client_id: Option<String>, // 모바일 전용 Google OAuth Client ID (Android/iOS)
     pub oauth_state_ttl_sec: i64,         // OAuth state 유효시간 (초, 기본 300)
     pub frontend_url: String,             // OAuth 콜백 후 리다이렉트할 프론트엔드 URL
+    // Apple OAuth (모바일 Sign in with Apple)
+    pub apple_client_id: Option<String>,  // Apple Bundle ID (e.g., net.amazingkorean.app)
+    pub apple_team_id: Option<String>,    // Apple Team ID
     // Email Provider
     pub email_provider: String,           // "resend" | "none" (기본: "none")
     pub resend_api_key: Option<String>,   // Resend API 키 (email_provider=resend 시 필수)
@@ -56,6 +60,9 @@ pub struct Config {
     pub mfa_token_ttl_sec: i64,                  // MFA 토큰 유효시간 (초, 기본: 300 = 5분)
     pub rate_limit_mfa_max: i64,                 // MFA 코드 검증 최대 시도 횟수 (기본: 5)
     pub rate_limit_mfa_window_sec: i64,          // MFA 코드 검증 레이트리밋 윈도우 (초, 기본: 300)
+    // RevenueCat (모바일 IAP)
+    pub revenuecat_api_key: Option<String>,              // RevenueCat 서버 API 키
+    pub revenuecat_webhook_auth_token: Option<String>,   // RevenueCat 웹훅 Bearer 토큰
     // Payment Provider (Paddle Billing)
     pub payment_provider: String,                    // "paddle" | "none" (기본: "none")
     pub paddle_api_key: Option<String>,              // Paddle API Key (서버용)
@@ -205,6 +212,17 @@ impl Config {
         let google_client_id = env::var("GOOGLE_CLIENT_ID").ok();
         let google_client_secret = env::var("GOOGLE_CLIENT_SECRET").ok();
         let google_redirect_uri = env::var("GOOGLE_REDIRECT_URI").ok();
+        let google_mobile_client_id = env::var("GOOGLE_MOBILE_CLIENT_ID")
+            .ok()
+            .filter(|s| !s.is_empty());
+
+        // Apple OAuth (optional, 모바일 Sign in with Apple)
+        let apple_client_id = env::var("APPLE_CLIENT_ID")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let apple_team_id = env::var("APPLE_TEAM_ID")
+            .ok()
+            .filter(|s| !s.is_empty());
         let oauth_state_ttl_sec = env::var("OAUTH_STATE_TTL_SEC")
             .unwrap_or_else(|_| "300".into())
             .parse::<i64>()
@@ -246,6 +264,14 @@ impl Config {
             .unwrap_or_else(|_| "300".into())
             .parse::<i64>()
             .expect("RATE_LIMIT_MFA_WINDOW_SEC must be a number");
+
+        // RevenueCat (모바일 IAP)
+        let revenuecat_api_key = env::var("REVENUECAT_API_KEY")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let revenuecat_webhook_auth_token = env::var("REVENUECAT_WEBHOOK_AUTH_TOKEN")
+            .ok()
+            .filter(|s| !s.is_empty());
 
         // Payment Provider: "paddle" | "none"
         let payment_provider = env::var("PAYMENT_PROVIDER")
@@ -482,8 +508,11 @@ impl Config {
             google_client_id,
             google_client_secret,
             google_redirect_uri,
+            google_mobile_client_id,
             oauth_state_ttl_sec,
             frontend_url,
+            apple_client_id,
+            apple_team_id,
             email_provider,
             resend_api_key,
             email_from_address,
@@ -492,6 +521,8 @@ impl Config {
             mfa_token_ttl_sec,
             rate_limit_mfa_max,
             rate_limit_mfa_window_sec,
+            revenuecat_api_key,
+            revenuecat_webhook_auth_token,
             payment_provider,
             paddle_api_key,
             paddle_webhook_secret,
@@ -676,8 +707,11 @@ impl fmt::Debug for Config {
             .field("google_client_id", &self.google_client_id.as_ref().map(|_| "***"))
             .field("google_client_secret", &self.google_client_secret.as_ref().map(|_| "***"))
             .field("google_redirect_uri", &self.google_redirect_uri)
+            .field("google_mobile_client_id", &self.google_mobile_client_id.as_ref().map(|_| "***"))
             .field("oauth_state_ttl_sec", &self.oauth_state_ttl_sec)
             .field("frontend_url", &self.frontend_url)
+            .field("apple_client_id", &self.apple_client_id.as_ref().map(|_| "***"))
+            .field("apple_team_id", &self.apple_team_id.as_ref().map(|_| "***"))
             .field("email_provider", &self.email_provider)
             .field("resend_api_key", &self.resend_api_key.as_ref().map(|_| "***"))
             .field("email_from_address", &self.email_from_address)
@@ -686,6 +720,8 @@ impl fmt::Debug for Config {
             .field("mfa_token_ttl_sec", &self.mfa_token_ttl_sec)
             .field("rate_limit_mfa_max", &self.rate_limit_mfa_max)
             .field("rate_limit_mfa_window_sec", &self.rate_limit_mfa_window_sec)
+            .field("revenuecat_api_key", &self.revenuecat_api_key.as_ref().map(|_| "***"))
+            .field("revenuecat_webhook_auth_token", &self.revenuecat_webhook_auth_token.as_ref().map(|_| "***"))
             .field("payment_provider", &self.payment_provider)
             .field("paddle_api_key", &self.paddle_api_key.as_ref().map(|_| "***"))
             .field("paddle_webhook_secret", &self.paddle_webhook_secret.as_ref().map(|_| "***"))

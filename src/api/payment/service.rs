@@ -218,6 +218,60 @@ impl PaymentService {
         Ok(())
     }
 
+    /// RevenueCat webhook 이벤트 처리
+    pub async fn process_revenuecat_webhook(
+        st: &AppState,
+        payload: &serde_json::Value,
+    ) -> AppResult<()> {
+        // RevenueCat 이벤트 구조: { "event": { "id": "...", "type": "...", ... } }
+        let event = payload.get("event").unwrap_or(payload);
+        let event_id = event["id"].as_str().unwrap_or("unknown").to_string();
+        let event_type = event["type"].as_str().unwrap_or("unknown").to_string();
+
+        // 멱등성 체크
+        if PaymentRepo::is_webhook_event_processed(&st.db, PaymentProvider::RevenueCat, &event_id)
+            .await?
+        {
+            tracing::info!(event_id = %event_id, "RevenueCat webhook event already processed, skipping");
+            return Ok(());
+        }
+
+        tracing::info!(event_id = %event_id, event_type = %event_type, "Processing RevenueCat webhook event");
+
+        match event_type.as_str() {
+            "INITIAL_PURCHASE" | "NON_RENEWING_PURCHASE" => {
+                // E-book 일회성 구매 확인 — 이미 /ebook/purchase/iap에서 처리됨
+                tracing::info!(event_id = %event_id, "RevenueCat initial purchase confirmed");
+            }
+            "CANCELLATION" => {
+                // 환불 처리 (향후 구현: purchase status → refunded)
+                tracing::info!(event_id = %event_id, "RevenueCat cancellation received");
+            }
+            "RENEWAL" | "PRODUCT_CHANGE" => {
+                // 구독 갱신/변경 (향후 구독 IAP 대비)
+                tracing::info!(event_id = %event_id, "RevenueCat renewal/change received");
+            }
+            "EXPIRATION" | "BILLING_ISSUE" => {
+                tracing::info!(event_id = %event_id, event_type = %event_type, "RevenueCat billing event received");
+            }
+            _ => {
+                tracing::debug!(event_type = %event_type, "Ignoring unhandled RevenueCat event type");
+            }
+        }
+
+        // 이벤트 기록
+        PaymentRepo::record_webhook_event(
+            &st.db,
+            PaymentProvider::RevenueCat,
+            &event_id,
+            &event_type,
+            payload.clone(),
+        )
+        .await?;
+
+        Ok(())
+    }
+
     // =========================================================================
     // Subscription 핸들러
     // =========================================================================

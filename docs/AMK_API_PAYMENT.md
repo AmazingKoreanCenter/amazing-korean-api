@@ -285,6 +285,34 @@
 
 **응답**: `200 OK` (항상)
 
+---
+
+#### 11-4 : `POST /payment/webhook/revenuecat` (RevenueCat Webhook)
+
+> RevenueCat에서 호출하는 Webhook 엔드포인트. Apple ASN V2 / Google RTDN을 직접 구현하지 않고 RevenueCat 단일 웹훅으로 통합.
+
+**인증**: `Authorization: Bearer {REVENUECAT_WEBHOOK_SECRET}` 헤더 검증
+
+**처리 이벤트**:
+| 이벤트 | 처리 |
+|--------|------|
+| `INITIAL_PURCHASE` | E-book 구매 확정 (purchase status → completed) |
+| `CANCELLATION` | E-book 구매 환불 (purchase status → refunded) |
+| `RENEWAL` | 구독 갱신 (향후 구독 IAP 대비) |
+| `EXPIRATION` | 구독 만료 |
+| `BILLING_ISSUE` | 결제 실패 알림 |
+
+**멱등성**: `event_id` 기반 중복 방지 (기존 Paddle 웹훅 패턴 동일)
+
+**응답**: `200 OK` (항상 — 에러 시에도 200 반환하여 재시도 방지)
+
+**DB 마이그레이션**: `payment_provider_enum`에 `'apple'`, `'google'` 추가
+
+**수정 대상 파일**:
+- `src/api/payment/handler.rs` — 웹훅 핸들러 추가
+- `src/api/payment/service.rs` — 이벤트 처리 로직
+- `src/api/payment/router.rs` — 라우트 등록
+
 </details>
 
 [⬆️ AMK_API_MASTER.md로 돌아가기](./AMK_API_MASTER.md)

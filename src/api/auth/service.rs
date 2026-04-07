@@ -43,10 +43,33 @@ pub enum LoginOutcome {
     },
 }
 
+/// Provider 무관 OAuth 사용자 정보 (Google/Apple 공통)
+#[derive(Debug, Clone)]
+pub struct OAuthUserInfo {
+    pub sub: String,
+    pub email: String,
+    pub email_verified: bool,
+    pub name: Option<String>,
+    pub picture: Option<String>,
+}
+
+impl From<GoogleUserInfo> for OAuthUserInfo {
+    fn from(g: GoogleUserInfo) -> Self {
+        Self {
+            sub: g.sub,
+            email: g.email,
+            email_verified: g.email_verified,
+            name: g.name,
+            picture: g.picture,
+        }
+    }
+}
+
 /// OAuth 로그인 결과 (일반 성공 vs MFA 챌린지)
 pub struct OAuthLoginSuccess {
     pub login_res: LoginRes,
     pub cookie: Cookie<'static>,
+    pub refresh_token: String,
     pub ttl: i64,
     pub is_new_user: bool,
 }
@@ -1357,7 +1380,7 @@ impl AuthService {
             return Err(AppError::Unauthorized("AUTH_401_INVALID_AUDIENCE".into()));
         }
 
-        let user_info = client.extract_user_info(&claims);
+        let user_info: OAuthUserInfo = client.extract_user_info(&claims).into();
 
         // [Step 4] 사용자 조회 또는 생성
         let (user_id, user_auth, is_new_user) = Self::find_or_create_oauth_user(st, &user_info, "google").await?;
@@ -1394,11 +1417,114 @@ impl AuthService {
         }
 
         // [Step 6] 세션 생성 (MFA 미활성화 시)
-        let (login_res, cookie, refresh_ttl) = Self::create_oauth_session(st, user_id, user_auth, "google", login_ip, user_agent, parsed_ua).await?;
+        let (login_res, cookie, refresh_ttl, refresh_token) = Self::create_oauth_session(st, user_id, user_auth, "google", login_ip, user_agent, parsed_ua).await?;
 
         Ok(OAuthLoginOutcome::Success(Box::new(OAuthLoginSuccess {
             login_res,
             cookie,
+            refresh_token,
+            ttl: refresh_ttl,
+            is_new_user,
+        })))
+    }
+
+    /// 모바일 Google OAuth 로그인 (ID token 직접 검증)
+    pub async fn google_mobile_login(
+        st: &AppState,
+        req: GoogleMobileLoginReq,
+        login_ip: String,
+        user_agent: Option<String>,
+        parsed_ua: crate::api::auth::handler::ParsedUa,
+    ) -> AppResult<OAuthLoginOutcome> {
+        let client_id = st.cfg.google_mobile_client_id.as_ref()
+            .ok_or_else(|| AppError::Internal("GOOGLE_MOBILE_CLIENT_ID not configured".into()))?;
+
+        // ID token JWKS 검증 (모바일은 Authorization Code 교환 불필요)
+        let client = GoogleOAuthClient::new(client_id.clone(), String::new(), String::new());
+        let claims = client.decode_id_token(&req.id_token).await?;
+        let user_info: OAuthUserInfo = client.extract_user_info(&claims).into();
+
+        // 사용자 조회/생성 + MFA 체크 + 세션 생성
+        Self::oauth_mobile_login_flow(st, &user_info, "google", login_ip, user_agent, parsed_ua).await
+    }
+
+    /// 모바일 Apple OAuth 로그인 (ID token 직접 검증)
+    pub async fn apple_mobile_login(
+        st: &AppState,
+        req: AppleMobileLoginReq,
+        login_ip: String,
+        user_agent: Option<String>,
+        parsed_ua: crate::api::auth::handler::ParsedUa,
+    ) -> AppResult<OAuthLoginOutcome> {
+        let client_id = st.cfg.apple_client_id.as_ref()
+            .ok_or_else(|| AppError::Internal("APPLE_CLIENT_ID not configured".into()))?;
+
+        let client = crate::external::apple::AppleOAuthClient::new(client_id.clone());
+        let claims = client.decode_id_token(&req.id_token).await?;
+        let user_info = client.extract_user_info(&claims, req.user_name);
+
+        // Apple 특이: 최초 인증 시에만 email 제공. email 없고 기존 유저도 없으면 생성 불가
+        if user_info.email.is_empty() {
+            let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+            let sub_idx = crypto.blind_index_preserve_case(&user_info.sub)?;
+            let existing = AuthRepo::find_oauth_by_provider_subject_idx(&st.db, "apple", &sub_idx).await?;
+            if existing.is_none() {
+                return Err(AppError::BadRequest(
+                    "Apple 계정에서 이메일을 가져올 수 없습니다. Apple ID 설정 > 로그인 및 보안 > Apple로 로그인에서 Amazing Korean을 제거한 후 다시 시도해주세요.".into()
+                ));
+            }
+        }
+
+        Self::oauth_mobile_login_flow(st, &user_info, "apple", login_ip, user_agent, parsed_ua).await
+    }
+
+    /// 모바일 OAuth 공통 로그인 흐름 (사용자 조회/생성 → MFA → 세션)
+    async fn oauth_mobile_login_flow(
+        st: &AppState,
+        user_info: &OAuthUserInfo,
+        provider: &str,
+        login_ip: String,
+        user_agent: Option<String>,
+        parsed_ua: crate::api::auth::handler::ParsedUa,
+    ) -> AppResult<OAuthLoginOutcome> {
+        let (user_id, user_auth, is_new_user) = Self::find_or_create_oauth_user(st, user_info, provider).await?;
+
+        // MFA 체크 (기존 사용자 + MFA 활성화 시 챌린지 반환)
+        if !is_new_user {
+            let mfa_enabled = AuthRepo::find_user_mfa_enabled(&st.db, user_id).await?;
+            if mfa_enabled {
+                let mfa_token = Uuid::new_v4().to_string();
+                let pending_data = serde_json::json!({
+                    "user_id": user_id,
+                    "user_auth": format!("{:?}", user_auth),
+                    "login_ip": login_ip,
+                    "user_agent": user_agent,
+                    "device": parsed_ua.device,
+                    "browser": parsed_ua.browser,
+                    "os": parsed_ua.os,
+                    "login_method": provider
+                });
+                let mut redis_conn = st.redis.get().await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
+                let mfa_key = format!("ak:mfa_pending:{}", mfa_token);
+                let _: () = redis_conn.set_ex(
+                    &mfa_key,
+                    pending_data.to_string(),
+                    st.cfg.mfa_token_ttl_sec as u64,
+                ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+
+                return Ok(OAuthLoginOutcome::MfaChallenge { mfa_token, user_id });
+            }
+        }
+
+        let (login_res, cookie, refresh_ttl, refresh_token) = Self::create_oauth_session(
+            st, user_id, user_auth, provider, login_ip, user_agent, parsed_ua,
+        ).await?;
+
+        Ok(OAuthLoginOutcome::Success(Box::new(OAuthLoginSuccess {
+            login_res,
+            cookie,
+            refresh_token,
             ttl: refresh_ttl,
             is_new_user,
         })))
@@ -1408,7 +1534,7 @@ impl AuthService {
     /// 반환: (user_id, user_auth, is_new_user)
     async fn find_or_create_oauth_user(
         st: &AppState,
-        user_info: &GoogleUserInfo,
+        user_info: &OAuthUserInfo,
         provider: &str,
     ) -> AppResult<(i64, UserAuth, bool)> {
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
@@ -1471,7 +1597,7 @@ impl AuthService {
     /// OAuth 신규 사용자 생성
     async fn create_oauth_user(
         st: &AppState,
-        user_info: &GoogleUserInfo,
+        user_info: &OAuthUserInfo,
         provider: &str,
     ) -> AppResult<(i64, UserAuth)> {
         let mut tx = st.db.begin().await?;
@@ -1550,7 +1676,7 @@ impl AuthService {
         login_ip: String,
         user_agent: Option<String>,
         parsed_ua: crate::api::auth::handler::ParsedUa,
-    ) -> AppResult<(LoginRes, Cookie<'static>, i64)> {
+    ) -> AppResult<(LoginRes, Cookie<'static>, i64, String)> {
         let session_id = Uuid::new_v4().to_string();
         let (refresh_token_value, refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
         let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user_auth) * 24 * 3600;
@@ -1642,6 +1768,7 @@ impl AuthService {
         ).await.map_err(|e| AppError::Internal(e.to_string()))?;
 
         // Cookie 생성
+        let refresh_token_for_mobile = refresh_token_value.clone();
         let mut refresh_cookie = Cookie::new(st.cfg.refresh_cookie_name.clone(), refresh_token_value);
         refresh_cookie.set_path("/");
         refresh_cookie.set_http_only(true);
@@ -1666,6 +1793,7 @@ impl AuthService {
             },
             refresh_cookie.into_owned(),
             refresh_ttl_secs,
+            refresh_token_for_mobile,
         ))
     }
 
@@ -1807,7 +1935,7 @@ impl AuthService {
         st: &AppState,
         req: MfaLoginReq,
         login_ip: String,
-    ) -> AppResult<(LoginRes, Cookie<'static>, i64)> {
+    ) -> AppResult<(LoginRes, Cookie<'static>, i64, String)> {
         let mut redis_conn = st.redis.get().await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
@@ -1889,10 +2017,10 @@ impl AuthService {
         };
 
         // 세션 생성 (pending_method에 저장된 login_method 그대로 사용)
-        let (login_res, cookie, ttl) = Self::create_oauth_session(
+        let (login_res, cookie, ttl, refresh_token) = Self::create_oauth_session(
             st, user_id, user_auth, &pending_method, pending_ip, pending_ua, parsed_ua,
         ).await?;
-        Ok((login_res, cookie, ttl))
+        Ok((login_res, cookie, ttl, refresh_token))
     }
 
     /// 백업 코드 검증 (일치 시 해당 코드 해시 제거)

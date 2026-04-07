@@ -119,7 +119,7 @@ pub async fn fetch_daily_signups(
     let items = rows
         .into_iter()
         .map(|r| DailySignupItem {
-            date: r.try_get("signup_date").unwrap_or(chrono::NaiveDate::MIN),
+            date: r.try_get("signup_date").unwrap_or_default(),
             signups: r.try_get("signups").unwrap_or(0),
             by_role: UsersByRole {
                 hymn: r.try_get("role_hymn").unwrap_or(0),
@@ -229,7 +229,7 @@ pub async fn fetch_daily_logins(
     let items = rows
         .into_iter()
         .map(|r| DailyLoginItem {
-            date: r.try_get("login_date").unwrap_or(chrono::NaiveDate::MIN),
+            date: r.try_get("login_date").unwrap_or_default(),
             success: r.try_get("success").unwrap_or(0),
             fail: r.try_get("fail").unwrap_or(0),
             unique_users: r.try_get("unique_users").unwrap_or(0),

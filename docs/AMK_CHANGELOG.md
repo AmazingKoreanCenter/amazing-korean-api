@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-03
+updated: 2026-04-07
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,38 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-07 — 모바일 백엔드 API 5건 구현 완료 (OAuth + IAP + 웹훅)**
+  - [기능] `POST /auth/google-mobile`: 모바일 Google OAuth (ID token 직접 검증 → 계정 연결/생성 → LoginMobileRes)
+  - [기능] `POST /auth/apple-mobile`: 모바일 Apple OAuth (Apple JWKS RS256 검증, 최초 email 처리, 재인증 안내)
+  - [기능] `POST /auth/mfa/login-mobile`: 모바일 MFA 2단계 (refresh_token JSON body 반환)
+  - [기능] `POST /ebook/purchase/iap`: IAP 구매 확정 (RevenueCat 영수증 검증 → status=completed, iap_* 컬럼)
+  - [기능] `POST /payment/webhook/revenuecat`: RevenueCat 웹훅 (Bearer 토큰 인증, 멱등성, 이벤트 분기)
+  - [리팩토링] `OAuthUserInfo` 일반화 (GoogleUserInfo → OAuthUserInfo, Google/Apple 공통)
+  - [리팩토링] `create_oauth_session` 반환에 refresh_token 추가 (모바일 OAuth용)
+  - [신규] `src/external/apple.rs`: Apple JWKS 클라이언트 (google.rs 패턴 복제)
+  - [신규] `src/external/revenuecat.rs`: RevenueCat REST API 클라이언트 (trait 패턴)
+  - [DB] `migrations/20260407_mobile_iap.sql`: payment_provider_enum + ebook_payment_method_enum 확장, ebook_purchase iap_* 컬럼
+  - [설정] config.rs: GOOGLE_MOBILE_CLIENT_ID, APPLE_CLIENT_ID, APPLE_TEAM_ID, REVENUECAT_API_KEY, REVENUECAT_WEBHOOK_AUTH_TOKEN 추가
+  - [설정] docker-compose.prod.yml: 5개 신규 환경변수 추가
+
+- **2026-04-07 — 모바일 앱 백엔드 API 스펙 문서화 (OAuth + IAP)**
+  - [문서] AMK_API_AUTH.md: 모바일 OAuth 엔드포인트 3건 스펙 추가 (§5.3-16 google-mobile, §5.3-17 apple-mobile, §5.3-18 mfa/login-mobile)
+  - [문서] AMK_API_EBOOK.md: IAP 구매 확정 엔드포인트 스펙 추가 (§12.5-2.5 POST /ebook/purchase/iap, RevenueCat 영수증 검증)
+  - [문서] AMK_API_PAYMENT.md: RevenueCat 웹훅 엔드포인트 스펙 추가 (§11-4 POST /payment/webhook/revenuecat)
+  - [문서] AMK_STATUS.md: 핵심 실행 순서에 4a(모바일 OAuth) + 4b(IAP 결제) 추가, Apple OAuth 보류→핵심으로 이동, IAP 리스크 스펙 완료 표시
+  - 참조: `amazing-korean-mobile/docs/AMK_MOBILE_API_REQUIREMENTS.md`
+
+- **2026-04-07 — 코드 품질/보안 점검 11건 수정 + 추가 보안 강화 2건**
+  - [보안] ebook `verify_session` fail-open → fail-closed: JSON 파싱 실패 시 접근 거부 (OWASP fail-secure)
+  - [보안] ebook `heartbeat` fail-open → fail-closed: 동일 패턴 수정
+  - [보안] `CryptoError→AppError` 매핑: `InvalidFormat→BadRequest(400)` → `Internal(500)` 통일 (format oracle 방지, CWE-209/203)
+  - [보안] DevTools 감지 `||` → `&&` (consoleDetected && checkWindowSize): 오탐 방지 우선, 5중 보안 최하위 레이어
+  - [리팩토링] `CryptoError` 단일 variant → 3개 분리 (InvalidFormat/DecryptionFailed/Internal), `parse_enc_parts()` 공통 함수
+  - [리팩토링] `NaiveDate::MIN` → `unwrap_or_default()` (5곳), `provider_data.clone()` → 참조 (2곳), `Some(target_table)` → 직접 바인딩 (2곳)
+  - [수정] DataTable 페이지네이션: 하드코딩 1-5 → 슬라이딩 윈도우
+  - [문서] ROADMAP 테이블 헤더 중복 제거, QA 스크립트 import 수정 (browser_use → langchain_ollama)
+  - [TODO] `verify_session` session_id 필수화 — 프론트엔드 전송 확인 후 None → Forbidden 전환 예정
 
 - **2026-04-06 — clippy 리팩토링 20건 완료 → clippy 경고 0건 달성**
   - target_table 대소문자 소문자 통일 (video 8, study 21, lesson 18건) + AMK_API_MASTER §3.2.3 감사 로그 규칙 추가
