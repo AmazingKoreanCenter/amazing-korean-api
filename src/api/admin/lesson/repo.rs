@@ -110,20 +110,25 @@ fn apply_lesson_progress_filters<'a>(
     }
 }
 
+/// 레슨 목록 쿼리 파라미터
+pub struct AdminLessonListQuery<'a> {
+    pub q: Option<String>,
+    pub page: u64,
+    pub size: u64,
+    pub sort: &'a str,
+    pub order: &'a str,
+    pub lesson_state: Option<LessonState>,
+    pub lesson_access: Option<LessonAccess>,
+}
+
 pub async fn admin_list_lessons(
     pool: &PgPool,
-    q: Option<String>,
-    page: u64,
-    size: u64,
-    sort: &str,
-    order: &str,
-    lesson_state: Option<LessonState>,
-    lesson_access: Option<LessonAccess>,
+    query: &AdminLessonListQuery<'_>,
 ) -> AppResult<(i64, Vec<AdminLessonRes>)> {
-    let search = q.map(|s| format!("%{}%", s));
+    let search = query.q.as_ref().map(|s| format!("%{}%", s));
 
     let mut count_builder = QueryBuilder::new("SELECT count(*) FROM lesson");
-    apply_lesson_filters(&mut count_builder, search.as_ref(), lesson_state, lesson_access);
+    apply_lesson_filters(&mut count_builder, search.as_ref(), query.lesson_state, query.lesson_access);
 
     let total_count: i64 = count_builder
         .build()
@@ -148,10 +153,10 @@ pub async fn admin_list_lessons(
         "#,
     );
 
-    apply_lesson_filters(&mut builder, search.as_ref(), lesson_state, lesson_access);
+    apply_lesson_filters(&mut builder, search.as_ref(), query.lesson_state, query.lesson_access);
 
     builder.push(" ORDER BY ");
-    let sort_col = match sort {
+    let sort_col = match query.sort {
         "lesson_idx" | "idx" => "lesson_idx",
         "lesson_title" | "title" => "lesson_title",
         "lesson_state" | "state" => "lesson_state",
@@ -161,12 +166,12 @@ pub async fn admin_list_lessons(
         _ => "lesson_created_at",
     };
     builder.push(sort_col);
-    builder.push(if order == "asc" { " ASC" } else { " DESC" });
+    builder.push(if query.order == "asc" { " ASC" } else { " DESC" });
 
     builder.push(" LIMIT ");
-    builder.push_bind(size as i64);
+    builder.push_bind(query.size as i64);
     builder.push(" OFFSET ");
-    builder.push_bind(((page - 1) * size) as i64);
+    builder.push_bind(((query.page - 1) * query.size) as i64);
 
     let rows = builder
         .build_query_as::<AdminLessonRes>()
@@ -690,15 +695,20 @@ pub async fn exists_lesson_idx_tx(
     Ok(exists)
 }
 
+/// 레슨 생성 파라미터
+pub struct CreateLessonParams<'a> {
+    pub actor_user_id: i64,
+    pub lesson_idx: &'a str,
+    pub lesson_title: &'a str,
+    pub lesson_subtitle: Option<&'a str>,
+    pub lesson_description: Option<&'a str>,
+    pub lesson_state: LessonState,
+    pub lesson_access: LessonAccess,
+}
+
 pub async fn create_lesson(
     tx: &mut Transaction<'_, Postgres>,
-    actor_user_id: i64,
-    lesson_idx: &str,
-    lesson_title: &str,
-    lesson_subtitle: Option<&str>,
-    lesson_description: Option<&str>,
-    lesson_state: LessonState,
-    lesson_access: LessonAccess,
+    params: &CreateLessonParams<'_>,
 ) -> AppResult<AdminLessonRes> {
     let created = sqlx::query_as::<_, AdminLessonRes>(
         r#"
@@ -725,13 +735,13 @@ pub async fn create_lesson(
             lesson_updated_at
         "#,
     )
-    .bind(actor_user_id)
-    .bind(lesson_idx)
-    .bind(lesson_title)
-    .bind(lesson_subtitle)
-    .bind(lesson_description)
-    .bind(lesson_state)
-    .bind(lesson_access)
+    .bind(params.actor_user_id)
+    .bind(params.lesson_idx)
+    .bind(params.lesson_title)
+    .bind(params.lesson_subtitle)
+    .bind(params.lesson_description)
+    .bind(params.lesson_state)
+    .bind(params.lesson_access)
     .fetch_one(&mut **tx)
     .await?;
 
@@ -740,25 +750,9 @@ pub async fn create_lesson(
 
 pub async fn create_lesson_tx(
     tx: &mut Transaction<'_, Postgres>,
-    actor_user_id: i64,
-    lesson_idx: &str,
-    lesson_title: &str,
-    lesson_subtitle: Option<&str>,
-    lesson_description: Option<&str>,
-    lesson_state: LessonState,
-    lesson_access: LessonAccess,
+    params: &CreateLessonParams<'_>,
 ) -> AppResult<AdminLessonRes> {
-    create_lesson(
-        tx,
-        actor_user_id,
-        lesson_idx,
-        lesson_title,
-        lesson_subtitle,
-        lesson_description,
-        lesson_state,
-        lesson_access,
-    )
-    .await
+    create_lesson(tx, params).await
 }
 
 fn normalize_lesson_action(action: &str) -> &'static str {
@@ -770,16 +764,21 @@ fn normalize_lesson_action(action: &str) -> &'static str {
     }
 }
 
+/// 레슨 변경 로그 파라미터
+pub struct LessonLogParams<'a> {
+    pub admin_user_id: i64,
+    pub action: &'a str,
+    pub lesson_id: i32,
+    pub lesson_item_seq: Option<i32>,
+    pub video_id: Option<i32>,
+    pub task_id: Option<i32>,
+    pub before: Option<&'a Value>,
+    pub after: Option<&'a Value>,
+}
+
 pub async fn create_lesson_log(
     tx: &mut Transaction<'_, Postgres>,
-    admin_user_id: i64,
-    action: &str,
-    lesson_id: i32,
-    lesson_item_seq: Option<i32>,
-    video_id: Option<i32>,
-    task_id: Option<i32>,
-    before: Option<&Value>,
-    after: Option<&Value>,
+    p: &LessonLogParams<'_>,
 ) -> AppResult<()> {
     sqlx::query(
         r#"
@@ -796,14 +795,14 @@ pub async fn create_lesson_log(
         VALUES ($1, $2, $3, $4, $5, CAST($6 AS admin_action_enum), $7, $8)
         "#,
     )
-    .bind(admin_user_id)
-    .bind(lesson_id)
-    .bind(lesson_item_seq)
-    .bind(video_id)
-    .bind(task_id)
-    .bind(normalize_lesson_action(action))
-    .bind(before)
-    .bind(after)
+    .bind(p.admin_user_id)
+    .bind(p.lesson_id)
+    .bind(p.lesson_item_seq)
+    .bind(p.video_id)
+    .bind(p.task_id)
+    .bind(normalize_lesson_action(p.action))
+    .bind(p.before)
+    .bind(p.after)
     .execute(&mut **tx)
     .await?;
 
@@ -812,26 +811,9 @@ pub async fn create_lesson_log(
 
 pub async fn create_lesson_log_tx(
     tx: &mut Transaction<'_, Postgres>,
-    admin_user_id: i64,
-    action: &str,
-    lesson_id: i32,
-    lesson_item_seq: Option<i32>,
-    video_id: Option<i32>,
-    task_id: Option<i32>,
-    before: Option<&Value>,
-    after: Option<&Value>,
+    p: &LessonLogParams<'_>,
 ) -> AppResult<()> {
-    create_lesson_log(
-        tx,
-        admin_user_id,
-        action,
-        lesson_id,
-        lesson_item_seq,
-        video_id,
-        task_id,
-        before,
-        after,
-    )
+    create_lesson_log(tx, p)
     .await
 }
 

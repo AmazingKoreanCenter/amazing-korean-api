@@ -28,13 +28,15 @@ use crate::{
 };
 
 /// 로그인 결과 (일반 성공 vs MFA 챌린지)
+pub struct LoginSuccess {
+    pub login_res: LoginRes,
+    pub cookie: Cookie<'static>,
+    pub refresh_token: String,
+    pub ttl: i64,
+}
+
 pub enum LoginOutcome {
-    Success {
-        login_res: LoginRes,
-        cookie: Cookie<'static>,
-        refresh_token: String,
-        ttl: i64,
-    },
+    Success(Box<LoginSuccess>),
     MfaChallenge {
         mfa_token: String,
         user_id: i64,
@@ -42,13 +44,15 @@ pub enum LoginOutcome {
 }
 
 /// OAuth 로그인 결과 (일반 성공 vs MFA 챌린지)
+pub struct OAuthLoginSuccess {
+    pub login_res: LoginRes,
+    pub cookie: Cookie<'static>,
+    pub ttl: i64,
+    pub is_new_user: bool,
+}
+
 pub enum OAuthLoginOutcome {
-    Success {
-        login_res: LoginRes,
-        cookie: Cookie<'static>,
-        ttl: i64,
-        is_new_user: bool,
-    },
+    Success(Box<OAuthLoginSuccess>),
     MfaChallenge {
         mfa_token: String,
         user_id: i64,
@@ -401,7 +405,7 @@ impl AuthService {
             refresh_cookie.set_domain(domain.clone());
         }
 
-        Ok(LoginOutcome::Success {
+        Ok(LoginOutcome::Success(Box::new(LoginSuccess {
             login_res: LoginRes {
                 user_id: user_info.user_id,
                 access: access_token_res,
@@ -410,7 +414,7 @@ impl AuthService {
             cookie: refresh_cookie.into_owned(),
             refresh_token: refresh_token_value,
             ttl: refresh_ttl_secs,
-        })
+        })))
     }
 
     /// 토큰 갱신 (Rotation 적용)
@@ -1392,12 +1396,12 @@ impl AuthService {
         // [Step 6] 세션 생성 (MFA 미활성화 시)
         let (login_res, cookie, refresh_ttl) = Self::create_oauth_session(st, user_id, user_auth, "google", login_ip, user_agent, parsed_ua).await?;
 
-        Ok(OAuthLoginOutcome::Success {
+        Ok(OAuthLoginOutcome::Success(Box::new(OAuthLoginSuccess {
             login_res,
             cookie,
             ttl: refresh_ttl,
             is_new_user,
-        })
+        })))
     }
 
     /// OAuth 사용자 조회 또는 생성

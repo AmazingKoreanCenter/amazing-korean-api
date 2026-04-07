@@ -11,6 +11,14 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-06 — clippy 리팩토링 20건 완료 → clippy 경고 0건 달성**
+  - target_table 대소문자 소문자 통일 (video 8, study 21, lesson 18건) + AMK_API_MASTER §3.2.3 감사 로그 규칙 추가
+  - large_enum_variant 2건: LoginOutcome/OAuthLoginOutcome Success Box 래핑
+  - AuditLogParams 구조체 + write_audit_log 헬퍼: 55곳 보일러플레이트 → 1곳 통합
+  - LessonLogParams, CreateLessonParams, CreateStudyParams, AdminCreateUserParams(18→2), AdminUpdateUserParams 등 14개 구조체 도입
+  - InsertOrderParams(24→2), CreateSubscriptionParams(13→2), TileRequest 등 나머지 전부 구조체화
+  - 전수 검증: 계획 20건 vs 실제 20건 — 100% 일치 확인
+
 - **2026-04-03 — 코드 점검 1~4단계 + 일괄 수정 완료**
   - `docs/AMK_CODE_AUDIT_PLAN.md` 신규: 4단계 점검 계획 (의존성 취약점, 코드 품질, 보안 리뷰, 문서 정합성)
   - 점검 1: 의존성 취약점 — cargo update (time/rustls-webpki 패치), npm audit fix (8건→0건), npm update
@@ -19,7 +27,6 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - 점검 4: 문서 정합성 — 스키마 9건 수정, API 문서 10건, 환경변수 9건 추가, 미구현 DTO 4건 표시
   - 미사용 의존성: aes-gcm 루트에서 제거 (hmac은 루트에서 사용 중 — 감사 오판 정정)
   - 전수 검증: 38건 중 37건 CONFIRMED, 2건 FALSE POSITIVE (ENCRYPTION_KEY + hmac)
-  - 잔여: clippy too_many_arguments 17건 + large_enum_variant 2건 (리팩토링급)
   - 결과 기록: `docs/AMK_CODE_AUDIT_RESULT.md`
 
 - **2026-04-02 — 순서 7.5: 다국어 반응형 디자인 규격**

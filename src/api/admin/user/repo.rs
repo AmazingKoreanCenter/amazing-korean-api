@@ -132,25 +132,30 @@ pub async fn admin_get_user(pool: &PgPool, user_id: i64) -> AppResult<Option<Adm
     Ok(user)
 }
 
+/// 관리자 사용자 생성 파라미터
+pub struct AdminCreateUserParams<'a> {
+    pub email: &'a str,
+    pub password_hash: &'a str,
+    pub name: &'a str,
+    pub nickname: &'a str,
+    pub user_auth: &'a str,
+    pub language: &'a str,
+    pub country: &'a str,
+    pub birthday: &'a str,
+    pub gender: UserGender,
+    pub terms_service: bool,
+    pub terms_personal: bool,
+    pub actor_user_id: i64,
+    pub ip_address: Option<&'a str>,
+    pub user_agent: Option<&'a str>,
+    pub audit: bool,
+    pub email_idx: &'a str,
+    pub name_idx: &'a str,
+}
+
 pub async fn admin_create_user(
     pool: &PgPool,
-    email: &str,
-    password_hash: &str,
-    name: &str,
-    nickname: &str,
-    user_auth: &str,
-    language: &str,
-    country: &str,
-    birthday: &str,
-    gender: UserGender,
-    terms_service: bool,
-    terms_personal: bool,
-    actor_user_id: i64,
-    ip_address: Option<&str>,
-    user_agent: Option<&str>,
-    audit: bool,
-    email_idx: &str,
-    name_idx: &str,
+    params: &AdminCreateUserParams<'_>,
 ) -> AppResult<AdminUserRes> {
     let mut tx = pool.begin().await?;
 
@@ -195,41 +200,43 @@ pub async fn admin_create_user(
             user_quit_at as quit_at
         "#,
     )
-    .bind(email)
-    .bind(password_hash)
-    .bind(name)
-    .bind(nickname)
-    .bind(language)
-    .bind(country)
-    .bind(birthday)
-    .bind(gender)
-    .bind(terms_service)
-    .bind(terms_personal)
-    .bind(user_auth)
-    .bind(email_idx)
-    .bind(name_idx)
+    .bind(params.email)
+    .bind(params.password_hash)
+    .bind(params.name)
+    .bind(params.nickname)
+    .bind(params.language)
+    .bind(params.country)
+    .bind(params.birthday)
+    .bind(params.gender)
+    .bind(params.terms_service)
+    .bind(params.terms_personal)
+    .bind(params.user_auth)
+    .bind(params.email_idx)
+    .bind(params.name_idx)
     .fetch_one(&mut *tx)
     .await?;
 
     let after = serde_json::to_value(&user).unwrap_or_default();
 
-    create_history_log(&mut tx, actor_user_id, user.id, "create", None, Some(&after)).await?;
+    create_history_log(&mut tx, params.actor_user_id, user.id, "create", None, Some(&after)).await?;
 
     let details = serde_json::json!({
         "created_user_id": user.id,
         "email": user.email
     });
 
-    if audit {
+    if params.audit {
         create_audit_log_tx(
             &mut tx,
-            actor_user_id,
-            "CREATE_USER",
-            Some("users"),
-            Some(user.id),
-            &details,
-            ip_address,
-            user_agent,
+            &AuditLogParams {
+                admin_id: params.actor_user_id,
+                action_type: "CREATE_USER",
+                target_table: "users",
+                target_id: Some(user.id),
+                details: &details,
+                ip_address: params.ip_address,
+                user_agent: params.user_agent,
+            },
         )
         .await?;
     }
@@ -239,17 +246,30 @@ pub async fn admin_create_user(
     Ok(user)
 }
 
+/// 관리자 사용자 수정 파라미터
+pub struct AdminUpdateUserParams<'a> {
+    pub user_id: i64,
+    pub req: &'a AdminUpdateUserReq,
+    pub password_hash: Option<&'a str>,
+    pub email_encrypted: Option<&'a str>,
+    pub email_idx: Option<&'a str>,
+    pub name_encrypted: Option<&'a str>,
+    pub name_idx: Option<&'a str>,
+    pub birthday_encrypted: Option<&'a str>,
+}
+
 pub async fn admin_update_user(
     tx: &mut Transaction<'_, Postgres>,
-    user_id: i64,
-    req: &AdminUpdateUserReq,
-    password_hash: Option<&str>,
-    email_encrypted: Option<&str>,
-    email_idx: Option<&str>,
-    name_encrypted: Option<&str>,
-    name_idx: Option<&str>,
-    birthday_encrypted: Option<&str>,
+    params: &AdminUpdateUserParams<'_>,
 ) -> AppResult<AdminUserRes> {
+    let user_id = params.user_id;
+    let req = params.req;
+    let password_hash = params.password_hash;
+    let email_encrypted = params.email_encrypted;
+    let email_idx = params.email_idx;
+    let name_encrypted = params.name_encrypted;
+    let name_idx = params.name_idx;
+    let birthday_encrypted = params.birthday_encrypted;
     let updated = sqlx::query_as::<_, AdminUserRes>(
         r#"
         UPDATE users
@@ -322,15 +342,52 @@ pub async fn exists_email_idx(pool: &PgPool, email_idx: &str) -> AppResult<bool>
     Ok(exists)
 }
 
-pub async fn create_audit_log(
-    pool: &PgPool,
+/// 감사 로그 파라미터
+pub struct AuditLogParams<'a> {
+    pub admin_id: i64,
+    pub action_type: &'a str,
+    pub target_table: &'a str,
+    pub target_id: Option<i64>,
+    pub details: &'a Value,
+    pub ip_address: Option<&'a str>,
+    pub user_agent: Option<&'a str>,
+}
+
+/// 감사 로그 기록 헬퍼 — IP 암호화 포함
+#[allow(clippy::too_many_arguments)]
+pub async fn write_audit_log(
+    st: &crate::state::AppState,
     admin_id: i64,
     action_type: &str,
-    target_table: Option<&str>,
+    target_table: &str,
     target_id: Option<i64>,
     details: &Value,
-    ip_address: Option<&str>,
-    user_agent: Option<&str>,
+    ip: Option<std::net::IpAddr>,
+    ua: Option<&str>,
+) -> AppResult<()> {
+    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let ip_enc = ip
+        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
+        .transpose()?;
+
+    create_audit_log(
+        &st.db,
+        &AuditLogParams {
+            admin_id,
+            action_type,
+            target_table,
+            target_id,
+            details,
+            ip_address: ip_enc.as_deref(),
+            user_agent: ua,
+        },
+    )
+    .await
+}
+
+pub async fn create_audit_log(
+    pool: &PgPool,
+    p: &AuditLogParams<'_>,
 ) -> AppResult<()> {
     sqlx::query(
         r#"
@@ -341,13 +398,13 @@ pub async fn create_audit_log(
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         "#,
     )
-    .bind(admin_id)
-    .bind(action_type)
-    .bind(target_table)
-    .bind(target_id)
-    .bind(details)
-    .bind(ip_address)
-    .bind(user_agent)
+    .bind(p.admin_id)
+    .bind(p.action_type)
+    .bind(Some(p.target_table))
+    .bind(p.target_id)
+    .bind(p.details)
+    .bind(p.ip_address)
+    .bind(p.user_agent)
     .execute(pool)
     .await?;
 
@@ -356,13 +413,7 @@ pub async fn create_audit_log(
 
 pub async fn create_audit_log_tx(
     tx: &mut Transaction<'_, Postgres>,
-    admin_id: i64,
-    action_type: &str,
-    target_table: Option<&str>,
-    target_id: Option<i64>,
-    details: &Value,
-    ip_address: Option<&str>,
-    user_agent: Option<&str>,
+    p: &AuditLogParams<'_>,
 ) -> AppResult<()> {
     sqlx::query(
         r#"
@@ -373,13 +424,13 @@ pub async fn create_audit_log_tx(
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         "#,
     )
-    .bind(admin_id)
-    .bind(action_type)
-    .bind(target_table)
-    .bind(target_id)
-    .bind(details)
-    .bind(ip_address)
-    .bind(user_agent)
+    .bind(p.admin_id)
+    .bind(p.action_type)
+    .bind(Some(p.target_table))
+    .bind(p.target_id)
+    .bind(p.details)
+    .bind(p.ip_address)
+    .bind(p.user_agent)
     .execute(&mut **tx)
     .await?;
 

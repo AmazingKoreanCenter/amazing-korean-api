@@ -54,6 +54,37 @@ pub struct TransactionRow {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
+/// 구독 생성 파라미터
+pub struct CreateSubscriptionParams<'a> {
+    pub user_id: i64,
+    pub provider: PaymentProvider,
+    pub provider_subscription_id: &'a str,
+    pub provider_customer_id: Option<&'a str>,
+    pub status: SubscriptionStatus,
+    pub billing_interval: BillingInterval,
+    pub current_price_cents: i32,
+    pub trial_started_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub trial_ends_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub current_period_start: Option<chrono::DateTime<chrono::Utc>>,
+    pub current_period_end: Option<chrono::DateTime<chrono::Utc>>,
+    pub provider_data: Option<serde_json::Value>,
+}
+
+/// 트랜잭션 생성 파라미터
+pub struct CreateTransactionParams<'a> {
+    pub subscription_id: Option<i64>,
+    pub user_id: i64,
+    pub provider: PaymentProvider,
+    pub provider_transaction_id: &'a str,
+    pub status: TransactionStatus,
+    pub amount_cents: i32,
+    pub tax_cents: i32,
+    pub currency: &'a str,
+    pub billing_interval: Option<BillingInterval>,
+    pub provider_data: Option<serde_json::Value>,
+    pub occurred_at: chrono::DateTime<chrono::Utc>,
+}
+
 pub struct PaymentRepo;
 
 impl PaymentRepo {
@@ -145,18 +176,7 @@ impl PaymentRepo {
     /// 구독 생성
     pub async fn create_subscription(
         pool: &PgPool,
-        user_id: i64,
-        provider: PaymentProvider,
-        provider_subscription_id: &str,
-        provider_customer_id: Option<&str>,
-        status: SubscriptionStatus,
-        billing_interval: BillingInterval,
-        current_price_cents: i32,
-        trial_started_at: Option<chrono::DateTime<chrono::Utc>>,
-        trial_ends_at: Option<chrono::DateTime<chrono::Utc>>,
-        current_period_start: Option<chrono::DateTime<chrono::Utc>>,
-        current_period_end: Option<chrono::DateTime<chrono::Utc>>,
-        provider_data: Option<serde_json::Value>,
+        params: &CreateSubscriptionParams<'_>,
     ) -> AppResult<i64> {
         let id = sqlx::query_scalar::<_, i64>(
             r#"
@@ -169,18 +189,18 @@ impl PaymentRepo {
             RETURNING subscription_id
             "#,
         )
-        .bind(user_id)
-        .bind(provider)
-        .bind(provider_subscription_id)
-        .bind(provider_customer_id)
-        .bind(status)
-        .bind(billing_interval)
-        .bind(current_price_cents)
-        .bind(trial_started_at)
-        .bind(trial_ends_at)
-        .bind(current_period_start)
-        .bind(current_period_end)
-        .bind(provider_data)
+        .bind(params.user_id)
+        .bind(params.provider)
+        .bind(params.provider_subscription_id)
+        .bind(params.provider_customer_id)
+        .bind(params.status)
+        .bind(params.billing_interval)
+        .bind(params.current_price_cents)
+        .bind(params.trial_started_at)
+        .bind(params.trial_ends_at)
+        .bind(params.current_period_start)
+        .bind(params.current_period_end)
+        .bind(params.provider_data.clone())
         .fetch_one(pool)
         .await?;
 
@@ -228,17 +248,7 @@ impl PaymentRepo {
     /// 트랜잭션 생성
     pub async fn create_transaction(
         pool: &PgPool,
-        subscription_id: Option<i64>,
-        user_id: i64,
-        provider: PaymentProvider,
-        provider_transaction_id: &str,
-        status: TransactionStatus,
-        amount_cents: i32,
-        tax_cents: i32,
-        currency: &str,
-        billing_interval: Option<BillingInterval>,
-        provider_data: Option<serde_json::Value>,
-        occurred_at: chrono::DateTime<chrono::Utc>,
+        params: &CreateTransactionParams<'_>,
     ) -> AppResult<i64> {
         let id = sqlx::query_scalar::<_, i64>(
             r#"
@@ -251,17 +261,17 @@ impl PaymentRepo {
             RETURNING transaction_id
             "#,
         )
-        .bind(subscription_id)
-        .bind(user_id)
-        .bind(provider)
-        .bind(provider_transaction_id)
-        .bind(status)
-        .bind(amount_cents)
-        .bind(tax_cents)
-        .bind(currency)
-        .bind(billing_interval)
-        .bind(provider_data)
-        .bind(occurred_at)
+        .bind(params.subscription_id)
+        .bind(params.user_id)
+        .bind(params.provider)
+        .bind(params.provider_transaction_id)
+        .bind(params.status)
+        .bind(params.amount_cents)
+        .bind(params.tax_cents)
+        .bind(params.currency)
+        .bind(params.billing_interval)
+        .bind(params.provider_data.clone())
+        .bind(params.occurred_at)
         .fetch_one(pool)
         .await?;
 

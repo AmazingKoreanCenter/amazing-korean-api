@@ -646,6 +646,13 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
     }
     ```
 
+- **감사 로그 (`admin_action_log`) 값 규칙**
+  - `action_type`: **대문자 SNAKE_CASE** — 예: `"CREATE_VIDEO"`, `"BULK_UPDATE_USERS"`, `"LIST_LESSONS"`
+  - `target_table`: **소문자 snake_case** (실제 DB 테이블명과 일치) — 예: `"video"`, `"study_task"`, `"lesson_item"`, `"users"`, `"subscriptions"`
+  - `target_id`: 단건 조회/수정/삭제 시 `Some(id)`, 목록/벌크 작업 시 `None`
+  - `ip_address`: AES-256-GCM 암호화 저장 (평문 금지)
+  - `details`: 변경 내역 JSON (`before`/`after` 또는 요약)
+
 - **공통 repo 함수 (여러 유즈케이스에서 공유할 때)**
   - 여러 유즈케이스에서 동일한 DB 동작을 사용하는 경우,
     - repo 내부에서 **좀 더 일반적인 이름**으로 공통 함수를 분리한다.

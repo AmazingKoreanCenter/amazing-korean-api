@@ -75,6 +75,33 @@ const ORDER_COLUMNS: &str = r#"
     created_at, updated_at
 "#;
 
+/// 교재 주문 생성 파라미터
+pub struct InsertOrderParams<'a> {
+    pub order_code: &'a str,
+    pub user_id: i64,
+    pub orderer_name: &'a str,
+    pub orderer_email: &'a str,
+    pub orderer_phone: &'a str,
+    pub org_name: Option<&'a str>,
+    pub org_type: Option<&'a str>,
+    pub delivery_postal_code: Option<&'a str>,
+    pub delivery_address: &'a str,
+    pub delivery_detail: Option<&'a str>,
+    pub payment_method: TextbookPaymentMethod,
+    pub depositor_name: Option<&'a str>,
+    pub tax_invoice: bool,
+    pub tax_biz_number: Option<&'a str>,
+    pub tax_company_name: Option<&'a str>,
+    pub tax_rep_name: Option<&'a str>,
+    pub tax_address: Option<&'a str>,
+    pub tax_biz_type: Option<&'a str>,
+    pub tax_biz_item: Option<&'a str>,
+    pub tax_email: Option<&'a str>,
+    pub total_quantity: i32,
+    pub total_amount: i32,
+    pub notes: Option<&'a str>,
+}
+
 pub struct TextbookRepo;
 
 impl TextbookRepo {
@@ -112,29 +139,7 @@ impl TextbookRepo {
     /// 주문 생성 (트랜잭션 내에서 호출)
     pub async fn insert_order(
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-        order_code: &str,
-        user_id: i64,
-        orderer_name: &str,
-        orderer_email: &str,
-        orderer_phone: &str,
-        org_name: Option<&str>,
-        org_type: Option<&str>,
-        delivery_postal_code: Option<&str>,
-        delivery_address: &str,
-        delivery_detail: Option<&str>,
-        payment_method: TextbookPaymentMethod,
-        depositor_name: Option<&str>,
-        tax_invoice: bool,
-        tax_biz_number: Option<&str>,
-        tax_company_name: Option<&str>,
-        tax_rep_name: Option<&str>,
-        tax_address: Option<&str>,
-        tax_biz_type: Option<&str>,
-        tax_biz_item: Option<&str>,
-        tax_email: Option<&str>,
-        total_quantity: i32,
-        total_amount: i32,
-        notes: Option<&str>,
+        params: &InsertOrderParams<'_>,
     ) -> AppResult<i64> {
         let order_id = sqlx::query_scalar::<_, i64>(
             r#"
@@ -149,29 +154,29 @@ impl TextbookRepo {
             RETURNING order_id
             "#,
         )
-        .bind(order_code)
-        .bind(user_id)
-        .bind(orderer_name)
-        .bind(orderer_email)
-        .bind(orderer_phone)
-        .bind(org_name)
-        .bind(org_type)
-        .bind(delivery_postal_code)
-        .bind(delivery_address)
-        .bind(delivery_detail)
-        .bind(payment_method)
-        .bind(depositor_name)
-        .bind(tax_invoice)
-        .bind(tax_biz_number)
-        .bind(tax_company_name)
-        .bind(tax_rep_name)
-        .bind(tax_address)
-        .bind(tax_biz_type)
-        .bind(tax_biz_item)
-        .bind(tax_email)
-        .bind(total_quantity)
-        .bind(total_amount)
-        .bind(notes)
+        .bind(params.order_code)
+        .bind(params.user_id)
+        .bind(params.orderer_name)
+        .bind(params.orderer_email)
+        .bind(params.orderer_phone)
+        .bind(params.org_name)
+        .bind(params.org_type)
+        .bind(params.delivery_postal_code)
+        .bind(params.delivery_address)
+        .bind(params.delivery_detail)
+        .bind(params.payment_method)
+        .bind(params.depositor_name)
+        .bind(params.tax_invoice)
+        .bind(params.tax_biz_number)
+        .bind(params.tax_company_name)
+        .bind(params.tax_rep_name)
+        .bind(params.tax_address)
+        .bind(params.tax_biz_type)
+        .bind(params.tax_biz_item)
+        .bind(params.tax_email)
+        .bind(params.total_quantity)
+        .bind(params.total_amount)
+        .bind(params.notes)
         .fetch_one(&mut **tx)
         .await?;
 

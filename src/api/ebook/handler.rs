@@ -260,13 +260,15 @@ pub async fn get_page_tile(
 
     let tile_bytes = EbookService::get_page_tile(
         &st,
-        claims.sub,
-        &code,
-        page_num,
-        tile_row,
-        tile_col,
-        Some(&client_ip),
-        user_agent.as_deref(),
+        &super::service::TileRequest {
+            user_id: claims.sub,
+            purchase_code: &code,
+            page_num,
+            tile_row,
+            tile_col,
+            ip_address: Some(&client_ip),
+            user_agent: user_agent.as_deref(),
+        },
     )
     .await?;
 

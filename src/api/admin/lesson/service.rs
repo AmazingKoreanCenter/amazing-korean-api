@@ -18,7 +18,7 @@ use super::dto::{
     LessonProgressBulkUpdateReq, LessonProgressBulkUpdateRes, LessonProgressBulkUpdateResult,
     LessonProgressListReq, LessonProgressUpdateReq, LessonUpdateItem, LessonUpdateReq,
 };
-use super::repo;
+use super::repo::{self, LessonLogParams};
 
 const PG_UNIQUE_VIOLATION: &str = "23505";
 
@@ -66,32 +66,29 @@ pub async fn admin_list_lessons(
         "order": order
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "LIST_LESSONS",
-        Some("LESSON"),
+        "lesson",
         None,
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
 
     let (total, list) = repo::admin_list_lessons(
         &st.db,
-        q,
-        page,
-        size,
-        sort,
-        order,
-        req.lesson_state,
-        req.lesson_access,
+        &repo::AdminLessonListQuery {
+            q,
+            page,
+            size,
+            sort,
+            order,
+            lesson_state: req.lesson_state,
+            lesson_access: req.lesson_access,
+        },
     )
     .await?;
 
@@ -142,19 +139,14 @@ pub async fn admin_list_lesson_items(
     
     let details = serde_json::to_value(&req).unwrap_or(serde_json::Value::Null);
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "LIST_LESSON_ITEMS",
-        Some("LESSON_ITEM"),
+        "lesson_item",
         None,
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -208,19 +200,14 @@ pub async fn admin_list_lesson_progress(
         "user_id": req.user_id
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "LIST_LESSON_PROGRESS",
-        Some("LESSON_PROGRESS"),
+        "lesson_progress",
         None,
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -273,19 +260,14 @@ pub async fn admin_update_lesson_progress(
         "payload": &req
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "UPDATE_LESSON_PROGRESS",
-        Some("LESSON_PROGRESS"),
+        "lesson_progress",
         Some(lesson_id as i64),
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -314,14 +296,16 @@ pub async fn admin_update_lesson_progress(
 
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "update",
-        lesson_id,
-        after.lesson_progress_last_item_seq,
-        None,
-        None,
-        Some(&before_val),
-        Some(&after_val),
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "update",
+            lesson_id,
+            lesson_item_seq: after.lesson_progress_last_item_seq,
+            video_id: None,
+            task_id: None,
+            before: Some(&before_val),
+            after: Some(&after_val),
+        },
     )
     .await?;
 
@@ -348,19 +332,14 @@ pub async fn admin_bulk_update_lesson_progress(
         "count": req.items.len()
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "BULK_UPDATE_LESSON_PROGRESS",
-        Some("LESSON_PROGRESS"),
+        "lesson_progress",
         None,
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -409,14 +388,16 @@ pub async fn admin_bulk_update_lesson_progress(
 
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "update",
-                lesson_id,
-                after.lesson_progress_last_item_seq,
-                None,
-                None,
-                Some(&before_val),
-                Some(&after_val),
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "update",
+                    lesson_id,
+                    lesson_item_seq: after.lesson_progress_last_item_seq,
+                    video_id: None,
+                    task_id: None,
+                    before: Some(&before_val),
+                    after: Some(&after_val),
+                },
             )
             .await?;
 
@@ -504,19 +485,14 @@ pub async fn admin_create_lesson_item(
         "payload": &req
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "CREATE_LESSON_ITEM",
-        Some("LESSON_ITEM"),
+        "lesson_item",
         Some(lesson_id as i64),
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -562,14 +538,16 @@ pub async fn admin_create_lesson_item(
     let after = serde_json::to_value(&created).unwrap_or_default();
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "create",
-        lesson_id,
-        Some(req.lesson_item_seq),
-        video_id,
-        study_task_id,
-        None,
-        Some(&after),
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "create",
+            lesson_id,
+            lesson_item_seq: Some(req.lesson_item_seq),
+            video_id,
+            task_id: study_task_id,
+            before: None,
+            after: Some(&after),
+        },
     )
     .await?;
 
@@ -596,19 +574,14 @@ pub async fn admin_bulk_create_lesson_items(
         "count": req.items.len()
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "BULK_CREATE_LESSON_ITEMS",
-        Some("LESSON_ITEM"),
+        "lesson_item",
         None,
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -674,14 +647,16 @@ pub async fn admin_bulk_create_lesson_items(
             let after = serde_json::to_value(&created).unwrap_or_default();
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "create",
-                lesson_id,
-                Some(lesson_item_seq),
-                video_id,
-                study_task_id,
-                None,
-                Some(&after),
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "create",
+                    lesson_id,
+                    lesson_item_seq: Some(lesson_item_seq),
+                    video_id,
+                    task_id: study_task_id,
+                    before: None,
+                    after: Some(&after),
+                },
             )
             .await?;
 
@@ -745,23 +720,18 @@ pub async fn admin_update_lesson_item(
 ) -> AppResult<AdminLessonItemRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "UPDATE_LESSON_ITEM",
-        Some("LESSON_ITEM"),
+        "lesson_item",
         Some(lesson_id as i64),
         &serde_json::json!({
             "lesson_id": lesson_id,
             "lesson_item_seq": current_seq,
             "payload": &req
         }),
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -888,14 +858,16 @@ pub async fn admin_update_lesson_item(
 
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "update",
-        lesson_id,
-        Some(after.lesson_item_seq),
-        after.video_id,
-        after.study_task_id,
-        Some(&before_val),
-        Some(&after_val),
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "update",
+            lesson_id,
+            lesson_item_seq: Some(after.lesson_item_seq),
+            video_id: after.video_id,
+            task_id: after.study_task_id,
+            before: Some(&before_val),
+            after: Some(&after_val),
+        },
     )
     .await?;
 
@@ -922,19 +894,14 @@ pub async fn admin_bulk_update_lesson_items(
         "count": req.items.len()
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "BULK_UPDATE_LESSON_ITEMS",
-        Some("LESSON_ITEM"),
+        "lesson_item",
         None,
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1086,14 +1053,16 @@ pub async fn admin_bulk_update_lesson_items(
 
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "update",
-                lesson_id,
-                Some(after.lesson_item_seq),
-                after.video_id,
-                after.study_task_id,
-                Some(&before_val),
-                Some(&after_val),
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "update",
+                    lesson_id,
+                    lesson_item_seq: Some(after.lesson_item_seq),
+                    video_id: after.video_id,
+                    task_id: after.study_task_id,
+                    before: Some(&before_val),
+                    after: Some(&after_val),
+                },
             )
             .await?;
 
@@ -1195,14 +1164,16 @@ async fn admin_bulk_reorder_lesson_items(
 
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "update", // Use "update" action for reorder (as reorder is a type of update)
-        lesson_id,
-        None,
-        None,
-        None,
-        Some(&reorder_details),
-        None,
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "update", // Use "update" action for reorder (as reorder is a type of update)
+            lesson_id,
+            lesson_item_seq: None,
+            video_id: None,
+            task_id: None,
+            before: Some(&reorder_details),
+            after: None,
+        },
     )
     .await?;
 
@@ -1249,19 +1220,14 @@ pub async fn admin_bulk_delete_lesson_items(
         "count": req.items.len()
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "BULK_DELETE_LESSON_ITEMS",
-        Some("LESSON_ITEM"),
+        "lesson_item",
         None,
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1293,14 +1259,16 @@ pub async fn admin_bulk_delete_lesson_items(
             let before_val = serde_json::to_value(&before).unwrap_or_default();
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "delete",
-                lesson_id,
-                Some(seq),
-                before.video_id,
-                before.study_task_id,
-                Some(&before_val),
-                None,
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "delete",
+                    lesson_id,
+                    lesson_item_seq: Some(seq),
+                    video_id: before.video_id,
+                    task_id: before.study_task_id,
+                    before: Some(&before_val),
+                    after: None,
+                },
             )
             .await?;
 
@@ -1386,19 +1354,14 @@ pub async fn admin_create_lesson(
     let lesson_access = req.lesson_access.unwrap_or(LessonAccess::Public);
 
     
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "CREATE_LESSON",
-        Some("LESSON"),
+        "lesson",
         None,
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1411,13 +1374,15 @@ pub async fn admin_create_lesson(
 
     let created = repo::create_lesson(
         &mut tx,
-        actor_user_id,
-        lesson_idx,
-        lesson_title,
-        lesson_subtitle,
-        lesson_description,
-        lesson_state,
-        lesson_access,
+        &repo::CreateLessonParams {
+            actor_user_id,
+            lesson_idx,
+            lesson_title,
+            lesson_subtitle,
+            lesson_description,
+            lesson_state,
+            lesson_access,
+        },
     )
     .await;
 
@@ -1432,14 +1397,16 @@ pub async fn admin_create_lesson(
     let after = serde_json::to_value(&created).unwrap_or_default();
     repo::create_lesson_log(
         &mut tx,
-        actor_user_id,
-        "create",
-        created.lesson_id,
-        None,
-        None,
-        None,
-        None,
-        Some(&after),
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "create",
+            lesson_id: created.lesson_id,
+            lesson_item_seq: None,
+            video_id: None,
+            task_id: None,
+            before: None,
+            after: Some(&after),
+        },
     )
     .await?;
 
@@ -1466,19 +1433,14 @@ pub async fn admin_bulk_create_lessons(
         "count": req.items.len()
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "BULK_CREATE_LESSONS",
-        Some("LESSON"),
+        "lesson",
         None,
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1525,13 +1487,15 @@ pub async fn admin_bulk_create_lessons(
 
             let created = repo::create_lesson_tx(
                 &mut tx,
-                actor_user_id,
-                &lesson_idx,
-                &lesson_title,
-                lesson_subtitle,
-                lesson_description,
-                lesson_state,
-                lesson_access,
+                &repo::CreateLessonParams {
+                    actor_user_id,
+                    lesson_idx: &lesson_idx,
+                    lesson_title: &lesson_title,
+                    lesson_subtitle,
+                    lesson_description,
+                    lesson_state,
+                    lesson_access,
+                },
             )
             .await;
 
@@ -1546,14 +1510,16 @@ pub async fn admin_bulk_create_lessons(
             let after = serde_json::to_value(&created).unwrap_or_default();
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "create",
-                created.lesson_id,
-                None,
-                None,
-                None,
-                None,
-                Some(&after),
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "create",
+                    lesson_id: created.lesson_id,
+                    lesson_item_seq: None,
+                    video_id: None,
+                    task_id: None,
+                    before: None,
+                    after: Some(&after),
+                },
             )
             .await?;
 
@@ -1623,19 +1589,14 @@ pub async fn admin_bulk_update_lessons(
         "count": req.items.len()
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "BULK_UPDATE_LESSONS",
-        Some("LESSON"),
+        "lesson",
         None,
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1720,14 +1681,16 @@ pub async fn admin_bulk_update_lessons(
 
             repo::create_lesson_log_tx(
                 &mut tx,
-                actor_user_id,
-                "update",
-                lesson_id,
-                None,
-                None,
-                None,
-                Some(&before_val),
-                Some(&after_val),
+                &LessonLogParams {
+                    admin_user_id: actor_user_id,
+                    action: "update",
+                    lesson_id,
+                    lesson_item_seq: None,
+                    video_id: None,
+                    task_id: None,
+                    before: Some(&before_val),
+                    after: Some(&after_val),
+                },
             )
             .await?;
 
@@ -1788,19 +1751,14 @@ pub async fn admin_update_lesson(
 ) -> AppResult<AdminLessonRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "UPDATE_LESSON",
-        Some("LESSON"),
+        "lesson",
         Some(lesson_id as i64),
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1878,14 +1836,16 @@ pub async fn admin_update_lesson(
 
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "update",
-        lesson_id,
-        None,
-        None,
-        None,
-        Some(&before_val),
-        Some(&after_val),
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "update",
+            lesson_id,
+            lesson_item_seq: None,
+            video_id: None,
+            task_id: None,
+            before: Some(&before_val),
+            after: Some(&after_val),
+        },
     )
     .await?;
 
@@ -1912,19 +1872,14 @@ pub async fn admin_get_lesson(
         "lesson_id": lesson_id
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "GET_LESSON_DETAIL",
-        Some("LESSON"),
+        "lesson",
         Some(lesson_id as i64),
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -1954,19 +1909,14 @@ pub async fn admin_get_lesson_items_detail(
         "lesson_id": lesson_id
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "GET_LESSON_ITEMS_DETAIL",
-        Some("LESSON_ITEM"),
+        "lesson_item",
         Some(lesson_id as i64),
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -2006,19 +1956,14 @@ pub async fn admin_get_lesson_progress_detail(
         "lesson_id": lesson_id
     });
 
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "GET_LESSON_PROGRESS_DETAIL",
-        Some("LESSON_PROGRESS"),
+        "lesson_progress",
         Some(lesson_id as i64),
         &details,
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -2055,22 +2000,17 @@ pub async fn admin_delete_lesson_item(
     check_admin_rbac(&st.db, actor_user_id).await?;
 
     
-    let crypto = crate::crypto::CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-    let ip_enc = ip_address
-        .map(|ip| crypto.encrypt(&ip.to_string(), "admin_action_log.ip_address"))
-        .transpose()?;
-
-    crate::api::admin::user::repo::create_audit_log(
-        &st.db,
+    crate::api::admin::user::repo::write_audit_log(
+        st,
         actor_user_id,
         "DELETE_LESSON_ITEM",
-        Some("LESSON_ITEM"),
+        "lesson_item",
         Some(lesson_id as i64),
         &serde_json::json!({
             "lesson_id": lesson_id,
             "lesson_item_seq": seq
         }),
-        ip_enc.as_deref(),
+        ip_address,
         user_agent.as_deref(),
     )
     .await?;
@@ -2089,14 +2029,16 @@ pub async fn admin_delete_lesson_item(
     let before_val = serde_json::to_value(&before).unwrap_or_default();
     repo::create_lesson_log_tx(
         &mut tx,
-        actor_user_id,
-        "delete",
-        lesson_id,
-        Some(seq),
-        before.video_id,
-        before.study_task_id,
-        Some(&before_val),
-        None,
+        &LessonLogParams {
+            admin_user_id: actor_user_id,
+            action: "delete",
+            lesson_id,
+            lesson_item_seq: Some(seq),
+            video_id: before.video_id,
+            task_id: before.study_task_id,
+            before: Some(&before_val),
+            after: None,
+        },
     )
     .await?;
 
