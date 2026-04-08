@@ -47,8 +47,8 @@
 | `docs/AMK_STATUS.md` | 작업 현황, 로드맵, 체크리스트 |
 | `docs/AMK_MARKET_ANALYSIS.md` | 시장 분석, 교육 방법론, 비즈니스 전략 |
 | `docs/AMK_DESIGN_SYSTEM.md` | Figma 디자인 시스템, UI 컴포넌트 |
-| `docs/AMK_PIPELINE.md` | AI 파이프라인, 자동화 전략 |
-| `docs/AMK_MACMINI_SETUP.md` | Mac Mini AI 인프라 셋업 |
+| `docs/AMK_PIPELINE.md` | **이관됨** → `amazing-korean-ai/docs/AMK_AI_PIPELINE.md` |
+| `docs/AMK_MACMINI_SETUP.md` | **이관됨** → `amazing-korean-ai/docs/AMK_AI_MACMINI.md` |
 | `docs/AMK_CHANGELOG.md` | 변경 이력 |
 
 ## 핵심 파일

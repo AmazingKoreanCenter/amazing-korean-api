@@ -156,6 +156,84 @@ impl AuthService {
     }
 
     // =========================================================================
+    // 동시 세션 수 제한
+    // =========================================================================
+
+    /// 동시 세션 수 제한 검증 + 유령 세션 정리
+    /// - 유령 세션: Redis SET에 남아있지만 실제로는 만료된 세션
+    /// - Learner: 초과 시 가장 오래된 세션 자동 퇴장 (FIFO)
+    /// - Admin/Manager/HYMN: 초과 시 로그인 거부 (Forbidden)
+    async fn enforce_session_limit(
+        st: &AppState,
+        redis_conn: &mut deadpool_redis::redis::aio::MultiplexedConnection,
+        user_id: i64,
+        user_auth: UserAuth,
+    ) -> AppResult<()> {
+        let max_sessions = st.cfg.max_sessions_for_role(&user_auth);
+        let session_key = format!("ak:user_sessions:{}", user_id);
+
+        // 1. 유령 세션 정리 — SET에 있지만 Redis에서 이미 만료된 세션 제거
+        let session_ids: Vec<String> = redis_conn.smembers(&session_key).await.unwrap_or_default();
+        for sid in &session_ids {
+            let session_exists: bool = redis_conn.exists(format!("ak:session:{}", sid)).await.unwrap_or(false);
+            if session_exists {
+                continue;
+            }
+            // ak:session 만료됨 — ak:refresh도 확인
+            let has_refresh = if let Ok(Some(record)) = AuthRepo::find_login_by_session_id(&st.db, sid).await {
+                let refresh_exists: bool = redis_conn.exists(format!("ak:refresh:{}", record.refresh_hash)).await.unwrap_or(false);
+                refresh_exists
+            } else {
+                false
+            };
+            if !has_refresh {
+                // 세션 + 리프레시 모두 만료 → SET에서 제거 + DB 상태 업데이트
+                let _: () = redis_conn.srem(&session_key, sid).await.unwrap_or(());
+                let _ = AuthRepo::update_login_state_by_session(&st.db, sid, "expired", Some("session_expired")).await;
+            }
+        }
+
+        // 2. 정리 후 현재 활성 세션 수 확인
+        let active_count: i64 = redis_conn.scard(&session_key).await.unwrap_or(0);
+        if active_count < max_sessions {
+            return Ok(()); // 여유 있음
+        }
+
+        // 3. 초과 시 정책 분기
+        if st.cfg.is_session_evict_role(&user_auth) {
+            // Learner: 가장 오래된 세션 자동 퇴장 (FIFO)
+            let evict_count = (active_count - max_sessions + 1) as usize; // 새 세션 1개 자리 확보
+            let mut oldest_sessions = AuthRepo::find_active_sessions_oldest(&st.db, user_id, evict_count).await?;
+            // DB에서 못 찾으면 Redis SET에서 임의로 꺼냄
+            if oldest_sessions.is_empty() {
+                let all_sids: Vec<String> = redis_conn.smembers(&session_key).await.unwrap_or_default();
+                oldest_sessions = all_sids.into_iter().take(evict_count).collect();
+            }
+
+            for sid in &oldest_sessions {
+                // Redis 정리
+                if let Ok(Some(record)) = AuthRepo::find_login_by_session_id(&st.db, sid).await {
+                    let _: () = redis_conn.del(format!("ak:refresh:{}", record.refresh_hash)).await.unwrap_or(());
+                }
+                let _: () = redis_conn.del(format!("ak:session:{}", sid)).await.unwrap_or(());
+                let _: () = redis_conn.srem(&session_key, sid).await.unwrap_or(());
+                // DB 상태 업데이트
+                let _ = AuthRepo::update_login_state_by_session(&st.db, sid, "revoked", Some("session_limit_evicted")).await;
+            }
+
+            info!(user_id = user_id, evicted = oldest_sessions.len(), "Session limit: evicted oldest sessions for Learner");
+        } else {
+            // Admin/Manager/HYMN: 로그인 거부
+            return Err(AppError::Forbidden(format!(
+                "AUTH_403_SESSION_LIMIT:{}",
+                max_sessions
+            )));
+        }
+
+        Ok(())
+    }
+
+    // =========================================================================
     // Main Business Logic
     // =========================================================================
 
@@ -320,6 +398,9 @@ impl AuthService {
                 user_id: user_info.user_id,
             });
         }
+
+        // [Step 3-D] 동시 세션 수 제한 검증 (MFA 미사용 시에만 — MFA 사용 시 create_oauth_session에서 체크)
+        Self::enforce_session_limit(st, &mut redis_conn, user_info.user_id, user_info.user_auth).await?;
 
         // [Step 4] Token & Session Generation
         let session_id = Uuid::new_v4().to_string();
@@ -1691,6 +1772,13 @@ impl AuthService {
         )?;
         let access_hash: String = Sha256::digest(access_token_res.access_token.as_bytes())
             .iter().map(|b| format!("{:02x}", b)).collect();
+
+        // 동시 세션 수 제한 검증
+        {
+            let mut redis_conn = st.redis.get().await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+            Self::enforce_session_limit(st, &mut redis_conn, user_id, user_auth).await?;
+        }
 
         // IP Geolocation (best-effort, non-blocking)
         let geo = st.ipgeo.lookup(&login_ip).await;

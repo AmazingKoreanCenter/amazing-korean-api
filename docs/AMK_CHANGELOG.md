@@ -11,6 +11,14 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-08 — 동시 세션 수 제한 구현**
+  - [보안] `enforce_session_limit()`: 유령 세션 정리 (SMEMBERS + EXISTS) + SCARD 카운트 + 역할별 정책 분기
+  - [보안] Learner: FIFO 자동 퇴장 (가장 오래된 세션 강제 로그아웃, `find_active_sessions_oldest` DB 쿼리)
+  - [보안] Admin/Manager/HYMN: 로그인 거부 (`403 AUTH_403_SESSION_LIMIT:{max}`)
+  - [보안] 적용 지점: `login()` + `create_oauth_session()` 2곳 (모든 로그인 경로 커버)
+  - [설정] config.rs: MAX_SESSIONS_LEARNER(5), MAX_SESSIONS_MANAGER(3), MAX_SESSIONS_ADMIN(2), MAX_SESSIONS_HYMN(2)
+  - [설정] docker-compose.prod.yml: 4개 환경변수 추가
+
 - **2026-04-07 — 모바일 백엔드 API 5건 구현 완료 (OAuth + IAP + 웹훅)**
   - [기능] `POST /auth/google-mobile`: 모바일 Google OAuth (ID token 직접 검증 → 계정 연결/생성 → LoginMobileRes)
   - [기능] `POST /auth/apple-mobile`: 모바일 Apple OAuth (Apple JWKS RS256 검증, 최초 email 처리, 재인증 안내)

@@ -131,6 +131,23 @@ GOOGLE_CLIENT_SECRET=<google-client-secret>
 GOOGLE_REDIRECT_URI=https://api.amazingkorean.net/auth/google/callback
 FRONTEND_URL=https://amazingkorean.net
 
+# ─── Google OAuth (모바일) ───
+# GOOGLE_MOBILE_CLIENT_ID=<mobile-client-id>  # 모바일 전용 Google OAuth Client ID (Android/iOS)
+
+# ─── Apple OAuth (모바일 Sign in with Apple) ───
+# APPLE_CLIENT_ID=<bundle-id>      # Apple Bundle ID (e.g., net.amazingkorean.app)
+# APPLE_TEAM_ID=<team-id>          # Apple Team ID
+
+# ─── RevenueCat (모바일 IAP) ───
+# REVENUECAT_API_KEY=<api-key>     # RevenueCat 서버 API 키
+# REVENUECAT_WEBHOOK_AUTH_TOKEN=<token>  # RevenueCat 웹훅 Bearer 토큰
+
+# ─── 동시 세션 수 제한 (역할별) ───
+# MAX_SESSIONS_LEARNER=5           # 기본: 5 (초과 시 가장 오래된 세션 자동 퇴장)
+# MAX_SESSIONS_MANAGER=3           # 기본: 3 (초과 시 로그인 거부)
+# MAX_SESSIONS_ADMIN=2             # 기본: 2 (초과 시 로그인 거부)
+# MAX_SESSIONS_HYMN=2              # 기본: 2 (초과 시 로그인 거부)
+
 # ─── Email (Resend) ───
 EMAIL_PROVIDER=resend              # resend | none (프로덕션에서 none 사용 시 서버 부팅 실패)
 RESEND_API_KEY=re_xxx              # 필수 (Resend 대시보드에서 발급)
