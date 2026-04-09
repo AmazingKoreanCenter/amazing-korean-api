@@ -1092,11 +1092,17 @@ Footer: bg-footer text-footer-foreground.
 
 ### Phase 계획
 
-#### Phase A — Playwright 캡처 (레퍼런스 확보)
+#### Phase A — Playwright 캡처 (레퍼런스 확보) ✅ **완료 (2026-04-09)**
 
-- Playwright 설치 (`@playwright/test` + `playwright install chromium`)
-- 캡처 스크립트 작성: 폰트 대기 + 전체 스크롤 + 테마 토글
-- 로컬 dev 서버에서 16~18개 고유 페이지 × Light/Dark 캡처
+- ✅ Playwright 설치 (`@playwright/test` + Chromium Headless Shell)
+- ✅ `frontend/figma-capture/` 신규 디렉터리에 도구 일체 배치
+  - `playwright.config.ts` — 1440×900 viewport, deviceScaleFactor 2 (Retina), Vite webServer 자동 기동
+  - `tests/capture.spec.ts` — `document.fonts.ready` + 점진 스크롤 + img decoded 대기 + next-themes localStorage 주입
+  - `pages.ts` — 16개 페이지 정의 (P1 공개 4 + P2 Book 4 + P3 Auth 5 + P4 Legal 3, 5순위 제외)
+  - `fixtures.ts` — textbook/ebook catalog API 모의 응답 (백엔드 부재 시에도 카탈로그 렌더링 보장)
+  - `README.md` — 사용법, 안정화 장치, 출력 구조
+- ✅ 32 PNG 프레임 생성 (16 페이지 × Light/Dark) — `figma-capture/artifacts/screenshots/{group}/{slug}--{theme}.png`
+- ✅ 검증 통과: home/about/book-hub/book-landing/login/textbook-catalog/ebook-catalog 시각 확인 — Pretendard 한글, lazy 이미지, 디자인 토큰 모두 정상
 
 #### Phase B — Figma 정리 + 레퍼런스 임포트
 

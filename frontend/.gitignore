@@ -17,6 +17,9 @@ dist
 dist-ssr
 *.local
 
+# Figma 레퍼런스 캡처 산출물 (Phase A) — 이미지/테스트 결과는 제외, 스크립트/설정은 커밋
+figma-capture/artifacts/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

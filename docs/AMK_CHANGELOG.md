@@ -11,6 +11,18 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-09 — Figma 재구축 Phase A 완료 (Playwright 레퍼런스 캡처)**
+  - [인프라] `frontend/figma-capture/` 신규 디렉터리 — Playwright 기반 레퍼런스 캡처 도구 일체
+  - [의존성] `@playwright/test` devDependency 추가 + Chromium Headless Shell 설치
+  - [설정] `playwright.config.ts`: 1440×900 viewport · deviceScaleFactor 2 (Retina) · Vite webServer 자동 기동 · ko-KR/Asia/Seoul 로캘
+  - [스크립트] `tests/capture.spec.ts`: 페이지×테마 조합 자동화. next-themes localStorage 주입 + emulateMedia 동시 적용, 점진 스크롤/img decoded 대기/`document.fonts.ready`로 기존 3대 문제(한글/lazy/토큰) 근본 해결
+  - [스크립트] `pages.ts`: 16개 페이지 정의 (P1 공개 4 + P2 Book 4 + P3 Auth 5 + P4 Legal 3) — 5순위(MyPage/Settings)는 이번 Phase 제외
+  - [스크립트] `fixtures.ts`: 로컬 AMK 백엔드 부재 시에도 카탈로그 렌더링 보장 — textbook/ebook catalog API 모의 응답 (9/6 언어)
+  - [산출물] `figma-capture/artifacts/screenshots/` — 16 페이지 × Light/Dark = **32 PNG 프레임** 생성 완료 (총 8.8MB)
+  - [.gitignore] `figma-capture/artifacts/` 제외 — 스크립트/설정은 커밋, 이미지/테스트 결과는 제외
+  - [샘플] Book Landing ISBN = `9791199772700` (`book_data.ts` 첫 엔트리, 영어/학생용)
+  - [다음] Phase B — Figma 기존 34프레임 삭제 + 스크린샷 이미지 레이어 임포트
+
 - **2026-04-09 — Figma 재구축 계획 수립 (하이브리드 전략)**
   - [조사] 기존 Figma 파일(AUYoLTYOsDWipKoNGfD3Fv) 점검 — 34프레임(17페이지×Light/Dark) 확인. 메모리 기록(54프레임)과 불일치
   - [조사] 기존 프레임 3대 문제 진단 — 한글 텍스트 누락(폰트 로딩 대기 실패), 이미지 누락(lazy loading + 미스크롤), 토큰 미연결(캡처 도구 특성)
