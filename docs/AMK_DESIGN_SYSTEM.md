@@ -27,48 +27,110 @@
 
 ---
 
+## 00 Visual Theme & Atmosphere
+
+### Design Philosophy
+
+학습자가 콘텐츠에 집중할 수 있는 **깨끗하고 따뜻한** 인터페이스. 한국어 학습의 문화적 깊이를 반영하는 **품격 있는** 톤. 정보 과부하 없이 단계적으로 안내하는 **점진적 공개(Progressive Disclosure)**.
+
+### Key Characteristics
+
+- **Warm & Trustworthy**: Dark Navy(`#051D57`) + Cyan(`#13A0D8`) + 따뜻한 gradient로 신뢰감과 친근함을 동시에 전달
+- **Content-First**: 학습 콘텐츠가 시각적 장식보다 우선. 여백과 타이포그래피로 정보 계층 표현
+- **Culturally Respectful**: 한국 문화의 절제미를 반영한 여백 활용. 22개 언어 타이포그래피 대응
+- **Accessible**: WCAG AA 준수 (4.5:1 명암비), 터치 타겟 44px, `prefers-reduced-motion` 지원
+- **Dual-Mode Native**: 라이트/다크 모드 완전 대응. CSS 변수 이중 정의로 자동 전환
+
+### Visual Density
+
+중간 밀도. 마케팅 페이지는 넉넉한 여백(80~128px 섹션), 학습/관리 페이지는 컴팩트한 여백(40~64px 섹션). 카드 그리드는 `gap-6`(24px) 표준.
+
+---
+
 ## 01 Foundations
 
 ### Color Tokens
 
-| 역할 | CSS 변수 | Tailwind 클래스 | 용도 |
-|------|----------|----------------|------|
-| Primary | `--primary` | `bg-primary`, `text-primary` | 메인 액션, 네비게이션 |
-| Secondary | `--secondary` | `bg-secondary` | 보조 버튼, 서브 UI |
-| Accent | `--accent` | `bg-accent`, `text-accent` | 강조 포인트, 아이콘 |
-| Destructive | `--destructive` | `bg-destructive` | 삭제, 에러 (= error) |
-| Brand Soft | `--brand-soft` | `bg-brand-soft` | Hero 그라데이션 시작색 |
-| Brand Soft Alt | `--brand-soft-alt` | `bg-brand-soft-alt` | Hero 그라데이션 끝색 |
-| Success | `--success` | `bg-status-success` | 완료, 활성, 프로모션 |
-| Warning | `--warning` | `bg-status-warning` | 유료 콘텐츠, 주의 |
-| Info | `--info` | `bg-status-info` | 정보 알림 |
-| Footer | `--footer` | `bg-footer` | Footer (항상 어두운 톤) |
-| Surface Inverted | `--surface-inverted` | `bg-surface-inverted` | CTA 섹션 (항상 어두운 톤) |
+#### Core Palette
+
+| 역할 | CSS 변수 | 라이트 HSL | Hex | 다크 HSL | Hex | 용도 |
+|------|----------|-----------|-----|---------|-----|------|
+| Background | `--background` | `0 0% 100%` | `#FFFFFF` | `222 47% 5%` | `#070A13` | 기본 배경 |
+| Foreground | `--foreground` | `222 47% 11%` | `#0F1729` | `210 40% 98%` | `#F8FAFC` | 기본 텍스트 (near-black) |
+| Primary | `--primary` | `222 90% 18%` | `#051D57` | `210 40% 98%` | `#F8FAFC` | 메인 액션, 네비게이션 |
+| Secondary | `--secondary` | `224 81% 61%` | `#4B76EC` | `224 81% 61%` | `#4B76EC` | 보조 버튼, 서브 UI |
+| Accent | `--accent` | `197 84% 46%` | `#13A0D8` | `197 84% 46%` | `#13A0D8` | 강조 포인트, 아이콘 |
+| Muted | `--muted` | `228 33% 97%` | `#F5F6FA` | `217 33% 17%` | `#1D283A` | 비활성 배경 |
+| Muted FG | `--muted-foreground` | `215 16% 47%` | `#65758B` | `215 20% 65%` | `#94A3B8` | 보조 텍스트 |
+| Destructive | `--destructive` | `0 84% 50%` | `#EB1414` | `0 63% 31%` | `#811D1D` | 삭제, 에러 |
+
+**`--primary` 다크모드 반전**: 라이트에서 Dark Navy → 다크에서 Near-White. shadcn 표준 패턴. `bg-primary`를 "항상 어두운 배경"으로 사용하면 안 됨 → Surface 토큰 사용.
+
+#### Brand & Gradient
+
+| 역할 | CSS 변수 | 라이트 HSL | Hex | 다크 HSL | Hex | 용도 |
+|------|----------|-----------|-----|---------|-----|------|
+| Brand Soft | `--brand-soft` | `230 100% 97%` | `#F0F2FF` | `222 47% 10%` | `#0E1525` | Hero 그라데이션 시작 |
+| Brand Soft Alt | `--brand-soft-alt` | `206 100% 96%` | `#EBF6FF` | `222 47% 12%` | `#10192D` | Hero 그라데이션 끝 |
+
+#### Status Colors (WCAG AA 4.5:1+)
+
+| 토큰 | 라이트 HSL | Hex | 다크 HSL | Hex | Foreground |
+|------|-----------|-----|---------|-----|------------|
+| success | `160 84% 28%` | `#0B835B` | `160 84% 36%` | `#0FA976` | white |
+| warning | `38 92% 50%` | `#F59F0A` | `38 92% 55%` | `#F6A823` | dark (`20 14% 4%`) |
+| info | `217 91% 53%` | `#1A6EF4` | `217 91% 58%` | `#327DF5` | white |
+| destructive | `0 84% 50%` | `#EB1414` | `0 63% 31%` | `#811D1D` | white |
 
 **error = destructive**: 별도 error 토큰 없음. 기존 `destructive`를 에러 용도로 통일 사용.
 
 - 삭제 버튼 등 "강한 fill": `bg-destructive text-destructive-foreground`
 - 에러 메시지/배너 "부드러운 surface": `bg-destructive/10 text-destructive border-destructive/20`
 
-**WCAG AA 준수**: 모든 status 색상은 foreground 텍스트와 4.5:1 이상 명암비 확보.
-
-| 토큰 | 라이트 HSL | 다크 HSL | Foreground |
-|------|-----------|----------|------------|
-| success | `160 84% 28%` | `160 84% 36%` | white |
-| warning | `38 92% 50%` | `38 92% 55%` | dark (`20 14% 4%`) |
-| info | `217 91% 53%` | `217 91% 58%` | white |
-| destructive | `0 84% 50%` | `0 63% 31%` | white |
-
-**Surface Tokens (항상 어두운 배경)**:
+#### Surface Tokens (항상 어두운 배경)
 
 Footer, CTA 섹션 등 항상 어두운 배경이 필요한 곳에 사용. `bg-primary`는 다크모드에서 반전되므로 직접 사용 금지.
 
-| 토큰 | 라이트 HSL | 다크 HSL | 용도 |
-|------|-----------|----------|------|
-| footer | `222 90% 18%` | `222 47% 8%` | Footer 배경 |
-| footer-foreground | `210 40% 98%` | `210 40% 98%` | Footer 텍스트 |
-| surface-inverted | `222 90% 18%` | `222 47% 10%` | CTA 섹션, fullscreen 뷰어 배경 |
-| surface-inverted-foreground | `210 40% 98%` | `210 40% 98%` | CTA 섹션, fullscreen 뷰어 텍스트 |
+| 토큰 | 라이트 HSL | Hex | 다크 HSL | Hex | 용도 |
+|------|-----------|-----|---------|-----|------|
+| footer | `222 90% 18%` | `#051D57` | `222 47% 8%` | `#0B111E` | Footer 배경 |
+| footer-fg | `210 40% 98%` | `#F8FAFC` | `210 40% 98%` | `#F8FAFC` | Footer 텍스트 |
+| surface-inverted | `222 90% 18%` | `#051D57` | `222 47% 10%` | `#0E1525` | CTA, fullscreen 뷰어 배경 |
+| surface-inverted-fg | `210 40% 98%` | `#F8FAFC` | `210 40% 98%` | `#F8FAFC` | CTA, fullscreen 뷰어 텍스트 |
+
+#### UI Chrome Tokens
+
+| 토큰 | 라이트 HSL | Hex | 다크 HSL | Hex | 용도 |
+|------|-----------|-----|---------|-----|------|
+| border | `214 32% 91%` | `#E1E7EF` | `217 33% 17%` | `#1D283A` | 모든 border 기본값 |
+| input | `214 32% 91%` | `#E1E7EF` | `217 33% 17%` | `#1D283A` | 폼 input border |
+| ring | `222 90% 18%` | `#051D57` | `212 27% 84%` | `#CBD5E1` | Focus ring |
+| card | `0 0% 100%` | `#FFFFFF` | `222 47% 8%` | `#0B111E` | 카드 배경 |
+| popover | `0 0% 100%` | `#FFFFFF` | `222 47% 8%` | `#0B111E` | 팝오버 배경 |
+
+#### Badge Colors (Enum 표시용, 테마 독립)
+
+| 토큰 | 라이트 HSL | Hex | 다크 HSL | Hex |
+|------|-----------|-----|---------|-----|
+| badge-blue | `224 76% 48%` | `#1D4FD7` | `224 76% 55%` | `#3564E3` |
+| badge-orange | `25 95% 53%` | `#F97415` | `25 95% 55%` | `#F97A1F` |
+| badge-purple | `270 60% 55%` | `#8C47D1` | `270 60% 60%` | `#995CD6` |
+| badge-yellow | `48 96% 50%` | `#FAC905` | `48 96% 53%` | `#FACC14` |
+| badge-sky | `199 89% 48%` | `#0DA2E7` | `199 89% 55%` | `#26B2F2` |
+| badge-indigo | `245 58% 50%` | `#4236C9` | `245 58% 58%` | `#6056D2` |
+
+모든 badge foreground: white (`0 0% 100%`). 예외: badge-yellow-foreground = dark (`20 14% 4%`).
+
+#### Chart Colors
+
+| 토큰 | 라이트 HSL | Hex | 다크 HSL | Hex | 역할 |
+|------|-----------|-----|---------|-----|------|
+| chart-1 | `222 90% 18%` | `#051D57` | `220 70% 50%` | `#2662D9` | Primary |
+| chart-2 | `197 84% 46%` | `#13A0D8` | `160 60% 45%` | `#2EB88A` | Accent |
+| chart-3 | `224 81% 61%` | `#4B76EC` | `30 80% 55%` | `#E88C30` | Secondary |
+| chart-4 | `43 74% 66%` | `#E8C468` | `280 65% 60%` | `#AF57DB` | Warm |
+| chart-5 | `340 75% 55%` | `#E23670` | `340 75% 55%` | `#E23670` | Pink |
+| chart-6 | `280 65% 60%` | `#AF57DB` | `280 65% 65%` | `#B96CE0` | Purple |
 
 ### Status Color 사용 패턴
 
@@ -102,11 +164,11 @@ Footer, CTA 섹션 등 항상 어두운 배경이 필요한 곳에 사용. `bg-p
 
 ### Radius Scale
 
-| 티어 | 클래스 | 값 (--radius: 0.625rem 기준) | 용도 |
-|------|--------|-----|------|
-| Micro | `rounded-sm` | ~6px | shadcn 내부 프리미티브 (직접 사용 금지) |
-| Base | `rounded-md` | ~8px | 폼 컨트롤 (Input, Button, Select) |
-| Panel | `rounded-lg` | 10px | 패널, 통계 카드, Alert, Dialog |
+| 티어 | 클래스 | 값 (--radius: 0.625rem = 10px) | 용도 |
+|------|--------|------|------|
+| Micro | `rounded-sm` | 6px (`--radius - 4px`) | shadcn 내부 프리미티브 (직접 사용 금지) |
+| Base | `rounded-md` | 8px (`--radius - 2px`) | 폼 컨트롤 (Input, Button, Select) |
+| Panel | `rounded-lg` | 10px (`--radius`) | 패널, 통계 카드, Alert, Dialog |
 | Card | `rounded-xl` | 12px | Card default variant |
 | Surface | `rounded-2xl` | 16px | Card elevated/interactive, 마케팅 섹션 |
 | Pill | `rounded-full` | 9999px | Badge, Avatar, CTA 버튼 |
@@ -122,20 +184,21 @@ Dialog/Alert인가? → rounded-lg
 
 ### Shadow Scale
 
-| 토큰 | 용도 | 다크모드 비고 |
-|------|------|-------------|
-| `shadow-sm` | 폼 컨트롤 (resting) | Tailwind 기본 |
-| `shadow` (Tailwind 기본) | Card default | Tailwind 기본 |
-| `shadow-card` | Card elevated (브랜드 컬러 기반) | 검정 기반으로 오버라이드 (흰색 글로우 방지) |
-| `shadow-card-hover` | Card interactive hover | 검정 기반으로 오버라이드 |
-| `shadow-lg` | 플로팅 오버레이 (Dropdown, Toast) | Tailwind 기본 |
-| `shadow-xl` | CTA 버튼 hover | Tailwind 기본 |
+| 토큰 | CSS 값 (라이트) | CSS 값 (다크) | 용도 |
+|------|----------------|--------------|------|
+| `shadow-sm` | Tailwind 기본 | Tailwind 기본 | 폼 컨트롤 (resting) |
+| `shadow` | Tailwind 기본 | Tailwind 기본 | Card default |
+| `shadow-card` | `0 0 26px -5px hsl(var(--primary) / 0.12)` | `0 0 26px -5px hsl(0 0% 0% / 0.3)` | Card elevated (브랜드 기반) |
+| `shadow-card-hover` | `0 8px 30px -5px hsl(var(--primary) / 0.18)` | `0 8px 30px -5px hsl(0 0% 0% / 0.4)` | Card interactive hover |
+| `shadow-lg` | Tailwind 기본 | Tailwind 기본 | 플로팅 오버레이 (Dropdown, Toast) |
+| `shadow-xl` | Tailwind 기본 | Tailwind 기본 | CTA 버튼 hover |
 
-**다크모드 shadow**: `shadow-card` / `shadow-card-hover`는 라이트에서 `--primary` 기반 (브랜드 느낌), 다크에서 `hsl(0 0% 0%)` 기반 (자연스러운 어둠)으로 자동 전환. `.dark` 셀렉터로 오버라이드.
+**다크모드 shadow**: `shadow-card` / `shadow-card-hover`는 라이트에서 `--primary` 기반 (브랜드 느낌), 다크에서 순수 검정 기반 (흰색 글로우 방지)으로 자동 전환. `.dark` 셀렉터로 오버라이드.
 
 ### Typography
 
-**Font**: Pretendard Variable (한글 최적화), `tracking-tight` 제목 자동 적용.
+**Font**: Pretendard Variable (한글 최적화), `font-feature-settings: "rlig" 1, "calt" 1` 전역 적용.
+**Letter-spacing**: `tracking-tight` (`-0.025em`) 모든 제목(h1~h6) 자동 적용. Relaxed Tracking 언어(th, my, km, si, hi, ne, mn)에서 `letter-spacing: 0`으로 해제.
 
 #### Heading Scale
 
@@ -169,14 +232,14 @@ Dialog/Alert인가? → rounded-lg
 
 ### Icon Sizing Scale
 
-| 컨텍스트 | 아이콘 크기 | 예시 |
-|---------|-----------|------|
-| Inline / Button | `h-4 w-4` | nav 아이콘, 버튼 내부 아이콘 |
-| CTA / Hero badge | `h-5 w-5` | ArrowRight, HeroSection 배지 아이콘 |
-| Nav toggle | `h-6 w-6` | 햄버거 메뉴, 메일 아이콘 |
-| Feature card | `h-7 w-7` | gradient 컨테이너 내부 아이콘 |
-| Value card | `h-8 w-8` | about 페이지 가치 카드 |
-| EmptyState | `h-10 w-10` | EmptyState 컴포넌트 아이콘 |
+| 컨텍스트 | 아이콘 크기 | px | 예시 |
+|---------|-----------|-----|------|
+| Inline / Button | `h-4 w-4` | 16px | nav 아이콘, 버튼 내부 아이콘 |
+| CTA / Hero badge | `h-5 w-5` | 20px | ArrowRight, HeroSection 배지 아이콘 |
+| Nav toggle | `h-6 w-6` | 24px | 햄버거 메뉴, 메일 아이콘 |
+| Feature card | `h-7 w-7` | 28px | gradient 컨테이너 내부 아이콘 |
+| Value card | `h-8 w-8` | 32px | about 페이지 가치 카드 |
+| EmptyState | `h-10 w-10` | 40px | EmptyState 컴포넌트 아이콘 |
 
 ### Animation & Duration
 
@@ -192,12 +255,12 @@ Dialog/Alert인가? → rounded-lg
 
 ### Grid Gap Standard
 
-| Gap | 용도 |
-|-----|------|
-| `gap-1` ~ `gap-2` | 인라인 요소 (아이콘+텍스트, 배지 그룹) |
-| `gap-4` | 폼 필드, compact 리스트 |
-| `gap-6` | 카드 그리드 (**표준**, 대부분의 리스트 페이지) |
-| `gap-8` | Feature/마케팅 그리드 (큰 카드) |
+| Gap | px | 용도 |
+|-----|-----|------|
+| `gap-1` ~ `gap-2` | 4~8px | 인라인 요소 (아이콘+텍스트, 배지 그룹) |
+| `gap-4` | 16px | 폼 필드, compact 리스트 |
+| `gap-6` | 24px | 카드 그리드 (**표준**, 대부분의 리스트 페이지) |
+| `gap-8` | 32px | Feature/마케팅 그리드 (큰 카드) |
 
 ### Section Spacing Scale
 
@@ -267,12 +330,12 @@ import { AuthLayout } from "@/components/layouts/auth_layout";
 
 ### Container Sizes
 
-| 토큰 | 값 | 용도 |
-|------|-----|------|
-| Default | `max-w-container-default` (1350px) | SectionContainer 기본 (카드 그리드 등) |
-| Narrow | `max-w-3xl` | Legal 페이지, SectionContainer `container="narrow"` |
-| Form | `max-w-md` | 인증 페이지 (로그인, 회원가입) |
-| Text | `max-w-2xl` | Hero subtitle, 설명문 (가독성 최적화) |
+| 토큰 | Tailwind | px | 용도 |
+|------|---------|-----|------|
+| Default | `max-w-container-default` | 1350px | SectionContainer 기본 (카드 그리드 등) |
+| Narrow | `max-w-container-narrow` / `max-w-3xl` | 768px | Legal 페이지, SectionContainer `container="narrow"` |
+| Form | `max-w-container-form` / `max-w-md` | 448px | 인증 페이지 (로그인, 회원가입) |
+| Text | `max-w-2xl` | 672px | Hero subtitle, 설명문 (가독성 최적화) |
 
 ### Page Templates
 
@@ -370,13 +433,22 @@ shadcn CVA 기반 버튼. `components/ui/button.tsx`.
 
 #### CTA 패턴
 
-Hero, 마케팅 섹션의 주요 CTA 버튼:
+3가지 변형이 존재하며, `gradient-primary text-white rounded-full`이 공통 베이스:
+
+| 변형 | 클래스 | 용도 |
+|------|--------|------|
+| **Full CTA** | `gradient-primary hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all rounded-full px-8 h-14 text-base` | Hero, 마케팅 섹션 |
+| **Nav CTA** | `gradient-primary hover:opacity-90 text-white shadow-md hover:shadow-lg transition-all rounded-full px-6` | 헤더 네비게이션 (Button size="sm") |
+| **Inline CTA** | `gradient-primary text-white rounded-full` | 모바일 메뉴, 콘텐츠 내 소형 |
 
 ```tsx
-<Button className="gradient-primary rounded-full h-14 px-8 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+{/* Full CTA */}
+<Button className="gradient-primary hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all rounded-full px-8 h-14 text-base">
   시작하기 <ArrowRight className="ml-2 h-5 w-5" />
 </Button>
 ```
+
+**`text-white` 예외**: gradient 배경 위 텍스트는 `text-white` 직접 사용 허용. CSS 변수 기반 gradient는 다크모드에서도 채도 있는 배경을 유지하므로 `text-white`가 양쪽 모드에서 안전. 동일 이유로 gradient 아이콘 컨테이너(`gradient-primary` 위 아이콘)도 `text-white` 허용.
 
 ### Card CVA Variants
 
@@ -698,11 +770,74 @@ import { ThemeToggle } from "@/components/ui/theme_toggle";
 - shadcn DropdownMenuItem(`role="menuitem"`), SelectItem(`role="option"`) 미영향
 - Dialog 닫기 버튼: `h-5 w-5` 아이콘 + `p-1` 패딩 (20px 시각 + 44px 터치)
 
+### Responsive Behavior
+
+#### Breakpoints
+
+| Name | Width | Tailwind | Primary Change |
+|------|-------|----------|---------------|
+| Mobile | <640px | (default) | 1열 레이아웃, 축소된 패딩 |
+| Tablet | ≥640px | `sm:` | 2열 그리드 시작 |
+| Desktop | ≥768px | `md:` | Hero 타이포 확대, 네비게이션 전환 |
+| Wide | ≥1024px | `lg:` | 3열 그리드, 사이드바 노출, 섹션 패딩 확대 |
+| Ultra | ≥1280px | `xl:` | 4열 그리드 (관리자) |
+
+#### Collapsing Strategy
+
+| 요소 | 축소 패턴 |
+|------|----------|
+| Header | `lg` 이하에서 햄버거 메뉴로 축소 |
+| Footer | 4열 → 2열 → 1열 |
+| Card Grid | `xl`=4열, `lg`=3열, `sm`=2열, default=1열 |
+| Hero | 텍스트 단계적 축소 (`6xl` → `5xl` → `4xl` → `3xl`) |
+| SectionContainer | `sm`: 40px, `md`: 64px, `lg`: 80~128px |
+
+#### Touch Targets
+
+- 최소 44×44px (WCAG 2.5.8) — `@media (pointer: coarse)` 감지
+- iOS: 인풋 `font-size: 16px` (auto-zoom 방지)
+
 ---
 
 ## 05 Anti-Patterns (금지 규칙)
 
-### 하드코딩 색상 (모든 유틸리티 프리픽스)
+### Do
+
+- CSS 변수로만 색상 참조 (HEX 직접 사용 금지)
+- 컨테이너 토큰 사용 (`max-w-container-default`, not `max-w-[1350px]`)
+- Status Badge는 `variant` prop 사용 (`bg-status-*` 직접 적용 금지)
+- 다크모드에서 고정 어두운 배경: `bg-footer`, `bg-surface-inverted`
+- img 태그에 `loading="lazy"` 필수
+- 터치 타겟 최소 44×44px (`@media (pointer: coarse)` 글로벌 적용)
+- CJK 텍스트에 `break-keep-cjk` 적용 (`.lang-cjk` 하위에서만 동작)
+- 반응형은 mobile-first: `sm:` → `md:` → `lg:` → `xl:` 순서
+- 다크모드 항상 고려: `bg-background`, `text-foreground` 등 시맨틱 토큰 사용
+
+### Don't
+
+- Tailwind 기본색 직접 사용 (`bg-white`, `bg-gray-*`, `text-gray-*` 등)
+- `rounded-sm` 직접 사용 (shadcn 내부 프리미티브 전용)
+- `bg-primary`를 고정 어두운 배경에 사용 (다크모드에서 반전됨)
+- `font-bold`를 본문에 사용 (제목/KPI 전용)
+- 40px 미만 여백을 SectionContainer 레벨에서 처리
+- `whitespace-nowrap`을 다국어 타이틀에 적용 (장문 언어 넘침)
+- 커스텀 `box-shadow` 값 사용 (`shadow-card` 등 유틸 클래스 사용)
+
+### 허용 예외
+
+| 패턴 | 허용 위치 | 이유 |
+|------|----------|------|
+| `text-white` | `gradient-primary` 배경 위 | gradient는 다크모드에서도 채도 유지 → white 안전 |
+| `text-white` | FeatureGrid 아이콘 컨테이너 | gradient 배경 위 아이콘 |
+| `bg-black/50~80` | Dialog overlay, ebook overlay | 오버레이 표준. 시맨틱 토큰 불필요 |
+| `print:text-gray-*` | 인쇄 전용 스타일 | 화면에 영향 없음 |
+| 장식용 Tailwind 색상 | `book_hub_page` SLIDE_COLORS, `textbook_order_page` | 순수 장식 (status/semantic 의미 없음) |
+
+---
+
+### 금지 패턴 상세
+
+#### 하드코딩 색상 (모든 유틸리티 프리픽스)
 
 ```
 ❌ from-[#F0F3FF]          → ✅ from-brand-soft
@@ -714,7 +849,7 @@ import { ThemeToggle } from "@/components/ui/theme_toggle";
 ❌ border-[#129DD8]        → ✅ border-accent
 ```
 
-### Tailwind Named Colors (다크모드 미지원)
+#### Tailwind Named Colors (다크모드 미지원)
 
 ```
 ❌ bg-white                → ✅ bg-background 또는 bg-card
@@ -727,7 +862,7 @@ import { ThemeToggle } from "@/components/ui/theme_toggle";
 ❌ bg-blue-50              → ✅ bg-primary/5 또는 bg-primary/10
 ```
 
-### 직접 상태 색상
+#### 직접 상태 색상
 
 ```
 ❌ bg-emerald-500          → ✅ bg-status-success
@@ -740,14 +875,14 @@ import { ThemeToggle } from "@/components/ui/theme_toggle";
 ❌ text-white (상태 Badge) → ✅ text-status-success-foreground
 ```
 
-### Footer/CTA 하드코딩
+#### Footer/CTA 하드코딩
 
 ```
 ❌ bg-primary text-white   → ✅ bg-footer text-footer-foreground (Footer)
 ❌ bg-primary text-white   → ✅ bg-surface-inverted text-surface-inverted-foreground (CTA)
 ```
 
-### Radius 혼용
+#### Radius 혼용
 
 ```
 ❌ rounded-lg (일반 Card)  → ✅ Card variant="default" (자동 rounded-xl)
@@ -755,7 +890,7 @@ import { ThemeToggle } from "@/components/ui/theme_toggle";
 ❌ rounded-md (마케팅 카드) → ✅ rounded-2xl (Surface 티어)
 ```
 
-### Shadow 혼용
+#### Shadow 혼용
 
 ```
 ❌ shadow-md (카드 강조)   → ✅ shadow-card (브랜드 shadow, 다크모드 대응)
@@ -763,7 +898,7 @@ import { ThemeToggle } from "@/components/ui/theme_toggle";
 ❌ [custom box-shadow]     → ✅ CSS 유틸 클래스 사용 (shadow-card 등)
 ```
 
-### Typography 혼용
+#### Typography 혼용
 
 ```
 ❌ text-5xl (리스트 Hero)  → ✅ text-3xl md:text-4xl (list variant 표준)
@@ -771,7 +906,7 @@ import { ThemeToggle } from "@/components/ui/theme_toggle";
 ❌ font-normal (라벨)      → ✅ font-medium (라벨 표준)
 ```
 
-### 매직넘버 여백
+#### 매직넘버 여백
 
 ```
 ❌ py-32                   → ✅ py-hero-lg
@@ -856,109 +991,168 @@ cd frontend && npm run lint:ui
 
 ---
 
+## 07-B Agent Prompt Guide
+
+AI 에이전트가 Amazing Korean의 디자인 시스템을 준수하며 UI를 생성할 때 참조하는 퀵 레퍼런스.
+
+### Quick Color Reference
+
+```
+Primary (Dark Navy):  hsl(222 90% 18%)  #051D57  — 메인 액션, 네비게이션
+Secondary (Blue):     hsl(224 81% 61%)  #4B76EC  — 보조 버튼, 서브 UI
+Accent (Cyan):        hsl(197 84% 46%)  #13A0D8  — 강조 포인트, 아이콘
+Background:           hsl(0 0% 100%)    #FFFFFF  — 기본 배경
+Foreground:           hsl(222 47% 11%)  #0F1729  — 기본 텍스트 (near-black)
+Muted:                hsl(228 33% 97%)  #F5F6FA  — 비활성 배경
+Destructive:          hsl(0 84% 50%)    #EB1414  — 에러, 삭제
+```
+
+### Example Component Prompts
+
+**1. Hero Section (마케팅)**
+```
+Pretendard Variable 폰트, text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight.
+bg-hero-gradient 배경. text-center 정렬, max-w-container-default.
+부제목은 text-lg text-muted-foreground max-w-2xl mx-auto.
+CTA: gradient-primary hover:opacity-90 text-white rounded-full px-8 h-14 shadow-lg hover:shadow-xl.
+```
+
+**2. 카드 그리드 (리스트)**
+```
+Card variant="interactive" — rounded-2xl shadow-card, hover:-translate-y-1 shadow-card-hover.
+그리드: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6.
+제목: text-lg font-semibold, group-hover:text-primary.
+Badge variant="warning"으로 유료 표시. variant="success"으로 완료 표시.
+```
+
+**3. 인증 폼**
+```
+AuthLayout (전체 화면 중앙 정렬, max-w-container-form 448px).
+Card + CardHeader + CardContent. Input은 rounded-md.
+Button variant="default" (bg-primary) 전체 너비. 에러: text-destructive.
+```
+
+**4. 관리자 테이블**
+```
+DataTable + useDataTable 훅. 검색+정렬+선택+페이지네이션 내장.
+StatCard로 KPI 표시 (Card variant="elevated").
+Badge 색상: blue/orange/purple/yellow/sky/indigo (enum 표시용).
+```
+
+**5. Footer/CTA 어두운 섹션**
+```
+bg-surface-inverted text-surface-inverted-foreground (항상 어두운 톤).
+Footer: bg-footer text-footer-foreground.
+절대로 bg-primary text-white 사용 금지 (다크모드에서 반전됨).
+```
+
+### Iteration Guide
+
+1. 모든 색상은 CSS 변수(HSL)로만 참조 — HEX 하드코딩 금지
+2. 컴포넌트는 shadcn/ui 기반 — 커스텀 컴포넌트 전에 기존 `components/ui/` 확인
+3. 반응형은 mobile-first — `sm:` → `md:` → `lg:` → `xl:` 순서
+4. 다크모드 항상 고려 — `bg-primary` 대신 Surface 토큰 (고정 어두운 배경)
+5. 카드 variant 자동 radius — default=xl, elevated/interactive=2xl
+6. 섹션 여백은 SectionContainer — `size="sm"(40px)` / `"md"(64px)` / `"lg"(80~128px)`
+7. gradient 위 텍스트는 `text-white` 허용 — 유일한 예외
+
+---
+
 ## 08 Figma Design System
 
-> 코드 기반 디자인 시스템(§01~§06)을 Figma 컴포넌트 라이브러리로 확장한다.
-> **목표**: 코딩 전 시각적 검증, 라이트/다크 동시 비교, 모바일 앱 UI 설계, 마케팅 자산 확보.
+> 코드 기반 디자인 시스템(§00~§07)을 Figma 컴포넌트 라이브러리로 확장한다.
+> **목표**: 디자인 개선 작업 효율 향상, 유지보수 비용 감소, 모바일 앱 UI 사전 설계.
 
-### 도입 배경
+### 도입 배경 및 핵심 목적
 
-- 교육 서비스의 UI 일관성은 학습 몰입도에 직접 영향 — 디자인이 일괄적이지 않으면 학습 효과 저하
-- 현재 디자인 시스템이 코드(`index.css` + `tailwind.config.js`)에만 존재 — 시각적 전체 조감 불가
-- 새 페이지 추가 시 코드 → 브라우저 확인 → 수정 루프 반복 — Figma에서 확정 후 구현 1회 완료 목표
-- 모바일 앱 계획 (다음 작업 우선순위) — 웹과 다른 레이아웃을 사전 설계 필요
+1. **페이지별 UI/UX 구성 확정** — 전체 페이지 조감, 흐름 검증
+2. **디자인 개선** — 코드 수정-빌드 루프 없이 Figma에서 시안 비교 후 확정
+3. **디자인 요소 확정** — 버튼/카드 등 상황별 변형까지 시각적으로 명시
+4. **유지보수 효율** — Claude Code 디자인 변경 작업의 시간/효율 개선
 
-### 도구 구성
+### 파일 정보
 
-| 도구 | 용도 | 비용 |
-|------|------|:----:|
-| **Figma MCP Server** (공식) | Claude Code ↔ Figma 양방향 연동 | 무료 |
-| **Code to Canvas** (Figma × Anthropic) | 브라우저 렌더링 → 편집 가능한 Figma 프레임 변환 | 무료 |
-| **Obra shadcn/ui 키트** | shadcn/ui 전체 컴포넌트 Figma 라이브러리 | 무료 |
-| **Tailwind Tokens 플러그인** | `tailwind.config.js` → Figma Variables 자동 임포트 | 무료 |
-| **html.to.design** | URL → Figma 프레임 임포트 (레퍼런스 확보) | 무료 (월 10회) |
+- **파일 키**: `AUYoLTYOsDWipKoNGfD3Fv`
+- **MCP 인증**: 완료 (2026-04-09)
+- **현재 상태**: 기존 34프레임(v4.2 이전 캡처)은 한글 폰트/lazy 이미지/토큰 미연결 문제로 사용 불가 → 삭제 예정
 
-**MCP 서버 설정**:
-```bash
-# Figma Remote MCP (데스크톱 앱 불필요)
-claude mcp add --transport http figma https://mcp.figma.com/mcp
+### 재구축 전략 — A+C 하이브리드 (2026-04-09 확정)
 
-# Figma Desktop MCP (Dev Mode 필요)
-claude mcp add --transport sse figma-dev-mode-mcp-server http://127.0.0.1:3845/sse
-```
+기존 프레임이 캡처 도구(Code to Canvas/html.to.design)의 헤드리스 브라우저 렌더링 한계로 사용 불가. 같은 도구 재사용은 같은 문제 재발 위험 → 근본 해결 가능한 하이브리드로 전환.
+
+| 레이어 | 방식 | 역할 |
+|--------|------|------|
+| **레퍼런스 (정답지)** | Playwright 풀페이지 캡처 | 현재 사이트의 정확한 시각적 참조 (이미지) |
+| **작업물 (편집 가능)** | Figma MCP 생성 | 레퍼런스 위에 네이티브 Figma 컴포넌트 구축 |
+
+**핵심 해결책** (Playwright 스크립트):
+- `document.fonts.ready` 대기 → Pretendard Variable 로딩 완료 후 캡처 (한글 텍스트 문제 해결)
+- 전체 스크롤 후 대기 → lazy 이미지 모두 로드 (이미지 누락 문제 해결)
+- 라이트/다크 테마 토글 → 한 스크립트로 양쪽 캡처
 
 ### Phase 계획
 
-#### Phase F1 — Foundation (토큰 등록)
+#### Phase A — Playwright 캡처 (레퍼런스 확보)
 
-코드에 정의된 디자인 토큰을 Figma Variables/Styles로 등록한다.
+- Playwright 설치 (`@playwright/test` + `playwright install chromium`)
+- 캡처 스크립트 작성: 폰트 대기 + 전체 스크롤 + 테마 토글
+- 로컬 dev 서버에서 16~18개 고유 페이지 × Light/Dark 캡처
 
-| 항목 | 코드 소스 | Figma 대상 |
-|------|----------|-----------|
-| Color Tokens | `index.css` `:root` / `.dark` (60+ CSS 변수) | Variables (light/dark 모드 세트) |
-| Badge Colors | `--badge-blue/orange/purple/yellow/sky/indigo` | Variables (Badge 전용 컬렉션) |
-| Status Colors | `--success/warning/info/destructive` + foreground | Variables |
-| Surface Colors | `--footer/surface-inverted` + foreground | Variables |
-| Typography | Pretendard Variable, Heading Scale (§01) | Text Styles |
-| Spacing | section-sm/md/lg/hero-lg + gap 표준 | Spacing Variables |
-| Radius | 6단계 Scale (Micro~Pill) | Variables |
-| Shadow | 6단계 Scale (sm~xl + card/card-hover) | Effect Styles |
+#### Phase B — Figma 정리 + 레퍼런스 임포트
 
-#### Phase F2 — Components (shadcn/ui 대응)
+- 기존 34프레임 삭제
+- Phase A 스크린샷을 Figma에 이미지 레이어로 배치 (페이지당 Light/Dark 나란히)
 
-Obra 키트를 베이스로, 프로젝트 커스텀 컴포넌트를 추가한다.
+#### Phase C — Figma MCP 네이티브 생성
 
-| 컴포넌트 | Variant/State | 비고 |
-|---------|---------------|------|
-| Button | 6 variants × 4 sizes + CTA | §03 참조 |
-| Badge | 12 variants (default~indigo) | Admin Enum 색상 체계 포함 |
-| Card | default / elevated / interactive (hover/focus/active) | CVA 기반 |
-| Input, Select, Dialog, Tabs | shadcn 기본 | Obra 키트 활용 |
-| HeroSection | marketing / list variant | §03 참조 |
-| EmptyState | icon + title + description + action | §03 참조 |
-| PaginationBar | currentPage / totalPages | §03 참조 |
-| ListStatsBar | icon + label + page info | §03 참조 |
-| SkeletonGrid | video-card / content-card / study-card | §03 참조 |
-| StatCard | icon + label + value | Admin 전용 |
-| ThemeToggle | Light/Dark/System | §03 참조 |
+##### C-F1: Variables 등록
+§01의 전체 토큰을 Figma Variables로 등록 (Color × Light/Dark, Typography, Spacing, Radius, Shadow)
 
-#### Phase F3 — Page Templates (웹)
+##### C-F2: 핵심 컴포넌트 6종
+| 컴포넌트 | Variant/State |
+|---------|---------------|
+| Button | 6 variants × 4 sizes + CTA 3변형 (Full/Nav/Inline) |
+| Badge | 12 variants (default, status 3종, enum 6종, outline, destructive) |
+| Card | default / elevated / interactive (hover/focus/active) |
+| HeroSection | marketing / list variant |
+| Input | default/error/disabled states |
+| SectionContainer | sm/md/lg sizes |
 
-컴포넌트를 조합하여 실제 페이지 레이아웃을 Figma Frame으로 구성한다.
-각 페이지 light/dark 모드 동시 비교.
+##### C-F3: 페이지 재구축 (우선순위별)
 
-| 카테고리 | 페이지 |
-|---------|--------|
-| 공개 | Home, About, Pricing, FAQ |
-| 콘텐츠 목록 | Video List, Lesson List, Study List |
-| 콘텐츠 상세 | Video Detail, Lesson Detail, Study Detail + Task |
-| 인증 | Login (MFA 포함), Signup, Email Verify, Account Recovery |
-| 사용자 | MyPage, Settings, Reset Password |
-| 법적 | Terms, Privacy, Refund Policy |
-| Admin | Dashboard, Users, Videos, Lessons, Studies |
-| Admin 결제 | Subscriptions, Transactions, Grants |
-| Admin 기타 | Translations (List/Dashboard/Edit), Stats (Study/User/Login) |
+| 순위 | 카테고리 | 페이지 |
+|------|---------|--------|
+| **1** | 공개 핵심 | Home, About, FAQ, ComingSoon |
+| **2** | Book 도메인 | Book Hub, Textbook Catalog, Ebook Catalog, Book Landing |
+| **3** | 인증 | Login, Signup, Request Reset, Verify Email, Account Recovery |
+| **4** | 법적 | Terms, Privacy, Refund Policy |
+| **5** | 사용자 (로그인 필요) | My Page, Settings |
+| 보류 | Admin | Dashboard, Users 등 — Admin 권한 필요, 우선순위 낮음 |
+| 보류 | 콘텐츠 | Videos/Studies/Lessons — 현재 ComingSoonPage 공용, 콘텐츠 시딩 후 개별 작업 |
 
-#### Phase F4 — Mobile App UI
-
-웹 디자인 시스템을 기반으로 모바일(375×812) 프레임 설계.
-
-| 항목 | 내용 |
-|------|------|
-| 컴포넌트 매핑 | 웹 컴포넌트 → iOS/Android 네이티브 대응 |
-| 화면 흐름 | Figma Prototype으로 인터랙션 플로우 |
-| 결제 플로우 | Apple IAP / Google Play Billing / Paddle 웹뷰 분기 |
-| Touch target | 최소 44px (§04 Mobile Checklist 준수) |
-| 앱스토어 자산 | 스크린샷, 프로모션 이미지 |
+##### C-F4: 모바일 앱 UI (보류)
+Flutter 앱 착수 시점에 진행 (375×812 프레임, iOS/Android 네이티브 대응)
 
 ### 코드 ↔ Figma 동기화 원칙
 
 | 규칙 | 설명 |
 |------|------|
 | **SSoT = 코드** | `tailwind.config.js` + `index.css`가 디자인 토큰의 원본. Figma는 시각적 미러 |
-| **코드 변경 → Figma 반영** | 토큰 변경 시 Tailwind Tokens 플러그인으로 Figma Variables 재임포트 |
+| **코드 변경 → Figma 반영** | 토큰 변경 시 MCP `get_variable_defs`로 확인, 필요시 재등록 |
 | **Figma 변경 → 코드 반영** | 새 디자인을 Figma에서 확정 후 코드로 구현 (역방향 자동 동기화 없음) |
 | **신규 페이지** | Figma에서 레이아웃 확정 → 코드 구현 (1회 완료 목표) |
+
+### 사용 가능한 MCP 도구 (인증 후)
+
+| 도구 | 용도 |
+|------|------|
+| `get_metadata` | 페이지/프레임 구조 XML |
+| `get_design_context` | 프레임 → React+Tailwind 코드 변환 |
+| `get_screenshot` | 프레임 스크린샷 |
+| `get_variable_defs` | Variables 목록 |
+| `generate_figma_design` | 디자인 프레임 생성 |
+| `create_new_file` | 새 파일 생성 |
+| `search_design_system` | 디자인 시스템 검색 |
 
 ---
 

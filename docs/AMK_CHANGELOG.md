@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-07
+updated: 2026-04-09
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,32 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-09 — Figma 재구축 계획 수립 (하이브리드 전략)**
+  - [조사] 기존 Figma 파일(AUYoLTYOsDWipKoNGfD3Fv) 점검 — 34프레임(17페이지×Light/Dark) 확인. 메모리 기록(54프레임)과 불일치
+  - [조사] 기존 프레임 3대 문제 진단 — 한글 텍스트 누락(폰트 로딩 대기 실패), 이미지 누락(lazy loading + 미스크롤), 토큰 미연결(캡처 도구 특성)
+  - [결정] 방안 A+C 하이브리드 확정 — Playwright 캡처(레퍼런스) + Figma MCP 생성(편집 가능)
+  - [결정] 기존 34프레임 삭제 예정. 재사용 불가 판정
+  - [문서] AMK_DESIGN_SYSTEM.md §08 Figma 섹션 현재화 — 재구축 전략, 파일 정보, Phase A/B/C 구조, 페이지 우선순위
+  - [메모리] reference_figma.md 갱신 — 실제 프레임 수, 문제 진단, MCP OAuth 인증 완료
+  - [메모리] project_figma_plan.md 신규 — 하이브리드 전략 상세, 페이지 우선순위, 결정 필요 사항
+
+- **2026-04-09 — 디자인 시스템 문서 v4.2 + 코드 품질 수정 5건**
+  - [문서] AMK_DESIGN_SYSTEM.md v4.2: 전수 조사 기반 19건 갭 보강
+  - [문서] §00 Visual Theme & Atmosphere 신규 섹션 — 디자인 철학, 핵심 특성, 밀도 정의
+  - [문서] §01 Color Tokens 전면 재구성 — 전체 토큰 HSL + Hex 병기 (Core/Brand/Status/Surface/Chrome/Badge/Chart)
+  - [문서] §01 Shadow Scale에 실제 CSS box-shadow 값 추가 (라이트/다크)
+  - [문서] §01 Radius 근사치 → 정확한 px 값 (--radius: 0.625rem 기반 계산식)
+  - [문서] §01 Typography에 letter-spacing(-0.025em) + font-feature-settings 명시
+  - [문서] §01 Icon/Gap/Container에 px 환산 값 추가
+  - [문서] §03 CTA 패턴 3가지 변형 문서화 (Full/Nav/Inline) + gradient text-white 예외 명시
+  - [문서] §04 Responsive Behavior 섹션 추가 — 브레이크포인트 테이블, 축소 전략
+  - [문서] §05 Do/Don't 통합 섹션 + 허용 예외 테이블 — 산재 규칙 §01~§04에서 통합
+  - [문서] §07-B Agent Prompt Guide 신규 — Quick Color Ref + 예제 프롬프트 5개 + Iteration Guide
+  - [수정] index.css: --warning-foreground `0 0% 100%` → `20 14% 4%` (WCAG AA 준수)
+  - [수정] ebook_viewer_page.tsx: fullscreen text-white(7건) + neutral/border 색상(8건) → 디자인 토큰 교체
+  - [수정] pagination_bar.tsx: rounded-xl → rounded-md (Button 스펙 준수)
+  - [수정] about_page.tsx: CTA hover:shadow-xl 누락 추가
 
 - **2026-04-08 — 동시 세션 수 제한 구현**
   - [보안] `enforce_session_limit()`: 유령 세션 정리 (SMEMBERS + EXISTS) + SCARD 카운트 + 역할별 정책 분기
