@@ -193,8 +193,9 @@ impl Config {
 
         // CORS_ORIGINS: 쉼표로 구분된 origin 목록
         // 예: "http://localhost:5173,https://amazing-korean-api.pages.dev"
+        // Tauri 데스크탑 앱: tauri://localhost, https://tauri.localhost
         let cors_origins = env::var("CORS_ORIGINS")
-            .unwrap_or_else(|_| "http://localhost:5173".into())
+            .unwrap_or_else(|_| "http://localhost:5173,tauri://localhost,https://tauri.localhost".into())
             .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
