@@ -714,7 +714,7 @@ export function EbookViewerPage() {
         <div
           className={`flex items-center justify-between px-4 py-2 border-b backdrop-blur z-20 transition-all duration-300 ${
             isFullscreen
-              ? `bg-surface-inverted/90 border-neutral-700 text-surface-inverted-foreground ${
+              ? `bg-surface-inverted/90 border-surface-inverted-foreground/20 text-surface-inverted-foreground ${
                   controlsVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"
                 }`
               : "bg-background/95 border-border"
@@ -725,11 +725,11 @@ export function EbookViewerPage() {
               variant="ghost"
               size="icon"
               onClick={() => setTocOpen(true)}
-              className={isFullscreen ? "text-white hover:bg-white/10" : ""}
+              className={isFullscreen ? "text-surface-inverted-foreground hover:bg-surface-inverted-foreground/10" : ""}
             >
               <List className="w-5 h-5" />
             </Button>
-            <span className={`text-sm hidden sm:inline ${isFullscreen ? "text-neutral-300" : "text-muted-foreground"}`}>
+            <span className={`text-sm hidden sm:inline ${isFullscreen ? "text-surface-inverted-foreground/70" : "text-muted-foreground"}`}>
               {pageDisplay}
             </span>
           </div>
@@ -742,7 +742,7 @@ export function EbookViewerPage() {
                 size="icon"
                 onClick={() => setViewMode(viewMode === "single" ? "spread" : "single")}
                 title={viewMode === "single" ? t("ebook.viewer.spreadView") : t("ebook.viewer.singleView")}
-                className={isFullscreen ? "text-white hover:bg-white/10" : ""}
+                className={isFullscreen ? "text-surface-inverted-foreground hover:bg-surface-inverted-foreground/10" : ""}
               >
                 {viewMode === "single" ? <BookOpen className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
               </Button>
@@ -754,11 +754,11 @@ export function EbookViewerPage() {
               size="icon"
               onClick={() => setZoomIndex((i) => Math.max(0, i - 1))}
               disabled={zoomIndex === 0}
-              className={isFullscreen ? "text-white hover:bg-white/10" : ""}
+              className={isFullscreen ? "text-surface-inverted-foreground hover:bg-surface-inverted-foreground/10" : ""}
             >
               <ZoomOut className="w-4 h-4" />
             </Button>
-            <span className={`text-xs w-10 text-center hidden sm:inline ${isFullscreen ? "text-neutral-300" : "text-muted-foreground"}`}>
+            <span className={`text-xs w-10 text-center hidden sm:inline ${isFullscreen ? "text-surface-inverted-foreground/70" : "text-muted-foreground"}`}>
               {zoom}%
             </span>
             <Button
@@ -766,7 +766,7 @@ export function EbookViewerPage() {
               size="icon"
               onClick={() => setZoomIndex((i) => Math.min(ZOOM_LEVELS.length - 1, i + 1))}
               disabled={zoomIndex === ZOOM_LEVELS.length - 1}
-              className={isFullscreen ? "text-white hover:bg-white/10" : ""}
+              className={isFullscreen ? "text-surface-inverted-foreground hover:bg-surface-inverted-foreground/10" : ""}
             >
               <ZoomIn className="w-4 h-4" />
             </Button>
@@ -775,7 +775,7 @@ export function EbookViewerPage() {
               variant="ghost"
               size="icon"
               onClick={toggleFullscreen}
-              className={isFullscreen ? "text-white hover:bg-white/10" : ""}
+              className={isFullscreen ? "text-surface-inverted-foreground hover:bg-surface-inverted-foreground/10" : ""}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </Button>
@@ -913,7 +913,7 @@ export function EbookViewerPage() {
         <div
           className={`flex items-center justify-center gap-2 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 border-t backdrop-blur z-20 transition-all duration-300 ${
             isFullscreen
-              ? `bg-surface-inverted/90 border-neutral-700 ${
+              ? `bg-surface-inverted/90 border-surface-inverted-foreground/20 ${
                   controlsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
                 }`
               : "bg-background/95 border-border"
@@ -924,7 +924,7 @@ export function EbookViewerPage() {
             size="icon"
             onClick={goToPrevPage}
             disabled={currentPage <= 1}
-            className={isFullscreen ? "border-neutral-600 text-white hover:bg-white/10" : ""}
+            className={isFullscreen ? "border-surface-inverted-foreground/20 text-surface-inverted-foreground hover:bg-surface-inverted-foreground/10" : ""}
           >
             <ChevronLeft className="w-5 h-5" />
           </Button>
@@ -954,7 +954,7 @@ export function EbookViewerPage() {
             size="icon"
             onClick={goToNextPage}
             disabled={currentPage >= totalPages}
-            className={isFullscreen ? "border-neutral-600 text-white hover:bg-white/10" : ""}
+            className={isFullscreen ? "border-surface-inverted-foreground/20 text-surface-inverted-foreground hover:bg-surface-inverted-foreground/10" : ""}
           >
             <ChevronRight className="w-5 h-5" />
           </Button>
