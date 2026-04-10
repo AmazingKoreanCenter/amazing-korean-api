@@ -1060,105 +1060,89 @@ Footer: bg-footer text-footer-foreground.
 
 ## 08 Figma Design System
 
-> 코드 기반 디자인 시스템(§00~§07)을 Figma 컴포넌트 라이브러리로 확장한다.
-> **목표**: 디자인 개선 작업 효율 향상, 유지보수 비용 감소, 모바일 앱 UI 사전 설계.
+> **2026-04-10 결정**: Figma 도입 보류. **이 문서(AMK_DESIGN_SYSTEM.md) + Phase A의 32 PNG 시각 레퍼런스 + 코드** 3계층을 디자인 SSoT로 운영.
+> Phase B/C(Figma 정리·임포트·네이티브 생성)는 재평가 트리거 도달 시까지 보류.
 
-### 도입 배경 및 핵심 목적
+### 결정 배경 (2026-04-10)
 
-1. **페이지별 UI/UX 구성 확정** — 전체 페이지 조감, 흐름 검증
-2. **디자인 개선** — 코드 수정-빌드 루프 없이 Figma에서 시안 비교 후 확정
-3. **디자인 요소 확정** — 버튼/카드 등 상황별 변형까지 시각적으로 명시
-4. **유지보수 효율** — Claude Code 디자인 변경 작업의 시간/효율 개선
+원래 Phase A→B→C 하이브리드 계획으로 Figma 컴포넌트 라이브러리를 구축하려 했으나, Phase B 착수 시 Figma MCP Starter 플랜 한도 초과를 트리거로 도입 자체를 재검토. 다음 5가지 이유로 보류 결정:
 
-### 파일 정보
+1. **CEO 원래 4가지 목적이 이미 대부분 달성됨**
+   - ① 페이지별 UI/UX 구성 확정 → Phase A의 32 PNG가 정답지 역할
+   - ② 디자인 개선 → v4.2 보강 19건 + 코드 수정 5건으로 진행 중, 추가 개선은 코드 직접 수정으로 가능
+   - ③ 디자인 요소 확정 → §03 컴포넌트 권장 + §07-B Agent Prompt Guide
+   - ④ 유지보수 효율 → §07-B Quick Color Ref + 예제로 Claude Code 작업 효율화 달성
 
-- **파일 키**: `AUYoLTYOsDWipKoNGfD3Fv`
-- **MCP 인증**: 완료 (2026-04-09)
-- **현재 상태**: 기존 34프레임(v4.2 이전 캡처)은 한글 폰트/lazy 이미지/토큰 미연결 문제로 사용 불가 → 삭제 예정
+2. **1인 풀스택 환경의 SSoT 단순화**
+   - 현재: 코드 ⇄ AMK_DESIGN_SYSTEM.md (2-way 동기화)
+   - Figma 도입 시: 코드 ⇄ 문서 ⇄ Figma (3-way 동기화) → 1인 운영자에게 트리플 동기화 부담 추가
+   - 결과: 4번(유지보수 효율) 목표에 오히려 역행
 
-### 재구축 전략 — A+C 하이브리드 (2026-04-09 확정)
+3. **Phase C의 진짜 가치 의문**
+   - Button variants는 이미 `class-variance-authority`로 코드에 정의됨 → Figma 중복 정의는 동기화 부담만 증가
+   - 페이지 레이아웃은 Phase A PNG 보면서 코드 수정이 더 빠름
+   - "디자이너에게 설명" 시나리오 자체가 없음 (1인 운영)
 
-기존 프레임이 캡처 도구(Code to Canvas/html.to.design)의 헤드리스 브라우저 렌더링 한계로 사용 불가. 같은 도구 재사용은 같은 문제 재발 위험 → 근본 해결 가능한 하이브리드로 전환.
+4. **비용/효익 비대칭**
+   - 비용: Figma 유료 플랜 연 $144~$540 + MCP 한도 관리 + 트리플 동기화 시간
+   - 효익: 시각화 자산 + 향후 디자이너 협업 시 자산 (디자이너 영입 계획 없음)
 
-| 레이어 | 방식 | 역할 |
-|--------|------|------|
-| **레퍼런스 (정답지)** | Playwright 풀페이지 캡처 | 현재 사이트의 정확한 시각적 참조 (이미지) |
-| **작업물 (편집 가능)** | Figma MCP 생성 | 레퍼런스 위에 네이티브 Figma 컴포넌트 구축 |
+5. **Phase A 산출물이 이미 Figma 가치의 80%를 무료로 달성**
+   - 32 PNG는 시각 레퍼런스 가치를 코드 + 도구만으로 제공
+   - Playwright 도구가 영구 자산이라 언제든 재캡처 가능 (Figma처럼 별도 동기화 의무 없음)
 
-**핵심 해결책** (Playwright 스크립트):
-- `document.fonts.ready` 대기 → Pretendard Variable 로딩 완료 후 캡처 (한글 텍스트 문제 해결)
-- 전체 스크롤 후 대기 → lazy 이미지 모두 로드 (이미지 누락 문제 해결)
-- 라이트/다크 테마 토글 → 한 스크립트로 양쪽 캡처
+### 현재 운영 모델 (3계층 SSoT)
 
-### Phase 계획
+| 계층 | 위치 | 역할 |
+|------|------|------|
+| **디자인 의도 (SSoT)** | `docs/AMK_DESIGN_SYSTEM.md` (이 문서) | 토큰 정의, 컴포넌트 권장, Do/Don't, Agent Prompt Guide |
+| **시각 레퍼런스 (현재 모습)** | `frontend/figma-capture/artifacts/screenshots/` (32 PNG) | 코드 변경 시 시각 비교, 디자인 회귀 감지 |
+| **실제 구현** | `frontend/src/` + `tailwind.config.js` + `index.css` | 토큰/컴포넌트의 진짜 진실 |
 
-#### Phase A — Playwright 캡처 (레퍼런스 확보) ✅ **완료 (2026-04-09)**
+**원칙**: 1인 풀스택 + Claude Code 협업 환경에서는 **코드가 가장 빠르고 정확한 디자인 표현**. 중간 레이어(Figma) 추가는 트리플 동기화 비용을 만들어 ④ 유지보수 효율 목표에 역행.
 
-- ✅ Playwright 설치 (`@playwright/test` + Chromium Headless Shell)
-- ✅ `frontend/figma-capture/` 신규 디렉터리에 도구 일체 배치
-  - `playwright.config.ts` — 1440×900 viewport, deviceScaleFactor 2 (Retina), Vite webServer 자동 기동
-  - `tests/capture.spec.ts` — `document.fonts.ready` + 점진 스크롤 + img decoded 대기 + next-themes localStorage 주입
-  - `pages.ts` — 16개 페이지 정의 (P1 공개 4 + P2 Book 4 + P3 Auth 5 + P4 Legal 3, 5순위 제외)
-  - `fixtures.ts` — textbook/ebook catalog API 모의 응답 (백엔드 부재 시에도 카탈로그 렌더링 보장)
-  - `README.md` — 사용법, 안정화 장치, 출력 구조
-- ✅ 32 PNG 프레임 생성 (16 페이지 × Light/Dark) — `figma-capture/artifacts/screenshots/{group}/{slug}--{theme}.png`
-- ✅ 검증 통과: home/about/book-hub/book-landing/login/textbook-catalog/ebook-catalog 시각 확인 — Pretendard 한글, lazy 이미지, 디자인 토큰 모두 정상
+### Phase A — Playwright 캡처 도구 ✅ **상시 운영 도구로 전환 (2026-04-10)**
 
-#### Phase B — Figma 정리 + 레퍼런스 임포트
+원래 Figma 임포트 준비용으로 만들었으나, 그 자체로 충분한 가치가 있어 **영구 자산**으로 위치 재정의.
 
-- 기존 34프레임 삭제
-- Phase A 스크린샷을 Figma에 이미지 레이어로 배치 (페이지당 Light/Dark 나란히)
+**위치**: `frontend/figma-capture/`
 
-#### Phase C — Figma MCP 네이티브 생성
-
-##### C-F1: Variables 등록
-§01의 전체 토큰을 Figma Variables로 등록 (Color × Light/Dark, Typography, Spacing, Radius, Shadow)
-
-##### C-F2: 핵심 컴포넌트 6종
-| 컴포넌트 | Variant/State |
-|---------|---------------|
-| Button | 6 variants × 4 sizes + CTA 3변형 (Full/Nav/Inline) |
-| Badge | 12 variants (default, status 3종, enum 6종, outline, destructive) |
-| Card | default / elevated / interactive (hover/focus/active) |
-| HeroSection | marketing / list variant |
-| Input | default/error/disabled states |
-| SectionContainer | sm/md/lg sizes |
-
-##### C-F3: 페이지 재구축 (우선순위별)
-
-| 순위 | 카테고리 | 페이지 |
-|------|---------|--------|
-| **1** | 공개 핵심 | Home, About, FAQ, ComingSoon |
-| **2** | Book 도메인 | Book Hub, Textbook Catalog, Ebook Catalog, Book Landing |
-| **3** | 인증 | Login, Signup, Request Reset, Verify Email, Account Recovery |
-| **4** | 법적 | Terms, Privacy, Refund Policy |
-| **5** | 사용자 (로그인 필요) | My Page, Settings |
-| 보류 | Admin | Dashboard, Users 등 — Admin 권한 필요, 우선순위 낮음 |
-| 보류 | 콘텐츠 | Videos/Studies/Lessons — 현재 ComingSoonPage 공용, 콘텐츠 시딩 후 개별 작업 |
-
-##### C-F4: 모바일 앱 UI (보류)
-Flutter 앱 착수 시점에 진행 (375×812 프레임, iOS/Android 네이티브 대응)
-
-### 코드 ↔ Figma 동기화 원칙
-
-| 규칙 | 설명 |
+| 파일 | 역할 |
 |------|------|
-| **SSoT = 코드** | `tailwind.config.js` + `index.css`가 디자인 토큰의 원본. Figma는 시각적 미러 |
-| **코드 변경 → Figma 반영** | 토큰 변경 시 MCP `get_variable_defs`로 확인, 필요시 재등록 |
-| **Figma 변경 → 코드 반영** | 새 디자인을 Figma에서 확정 후 코드로 구현 (역방향 자동 동기화 없음) |
-| **신규 페이지** | Figma에서 레이아웃 확정 → 코드 구현 (1회 완료 목표) |
+| `playwright.config.ts` | 1440×900 viewport · deviceScaleFactor 2 (Retina) · Vite webServer 자동 기동 · ko-KR 로캘 |
+| `tests/capture.spec.ts` | `document.fonts.ready` + 점진 스크롤 + img decoded 대기 + next-themes localStorage 주입 |
+| `pages.ts` | 16개 페이지 정의 (P1 공개 4 + P2 Book 4 + P3 Auth 5 + P4 Legal 3) |
+| `fixtures.ts` | textbook/ebook catalog API 모의 응답 (백엔드 부재 시에도 카탈로그 렌더링 보장) |
+| `README.md` | 사용법, 안정화 장치, 출력 구조 |
 
-### 사용 가능한 MCP 도구 (인증 후)
+**산출물**: `figma-capture/artifacts/screenshots/{group}/{slug}--{theme}.png` — 16 페이지 × Light/Dark = **32 PNG** (약 8.8MB, .gitignore 제외)
 
-| 도구 | 용도 |
-|------|------|
-| `get_metadata` | 페이지/프레임 구조 XML |
-| `get_design_context` | 프레임 → React+Tailwind 코드 변환 |
-| `get_screenshot` | 프레임 스크린샷 |
-| `get_variable_defs` | Variables 목록 |
-| `generate_figma_design` | 디자인 프레임 생성 |
-| `create_new_file` | 새 파일 생성 |
-| `search_design_system` | 디자인 시스템 검색 |
+**활용 시나리오**:
+1. **디자인 작업 전** — 현재 모습 확인용 시각 레퍼런스
+2. **디자인 작업 후** — 재캡처 후 변경 영향 확인 (시각 회귀 감지)
+3. **Claude Code 협업** — 작업 대상 페이지 PNG 첨부로 컨텍스트 전달
+
+**재캡처 명령**:
+```bash
+cd frontend/figma-capture && npx playwright test
+```
+
+### Phase B/C — 보류 (2026-04-10)
+
+| Phase | 원래 계획 | 보류 사유 | 재평가 트리거 |
+|-------|----------|----------|-------------|
+| **B** — Figma 정리 + 임포트 | 기존 34프레임 삭제 + 32 PNG 임포트 | Figma MCP Starter 한도 초과 + Phase A 산출물 자체로 시각 레퍼런스 충분 | 디자이너 영입 또는 외부 디자인 협업 시작 |
+| **C** — Figma 네이티브 생성 (C-F1 Variables / C-F2 컴포넌트 6종 / C-F3 페이지 4개) | §01 토큰을 Variables로 등록, Button/Badge/Card/HeroSection/Input/SectionContainer 컴포넌트, Home/About/FAQ/ComingSoon 페이지 재구축 | 1인 풀스택 환경에서 Figma는 트리플 동기화 부담만 추가, 코드가 이미 SSoT 역할 수행 | 사용자 수 확대 → 다수 stakeholder 디자인 결정 개입 / 모바일·데스크탑 멀티 플랫폼 일관성 관리 필요성 발생 |
+
+**기존 Figma 파일** (`AUYoLTYOsDWipKoNGfD3Fv`): 그대로 유지 (삭제 X). 향후 재개 시 시작점으로 활용 가능.
+
+### 재개 시 시작점
+
+향후 Phase B/C 재개가 필요해진 경우:
+1. 이 §08의 보류 결정 재검토 (재평가 트리거가 실제로 도달했는지 확인)
+2. `~/.claude/projects/-home-kkryo-dev-amazing-korean-api/memory/project_figma_plan.md` — 원본 하이브리드 계획 + Phase B 착수 절차 보관됨
+3. Figma 유료 플랜 활성화 (Pro 이상) + MCP 한도 확인
+4. Phase A 도구로 최신 PNG 재캡처 (영구 자산이라 언제든 사용 가능)
 
 ---
 

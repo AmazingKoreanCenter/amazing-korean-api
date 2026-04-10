@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-09
+updated: 2026-04-10
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,17 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-10 — Figma 도입 보류 결정 + Phase A 도구 영구 자산 전환**
+  - [결정] Figma Phase B (정리·임포트) / Phase C (네이티브 생성) 보류 — 1인 풀스택 환경에서 트리플 동기화 부담이 ④ 유지보수 효율 목표에 역행
+  - [트리거] Phase B 착수 시 Figma MCP Starter 한도 초과 → 도입 자체를 재검토
+  - [전환] Phase A Playwright 캡처 도구를 디자인 작업 상시 시각 레퍼런스 + 시각 회귀 감지 도구로 위치 재정의
+  - [3계층 SSoT] AMK_DESIGN_SYSTEM.md (의도) + 32 PNG (시각 레퍼런스) + 코드 (구현) 운영 모델 확정
+  - [재평가 트리거] (B) 디자이너 영입/외부 협업 시작 (C) 사용자 수 확대 → 다수 stakeholder 디자인 결정 / 모바일·데스크탑 멀티 플랫폼 일관성 관리 필요성 발생
+  - [기존 Figma 파일] `AUYoLTYOsDWipKoNGfD3Fv` 그대로 유지 (삭제 X) — 향후 재개 시 시작점
+  - [문서] `AMK_DESIGN_SYSTEM.md §08` 전면 재작성 (결정 배경 5가지 + 3계층 SSoT + Phase A 활용 시나리오 + Phase B/C 보류 사유/트리거)
+  - [문서] `AMK_STATUS.md §8.1` #56 향후 확장 갱신
+  - [다음 작업] 속도 개선 — K6 + Lighthouse/Web Vitals 측정 선행 후 백엔드/프론트 최적화
 
 - **2026-04-09 — Figma 재구축 Phase A 완료 (Playwright 레퍼런스 캡처)**
   - [인프라] `frontend/figma-capture/` 신규 디렉터리 — Playwright 기반 레퍼런스 캡처 도구 일체
