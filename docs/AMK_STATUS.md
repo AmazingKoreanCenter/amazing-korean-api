@@ -70,6 +70,7 @@
 | 54 | 동시 세션 수 제한 | 보안 | 역할별 최대 세션 수 (HYMN:2, Admin:2, Manager:3, Learner:5). `enforce_session_limit()` — 유령 세션 정리(SMEMBERS+EXISTS) + SCARD 카운트 + 정책 분기. Learner: FIFO 자동 퇴장(가장 오래된 세션 강제 로그아웃). Admin/Manager/HYMN: 로그인 거부(403). `login()` + `create_oauth_session()` 2곳 적용. 환경변수 4개 | 2026-04-08 | — |
 | 55 | 디자인 시스템 v4.2 보강 (전수 조사 19건) | UI/문서 | §00 Visual Theme & Atmosphere 신규, §01 Color Tokens HSL+Hex 병기 전면 재구성, §01 Shadow/Radius/Typography 정확값 명시, §03 CTA 패턴 3변형, §04 Responsive Behavior 신규, §05 Do/Don't 통합, §07-B Agent Prompt Guide 신규. 코드 수정 5건: index.css `--warning-foreground` WCAG AA, ebook_viewer 토큰 교체 15건, pagination_bar `rounded-md`, about_page CTA `hover:shadow-xl` | 2026-04-09 | — |
 | 57 | 속도 개선 Phase S1+S2: 측정 인프라 + Quick Win 번들 분할 | 성능 | `frontend/perf-audit/` 신규 — Lighthouse 기반 자동 측정 (8페이지, Playwright Chromium 동적 탐색). `vite.config.ts` manualChunks — vendor 11종 분리. `routes.tsx` React.lazy — Admin 30+, Auth 보조 5, Legal 3, Textbook/Ebook 후속 5, Error 3, ComingSoon/FAQ 총 50+ 페이지 lazy 전환. **메인 번들 1,620KB → 271KB (-83.3%)**, home Performance 48→72(+24), TBT 2572→315ms(-88%). npm audit 3건 동시 패치(axios 1.15.0 + vite 7.3.2 + basic-ftp override). 코드 품질 13건 수정. 목표 Lighthouse 90+ (현재 48~78) | 2026-04-10 | Phase S3: faq/book-hub LCP 12~17s 조사 + Font preload + 이미지 최적화 + K6 백엔드 |
+| 58 | 속도 개선 Phase S3: LCP 수정 + Font preload + 이미지 최적화 + K6 + 프로덕션 측정 | 성능 | **S3-1**: book-hub LCP 이미지 `loading="lazy"` → `eager` + `fetchPriority="high"` (초기 슬라이드만). **S3-2**: Pretendard CSS `preload` 힌트 추가, Noto Color Emoji 비동기 로딩 전환 (`media="print" onload`). **S3-3**: 로고 PNG 6000×4000 1.7MB → 1200×800 52KB(-97%), favicon 분리(32px+192px), 인증서 PNG→WebP(256KB→40KB, 100KB→28KB). **S3-4**: `k6/` 디렉터리 신규 — config.js(목표치), scenario_smoke.js(VU=1), scenario_load.js(10→100 VU ramp-up). K6 v0.56.0 설치. **S3-5**: 프로덕션 Lighthouse 베이스라인 — home Perf 52, about 34, faq 26(LCP 14.1s), book-hub 33(LCP 18.6s), login 35. 배포 후 재측정 필요 | 2026-04-12 | 배포 후 프로덕션 재측정으로 효과 확인 |
 | 56 | Figma Phase A 완료 + 상시 운영 도구로 전환 | UI/도구 | `frontend/figma-capture/` 신규 — Playwright 기반 레퍼런스 캡처 도구 일체. 1440×900 Retina viewport, Vite webServer 자동 기동, ko-KR 로캘. `document.fonts.ready` + 점진 스크롤 + img decoded 대기 + next-themes localStorage 주입으로 기존 34프레임의 3대 문제(한글/lazy/토큰) 근본 해결. 16 페이지 × Light/Dark = **32 PNG** 생성. textbook/ebook catalog API 모의 응답으로 백엔드 부재 시에도 카탈로그 렌더링 보장. **2026-04-10**: Figma Phase B/C 보류 결정 — Phase A 도구를 디자인 작업 상시 시각 레퍼런스 + 시각 회귀 감지 도구로 위치 재정의. 3계층 SSoT(AMK_DESIGN_SYSTEM.md + 32 PNG + 코드) 확정. 상세: `AMK_DESIGN_SYSTEM.md §08` | 2026-04-09 ~ 2026-04-10 | Phase B/C는 디자이너 영입/멀티 플랫폼 일관성 필요 시 재개 |
 
 > **암호화 참고**: 대상 PII — `user_email`, `user_name`, `user_birthday`, `user_phone`, `oauth_email`, `oauth_subject`, `login_ip`, `admin_action_log.ip_address`
@@ -102,7 +103,7 @@
 | — | ~~E-book 웹 보안~~ | — | — | — | ✅ Phase 1 완료 (§8.1 #42~#46) |
 | 10 | 다중 서버 구성 (HA) | 인프라 | — | ①nginx 복제 → ②ALB+EC2 → ③ECS Fargate | RDS 완료 후 |
 | 11 | 시스템 모니터링 | 인프라 | — | DB/Redis 상태, Admin 대시보드 | 필요 시 |
-| 12 | K6 성능 테스트 | 테스트 | — | 인증/조회/진도저장 부하 테스트, CI 연계 | CI 구축 시 |
+| 12 | K6 성능 테스트 | 테스트 | `k6/` 디렉터리 세팅 완료 (smoke + load 시나리오) | 인증/조회/진도저장 부하 테스트, CI 연계 | 테스트 계정 생성 후 실행 |
 
 **K6 성능 목표치 (엔드포인트별)**:
 

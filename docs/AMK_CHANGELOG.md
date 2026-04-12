@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-10
+updated: 2026-04-12
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,14 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-12 — 속도 개선 Phase S3: LCP 수정 + Font preload + 이미지 최적화 + K6 + 프로덕션 측정**
+  - [S3-1] book-hub LCP 18.6s 원인 수정: 커버 이미지 `loading="lazy"` → 초기 슬라이드만 `eager` + `fetchPriority="high"`
+  - [S3-2] Pretendard Variable CSS `preload` 힌트 추가 (조기 fetch 유도). Noto Color Emoji 비동기 로딩 전환 (`media="print" onload` 패턴)
+  - [S3-3] 로고 PNG 최적화: 6000×4000 1.7MB → 1200×800 52KB (-97%). favicon 분리 (32px + 192px + apple-touch-icon). 인증서 PNG→WebP (256KB→40KB, 100KB→28KB)
+  - [S3-4] `k6/` 부하 테스트 디렉터리 신규: config.js (AMK_STATUS §8.2 목표치), scenario_smoke.js (VU=1), scenario_load.js (10→50→100 VU ramp-up). K6 v0.56.0 설치
+  - [S3-5] 프로덕션 Lighthouse 베이스라인 확보 (배포 전 기준): home 52, about 34, faq 26 (LCP 14.1s), book-hub 33 (LCP 18.6s), login 35. A11y 91~100 ✅
+  - [다음] 배포 후 프로덕션 재측정으로 S3-1~S3-3 효과 확인. Critical CSS inline, 서비스 워커 재평가
 
 - **2026-04-10 — 속도 개선 Phase S1+S2: 측정 인프라 + Quick Win 번들 분할**
   - [인프라] `frontend/perf-audit/` 신규 — Lighthouse 기반 자동 성능 측정 도구 (`audit.mjs`, `pages.mjs`)
