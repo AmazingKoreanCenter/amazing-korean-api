@@ -15,6 +15,8 @@ import type {
   ChoicePayload,
   TypingPayload,
   VoicePayload,
+  WritingPayload,
+  WritingSessionRes,
   SubmitAnswerRes,
   TaskExplainRes,
 } from "@/category/study/types";
@@ -24,6 +26,9 @@ import { useStudyDetail } from "../hook/use_study_detail";
 import { useSubmitAnswer } from "../hook/use_submit_answer";
 import { useTaskStatus } from "../hook/use_task_status";
 import { useTaskExplain } from "../hook/use_task_explain";
+import { useFinishWritingSession } from "../hook/use_writing_session";
+import { WritingTask } from "../component/writing/WritingTask";
+import type { WritingStats } from "../component/writing/WritingPracticeInput";
 
 const formatDate = (value: string) => {
   const date = new Date(value);
@@ -300,6 +305,17 @@ export function StudyTaskPage() {
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [typingText, setTypingText] = useState("");
   const [voiceText, setVoiceText] = useState("");
+  const [writingText, setWritingText] = useState("");
+  const [writingStats, setWritingStats] = useState<WritingStats>({
+    total_chars: 0,
+    correct_chars: 0,
+    mistakes: [],
+    duration_ms: 0,
+  });
+  const [writingSessionId, setWritingSessionId] = useState<number | null>(null);
+  const [writingResult, setWritingResult] = useState<WritingSessionRes | null>(null);
+  const [writingAttempt, setWritingAttempt] = useState(0);
+  const finishWritingMutation = useFinishWritingSession();
   const [showExplain, setShowExplain] = useState(false);
   const [showCompletion, setShowCompletion] = useState(false);
 
@@ -330,6 +346,11 @@ export function StudyTaskPage() {
     setSelectedChoice(null);
     setTypingText("");
     setVoiceText("");
+    setWritingText("");
+    setWritingStats({ total_chars: 0, correct_chars: 0, mistakes: [], duration_ms: 0 });
+    setWritingSessionId(null);
+    setWritingResult(null);
+    setWritingAttempt(0);
     setShowExplain(false);
     setShowCompletion(false);
     submitMutation.reset();
@@ -354,11 +375,36 @@ export function StudyTaskPage() {
           submitMutation.mutate({ kind: "voice", text: voiceText.trim() });
         }
         break;
+      case "writing":
+        if (!writingText.trim()) break;
+        if (writingSessionId !== null) {
+          finishWritingMutation.mutate(
+            {
+              sessionId: writingSessionId,
+              body: {
+                total_chars: writingStats.total_chars,
+                correct_chars: writingStats.correct_chars,
+                duration_ms: writingStats.duration_ms,
+                mistakes: writingStats.mistakes,
+              },
+            },
+            {
+              onSuccess: (session) => setWritingResult(session),
+            },
+          );
+        }
+        submitMutation.mutate({
+          kind: "writing",
+          text: writingText.trim(),
+          session_id: writingSessionId,
+        });
+        break;
     }
   };
 
   const canSubmit = () => {
     if (!data || !isLoggedIn || submitMutation.isPending) return false;
+    if (data.kind === "writing" && finishWritingMutation.isPending) return false;
 
     switch (data.kind) {
       case "choice":
@@ -367,6 +413,8 @@ export function StudyTaskPage() {
         return typingText.trim().length > 0;
       case "voice":
         return voiceText.trim().length > 0;
+      case "writing":
+        return writingText.trim().length > 0;
       default:
         return false;
     }
@@ -446,6 +494,20 @@ export function StudyTaskPage() {
             payload={data.payload as VoicePayload}
             text={voiceText}
             onChange={setVoiceText}
+            disabled={isSubmitted}
+          />
+        );
+      case "writing":
+        return (
+          <WritingTask
+            key={`writing-${id}-${writingAttempt}`}
+            taskId={id}
+            payload={data.payload as WritingPayload}
+            text={writingText}
+            onChange={setWritingText}
+            onStatsChange={setWritingStats}
+            onSessionStart={setWritingSessionId}
+            finishedSession={writingResult}
             disabled={isSubmitted}
           />
         );
@@ -544,6 +606,11 @@ export function StudyTaskPage() {
                       setSelectedChoice(null);
                       setTypingText("");
                       setVoiceText("");
+                      setWritingText("");
+                      setWritingStats({ total_chars: 0, correct_chars: 0, mistakes: [], duration_ms: 0 });
+                      setWritingSessionId(null);
+                      setWritingResult(null);
+                      setWritingAttempt((n) => n + 1);
                       submitMutation.reset();
                     }}
                   >

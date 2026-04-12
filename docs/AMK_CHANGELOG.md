@@ -11,6 +11,18 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-12 — 한글 자판 연습 (Writing Practice) P7: 연습 페이지 + study_task_page writing 분기**
+  - [P7 input] `frontend/src/category/study/component/writing/WritingPracticeInput.tsx` 신규 — `compositionstart`/`compositionend` 이벤트로 한글 IME 조합 중에는 검증 보류. 초급(+answer)=글자별 실시간 피드백 (정답/오답/미입력 3상태 색상). Array.from으로 서로게이트 페어 안전 분할. 오탈자는 `mistakesRef`(Map) 누적 — 자가교정해도 최초 오답 기록은 유지. 타이핑 stats 콜백(`total_chars`/`correct_chars`/`mistakes`/`duration_ms`) + 다음 기대 자모 콜백(`decomposeSyllable` 활용)
+  - [P7 result] `WritingResultPanel.tsx` 신규 — 세션 결과 카드 (accuracy/CPM/correct_chars stat grid + 오답 글자 Top 20 하이라이트 badge, 95%+ 시 default variant badge)
+  - [P7 task] `WritingTask.tsx` 신규 — WritingPracticeInput + HangulKeyboard 합성 래퍼. 태스크 마운트 시 `useStartWritingSession.mutate()` 1회 호출(중복 방지 flag) → `onSessionStart(session_id)` 콜백으로 상위 state 끌어올림. 가상 키보드 클릭은 학습 참고용으로 현재 텍스트 뒤에 자모 append. 서버 stats 응답(`finishedSession`)이 오면 WritingResultPanel 렌더
+  - [P7 integration] `study_task_page.tsx` writing 분기 채움 — writingText/writingStats/writingSessionId/writingResult state + `useFinishWritingSession` 훅 추가. `handleSubmit` writing 분기: `finishWritingSession(session_id, stats)` + `submitAnswer({kind:"writing", text, session_id})` 순차 호출. `canSubmit`에 writing + finishWritingMutation.isPending 가드. renderTask에 WritingTask 추가. 태스크 전환/재시도 시 writing state 완전 초기화
+  - [P7 pages] `writing_level_select_page.tsx` 신규 (/studies/writing) — 3단 레벨 카드 (초/중/고급) + 통계 버튼 링크. `writing_practice_page.tsx` 신규 (/studies/writing/:level[/:practiceType]) — 유형 미지정 시 레벨별 유형 선택(beginner=jamo/syllable/word, intermediate=word/sentence, advanced=sentence/paragraph), 유형 지정 시 자유 연습 "준비 중" 카드 (P10 시드 이후 실연습 연결 예정). safeParse로 URL 파라미터 검증 후 실패 시 상위로 Navigate redirect
+  - [P7 routes] `app/routes.tsx` — Writing 페이지 2개 lazy 등록 + Private 하위에 3개 라우트 추가: `/studies/writing`, `/studies/writing/:level`, `/studies/writing/:level/:practiceType`. React Router v6 랭킹 규칙상 static segment("writing")가 `/studies/:studyId`보다 우선 매칭
+  - [P7 i18n] `ko.json`/`en.json` `study.writing` 확장 — 30+ 키 추가: promptLabel/inputPlaceholder/hintLabel/progress/liveAccuracy, resultTitle/statAccuracy/statCpm/statChars/mistakesLabel, landingBadge/Title/Description/viewStats/startLevel, selectPracticeType/backToLevels/backToTypes/freePracticeComing*, `level.{beginner|intermediate|advanced}.{title|description}`, `practiceType.{jamo|syllable|word|sentence|paragraph}`
+  - [검증] `npm run build` 클린 통과 (tsc -b + vite build 8.68s)
+  - [진행 상황] P1~P7 완료 (70%). 다음: P8 통계 대시보드 / P9 관리자 프론트 writing 폼 / P10 시드 데이터 + E2E
+  - [문서] 본 changelog 항목 + STATUS #59 + 메모리 동기화
+
 - **2026-04-12 — 한글 자판 연습 (Writing Practice) P6: HangulKeyboard 컴포넌트**
   - [P6 layout] `frontend/src/category/study/component/writing/keyboard_layout.ts` 신규 — 2벌식 (KS X 5002) 3행 `DUBEOLSIK_ROWS` 데이터 (KeyQ~KeyP / KeyA~KeyL / KeyZ~KeyM, 기본 자모 + Shift 쌍자모). `KeyCap` 타입. `findKeyForJamo` 헬퍼 (자모 → 키캡 + needsShift). `decomposeSyllable` 헬퍼 (한글 음절 U+AC00~U+D7A3 → 초/중/종성 자모 배열, (cho*21+jung)*28+jong 공식)
   - [P6 key] `HangulKeyboardKey.tsx` 신규 — 개별 키 버튼 (h-12 w-10 기본, sm:h-14 w-12). 기본 자모 중앙 + 오른쪽 위 Shift 변형 + 하단 영문 라벨. `isHighlighted`(primary ring) / `isShiftHighlighted`(amber ring, Shift 입력 필요 시) 상태. 클릭 시 `onPress(base | shift)`. 접근성 aria-label 포함

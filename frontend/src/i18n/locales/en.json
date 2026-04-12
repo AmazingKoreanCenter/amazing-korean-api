@@ -414,7 +414,50 @@
     "completeLesson": "Complete Lesson",
     "writing": {
       "showKeyboard": "Show Keyboard",
-      "hideKeyboard": "Hide Keyboard"
+      "hideKeyboard": "Hide Keyboard",
+      "promptLabel": "Sentence to Type",
+      "inputPlaceholder": "Type in Hangul here",
+      "hintLabel": "Hint: {{hint}}",
+      "progress": "{{done}} / {{total}}",
+      "liveAccuracy": "Accuracy {{percent}}%",
+      "resultTitle": "Practice Result",
+      "resultAccuracyBadge": "{{percent}}% accuracy",
+      "statAccuracy": "Accuracy",
+      "statCpm": "CPM",
+      "statChars": "Correct Chars",
+      "mistakesLabel": "Mistakes",
+      "landingBadge": "Hangul Typing Practice",
+      "landingTitle": "Hangul Keyboard Practice",
+      "landingDescription": "Practice Korean typing across three difficulty levels. Progress from jamo to syllables, words, sentences, and paragraphs.",
+      "viewStats": "View stats",
+      "startLevel": "Start practice",
+      "selectPracticeType": "Choose a practice type.",
+      "backToLevels": "Back to levels",
+      "backToTypes": "Back to types",
+      "freePracticeComingTitle": "Free practice coming soon",
+      "freePracticeComingDescription": "Once seed content is ready you'll be able to practice freely from this screen. For now, please practice via study tasks.",
+      "freePracticeMeta": "Selected: {{level}} · {{type}}",
+      "level": {
+        "beginner": {
+          "title": "Beginner",
+          "description": "Focus on jamo and syllables. The keyboard stays visible and the next key is highlighted."
+        },
+        "intermediate": {
+          "title": "Intermediate",
+          "description": "Words and sentences. The keyboard is toggleable with limited live feedback."
+        },
+        "advanced": {
+          "title": "Advanced",
+          "description": "Sentences and paragraphs. The keyboard is hidden by default; speed and accuracy are measured."
+        }
+      },
+      "practiceType": {
+        "jamo": "Jamo",
+        "syllable": "Syllable",
+        "word": "Word",
+        "sentence": "Sentence",
+        "paragraph": "Paragraph"
+      }
     }
   },
   "lesson": {
