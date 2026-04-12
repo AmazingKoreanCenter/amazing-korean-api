@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, BookOpen, ClipboardList, Keyboard, Mic } from "lucide-react";
+import { ArrowLeft, BookOpen, ClipboardList, Keyboard, Mic, PenLine } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ const KIND_ICONS: Record<StudyTaskKind, typeof ClipboardList> = {
   choice: ClipboardList,
   typing: Keyboard,
   voice: Mic,
+  writing: PenLine,
 };
 
 export function StudyDetailPage() {
@@ -40,6 +41,7 @@ export function StudyDetailPage() {
     choice: t("study.kindChoice"),
     typing: t("study.kindTyping"),
     voice: t("study.kindVoice"),
+    writing: t("study.kindWriting"),
   };
   const studyId = studyIdParam ? Number(studyIdParam) : undefined;
 

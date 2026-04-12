@@ -384,6 +384,7 @@
     "kindTypingAlt": "Short Answer",
     "kindVoice": "Voice",
     "kindVoiceAlt": "Voice",
+    "kindWriting": "Hangul Typing",
     "problemNumber": "Problem {{seq}}",
     "problemHashNumber": "Problem #{{seq}}",
     "questionImage": "Question Image",

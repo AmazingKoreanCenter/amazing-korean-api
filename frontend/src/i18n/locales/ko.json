@@ -384,6 +384,7 @@
     "kindTypingAlt": "주관식",
     "kindVoice": "음성형",
     "kindVoiceAlt": "음성",
+    "kindWriting": "자판 연습",
     "problemNumber": "문제 {{seq}}",
     "problemHashNumber": "문제 #{{seq}}",
     "questionImage": "문제 이미지",

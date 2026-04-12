@@ -245,6 +245,7 @@ export function StudyTaskPage() {
     choice: t("study.kindChoice"),
     typing: t("study.kindTypingAlt"),
     voice: t("study.kindVoiceAlt"),
+    writing: t("study.kindWriting"),
   };
 
   // Lesson 컨텍스트 파싱 (쿼리 파라미터)

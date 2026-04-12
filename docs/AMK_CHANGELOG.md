@@ -11,6 +11,15 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-12 — 한글 자판 연습 (Writing Practice) P5: 프론트 타입 + API + 훅**
+  - [P5 types] `frontend/src/category/study/types.ts` — `writingLevelSchema`/`writingPracticeTypeSchema` Zod enum 신규. `studyTaskKindSchema`에 `writing` 추가. `submitAnswerReqSchema` discriminated union에 `{ kind: "writing", text, session_id? }` variant 추가. `writingPayloadSchema` (prompt/answer?/hint?/level/practice_type/keyboard_visible/image_url?/audio_url?) + `taskPayloadSchema` union에 포함. 세션 API용 request/response DTO 11종 (`StartWritingSessionReq`, `WritingMistake`, `FinishWritingSessionReq`, `WritingSessionListReq`, `WritingStatsReq`, `WritingSessionRes`, `WritingSessionListRes`, `WritingLevelStat`, `WritingDailyStat`, `WritingWeakChar`, `WritingStatsRes`) Zod 스키마 + z.infer 타입
+  - [P5 API] `study_api.ts` — `startWritingSession` / `finishWritingSession` / `listWritingSessions` / `getWritingStats` 함수 추가. `sanitizeParams` 헬퍼를 제네릭 `<T extends Record<string, unknown>>`으로 일반화 (기존 StudyListReq 캐스트 hack 제거)
+  - [P5 hooks] `hook/use_writing_session.ts` 신규 — `useStartWritingSession` + `useFinishWritingSession` (성공 시 `writing-sessions`/`writing-stats` 쿼리 invalidate) + `useWritingSessionList`. `hook/use_writing_stats.ts` 신규 — `useWritingStats`. 모두 에러 토스트 + ApiError 처리 패턴 준수
+  - [P5 i18n/호환] `studyTaskKindSchema`에 `writing` 추가로 기존 `Record<StudyTaskKind, ...>` 매핑 3곳 (KIND_ICONS/KIND_LABELS×2) writing 엔트리 추가. `ko.json`/`en.json`에 `study.kindWriting` 키 추가 ("자판 연습" / "Hangul Typing"). lucide `PenLine` 아이콘 매핑. 기존 study_task_page의 kind switch 3개는 default/no-op 분기 유지 — 실제 writing UI는 P6~P7에서 구현
+  - [검증] `npm run build` 클린 통과 (tsc -b + vite build)
+  - [진행 상황] P1~P5 완료 (50%). 다음: P6 HangulKeyboard 컴포넌트 + P7 연습 페이지 (새 세션에서 진행)
+  - [문서] 본 changelog 항목 + 메모리 동기화
+
 - **2026-04-12 — 한글 자판 연습 (Writing Practice) P4: 세션 API (시작/완료/목록/통계)**
   - [P4 DTO] `src/api/study/dto.rs` — `StartWritingSessionReq`, `FinishWritingSessionReq`, `WritingMistake`, `WritingSessionListReq`, `WritingSessionRes`, `WritingSessionListRes`, `WritingStatsReq`, `WritingLevelStat`, `WritingDailyStat`, `WritingWeakChar`, `WritingStatsRes` 신규. NUMERIC(5,2)/(7,2) 컬럼은 응답 DTO에서 f64로 노출 (::float8 캐스트)
   - [P4 Repo] `StudyRepo` — `exists_writing_task` (writing 태스크 존재 + study open 검증), `create_writing_session` (INSERT RETURNING), `finish_writing_session` (UPDATE WHERE user_id 소유권 검증, 미존재 시 None), `list_writing_sessions` (QueryBuilder + level/finished_only 필터), `writing_stats_overall` / `writing_stats_by_level` / `writing_stats_daily` / `writing_stats_weak_chars` (jsonb_array_elements LATERAL JOIN으로 mistakes 펼쳐서 expected Top 10 집계)
