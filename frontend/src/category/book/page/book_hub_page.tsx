@@ -77,7 +77,8 @@ export function BookHubPage() {
                   <img
                     src={currentSrc}
                     alt={t(`bookHub.slideTitle${slideIndex}`)}
-                    loading="lazy"
+                    fetchPriority={slideIndex === 0 ? "high" : "auto"}
+                    loading={slideIndex === 0 ? "eager" : "lazy"}
                     className="w-full h-full object-contain"
                     onError={handleImgError}
                   />

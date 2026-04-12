@@ -14,12 +14,12 @@ const CERTIFICATIONS = [
   {
     id: "online-marketing",
     titleKey: "footer.certOnlineMarketing",
-    image: "/images/certification_Online-Marketing_Business.png",
+    image: "/images/certification_Online-Marketing_Business.webp",
   },
   {
     id: "amazing-korean-center",
     titleKey: "footer.certAmazingKoreanCenter",
-    image: "/images/certification_Amazing-Korean-Center.png",
+    image: "/images/certification_Amazing-Korean-Center.webp",
   },
 ] as const;
 
