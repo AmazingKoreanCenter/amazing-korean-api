@@ -220,3 +220,121 @@ pub struct TaskExplainRes {
     pub explanation: Option<String>,
     pub resources: Vec<String>,
 }
+
+// =========================================================================
+// Writing Practice Session DTOs
+// =========================================================================
+
+/// 한글 자판 연습 세션 시작 요청
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct StartWritingSessionReq {
+    /// 관리자 등록 태스크 기반 연습이면 study_task_id, 자유 연습이면 null
+    pub study_task_id: Option<i32>,
+    pub writing_level: WritingLevel,
+    pub writing_practice_type: WritingPracticeType,
+}
+
+/// 세션 오류 기록 (JSONB 저장)
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingMistake {
+    pub position: i32,
+    pub expected: String,
+    pub actual: String,
+}
+
+/// 한글 자판 연습 세션 완료 요청
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct FinishWritingSessionReq {
+    pub total_chars: i32,
+    pub correct_chars: i32,
+    /// 클라이언트가 측정한 실제 타이핑 소요 시간 (ms). CPM 계산에 사용.
+    pub duration_ms: i64,
+    #[serde(default)]
+    pub mistakes: Vec<WritingMistake>,
+}
+
+/// 세션 목록 조회 요청 (Query String)
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingSessionListReq {
+    pub page: Option<u32>,
+    pub per_page: Option<u32>,
+    pub level: Option<WritingLevel>,
+    /// 완료된 세션만 포함 (기본 false)
+    pub finished_only: Option<bool>,
+}
+
+/// 세션 응답
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingSessionRes {
+    pub session_id: i64,
+    pub user_id: i64,
+    pub study_task_id: Option<i32>,
+    pub writing_level: WritingLevel,
+    pub writing_practice_type: WritingPracticeType,
+    pub started_at: DateTime<Utc>,
+    pub finished_at: Option<DateTime<Utc>>,
+    pub total_chars: i32,
+    pub correct_chars: i32,
+    pub accuracy_rate: f64,
+    pub chars_per_minute: f64,
+    pub mistakes: Vec<WritingMistake>,
+}
+
+/// 세션 목록 응답
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingSessionListRes {
+    pub list: Vec<WritingSessionRes>,
+    pub meta: StudyListMeta,
+}
+
+/// 통계 조회 요청 (Query String)
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingStatsReq {
+    /// 집계 기간 (일, 기본 30)
+    pub days: Option<u32>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingLevelStat {
+    pub writing_level: WritingLevel,
+    pub sessions: i64,
+    pub avg_accuracy: f64,
+    pub avg_cpm: f64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingDailyStat {
+    /// 날짜 (UTC, YYYY-MM-DD)
+    pub day: String,
+    pub sessions: i64,
+    pub avg_accuracy: f64,
+    pub avg_cpm: f64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingWeakChar {
+    pub expected: String,
+    pub miss_count: i64,
+}
+
+/// 통계 응답
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingStatsRes {
+    pub total_sessions: i64,
+    pub avg_accuracy: f64,
+    pub avg_cpm: f64,
+    pub level_breakdown: Vec<WritingLevelStat>,
+    pub recent_trend: Vec<WritingDailyStat>,
+    pub weak_chars: Vec<WritingWeakChar>,
+}

@@ -9,7 +9,8 @@ use crate::types::{WritingLevel, WritingPracticeType};
 
 use super::dto::{
     ChoicePayload, StudyListSort, StudySummaryDto, StudyTaskDetailRes, StudyTaskSummaryDto,
-    TaskPayload, TaskStatusRes, TypingPayload, VoicePayload, WritingPayload,
+    TaskPayload, TaskStatusRes, TypingPayload, VoicePayload, WritingDailyStat, WritingLevelStat,
+    WritingMistake, WritingPayload, WritingSessionListReq, WritingSessionRes, WritingWeakChar,
 };
 
 pub struct StudyRepo;
@@ -585,5 +586,384 @@ impl StudyRepo {
         .await?;
 
         Ok(status)
+    }
+
+    // =========================================================================
+    // 5. Writing Practice Sessions
+    // =========================================================================
+
+    /// writing 태스크가 존재하고 study가 open 상태인지 검증
+    pub async fn exists_writing_task(pool: &PgPool, task_id: i32) -> AppResult<bool> {
+        let exists = sqlx::query_scalar!(
+            r#"
+            SELECT EXISTS(
+                SELECT 1
+                FROM study_task t
+                INNER JOIN study s ON t.study_id = s.study_id
+                INNER JOIN study_task_writing stw ON t.study_task_id = stw.study_task_id
+                WHERE t.study_task_id = $1
+                  AND t.study_task_kind = 'writing'::study_task_kind_enum
+                  AND s.study_state = 'open'::study_state_enum
+            ) AS "exists!"
+            "#,
+            task_id
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(exists)
+    }
+
+    pub async fn create_writing_session(
+        pool: &PgPool,
+        user_id: i64,
+        study_task_id: Option<i32>,
+        writing_level: WritingLevel,
+        writing_practice_type: WritingPracticeType,
+    ) -> AppResult<WritingSessionRes> {
+        let row = sqlx::query!(
+            r#"
+            INSERT INTO writing_practice_session (
+                user_id,
+                study_task_id,
+                writing_level,
+                writing_practice_type
+            )
+            VALUES ($1, $2, $3, $4)
+            RETURNING
+                session_id,
+                user_id,
+                study_task_id,
+                writing_level AS "writing_level!: WritingLevel",
+                writing_practice_type AS "writing_practice_type!: WritingPracticeType",
+                started_at,
+                finished_at,
+                total_chars,
+                correct_chars,
+                accuracy_rate::float8 AS "accuracy_rate!",
+                chars_per_minute::float8 AS "chars_per_minute!",
+                mistakes
+            "#,
+            user_id,
+            study_task_id,
+            writing_level as WritingLevel,
+            writing_practice_type as WritingPracticeType,
+        )
+        .fetch_one(pool)
+        .await?;
+
+        let mistakes: Vec<WritingMistake> =
+            serde_json::from_value(row.mistakes).unwrap_or_default();
+
+        Ok(WritingSessionRes {
+            session_id: row.session_id,
+            user_id: row.user_id,
+            study_task_id: row.study_task_id,
+            writing_level: row.writing_level,
+            writing_practice_type: row.writing_practice_type,
+            started_at: row.started_at,
+            finished_at: row.finished_at,
+            total_chars: row.total_chars,
+            correct_chars: row.correct_chars,
+            accuracy_rate: row.accuracy_rate,
+            chars_per_minute: row.chars_per_minute,
+            mistakes,
+        })
+    }
+
+    /// 세션 완료 (user_id로 소유권 검증). 미존재/타 유저 세션이면 None 반환.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn finish_writing_session(
+        pool: &PgPool,
+        session_id: i64,
+        user_id: i64,
+        total_chars: i32,
+        correct_chars: i32,
+        accuracy_rate: f64,
+        chars_per_minute: f64,
+        mistakes_json: Value,
+    ) -> AppResult<Option<WritingSessionRes>> {
+        let row = sqlx::query!(
+            r#"
+            UPDATE writing_practice_session
+            SET finished_at = NOW(),
+                total_chars = $3,
+                correct_chars = $4,
+                accuracy_rate = $5::float8::numeric,
+                chars_per_minute = $6::float8::numeric,
+                mistakes = $7
+            WHERE session_id = $1
+              AND user_id = $2
+            RETURNING
+                session_id,
+                user_id,
+                study_task_id,
+                writing_level AS "writing_level!: WritingLevel",
+                writing_practice_type AS "writing_practice_type!: WritingPracticeType",
+                started_at,
+                finished_at,
+                total_chars,
+                correct_chars,
+                accuracy_rate::float8 AS "accuracy_rate!",
+                chars_per_minute::float8 AS "chars_per_minute!",
+                mistakes
+            "#,
+            session_id,
+            user_id,
+            total_chars,
+            correct_chars,
+            accuracy_rate,
+            chars_per_minute,
+            mistakes_json,
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        let Some(row) = row else {
+            return Ok(None);
+        };
+
+        let mistakes: Vec<WritingMistake> =
+            serde_json::from_value(row.mistakes).unwrap_or_default();
+
+        Ok(Some(WritingSessionRes {
+            session_id: row.session_id,
+            user_id: row.user_id,
+            study_task_id: row.study_task_id,
+            writing_level: row.writing_level,
+            writing_practice_type: row.writing_practice_type,
+            started_at: row.started_at,
+            finished_at: row.finished_at,
+            total_chars: row.total_chars,
+            correct_chars: row.correct_chars,
+            accuracy_rate: row.accuracy_rate,
+            chars_per_minute: row.chars_per_minute,
+            mistakes,
+        }))
+    }
+
+    pub async fn list_writing_sessions(
+        pool: &PgPool,
+        user_id: i64,
+        req: &WritingSessionListReq,
+    ) -> AppResult<(Vec<WritingSessionRes>, i64)> {
+        let page = req.page.unwrap_or(1);
+        let per_page = req.per_page.unwrap_or(20);
+        let offset = (i64::from(page) - 1) * i64::from(per_page);
+        let finished_only = req.finished_only.unwrap_or(false);
+
+        // Count
+        let mut qb_count = QueryBuilder::new(
+            "SELECT COUNT(*) FROM writing_practice_session WHERE user_id = ",
+        );
+        qb_count.push_bind(user_id);
+        if let Some(level) = req.level {
+            qb_count.push(" AND writing_level = ").push_bind(level);
+        }
+        if finished_only {
+            qb_count.push(" AND finished_at IS NOT NULL");
+        }
+
+        let total: i64 = qb_count
+            .build_query_scalar()
+            .fetch_one(pool)
+            .await?;
+
+        // List
+        let mut qb = QueryBuilder::new(
+            r#"
+            SELECT
+                session_id,
+                user_id,
+                study_task_id,
+                writing_level,
+                writing_practice_type,
+                started_at,
+                finished_at,
+                total_chars,
+                correct_chars,
+                accuracy_rate::float8 AS accuracy_rate,
+                chars_per_minute::float8 AS chars_per_minute,
+                mistakes
+            FROM writing_practice_session
+            WHERE user_id = "#,
+        );
+        qb.push_bind(user_id);
+        if let Some(level) = req.level {
+            qb.push(" AND writing_level = ").push_bind(level);
+        }
+        if finished_only {
+            qb.push(" AND finished_at IS NOT NULL");
+        }
+        qb.push(" ORDER BY started_at DESC LIMIT ")
+            .push_bind(i64::from(per_page))
+            .push(" OFFSET ")
+            .push_bind(offset);
+
+        use sqlx::Row;
+        let rows = qb.build().fetch_all(pool).await?;
+
+        let mut list: Vec<WritingSessionRes> = Vec::with_capacity(rows.len());
+        for r in rows {
+            let mistakes_json: Value = r.try_get("mistakes")?;
+            let mistakes: Vec<WritingMistake> =
+                serde_json::from_value(mistakes_json).unwrap_or_default();
+            list.push(WritingSessionRes {
+                session_id: r.try_get("session_id")?,
+                user_id: r.try_get("user_id")?,
+                study_task_id: r.try_get::<Option<i32>, _>("study_task_id")?,
+                writing_level: r.try_get("writing_level")?,
+                writing_practice_type: r.try_get("writing_practice_type")?,
+                started_at: r.try_get("started_at")?,
+                finished_at: r.try_get::<Option<DateTime<Utc>>, _>("finished_at")?,
+                total_chars: r.try_get("total_chars")?,
+                correct_chars: r.try_get("correct_chars")?,
+                accuracy_rate: r.try_get("accuracy_rate")?,
+                chars_per_minute: r.try_get("chars_per_minute")?,
+                mistakes,
+            });
+        }
+
+        Ok((list, total))
+    }
+
+    /// 전체 세션 요약: 총 건수, 평균 정확도/CPM
+    pub async fn writing_stats_overall(
+        pool: &PgPool,
+        user_id: i64,
+        days: i32,
+    ) -> AppResult<(i64, f64, f64)> {
+        let row = sqlx::query!(
+            r#"
+            SELECT
+                COUNT(*)::BIGINT AS "total!",
+                COALESCE(AVG(accuracy_rate)::float8, 0.0) AS "avg_accuracy!",
+                COALESCE(AVG(chars_per_minute)::float8, 0.0) AS "avg_cpm!"
+            FROM writing_practice_session
+            WHERE user_id = $1
+              AND finished_at IS NOT NULL
+              AND started_at >= NOW() - make_interval(days => $2)
+            "#,
+            user_id,
+            days,
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok((row.total, row.avg_accuracy, row.avg_cpm))
+    }
+
+    /// 레벨별 집계
+    pub async fn writing_stats_by_level(
+        pool: &PgPool,
+        user_id: i64,
+        days: i32,
+    ) -> AppResult<Vec<WritingLevelStat>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT
+                writing_level AS "writing_level!: WritingLevel",
+                COUNT(*)::BIGINT AS "sessions!",
+                COALESCE(AVG(accuracy_rate)::float8, 0.0) AS "avg_accuracy!",
+                COALESCE(AVG(chars_per_minute)::float8, 0.0) AS "avg_cpm!"
+            FROM writing_practice_session
+            WHERE user_id = $1
+              AND finished_at IS NOT NULL
+              AND started_at >= NOW() - make_interval(days => $2)
+            GROUP BY writing_level
+            ORDER BY writing_level
+            "#,
+            user_id,
+            days,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| WritingLevelStat {
+                writing_level: r.writing_level,
+                sessions: r.sessions,
+                avg_accuracy: r.avg_accuracy,
+                avg_cpm: r.avg_cpm,
+            })
+            .collect())
+    }
+
+    /// 일별 집계 (최근 days일)
+    pub async fn writing_stats_daily(
+        pool: &PgPool,
+        user_id: i64,
+        days: i32,
+    ) -> AppResult<Vec<WritingDailyStat>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT
+                TO_CHAR(DATE_TRUNC('day', started_at), 'YYYY-MM-DD') AS "day!",
+                COUNT(*)::BIGINT AS "sessions!",
+                COALESCE(AVG(accuracy_rate)::float8, 0.0) AS "avg_accuracy!",
+                COALESCE(AVG(chars_per_minute)::float8, 0.0) AS "avg_cpm!"
+            FROM writing_practice_session
+            WHERE user_id = $1
+              AND finished_at IS NOT NULL
+              AND started_at >= NOW() - make_interval(days => $2)
+            GROUP BY DATE_TRUNC('day', started_at)
+            ORDER BY DATE_TRUNC('day', started_at) ASC
+            "#,
+            user_id,
+            days,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| WritingDailyStat {
+                day: r.day,
+                sessions: r.sessions,
+                avg_accuracy: r.avg_accuracy,
+                avg_cpm: r.avg_cpm,
+            })
+            .collect())
+    }
+
+    /// 취약 글자 Top N (mistakes JSONB 펼쳐서 expected 기준 집계)
+    pub async fn writing_stats_weak_chars(
+        pool: &PgPool,
+        user_id: i64,
+        days: i32,
+        limit: i32,
+    ) -> AppResult<Vec<WritingWeakChar>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT
+                m.value->>'expected' AS "expected?",
+                COUNT(*)::BIGINT AS "miss_count!"
+            FROM writing_practice_session s
+            CROSS JOIN LATERAL jsonb_array_elements(s.mistakes) AS m(value)
+            WHERE s.user_id = $1
+              AND s.finished_at IS NOT NULL
+              AND s.started_at >= NOW() - make_interval(days => $2)
+              AND m.value->>'expected' IS NOT NULL
+            GROUP BY m.value->>'expected'
+            ORDER BY COUNT(*) DESC
+            LIMIT $3
+            "#,
+            user_id,
+            days,
+            i64::from(limit),
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .filter_map(|r| {
+                r.expected.map(|expected| WritingWeakChar {
+                    expected,
+                    miss_count: r.miss_count,
+                })
+            })
+            .collect())
     }
 }

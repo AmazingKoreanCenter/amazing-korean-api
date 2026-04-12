@@ -73,6 +73,10 @@ impl Modify for SecurityAddon {
         crate::api::study::handler::submit_answer,
         crate::api::study::handler::get_task_status,
         crate::api::study::handler::get_task_explain,
+        crate::api::study::handler::start_writing_session,
+        crate::api::study::handler::finish_writing_session,
+        crate::api::study::handler::list_writing_sessions,
+        crate::api::study::handler::get_writing_stats,
 
         // admin - users
         crate::api::admin::user::handler::admin_list_users,
@@ -232,6 +236,17 @@ impl Modify for SecurityAddon {
             crate::api::study::dto::SubmitAnswerRes,
             crate::api::study::dto::TaskStatusRes,
             crate::api::study::dto::TaskExplainRes,
+            crate::api::study::dto::StartWritingSessionReq,
+            crate::api::study::dto::FinishWritingSessionReq,
+            crate::api::study::dto::WritingMistake,
+            crate::api::study::dto::WritingSessionListReq,
+            crate::api::study::dto::WritingSessionRes,
+            crate::api::study::dto::WritingSessionListRes,
+            crate::api::study::dto::WritingStatsReq,
+            crate::api::study::dto::WritingLevelStat,
+            crate::api::study::dto::WritingDailyStat,
+            crate::api::study::dto::WritingWeakChar,
+            crate::api::study::dto::WritingStatsRes,
 
             // admin - users dto
             crate::api::admin::user::dto::AdminUserRes,

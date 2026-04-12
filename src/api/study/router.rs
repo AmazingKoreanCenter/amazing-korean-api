@@ -1,5 +1,5 @@
 use axum::{
-    routing::{get, post},
+    routing::{get, patch, post},
     Router,
 };
 
@@ -15,4 +15,14 @@ pub fn router() -> Router<AppState> {
         .route("/tasks/{id}/answer", post(handler::submit_answer))
         .route("/tasks/{id}/status", get(handler::get_task_status))
         .route("/tasks/{id}/explain", get(handler::get_task_explain))
+        // Writing practice sessions
+        .route(
+            "/writing/sessions",
+            post(handler::start_writing_session).get(handler::list_writing_sessions),
+        )
+        .route(
+            "/writing/sessions/{id}",
+            patch(handler::finish_writing_session),
+        )
+        .route("/writing/stats", get(handler::get_writing_stats))
 }

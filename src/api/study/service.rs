@@ -9,8 +9,10 @@ use crate::types::{ContentType, StudyProgram, StudyTaskKind, StudyTaskLogAction}
 
 // [Strict Mode] Import DTOs and Repo directly from the verified files
 use super::dto::{
-    StudyDetailReq, StudyDetailRes, StudyListMeta, StudyListReq, StudyListResp, StudyListSort,
-    StudyTaskDetailRes, SubmitAnswerReq, SubmitAnswerRes, TaskExplainRes, TaskStatusRes,
+    FinishWritingSessionReq, StartWritingSessionReq, StudyDetailReq, StudyDetailRes, StudyListMeta,
+    StudyListReq, StudyListResp, StudyListSort, StudyTaskDetailRes, SubmitAnswerReq,
+    SubmitAnswerRes, TaskExplainRes, TaskStatusRes, WritingSessionListReq, WritingSessionListRes,
+    WritingSessionRes, WritingStatsReq, WritingStatsRes,
 };
 use super::repo::StudyRepo;
 
@@ -417,6 +419,177 @@ impl StudyService {
         }
 
         Ok(response)
+    }
+
+    // =========================================================================
+    // 5. Writing Practice Sessions
+    // =========================================================================
+
+    /// 한글 자판 연습 세션 시작
+    pub async fn start_writing_session(
+        st: &AppState,
+        auth_user: AuthUser,
+        req: StartWritingSessionReq,
+    ) -> AppResult<WritingSessionRes> {
+        let AuthUser(claims) = auth_user;
+
+        if let Some(task_id) = req.study_task_id {
+            if !StudyRepo::exists_writing_task(&st.db, task_id).await? {
+                return Err(AppError::NotFound);
+            }
+        }
+
+        StudyRepo::create_writing_session(
+            &st.db,
+            claims.sub,
+            req.study_task_id,
+            req.writing_level,
+            req.writing_practice_type,
+        )
+        .await
+    }
+
+    /// 세션 완료 (결과 저장)
+    pub async fn finish_writing_session(
+        st: &AppState,
+        auth_user: AuthUser,
+        session_id: i64,
+        req: FinishWritingSessionReq,
+    ) -> AppResult<WritingSessionRes> {
+        let AuthUser(claims) = auth_user;
+
+        if req.total_chars < 0 || req.correct_chars < 0 {
+            return Err(AppError::BadRequest(
+                "total_chars and correct_chars must be >= 0".into(),
+            ));
+        }
+        if req.correct_chars > req.total_chars {
+            return Err(AppError::Unprocessable(
+                "correct_chars must be <= total_chars".into(),
+            ));
+        }
+        if req.duration_ms < 0 {
+            return Err(AppError::BadRequest("duration_ms must be >= 0".into()));
+        }
+
+        let accuracy_rate = if req.total_chars == 0 {
+            0.0
+        } else {
+            (f64::from(req.correct_chars) / f64::from(req.total_chars)) * 100.0
+        };
+
+        let chars_per_minute = if req.duration_ms <= 0 {
+            0.0
+        } else {
+            f64::from(req.total_chars) * 60_000.0 / req.duration_ms as f64
+        };
+
+        // 소수점 2자리 반올림 (NUMERIC(5,2)/(7,2) 오버플로우 방지)
+        let accuracy_rate = (accuracy_rate * 100.0).round() / 100.0;
+        let chars_per_minute = (chars_per_minute * 100.0).round() / 100.0;
+
+        // NUMERIC(5,2) 범위: -999.99 ~ 999.99 / NUMERIC(7,2): -99999.99 ~ 99999.99
+        let accuracy_rate = accuracy_rate.clamp(0.0, 100.0);
+        let chars_per_minute = chars_per_minute.clamp(0.0, 99_999.99);
+
+        let mistakes_json = serde_json::to_value(&req.mistakes)
+            .map_err(|e| AppError::Internal(format!("Failed to serialize mistakes: {e}")))?;
+
+        let res = StudyRepo::finish_writing_session(
+            &st.db,
+            session_id,
+            claims.sub,
+            req.total_chars,
+            req.correct_chars,
+            accuracy_rate,
+            chars_per_minute,
+            mistakes_json,
+        )
+        .await?;
+
+        res.ok_or(AppError::NotFound)
+    }
+
+    /// 세션 목록 조회
+    pub async fn list_writing_sessions(
+        st: &AppState,
+        auth_user: AuthUser,
+        req: WritingSessionListReq,
+    ) -> AppResult<WritingSessionListRes> {
+        let AuthUser(claims) = auth_user;
+
+        let page = req.page.unwrap_or(1);
+        let per_page = req.per_page.unwrap_or(20);
+
+        if page == 0 {
+            return Err(AppError::BadRequest("page must be >= 1".into()));
+        }
+        if per_page == 0 {
+            return Err(AppError::BadRequest("per_page must be >= 1".into()));
+        }
+        if per_page > 100 {
+            return Err(AppError::Unprocessable("per_page must be <= 100".into()));
+        }
+
+        let (list, total_count) =
+            StudyRepo::list_writing_sessions(&st.db, claims.sub, &req).await?;
+
+        let per_page_i64 = i64::from(per_page);
+        let total_pages_i64 = if total_count == 0 {
+            0
+        } else {
+            (total_count + per_page_i64 - 1) / per_page_i64
+        };
+
+        if total_pages_i64 > u32::MAX as i64 {
+            return Err(AppError::Internal("total_pages overflow".into()));
+        }
+
+        Ok(WritingSessionListRes {
+            list,
+            meta: StudyListMeta {
+                page,
+                per_page,
+                total_count,
+                total_pages: total_pages_i64 as u32,
+            },
+        })
+    }
+
+    /// 한글 자판 연습 통계
+    pub async fn get_writing_stats(
+        st: &AppState,
+        auth_user: AuthUser,
+        req: WritingStatsReq,
+    ) -> AppResult<WritingStatsRes> {
+        let AuthUser(claims) = auth_user;
+
+        let days = req.days.unwrap_or(30);
+        if days == 0 {
+            return Err(AppError::BadRequest("days must be >= 1".into()));
+        }
+        if days > 365 {
+            return Err(AppError::Unprocessable("days must be <= 365".into()));
+        }
+        let days = days as i32;
+
+        let (total_sessions, avg_accuracy, avg_cpm) =
+            StudyRepo::writing_stats_overall(&st.db, claims.sub, days).await?;
+        let level_breakdown =
+            StudyRepo::writing_stats_by_level(&st.db, claims.sub, days).await?;
+        let recent_trend =
+            StudyRepo::writing_stats_daily(&st.db, claims.sub, days).await?;
+        let weak_chars =
+            StudyRepo::writing_stats_weak_chars(&st.db, claims.sub, days, 10).await?;
+
+        Ok(WritingStatsRes {
+            total_sessions,
+            avg_accuracy,
+            avg_cpm,
+            level_breakdown,
+            recent_trend,
+            weak_chars,
+        })
     }
 }
 

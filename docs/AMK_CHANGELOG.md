@@ -11,6 +11,16 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-12 — 한글 자판 연습 (Writing Practice) P4: 세션 API (시작/완료/목록/통계)**
+  - [P4 DTO] `src/api/study/dto.rs` — `StartWritingSessionReq`, `FinishWritingSessionReq`, `WritingMistake`, `WritingSessionListReq`, `WritingSessionRes`, `WritingSessionListRes`, `WritingStatsReq`, `WritingLevelStat`, `WritingDailyStat`, `WritingWeakChar`, `WritingStatsRes` 신규. NUMERIC(5,2)/(7,2) 컬럼은 응답 DTO에서 f64로 노출 (::float8 캐스트)
+  - [P4 Repo] `StudyRepo` — `exists_writing_task` (writing 태스크 존재 + study open 검증), `create_writing_session` (INSERT RETURNING), `finish_writing_session` (UPDATE WHERE user_id 소유권 검증, 미존재 시 None), `list_writing_sessions` (QueryBuilder + level/finished_only 필터), `writing_stats_overall` / `writing_stats_by_level` / `writing_stats_daily` / `writing_stats_weak_chars` (jsonb_array_elements LATERAL JOIN으로 mistakes 펼쳐서 expected Top 10 집계)
+  - [P4 Service] `StudyService` — 5개 메서드 추가. `finish_writing_session`에서 서버 사이드 accuracy/CPM 계산: `accuracy_rate = correct_chars/total_chars * 100`, `chars_per_minute = total_chars * 60000 / duration_ms`. 소수점 2자리 반올림 + NUMERIC(5,2)/(7,2) 범위 clamp. 검증: `correct_chars <= total_chars` (422), `duration_ms >= 0` (400), `days 1~365` (400/422)
+  - [P4 Handler/Router] `/studies/writing/sessions` (POST 시작 / GET 목록), `/studies/writing/sessions/{id}` (PATCH 완료), `/studies/writing/stats` (GET). 모두 `AuthUser` 필수. utoipa path 4개 신규 등록
+  - [P4 docs.rs] 신규 path 4개 + schema 11개(`StartWritingSessionReq`, `FinishWritingSessionReq`, `WritingMistake`, `WritingSessionListReq`, `WritingSessionRes`, `WritingSessionListRes`, `WritingStatsReq`, `WritingLevelStat`, `WritingDailyStat`, `WritingWeakChar`, `WritingStatsRes`) utoipa 등록
+  - [검증] `cargo sqlx prepare` 캐시 업데이트, `cargo check` + `SQLX_OFFLINE=true cargo check` 클린 통과 (0건 warning/error)
+  - [진행 상황] P1~P4 완료 (40%). 다음: P5~P10 프론트엔드 (타입/훅/HangulKeyboard/연습 페이지/통계 대시보드/관리자 UI/시드)
+  - [문서] `AMK_API_LEARNING.md` §5.5 행렬에 5-7~5-10 추가 + 시나리오 상세 (5.5-7~5.5-10) 작성
+
 - **2026-04-12 — 한글 자판 연습 (Writing Practice) Phase 1: DB + 백엔드 + 관리자 CRUD**
   - [P1 마이그레이션] `migrations/20260412_writing_practice.sql` 신규 — `study_task_kind_enum`에 `writing` 추가, `content_type_enum`에 `study_task_writing` 추가, 신규 enum 2종 (`writing_level_enum`: beginner/intermediate/advanced, `writing_practice_type_enum`: jamo/syllable/word/sentence/paragraph)
   - [P1 테이블] `study_task_writing` (서브테이블, PK=study_task_id FK→study_task): level, practice_type, prompt, answer, hint, keyboard_visible, image_url, audio_url. `writing_practice_session` (독립 통계 테이블): user_id, study_task_id(nullable), level, practice_type, started_at/finished_at, total_chars, correct_chars, accuracy_rate, chars_per_minute, mistakes(JSONB)

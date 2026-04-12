@@ -1,0 +1,118 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE writing_practice_session\n            SET finished_at = NOW(),\n                total_chars = $3,\n                correct_chars = $4,\n                accuracy_rate = $5::float8::numeric,\n                chars_per_minute = $6::float8::numeric,\n                mistakes = $7\n            WHERE session_id = $1\n              AND user_id = $2\n            RETURNING\n                session_id,\n                user_id,\n                study_task_id,\n                writing_level AS \"writing_level!: WritingLevel\",\n                writing_practice_type AS \"writing_practice_type!: WritingPracticeType\",\n                started_at,\n                finished_at,\n                total_chars,\n                correct_chars,\n                accuracy_rate::float8 AS \"accuracy_rate!\",\n                chars_per_minute::float8 AS \"chars_per_minute!\",\n                mistakes\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "session_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "study_task_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "writing_level!: WritingLevel",
+        "type_info": {
+          "Custom": {
+            "name": "writing_level_enum",
+            "kind": {
+              "Enum": [
+                "beginner",
+                "intermediate",
+                "advanced"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "writing_practice_type!: WritingPracticeType",
+        "type_info": {
+          "Custom": {
+            "name": "writing_practice_type_enum",
+            "kind": {
+              "Enum": [
+                "jamo",
+                "syllable",
+                "word",
+                "sentence",
+                "paragraph"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "started_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "finished_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "total_chars",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "correct_chars",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "accuracy_rate!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 10,
+        "name": "chars_per_minute!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 11,
+        "name": "mistakes",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int4",
+        "Int4",
+        "Float8",
+        "Float8",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "94167b990066eccc97c758f11ca3acc3aa18bd3cb684a3fcd2be50c0f002e0b4"
+}
