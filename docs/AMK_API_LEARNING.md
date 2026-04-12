@@ -309,10 +309,12 @@
     1. study_task_typing : 타이핑 시도 → **STUDY_TASK_LOG** `start` 업데이트 → 타이핑 완료 → **STUDY_TASK_LOG** `answer` 업데이트
     2. study_task_choice : 선택지 클릭 → **STUDY_TASK_LOG** `answer` 업데이트
     3. study_task_voice : 녹음 버튼 클릭 → **STUDY_TASK_LOG** `start` 업데이트 → 녹음 버튼 재클릭 → **STUDY_TASK_LOG** `answer` 업데이트
+    4. study_task_writing : 한글 자판 타이핑 → **STUDY_TASK_LOG** `start` 업데이트 → 제출 → **STUDY_TASK_LOG** `answer` 업데이트 (세션 단위 통계는 P4 `writing_practice_session` API로 별도 집계)
   - Then: **200**,
     1. study_task_typing : 채점 → **STUDY_TASK_TYPING** `study_task_typing_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트
     2. study_task_choice : 채점 → **STUDY_TASK_CHOICE** `study_task_choice_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트
     3. study_task_voice : 채점 →  **STUDY_TASK_VOICE** `study_task_voice_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트
+    4. study_task_writing : 채점 → **STUDY_TASK_WRITING** `study_task_writing_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트. 초급 레벨은 `answer`가 payload에 포함되어 클라이언트에서 실시간 글자별 피드백을 렌더링.
   - 상태축: Auth=pass / Page=`task` init→ready / Form=`answer` pristine→dirty→validating→submitting→success / Request=`answer` pending→success / Data=`answer` present
 - 실패(형식/누락) → **400**
   - 예: 바디 없음, 선택지 배열 스키마 불일치, 서술형 빈 문자열 금지 등
@@ -648,7 +650,7 @@ draft → reviewed → approved
 **Query Parameters**
 | 파라미터 | 타입 | 필수 | 설명 |
 |----------|------|------|------|
-| `content_type` | string | ✅ | 콘텐츠 유형 (video, lesson, study, study_task_choice, study_task_typing, study_task_voice, study_task_explain) |
+| `content_type` | string | ✅ | 콘텐츠 유형 (video, lesson, study, study_task_choice, study_task_typing, study_task_voice, study_task_writing, study_task_explain) |
 
 **응답 (성공 200)**
 ```json

@@ -273,6 +273,7 @@ impl StudyService {
             SubmitAnswerReq::Choice { .. } => StudyTaskKind::Choice,
             SubmitAnswerReq::Typing { .. } => StudyTaskKind::Typing,
             SubmitAnswerReq::Voice { .. } => StudyTaskKind::Voice,
+            SubmitAnswerReq::Writing { .. } => StudyTaskKind::Writing,
         };
 
         if req_kind != answer_key.kind {
@@ -288,7 +289,9 @@ impl StudyService {
                 }
                 pick.to_string()
             }
-            SubmitAnswerReq::Typing { text } | SubmitAnswerReq::Voice { text } => {
+            SubmitAnswerReq::Typing { text }
+            | SubmitAnswerReq::Voice { text }
+            | SubmitAnswerReq::Writing { text, .. } => {
                 let trimmed = text.trim();
                 if trimmed.is_empty() {
                     return Err(AppError::BadRequest("text must not be empty".into()));

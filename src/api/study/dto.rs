@@ -3,7 +3,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
-use crate::types::{StudyProgram, StudyState, StudyTaskKind, SupportedLanguage};
+use crate::types::{
+    StudyProgram, StudyState, StudyTaskKind, SupportedLanguage, WritingLevel,
+    WritingPracticeType,
+};
 
 // =========================================================================
 // Request DTOs (요청)
@@ -46,6 +49,7 @@ pub enum SubmitAnswerReq {
     Choice { pick: i32 },
     Typing { text: String },
     Voice { text: String },
+    Writing { text: String, session_id: Option<i64> },
 }
 
 // =========================================================================
@@ -141,6 +145,7 @@ pub enum TaskPayload {
     Choice(ChoicePayload),
     Typing(TypingPayload),
     Voice(VoicePayload),
+    Writing(WritingPayload),
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -168,6 +173,21 @@ pub struct VoicePayload {
     pub question: String,
     pub audio_url: Option<String>, // Added from STUDY_TASK_VOICE schema
     pub image_url: Option<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingPayload {
+    pub prompt: String,
+    /// 초급 레벨에서만 클라이언트에 전송 (실시간 피드백용)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub answer: Option<String>,
+    pub hint: Option<String>,
+    pub level: WritingLevel,
+    pub practice_type: WritingPracticeType,
+    pub keyboard_visible: bool,
+    pub image_url: Option<String>,
+    pub audio_url: Option<String>,
 }
 
 // --- 3. Action Response (Answer, Status, Explain) ---

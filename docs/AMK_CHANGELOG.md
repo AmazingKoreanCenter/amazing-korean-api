@@ -11,6 +11,17 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-12 — 한글 자판 연습 (Writing Practice) Phase 1: DB + 백엔드 + 관리자 CRUD**
+  - [P1 마이그레이션] `migrations/20260412_writing_practice.sql` 신규 — `study_task_kind_enum`에 `writing` 추가, `content_type_enum`에 `study_task_writing` 추가, 신규 enum 2종 (`writing_level_enum`: beginner/intermediate/advanced, `writing_practice_type_enum`: jamo/syllable/word/sentence/paragraph)
+  - [P1 테이블] `study_task_writing` (서브테이블, PK=study_task_id FK→study_task): level, practice_type, prompt, answer, hint, keyboard_visible, image_url, audio_url. `writing_practice_session` (독립 통계 테이블): user_id, study_task_id(nullable), level, practice_type, started_at/finished_at, total_chars, correct_chars, accuracy_rate, chars_per_minute, mistakes(JSONB)
+  - [P1 인덱스] `idx_stw_level`, `idx_stw_practice_type`, `idx_stw_level_type`, `idx_wps_user_id`, `idx_wps_user_level`, `idx_wps_user_started`, `idx_wps_task`
+  - [P1 Rust 타입] `src/types.rs` — `StudyTaskKind::Writing`, `WritingLevel`, `WritingPracticeType`, `ContentType::StudyTaskWriting` 추가
+  - [P2 study API] `WritingPayload` DTO 추가 (prompt/answer/hint/level/practice_type/keyboard_visible/image_url/audio_url). `TaskPayload::Writing` variant. `SubmitAnswerReq::Writing { text, session_id }` variant. 초급 레벨에만 `answer`를 응답에 포함 (클라이언트 실시간 피드백용). `find_task_detail`/`find_answer_key` 쿼리에 `study_task_writing` LEFT JOIN 추가. `submit_answer` 서비스에 Writing 분기 (현재는 단순 `==` 비교, 세부 통계는 P4 세션 API에서 처리)
+  - [P3 관리자 CRUD] 기존 `question`/`answer` 필드 재사용 (typing/voice와 일관성): writing의 경우 `question`이 prompt로 매핑. `StudyTaskCreateReq`/`StudyTaskUpdateReq`/`StudyTaskUpdateItem`/`AdminStudyTaskDetailRes`에 writing 전용 필드 (level, practice_type, hint, keyboard_visible) 추가. 단일/벌크 생성 검증 분기 + `create_task_writing` repo 함수 + update match Writing 분기 + find_study_task_by_id 쿼리에 writing JOIN 추가. answer는 `w.study_task_writing_answer`로 COALESCE, question은 `w.study_task_writing_prompt`로 COALESCE
+  - [검증] 로컬 DB 마이그레이션 적용 완료, `cargo sqlx prepare` 캐시 업데이트, `cargo check` 클린 통과 (0건 warning/error)
+  - [진행 상황] 전체 설계 플랜 P1~P10 중 P1~P3 완료 (30%). 다음: P4 세션 API (POST/PATCH `/studies/writing/sessions`, GET `/studies/writing/stats`), P5+ 프론트엔드
+  - [문서] `AMK_SCHEMA_PATCHED.md` §2.4 테이블/enum 동기화, `AMK_API_LEARNING.md` §5.5-4 answer flow에 writing 분기 추가
+
 - **2026-04-12 — 속도 개선 Phase S3: LCP 수정 + Font preload + 이미지 최적화 + K6 + 프로덕션 측정**
   - [S3-1] book-hub LCP 18.6s 원인 수정: 커버 이미지 `loading="lazy"` → 초기 슬라이드만 `eager` + `fetchPriority="high"`
   - [S3-2] Pretendard Variable CSS `preload` 힌트 추가 (조기 fetch 유도). Noto Color Emoji 비동기 로딩 전환 (`media="print" onload` 패턴)

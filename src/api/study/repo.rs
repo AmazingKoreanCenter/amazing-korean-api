@@ -5,9 +5,11 @@ use sqlx::{PgPool, QueryBuilder};
 use crate::error::{AppError, AppResult};
 use crate::types::{StudyProgram, StudyTaskKind, StudyTaskLogAction};
 
+use crate::types::{WritingLevel, WritingPracticeType};
+
 use super::dto::{
     ChoicePayload, StudyListSort, StudySummaryDto, StudyTaskDetailRes, StudyTaskSummaryDto,
-    TaskPayload, TaskStatusRes, TypingPayload, VoicePayload,
+    TaskPayload, TaskStatusRes, TypingPayload, VoicePayload, WritingPayload,
 };
 
 pub struct StudyRepo;
@@ -49,8 +51,17 @@ struct StudyTaskDetailRow {
     typing_image_url: Option<String>,
 
     // Voice
-    voice_audio_url: Option<String>, 
+    voice_audio_url: Option<String>,
     voice_image_url: Option<String>,
+
+    // Writing
+    writing_level: Option<WritingLevel>,
+    writing_practice_type: Option<WritingPracticeType>,
+    writing_answer: Option<String>,
+    writing_hint: Option<String>,
+    writing_keyboard_visible: Option<bool>,
+    writing_image_url: Option<String>,
+    writing_audio_url: Option<String>,
 }
 
 impl StudyTaskDetailRow {
@@ -80,6 +91,26 @@ impl StudyTaskDetailRow {
                 audio_url: self.voice_audio_url,
                 image_url: self.voice_image_url,
             }),
+            StudyTaskKind::Writing => {
+                let level = self.writing_level?;
+                let practice_type = self.writing_practice_type?;
+                // 초급에서만 answer를 클라이언트에 전송 (실시간 피드백용)
+                let answer = if level == WritingLevel::Beginner {
+                    self.writing_answer
+                } else {
+                    None
+                };
+                TaskPayload::Writing(WritingPayload {
+                    prompt: question,
+                    answer,
+                    hint: self.writing_hint,
+                    level,
+                    practice_type,
+                    keyboard_visible: self.writing_keyboard_visible.unwrap_or(true),
+                    image_url: self.writing_image_url,
+                    audio_url: self.writing_audio_url,
+                })
+            }
         };
 
         Some(StudyTaskDetailRes {
@@ -251,12 +282,14 @@ impl StudyRepo {
                     WHEN 'choice' THEN stc.study_task_choice_answer::TEXT
                     WHEN 'typing' THEN stt.study_task_typing_answer
                     WHEN 'voice' THEN stv.study_task_voice_answer
+                    WHEN 'writing' THEN stw.study_task_writing_answer
                 END AS "answer?"
             FROM study_task t
             INNER JOIN study s ON t.study_id = s.study_id
             LEFT JOIN study_task_choice stc ON t.study_task_id = stc.study_task_id
             LEFT JOIN study_task_typing stt ON t.study_task_id = stt.study_task_id
             LEFT JOIN study_task_voice stv  ON t.study_task_id = stv.study_task_id
+            LEFT JOIN study_task_writing stw ON t.study_task_id = stw.study_task_id
             WHERE t.study_task_id = $1
               AND s.study_state = 'open'::study_state_enum
             "#,
@@ -377,7 +410,7 @@ impl StudyRepo {
                 t.study_task_created_at AS created_at,
 
                 -- Question: 이미 "question?"로 되어 있어서 OK
-                COALESCE(stc.study_task_choice_question, stt.study_task_typing_question, stv.study_task_voice_question)::TEXT AS "question?",
+                COALESCE(stc.study_task_choice_question, stt.study_task_typing_question, stv.study_task_voice_question, stw.study_task_writing_prompt)::TEXT AS "question?",
 
                 -- [수정] Choice Fields: LEFT JOIN이므로 값이 없을 수 있음 -> "?" 추가
                 stc.study_task_choice_1::TEXT AS "choice_1?",
@@ -392,13 +425,23 @@ impl StudyRepo {
 
                 -- [수정] Voice Fields: "?" 추가
                 stv.study_task_voice_audio_url::TEXT AS "voice_audio_url?",
-                stv.study_task_voice_image_url::TEXT AS "voice_image_url?"
+                stv.study_task_voice_image_url::TEXT AS "voice_image_url?",
+
+                -- Writing Fields
+                stw.study_task_writing_level AS "writing_level?: WritingLevel",
+                stw.study_task_writing_practice_type AS "writing_practice_type?: WritingPracticeType",
+                stw.study_task_writing_answer::TEXT AS "writing_answer?",
+                stw.study_task_writing_hint::TEXT AS "writing_hint?",
+                stw.study_task_writing_keyboard_visible AS "writing_keyboard_visible?",
+                stw.study_task_writing_image_url::TEXT AS "writing_image_url?",
+                stw.study_task_writing_audio_url::TEXT AS "writing_audio_url?"
 
             FROM study_task t
             INNER JOIN study s ON t.study_id = s.study_id
             LEFT JOIN study_task_choice stc ON t.study_task_id = stc.study_task_id
             LEFT JOIN study_task_typing stt ON t.study_task_id = stt.study_task_id
             LEFT JOIN study_task_voice stv  ON t.study_task_id = stv.study_task_id
+            LEFT JOIN study_task_writing stw ON t.study_task_id = stw.study_task_id
             WHERE t.study_task_id = $1
               AND s.study_state = 'open'::study_state_enum
             "#,
