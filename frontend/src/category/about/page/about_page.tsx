@@ -117,7 +117,7 @@ export function AboutPage() {
             <Button
               size="lg"
               asChild
-              className="gradient-primary hover:opacity-90 text-white shadow-lg rounded-full px-8 h-14 text-base"
+              className="gradient-primary hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all rounded-full px-8 h-14 text-base"
             >
               <Link to="/signup">
                 {t("about.ctaStart")}

@@ -53,7 +53,7 @@ export function PaginationBar({
                 if (hasPrev) handleChange(currentPage - 1);
               }}
               aria-disabled={!hasPrev}
-              className={`rounded-xl ${!hasPrev ? "pointer-events-none opacity-50" : ""}`}
+              className={`rounded-md ${!hasPrev ? "pointer-events-none opacity-50" : ""}`}
             />
           </PaginationItem>
 
@@ -71,7 +71,7 @@ export function PaginationBar({
                     e.preventDefault();
                     handleChange(item);
                   }}
-                  className={`rounded-xl ${item === currentPage ? "gradient-primary text-white border-0" : ""}`}
+                  className={`rounded-md ${item === currentPage ? "gradient-primary text-white border-0" : ""}`}
                 >
                   {item}
                 </PaginationLink>
@@ -87,7 +87,7 @@ export function PaginationBar({
                 if (hasNext) handleChange(currentPage + 1);
               }}
               aria-disabled={!hasNext}
-              className={`rounded-xl ${!hasNext ? "pointer-events-none opacity-50" : ""}`}
+              className={`rounded-md ${!hasNext ? "pointer-events-none opacity-50" : ""}`}
             />
           </PaginationItem>
         </PaginationContent>

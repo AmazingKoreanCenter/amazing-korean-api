@@ -343,6 +343,45 @@ GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
 - JWT 헤더의 `kid`로 매칭되는 키 선택 → `DecodingKey::from_rsa_components(n, e)` 생성
 - 검증 항목: RS256 서명, Issuer (`accounts.google.com`), Audience (`client_id`), 만료시간
 
+#### 2.4.2a Google OAuth (모바일)
+
+> 모바일 앱에서 `google_sign_in` 플러그인으로 ID token 직접 획득 후 서버 검증.
+
+**환경변수**
+```env
+GOOGLE_MOBILE_CLIENT_ID=xxx.apps.googleusercontent.com  # 모바일 전용 (Android/iOS)
+```
+
+**관련 엔드포인트**: `POST /auth/google-mobile` (AMK_API_AUTH.md 5.3-16)
+
+#### 2.4.2b Apple OAuth (모바일 Sign in with Apple)
+
+> Apple 정책상 소셜 로그인 제공 시 필수. Apple JWKS(`https://appleid.apple.com/auth/keys`)로 RS256 검증.
+
+**환경변수**
+```env
+APPLE_CLIENT_ID=net.amazingkorean.app   # Apple Bundle ID
+APPLE_TEAM_ID=XXXXXXXXXX                # Apple Team ID
+```
+
+**관련 엔드포인트**: `POST /auth/apple-mobile` (AMK_API_AUTH.md 5.3-17)
+**코드**: `src/external/apple.rs`
+
+**특이사항**: Apple은 최초 인증에만 email 제공. subject로 기존 유저 못 찾고 email도 없으면 계정 생성 불가 → 재인증 요청 에러.
+
+#### 2.4.2c RevenueCat (모바일 IAP)
+
+> Apple/Google IAP 영수증 검증을 RevenueCat REST API로 통합.
+
+**환경변수**
+```env
+REVENUECAT_API_KEY=xxx                  # RevenueCat 서버 API 키
+REVENUECAT_WEBHOOK_AUTH_TOKEN=xxx       # RevenueCat 웹훅 Bearer 토큰
+```
+
+**관련 엔드포인트**: `POST /ebook/purchase/iap` (AMK_API_EBOOK.md 12.5-2.5), `POST /payment/webhook/revenuecat` (AMK_API_PAYMENT.md 11-4)
+**코드**: `src/external/revenuecat.rs`
+
 #### 2.4.3 Vimeo (동영상 스트리밍)
 
 > 동영상 호스팅 및 스트리밍
@@ -926,12 +965,27 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
 |---------|-----|-----|------|
 | `ak:session:{session_id}` | user_id (i64) | 15분 | 액세스 토큰 유효성 빠른 확인 |
 | `ak:refresh:{refresh_hash}` | session_id (UUID) | 역할별 (1/7/30일) | 리프레시 토큰 검증 |
-| `ak:user_sessions:{user_id}` | Set\<session_id\> | - | 전체 로그아웃 시 세션 목록 |
+| `ak:user_sessions:{user_id}` | Set\<session_id\> | - | 전체 로그아웃 + 동시 세션 수 제한 (SCARD) |
 | `rl:login:{email}:{ip}` | 시도 횟수 (i64) | 15분 | 로그인 Rate Limiting (10회/15분) |
 | `rl:find_id:{ip}` | 시도 횟수 (i64) | 15분 | 아이디 찾기 Rate Limiting |
 | `rl:reset_pw:{ip}` | 시도 횟수 (i64) | 15분 | 비밀번호 재설정 Rate Limiting |
 
 > **참고**: `ak:session`, `ak:refresh` TTL은 `config.rs`의 `jwt_access_ttl_min`, 역할별 `refresh_ttl_secs` 값 기준
+
+#### 동시 세션 수 제한
+
+로그인 시 `enforce_session_limit()`가 활성 세션 수를 검증한다.
+
+| 역할 | 최대 세션 | 초과 시 정책 | 환경변수 |
+|------|:---------:|-------------|---------|
+| HYMN | 2 | 로그인 거부 (403) | `MAX_SESSIONS_HYMN` |
+| Admin | 2 | 로그인 거부 (403) | `MAX_SESSIONS_ADMIN` |
+| Manager | 3 | 로그인 거부 (403) | `MAX_SESSIONS_MANAGER` |
+| Learner | 5 | 가장 오래된 세션 자동 퇴장 (FIFO) | `MAX_SESSIONS_LEARNER` |
+
+- **유령 세션 정리**: `SMEMBERS` + `EXISTS` 체크 후 만료된 세션 자동 제거
+- **적용 지점**: `login()` (비MFA), `create_oauth_session()` (OAuth/MFA)
+- **거부 에러**: `403 AUTH_403_SESSION_LIMIT:{max_sessions}`
 
 #### 에러 케이스 & HTTP 상태 코드
 

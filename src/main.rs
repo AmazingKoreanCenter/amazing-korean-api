@@ -164,7 +164,7 @@ async fn main() -> anyhow::Result<()> {
             Method::DELETE,
             Method::OPTIONS
         ])
-        .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT, HeaderName::from_static("x-ebook-viewer"), HeaderName::from_static("x-ebook-session"), HeaderName::from_static("x-ebook-signature"), HeaderName::from_static("x-ebook-timestamp")])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT, HeaderName::from_static("x-ebook-viewer"), HeaderName::from_static("x-ebook-session"), HeaderName::from_static("x-ebook-signature"), HeaderName::from_static("x-ebook-timestamp"), HeaderName::from_static("x-platform")])
         .allow_credentials(true); // 쿠키(Refresh Token) 교환을 위해 필수
 
     // 8) 라우터에 CORS + 보안 헤더 레이어 적용

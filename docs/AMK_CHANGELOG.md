@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-07
+updated: 2026-04-10
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,75 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-10 — 속도 개선 Phase S1+S2: 측정 인프라 + Quick Win 번들 분할**
+  - [인프라] `frontend/perf-audit/` 신규 — Lighthouse 기반 자동 성능 측정 도구 (`audit.mjs`, `pages.mjs`)
+  - [의존성] `lighthouse` + `chrome-launcher` devDependency 추가. Playwright Chromium 동적 탐색
+  - [Quick Win] `vite.config.ts` manualChunks — vendor 11종 분리 (react/radix/forms/swiper/dnd/paddle/video/i18n/tanstack/tus/기타)
+  - [Quick Win] `routes.tsx` React.lazy — Admin 30+ 페이지, Auth 보조 5, Legal 3, Textbook/Ebook 후속 5, Error 3, ComingSoon/FAQ lazy 전환 + Suspense 래핑
+  - [결과] **메인 번들 1,620KB → 271KB (-83.3%)**, home Performance 48→72 (+24), TBT 2572→315ms (-88%)
+  - [베이스라인] 8페이지 Lighthouse 측정 완료 (pre/post). Performance 평균 61→66. 목표 90+ 도달까지 Phase S3 필요
+  - [보안] npm audit 3건 동시 해결 (axios 1.15.0 + vite 7.3.2 + basic-ftp override)
+  - [품질] 13건 코드 품질 이슈 일괄 수정 (Chromium 경로 동적화, cleanup hang 해결, LABEL 검증, regex 통일, 주석 보강 등)
+  - [.gitignore] `perf-audit/artifacts/`, `test-results/` 제외 추가
+  - [다음] Phase S3 — faq/book-hub LCP 12~17s 원인 조사, Font preload, 이미지 최적화
+
+- **2026-04-10 — Figma 도입 보류 결정 + Phase A 도구 영구 자산 전환**
+  - [결정] Figma Phase B (정리·임포트) / Phase C (네이티브 생성) 보류 — 1인 풀스택 환경에서 트리플 동기화 부담이 ④ 유지보수 효율 목표에 역행
+  - [트리거] Phase B 착수 시 Figma MCP Starter 한도 초과 → 도입 자체를 재검토
+  - [전환] Phase A Playwright 캡처 도구를 디자인 작업 상시 시각 레퍼런스 + 시각 회귀 감지 도구로 위치 재정의
+  - [3계층 SSoT] AMK_DESIGN_SYSTEM.md (의도) + 32 PNG (시각 레퍼런스) + 코드 (구현) 운영 모델 확정
+  - [재평가 트리거] (B) 디자이너 영입/외부 협업 시작 (C) 사용자 수 확대 → 다수 stakeholder 디자인 결정 / 모바일·데스크탑 멀티 플랫폼 일관성 관리 필요성 발생
+  - [기존 Figma 파일] `AUYoLTYOsDWipKoNGfD3Fv` 그대로 유지 (삭제 X) — 향후 재개 시 시작점
+  - [문서] `AMK_DESIGN_SYSTEM.md §08` 전면 재작성 (결정 배경 5가지 + 3계층 SSoT + Phase A 활용 시나리오 + Phase B/C 보류 사유/트리거)
+  - [문서] `AMK_STATUS.md §8.1` #56 향후 확장 갱신
+  - [다음 작업] 속도 개선 — K6 + Lighthouse/Web Vitals 측정 선행 후 백엔드/프론트 최적화
+
+- **2026-04-09 — Figma 재구축 Phase A 완료 (Playwright 레퍼런스 캡처)**
+  - [인프라] `frontend/figma-capture/` 신규 디렉터리 — Playwright 기반 레퍼런스 캡처 도구 일체
+  - [의존성] `@playwright/test` devDependency 추가 + Chromium Headless Shell 설치
+  - [설정] `playwright.config.ts`: 1440×900 viewport · deviceScaleFactor 2 (Retina) · Vite webServer 자동 기동 · ko-KR/Asia/Seoul 로캘
+  - [스크립트] `tests/capture.spec.ts`: 페이지×테마 조합 자동화. next-themes localStorage 주입 + emulateMedia 동시 적용, 점진 스크롤/img decoded 대기/`document.fonts.ready`로 기존 3대 문제(한글/lazy/토큰) 근본 해결
+  - [스크립트] `pages.ts`: 16개 페이지 정의 (P1 공개 4 + P2 Book 4 + P3 Auth 5 + P4 Legal 3) — 5순위(MyPage/Settings)는 이번 Phase 제외
+  - [스크립트] `fixtures.ts`: 로컬 AMK 백엔드 부재 시에도 카탈로그 렌더링 보장 — textbook/ebook catalog API 모의 응답 (9/6 언어)
+  - [산출물] `figma-capture/artifacts/screenshots/` — 16 페이지 × Light/Dark = **32 PNG 프레임** 생성 완료 (총 8.8MB)
+  - [.gitignore] `figma-capture/artifacts/` 제외 — 스크립트/설정은 커밋, 이미지/테스트 결과는 제외
+  - [샘플] Book Landing ISBN = `9791199772700` (`book_data.ts` 첫 엔트리, 영어/학생용)
+  - [다음] Phase B — Figma 기존 34프레임 삭제 + 스크린샷 이미지 레이어 임포트
+
+- **2026-04-09 — Figma 재구축 계획 수립 (하이브리드 전략)**
+  - [조사] 기존 Figma 파일(AUYoLTYOsDWipKoNGfD3Fv) 점검 — 34프레임(17페이지×Light/Dark) 확인. 메모리 기록(54프레임)과 불일치
+  - [조사] 기존 프레임 3대 문제 진단 — 한글 텍스트 누락(폰트 로딩 대기 실패), 이미지 누락(lazy loading + 미스크롤), 토큰 미연결(캡처 도구 특성)
+  - [결정] 방안 A+C 하이브리드 확정 — Playwright 캡처(레퍼런스) + Figma MCP 생성(편집 가능)
+  - [결정] 기존 34프레임 삭제 예정. 재사용 불가 판정
+  - [문서] AMK_DESIGN_SYSTEM.md §08 Figma 섹션 현재화 — 재구축 전략, 파일 정보, Phase A/B/C 구조, 페이지 우선순위
+  - [메모리] reference_figma.md 갱신 — 실제 프레임 수, 문제 진단, MCP OAuth 인증 완료
+  - [메모리] project_figma_plan.md 신규 — 하이브리드 전략 상세, 페이지 우선순위, 결정 필요 사항
+
+- **2026-04-09 — 디자인 시스템 문서 v4.2 + 코드 품질 수정 5건**
+  - [문서] AMK_DESIGN_SYSTEM.md v4.2: 전수 조사 기반 19건 갭 보강
+  - [문서] §00 Visual Theme & Atmosphere 신규 섹션 — 디자인 철학, 핵심 특성, 밀도 정의
+  - [문서] §01 Color Tokens 전면 재구성 — 전체 토큰 HSL + Hex 병기 (Core/Brand/Status/Surface/Chrome/Badge/Chart)
+  - [문서] §01 Shadow Scale에 실제 CSS box-shadow 값 추가 (라이트/다크)
+  - [문서] §01 Radius 근사치 → 정확한 px 값 (--radius: 0.625rem 기반 계산식)
+  - [문서] §01 Typography에 letter-spacing(-0.025em) + font-feature-settings 명시
+  - [문서] §01 Icon/Gap/Container에 px 환산 값 추가
+  - [문서] §03 CTA 패턴 3가지 변형 문서화 (Full/Nav/Inline) + gradient text-white 예외 명시
+  - [문서] §04 Responsive Behavior 섹션 추가 — 브레이크포인트 테이블, 축소 전략
+  - [문서] §05 Do/Don't 통합 섹션 + 허용 예외 테이블 — 산재 규칙 §01~§04에서 통합
+  - [문서] §07-B Agent Prompt Guide 신규 — Quick Color Ref + 예제 프롬프트 5개 + Iteration Guide
+  - [수정] index.css: --warning-foreground `0 0% 100%` → `20 14% 4%` (WCAG AA 준수)
+  - [수정] ebook_viewer_page.tsx: fullscreen text-white(7건) + neutral/border 색상(8건) → 디자인 토큰 교체
+  - [수정] pagination_bar.tsx: rounded-xl → rounded-md (Button 스펙 준수)
+  - [수정] about_page.tsx: CTA hover:shadow-xl 누락 추가
+
+- **2026-04-08 — 동시 세션 수 제한 구현**
+  - [보안] `enforce_session_limit()`: 유령 세션 정리 (SMEMBERS + EXISTS) + SCARD 카운트 + 역할별 정책 분기
+  - [보안] Learner: FIFO 자동 퇴장 (가장 오래된 세션 강제 로그아웃, `find_active_sessions_oldest` DB 쿼리)
+  - [보안] Admin/Manager/HYMN: 로그인 거부 (`403 AUTH_403_SESSION_LIMIT:{max}`)
+  - [보안] 적용 지점: `login()` + `create_oauth_session()` 2곳 (모든 로그인 경로 커버)
+  - [설정] config.rs: MAX_SESSIONS_LEARNER(5), MAX_SESSIONS_MANAGER(3), MAX_SESSIONS_ADMIN(2), MAX_SESSIONS_HYMN(2)
+  - [설정] docker-compose.prod.yml: 4개 환경변수 추가
 
 - **2026-04-07 — 모바일 백엔드 API 5건 구현 완료 (OAuth + IAP + 웹훅)**
   - [기능] `POST /auth/google-mobile`: 모바일 Google OAuth (ID token 직접 검증 → 계정 연결/생성 → LoginMobileRes)

@@ -205,23 +205,26 @@ impl Config {
 ```rust
 use axum::extract::FromRef;
 use deadpool_redis::Pool as RedisPool;
-use sqlx::{Pool, Postgres};
+use sqlx::PgPool;
+use std::sync::Arc;
 use std::time::Instant;
 
 use crate::config::Config;
+use crate::external::email::EmailSender;
+use crate::external::ipgeo::IpGeoClient;
+use crate::external::payment::PaymentProvider;
+use crate::external::revenuecat::RevenueCatClient;
 
 #[derive(Clone, FromRef)]
 pub struct AppState {
-    pub db: Pool<Postgres>,    // Postgres 커넥션 풀
-    pub redis: RedisPool,       // Redis 커넥션 풀
-    pub cfg: Config,            // 런타임 설정
-    pub started_at: Instant,    // 서버 시작 시간 (uptime 계산용)
-}
-
-impl AsRef<AppState> for AppState {
-    fn as_ref(&self) -> &AppState {
-        self
-    }
+    pub db: PgPool,                                    // Postgres 커넥션 풀
+    pub redis: RedisPool,                              // Redis 커넥션 풀
+    pub cfg: Config,                                   // 런타임 설정
+    pub started_at: Instant,                           // 서버 시작 시간
+    pub email: Option<Arc<dyn EmailSender>>,           // 이메일 (Resend)
+    pub ipgeo: Arc<IpGeoClient>,                       // IP Geolocation
+    pub payment: Option<Arc<dyn PaymentProvider>>,     // 결제 (Paddle)
+    pub revenuecat: Option<Arc<dyn RevenueCatClient>>, // 모바일 IAP (RevenueCat)
 }
 ```
 
@@ -352,7 +355,7 @@ use sqlx::Type;
 use utoipa::ToSchema;
 use std::fmt;
 
-// Triple Derive 패턴: sqlx + serde + utoipa
+// Triple Derive 패턴: sqlx + serde + utoipa (예시 — 실제 UserAuth는 Hymn/Admin/Manager/Learner)
 #[derive(Clone, Debug, Serialize, Deserialize, Type, ToSchema, PartialEq)]
 #[sqlx(type_name = "user_auth")]        // DB enum 이름
 #[serde(rename_all = "lowercase")]      // JSON: "google", "email"
@@ -530,12 +533,19 @@ async fn main() -> anyhow::Result<()> {
         .create_pool(Some(deadpool_redis::Runtime::Tokio1))
         .expect("Failed to create Redis pool");
 
-    // 5) AppState 생성
+    // 5) 외부 서비스 클라이언트 초기화 (Email, Payment, RevenueCat 등)
+    // ... (main.rs 참조 — provider 분기 + Arc 래핑)
+
+    // 6) AppState 생성
     let app_state = AppState {
         db: pool,
         redis,
         cfg: cfg.clone(),
         started_at: Instant::now(),
+        email,        // Option<Arc<dyn EmailSender>>
+        ipgeo,        // Arc<IpGeoClient>
+        payment,      // Option<Arc<dyn PaymentProvider>>
+        revenuecat,   // Option<Arc<dyn RevenueCatClient>>
     };
 
     // 6) CORS 설정

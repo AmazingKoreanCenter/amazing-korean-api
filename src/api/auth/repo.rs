@@ -515,6 +515,49 @@ impl AuthRepo {
         Ok(rows)
     }
 
+    /// 특정 세션 상태 변경 (pool 버전 — 트랜잭션 없이 단독 실행)
+    pub async fn update_login_state_by_session(
+        pool: &PgPool,
+        session_id: &str,
+        state: &str,
+        revoked_reason: Option<&str>,
+    ) -> AppResult<()> {
+        sqlx::query(r#"
+            UPDATE public.login
+            SET login_state = CAST($2 AS login_state_enum),
+                login_revoked_reason = $3
+            WHERE login_session_id = CAST($1 AS uuid)
+        "#)
+        .bind(session_id)
+        .bind(state)
+        .bind(revoked_reason)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// 사용자의 가장 오래된 활성 세션 N개 조회 (FIFO 퇴장용)
+    pub async fn find_active_sessions_oldest(
+        pool: &PgPool,
+        user_id: i64,
+        limit: usize,
+    ) -> AppResult<Vec<String>> {
+        let rows = sqlx::query_scalar::<_, String>(r#"
+            SELECT login_session_id::text
+            FROM public.login
+            WHERE user_id = $1 AND login_state = 'active'::login_state_enum
+            ORDER BY login_begin_at ASC
+            LIMIT $2
+        "#)
+        .bind(user_id)
+        .bind(limit as i64)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows)
+    }
+
     // ---------------------------------------------------------------------
     // OAuth Related
     // ---------------------------------------------------------------------

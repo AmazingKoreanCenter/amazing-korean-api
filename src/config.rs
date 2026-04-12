@@ -60,6 +60,11 @@ pub struct Config {
     pub mfa_token_ttl_sec: i64,                  // MFA 토큰 유효시간 (초, 기본: 300 = 5분)
     pub rate_limit_mfa_max: i64,                 // MFA 코드 검증 최대 시도 횟수 (기본: 5)
     pub rate_limit_mfa_window_sec: i64,          // MFA 코드 검증 레이트리밋 윈도우 (초, 기본: 300)
+    // 동시 세션 수 제한 (역할별)
+    pub max_sessions_learner: i64,               // Learner 최대 동시 세션 (기본: 5, 초과 시 FIFO 자동 퇴장)
+    pub max_sessions_manager: i64,               // Manager 최대 동시 세션 (기본: 3, 초과 시 로그인 거부)
+    pub max_sessions_admin: i64,                 // Admin 최대 동시 세션 (기본: 2, 초과 시 로그인 거부)
+    pub max_sessions_hymn: i64,                  // HYMN 최대 동시 세션 (기본: 2, 초과 시 로그인 거부)
     // RevenueCat (모바일 IAP)
     pub revenuecat_api_key: Option<String>,              // RevenueCat 서버 API 키
     pub revenuecat_webhook_auth_token: Option<String>,   // RevenueCat 웹훅 Bearer 토큰
@@ -188,8 +193,9 @@ impl Config {
 
         // CORS_ORIGINS: 쉼표로 구분된 origin 목록
         // 예: "http://localhost:5173,https://amazing-korean-api.pages.dev"
+        // Tauri 데스크탑 앱: tauri://localhost, https://tauri.localhost
         let cors_origins = env::var("CORS_ORIGINS")
-            .unwrap_or_else(|_| "http://localhost:5173".into())
+            .unwrap_or_else(|_| "http://localhost:5173,tauri://localhost,https://tauri.localhost".into())
             .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
@@ -264,6 +270,24 @@ impl Config {
             .unwrap_or_else(|_| "300".into())
             .parse::<i64>()
             .expect("RATE_LIMIT_MFA_WINDOW_SEC must be a number");
+
+        // 동시 세션 수 제한
+        let max_sessions_learner = env::var("MAX_SESSIONS_LEARNER")
+            .unwrap_or_else(|_| "5".into())
+            .parse::<i64>()
+            .expect("MAX_SESSIONS_LEARNER must be a number");
+        let max_sessions_manager = env::var("MAX_SESSIONS_MANAGER")
+            .unwrap_or_else(|_| "3".into())
+            .parse::<i64>()
+            .expect("MAX_SESSIONS_MANAGER must be a number");
+        let max_sessions_admin = env::var("MAX_SESSIONS_ADMIN")
+            .unwrap_or_else(|_| "2".into())
+            .parse::<i64>()
+            .expect("MAX_SESSIONS_ADMIN must be a number");
+        let max_sessions_hymn = env::var("MAX_SESSIONS_HYMN")
+            .unwrap_or_else(|_| "2".into())
+            .parse::<i64>()
+            .expect("MAX_SESSIONS_HYMN must be a number");
 
         // RevenueCat (모바일 IAP)
         let revenuecat_api_key = env::var("REVENUECAT_API_KEY")
@@ -521,6 +545,10 @@ impl Config {
             mfa_token_ttl_sec,
             rate_limit_mfa_max,
             rate_limit_mfa_window_sec,
+            max_sessions_learner,
+            max_sessions_manager,
+            max_sessions_admin,
+            max_sessions_hymn,
             revenuecat_api_key,
             revenuecat_webhook_auth_token,
             payment_provider,
@@ -575,6 +603,21 @@ impl Config {
             }
             crate::types::UserAuth::Learner => self.refresh_ttl_days,
         }
+    }
+
+    /// 역할에 따른 최대 동시 세션 수 반환
+    pub fn max_sessions_for_role(&self, role: &crate::types::UserAuth) -> i64 {
+        match role {
+            crate::types::UserAuth::Hymn => self.max_sessions_hymn,
+            crate::types::UserAuth::Admin => self.max_sessions_admin,
+            crate::types::UserAuth::Manager => self.max_sessions_manager,
+            crate::types::UserAuth::Learner => self.max_sessions_learner,
+        }
+    }
+
+    /// Learner 역할인지 확인 (세션 초과 시 FIFO 자동 퇴장 대상)
+    pub fn is_session_evict_role(&self, role: &crate::types::UserAuth) -> bool {
+        matches!(role, crate::types::UserAuth::Learner)
     }
 
     /// Admin IP allowlist 확인
@@ -720,6 +763,10 @@ impl fmt::Debug for Config {
             .field("mfa_token_ttl_sec", &self.mfa_token_ttl_sec)
             .field("rate_limit_mfa_max", &self.rate_limit_mfa_max)
             .field("rate_limit_mfa_window_sec", &self.rate_limit_mfa_window_sec)
+            .field("max_sessions_learner", &self.max_sessions_learner)
+            .field("max_sessions_manager", &self.max_sessions_manager)
+            .field("max_sessions_admin", &self.max_sessions_admin)
+            .field("max_sessions_hymn", &self.max_sessions_hymn)
             .field("revenuecat_api_key", &self.revenuecat_api_key.as_ref().map(|_| "***"))
             .field("revenuecat_webhook_auth_token", &self.revenuecat_webhook_auth_token.as_ref().map(|_| "***"))
             .field("payment_provider", &self.payment_provider)

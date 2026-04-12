@@ -223,13 +223,14 @@ pub async fn refresh_mobile(
     Json(req): Json<RefreshReq>,
 ) -> Result<Json<LoginMobileRes>, AppError> {
     // X-Platform 헤더 검증 (웹 클라이언트의 쿠키 보안 우회 방지)
+    // mobile: Flutter 모바일 앱, desktop: Tauri 데스크탑 앱
     let platform = headers
         .get("x-platform")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
-    if platform != "mobile" {
+    if platform != "mobile" && platform != "desktop" {
         return Err(AppError::BadRequest(
-            "X-Platform: mobile header required".into(),
+            "X-Platform: mobile or desktop header required".into(),
         ));
     }
 

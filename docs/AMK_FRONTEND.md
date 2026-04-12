@@ -601,4 +601,16 @@ export function AppRouter() {
 
 > 빌드, 배포, CI/CD, EC2 유지보수 등은 [`AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md) 참조
 
+---
+
+### QR 코드 랜딩 페이지 (`/book/:isbn`)
+
+> 교재 속표지 QR 스캔 → 해당 교재 정보 + 서비스 안내. 순수 프론트엔드 구현 (백엔드 API 없음).
+
+- **ISBN 매핑**: `frontend/src/category/book/book_data.ts` — 10개 언어 x 2종 = 20개 ISBN 정적 맵
+- **자동 언어 전환**: ISBN에서 언어 파악 -> `i18n.changeLanguage()` 자동 적용
+- **CTA 분기**: 비로그인(회원가입 유도) / 로그인(내 E-book, 학습하기)
+- **모바일 퍼스트**: QR 스캔은 대부분 모바일 → 세로 풀너비 CTA, 단일 컬럼
+- **데이터 출처**: `amazing-korean-books/scripts/textbook/data/cover.json`
+
 [⬆️ AMK_API_MASTER.md로 돌아가기](./AMK_API_MASTER.md)
