@@ -11,6 +11,15 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-12 — 한글 자판 연습 (Writing Practice) P6: HangulKeyboard 컴포넌트**
+  - [P6 layout] `frontend/src/category/study/component/writing/keyboard_layout.ts` 신규 — 2벌식 (KS X 5002) 3행 `DUBEOLSIK_ROWS` 데이터 (KeyQ~KeyP / KeyA~KeyL / KeyZ~KeyM, 기본 자모 + Shift 쌍자모). `KeyCap` 타입. `findKeyForJamo` 헬퍼 (자모 → 키캡 + needsShift). `decomposeSyllable` 헬퍼 (한글 음절 U+AC00~U+D7A3 → 초/중/종성 자모 배열, (cho*21+jung)*28+jong 공식)
+  - [P6 key] `HangulKeyboardKey.tsx` 신규 — 개별 키 버튼 (h-12 w-10 기본, sm:h-14 w-12). 기본 자모 중앙 + 오른쪽 위 Shift 변형 + 하단 영문 라벨. `isHighlighted`(primary ring) / `isShiftHighlighted`(amber ring, Shift 입력 필요 시) 상태. 클릭 시 `onPress(base | shift)`. 접근성 aria-label 포함
+  - [P6 keyboard] `HangulKeyboard.tsx` 신규 — Props: `highlightKeys`, `onKeyPress`, `visible`, `onToggle`, `level`, `disabled`, `className`. 레벨별 동작: 초급=항상 표시 (토글 무시), 중급/고급=`visible` prop 존중 + 토글 버튼 (Eye/EyeOff/Keyboard 아이콘). 숨김 상태에선 "키보드 보기" 버튼만 노출. Card 래퍼 + 3행 레이아웃 (rowIdx*1rem 왼쪽 패딩으로 스태거). `useMemo`로 highlightKeys → Set<code> 변환 (base/shift 분리). `findKeyForJamo`로 매칭
+  - [P6 i18n] `ko.json`/`en.json`에 `study.writing.showKeyboard` / `study.writing.hideKeyboard` 키 추가 (중첩 객체)
+  - [검증] `npm run build` 클린 통과 (tsc -b + vite build)
+  - [진행 상황] P1~P6 완료 (60%). 다음: P7 연습 페이지 (레벨 선택 → 연습 실행 → 결과 + study_task_page writing 분기)
+  - [문서] 본 changelog 항목 + STATUS + 메모리 동기화
+
 - **2026-04-12 — 한글 자판 연습 (Writing Practice) P5: 프론트 타입 + API + 훅**
   - [P5 types] `frontend/src/category/study/types.ts` — `writingLevelSchema`/`writingPracticeTypeSchema` Zod enum 신규. `studyTaskKindSchema`에 `writing` 추가. `submitAnswerReqSchema` discriminated union에 `{ kind: "writing", text, session_id? }` variant 추가. `writingPayloadSchema` (prompt/answer?/hint?/level/practice_type/keyboard_visible/image_url?/audio_url?) + `taskPayloadSchema` union에 포함. 세션 API용 request/response DTO 11종 (`StartWritingSessionReq`, `WritingMistake`, `FinishWritingSessionReq`, `WritingSessionListReq`, `WritingStatsReq`, `WritingSessionRes`, `WritingSessionListRes`, `WritingLevelStat`, `WritingDailyStat`, `WritingWeakChar`, `WritingStatsRes`) Zod 스키마 + z.infer 타입
   - [P5 API] `study_api.ts` — `startWritingSession` / `finishWritingSession` / `listWritingSessions` / `getWritingStats` 함수 추가. `sanitizeParams` 헬퍼를 제네릭 `<T extends Record<string, unknown>>`으로 일반화 (기존 StudyListReq 캐스트 hack 제거)

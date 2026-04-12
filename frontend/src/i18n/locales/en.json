@@ -411,7 +411,11 @@
     "toLesson": "To Lesson",
     "nextItemVideo": "Next Item (Video)",
     "nextItemTask": "Next Item (Problem)",
-    "completeLesson": "Complete Lesson"
+    "completeLesson": "Complete Lesson",
+    "writing": {
+      "showKeyboard": "Show Keyboard",
+      "hideKeyboard": "Hide Keyboard"
+    }
   },
   "lesson": {
     "heroBadge": "Step-by-Step Curriculum",

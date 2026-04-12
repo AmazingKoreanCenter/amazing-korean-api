@@ -411,7 +411,11 @@
     "toLesson": "수업으로",
     "nextItemVideo": "다음 항목으로 (영상)",
     "nextItemTask": "다음 항목으로 (문제)",
-    "completeLesson": "수업 완료하기"
+    "completeLesson": "수업 완료하기",
+    "writing": {
+      "showKeyboard": "키보드 보기",
+      "hideKeyboard": "키보드 숨기기"
+    }
   },
   "lesson": {
     "heroBadge": "단계별 커리큘럼",
