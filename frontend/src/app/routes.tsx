@@ -1,91 +1,108 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router-dom";
 
 import { RootLayout } from "@/components/layout/root_layout";
+
+// Public 핵심 — 첫 페인트 경로라 eager. 메인 번들에 유지.
 import HomePage from "@/category/home/home_page";
 import { AboutPage } from "@/category/about/page/about_page";
-
-import { HealthPage } from "@/category/health/page/health_page";
-import { SignupPage } from "@/category/auth/page/signup_page";
 import { LoginPage } from "@/category/auth/page/login_page";
-import { AccountRecoveryPage } from "@/category/auth/page/account_recovery_page";
-import { ResetPasswordPage } from "@/category/auth/page/reset_password_page";
-import { RequestResetPasswordPage } from "@/category/auth/page/request_reset_password_page";
-import { VerifyEmailPage } from "@/category/auth/page/verify_email_page";
-import { MyPage } from "@/category/user/page/my_page";
-import { SettingsPage } from "@/category/user/page/settings_page";
-// Coming Soon — 콘텐츠 준비 중 (video/study/lesson 임시 대체)
-import { ComingSoonPage } from "@/category/coming_soon/page/coming_soon_page";
-import PrivateRoute from "@/routes/private_route";
-
-// Admin imports
-import { AdminRoute } from "@/routes/admin_route";
-import { AdminLayout } from "@/category/admin/page/admin_layout";
-import { AdminDashboard } from "@/category/admin/page/admin_dashboard";
-import { AdminUsersPage } from "@/category/admin/page/admin_users_page";
-import { AdminUserDetail } from "@/category/admin/page/admin_user_detail";
-import { AdminUserCreate } from "@/category/admin/page/admin_user_create";
-import { AdminUserBulkCreate } from "@/category/admin/page/admin_user_bulk_create";
-import { AdminVideosPage } from "@/category/admin/page/admin_videos_page";
-import { AdminVideoDetail } from "@/category/admin/page/admin_video_detail";
-import { AdminVideoCreate } from "@/category/admin/page/admin_video_create";
-import { AdminVideoBulkCreate } from "@/category/admin/page/admin_video_bulk_create";
-import { AdminVideoStatsPage } from "@/category/admin/page/admin_video_stats_page";
-import { AdminUserStatsPage } from "@/category/admin/page/admin_user_stats_page";
-import { AdminLoginStatsPage } from "@/category/admin/page/admin_login_stats_page";
-import { AdminStudiesPage } from "@/category/admin/page/admin_studies_page";
-import { AdminStudyDetail } from "@/category/admin/page/admin_study_detail";
-import { AdminStudyCreate } from "@/category/admin/page/admin_study_create";
-import { AdminStudyStatsPage } from "@/category/admin/page/admin_study_stats_page";
-import { AdminStudyBulkCreate } from "@/category/admin/page/admin_study_bulk_create";
-import { AdminLessonsPage } from "@/category/admin/page/admin_lessons_page";
-import { AdminLessonDetail } from "@/category/admin/page/admin_lesson_detail";
-import { AdminLessonCreate } from "@/category/admin/page/admin_lesson_create";
-import { AdminLessonBulkCreate } from "@/category/admin/page/admin_lesson_bulk_create";
-import { AdminTranslationsPage } from "@/category/admin/page/admin_translations_page";
-import { AdminTranslationDashboard } from "@/category/admin/page/admin_translation_dashboard";
-import { AdminTranslationEdit } from "@/category/admin/page/admin_translation_edit";
-import { AdminEmailTest } from "@/category/admin/page/admin_email_test";
-import { AdminMfaSetupPage } from "@/category/admin/page/admin_mfa_setup_page";
-import { AdminUpgradeJoin } from "@/category/admin/page/admin_upgrade_join";
-import { AdminSubscriptionsPage } from "@/category/admin/payment/page/admin_subscriptions_page";
-import { AdminSubscriptionDetail } from "@/category/admin/payment/page/admin_subscription_detail";
-import { AdminTransactionsPage } from "@/category/admin/payment/page/admin_transactions_page";
-import { AdminGrantsPage } from "@/category/admin/payment/page/admin_grants_page";
-
-// Legal pages
-import { TermsPage } from "@/category/legal/page/terms_page";
-import { PrivacyPage } from "@/category/legal/page/privacy_page";
-import { RefundPolicyPage } from "@/category/legal/page/refund_policy_page";
-import { FaqPage } from "@/category/legal/page/faq_page";
-
-// Payment pages — PricingPage 차단 (콘텐츠 미준비, ComingSoonPage로 대체)
-
-// Book hub page
+import { SignupPage } from "@/category/auth/page/signup_page";
 import { BookHubPage } from "@/category/book/page/book_hub_page";
-
-// Book QR landing page
 import { BookLandingPage } from "@/category/book/page/book_landing_page";
 
-// Textbook pages
+// React.lazy는 default export만 지원. named export 모듈은 .then() 어댑터로
+// { default: m.ExportName } 형태로 변환해야 함 (React 공식 문서 참조).
+// Coming Soon — 7개 라우트에서 사용하지만 임시 페이지라 lazy 처리
+const ComingSoonPage = lazy(() => import("@/category/coming_soon/page/coming_soon_page").then((m) => ({ default: m.ComingSoonPage })));
+const FaqPage = lazy(() => import("@/category/legal/page/faq_page").then((m) => ({ default: m.FaqPage })));
+
+// Auth 보조 — 사용 빈도 낮음, lazy
+const AccountRecoveryPage = lazy(() => import("@/category/auth/page/account_recovery_page").then((m) => ({ default: m.AccountRecoveryPage })));
+const ResetPasswordPage = lazy(() => import("@/category/auth/page/reset_password_page").then((m) => ({ default: m.ResetPasswordPage })));
+const RequestResetPasswordPage = lazy(() => import("@/category/auth/page/request_reset_password_page").then((m) => ({ default: m.RequestResetPasswordPage })));
+const VerifyEmailPage = lazy(() => import("@/category/auth/page/verify_email_page").then((m) => ({ default: m.VerifyEmailPage })));
+const HealthPage = lazy(() => import("@/category/health/page/health_page").then((m) => ({ default: m.HealthPage })));
+
+// User — 로그인 후에만 접근, lazy
+const MyPage = lazy(() => import("@/category/user/page/my_page").then((m) => ({ default: m.MyPage })));
+const SettingsPage = lazy(() => import("@/category/user/page/settings_page").then((m) => ({ default: m.SettingsPage })));
+
+import PrivateRoute from "@/routes/private_route";
+
+// Admin — admin/HYMN만 접근, 일반 사용자 번들에서 완전 제거. 30+ 페이지.
+import { AdminRoute } from "@/routes/admin_route";
+const AdminLayout = lazy(() => import("@/category/admin/page/admin_layout").then((m) => ({ default: m.AdminLayout })));
+const AdminDashboard = lazy(() => import("@/category/admin/page/admin_dashboard").then((m) => ({ default: m.AdminDashboard })));
+const AdminUsersPage = lazy(() => import("@/category/admin/page/admin_users_page").then((m) => ({ default: m.AdminUsersPage })));
+const AdminUserDetail = lazy(() => import("@/category/admin/page/admin_user_detail").then((m) => ({ default: m.AdminUserDetail })));
+const AdminUserCreate = lazy(() => import("@/category/admin/page/admin_user_create").then((m) => ({ default: m.AdminUserCreate })));
+const AdminUserBulkCreate = lazy(() => import("@/category/admin/page/admin_user_bulk_create").then((m) => ({ default: m.AdminUserBulkCreate })));
+const AdminVideosPage = lazy(() => import("@/category/admin/page/admin_videos_page").then((m) => ({ default: m.AdminVideosPage })));
+const AdminVideoDetail = lazy(() => import("@/category/admin/page/admin_video_detail").then((m) => ({ default: m.AdminVideoDetail })));
+const AdminVideoCreate = lazy(() => import("@/category/admin/page/admin_video_create").then((m) => ({ default: m.AdminVideoCreate })));
+const AdminVideoBulkCreate = lazy(() => import("@/category/admin/page/admin_video_bulk_create").then((m) => ({ default: m.AdminVideoBulkCreate })));
+const AdminVideoStatsPage = lazy(() => import("@/category/admin/page/admin_video_stats_page").then((m) => ({ default: m.AdminVideoStatsPage })));
+const AdminUserStatsPage = lazy(() => import("@/category/admin/page/admin_user_stats_page").then((m) => ({ default: m.AdminUserStatsPage })));
+const AdminLoginStatsPage = lazy(() => import("@/category/admin/page/admin_login_stats_page").then((m) => ({ default: m.AdminLoginStatsPage })));
+const AdminStudiesPage = lazy(() => import("@/category/admin/page/admin_studies_page").then((m) => ({ default: m.AdminStudiesPage })));
+const AdminStudyDetail = lazy(() => import("@/category/admin/page/admin_study_detail").then((m) => ({ default: m.AdminStudyDetail })));
+const AdminStudyCreate = lazy(() => import("@/category/admin/page/admin_study_create").then((m) => ({ default: m.AdminStudyCreate })));
+const AdminStudyStatsPage = lazy(() => import("@/category/admin/page/admin_study_stats_page").then((m) => ({ default: m.AdminStudyStatsPage })));
+const AdminStudyBulkCreate = lazy(() => import("@/category/admin/page/admin_study_bulk_create").then((m) => ({ default: m.AdminStudyBulkCreate })));
+const AdminLessonsPage = lazy(() => import("@/category/admin/page/admin_lessons_page").then((m) => ({ default: m.AdminLessonsPage })));
+const AdminLessonDetail = lazy(() => import("@/category/admin/page/admin_lesson_detail").then((m) => ({ default: m.AdminLessonDetail })));
+const AdminLessonCreate = lazy(() => import("@/category/admin/page/admin_lesson_create").then((m) => ({ default: m.AdminLessonCreate })));
+const AdminLessonBulkCreate = lazy(() => import("@/category/admin/page/admin_lesson_bulk_create").then((m) => ({ default: m.AdminLessonBulkCreate })));
+const AdminTranslationsPage = lazy(() => import("@/category/admin/page/admin_translations_page").then((m) => ({ default: m.AdminTranslationsPage })));
+const AdminTranslationDashboard = lazy(() => import("@/category/admin/page/admin_translation_dashboard").then((m) => ({ default: m.AdminTranslationDashboard })));
+const AdminTranslationEdit = lazy(() => import("@/category/admin/page/admin_translation_edit").then((m) => ({ default: m.AdminTranslationEdit })));
+const AdminEmailTest = lazy(() => import("@/category/admin/page/admin_email_test").then((m) => ({ default: m.AdminEmailTest })));
+const AdminMfaSetupPage = lazy(() => import("@/category/admin/page/admin_mfa_setup_page").then((m) => ({ default: m.AdminMfaSetupPage })));
+const AdminUpgradeJoin = lazy(() => import("@/category/admin/page/admin_upgrade_join").then((m) => ({ default: m.AdminUpgradeJoin })));
+const AdminSubscriptionsPage = lazy(() => import("@/category/admin/payment/page/admin_subscriptions_page").then((m) => ({ default: m.AdminSubscriptionsPage })));
+const AdminSubscriptionDetail = lazy(() => import("@/category/admin/payment/page/admin_subscription_detail").then((m) => ({ default: m.AdminSubscriptionDetail })));
+const AdminTransactionsPage = lazy(() => import("@/category/admin/payment/page/admin_transactions_page").then((m) => ({ default: m.AdminTransactionsPage })));
+const AdminGrantsPage = lazy(() => import("@/category/admin/payment/page/admin_grants_page").then((m) => ({ default: m.AdminGrantsPage })));
+const AdminTextbookOrdersPage = lazy(() => import("@/category/admin/textbook/page/admin_textbook_orders_page").then((m) => ({ default: m.AdminTextbookOrdersPage })));
+const AdminTextbookOrderDetail = lazy(() => import("@/category/admin/textbook/page/admin_textbook_order_detail").then((m) => ({ default: m.AdminTextbookOrderDetail })));
+const AdminTextbookOrderPrint = lazy(() => import("@/category/admin/textbook/page/admin_textbook_order_print").then((m) => ({ default: m.AdminTextbookOrderPrint })));
+const AdminEbookPurchasesPage = lazy(() => import("@/category/admin/ebook/page/admin_ebook_purchases_page").then((m) => ({ default: m.AdminEbookPurchasesPage })));
+const AdminEbookPurchaseDetail = lazy(() => import("@/category/admin/ebook/page/admin_ebook_purchase_detail").then((m) => ({ default: m.AdminEbookPurchaseDetail })));
+
+// Legal — 가벼움, 일부는 사용 빈도 낮음. lazy로 ↓
+const TermsPage = lazy(() => import("@/category/legal/page/terms_page").then((m) => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import("@/category/legal/page/privacy_page").then((m) => ({ default: m.PrivacyPage })));
+const RefundPolicyPage = lazy(() => import("@/category/legal/page/refund_policy_page").then((m) => ({ default: m.RefundPolicyPage })));
+
+// Textbook 카탈로그 — Public, eager
 import { TextbookCatalogPage } from "@/category/textbook/page/textbook_catalog_page";
-import { TextbookOrderPage } from "@/category/textbook/page/textbook_order_page";
-import { TextbookOrderStatusPage } from "@/category/textbook/page/textbook_order_status_page";
-import { TextbookMyOrdersPage } from "@/category/textbook/page/textbook_my_orders_page";
-import { TextbookOrderPrint } from "@/category/textbook/page/textbook_order_print";
-import { AdminTextbookOrdersPage } from "@/category/admin/textbook/page/admin_textbook_orders_page";
-import { AdminTextbookOrderDetail } from "@/category/admin/textbook/page/admin_textbook_order_detail";
-import { AdminTextbookOrderPrint } from "@/category/admin/textbook/page/admin_textbook_order_print";
+// Textbook 후속 — 주문/상태/마이/인쇄, lazy
+const TextbookOrderPage = lazy(() => import("@/category/textbook/page/textbook_order_page").then((m) => ({ default: m.TextbookOrderPage })));
+const TextbookOrderStatusPage = lazy(() => import("@/category/textbook/page/textbook_order_status_page").then((m) => ({ default: m.TextbookOrderStatusPage })));
+const TextbookMyOrdersPage = lazy(() => import("@/category/textbook/page/textbook_my_orders_page").then((m) => ({ default: m.TextbookMyOrdersPage })));
+const TextbookOrderPrint = lazy(() => import("@/category/textbook/page/textbook_order_print").then((m) => ({ default: m.TextbookOrderPrint })));
 
-// E-book pages
+// E-book 카탈로그 — Public, eager
 import { EbookCatalogPage } from "@/category/ebook/page/ebook_catalog_page";
-import { EbookViewerPage } from "@/category/ebook/page/ebook_viewer_page";
-import { EbookMyPurchasesPage } from "@/category/ebook/page/ebook_my_purchases_page";
-import { EbookPurchaseCompletePage } from "@/category/ebook/page/ebook_purchase_complete_page";
-import { AdminEbookPurchasesPage } from "@/category/admin/ebook/page/admin_ebook_purchases_page";
-import { AdminEbookPurchaseDetail } from "@/category/admin/ebook/page/admin_ebook_purchase_detail";
+// E-book 후속 — 무거운 뷰어/구매/마이, lazy
+const EbookViewerPage = lazy(() => import("@/category/ebook/page/ebook_viewer_page").then((m) => ({ default: m.EbookViewerPage })));
+const EbookMyPurchasesPage = lazy(() => import("@/category/ebook/page/ebook_my_purchases_page").then((m) => ({ default: m.EbookMyPurchasesPage })));
+const EbookPurchaseCompletePage = lazy(() => import("@/category/ebook/page/ebook_purchase_complete_page").then((m) => ({ default: m.EbookPurchaseCompletePage })));
 
-// Error pages
-import { AccessDeniedPage, NotFoundPage, ErrorPage } from "@/category/error/page";
+// Error pages — 가벼움, 자주 안 보임. lazy로 메인에서 분리
+const AccessDeniedPage = lazy(() => import("@/category/error/page").then((m) => ({ default: m.AccessDeniedPage })));
+const NotFoundPage = lazy(() => import("@/category/error/page").then((m) => ({ default: m.NotFoundPage })));
+const ErrorPage = lazy(() => import("@/category/error/page").then((m) => ({ default: m.ErrorPage })));
+
+// 라우트 단위 lazy fallback
+function RouteFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-[40vh]">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-label="Loading" />
+    </div>
+  );
+}
 
 // Redirect helpers for parameterized old routes
 function RedirectTextbookOrder() {
@@ -103,7 +120,8 @@ function RedirectEbookViewer() {
 
 export function AppRoutes() {
   return (
-    <Routes>
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
       {/* RootLayout으로 모든 페이지 감싸기 (Header + Footer) */}
       <Route element={<RootLayout />}>
         {/* 누구나 접근 가능 (Public) */}
@@ -220,6 +238,7 @@ export function AppRoutes() {
         </Route>
       </Route>
 
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }

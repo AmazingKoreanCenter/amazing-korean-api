@@ -11,6 +11,18 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-10 — 속도 개선 Phase S1+S2: 측정 인프라 + Quick Win 번들 분할**
+  - [인프라] `frontend/perf-audit/` 신규 — Lighthouse 기반 자동 성능 측정 도구 (`audit.mjs`, `pages.mjs`)
+  - [의존성] `lighthouse` + `chrome-launcher` devDependency 추가. Playwright Chromium 동적 탐색
+  - [Quick Win] `vite.config.ts` manualChunks — vendor 11종 분리 (react/radix/forms/swiper/dnd/paddle/video/i18n/tanstack/tus/기타)
+  - [Quick Win] `routes.tsx` React.lazy — Admin 30+ 페이지, Auth 보조 5, Legal 3, Textbook/Ebook 후속 5, Error 3, ComingSoon/FAQ lazy 전환 + Suspense 래핑
+  - [결과] **메인 번들 1,620KB → 271KB (-83.3%)**, home Performance 48→72 (+24), TBT 2572→315ms (-88%)
+  - [베이스라인] 8페이지 Lighthouse 측정 완료 (pre/post). Performance 평균 61→66. 목표 90+ 도달까지 Phase S3 필요
+  - [보안] npm audit 3건 동시 해결 (axios 1.15.0 + vite 7.3.2 + basic-ftp override)
+  - [품질] 13건 코드 품질 이슈 일괄 수정 (Chromium 경로 동적화, cleanup hang 해결, LABEL 검증, regex 통일, 주석 보강 등)
+  - [.gitignore] `perf-audit/artifacts/`, `test-results/` 제외 추가
+  - [다음] Phase S3 — faq/book-hub LCP 12~17s 원인 조사, Font preload, 이미지 최적화
+
 - **2026-04-10 — Figma 도입 보류 결정 + Phase A 도구 영구 자산 전환**
   - [결정] Figma Phase B (정리·임포트) / Phase C (네이티브 생성) 보류 — 1인 풀스택 환경에서 트리플 동기화 부담이 ④ 유지보수 효율 목표에 역행
   - [트리거] Phase B 착수 시 Figma MCP Starter 한도 초과 → 도입 자체를 재검토
