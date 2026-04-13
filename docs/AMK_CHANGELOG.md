@@ -11,6 +11,18 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-13 — 한글 자판 연습 (Writing Practice) P10-B: 프론트 자유 연습 실연결**
+  - [P10-B types] `frontend/src/category/study/types.ts` — `writingPracticeSeedReqSchema`/`writingPracticeSeedItemSchema`/`writingPracticeSeedResSchema` Zod 스키마 3종 신규. 백엔드 `WritingPracticeSeedReq`/`Item`/`Res` 파리티. `level`/`practice_type`은 기존 enum 스키마 재사용
+  - [P10-B api] `frontend/src/category/study/study_api.ts` — `getWritingPracticeSeed({level, practice_type, limit?})` 함수 신규. `GET /studies/writing/practice` 호출 (비인증 엔드포인트)
+  - [P10-B hook] `frontend/src/category/study/hook/use_writing_practice_seed.ts` 신규 — `useWritingPracticeSeed` 쿼리 훅. queryKey `["writing-practice-seed", level, practice_type, limit]`, `staleTime` 10분 (시드는 거의 변하지 않음)
+  - [P10-B task] `component/writing/WritingTask.tsx` — props `taskId: number | null`로 타입 완화. `mutate` 호출 시 `study_task_id: taskId ?? null`. 기존 `study_task_page.tsx` 호출부는 number 전달이라 영향 없음. 자유 연습 모드에선 null 전달 → 세션 `study_task_id=null`로 저장
+  - [P10-B page] `page/writing_practice_page.tsx` 완전 리라이트 — "준비 중" placeholder 카드 제거. `FreePracticeRunner` 서브 컴포넌트 신규: `useWritingPracticeSeed` 로드 → `currentIndex` state → 현재 아이템을 `WritingPayload` 형태로 재구성(초급만 answer 전달, `keyboard_visible=beginner 여부`) → `WritingTask` 렌더. 결과 확인 버튼 → `finishWritingSession` → 결과 카드 표시 → "다음 문제" 버튼. 마지막 아이템 완료 시 "처음부터 다시" / "다른 유형 선택" CTA. WritingTask `key` prop은 `seed_id` + `attempt` 기반으로 아이템/재시도 시 재마운트 보장(세션 중복 방지)
+  - [P10-B i18n] `study.writing.*`에서 `freePracticeComingTitle`/`freePracticeComingDescription`/`freePracticeMeta` 3개 키 제거. `freePracticeProgress`/`freePracticeLoadError`/`freePracticeEmpty`/`finishItem`/`finishAll`/`nextItem`/`allCompleted`/`restart`/`selectOther` 9개 키 ko/en 추가
+  - [검증] `cd frontend && npm run build` 클린 통과 (tsc -b + vite build 8.63s)
+  - [진행 상황] P10-B 완료 (95%). 다음: P10-C Playwright E2E (로그인 → 레벨/유형 선택 → 시드 렌더 → 타이핑 → 세션 완료 → 통계 반영 확인)
+  - [배제] B안(한 세션 = 전체 묶음)은 세션 finish 1회 전제가 깨지므로 보류. 진행도 persistence(localStorage/서버) 스코프 밖
+  - [문서] 본 changelog 항목 + STATUS #59 + 메모리 동기화
+
 - **2026-04-13 — 한글 자판 연습 (Writing Practice) P10-A: 자유 연습 시드 컨텐츠 + 백엔드 엔드포인트**
   - [P10-A migration] `migrations/20260413_writing_practice_seed.sql` 신규 — `writing_practice_seed` 테이블 (pk/level/practice_type/seq/prompt/answer/hint). UNIQUE (level, practice_type, seq) + `(level, practice_type, seq)` 복합 인덱스. 자유 연습은 study 수강 흐름과 독립된 드릴 컨텐츠라 study_task_writing 재사용 대신 별도 테이블로 분리
   - [P10-A seed] 동일 마이그레이션 INSERT ~190개 — 초급 jamo 40 (기본 자음 14 + 기본 모음 10 + 쌍자음 5 + 이중모음 11) / syllable 30 (CV 음절) / word 30 (일상어). 중급 word 30 (2~4음절 복합어) / sentence 30 (기초 회화). 고급 sentence 20 (복문·경어법) / paragraph 10 (2~4문장). 초급 jamo만 hint에 로마자 포함

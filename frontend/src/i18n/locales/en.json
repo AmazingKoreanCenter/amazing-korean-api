@@ -434,9 +434,15 @@
       "selectPracticeType": "Choose a practice type.",
       "backToLevels": "Back to levels",
       "backToTypes": "Back to types",
-      "freePracticeComingTitle": "Free practice coming soon",
-      "freePracticeComingDescription": "Once seed content is ready you'll be able to practice freely from this screen. For now, please practice via study tasks.",
-      "freePracticeMeta": "Selected: {{level}} · {{type}}",
+      "freePracticeProgress": "{{current}} / {{total}}",
+      "freePracticeLoadError": "Failed to load practice content. Please try again.",
+      "freePracticeEmpty": "No practice content is available yet.",
+      "finishItem": "Check result",
+      "finishAll": "Check final result",
+      "nextItem": "Next item",
+      "allCompleted": "All practice completed!",
+      "restart": "Start over",
+      "selectOther": "Choose another type",
       "level": {
         "beginner": {
           "title": "Beginner",

@@ -434,9 +434,15 @@
       "selectPracticeType": "연습 유형을 선택하세요.",
       "backToLevels": "레벨 선택으로",
       "backToTypes": "유형 선택으로",
-      "freePracticeComingTitle": "자유 연습 준비 중",
-      "freePracticeComingDescription": "시드 콘텐츠가 준비되면 이 화면에서 바로 자유 연습을 시작할 수 있습니다. 지금은 학습 문제(태스크)를 통해 연습해주세요.",
-      "freePracticeMeta": "선택: {{level}} · {{type}}",
+      "freePracticeProgress": "{{current}} / {{total}}",
+      "freePracticeLoadError": "연습 콘텐츠를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+      "freePracticeEmpty": "아직 등록된 연습 콘텐츠가 없습니다.",
+      "finishItem": "결과 확인",
+      "finishAll": "마지막 결과 확인",
+      "nextItem": "다음 문제",
+      "allCompleted": "모든 연습을 완료했어요!",
+      "restart": "처음부터 다시",
+      "selectOther": "다른 유형 선택",
       "level": {
         "beginner": {
           "title": "초급",

@@ -326,3 +326,33 @@ export const writingStatsResSchema = z.object({
 });
 
 export type WritingStatsRes = z.infer<typeof writingStatsResSchema>;
+
+// =========================================================================
+// Writing Practice Seed (자유 연습 드릴 컨텐츠)
+// =========================================================================
+
+export const writingPracticeSeedReqSchema = z.object({
+  level: writingLevelSchema,
+  practice_type: writingPracticeTypeSchema,
+  limit: z.number().int().min(1).max(100).optional(),
+});
+
+export type WritingPracticeSeedReq = z.infer<typeof writingPracticeSeedReqSchema>;
+
+export const writingPracticeSeedItemSchema = z.object({
+  seed_id: z.number().int(),
+  seq: z.number().int(),
+  prompt: z.string(),
+  answer: z.string(),
+  hint: z.string().nullable().optional(),
+});
+
+export type WritingPracticeSeedItem = z.infer<typeof writingPracticeSeedItemSchema>;
+
+export const writingPracticeSeedResSchema = z.object({
+  level: writingLevelSchema,
+  practice_type: writingPracticeTypeSchema,
+  items: z.array(writingPracticeSeedItemSchema),
+});
+
+export type WritingPracticeSeedRes = z.infer<typeof writingPracticeSeedResSchema>;

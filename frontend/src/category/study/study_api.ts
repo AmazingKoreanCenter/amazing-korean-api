@@ -16,6 +16,8 @@ import type {
   WritingSessionListRes,
   WritingStatsReq,
   WritingStatsRes,
+  WritingPracticeSeedReq,
+  WritingPracticeSeedRes,
 } from "@/category/study/types";
 
 const sanitizeParams = <T extends Record<string, unknown>>(params: T): Partial<T> => {
@@ -81,6 +83,13 @@ export const listWritingSessions = (params: WritingSessionListReq = {}) => {
 
 export const getWritingStats = (params: WritingStatsReq = {}) => {
   return request<WritingStatsRes>("/studies/writing/stats", {
+    params: sanitizeParams(params),
+  });
+};
+
+// 자유 연습 시드 조회 (비인증 엔드포인트)
+export const getWritingPracticeSeed = (params: WritingPracticeSeedReq) => {
+  return request<WritingPracticeSeedRes>("/studies/writing/practice", {
     params: sanitizeParams(params),
   });
 };

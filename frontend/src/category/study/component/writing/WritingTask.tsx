@@ -8,7 +8,7 @@ import { WritingResultPanel } from "./WritingResultPanel";
 import { useStartWritingSession } from "@/category/study/hook/use_writing_session";
 
 interface WritingTaskProps {
-  taskId: number;
+  taskId: number | null;
   payload: WritingPayload;
   text: string;
   onChange: (text: string) => void;
@@ -42,7 +42,7 @@ export function WritingTask({
     startedRef.current = true;
     startRef.current.mutate(
       {
-        study_task_id: taskId,
+        study_task_id: taskId ?? null,
         writing_level: payload.level,
         writing_practice_type: payload.practice_type,
       },
