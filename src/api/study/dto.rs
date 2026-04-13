@@ -338,3 +338,37 @@ pub struct WritingStatsRes {
     pub recent_trend: Vec<WritingDailyStat>,
     pub weak_chars: Vec<WritingWeakChar>,
 }
+
+// =========================================================================
+// Writing Practice Seed DTOs (자유 연습 드릴 컨텐츠)
+// =========================================================================
+
+/// 자유 연습 시드 조회 요청 (Query String)
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingPracticeSeedReq {
+    pub level: WritingLevel,
+    pub practice_type: WritingPracticeType,
+    /// 최대 반환 개수 (기본 20, 최대 100)
+    pub limit: Option<u32>,
+}
+
+/// 자유 연습 시드 아이템
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingPracticeSeedItem {
+    pub seed_id: i64,
+    pub seq: i32,
+    pub prompt: String,
+    pub answer: String,
+    pub hint: Option<String>,
+}
+
+/// 자유 연습 시드 응답
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct WritingPracticeSeedRes {
+    pub level: WritingLevel,
+    pub practice_type: WritingPracticeType,
+    pub items: Vec<WritingPracticeSeedItem>,
+}

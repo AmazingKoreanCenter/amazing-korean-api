@@ -226,6 +226,7 @@
 | 5-8 | `PATCH /studies/writing/sessions/{id}` | `/study/writing/:level/:type/:taskId` | 한글 자판 연습 세션 완료 | ***client 측정 total_chars/correct_chars/duration_ms/mistakes → 서버에서 accuracy_rate/CPM 계산 후 finished_at 저장***<br>400: total_chars/correct_chars/duration_ms 음수<br>422: correct_chars > total_chars<br>404: 타인 세션 또는 미존재 | [✅🆗] |
 | 5-9 | `GET /studies/writing/sessions` | `/study/writing/history` | 내 세션 목록 | ***user_id 기반 페이지네이션, level/finished_only 필터*** | [✅🆗] |
 | 5-10 | `GET /studies/writing/stats` | `/study/writing/stats` | 통계 대시보드 | ***days 파라미터(기본 30, 최대 365) 범위에서 total/avg_accuracy/avg_cpm + 레벨별 + 일별 추이 + 취약 글자 Top 10*** | [✅🆗] |
+| 5-11 | `GET /studies/writing/practice` | `/studies/writing/:level/:type` | 자유 연습 시드 컨텐츠 | ***level+practice_type 필터, seq 오름차순, 기본 20 / 최대 100, 비인증 허용. `writing_practice_seed` 테이블에서 prompt/answer/hint 반환*** | [✅🆗] |
 
 ---
 
@@ -436,6 +437,28 @@
 - 실패(형식/누락) → **400** (`days=0`)
 - 실패(도메인 제약) → **422** (`days>365`)
 - 실패(미인증) → **401**
+
+#### 5.5-11 : `GET /studies/writing/practice` (자유 연습 시드 컨텐츠)
+- **비인증** 허용. `study_task` 수강권과 무관한 드릴 컨텐츠 제공.
+- **Query Params**
+  - `level` (필수) — `beginner` | `intermediate` | `advanced`
+  - `practice_type` (필수) — `jamo` | `syllable` | `word` | `sentence` | `paragraph`
+  - `limit` (선택, 기본 20, 최대 100)
+- 성공 → **200**
+  ```json
+  {
+    "level": "beginner",
+    "practice_type": "jamo",
+    "items": [
+      { "seed_id": 1, "seq": 1, "prompt": "ㄱ", "answer": "ㄱ", "hint": "giyeok" }
+    ]
+  }
+  ```
+  - `writing_practice_seed` 테이블에서 `(level, practice_type)` 필터로 `seq` 오름차순 조회
+  - `prompt` = 화면에 표시할 텍스트, `answer` = 학습자가 입력해야 할 정답 (대부분 동일)
+  - `hint`는 optional (초급 jamo만 로마자 표기 포함)
+- 실패(형식/누락) → **400** (`limit=0`)
+- 실패(도메인 제약) → **422** (`limit>100`, 잘못된 level/practice_type)
 
 </details>
 

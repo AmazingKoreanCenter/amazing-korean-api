@@ -25,4 +25,5 @@ pub fn router() -> Router<AppState> {
             patch(handler::finish_writing_session),
         )
         .route("/writing/stats", get(handler::get_writing_stats))
+        .route("/writing/practice", get(handler::list_writing_practice_seed))
 }

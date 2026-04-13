@@ -8,8 +8,8 @@ use crate::state::AppState;
 use super::dto::{
     FinishWritingSessionReq, StartWritingSessionReq, StudyDetailReq, StudyDetailRes, StudyListReq,
     StudyListResp, StudyTaskDetailRes, SubmitAnswerReq, SubmitAnswerRes, TaskExplainRes,
-    TaskStatusRes, WritingSessionListReq, WritingSessionListRes, WritingSessionRes,
-    WritingStatsReq, WritingStatsRes,
+    TaskStatusRes, WritingPracticeSeedReq, WritingPracticeSeedRes, WritingSessionListReq,
+    WritingSessionListRes, WritingSessionRes, WritingStatsReq, WritingStatsRes,
 };
 use super::service::StudyService;
 
@@ -273,5 +273,29 @@ pub async fn get_writing_stats(
     Query(req): Query<WritingStatsReq>,
 ) -> AppResult<Json<WritingStatsRes>> {
     let res = StudyService::get_writing_stats(&state, auth_user, req).await?;
+    Ok(Json(res))
+}
+
+/// 자유 연습 시드 컨텐츠 조회 (비인증)
+#[utoipa::path(
+    get,
+    path = "/studies/writing/practice",
+    params(
+        ("level" = String, Query, description = "Writing level (beginner/intermediate/advanced)"),
+        ("practice_type" = String, Query, description = "Practice type (jamo/syllable/word/sentence/paragraph)"),
+        ("limit" = Option<u32>, Query, description = "Max items to return (default 20, max 100)")
+    ),
+    responses(
+        (status = 200, description = "Seed items", body = WritingPracticeSeedRes),
+        (status = 400, description = "Bad Request", body = crate::error::ErrorBody),
+        (status = 422, description = "Validation Error", body = crate::error::ErrorBody)
+    ),
+    tag = "study"
+)]
+pub async fn list_writing_practice_seed(
+    State(state): State<AppState>,
+    Query(req): Query<WritingPracticeSeedReq>,
+) -> AppResult<Json<WritingPracticeSeedRes>> {
+    let res = StudyService::list_writing_practice_seed(&state, req).await?;
     Ok(Json(res))
 }

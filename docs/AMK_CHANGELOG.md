@@ -11,6 +11,18 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-13 — 한글 자판 연습 (Writing Practice) P10-A: 자유 연습 시드 컨텐츠 + 백엔드 엔드포인트**
+  - [P10-A migration] `migrations/20260413_writing_practice_seed.sql` 신규 — `writing_practice_seed` 테이블 (pk/level/practice_type/seq/prompt/answer/hint). UNIQUE (level, practice_type, seq) + `(level, practice_type, seq)` 복합 인덱스. 자유 연습은 study 수강 흐름과 독립된 드릴 컨텐츠라 study_task_writing 재사용 대신 별도 테이블로 분리
+  - [P10-A seed] 동일 마이그레이션 INSERT ~190개 — 초급 jamo 40 (기본 자음 14 + 기본 모음 10 + 쌍자음 5 + 이중모음 11) / syllable 30 (CV 음절) / word 30 (일상어). 중급 word 30 (2~4음절 복합어) / sentence 30 (기초 회화). 고급 sentence 20 (복문·경어법) / paragraph 10 (2~4문장). 초급 jamo만 hint에 로마자 포함
+  - [P10-A dto] `src/api/study/dto.rs` — `WritingPracticeSeedReq`/`WritingPracticeSeedItem`/`WritingPracticeSeedRes` 신규. 요청=`level`+`practice_type`+`limit?` (기본 20, 최대 100). 응답=level/practice_type/items
+  - [P10-A repo] `src/api/study/repo.rs` — `StudyRepo::list_writing_practice_seed(pool, level, practice_type, limit)` 신규. `writing_practice_seed`에서 `(level, practice_type)` 필터로 `seq ASC` 조회 + LIMIT
+  - [P10-A service] `src/api/study/service.rs` — `StudyService::list_writing_practice_seed`: limit 검증(0/>100), repo 호출 후 response 구성. 인증 불필요
+  - [P10-A handler+router] `src/api/study/handler.rs` `list_writing_practice_seed` 핸들러 + `GET /studies/writing/practice` 라우트 등록. `OptionalAuthUser`조차 생략해 비인증 허용
+  - [P10-A openapi] `src/docs.rs` — handler + 3개 DTO (Req/Item/Res) 스키마 등록
+  - [P10-A 문서] `docs/AMK_API_LEARNING.md` §5.5 표에 5-11 행 추가 + 5.5-11 상세 시나리오 추가. `docs/AMK_SCHEMA_PATCHED.md` §2.4.5-3 `writing_practice_seed` 테이블 문서화
+  - [검증] `cargo sqlx prepare` 쿼리 캐시 업데이트 완료, `SQLX_OFFLINE=true cargo check` 클린 통과 (0 warning/error). 로컬 DB 마이그레이션 적용 후 `SELECT COUNT(*) GROUP BY level/practice_type`로 행 수 검증 (beginner: 40+30+30, intermediate: 30+30, advanced: 20+10 = 190)
+  - [진행 상황] P10-A 완료. 다음: P10-B 프론트 자유 연습 실연결 (writing_practice_page에서 시드 fetch → WritingTask 재사용 → finishWritingSession 플로우) → P10-C Playwright E2E
+
 - **2026-04-13 — 한글 자판 연습 (Writing Practice) P9: 관리자 프론트 writing 폼 + CSV**
   - [P9 types] `frontend/src/category/admin/study/types.ts` — `studyTaskCreateReqSchema` / `studyTaskUpdateReqSchema` / `studyTaskUpdateItemSchema` / `adminStudyTaskDetailResSchema` 4곳에 writing 전용 필드 4개 (`writing_level`, `writing_practice_type`, `writing_hint`, `writing_keyboard_visible`) 추가. `../../study/types`에서 `writingLevelSchema`/`writingPracticeTypeSchema` import 재사용. 백엔드 AdminStudyTaskDetailRes 파리티 확보
   - [P9 create] `admin_study_create.tsx` — 단일 Task / Bulk Tasks Select 드롭다운에 `writing` 옵션 추가. `study_task_kind === "writing"` 조건부 필드 박스 (level Select / practice_type Select / hint Input / keyboard_visible Checkbox). `taskFormSchema` / `bulkTaskFormSchema`에 4개 필드 optional 추가. `getTaskKindBadgeVariant` writing→outline 분기. `onCSVTasksSubmit` 매핑에 writing 4개 필드 전달

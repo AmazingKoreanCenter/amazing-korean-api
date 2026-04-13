@@ -10,7 +10,8 @@ use crate::types::{WritingLevel, WritingPracticeType};
 use super::dto::{
     ChoicePayload, StudyListSort, StudySummaryDto, StudyTaskDetailRes, StudyTaskSummaryDto,
     TaskPayload, TaskStatusRes, TypingPayload, VoicePayload, WritingDailyStat, WritingLevelStat,
-    WritingMistake, WritingPayload, WritingSessionListReq, WritingSessionRes, WritingWeakChar,
+    WritingMistake, WritingPayload, WritingPracticeSeedItem, WritingSessionListReq,
+    WritingSessionRes, WritingWeakChar,
 };
 
 pub struct StudyRepo;
@@ -963,6 +964,50 @@ impl StudyRepo {
                     expected,
                     miss_count: r.miss_count,
                 })
+            })
+            .collect())
+    }
+
+    // =========================================================================
+    // 6. Writing Practice Seed (자유 연습 컨텐츠)
+    // =========================================================================
+
+    /// 레벨+유형별 시드 컨텐츠를 seq 오름차순으로 조회
+    pub async fn list_writing_practice_seed(
+        pool: &PgPool,
+        level: WritingLevel,
+        practice_type: WritingPracticeType,
+        limit: i64,
+    ) -> AppResult<Vec<WritingPracticeSeedItem>> {
+        let rows = sqlx::query!(
+            r#"
+            SELECT
+                writing_practice_seed_id AS seed_id,
+                seq,
+                prompt,
+                answer,
+                hint
+            FROM writing_practice_seed
+            WHERE writing_level = $1
+              AND writing_practice_type = $2
+            ORDER BY seq ASC
+            LIMIT $3
+            "#,
+            level as WritingLevel,
+            practice_type as WritingPracticeType,
+            limit,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|r| WritingPracticeSeedItem {
+                seed_id: r.seed_id,
+                seq: r.seq,
+                prompt: r.prompt,
+                answer: r.answer,
+                hint: r.hint,
             })
             .collect())
     }

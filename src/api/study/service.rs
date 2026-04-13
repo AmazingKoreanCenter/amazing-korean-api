@@ -11,8 +11,9 @@ use crate::types::{ContentType, StudyProgram, StudyTaskKind, StudyTaskLogAction}
 use super::dto::{
     FinishWritingSessionReq, StartWritingSessionReq, StudyDetailReq, StudyDetailRes, StudyListMeta,
     StudyListReq, StudyListResp, StudyListSort, StudyTaskDetailRes, SubmitAnswerReq,
-    SubmitAnswerRes, TaskExplainRes, TaskStatusRes, WritingSessionListReq, WritingSessionListRes,
-    WritingSessionRes, WritingStatsReq, WritingStatsRes,
+    SubmitAnswerRes, TaskExplainRes, TaskStatusRes, WritingPracticeSeedReq, WritingPracticeSeedRes,
+    WritingSessionListReq, WritingSessionListRes, WritingSessionRes, WritingStatsReq,
+    WritingStatsRes,
 };
 use super::repo::StudyRepo;
 
@@ -589,6 +590,34 @@ impl StudyService {
             level_breakdown,
             recent_trend,
             weak_chars,
+        })
+    }
+
+    // =========================================================================
+    // 6. Writing Practice Seed
+    // =========================================================================
+
+    /// 자유 연습 시드 컨텐츠 조회 (비인증)
+    pub async fn list_writing_practice_seed(
+        st: &AppState,
+        req: WritingPracticeSeedReq,
+    ) -> AppResult<WritingPracticeSeedRes> {
+        let limit = req.limit.unwrap_or(20);
+        if limit == 0 {
+            return Err(AppError::BadRequest("limit must be >= 1".into()));
+        }
+        if limit > 100 {
+            return Err(AppError::Unprocessable("limit must be <= 100".into()));
+        }
+
+        let items =
+            StudyRepo::list_writing_practice_seed(&st.db, req.level, req.practice_type, i64::from(limit))
+                .await?;
+
+        Ok(WritingPracticeSeedRes {
+            level: req.level,
+            practice_type: req.practice_type,
+            items,
         })
     }
 }

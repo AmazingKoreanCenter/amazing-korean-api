@@ -77,6 +77,7 @@ impl Modify for SecurityAddon {
         crate::api::study::handler::finish_writing_session,
         crate::api::study::handler::list_writing_sessions,
         crate::api::study::handler::get_writing_stats,
+        crate::api::study::handler::list_writing_practice_seed,
 
         // admin - users
         crate::api::admin::user::handler::admin_list_users,
@@ -247,6 +248,9 @@ impl Modify for SecurityAddon {
             crate::api::study::dto::WritingDailyStat,
             crate::api::study::dto::WritingWeakChar,
             crate::api::study::dto::WritingStatsRes,
+            crate::api::study::dto::WritingPracticeSeedReq,
+            crate::api::study::dto::WritingPracticeSeedItem,
+            crate::api::study::dto::WritingPracticeSeedRes,
 
             // admin - users dto
             crate::api::admin::user::dto::AdminUserRes,
