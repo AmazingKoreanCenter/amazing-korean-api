@@ -457,6 +457,33 @@
         "word": "단어",
         "sentence": "문장",
         "paragraph": "문단"
+      },
+      "stats": {
+        "pageTitle": "자판 연습 통계",
+        "pageDescription": "한글 자판 연습 기록을 바탕으로 정확도와 속도, 취약 글자를 확인하세요.",
+        "lastDays": "최근 {{count}}일",
+        "totalSessions": "총 세션",
+        "avgAccuracy": "평균 정확도",
+        "avgCpm": "평균 타수",
+        "cpmUnit": "분당 글자 수 (CPM)",
+        "levelTitle": "레벨별 성과",
+        "sessionCount": "세션 {{count}}회",
+        "accuracyLabel": "정확도",
+        "cpmLabel": "CPM",
+        "noLevelData": "아직 레벨별 데이터가 없습니다.",
+        "trendTitle": "일별 추이",
+        "trendDay": "날짜",
+        "trendSessions": "세션",
+        "trendAccuracy": "정확도",
+        "trendCpm": "CPM",
+        "noTrendData": "아직 추이 데이터가 없습니다.",
+        "weakTitle": "취약 글자 Top 10",
+        "weakSubtitle": "가장 자주 틀린 글자 순으로 표시됩니다. 이 글자들을 집중 연습해보세요.",
+        "missCount": "{{count}}회",
+        "noWeakData": "취약 글자 데이터가 없습니다. 잘하고 있어요!",
+        "emptyTitle": "아직 기록된 세션이 없습니다",
+        "emptyDescription": "연습을 시작해서 첫 통계를 만들어보세요.",
+        "emptyAction": "연습 시작하기"
       }
     }
   },

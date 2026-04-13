@@ -457,6 +457,33 @@
         "word": "Word",
         "sentence": "Sentence",
         "paragraph": "Paragraph"
+      },
+      "stats": {
+        "pageTitle": "Typing Practice Stats",
+        "pageDescription": "Review accuracy, speed, and your weakest characters from your Hangul typing history.",
+        "lastDays": "Last {{count}} days",
+        "totalSessions": "Total Sessions",
+        "avgAccuracy": "Avg Accuracy",
+        "avgCpm": "Avg CPM",
+        "cpmUnit": "Characters per minute",
+        "levelTitle": "By Level",
+        "sessionCount": "{{count}} sessions",
+        "accuracyLabel": "Accuracy",
+        "cpmLabel": "CPM",
+        "noLevelData": "No level data yet.",
+        "trendTitle": "Daily Trend",
+        "trendDay": "Date",
+        "trendSessions": "Sessions",
+        "trendAccuracy": "Accuracy",
+        "trendCpm": "CPM",
+        "noTrendData": "No trend data yet.",
+        "weakTitle": "Top 10 Weak Characters",
+        "weakSubtitle": "Ordered by how often each character was mistyped. Focus on these in your next session.",
+        "missCount": "{{count}}×",
+        "noWeakData": "No weak-character data yet. Great job!",
+        "emptyTitle": "No sessions recorded yet",
+        "emptyDescription": "Start practicing to build up your first statistics.",
+        "emptyAction": "Start practicing"
       }
     }
   },

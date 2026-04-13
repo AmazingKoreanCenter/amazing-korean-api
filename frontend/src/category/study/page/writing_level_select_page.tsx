@@ -1,4 +1,4 @@
-import { ArrowRight, GraduationCap, Keyboard, PenLine } from "lucide-react";
+import { ArrowRight, BarChart3, GraduationCap, Keyboard, PenLine } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
@@ -24,16 +24,24 @@ export function WritingLevelSelectPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="mx-auto w-full max-w-screen-lg space-y-8 px-4 py-10">
-        <div>
-          <Badge variant="secondary" className="mb-3">
-            {t("study.writing.landingBadge")}
-          </Badge>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {t("study.writing.landingTitle")}
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            {t("study.writing.landingDescription")}
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <Badge variant="secondary" className="mb-3">
+              {t("study.writing.landingBadge")}
+            </Badge>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {t("study.writing.landingTitle")}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              {t("study.writing.landingDescription")}
+            </p>
+          </div>
+          <Button variant="outline" asChild>
+            <Link to="/studies/writing/stats">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              {t("study.writing.viewStats")}
+            </Link>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

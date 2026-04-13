@@ -31,6 +31,7 @@ const SettingsPage = lazy(() => import("@/category/user/page/settings_page").the
 // Writing practice (한글 자판 연습) — 로그인 후 접근, lazy
 const WritingLevelSelectPage = lazy(() => import("@/category/study/page/writing_level_select_page").then((m) => ({ default: m.WritingLevelSelectPage })));
 const WritingPracticePage = lazy(() => import("@/category/study/page/writing_practice_page").then((m) => ({ default: m.WritingPracticePage })));
+const WritingStatsPage = lazy(() => import("@/category/study/page/writing_stats_page").then((m) => ({ default: m.WritingStatsPage })));
 
 import PrivateRoute from "@/routes/private_route";
 
@@ -182,8 +183,9 @@ export function AppRoutes() {
           <Route path="/book/ebook/purchase-complete" element={<EbookPurchaseCompletePage />} />
           <Route path="/book/ebook/viewer/:purchaseCode" element={<EbookViewerPage />} />
           <Route path="/book/ebook/my" element={<EbookMyPurchasesPage />} />
-          {/* 한글 자판 연습 (Writing practice) — 로그인 필요 */}
+          {/* 한글 자판 연습 (Writing practice) — 로그인 필요. 구체 경로 먼저 등록 */}
           <Route path="/studies/writing" element={<WritingLevelSelectPage />} />
+          <Route path="/studies/writing/stats" element={<WritingStatsPage />} />
           <Route path="/studies/writing/:level" element={<WritingPracticePage />} />
           <Route path="/studies/writing/:level/:practiceType" element={<WritingPracticePage />} />
           {/* 기존 Private 경로 리다이렉트 */}

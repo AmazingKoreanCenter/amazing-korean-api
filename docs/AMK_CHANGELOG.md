@@ -11,6 +11,20 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-13 — 한글 자판 연습 (Writing Practice) P8: 통계 대시보드**
+  - [P8 page] `frontend/src/category/study/page/writing_stats_page.tsx` 신규 — `useWritingStats({ days })` 훅 기반. 상단 기간 Select (7/14/30/60/90/180/365일, 기본 30). `formatNumber`/`formatPercent`/`formatCpm` 로컬 헬퍼
+  - [P8 summary] Summary 카드 3개 — 총 세션(Keyboard), 평균 정확도(Target, %), 평균 CPM(Gauge, "분당 글자 수" subtitle). admin_study_stats_page 패턴 재사용 (h-12 w-12 원형 아이콘)
+  - [P8 levels] `LevelBreakdownCard` — `level_breakdown` 기반 progress bar (sessions / maxSessions * 100 폭). 초→중→고 순 정렬(모듈 레벨 `LEVEL_ORDER` 상수). 하단 정확도/CPM 라인
+  - [P8 weak] `WeakCharsCard` — `weak_chars` 기반 Top 10. destructive 톤 카드 (h-10 w-10 글자 박스 + 상대 bar, `Math.max(widthPercent, 10)`으로 최소 가시성 확보). 비어있을 때 "잘하고 있어요!" 문구
+  - [P8 trend] `DailyTrendCard` — `recent_trend` 일별 테이블 (날짜 내림차순, 세션/정확도/CPM 컬럼). overflow-x-auto로 모바일 대응
+  - [P8 empty] `total_sessions === 0 && !isPending` 시 dashed border CTA 카드 (TrendingUp 아이콘 + 연습 시작 버튼)
+  - [P8 route] `app/routes.tsx` — `WritingStatsPage` lazy import + Private 하위 `/studies/writing/stats` 라우트 등록. React Router v6 랭킹 규칙상 static segment "stats"가 `:level` 파라미터보다 우선 매칭되므로 JSX 순서와 무관하게 안전 (가독성 위해 구체 경로를 먼저 선언)
+  - [P8 link] `writing_level_select_page.tsx` — P7에서 P8 구현 전까지 임시 제거했던 stats 버튼(`BarChart3` 아이콘) 복원. 제목 우측 정렬
+  - [P8 i18n] `study.writing.stats.*` 네임스페이스 신규 30+ 키 — pageTitle/pageDescription/lastDays, totalSessions/avgAccuracy/avgCpm/cpmUnit, levelTitle/sessionCount/accuracyLabel/cpmLabel/noLevelData, trendTitle/trendDay/trendSessions/trendAccuracy/trendCpm/noTrendData, weakTitle/weakSubtitle/missCount/noWeakData, emptyTitle/emptyDescription/emptyAction (ko/en 병렬)
+  - [검증] `npm run build` 클린 통과 (tsc -b + vite build 9.78s)
+  - [진행 상황] P1~P8 완료 (80%). 다음: P9 관리자 프론트엔드 writing 폼 필드 + CSV import / P10 시드 데이터 + E2E
+  - [문서] 본 changelog 항목 + STATUS #59 + 메모리 동기화
+
 - **2026-04-12 — 한글 자판 연습 (Writing Practice) P7: 연습 페이지 + study_task_page writing 분기**
   - [P7 input] `frontend/src/category/study/component/writing/WritingPracticeInput.tsx` 신규 — `compositionstart`/`compositionend` 이벤트로 한글 IME 조합 중에는 검증 보류. 초급(+answer)=글자별 실시간 피드백 (정답/오답/미입력 3상태 색상). Array.from으로 서로게이트 페어 안전 분할. 오탈자는 `mistakesRef`(Map) 누적 — 자가교정해도 최초 오답 기록은 유지. 타이핑 stats 콜백(`total_chars`/`correct_chars`/`mistakes`/`duration_ms`) + 다음 기대 자모 콜백(`decomposeSyllable` 활용)
   - [P7 result] `WritingResultPanel.tsx` 신규 — 세션 결과 카드 (accuracy/CPM/correct_chars stat grid + 오답 글자 Top 20 하이라이트 badge, 95%+ 시 default variant badge)
