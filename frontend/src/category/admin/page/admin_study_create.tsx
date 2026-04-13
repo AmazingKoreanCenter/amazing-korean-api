@@ -33,8 +33,12 @@ import {
   type StudyAccess,
   type AdminStudyRes,
 } from "../types";
-import type { StudyProgram } from "../../study/types";
-import { studyTaskKindSchema } from "../../study/types";
+import type { StudyProgram, WritingLevel, WritingPracticeType } from "../../study/types";
+import {
+  studyTaskKindSchema,
+  writingLevelSchema,
+  writingPracticeTypeSchema,
+} from "../../study/types";
 
 type StudyTaskKind = z.infer<typeof studyTaskKindSchema>;
 
@@ -50,6 +54,10 @@ const taskFormSchema = z.object({
   choice_3: z.string().optional(),
   choice_4: z.string().optional(),
   choice_correct: z.number().int().min(1).max(4).optional(),
+  writing_level: writingLevelSchema.optional(),
+  writing_practice_type: writingPracticeTypeSchema.optional(),
+  writing_hint: z.string().optional(),
+  writing_keyboard_visible: z.boolean().optional(),
 });
 
 type TaskFormData = z.infer<typeof taskFormSchema>;
@@ -68,6 +76,10 @@ const bulkTaskFormSchema = z.object({
       choice_3: z.string().optional(),
       choice_4: z.string().optional(),
       choice_correct: z.number().int().min(1).max(4).optional(),
+      writing_level: writingLevelSchema.optional(),
+      writing_practice_type: writingPracticeTypeSchema.optional(),
+      writing_hint: z.string().optional(),
+      writing_keyboard_visible: z.boolean().optional(),
     })
   ).min(1),
 });
@@ -87,6 +99,10 @@ interface ParsedCSVTask {
   choice_3?: string;
   choice_4?: string;
   choice_correct?: number;
+  writing_level?: WritingLevel;
+  writing_practice_type?: WritingPracticeType;
+  writing_hint?: string;
+  writing_keyboard_visible?: boolean;
   error?: string;
 }
 
@@ -269,13 +285,25 @@ export function AdminStudyCreate() {
     const choice3Idx = headers.indexOf("choice_3");
     const choice4Idx = headers.indexOf("choice_4");
     const choiceCorrectIdx = headers.indexOf("choice_correct");
+    const writingLevelIdx = headers.indexOf("writing_level");
+    const writingPracticeTypeIdx = headers.indexOf("writing_practice_type");
+    const writingHintIdx = headers.indexOf("writing_hint");
+    const writingKeyboardVisibleIdx = headers.indexOf("writing_keyboard_visible");
 
     if (kindIdx === -1) {
       toast.error("CSV must have 'study_task_kind' column");
       return [];
     }
 
-    const validKinds = ["choice", "typing", "voice"];
+    const validKinds = ["choice", "typing", "voice", "writing"];
+    const validWritingLevels: WritingLevel[] = ["beginner", "intermediate", "advanced"];
+    const validWritingTypes: WritingPracticeType[] = [
+      "jamo",
+      "syllable",
+      "word",
+      "sentence",
+      "paragraph",
+    ];
 
     const tasks: ParsedCSVTask[] = [];
     for (let i = 1; i < lines.length; i++) {
@@ -284,6 +312,16 @@ export function AdminStudyCreate() {
 
       const kindValue = values[kindIdx]?.toLowerCase() || "";
       const choiceCorrectValue = choiceCorrectIdx !== -1 ? parseInt(values[choiceCorrectIdx], 10) : undefined;
+
+      const writingLevelValue = writingLevelIdx !== -1
+        ? (values[writingLevelIdx] || "").toLowerCase()
+        : "";
+      const writingTypeValue = writingPracticeTypeIdx !== -1
+        ? (values[writingPracticeTypeIdx] || "").toLowerCase()
+        : "";
+      const writingKeyboardRaw = writingKeyboardVisibleIdx !== -1
+        ? (values[writingKeyboardVisibleIdx] || "").toLowerCase()
+        : "";
 
       const task: ParsedCSVTask = {
         rowNumber: i + 1,
@@ -301,6 +339,18 @@ export function AdminStudyCreate() {
         choice_correct: !isNaN(choiceCorrectValue!) && choiceCorrectValue! >= 1 && choiceCorrectValue! <= 4
           ? choiceCorrectValue
           : undefined,
+        writing_level: validWritingLevels.includes(writingLevelValue as WritingLevel)
+          ? (writingLevelValue as WritingLevel)
+          : undefined,
+        writing_practice_type: validWritingTypes.includes(writingTypeValue as WritingPracticeType)
+          ? (writingTypeValue as WritingPracticeType)
+          : undefined,
+        writing_hint: writingHintIdx !== -1 ? values[writingHintIdx] || undefined : undefined,
+        writing_keyboard_visible: writingKeyboardRaw === "true"
+          ? true
+          : writingKeyboardRaw === "false"
+            ? false
+            : undefined,
       };
 
       // Validation
@@ -308,6 +358,12 @@ export function AdminStudyCreate() {
         task.error = `Invalid kind: ${kindValue}`;
       } else if (task.study_task_kind === "choice" && !task.choice_1 && !task.choice_2) {
         task.error = "Choice type requires at least 2 choices";
+      } else if (task.study_task_kind === "writing") {
+        if (!task.question || !task.answer) {
+          task.error = "writing requires question (prompt) and answer";
+        } else if (!task.writing_level || !task.writing_practice_type) {
+          task.error = "writing requires writing_level and writing_practice_type";
+        }
       }
 
       tasks.push(task);
@@ -352,6 +408,10 @@ export function AdminStudyCreate() {
         choice_3: task.choice_3,
         choice_4: task.choice_4,
         choice_correct: task.choice_correct,
+        writing_level: task.writing_level,
+        writing_practice_type: task.writing_practice_type,
+        writing_hint: task.writing_hint,
+        writing_keyboard_visible: task.writing_keyboard_visible,
       }));
 
       const result = await createTasksBulkMutation.mutateAsync({ items });
@@ -374,6 +434,8 @@ export function AdminStudyCreate() {
         return "secondary" as const;
       case "voice":
         return "destructive" as const;
+      case "writing":
+        return "outline" as const;
       default:
         return "outline" as const;
     }
@@ -597,6 +659,7 @@ export function AdminStudyCreate() {
                             <SelectItem value="choice">Choice</SelectItem>
                             <SelectItem value="typing">Typing</SelectItem>
                             <SelectItem value="voice">Voice</SelectItem>
+                            <SelectItem value="writing">Writing</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -634,6 +697,84 @@ export function AdminStudyCreate() {
                         {...taskForm.register("question")}
                       />
                     </div>
+
+                    {/* Writing fields - only shown for writing type */}
+                    {taskForm.watch("study_task_kind") === "writing" && (
+                      <div className="space-y-4 rounded-lg border p-4">
+                        <Label className="text-sm font-medium">Writing Settings</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Question becomes the prompt shown to learner; Answer is the target text.
+                        </p>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="writing_level" className="text-xs">Writing Level *</Label>
+                            <Select
+                              value={taskForm.watch("writing_level") ?? ""}
+                              onValueChange={(value) =>
+                                taskForm.setValue("writing_level", value as WritingLevel)
+                              }
+                            >
+                              <SelectTrigger id="writing_level">
+                                <SelectValue placeholder="Select level" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="beginner">Beginner</SelectItem>
+                                <SelectItem value="intermediate">Intermediate</SelectItem>
+                                <SelectItem value="advanced">Advanced</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="writing_practice_type" className="text-xs">Practice Type *</Label>
+                            <Select
+                              value={taskForm.watch("writing_practice_type") ?? ""}
+                              onValueChange={(value) =>
+                                taskForm.setValue(
+                                  "writing_practice_type",
+                                  value as WritingPracticeType,
+                                )
+                              }
+                            >
+                              <SelectTrigger id="writing_practice_type">
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="jamo">Jamo</SelectItem>
+                                <SelectItem value="syllable">Syllable</SelectItem>
+                                <SelectItem value="word">Word</SelectItem>
+                                <SelectItem value="sentence">Sentence</SelectItem>
+                                <SelectItem value="paragraph">Paragraph</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="writing_hint" className="text-xs">Hint (optional)</Label>
+                            <Input
+                              id="writing_hint"
+                              placeholder="Optional hint shown to learner"
+                              {...taskForm.register("writing_hint")}
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 md:col-span-2">
+                            <input
+                              type="checkbox"
+                              id="writing_keyboard_visible"
+                              className="h-4 w-4"
+                              checked={taskForm.watch("writing_keyboard_visible") ?? false}
+                              onChange={(e) =>
+                                taskForm.setValue(
+                                  "writing_keyboard_visible",
+                                  e.target.checked,
+                                )
+                              }
+                            />
+                            <Label htmlFor="writing_keyboard_visible" className="text-xs">
+                              Show virtual keyboard by default
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Choice fields - only shown for choice type */}
                     {taskForm.watch("study_task_kind") === "choice" && (
@@ -758,6 +899,7 @@ export function AdminStudyCreate() {
                                 <SelectItem value="choice">Choice</SelectItem>
                                 <SelectItem value="typing">Typing</SelectItem>
                                 <SelectItem value="voice">Voice</SelectItem>
+                                <SelectItem value="writing">Writing</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -832,6 +974,70 @@ export function AdminStudyCreate() {
                             />
                           </div>
                         )}
+
+                        {/* Writing fields for writing type */}
+                        {bulkTaskForm.watch(`items.${index}.study_task_kind`) === "writing" && (
+                          <div className="mt-3 grid gap-2 md:grid-cols-4">
+                            <Select
+                              value={bulkTaskForm.watch(`items.${index}.writing_level`) ?? ""}
+                              onValueChange={(value) =>
+                                bulkTaskForm.setValue(
+                                  `items.${index}.writing_level`,
+                                  value as WritingLevel,
+                                )
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Level *" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="beginner">Beginner</SelectItem>
+                                <SelectItem value="intermediate">Intermediate</SelectItem>
+                                <SelectItem value="advanced">Advanced</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Select
+                              value={bulkTaskForm.watch(`items.${index}.writing_practice_type`) ?? ""}
+                              onValueChange={(value) =>
+                                bulkTaskForm.setValue(
+                                  `items.${index}.writing_practice_type`,
+                                  value as WritingPracticeType,
+                                )
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Type *" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="jamo">Jamo</SelectItem>
+                                <SelectItem value="syllable">Syllable</SelectItem>
+                                <SelectItem value="word">Word</SelectItem>
+                                <SelectItem value="sentence">Sentence</SelectItem>
+                                <SelectItem value="paragraph">Paragraph</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              placeholder="Hint (optional)"
+                              {...bulkTaskForm.register(`items.${index}.writing_hint`)}
+                            />
+                            <label className="flex items-center gap-2 text-xs">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4"
+                                checked={
+                                  bulkTaskForm.watch(`items.${index}.writing_keyboard_visible`) ?? false
+                                }
+                                onChange={(e) =>
+                                  bulkTaskForm.setValue(
+                                    `items.${index}.writing_keyboard_visible`,
+                                    e.target.checked,
+                                  )
+                                }
+                              />
+                              Show keyboard
+                            </label>
+                          </div>
+                        )}
                       </div>
                     ))}
 
@@ -861,14 +1067,16 @@ export function AdminStudyCreate() {
                       <span className="font-medium text-sm">CSV Format</span>
                     </div>
                     <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
-{`study_task_kind,question,answer,image_url,audio_url,choice_1,choice_2,choice_3,choice_4,choice_correct
-choice,What is 1+1?,2,,https://audio.com/q1.mp3,1,2,3,4,2
-typing,Type the answer,Hello,,,,,,,
-voice,Read this sentence,안녕하세요,,,,,,,`}
+{`study_task_kind,question,answer,image_url,audio_url,choice_1,choice_2,choice_3,choice_4,choice_correct,writing_level,writing_practice_type,writing_hint,writing_keyboard_visible
+choice,What is 1+1?,2,,https://audio.com/q1.mp3,1,2,3,4,2,,,,
+typing,Type the answer,Hello,,,,,,,,,,,
+voice,Read this sentence,안녕하세요,,,,,,,,,,,
+writing,안녕하세요를 따라 입력,안녕하세요,,,,,,,,beginner,word,첫 글자부터,true`}
                     </pre>
                     <div className="text-xs text-muted-foreground mt-2 space-y-1">
-                      <p><strong>study_task_kind</strong> (required): choice, typing, voice</p>
+                      <p><strong>study_task_kind</strong> (required): choice, typing, voice, writing</p>
                       <p><strong>choice</strong> type: needs choice_1 ~ choice_4, choice_correct (1-4)</p>
+                      <p><strong>writing</strong> type: needs question (prompt) + answer + writing_level (beginner/intermediate/advanced) + writing_practice_type (jamo/syllable/word/sentence/paragraph). writing_keyboard_visible accepts true/false</p>
                       <p>Sequence is auto-calculated starting from {taskCount + 1}</p>
                     </div>
                   </div>

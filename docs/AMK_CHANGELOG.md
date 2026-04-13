@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-12
+updated: 2026-04-13
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,16 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-13 — 한글 자판 연습 (Writing Practice) P9: 관리자 프론트 writing 폼 + CSV**
+  - [P9 types] `frontend/src/category/admin/study/types.ts` — `studyTaskCreateReqSchema` / `studyTaskUpdateReqSchema` / `studyTaskUpdateItemSchema` / `adminStudyTaskDetailResSchema` 4곳에 writing 전용 필드 4개 (`writing_level`, `writing_practice_type`, `writing_hint`, `writing_keyboard_visible`) 추가. `../../study/types`에서 `writingLevelSchema`/`writingPracticeTypeSchema` import 재사용. 백엔드 AdminStudyTaskDetailRes 파리티 확보
+  - [P9 create] `admin_study_create.tsx` — 단일 Task / Bulk Tasks Select 드롭다운에 `writing` 옵션 추가. `study_task_kind === "writing"` 조건부 필드 박스 (level Select / practice_type Select / hint Input / keyboard_visible Checkbox). `taskFormSchema` / `bulkTaskFormSchema`에 4개 필드 optional 추가. `getTaskKindBadgeVariant` writing→outline 분기. `onCSVTasksSubmit` 매핑에 writing 4개 필드 전달
+  - [P9 csv] 같은 파일의 `parseCSV` — `validKinds`에 `"writing"` 추가. 4개 writing 컬럼 헤더 인덱스 파싱(`writing_level`, `writing_practice_type`, `writing_hint`, `writing_keyboard_visible`). level/type enum 화이트리스트 검증, `writing_keyboard_visible`은 "true"/"false" 문자열을 boolean으로 변환(공란=undefined). writing row 검증: prompt(question) + answer + level + practice_type 필수. CSV 포맷 가이드 pre 블록에 writing 예시 행 + 설명 문구 추가
+  - [P9 detail] `admin_study_detail.tsx` — `TaskDetailsContent` props 타입에 writing 4개 필드 추가. `taskKind === "writing"` 조건부 카드 블록 (Level/Practice Type/Hint/Keyboard Visible 읽기 전용 표시). `getTaskKindBadgeVariant`에도 writing 분기 추가
+  - [참고] bulk edit 다이얼로그는 question/answer만 지원하므로 writing 세부 편집은 단일 태스크 플로우(신규 생성)로 한정. 기존 writing 태스크 필드 업데이트는 P10 이후 필요 시 추가
+  - [검증] `cd frontend && npm run build` 클린 통과 (tsc -b + vite build 8.43s)
+  - [진행 상황] P1~P9 완료 (90%). 다음: P10 시드 데이터 (자모→단어→문장) + writing_practice_page 자유 연습 실연결 + E2E 검증
+  - [문서] 본 changelog 항목 + STATUS #59 + 메모리 동기화
 
 - **2026-04-13 — 한글 자판 연습 (Writing Practice) P8: 통계 대시보드**
   - [P8 page] `frontend/src/category/study/page/writing_stats_page.tsx` 신규 — `useWritingStats({ days })` 훅 기반. 상단 기간 Select (7/14/30/60/90/180/365일, 기본 30). `formatNumber`/`formatPercent`/`formatCpm` 로컬 헬퍼
