@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { WritingPayload, WritingSessionRes } from "@/category/study/types";
 
 import { HangulKeyboard } from "./HangulKeyboard";
 import { WritingPracticeInput, type WritingStats } from "./WritingPracticeInput";
 import { WritingResultPanel } from "./WritingResultPanel";
-import { useStartWritingSession } from "@/category/study/hook/use_writing_session";
+import { startWritingSession } from "@/category/study/study_api";
 
 interface WritingTaskProps {
   taskId: number | null;
@@ -30,26 +30,30 @@ export function WritingTask({
 }: WritingTaskProps) {
   const [keyboardVisible, setKeyboardVisible] = useState(payload.keyboard_visible);
   const [nextJamo, setNextJamo] = useState<string | null>(null);
-  const startMutation = useStartWritingSession();
-  const startRef = useRef(startMutation);
-  startRef.current = startMutation;
-  const startedRef = useRef(false);
 
   // 태스크 마운트 / key 변경 시 세션 1회 시작.
   // 재시도는 상위에서 key prop 변경으로 트리거 → 컴포넌트 재마운트.
+  // StrictMode 의 이펙트 이중 호출 대비: cancelled 플래그로 첫 번째 호출의 결과를
+  // 두 번째 마운트에서는 무시한다. useMutation 대신 startWritingSession 을 직접
+  // 호출하는 이유는 useMutation 의 observer 가 StrictMode 에서 파괴되어 onSuccess
+  // 콜백이 드랍되는 이슈를 피하기 위함.
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    startRef.current.mutate(
-      {
-        study_task_id: taskId ?? null,
-        writing_level: payload.level,
-        writing_practice_type: payload.practice_type,
-      },
-      {
-        onSuccess: (session) => onSessionStart(session.session_id),
-      },
-    );
+    let cancelled = false;
+    startWritingSession({
+      study_task_id: taskId ?? null,
+      writing_level: payload.level,
+      writing_practice_type: payload.practice_type,
+    })
+      .then((session) => {
+        if (cancelled) return;
+        onSessionStart(session.session_id);
+      })
+      .catch(() => {
+        // toast 는 상위에서 listWritingSessions 훅 등이 잡아줌. 여기선 silent.
+      });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

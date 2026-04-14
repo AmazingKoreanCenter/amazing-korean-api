@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-13
+updated: 2026-04-14
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,20 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-14 — 한글 자판 연습 (Writing Practice) P10-C: Playwright E2E + WritingTask StrictMode 버그 수정**
+  - [P10-C config] `frontend/playwright.config.ts` 신규 — testDir `./e2e`, outputDir `./test-results/e2e`, chromium 단독, 1 worker, 60s timeout, baseURL `process.env.E2E_BASE_URL ?? http://localhost:5173`. `webServer` 는 쓰지 않고 dev 서버가 이미 떠 있다는 전제. `locale: ko-KR`
+  - [P10-C fixture] `frontend/e2e/fixtures/auth.ts` 신규 — `apiLogin` (`POST /auth/login` 을 request context 로 직접 호출 후 `{user_id, access_token}` 반환) + `seedAuthStorage` (zustand persist 포맷으로 `auth-storage` localStorage 를 `addInitScript` 로 주입). 기본 계정 `e2e_p10c@amazingkorean.net / password123!`
+  - [P10-C spec] `frontend/e2e/writing_practice.spec.ts` 신규 — 자유 연습 플로우 E2E. 레벨 선택 → 초급 → 자모 → 세션 시작 응답 대기 → 첫 아이템 prompt innerText 추출 → textarea `pressSequentially` → "결과 확인" → 결과 카드 + stat 라벨 검증 → `/studies/writing/stats` 헤딩 확인. `GET /studies/writing/stats?days=1` 를 fixture 전/후로 직접 호출해 `total_sessions` 가 +1 이상 증가했는지 서버 기준으로 검증
+  - [P10-C vite] `frontend/vite.config.ts` — `server.proxy["/api"].target` 을 `process.env.VITE_PROXY_TARGET ?? "http://127.0.0.1:3000"` 으로 변경. 다른 프로젝트가 3000 을 점유 중일 때 backend 를 3100 등 대체 포트로 띄우고 프록시만 붙여 쓸 수 있게 함
+  - [P10-C npm] `frontend/package.json` — `"test:e2e": "playwright test"` 스크립트 추가
+  - [P10-C doc] `frontend/e2e/README.md` 신규 — 전제 조건(backend+vite 상시 기동), EMAIL_PROVIDER=none 로 backend 1회 띄운 뒤 `/users` 로 테스트 계정 자동 인증 생성 절차, Redis 레이트 리미트 수동 해제 커맨드까지 포함
+  - [P10-C gitignore] `.gitignore` — `frontend/test-results/`, `frontend/playwright-report/` 제외 추가
+  - [P10-C 버그수정] `frontend/src/category/study/component/writing/WritingTask.tsx` — 기존 `useRef(false)` + `useStartWritingSession().mutate(..., { onSuccess })` 패턴이 React 19 StrictMode 에서 완전히 깨지는 것을 E2E 에서 최초로 재현. StrictMode 의 이펙트 이중 호출에서 첫 번째 invocation 이 `mutate` 를 쏜 뒤 두 번째 invocation 은 `startedRef.current===true` 로 스킵되지만, TanStack Query 의 mutation observer 는 double invocation 사이에서 파괴되어 첫 호출의 onSuccess 가 영영 드랍 → `sessionId` 가 `null` 로 남아 "결과 확인" 버튼이 영구 비활성화되는 증상. 수정: `useStartWritingSession` 훅 사용 대신 `startWritingSession` 을 직접 await 하고 `cancelled` 플래그 기반 cleanup 으로 첫 호출의 결과를 drop. 이 방식은 StrictMode + 운영 모드 모두 정상 작동
+  - [검증] 로컬에서 backend `BIND_ADDR=127.0.0.1:3100 EMAIL_PROVIDER=none`, frontend `VITE_PROXY_TARGET=http://127.0.0.1:3100 npm run dev` 로 띄우고 `npm run test:e2e` → 1 passed (7.4s → 이후 재측정 6.4s). `npm run build` 클린 통과 (9.56s)
+  - [진행 상황] P10-C 완료. 한글 자판 연습 Phase 1 (P1~P10) 100% 완료
+  - [배제] CI GitHub Actions 워크플로우 통합은 이번 스코프 밖. 맥미니 QA 셋업(amazing-korean-ai Day 6) 에서 별도로 묶을 예정
+  - [문서] 본 changelog 항목 + STATUS #59 + 메모리 동기화
 
 - **2026-04-13 — 한글 자판 연습 (Writing Practice) P10-B: 프론트 자유 연습 실연결**
   - [P10-B types] `frontend/src/category/study/types.ts` — `writingPracticeSeedReqSchema`/`writingPracticeSeedItemSchema`/`writingPracticeSeedResSchema` Zod 스키마 3종 신규. 백엔드 `WritingPracticeSeedReq`/`Item`/`Res` 파리티. `level`/`practice_type`은 기존 enum 스키마 재사용
