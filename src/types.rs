@@ -210,6 +210,7 @@ pub enum ContentType {
     StudyTaskTyping,
     StudyTaskVoice,
     StudyTaskExplain,
+    StudyTaskWriting,
 }
 
 /// 번역 상태 (draft → reviewed → approved)
@@ -326,6 +327,29 @@ pub enum StudyTaskKind {
     Choice,
     Typing,
     Voice,
+    Writing,
+}
+
+/// 쓰기 연습 레벨
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "writing_level_enum", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum WritingLevel {
+    Beginner,
+    Intermediate,
+    Advanced,
+}
+
+/// 쓰기 연습 유형
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "writing_practice_type_enum", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum WritingPracticeType {
+    Jamo,
+    Syllable,
+    Word,
+    Sentence,
+    Paragraph,
 }
 
 /// 학습 과제 로그 액션

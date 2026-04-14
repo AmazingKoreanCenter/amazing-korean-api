@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "clean": "rm -rf node_modules dist .vite && npm install",
+    "test:e2e": "playwright test",
     "lint:ui": "grep -rn --include='*.tsx' -E '(bg|text|border|ring|from|via|to|stroke|fill)-\\[#[0-9A-Fa-f]{3,8}\\]|(bg|text|border|ring|from|via|to|stroke|fill)-(emerald|teal|green|amber|rose|red)-' src && echo 'FAIL: Hardcoded colors found in .tsx files' && exit 1 || exit 0"
   },
   "dependencies": {

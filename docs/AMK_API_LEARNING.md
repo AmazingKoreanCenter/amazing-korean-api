@@ -222,13 +222,18 @@
 | 5-4 | `POST /studies/tasks/{id}/answer` | `/studies/tasks/{task_id}` | 정답 제출/채점 | ***STUDY_TASK_STATUS 업데이트 → STUDY_TASK_LOG 저장(채점 포함)***<br>성공:<br> Auth pass / Page task init→ready / Form answer pristine→dirty→validating→submitting→success /<br> Request answer pending→success / Data answer present → **200**<br>실패(형식/누락):<br> Auth pass / Page task init→ready / Form answer pristine→dirty→validating→error.client / Request answer pending→error / Data answer empty → **400**<br>실패(도메인 제약: 선택지 범위/중복 허용 규칙 등):<br> Auth pass / Page task init→ready / Form answer pristine→dirty→validating→error.client / Request answer pending→error / Data answer error → **422**<br>실패(미인증): Auth stop / Page task init→ready / Request answer pending→error / Data answer error → **401**<br>실패(없는 문항): Auth pass / Page task init→ready / Request answer pending→error / Data answer error → **404** | [✅🆗] |
 | 5-5 | `GET /studies/tasks/{id}/status` | `/studies/tasks/{task_id}` | 내 시도/기록 | ***내 최신 STATUS(progress/score/attempts) 조회***<br>성공: Auth pass / Page task init→ready / Request status pending→success / Data status present(또는 empty=기록없음) → **200**<br>실패(미인증): Auth stop / Page task init→ready / Request status pending→error / Data status error → **401**<br>실패(없는 문항): Auth pass / Page task init→ready / Request status pending→error / Data status error → **404** | [✅🆗] |
 | 5-6 | `GET /studies/tasks/{id}/explain` | `/studies/tasks/{task_id}/explain` | 해설 보기 | ***STUDY_EXPLAIN 문항별 해설/미디어***<br>성공: Auth pass 또는 stop / Page explain init→ready / Request explain pending→success / Data explain present → **200**<br>실패(없는 문항/해설 없음): Auth pass 또는 stop / Page explain init→ready / Request explain pending→error / Data explain error → **404**<br>실패(도메인 정책: 시도 전 열람 금지 설정 시): Auth pass 또는 stop / Page explain ready / Request explain pending→error / Data explain error → **403** | [✅🆗] |
+| 5-7 | `POST /studies/writing/sessions` | `/study/writing/:level/:type/:taskId` | 한글 자판 연습 세션 시작 | ***WRITING_PRACTICE_SESSION insert (started_at, writing_level, writing_practice_type, study_task_id)*** | [✅🆗] |
+| 5-8 | `PATCH /studies/writing/sessions/{id}` | `/study/writing/:level/:type/:taskId` | 한글 자판 연습 세션 완료 | ***client 측정 total_chars/correct_chars/duration_ms/mistakes → 서버에서 accuracy_rate/CPM 계산 후 finished_at 저장***<br>400: total_chars/correct_chars/duration_ms 음수<br>422: correct_chars > total_chars<br>404: 타인 세션 또는 미존재 | [✅🆗] |
+| 5-9 | `GET /studies/writing/sessions` | `/study/writing/history` | 내 세션 목록 | ***user_id 기반 페이지네이션, level/finished_only 필터*** | [✅🆗] |
+| 5-10 | `GET /studies/writing/stats` | `/study/writing/stats` | 통계 대시보드 | ***days 파라미터(기본 30, 최대 365) 범위에서 total/avg_accuracy/avg_cpm + 레벨별 + 일별 추이 + 취약 글자 Top 10*** | [✅🆗] |
+| 5-11 | `GET /studies/writing/practice` | `/studies/writing/:level/:type` | 자유 연습 시드 컨텐츠 | ***level+practice_type 필터, seq 오름차순, 기본 20 / 최대 100, 비인증 허용. `writing_practice_seed` 테이블에서 prompt/answer/hint 반환*** | [✅🆗] |
 
 ---
 
 <details>
-  <summary>5.5 Phase 5 — study 시나리오 상세 (5.5-1 ~ 5.5-5)</summary>
+  <summary>5.5 Phase 5 — study 시나리오 상세 (5.5-1 ~ 5.5-10)</summary>
 
-#### 공통 정책(5.5-1 ~ 5.5-5)
+#### 공통 정책(5.5-1 ~ 5.5-10)
 - **에러 바디(고정)**
   `{ "error": { "http_status": 400|401|403|404|422|429|500, "code": "...", "message": "...", "details": { }, "trace_id": "..." } }`
 - **검증 기준**
@@ -309,10 +314,12 @@
     1. study_task_typing : 타이핑 시도 → **STUDY_TASK_LOG** `start` 업데이트 → 타이핑 완료 → **STUDY_TASK_LOG** `answer` 업데이트
     2. study_task_choice : 선택지 클릭 → **STUDY_TASK_LOG** `answer` 업데이트
     3. study_task_voice : 녹음 버튼 클릭 → **STUDY_TASK_LOG** `start` 업데이트 → 녹음 버튼 재클릭 → **STUDY_TASK_LOG** `answer` 업데이트
+    4. study_task_writing : 한글 자판 타이핑 → **STUDY_TASK_LOG** `start` 업데이트 → 제출 → **STUDY_TASK_LOG** `answer` 업데이트 (세션 단위 통계는 P4 `writing_practice_session` API로 별도 집계)
   - Then: **200**,
     1. study_task_typing : 채점 → **STUDY_TASK_TYPING** `study_task_typing_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트
     2. study_task_choice : 채점 → **STUDY_TASK_CHOICE** `study_task_choice_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트
     3. study_task_voice : 채점 →  **STUDY_TASK_VOICE** `study_task_voice_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트
+    4. study_task_writing : 채점 → **STUDY_TASK_WRITING** `study_task_writing_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트. 초급 레벨은 `answer`가 payload에 포함되어 클라이언트에서 실시간 글자별 피드백을 렌더링.
   - 상태축: Auth=pass / Page=`task` init→ready / Form=`answer` pristine→dirty→validating→submitting→success / Request=`answer` pending→success / Data=`answer` present
 - 실패(형식/누락) → **400**
   - 예: 바디 없음, 선택지 배열 스키마 불일치, 서술형 빈 문자열 금지 등
@@ -347,6 +354,111 @@
   - 자료 미제공 또는 잘못된 `{id}`
 - 실패(정책상 제한) → **403**
   - 예: "최소 1회 시도 후 열람" 정책을 켠 경우, 시도 전 접근 차단
+
+---
+
+#### 5.5-7 : `POST /studies/writing/sessions` (한글 자판 연습 세션 시작)
+- **요청 (JSON Body)**
+  ```json
+  {
+    "study_task_id": 123,                 // 관리자 태스크 기반이면 설정, 자유 연습이면 null
+    "writing_level": "beginner",          // beginner | intermediate | advanced
+    "writing_practice_type": "syllable"   // jamo | syllable | word | sentence | paragraph
+  }
+  ```
+- 성공 → **200**
+  - Then: **WRITING_PRACTICE_SESSION** insert (`started_at=NOW()`, `finished_at=NULL`, `total_chars/correct_chars=0`, `accuracy_rate/chars_per_minute=0`), 생성된 session_id + 메타 반환
+- 실패(미인증) → **401**
+- 실패(존재하지 않는 writing 태스크) → **404**
+  - `study_task_id`가 주어졌지만 `study_task_writing` 서브레코드가 없거나 study가 `open`이 아님
+
+---
+
+#### 5.5-8 : `PATCH /studies/writing/sessions/{id}` (세션 완료 / 결과 저장)
+- **요청 (JSON Body)** — 클라이언트 측정값만 전달하고 서버가 정확도/CPM을 계산한다
+  ```json
+  {
+    "total_chars": 120,
+    "correct_chars": 114,
+    "duration_ms": 45000,
+    "mistakes": [
+      { "position": 7, "expected": "ㅓ", "actual": "ㅏ" }
+    ]
+  }
+  ```
+- **서버 계산**
+  - `accuracy_rate = correct_chars / total_chars * 100` (0~100, 소수점 2자리)
+  - `chars_per_minute = total_chars * 60000 / duration_ms` (0~99999.99)
+  - `mistakes` 배열은 JSONB로 그대로 저장 (취약 글자 통계에 사용)
+  - `finished_at = NOW()`
+- 성공 → **200**
+  - UPDATE ... WHERE `session_id=$id` AND `user_id=auth.sub` 로 소유권 검증
+- 실패(형식/누락) → **400**
+  - `total_chars<0`, `correct_chars<0`, `duration_ms<0`
+- 실패(도메인 제약) → **422**
+  - `correct_chars > total_chars`
+- 실패(미인증) → **401**
+- 실패(타인 세션/미존재) → **404**
+
+---
+
+#### 5.5-9 : `GET /studies/writing/sessions` (세션 목록)
+- **Query Params**: `page` (기본 1), `per_page` (기본 20, 최대 100), `level?`, `finished_only?`
+- 성공 → **200**
+  - 내 세션만 반환 (`user_id = auth.sub`). `started_at DESC` 정렬
+- 실패(형식/누락) → **400** (`page=0`, `per_page=0`)
+- 실패(도메인 제약) → **422** (`per_page>100`)
+- 실패(미인증) → **401**
+
+---
+
+#### 5.5-10 : `GET /studies/writing/stats` (통계 대시보드)
+- **Query Params**: `days` (기본 30, 최대 365)
+- 성공 → **200**
+  ```json
+  {
+    "total_sessions": 42,
+    "avg_accuracy": 95.12,
+    "avg_cpm": 180.30,
+    "level_breakdown": [
+      { "writing_level": "beginner", "sessions": 20, "avg_accuracy": 98.1, "avg_cpm": 90.0 }
+    ],
+    "recent_trend": [
+      { "day": "2026-04-01", "sessions": 3, "avg_accuracy": 96.5, "avg_cpm": 175.2 }
+    ],
+    "weak_chars": [
+      { "expected": "ㅓ", "miss_count": 17 }
+    ]
+  }
+  ```
+  - `finished_at IS NOT NULL` 인 세션만 집계
+  - `recent_trend`: 일별(`DATE_TRUNC('day', started_at)`) GROUP BY, 시간순 정렬
+  - `weak_chars`: `jsonb_array_elements(mistakes)` 로 펼쳐서 `expected` 기준 COUNT Top 10
+- 실패(형식/누락) → **400** (`days=0`)
+- 실패(도메인 제약) → **422** (`days>365`)
+- 실패(미인증) → **401**
+
+#### 5.5-11 : `GET /studies/writing/practice` (자유 연습 시드 컨텐츠)
+- **비인증** 허용. `study_task` 수강권과 무관한 드릴 컨텐츠 제공.
+- **Query Params**
+  - `level` (필수) — `beginner` | `intermediate` | `advanced`
+  - `practice_type` (필수) — `jamo` | `syllable` | `word` | `sentence` | `paragraph`
+  - `limit` (선택, 기본 20, 최대 100)
+- 성공 → **200**
+  ```json
+  {
+    "level": "beginner",
+    "practice_type": "jamo",
+    "items": [
+      { "seed_id": 1, "seq": 1, "prompt": "ㄱ", "answer": "ㄱ", "hint": "giyeok" }
+    ]
+  }
+  ```
+  - `writing_practice_seed` 테이블에서 `(level, practice_type)` 필터로 `seq` 오름차순 조회
+  - `prompt` = 화면에 표시할 텍스트, `answer` = 학습자가 입력해야 할 정답 (대부분 동일)
+  - `hint`는 optional (초급 jamo만 로마자 표기 포함)
+- 실패(형식/누락) → **400** (`limit=0`)
+- 실패(도메인 제약) → **422** (`limit>100`, 잘못된 level/practice_type)
 
 </details>
 
@@ -648,7 +760,7 @@ draft → reviewed → approved
 **Query Parameters**
 | 파라미터 | 타입 | 필수 | 설명 |
 |----------|------|------|------|
-| `content_type` | string | ✅ | 콘텐츠 유형 (video, lesson, study, study_task_choice, study_task_typing, study_task_voice, study_task_explain) |
+| `content_type` | string | ✅ | 콘텐츠 유형 (video, lesson, study, study_task_choice, study_task_typing, study_task_voice, study_task_writing, study_task_explain) |
 
 **응답 (성공 200)**
 ```json

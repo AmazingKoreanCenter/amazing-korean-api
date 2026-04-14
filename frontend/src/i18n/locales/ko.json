@@ -384,6 +384,7 @@
     "kindTypingAlt": "주관식",
     "kindVoice": "음성형",
     "kindVoiceAlt": "음성",
+    "kindWriting": "자판 연습",
     "problemNumber": "문제 {{seq}}",
     "problemHashNumber": "문제 #{{seq}}",
     "questionImage": "문제 이미지",
@@ -410,7 +411,87 @@
     "toLesson": "수업으로",
     "nextItemVideo": "다음 항목으로 (영상)",
     "nextItemTask": "다음 항목으로 (문제)",
-    "completeLesson": "수업 완료하기"
+    "completeLesson": "수업 완료하기",
+    "writing": {
+      "showKeyboard": "키보드 보기",
+      "hideKeyboard": "키보드 숨기기",
+      "promptLabel": "따라 쓸 문장",
+      "inputPlaceholder": "여기에 한글로 타이핑하세요",
+      "hintLabel": "힌트: {{hint}}",
+      "progress": "{{done}} / {{total}}",
+      "liveAccuracy": "정확도 {{percent}}%",
+      "resultTitle": "연습 결과",
+      "resultAccuracyBadge": "{{percent}}% 정확도",
+      "statAccuracy": "정확도",
+      "statCpm": "분당 타수",
+      "statChars": "맞은 글자",
+      "mistakesLabel": "오답 글자",
+      "landingBadge": "한글 타자 연습",
+      "landingTitle": "한글 자판 연습",
+      "landingDescription": "3단계 난이도로 한글 타자를 체계적으로 연습하세요. 자모 → 음절 → 단어 → 문장 → 문단 순서로 실력을 키울 수 있습니다.",
+      "viewStats": "통계 보기",
+      "startLevel": "연습 시작",
+      "selectPracticeType": "연습 유형을 선택하세요.",
+      "backToLevels": "레벨 선택으로",
+      "backToTypes": "유형 선택으로",
+      "freePracticeProgress": "{{current}} / {{total}}",
+      "freePracticeLoadError": "연습 콘텐츠를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+      "freePracticeEmpty": "아직 등록된 연습 콘텐츠가 없습니다.",
+      "finishItem": "결과 확인",
+      "finishAll": "마지막 결과 확인",
+      "nextItem": "다음 문제",
+      "allCompleted": "모든 연습을 완료했어요!",
+      "restart": "처음부터 다시",
+      "selectOther": "다른 유형 선택",
+      "level": {
+        "beginner": {
+          "title": "초급",
+          "description": "자모와 음절 위주. 키보드가 항상 표시되고, 다음 글자 키가 강조됩니다."
+        },
+        "intermediate": {
+          "title": "중급",
+          "description": "단어와 문장. 키보드는 토글 가능, 실시간 피드백은 제한적입니다."
+        },
+        "advanced": {
+          "title": "고급",
+          "description": "문장과 문단. 키보드는 기본 숨김이며, 속도와 정확도를 측정합니다."
+        }
+      },
+      "practiceType": {
+        "jamo": "자모",
+        "syllable": "음절",
+        "word": "단어",
+        "sentence": "문장",
+        "paragraph": "문단"
+      },
+      "stats": {
+        "pageTitle": "자판 연습 통계",
+        "pageDescription": "한글 자판 연습 기록을 바탕으로 정확도와 속도, 취약 글자를 확인하세요.",
+        "lastDays": "최근 {{count}}일",
+        "totalSessions": "총 세션",
+        "avgAccuracy": "평균 정확도",
+        "avgCpm": "평균 타수",
+        "cpmUnit": "분당 글자 수 (CPM)",
+        "levelTitle": "레벨별 성과",
+        "sessionCount": "세션 {{count}}회",
+        "accuracyLabel": "정확도",
+        "cpmLabel": "CPM",
+        "noLevelData": "아직 레벨별 데이터가 없습니다.",
+        "trendTitle": "일별 추이",
+        "trendDay": "날짜",
+        "trendSessions": "세션",
+        "trendAccuracy": "정확도",
+        "trendCpm": "CPM",
+        "noTrendData": "아직 추이 데이터가 없습니다.",
+        "weakTitle": "취약 글자 Top 10",
+        "weakSubtitle": "가장 자주 틀린 글자 순으로 표시됩니다. 이 글자들을 집중 연습해보세요.",
+        "missCount": "{{count}}회",
+        "noWeakData": "취약 글자 데이터가 없습니다. 잘하고 있어요!",
+        "emptyTitle": "아직 기록된 세션이 없습니다",
+        "emptyDescription": "연습을 시작해서 첫 통계를 만들어보세요.",
+        "emptyAction": "연습 시작하기"
+      }
+    }
   },
   "lesson": {
     "heroBadge": "단계별 커리큘럼",

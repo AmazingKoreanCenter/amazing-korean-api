@@ -1,0 +1,139 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO writing_practice_session (\n                user_id,\n                study_task_id,\n                writing_level,\n                writing_practice_type\n            )\n            VALUES ($1, $2, $3, $4)\n            RETURNING\n                session_id,\n                user_id,\n                study_task_id,\n                writing_level AS \"writing_level!: WritingLevel\",\n                writing_practice_type AS \"writing_practice_type!: WritingPracticeType\",\n                started_at,\n                finished_at,\n                total_chars,\n                correct_chars,\n                accuracy_rate::float8 AS \"accuracy_rate!\",\n                chars_per_minute::float8 AS \"chars_per_minute!\",\n                mistakes\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "session_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "study_task_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "writing_level!: WritingLevel",
+        "type_info": {
+          "Custom": {
+            "name": "writing_level_enum",
+            "kind": {
+              "Enum": [
+                "beginner",
+                "intermediate",
+                "advanced"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "writing_practice_type!: WritingPracticeType",
+        "type_info": {
+          "Custom": {
+            "name": "writing_practice_type_enum",
+            "kind": {
+              "Enum": [
+                "jamo",
+                "syllable",
+                "word",
+                "sentence",
+                "paragraph"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "started_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "finished_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "total_chars",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "correct_chars",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "accuracy_rate!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 10,
+        "name": "chars_per_minute!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 11,
+        "name": "mistakes",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4",
+        {
+          "Custom": {
+            "name": "writing_level_enum",
+            "kind": {
+              "Enum": [
+                "beginner",
+                "intermediate",
+                "advanced"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "writing_practice_type_enum",
+            "kind": {
+              "Enum": [
+                "jamo",
+                "syllable",
+                "word",
+                "sentence",
+                "paragraph"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "f35b5279e0ee152e32af999ef0f40250a02587ba8d304db344faf8b94a0f7e2c"
+}

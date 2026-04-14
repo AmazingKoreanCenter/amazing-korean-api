@@ -384,6 +384,7 @@
     "kindTypingAlt": "Short Answer",
     "kindVoice": "Voice",
     "kindVoiceAlt": "Voice",
+    "kindWriting": "Hangul Typing",
     "problemNumber": "Problem {{seq}}",
     "problemHashNumber": "Problem #{{seq}}",
     "questionImage": "Question Image",
@@ -410,7 +411,87 @@
     "toLesson": "To Lesson",
     "nextItemVideo": "Next Item (Video)",
     "nextItemTask": "Next Item (Problem)",
-    "completeLesson": "Complete Lesson"
+    "completeLesson": "Complete Lesson",
+    "writing": {
+      "showKeyboard": "Show Keyboard",
+      "hideKeyboard": "Hide Keyboard",
+      "promptLabel": "Sentence to Type",
+      "inputPlaceholder": "Type in Hangul here",
+      "hintLabel": "Hint: {{hint}}",
+      "progress": "{{done}} / {{total}}",
+      "liveAccuracy": "Accuracy {{percent}}%",
+      "resultTitle": "Practice Result",
+      "resultAccuracyBadge": "{{percent}}% accuracy",
+      "statAccuracy": "Accuracy",
+      "statCpm": "CPM",
+      "statChars": "Correct Chars",
+      "mistakesLabel": "Mistakes",
+      "landingBadge": "Hangul Typing Practice",
+      "landingTitle": "Hangul Keyboard Practice",
+      "landingDescription": "Practice Korean typing across three difficulty levels. Progress from jamo to syllables, words, sentences, and paragraphs.",
+      "viewStats": "View stats",
+      "startLevel": "Start practice",
+      "selectPracticeType": "Choose a practice type.",
+      "backToLevels": "Back to levels",
+      "backToTypes": "Back to types",
+      "freePracticeProgress": "{{current}} / {{total}}",
+      "freePracticeLoadError": "Failed to load practice content. Please try again.",
+      "freePracticeEmpty": "No practice content is available yet.",
+      "finishItem": "Check result",
+      "finishAll": "Check final result",
+      "nextItem": "Next item",
+      "allCompleted": "All practice completed!",
+      "restart": "Start over",
+      "selectOther": "Choose another type",
+      "level": {
+        "beginner": {
+          "title": "Beginner",
+          "description": "Focus on jamo and syllables. The keyboard stays visible and the next key is highlighted."
+        },
+        "intermediate": {
+          "title": "Intermediate",
+          "description": "Words and sentences. The keyboard is toggleable with limited live feedback."
+        },
+        "advanced": {
+          "title": "Advanced",
+          "description": "Sentences and paragraphs. The keyboard is hidden by default; speed and accuracy are measured."
+        }
+      },
+      "practiceType": {
+        "jamo": "Jamo",
+        "syllable": "Syllable",
+        "word": "Word",
+        "sentence": "Sentence",
+        "paragraph": "Paragraph"
+      },
+      "stats": {
+        "pageTitle": "Typing Practice Stats",
+        "pageDescription": "Review accuracy, speed, and your weakest characters from your Hangul typing history.",
+        "lastDays": "Last {{count}} days",
+        "totalSessions": "Total Sessions",
+        "avgAccuracy": "Avg Accuracy",
+        "avgCpm": "Avg CPM",
+        "cpmUnit": "Characters per minute",
+        "levelTitle": "By Level",
+        "sessionCount": "{{count}} sessions",
+        "accuracyLabel": "Accuracy",
+        "cpmLabel": "CPM",
+        "noLevelData": "No level data yet.",
+        "trendTitle": "Daily Trend",
+        "trendDay": "Date",
+        "trendSessions": "Sessions",
+        "trendAccuracy": "Accuracy",
+        "trendCpm": "CPM",
+        "noTrendData": "No trend data yet.",
+        "weakTitle": "Top 10 Weak Characters",
+        "weakSubtitle": "Ordered by how often each character was mistyped. Focus on these in your next session.",
+        "missCount": "{{count}}×",
+        "noWeakData": "No weak-character data yet. Great job!",
+        "emptyTitle": "No sessions recorded yet",
+        "emptyDescription": "Start practicing to build up your first statistics.",
+        "emptyAction": "Start practicing"
+      }
+    }
   },
   "lesson": {
     "heroBadge": "Step-by-Step Curriculum",

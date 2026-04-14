@@ -333,6 +333,8 @@ export function AdminStudyDetail() {
         return "secondary" as const;
       case "voice":
         return "destructive" as const;
+      case "writing":
+        return "outline" as const;
       default:
         return "outline" as const;
     }
@@ -1071,6 +1073,10 @@ function TaskDetailsContent({
     choice_3?: string | null;
     choice_4?: string | null;
     choice_correct?: number | null;
+    writing_level?: string | null;
+    writing_practice_type?: string | null;
+    writing_hint?: string | null;
+    writing_keyboard_visible?: boolean | null;
   };
   taskKind: string;
 }) {
@@ -1109,6 +1115,37 @@ function TaskDetailsContent({
               {taskDetail.audio_url}
             </a>
           </p>
+        </div>
+      )}
+
+      {/* Writing fields (only for writing type) */}
+      {taskKind === "writing" && (
+        <div className="md:col-span-2 space-y-2 rounded-lg border p-3 bg-background">
+          <Label className="text-xs text-muted-foreground">Writing Settings</Label>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Level</Label>
+              <p className="text-sm">{taskDetail.writing_level || "-"}</p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Practice Type</Label>
+              <p className="text-sm">{taskDetail.writing_practice_type || "-"}</p>
+            </div>
+            <div className="space-y-1 md:col-span-2">
+              <Label className="text-xs text-muted-foreground">Hint</Label>
+              <p className="text-sm">{taskDetail.writing_hint || "-"}</p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Keyboard Visible</Label>
+              <p className="text-sm">
+                {taskDetail.writing_keyboard_visible === true
+                  ? "Yes"
+                  : taskDetail.writing_keyboard_visible === false
+                    ? "No"
+                    : "-"}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

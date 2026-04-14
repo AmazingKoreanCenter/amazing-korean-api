@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-12
+updated: 2026-04-14
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,119 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-14 — 한글 자판 연습 (Writing Practice) P10-C: Playwright E2E + WritingTask StrictMode 버그 수정**
+  - [P10-C config] `frontend/playwright.config.ts` 신규 — testDir `./e2e`, outputDir `./test-results/e2e`, chromium 단독, 1 worker, 60s timeout, baseURL `process.env.E2E_BASE_URL ?? http://localhost:5173`. `webServer` 는 쓰지 않고 dev 서버가 이미 떠 있다는 전제. `locale: ko-KR`
+  - [P10-C fixture] `frontend/e2e/fixtures/auth.ts` 신규 — `apiLogin` (`POST /auth/login` 을 request context 로 직접 호출 후 `{user_id, access_token}` 반환) + `seedAuthStorage` (zustand persist 포맷으로 `auth-storage` localStorage 를 `addInitScript` 로 주입). 기본 계정 `e2e_p10c@amazingkorean.net / password123!`
+  - [P10-C spec] `frontend/e2e/writing_practice.spec.ts` 신규 — 자유 연습 플로우 E2E. 레벨 선택 → 초급 → 자모 → 세션 시작 응답 대기 → 첫 아이템 prompt innerText 추출 → textarea `pressSequentially` → "결과 확인" → 결과 카드 + stat 라벨 검증 → `/studies/writing/stats` 헤딩 확인. `GET /studies/writing/stats?days=1` 를 fixture 전/후로 직접 호출해 `total_sessions` 가 +1 이상 증가했는지 서버 기준으로 검증
+  - [P10-C vite] `frontend/vite.config.ts` — `server.proxy["/api"].target` 을 `process.env.VITE_PROXY_TARGET ?? "http://127.0.0.1:3000"` 으로 변경. 다른 프로젝트가 3000 을 점유 중일 때 backend 를 3100 등 대체 포트로 띄우고 프록시만 붙여 쓸 수 있게 함
+  - [P10-C npm] `frontend/package.json` — `"test:e2e": "playwright test"` 스크립트 추가
+  - [P10-C doc] `frontend/e2e/README.md` 신규 — 전제 조건(backend+vite 상시 기동), EMAIL_PROVIDER=none 로 backend 1회 띄운 뒤 `/users` 로 테스트 계정 자동 인증 생성 절차, Redis 레이트 리미트 수동 해제 커맨드까지 포함
+  - [P10-C gitignore] `.gitignore` — `frontend/test-results/`, `frontend/playwright-report/` 제외 추가
+  - [P10-C 버그수정] `frontend/src/category/study/component/writing/WritingTask.tsx` — 기존 `useRef(false)` + `useStartWritingSession().mutate(..., { onSuccess })` 패턴이 React 19 StrictMode 에서 완전히 깨지는 것을 E2E 에서 최초로 재현. StrictMode 의 이펙트 이중 호출에서 첫 번째 invocation 이 `mutate` 를 쏜 뒤 두 번째 invocation 은 `startedRef.current===true` 로 스킵되지만, TanStack Query 의 mutation observer 는 double invocation 사이에서 파괴되어 첫 호출의 onSuccess 가 영영 드랍 → `sessionId` 가 `null` 로 남아 "결과 확인" 버튼이 영구 비활성화되는 증상. 수정: `useStartWritingSession` 훅 사용 대신 `startWritingSession` 을 직접 await 하고 `cancelled` 플래그 기반 cleanup 으로 첫 호출의 결과를 drop. 이 방식은 StrictMode + 운영 모드 모두 정상 작동
+  - [검증] 로컬에서 backend `BIND_ADDR=127.0.0.1:3100 EMAIL_PROVIDER=none`, frontend `VITE_PROXY_TARGET=http://127.0.0.1:3100 npm run dev` 로 띄우고 `npm run test:e2e` → 1 passed (7.4s → 이후 재측정 6.4s). `npm run build` 클린 통과 (9.56s)
+  - [진행 상황] P10-C 완료. 한글 자판 연습 Phase 1 (P1~P10) 100% 완료
+  - [배제] CI GitHub Actions 워크플로우 통합은 이번 스코프 밖. 맥미니 QA 셋업(amazing-korean-ai Day 6) 에서 별도로 묶을 예정
+  - [문서] 본 changelog 항목 + STATUS #59 + 메모리 동기화
+
+- **2026-04-13 — 한글 자판 연습 (Writing Practice) P10-B: 프론트 자유 연습 실연결**
+  - [P10-B types] `frontend/src/category/study/types.ts` — `writingPracticeSeedReqSchema`/`writingPracticeSeedItemSchema`/`writingPracticeSeedResSchema` Zod 스키마 3종 신규. 백엔드 `WritingPracticeSeedReq`/`Item`/`Res` 파리티. `level`/`practice_type`은 기존 enum 스키마 재사용
+  - [P10-B api] `frontend/src/category/study/study_api.ts` — `getWritingPracticeSeed({level, practice_type, limit?})` 함수 신규. `GET /studies/writing/practice` 호출 (비인증 엔드포인트)
+  - [P10-B hook] `frontend/src/category/study/hook/use_writing_practice_seed.ts` 신규 — `useWritingPracticeSeed` 쿼리 훅. queryKey `["writing-practice-seed", level, practice_type, limit]`, `staleTime` 10분 (시드는 거의 변하지 않음)
+  - [P10-B task] `component/writing/WritingTask.tsx` — props `taskId: number | null`로 타입 완화. `mutate` 호출 시 `study_task_id: taskId ?? null`. 기존 `study_task_page.tsx` 호출부는 number 전달이라 영향 없음. 자유 연습 모드에선 null 전달 → 세션 `study_task_id=null`로 저장
+  - [P10-B page] `page/writing_practice_page.tsx` 완전 리라이트 — "준비 중" placeholder 카드 제거. `FreePracticeRunner` 서브 컴포넌트 신규: `useWritingPracticeSeed` 로드 → `currentIndex` state → 현재 아이템을 `WritingPayload` 형태로 재구성(초급만 answer 전달, `keyboard_visible=beginner 여부`) → `WritingTask` 렌더. 결과 확인 버튼 → `finishWritingSession` → 결과 카드 표시 → "다음 문제" 버튼. 마지막 아이템 완료 시 "처음부터 다시" / "다른 유형 선택" CTA. WritingTask `key` prop은 `seed_id` + `attempt` 기반으로 아이템/재시도 시 재마운트 보장(세션 중복 방지)
+  - [P10-B i18n] `study.writing.*`에서 `freePracticeComingTitle`/`freePracticeComingDescription`/`freePracticeMeta` 3개 키 제거. `freePracticeProgress`/`freePracticeLoadError`/`freePracticeEmpty`/`finishItem`/`finishAll`/`nextItem`/`allCompleted`/`restart`/`selectOther` 9개 키 ko/en 추가
+  - [검증] `cd frontend && npm run build` 클린 통과 (tsc -b + vite build 8.63s)
+  - [진행 상황] P10-B 완료 (95%). 다음: P10-C Playwright E2E (로그인 → 레벨/유형 선택 → 시드 렌더 → 타이핑 → 세션 완료 → 통계 반영 확인)
+  - [배제] B안(한 세션 = 전체 묶음)은 세션 finish 1회 전제가 깨지므로 보류. 진행도 persistence(localStorage/서버) 스코프 밖
+  - [문서] 본 changelog 항목 + STATUS #59 + 메모리 동기화
+
+- **2026-04-13 — 한글 자판 연습 (Writing Practice) P10-A: 자유 연습 시드 컨텐츠 + 백엔드 엔드포인트**
+  - [P10-A migration] `migrations/20260413_writing_practice_seed.sql` 신규 — `writing_practice_seed` 테이블 (pk/level/practice_type/seq/prompt/answer/hint). UNIQUE (level, practice_type, seq) + `(level, practice_type, seq)` 복합 인덱스. 자유 연습은 study 수강 흐름과 독립된 드릴 컨텐츠라 study_task_writing 재사용 대신 별도 테이블로 분리
+  - [P10-A seed] 동일 마이그레이션 INSERT ~190개 — 초급 jamo 40 (기본 자음 14 + 기본 모음 10 + 쌍자음 5 + 이중모음 11) / syllable 30 (CV 음절) / word 30 (일상어). 중급 word 30 (2~4음절 복합어) / sentence 30 (기초 회화). 고급 sentence 20 (복문·경어법) / paragraph 10 (2~4문장). 초급 jamo만 hint에 로마자 포함
+  - [P10-A dto] `src/api/study/dto.rs` — `WritingPracticeSeedReq`/`WritingPracticeSeedItem`/`WritingPracticeSeedRes` 신규. 요청=`level`+`practice_type`+`limit?` (기본 20, 최대 100). 응답=level/practice_type/items
+  - [P10-A repo] `src/api/study/repo.rs` — `StudyRepo::list_writing_practice_seed(pool, level, practice_type, limit)` 신규. `writing_practice_seed`에서 `(level, practice_type)` 필터로 `seq ASC` 조회 + LIMIT
+  - [P10-A service] `src/api/study/service.rs` — `StudyService::list_writing_practice_seed`: limit 검증(0/>100), repo 호출 후 response 구성. 인증 불필요
+  - [P10-A handler+router] `src/api/study/handler.rs` `list_writing_practice_seed` 핸들러 + `GET /studies/writing/practice` 라우트 등록. `OptionalAuthUser`조차 생략해 비인증 허용
+  - [P10-A openapi] `src/docs.rs` — handler + 3개 DTO (Req/Item/Res) 스키마 등록
+  - [P10-A 문서] `docs/AMK_API_LEARNING.md` §5.5 표에 5-11 행 추가 + 5.5-11 상세 시나리오 추가. `docs/AMK_SCHEMA_PATCHED.md` §2.4.5-3 `writing_practice_seed` 테이블 문서화
+  - [검증] `cargo sqlx prepare` 쿼리 캐시 업데이트 완료, `SQLX_OFFLINE=true cargo check` 클린 통과 (0 warning/error). 로컬 DB 마이그레이션 적용 후 `SELECT COUNT(*) GROUP BY level/practice_type`로 행 수 검증 (beginner: 40+30+30, intermediate: 30+30, advanced: 20+10 = 190)
+  - [진행 상황] P10-A 완료. 다음: P10-B 프론트 자유 연습 실연결 (writing_practice_page에서 시드 fetch → WritingTask 재사용 → finishWritingSession 플로우) → P10-C Playwright E2E
+
+- **2026-04-13 — 한글 자판 연습 (Writing Practice) P9: 관리자 프론트 writing 폼 + CSV**
+  - [P9 types] `frontend/src/category/admin/study/types.ts` — `studyTaskCreateReqSchema` / `studyTaskUpdateReqSchema` / `studyTaskUpdateItemSchema` / `adminStudyTaskDetailResSchema` 4곳에 writing 전용 필드 4개 (`writing_level`, `writing_practice_type`, `writing_hint`, `writing_keyboard_visible`) 추가. `../../study/types`에서 `writingLevelSchema`/`writingPracticeTypeSchema` import 재사용. 백엔드 AdminStudyTaskDetailRes 파리티 확보
+  - [P9 create] `admin_study_create.tsx` — 단일 Task / Bulk Tasks Select 드롭다운에 `writing` 옵션 추가. `study_task_kind === "writing"` 조건부 필드 박스 (level Select / practice_type Select / hint Input / keyboard_visible Checkbox). `taskFormSchema` / `bulkTaskFormSchema`에 4개 필드 optional 추가. `getTaskKindBadgeVariant` writing→outline 분기. `onCSVTasksSubmit` 매핑에 writing 4개 필드 전달
+  - [P9 csv] 같은 파일의 `parseCSV` — `validKinds`에 `"writing"` 추가. 4개 writing 컬럼 헤더 인덱스 파싱(`writing_level`, `writing_practice_type`, `writing_hint`, `writing_keyboard_visible`). level/type enum 화이트리스트 검증, `writing_keyboard_visible`은 "true"/"false" 문자열을 boolean으로 변환(공란=undefined). writing row 검증: prompt(question) + answer + level + practice_type 필수. CSV 포맷 가이드 pre 블록에 writing 예시 행 + 설명 문구 추가
+  - [P9 detail] `admin_study_detail.tsx` — `TaskDetailsContent` props 타입에 writing 4개 필드 추가. `taskKind === "writing"` 조건부 카드 블록 (Level/Practice Type/Hint/Keyboard Visible 읽기 전용 표시). `getTaskKindBadgeVariant`에도 writing 분기 추가
+  - [참고] bulk edit 다이얼로그는 question/answer만 지원하므로 writing 세부 편집은 단일 태스크 플로우(신규 생성)로 한정. 기존 writing 태스크 필드 업데이트는 P10 이후 필요 시 추가
+  - [검증] `cd frontend && npm run build` 클린 통과 (tsc -b + vite build 8.43s)
+  - [진행 상황] P1~P9 완료 (90%). 다음: P10 시드 데이터 (자모→단어→문장) + writing_practice_page 자유 연습 실연결 + E2E 검증
+  - [문서] 본 changelog 항목 + STATUS #59 + 메모리 동기화
+
+- **2026-04-13 — 한글 자판 연습 (Writing Practice) P8: 통계 대시보드**
+  - [P8 page] `frontend/src/category/study/page/writing_stats_page.tsx` 신규 — `useWritingStats({ days })` 훅 기반. 상단 기간 Select (7/14/30/60/90/180/365일, 기본 30). `formatNumber`/`formatPercent`/`formatCpm` 로컬 헬퍼
+  - [P8 summary] Summary 카드 3개 — 총 세션(Keyboard), 평균 정확도(Target, %), 평균 CPM(Gauge, "분당 글자 수" subtitle). admin_study_stats_page 패턴 재사용 (h-12 w-12 원형 아이콘)
+  - [P8 levels] `LevelBreakdownCard` — `level_breakdown` 기반 progress bar (sessions / maxSessions * 100 폭). 초→중→고 순 정렬(모듈 레벨 `LEVEL_ORDER` 상수). 하단 정확도/CPM 라인
+  - [P8 weak] `WeakCharsCard` — `weak_chars` 기반 Top 10. destructive 톤 카드 (h-10 w-10 글자 박스 + 상대 bar, `Math.max(widthPercent, 10)`으로 최소 가시성 확보). 비어있을 때 "잘하고 있어요!" 문구
+  - [P8 trend] `DailyTrendCard` — `recent_trend` 일별 테이블 (날짜 내림차순, 세션/정확도/CPM 컬럼). overflow-x-auto로 모바일 대응
+  - [P8 empty] `total_sessions === 0 && !isPending` 시 dashed border CTA 카드 (TrendingUp 아이콘 + 연습 시작 버튼)
+  - [P8 route] `app/routes.tsx` — `WritingStatsPage` lazy import + Private 하위 `/studies/writing/stats` 라우트 등록. React Router v6 랭킹 규칙상 static segment "stats"가 `:level` 파라미터보다 우선 매칭되므로 JSX 순서와 무관하게 안전 (가독성 위해 구체 경로를 먼저 선언)
+  - [P8 link] `writing_level_select_page.tsx` — P7에서 P8 구현 전까지 임시 제거했던 stats 버튼(`BarChart3` 아이콘) 복원. 제목 우측 정렬
+  - [P8 i18n] `study.writing.stats.*` 네임스페이스 신규 30+ 키 — pageTitle/pageDescription/lastDays, totalSessions/avgAccuracy/avgCpm/cpmUnit, levelTitle/sessionCount/accuracyLabel/cpmLabel/noLevelData, trendTitle/trendDay/trendSessions/trendAccuracy/trendCpm/noTrendData, weakTitle/weakSubtitle/missCount/noWeakData, emptyTitle/emptyDescription/emptyAction (ko/en 병렬)
+  - [검증] `npm run build` 클린 통과 (tsc -b + vite build 9.78s)
+  - [진행 상황] P1~P8 완료 (80%). 다음: P9 관리자 프론트엔드 writing 폼 필드 + CSV import / P10 시드 데이터 + E2E
+  - [문서] 본 changelog 항목 + STATUS #59 + 메모리 동기화
+
+- **2026-04-12 — 한글 자판 연습 (Writing Practice) P7: 연습 페이지 + study_task_page writing 분기**
+  - [P7 input] `frontend/src/category/study/component/writing/WritingPracticeInput.tsx` 신규 — `compositionstart`/`compositionend` 이벤트로 한글 IME 조합 중에는 검증 보류. 초급(+answer)=글자별 실시간 피드백 (정답/오답/미입력 3상태 색상). Array.from으로 서로게이트 페어 안전 분할. 오탈자는 `mistakesRef`(Map) 누적 — 자가교정해도 최초 오답 기록은 유지. 타이핑 stats 콜백(`total_chars`/`correct_chars`/`mistakes`/`duration_ms`) + 다음 기대 자모 콜백(`decomposeSyllable` 활용)
+  - [P7 result] `WritingResultPanel.tsx` 신규 — 세션 결과 카드 (accuracy/CPM/correct_chars stat grid + 오답 글자 Top 20 하이라이트 badge, 95%+ 시 default variant badge)
+  - [P7 task] `WritingTask.tsx` 신규 — WritingPracticeInput + HangulKeyboard 합성 래퍼. 태스크 마운트 시 `useStartWritingSession.mutate()` 1회 호출(중복 방지 flag) → `onSessionStart(session_id)` 콜백으로 상위 state 끌어올림. 가상 키보드 클릭은 학습 참고용으로 현재 텍스트 뒤에 자모 append. 서버 stats 응답(`finishedSession`)이 오면 WritingResultPanel 렌더
+  - [P7 integration] `study_task_page.tsx` writing 분기 채움 — writingText/writingStats/writingSessionId/writingResult state + `useFinishWritingSession` 훅 추가. `handleSubmit` writing 분기: `finishWritingSession(session_id, stats)` + `submitAnswer({kind:"writing", text, session_id})` 순차 호출. `canSubmit`에 writing + finishWritingMutation.isPending 가드. renderTask에 WritingTask 추가. 태스크 전환/재시도 시 writing state 완전 초기화
+  - [P7 pages] `writing_level_select_page.tsx` 신규 (/studies/writing) — 3단 레벨 카드 (초/중/고급) + 통계 버튼 링크. `writing_practice_page.tsx` 신규 (/studies/writing/:level[/:practiceType]) — 유형 미지정 시 레벨별 유형 선택(beginner=jamo/syllable/word, intermediate=word/sentence, advanced=sentence/paragraph), 유형 지정 시 자유 연습 "준비 중" 카드 (P10 시드 이후 실연습 연결 예정). safeParse로 URL 파라미터 검증 후 실패 시 상위로 Navigate redirect
+  - [P7 routes] `app/routes.tsx` — Writing 페이지 2개 lazy 등록 + Private 하위에 3개 라우트 추가: `/studies/writing`, `/studies/writing/:level`, `/studies/writing/:level/:practiceType`. React Router v6 랭킹 규칙상 static segment("writing")가 `/studies/:studyId`보다 우선 매칭
+  - [P7 i18n] `ko.json`/`en.json` `study.writing` 확장 — 30+ 키 추가: promptLabel/inputPlaceholder/hintLabel/progress/liveAccuracy, resultTitle/statAccuracy/statCpm/statChars/mistakesLabel, landingBadge/Title/Description/viewStats/startLevel, selectPracticeType/backToLevels/backToTypes/freePracticeComing*, `level.{beginner|intermediate|advanced}.{title|description}`, `practiceType.{jamo|syllable|word|sentence|paragraph}`
+  - [검증] `npm run build` 클린 통과 (tsc -b + vite build 8.68s)
+  - [진행 상황] P1~P7 완료 (70%). 다음: P8 통계 대시보드 / P9 관리자 프론트 writing 폼 / P10 시드 데이터 + E2E
+  - [문서] 본 changelog 항목 + STATUS #59 + 메모리 동기화
+
+- **2026-04-12 — 한글 자판 연습 (Writing Practice) P6: HangulKeyboard 컴포넌트**
+  - [P6 layout] `frontend/src/category/study/component/writing/keyboard_layout.ts` 신규 — 2벌식 (KS X 5002) 3행 `DUBEOLSIK_ROWS` 데이터 (KeyQ~KeyP / KeyA~KeyL / KeyZ~KeyM, 기본 자모 + Shift 쌍자모). `KeyCap` 타입. `findKeyForJamo` 헬퍼 (자모 → 키캡 + needsShift). `decomposeSyllable` 헬퍼 (한글 음절 U+AC00~U+D7A3 → 초/중/종성 자모 배열, (cho*21+jung)*28+jong 공식)
+  - [P6 key] `HangulKeyboardKey.tsx` 신규 — 개별 키 버튼 (h-12 w-10 기본, sm:h-14 w-12). 기본 자모 중앙 + 오른쪽 위 Shift 변형 + 하단 영문 라벨. `isHighlighted`(primary ring) / `isShiftHighlighted`(amber ring, Shift 입력 필요 시) 상태. 클릭 시 `onPress(base | shift)`. 접근성 aria-label 포함
+  - [P6 keyboard] `HangulKeyboard.tsx` 신규 — Props: `highlightKeys`, `onKeyPress`, `visible`, `onToggle`, `level`, `disabled`, `className`. 레벨별 동작: 초급=항상 표시 (토글 무시), 중급/고급=`visible` prop 존중 + 토글 버튼 (Eye/EyeOff/Keyboard 아이콘). 숨김 상태에선 "키보드 보기" 버튼만 노출. Card 래퍼 + 3행 레이아웃 (rowIdx*1rem 왼쪽 패딩으로 스태거). `useMemo`로 highlightKeys → Set<code> 변환 (base/shift 분리). `findKeyForJamo`로 매칭
+  - [P6 i18n] `ko.json`/`en.json`에 `study.writing.showKeyboard` / `study.writing.hideKeyboard` 키 추가 (중첩 객체)
+  - [검증] `npm run build` 클린 통과 (tsc -b + vite build)
+  - [진행 상황] P1~P6 완료 (60%). 다음: P7 연습 페이지 (레벨 선택 → 연습 실행 → 결과 + study_task_page writing 분기)
+  - [문서] 본 changelog 항목 + STATUS + 메모리 동기화
+
+- **2026-04-12 — 한글 자판 연습 (Writing Practice) P5: 프론트 타입 + API + 훅**
+  - [P5 types] `frontend/src/category/study/types.ts` — `writingLevelSchema`/`writingPracticeTypeSchema` Zod enum 신규. `studyTaskKindSchema`에 `writing` 추가. `submitAnswerReqSchema` discriminated union에 `{ kind: "writing", text, session_id? }` variant 추가. `writingPayloadSchema` (prompt/answer?/hint?/level/practice_type/keyboard_visible/image_url?/audio_url?) + `taskPayloadSchema` union에 포함. 세션 API용 request/response DTO 11종 (`StartWritingSessionReq`, `WritingMistake`, `FinishWritingSessionReq`, `WritingSessionListReq`, `WritingStatsReq`, `WritingSessionRes`, `WritingSessionListRes`, `WritingLevelStat`, `WritingDailyStat`, `WritingWeakChar`, `WritingStatsRes`) Zod 스키마 + z.infer 타입
+  - [P5 API] `study_api.ts` — `startWritingSession` / `finishWritingSession` / `listWritingSessions` / `getWritingStats` 함수 추가. `sanitizeParams` 헬퍼를 제네릭 `<T extends Record<string, unknown>>`으로 일반화 (기존 StudyListReq 캐스트 hack 제거)
+  - [P5 hooks] `hook/use_writing_session.ts` 신규 — `useStartWritingSession` + `useFinishWritingSession` (성공 시 `writing-sessions`/`writing-stats` 쿼리 invalidate) + `useWritingSessionList`. `hook/use_writing_stats.ts` 신규 — `useWritingStats`. 모두 에러 토스트 + ApiError 처리 패턴 준수
+  - [P5 i18n/호환] `studyTaskKindSchema`에 `writing` 추가로 기존 `Record<StudyTaskKind, ...>` 매핑 3곳 (KIND_ICONS/KIND_LABELS×2) writing 엔트리 추가. `ko.json`/`en.json`에 `study.kindWriting` 키 추가 ("자판 연습" / "Hangul Typing"). lucide `PenLine` 아이콘 매핑. 기존 study_task_page의 kind switch 3개는 default/no-op 분기 유지 — 실제 writing UI는 P6~P7에서 구현
+  - [검증] `npm run build` 클린 통과 (tsc -b + vite build)
+  - [진행 상황] P1~P5 완료 (50%). 다음: P6 HangulKeyboard 컴포넌트 + P7 연습 페이지 (새 세션에서 진행)
+  - [문서] 본 changelog 항목 + 메모리 동기화
+
+- **2026-04-12 — 한글 자판 연습 (Writing Practice) P4: 세션 API (시작/완료/목록/통계)**
+  - [P4 DTO] `src/api/study/dto.rs` — `StartWritingSessionReq`, `FinishWritingSessionReq`, `WritingMistake`, `WritingSessionListReq`, `WritingSessionRes`, `WritingSessionListRes`, `WritingStatsReq`, `WritingLevelStat`, `WritingDailyStat`, `WritingWeakChar`, `WritingStatsRes` 신규. NUMERIC(5,2)/(7,2) 컬럼은 응답 DTO에서 f64로 노출 (::float8 캐스트)
+  - [P4 Repo] `StudyRepo` — `exists_writing_task` (writing 태스크 존재 + study open 검증), `create_writing_session` (INSERT RETURNING), `finish_writing_session` (UPDATE WHERE user_id 소유권 검증, 미존재 시 None), `list_writing_sessions` (QueryBuilder + level/finished_only 필터), `writing_stats_overall` / `writing_stats_by_level` / `writing_stats_daily` / `writing_stats_weak_chars` (jsonb_array_elements LATERAL JOIN으로 mistakes 펼쳐서 expected Top 10 집계)
+  - [P4 Service] `StudyService` — 5개 메서드 추가. `finish_writing_session`에서 서버 사이드 accuracy/CPM 계산: `accuracy_rate = correct_chars/total_chars * 100`, `chars_per_minute = total_chars * 60000 / duration_ms`. 소수점 2자리 반올림 + NUMERIC(5,2)/(7,2) 범위 clamp. 검증: `correct_chars <= total_chars` (422), `duration_ms >= 0` (400), `days 1~365` (400/422)
+  - [P4 Handler/Router] `/studies/writing/sessions` (POST 시작 / GET 목록), `/studies/writing/sessions/{id}` (PATCH 완료), `/studies/writing/stats` (GET). 모두 `AuthUser` 필수. utoipa path 4개 신규 등록
+  - [P4 docs.rs] 신규 path 4개 + schema 11개(`StartWritingSessionReq`, `FinishWritingSessionReq`, `WritingMistake`, `WritingSessionListReq`, `WritingSessionRes`, `WritingSessionListRes`, `WritingStatsReq`, `WritingLevelStat`, `WritingDailyStat`, `WritingWeakChar`, `WritingStatsRes`) utoipa 등록
+  - [검증] `cargo sqlx prepare` 캐시 업데이트, `cargo check` + `SQLX_OFFLINE=true cargo check` 클린 통과 (0건 warning/error)
+  - [진행 상황] P1~P4 완료 (40%). 다음: P5~P10 프론트엔드 (타입/훅/HangulKeyboard/연습 페이지/통계 대시보드/관리자 UI/시드)
+  - [문서] `AMK_API_LEARNING.md` §5.5 행렬에 5-7~5-10 추가 + 시나리오 상세 (5.5-7~5.5-10) 작성
+
+- **2026-04-12 — 한글 자판 연습 (Writing Practice) Phase 1: DB + 백엔드 + 관리자 CRUD**
+  - [P1 마이그레이션] `migrations/20260412_writing_practice.sql` 신규 — `study_task_kind_enum`에 `writing` 추가, `content_type_enum`에 `study_task_writing` 추가, 신규 enum 2종 (`writing_level_enum`: beginner/intermediate/advanced, `writing_practice_type_enum`: jamo/syllable/word/sentence/paragraph)
+  - [P1 테이블] `study_task_writing` (서브테이블, PK=study_task_id FK→study_task): level, practice_type, prompt, answer, hint, keyboard_visible, image_url, audio_url. `writing_practice_session` (독립 통계 테이블): user_id, study_task_id(nullable), level, practice_type, started_at/finished_at, total_chars, correct_chars, accuracy_rate, chars_per_minute, mistakes(JSONB)
+  - [P1 인덱스] `idx_stw_level`, `idx_stw_practice_type`, `idx_stw_level_type`, `idx_wps_user_id`, `idx_wps_user_level`, `idx_wps_user_started`, `idx_wps_task`
+  - [P1 Rust 타입] `src/types.rs` — `StudyTaskKind::Writing`, `WritingLevel`, `WritingPracticeType`, `ContentType::StudyTaskWriting` 추가
+  - [P2 study API] `WritingPayload` DTO 추가 (prompt/answer/hint/level/practice_type/keyboard_visible/image_url/audio_url). `TaskPayload::Writing` variant. `SubmitAnswerReq::Writing { text, session_id }` variant. 초급 레벨에만 `answer`를 응답에 포함 (클라이언트 실시간 피드백용). `find_task_detail`/`find_answer_key` 쿼리에 `study_task_writing` LEFT JOIN 추가. `submit_answer` 서비스에 Writing 분기 (현재는 단순 `==` 비교, 세부 통계는 P4 세션 API에서 처리)
+  - [P3 관리자 CRUD] 기존 `question`/`answer` 필드 재사용 (typing/voice와 일관성): writing의 경우 `question`이 prompt로 매핑. `StudyTaskCreateReq`/`StudyTaskUpdateReq`/`StudyTaskUpdateItem`/`AdminStudyTaskDetailRes`에 writing 전용 필드 (level, practice_type, hint, keyboard_visible) 추가. 단일/벌크 생성 검증 분기 + `create_task_writing` repo 함수 + update match Writing 분기 + find_study_task_by_id 쿼리에 writing JOIN 추가. answer는 `w.study_task_writing_answer`로 COALESCE, question은 `w.study_task_writing_prompt`로 COALESCE
+  - [검증] 로컬 DB 마이그레이션 적용 완료, `cargo sqlx prepare` 캐시 업데이트, `cargo check` 클린 통과 (0건 warning/error)
+  - [진행 상황] 전체 설계 플랜 P1~P10 중 P1~P3 완료 (30%). 다음: P4 세션 API (POST/PATCH `/studies/writing/sessions`, GET `/studies/writing/stats`), P5+ 프론트엔드
+  - [문서] `AMK_SCHEMA_PATCHED.md` §2.4 테이블/enum 동기화, `AMK_API_LEARNING.md` §5.5-4 answer flow에 writing 분기 추가
 
 - **2026-04-12 — 속도 개선 Phase S3: LCP 수정 + Font preload + 이미지 최적화 + K6 + 프로덕션 측정**
   - [S3-1] book-hub LCP 18.6s 원인 수정: 커버 이미지 `loading="lazy"` → 초기 슬라이드만 `eager` + `fetchPriority="high"`

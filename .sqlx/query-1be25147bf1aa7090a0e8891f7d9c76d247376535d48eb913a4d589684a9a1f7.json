@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                m.value->>'expected' AS \"expected?\",\n                COUNT(*)::BIGINT AS \"miss_count!\"\n            FROM writing_practice_session s\n            CROSS JOIN LATERAL jsonb_array_elements(s.mistakes) AS m(value)\n            WHERE s.user_id = $1\n              AND s.finished_at IS NOT NULL\n              AND s.started_at >= NOW() - make_interval(days => $2)\n              AND m.value->>'expected' IS NOT NULL\n            GROUP BY m.value->>'expected'\n            ORDER BY COUNT(*) DESC\n            LIMIT $3\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "expected?",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "miss_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "1be25147bf1aa7090a0e8891f7d9c76d247376535d48eb913a4d589684a9a1f7"
+}

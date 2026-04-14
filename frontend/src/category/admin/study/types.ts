@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { studyProgramSchema, studyTaskKindSchema } from "../../study/types";
+import {
+  studyProgramSchema,
+  studyTaskKindSchema,
+  writingLevelSchema,
+  writingPracticeTypeSchema,
+} from "../../study/types";
 
 export const studyStateSchema = z.enum(["ready", "open", "close"]);
 
@@ -383,6 +388,11 @@ export const studyTaskCreateReqSchema = z.object({
   choice_3: z.string().optional(),
   choice_4: z.string().optional(),
   choice_correct: z.number().int().optional(),
+  // writing 전용 (question=prompt)
+  writing_level: writingLevelSchema.optional(),
+  writing_practice_type: writingPracticeTypeSchema.optional(),
+  writing_hint: z.string().optional(),
+  writing_keyboard_visible: z.boolean().optional(),
 });
 
 export type StudyTaskCreateReq = z.infer<typeof studyTaskCreateReqSchema>;
@@ -421,6 +431,10 @@ export const studyTaskUpdateReqSchema = z.object({
   choice_3: z.string().optional(),
   choice_4: z.string().optional(),
   choice_correct: z.number().int().optional(),
+  writing_level: writingLevelSchema.optional(),
+  writing_practice_type: writingPracticeTypeSchema.optional(),
+  writing_hint: z.string().optional(),
+  writing_keyboard_visible: z.boolean().optional(),
 });
 
 export type StudyTaskUpdateReq = z.infer<typeof studyTaskUpdateReqSchema>;
@@ -437,6 +451,10 @@ export const studyTaskUpdateItemSchema = z.object({
   choice_3: z.string().optional(),
   choice_4: z.string().optional(),
   choice_correct: z.number().int().optional(),
+  writing_level: writingLevelSchema.optional(),
+  writing_practice_type: writingPracticeTypeSchema.optional(),
+  writing_hint: z.string().optional(),
+  writing_keyboard_visible: z.boolean().optional(),
 });
 
 export type StudyTaskUpdateItem = z.infer<typeof studyTaskUpdateItemSchema>;
@@ -477,6 +495,10 @@ export const adminStudyTaskDetailResSchema = z.object({
   choice_3: z.string().optional(),
   choice_4: z.string().optional(),
   choice_correct: z.number().int().optional(),
+  writing_level: writingLevelSchema.optional(),
+  writing_practice_type: writingPracticeTypeSchema.optional(),
+  writing_hint: z.string().optional(),
+  writing_keyboard_visible: z.boolean().optional(),
 });
 
 export type AdminStudyTaskDetailRes = z.infer<typeof adminStudyTaskDetailResSchema>;

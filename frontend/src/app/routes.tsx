@@ -28,6 +28,11 @@ const HealthPage = lazy(() => import("@/category/health/page/health_page").then(
 const MyPage = lazy(() => import("@/category/user/page/my_page").then((m) => ({ default: m.MyPage })));
 const SettingsPage = lazy(() => import("@/category/user/page/settings_page").then((m) => ({ default: m.SettingsPage })));
 
+// Writing practice (한글 자판 연습) — 로그인 후 접근, lazy
+const WritingLevelSelectPage = lazy(() => import("@/category/study/page/writing_level_select_page").then((m) => ({ default: m.WritingLevelSelectPage })));
+const WritingPracticePage = lazy(() => import("@/category/study/page/writing_practice_page").then((m) => ({ default: m.WritingPracticePage })));
+const WritingStatsPage = lazy(() => import("@/category/study/page/writing_stats_page").then((m) => ({ default: m.WritingStatsPage })));
+
 import PrivateRoute from "@/routes/private_route";
 
 // Admin — admin/HYMN만 접근, 일반 사용자 번들에서 완전 제거. 30+ 페이지.
@@ -178,6 +183,11 @@ export function AppRoutes() {
           <Route path="/book/ebook/purchase-complete" element={<EbookPurchaseCompletePage />} />
           <Route path="/book/ebook/viewer/:purchaseCode" element={<EbookViewerPage />} />
           <Route path="/book/ebook/my" element={<EbookMyPurchasesPage />} />
+          {/* 한글 자판 연습 (Writing practice) — 로그인 필요. 구체 경로 먼저 등록 */}
+          <Route path="/studies/writing" element={<WritingLevelSelectPage />} />
+          <Route path="/studies/writing/stats" element={<WritingStatsPage />} />
+          <Route path="/studies/writing/:level" element={<WritingPracticePage />} />
+          <Route path="/studies/writing/:level/:practiceType" element={<WritingPracticePage />} />
           {/* 기존 Private 경로 리다이렉트 */}
           <Route path="/textbook/order" element={<Navigate to="/book/textbook/order" replace />} />
           <Route path="/textbook/my" element={<Navigate to="/book/textbook/my" replace />} />

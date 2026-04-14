@@ -680,3 +680,7 @@ scripts/
 
 # MCP 로컬 설정
 .mcp.json
+
+# Playwright E2E 산출물
+frontend/test-results/
+frontend/playwright-report/

@@ -577,30 +577,39 @@ pub async fn find_study_task_by_id(
             COALESCE(
                 c.study_task_choice_question,
                 t.study_task_typing_question,
-                v.study_task_voice_question
+                v.study_task_voice_question,
+                w.study_task_writing_prompt
             ) AS question,
             COALESCE(
                 t.study_task_typing_answer,
-                v.study_task_voice_answer
+                v.study_task_voice_answer,
+                w.study_task_writing_answer
             ) AS answer,
             COALESCE(
                 c.study_task_choice_image_url,
                 t.study_task_typing_image_url,
-                v.study_task_voice_image_url
+                v.study_task_voice_image_url,
+                w.study_task_writing_image_url
             ) AS image_url,
             COALESCE(
                 c.study_task_choice_audio_url,
-                v.study_task_voice_audio_url
+                v.study_task_voice_audio_url,
+                w.study_task_writing_audio_url
             ) AS audio_url,
             c.study_task_choice_1 AS choice_1,
             c.study_task_choice_2 AS choice_2,
             c.study_task_choice_3 AS choice_3,
             c.study_task_choice_4 AS choice_4,
-            c.study_task_choice_answer AS choice_correct
+            c.study_task_choice_answer AS choice_correct,
+            w.study_task_writing_level AS writing_level,
+            w.study_task_writing_practice_type AS writing_practice_type,
+            w.study_task_writing_hint AS writing_hint,
+            w.study_task_writing_keyboard_visible AS writing_keyboard_visible
         FROM study_task st
         LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
         LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
         LEFT JOIN study_task_voice v ON v.study_task_id = st.study_task_id
+        LEFT JOIN study_task_writing w ON w.study_task_id = st.study_task_id
         WHERE st.study_task_id = $1
         "#,
     )
@@ -625,30 +634,39 @@ pub async fn find_study_task_by_id_tx(
             COALESCE(
                 c.study_task_choice_question,
                 t.study_task_typing_question,
-                v.study_task_voice_question
+                v.study_task_voice_question,
+                w.study_task_writing_prompt
             ) AS question,
             COALESCE(
                 t.study_task_typing_answer,
-                v.study_task_voice_answer
+                v.study_task_voice_answer,
+                w.study_task_writing_answer
             ) AS answer,
             COALESCE(
                 c.study_task_choice_image_url,
                 t.study_task_typing_image_url,
-                v.study_task_voice_image_url
+                v.study_task_voice_image_url,
+                w.study_task_writing_image_url
             ) AS image_url,
             COALESCE(
                 c.study_task_choice_audio_url,
-                v.study_task_voice_audio_url
+                v.study_task_voice_audio_url,
+                w.study_task_writing_audio_url
             ) AS audio_url,
             c.study_task_choice_1 AS choice_1,
             c.study_task_choice_2 AS choice_2,
             c.study_task_choice_3 AS choice_3,
             c.study_task_choice_4 AS choice_4,
-            c.study_task_choice_answer AS choice_correct
+            c.study_task_choice_answer AS choice_correct,
+            w.study_task_writing_level AS writing_level,
+            w.study_task_writing_practice_type AS writing_practice_type,
+            w.study_task_writing_hint AS writing_hint,
+            w.study_task_writing_keyboard_visible AS writing_keyboard_visible
         FROM study_task st
         LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
         LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
         LEFT JOIN study_task_voice v ON v.study_task_id = st.study_task_id
+        LEFT JOIN study_task_writing w ON w.study_task_id = st.study_task_id
         WHERE st.study_task_id = $1
         "#,
     )
@@ -1079,6 +1097,65 @@ pub async fn admin_update_study_task(
                 qb.build().execute(&mut **tx).await?;
             }
         }
+        crate::types::StudyTaskKind::Writing => {
+            let mut qb = QueryBuilder::<Postgres>::new("UPDATE study_task_writing SET ");
+            let mut has_any = false;
+
+            if let Some(ref prompt) = req.question {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_writing_prompt = ");
+                qb.push_bind(prompt);
+                has_any = true;
+            }
+            if let Some(ref answer) = req.answer {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_writing_answer = ");
+                qb.push_bind(answer);
+                has_any = true;
+            }
+            if let Some(ref hint) = req.writing_hint {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_writing_hint = ");
+                qb.push_bind(hint);
+                has_any = true;
+            }
+            if let Some(keyboard_visible) = req.writing_keyboard_visible {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_writing_keyboard_visible = ");
+                qb.push_bind(keyboard_visible);
+                has_any = true;
+            }
+            if let Some(ref level) = req.writing_level {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_writing_level = ");
+                qb.push_bind(level);
+                has_any = true;
+            }
+            if let Some(ref practice_type) = req.writing_practice_type {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_writing_practice_type = ");
+                qb.push_bind(practice_type);
+                has_any = true;
+            }
+            if let Some(ref image) = req.image_url {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_writing_image_url = ");
+                qb.push_bind(image);
+                has_any = true;
+            }
+            if let Some(ref audio) = req.audio_url {
+                if has_any { qb.push(", "); }
+                qb.push("study_task_writing_audio_url = ");
+                qb.push_bind(audio);
+                has_any = true;
+            }
+
+            if has_any {
+                qb.push(" WHERE study_task_id = ");
+                qb.push_bind(study_task_id);
+                qb.build().execute(&mut **tx).await?;
+            }
+        }
     }
 
     let updated = sqlx::query_as::<_, AdminStudyTaskDetailRes>(
@@ -1091,30 +1168,39 @@ pub async fn admin_update_study_task(
             COALESCE(
                 c.study_task_choice_question,
                 t.study_task_typing_question,
-                v.study_task_voice_question
+                v.study_task_voice_question,
+                w.study_task_writing_prompt
             ) AS question,
             COALESCE(
                 t.study_task_typing_answer,
-                v.study_task_voice_answer
+                v.study_task_voice_answer,
+                w.study_task_writing_answer
             ) AS answer,
             COALESCE(
                 c.study_task_choice_image_url,
                 t.study_task_typing_image_url,
-                v.study_task_voice_image_url
+                v.study_task_voice_image_url,
+                w.study_task_writing_image_url
             ) AS image_url,
             COALESCE(
                 c.study_task_choice_audio_url,
-                v.study_task_voice_audio_url
+                v.study_task_voice_audio_url,
+                w.study_task_writing_audio_url
             ) AS audio_url,
             c.study_task_choice_1 AS choice_1,
             c.study_task_choice_2 AS choice_2,
             c.study_task_choice_3 AS choice_3,
             c.study_task_choice_4 AS choice_4,
-            c.study_task_choice_answer AS choice_correct
+            c.study_task_choice_answer AS choice_correct,
+            w.study_task_writing_level AS writing_level,
+            w.study_task_writing_practice_type AS writing_practice_type,
+            w.study_task_writing_hint AS writing_hint,
+            w.study_task_writing_keyboard_visible AS writing_keyboard_visible
         FROM study_task st
         LEFT JOIN study_task_choice c ON c.study_task_id = st.study_task_id
         LEFT JOIN study_task_typing t ON t.study_task_id = st.study_task_id
         LEFT JOIN study_task_voice v ON v.study_task_id = st.study_task_id
+        LEFT JOIN study_task_writing w ON w.study_task_id = st.study_task_id
         WHERE st.study_task_id = $1
         "#,
     )
@@ -1240,6 +1326,42 @@ pub async fn create_task_voice(
     .bind(req.answer.as_deref())
     .bind(req.audio_url.as_deref())
     .bind(req.image_url.as_deref())
+    .execute(&mut **tx)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn create_task_writing(
+    tx: &mut Transaction<'_, Postgres>,
+    study_task_id: i64,
+    req: &StudyTaskCreateReq,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"
+        INSERT INTO study_task_writing (
+            study_task_id,
+            study_task_writing_level,
+            study_task_writing_practice_type,
+            study_task_writing_prompt,
+            study_task_writing_answer,
+            study_task_writing_hint,
+            study_task_writing_keyboard_visible,
+            study_task_writing_image_url,
+            study_task_writing_audio_url
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        "#,
+    )
+    .bind(study_task_id)
+    .bind(req.writing_level)
+    .bind(req.writing_practice_type)
+    .bind(req.question.as_deref())
+    .bind(req.answer.as_deref())
+    .bind(req.writing_hint.as_deref())
+    .bind(req.writing_keyboard_visible.unwrap_or(true))
+    .bind(req.image_url.as_deref())
+    .bind(req.audio_url.as_deref())
     .execute(&mut **tx)
     .await?;
 

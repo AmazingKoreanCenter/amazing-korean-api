@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use validator::{Validate, ValidationError};
-use crate::types::{StudyAccess, StudyProgram, StudyState, StudyTaskKind, UserSetLanguage};
+use crate::types::{
+    StudyAccess, StudyProgram, StudyState, StudyTaskKind, UserSetLanguage, WritingLevel,
+    WritingPracticeType,
+};
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
@@ -391,6 +394,11 @@ pub struct StudyTaskCreateReq {
     pub choice_3: Option<String>,
     pub choice_4: Option<String>,
     pub choice_correct: Option<i32>,
+    // Writing 전용 필드 (question=prompt, answer=정답)
+    pub writing_level: Option<WritingLevel>,
+    pub writing_practice_type: Option<WritingPracticeType>,
+    pub writing_hint: Option<String>,
+    pub writing_keyboard_visible: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
@@ -428,6 +436,11 @@ pub struct StudyTaskUpdateReq {
     pub choice_3: Option<String>,
     pub choice_4: Option<String>,
     pub choice_correct: Option<i32>,
+    // Writing 전용 필드 (question=prompt, answer=정답)
+    pub writing_level: Option<WritingLevel>,
+    pub writing_practice_type: Option<WritingPracticeType>,
+    pub writing_hint: Option<String>,
+    pub writing_keyboard_visible: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
@@ -445,6 +458,11 @@ pub struct StudyTaskUpdateItem {
     pub choice_3: Option<String>,
     pub choice_4: Option<String>,
     pub choice_correct: Option<i32>,
+    // Writing 전용 필드 (question=prompt, answer=정답)
+    pub writing_level: Option<WritingLevel>,
+    pub writing_practice_type: Option<WritingPracticeType>,
+    pub writing_hint: Option<String>,
+    pub writing_keyboard_visible: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema, Clone)]
@@ -484,6 +502,11 @@ pub struct AdminStudyTaskDetailRes {
     pub choice_3: Option<String>,
     pub choice_4: Option<String>,
     pub choice_correct: Option<i32>,
+    // Writing 전용 필드 (question=prompt, answer=정답)
+    pub writing_level: Option<WritingLevel>,
+    pub writing_practice_type: Option<WritingPracticeType>,
+    pub writing_hint: Option<String>,
+    pub writing_keyboard_visible: Option<bool>,
 }
 
 fn validate_study_idx(value: &str) -> Result<(), validator::ValidationError> {

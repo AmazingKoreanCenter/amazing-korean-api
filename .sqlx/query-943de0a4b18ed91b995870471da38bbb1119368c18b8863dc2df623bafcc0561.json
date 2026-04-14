@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT EXISTS(\n                SELECT 1\n                FROM study_task t\n                INNER JOIN study s ON t.study_id = s.study_id\n                INNER JOIN study_task_writing stw ON t.study_task_id = stw.study_task_id\n                WHERE t.study_task_id = $1\n                  AND t.study_task_kind = 'writing'::study_task_kind_enum\n                  AND s.study_state = 'open'::study_state_enum\n            ) AS \"exists!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "943de0a4b18ed91b995870471da38bbb1119368c18b8863dc2df623bafcc0561"
+}

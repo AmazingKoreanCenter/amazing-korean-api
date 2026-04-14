@@ -1,0 +1,72 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                writing_practice_seed_id AS seed_id,\n                seq,\n                prompt,\n                answer,\n                hint\n            FROM writing_practice_seed\n            WHERE writing_level = $1\n              AND writing_practice_type = $2\n            ORDER BY seq ASC\n            LIMIT $3\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "seed_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "seq",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "prompt",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "answer",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "hint",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "writing_level_enum",
+            "kind": {
+              "Enum": [
+                "beginner",
+                "intermediate",
+                "advanced"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "writing_practice_type_enum",
+            "kind": {
+              "Enum": [
+                "jamo",
+                "syllable",
+                "word",
+                "sentence",
+                "paragraph"
+              ]
+            }
+          }
+        },
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "4d4e4b933fe9b9e91e67c4ff20bd5e837b0ec8a7e69fae0a2a96912e0b4caad5"
+}

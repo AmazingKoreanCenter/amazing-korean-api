@@ -1344,6 +1344,18 @@ pub async fn admin_create_study_task(
                 ));
             }
         }
+        crate::types::StudyTaskKind::Writing => {
+            if is_blank(&req.question) || is_blank(&req.answer) {
+                return Err(AppError::BadRequest(
+                    "writing requires question (prompt) and answer".into(),
+                ));
+            }
+            if req.writing_level.is_none() || req.writing_practice_type.is_none() {
+                return Err(AppError::BadRequest(
+                    "writing requires writing_level and writing_practice_type".into(),
+                ));
+            }
+        }
     }
 
     // audit log를 통해 기록됨
@@ -1376,6 +1388,9 @@ pub async fn admin_create_study_task(
         }
         crate::types::StudyTaskKind::Voice => {
             repo::create_task_voice(&mut tx, created_id, &req).await?;
+        }
+        crate::types::StudyTaskKind::Writing => {
+            repo::create_task_writing(&mut tx, created_id, &req).await?;
         }
     }
 
@@ -1489,6 +1504,18 @@ pub async fn admin_bulk_create_study_tasks(
                         ));
                     }
                 }
+                crate::types::StudyTaskKind::Writing => {
+                    if is_blank(&item.question) || is_blank(&item.answer) {
+                        return Err(AppError::BadRequest(
+                            "writing requires question (prompt) and answer".into(),
+                        ));
+                    }
+                    if item.writing_level.is_none() || item.writing_practice_type.is_none() {
+                        return Err(AppError::BadRequest(
+                            "writing requires writing_level and writing_practice_type".into(),
+                        ));
+                    }
+                }
             }
 
             let mut tx = st.db.begin().await?;
@@ -1518,6 +1545,9 @@ pub async fn admin_bulk_create_study_tasks(
                 }
                 crate::types::StudyTaskKind::Voice => {
                     repo::create_task_voice(&mut tx, created_id, &item).await?;
+                }
+                crate::types::StudyTaskKind::Writing => {
+                    repo::create_task_writing(&mut tx, created_id, &item).await?;
                 }
             }
 
@@ -1636,6 +1666,10 @@ pub async fn admin_bulk_update_study_tasks(
                 choice_3: item.choice_3.clone(),
                 choice_4: item.choice_4.clone(),
                 choice_correct: item.choice_correct,
+                writing_level: item.writing_level,
+                writing_practice_type: item.writing_practice_type,
+                writing_hint: item.writing_hint.clone(),
+                writing_keyboard_visible: item.writing_keyboard_visible,
             };
 
             let has_any = update_req.study_task_seq.is_some()
@@ -1647,7 +1681,11 @@ pub async fn admin_bulk_update_study_tasks(
                 || update_req.choice_2.is_some()
                 || update_req.choice_3.is_some()
                 || update_req.choice_4.is_some()
-                || update_req.choice_correct.is_some();
+                || update_req.choice_correct.is_some()
+                || update_req.writing_level.is_some()
+                || update_req.writing_practice_type.is_some()
+                || update_req.writing_hint.is_some()
+                || update_req.writing_keyboard_visible.is_some();
 
             if !has_any {
                 return Err(AppError::BadRequest("no fields to update".into()));
@@ -1763,7 +1801,11 @@ pub async fn admin_update_study_task(
         || req.choice_2.is_some()
         || req.choice_3.is_some()
         || req.choice_4.is_some()
-        || req.choice_correct.is_some();
+        || req.choice_correct.is_some()
+        || req.writing_level.is_some()
+        || req.writing_practice_type.is_some()
+        || req.writing_hint.is_some()
+        || req.writing_keyboard_visible.is_some();
 
     if !has_any {
         return Err(AppError::BadRequest("no fields to update".into()));
