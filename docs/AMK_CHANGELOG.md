@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-14
+updated: 2026-04-14 (S4 + StrictMode 전수 점검)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,20 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-14 — 속도 개선 Phase S4 + React 19 StrictMode 위험 패턴 전수 점검**
+  - [S4-1 audit 툴] `frontend/perf-audit/audit.mjs` — `PERF_TARGET_URL` env 오버라이드 추가. 설정 시 vite preview 기동을 건너뛰고 원격 URL 을 baseURL 로 사용 (프로덕션 재측정용). `LOCAL_PREVIEW_URL` / `BASE_URL` / `SKIP_PREVIEW` 플래그 분리, preview 종료 처리에 null 체크 추가. 부수 버그 수정: `userDataDir` 를 `chrome-launcher` 에 넘기기 전에 `mkdirSync(..., {recursive:true})` 로 선생성 (기존에는 `ENOENT: no such file or directory, open '/tmp/lighthouse-profile-.../chrome-out.log'` 로 실패)
+  - [S4-1 측정] https://amazingkorean.net 대상 8페이지(home/about/faq/coming-soon/book-hub/textbook-catalog/ebook-catalog/login) × 3회 Lighthouse 측정 → 중앙값 집계. S3-5 베이스라인 대비 전 페이지 Performance **+20 ~ +35**, 특히 `about` TBT **13,500→199ms (-98.5%)**, `faq` LCP **14.1s→5.0s**, `book-hub` LCP **18.6s→9.3s**, home TBT 810→209ms. S3 배포가 실제로 반영됐음이 수치로 확인됨
+  - [S4-1 이상치] home run1 만 Perf=39 / TBT=1755ms 로 단독 역행처럼 보였으나 run2/run3 에서 Perf=67/64, TBT=209/0 으로 회복. 중앙값 사용 정당성 확인. 1회 측정은 신뢰 불가
+  - [S4-2 BP 82 원인 특정] 실패 audit 는 `deprecations` (weight 5). 출처 스크립트는 `https://amazingkorean.net/cdn-cgi/challenge-platform/scripts/jsd/main.js` — Cloudflare 봇 방어 챌린지 JS. deprecated API 3종(`SharedStorage`, `StorageType.persistent`, `Fledge`) 사용. **우리 코드 아님**. CF 가 첫 요청에 challenge JS 를 주입하고 이후 페이지는 `_cf_bm` 쿠키 덕에 스킵 → S4-1 측정 순서상 `home` 에만 3회 모두 BP=82 로 고정되고 다른 7페이지는 전부 100/100/100. 측정 순서를 바꾸면 BP=82 가 이동하는 측정-아티팩트. 자체 코드로 수정 불가, 문서화만
+  - [S4-3 about TBT] S3-5 에서 13.5s 였던 about TBT 가 S4-1 재측정 median 199ms 로 자동 해결. S3 변경(vendor 청크 분리 + Pretendard preload + Noto Color Emoji 비동기) 만으로 해결된 것으로 추정. 별도 trace 덤프 / 원인 조사 생략
+  - [S4 갭 분석] 목표 Perf 90+ 까지 페이지별 21~31 점 남음. 주요 병목 (1) text-LCP 페이지 FCP 4~5s — Critical CSS inline (`vite-plugin-critical`) 검토 조건 근접 (2) image-LCP 페이지(book-hub/textbook/ebook) LCP 8~9s — 히어로 Swiper 의 추가 preload + `srcset` 반응형. S5(가칭) 별도 스코프로 분리
+  - [StrictMode Track A] `useRef(false)` + `useEffect([])` 가드 4건 triage: `use_oauth_callback.ts` (이미 `refreshToken()` 직접 호출 + `.then()/.catch()` 로 권장 패턴과 동일), `use_paddle.ts` (Paddle SDK `initializePaddle()` 직접 호출), `use_language_sync.ts` (i18next `changeLanguage()` 직접 호출), `devtools_detect.ts` (DOM 이벤트/interval 가드). 4건 전부 `useMutation` observer 미사용 → 무해 확정
+  - [StrictMode Track B] `useEffect` 블록 내 `.mutate(` 호출 전수 스캔. 정규식 `useEffect\(\(\) => \{[\s\S]*?\.mutate\(` 매치 12파일 수동 검토 결과 모든 `.mutate(` 가 onClick/onSubmit/form handler 또는 DOM 이벤트 콜백 내부에 있음. `useEffect` 본문에서 동기로 fire 되는 사례 **0건**
+  - [결론] 코드베이스 내 동일 StrictMode 버그 패턴 없음. `WritingTask.tsx` (P10-C 에서 수정 완료) 가 유일한 사례로 확정. `feedback_react_strictmode_mutation.md` 메모리에 전수 조사 결과 반영
+  - [검증] audit.mjs 수정 후 `PERF_TARGET_URL=https://amazingkorean.net node perf-audit/audit.mjs prod-s4-1-runN` 3회 정상 실행. 8페이지 × 3 = 24건 lighthouse 보고서 생성
+  - [배제] Critical CSS inline / 이미지 `srcset` 는 S4 스코프 밖 (S5 후속으로 분리). S4-3 원인 조사는 자동 해결로 skip. StrictMode 수정 작업은 0건이라 미실행
+  - [문서] 본 changelog 항목 + STATUS #60 + `project_perf_plan.md` / `project_strictmode_audit_plan.md` / `feedback_react_strictmode_mutation.md` 메모리 동기화
 
 - **2026-04-14 — 한글 자판 연습 (Writing Practice) P10-C: Playwright E2E + WritingTask StrictMode 버그 수정**
   - [P10-C config] `frontend/playwright.config.ts` 신규 — testDir `./e2e`, outputDir `./test-results/e2e`, chromium 단독, 1 worker, 60s timeout, baseURL `process.env.E2E_BASE_URL ?? http://localhost:5173`. `webServer` 는 쓰지 않고 dev 서버가 이미 떠 있다는 전제. `locale: ko-KR`
