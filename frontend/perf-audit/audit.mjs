@@ -31,7 +31,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const FRONTEND_ROOT = resolve(__dirname, "..");
 const ARTIFACTS_DIR = resolve(__dirname, "artifacts");
 const PREVIEW_PORT = 4173;
-const PREVIEW_URL = `http://localhost:${PREVIEW_PORT}`;
+const LOCAL_PREVIEW_URL = `http://localhost:${PREVIEW_PORT}`;
+
+// PERF_TARGET_URL 지정 시 해당 URL 을 baseURL 로 사용하고 vite preview 기동을 건너뛴다.
+// 프로덕션(예: https://amazingkorean.net) 재측정 용도.
+const TARGET_URL_RAW = process.env.PERF_TARGET_URL?.trim();
+const TARGET_URL = TARGET_URL_RAW ? TARGET_URL_RAW.replace(/\/$/, "") : null;
+const BASE_URL = TARGET_URL ?? LOCAL_PREVIEW_URL;
+const SKIP_PREVIEW = Boolean(TARGET_URL);
 
 // --- (#5) LABEL 입력값 검증 ---
 const LABEL = process.argv[2];
@@ -211,15 +218,20 @@ async function main() {
     process.exit(1);
   }
   console.log(`[perf-audit] label=${LABEL}, artifacts=${labelDir}`);
+  console.log(`[perf-audit] baseURL=${BASE_URL}${SKIP_PREVIEW ? " (remote, preview skipped)" : ""}`);
 
-  console.log(`[perf-audit] starting vite preview on :${PREVIEW_PORT}...`);
-  const preview = await startPreview();
-  console.log(`[perf-audit] preview ready`);
+  let preview = null;
+  if (!SKIP_PREVIEW) {
+    console.log(`[perf-audit] starting vite preview on :${PREVIEW_PORT}...`);
+    preview = await startPreview();
+    console.log(`[perf-audit] preview ready`);
+  }
 
   // (#4) userDataDir를 /tmp로 지정해 프로젝트 디렉터리 오염 방지.
   // (#13) --headless=new: Chromium 112+ 최신 헤드리스 모드. lighthouse 호환성 최적.
   //       구형 Chrome에서는 --headless 로 대체.
   const userDataDir = `/tmp/lighthouse-profile-${Date.now()}`;
+  mkdirSync(userDataDir, { recursive: true });
   console.log(`[perf-audit] launching chrome from ${CHROME_PATH}`);
   const chrome = await chromeLauncher.launch({
     chromePath: CHROME_PATH,
@@ -236,7 +248,7 @@ async function main() {
   let failed = 0;
   try {
     for (const page of AUDIT_PAGES) {
-      const url = `${PREVIEW_URL}${page.path}`;
+      const url = `${BASE_URL}${page.path}`;
       process.stdout.write(`[perf-audit] auditing ${page.slug} (${page.path}) ... `);
       try {
         const result = await auditOne(url, chrome.port);
@@ -260,8 +272,8 @@ async function main() {
     } catch {
       // Chrome이 이미 종료된 경우 무시
     }
-    // (#3) preview process group 종료
-    killPreview(preview);
+    // (#3) preview process group 종료 (원격 측정 시에는 preview=null)
+    if (preview) killPreview(preview);
   }
 
   writeFileSync(
