@@ -227,11 +227,13 @@ async function main() {
     console.log(`[perf-audit] preview ready`);
   }
 
-  // (#4) userDataDir를 /tmp로 지정해 프로젝트 디렉터리 오염 방지.
+  // (#4) userDataDir 는 chrome-launcher 기본값(OS temp 자동 생성)에 맡긴다.
+  //       WSL2 + VSCode 환경에서 `/tmp/...` Linux 경로를 직접 지정하면
+  //       경로 변환 버그로 chromium 이 `frontend/\\wsl.localhost\Ubuntu\tmp\...`
+  //       형태의 리터럴 디렉터리를 CWD 밑에 생성해 프로젝트를 오염시켰다 (2026-04-14).
+  //       chrome-launcher 는 옵션 미지정 시 `makeTmpDir()` 로 안전한 temp 경로를 생성한다.
   // (#13) --headless=new: Chromium 112+ 최신 헤드리스 모드. lighthouse 호환성 최적.
   //       구형 Chrome에서는 --headless 로 대체.
-  const userDataDir = `/tmp/lighthouse-profile-${Date.now()}`;
-  mkdirSync(userDataDir, { recursive: true });
   console.log(`[perf-audit] launching chrome from ${CHROME_PATH}`);
   const chrome = await chromeLauncher.launch({
     chromePath: CHROME_PATH,
@@ -241,7 +243,6 @@ async function main() {
       "--disable-dev-shm-usage",
       "--disable-gpu",
     ],
-    userDataDir,
   });
 
   const summary = [];
