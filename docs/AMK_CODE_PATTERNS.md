@@ -316,7 +316,7 @@ impl IntoResponse for AppError {
                 "http_status": status.as_u16(),
                 "message": message,
                 "details": details,
-                "trace_id": "req-TODO"  // TODO: Request ID 연동
+                "trace_id": req_id  // Axum trace middleware 에서 주입 (예시)
             }
         });
 
@@ -1360,7 +1360,7 @@ pub struct ListRes<T> {
 ---
 
 ### 1.2 repo.rs
-> **Claude 코드 분석 기반** (2025-01-22)
+> **Claude 코드 분석 기반** (최종 갱신 2026-04-08)
 
 #### 📁 파일 개요
 
@@ -1873,7 +1873,7 @@ Result<T, sqlx::Error> → AppResult<T> 변환
 ---
 
 ### 1.3 service.rs
-> **Claude 코드 분석 기반** (2025-01-22)
+> **Claude 코드 분석 기반** (최종 갱신 2026-04-08)
 
 #### 📁 파일 개요
 
@@ -2254,7 +2254,7 @@ impl XxxService {
 ---
 
 ### 1.4 handler.rs
-> **Claude 코드 분석 기반** (2025-01-22)
+> **Claude 코드 분석 기반** (최종 갱신 2026-04-08)
 
 #### 📁 파일 개요
 
@@ -2756,7 +2756,7 @@ fn build_refresh_cookie(st: &AppState, token: String, ttl: i64) -> Cookie<'stati
 ---
 
 ### 1.5 router.rs
-> **Claude 코드 분석 기반** (2025-01-22)
+> **Claude 코드 분석 기반** (최종 갱신 2026-04-08)
 
 #### 📁 파일 개요
 
@@ -3006,7 +3006,7 @@ pub fn api_router(state: AppState) -> Router {
 ---
 
 ### 1.6 기타 파일들 (Auth 유틸리티)
-> **Claude 코드 분석 기반** (2025-01-22)
+> **Claude 코드 분석 기반** (최종 갱신 2026-04-08)
 
 #### 📁 파일 개요
 

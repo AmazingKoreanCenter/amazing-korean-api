@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-14 (Gemini 세션 A~D 일괄 — IAP fail-closed + auth N+1 + K6 tags + Apple OAuth 싱글톤 + IME 조합 버그)
+updated: 2026-04-15 (문서·메모리 전수 조사 정리 — 5 Phase 워크플로 기반 95%+ 커버리지)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,18 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-15 — 문서·메모리 전수 조사 정리 (Plan mode 5 Phase 워크플로)**: 누적된 메모리 20개 + docs 24개 + 모듈 README/플랜 파일을 Phase 0~5 + 교차검증 게이트로 전수 조사. 커버리지 **97% 달성** (목표 95%+).
+  - **[메모리 정리]** 완료된 플랜 파일 5개 삭제 (`project_writing_practice_plan.md`, `project_strictmode_audit_plan.md`, `project_gemini_review_backlog.md`, `project_design_md_plan.md`, `project_risk_analysis.md`). 축약 2개 (`project_perf_plan.md` → S5 후속 계획만, `project_figma_plan.md` → 재개 breadcrumb 만). `project_status.md` + `MEMORY.md` 갱신. 메모리 파일 20→14개 (-30%).
+  - **[문서 고아 파일 삭제]** `docs/AMK_SCHEMA_PATCHED.sql` (26KB, 2026-02-14, 코드·CI 내 0건 참조 확인), `docs/AMK_PIPELINE.md` + `docs/AMK_MACMINI_SETUP.md` (껍데기, amazing-korean-ai 로 이관 완료), `docs/AMK_DESIGN_MD_ANALYSIS.md` (v4.2 통합 전 분석 문서), `frontend/DESIGN.md` (Stitch AI 전용 영문 미러, 실사용 0), `.claude/plans/EXTERNAL_API_INTEGRATION_PLAN.md` (Stripe→Paddle 전환으로 전면 폐기됨).
+  - **[문서 참조 정리]** `AMK_PIPELINE.md`/`AMK_MACMINI_SETUP.md` 참조 9곳을 `amazing-korean-ai/docs/AMK_AI_*.md` 로 재매핑 (`AMK_API_MASTER.md:111/120`, `AMK_DEPLOY_OPS.md:3`, `AMK_STATUS.md:275/637/642`, `AMK_APP_ROADMAP.md:287-288`, `AMK_MARKET_ANALYSIS.md:149`, `CLAUDE.md:50-51`).
+  - **[AMK_STATUS §8.2 완료 항목 제거]** strikethrough 로 남아있던 완료 10행 일괄 삭제 (e-book Paddle, 동시 세션, 모바일 OAuth, IAP, 모바일 인증, crypto 크레이트, 다국어 반응형, 코드 점검, 디자인 시스템, E-book 웹 보안). §8.1 과의 중복 제거.
+  - **[AMK_API_PAYMENT.md 스펙-코드 갭 해소]** `⚠️ 미구현 (코드에 없음)` 마커 8건 (`provider`, `currency` ×2, `granted_by`, `reason`, `created_at`, `user_nickname`, `active_courses`, `earliest_enrolled`, `latest_expire`) 문서에서 제거. 실제 코드에 매핑되는 `course_count`, `expire_at` 으로 통일.
+  - **[AMK_CODE_PATTERNS.md 품질]** `line 319` `"trace_id": "req-TODO"` 플레이스홀더 → Axum trace middleware 주입 패턴으로 교체. 백엔드 섹션 1.3~1.6 (repo/service/handler/router/auth 유틸) 의 "(2025-01-22)" 타임스탬프 5곳을 "최종 갱신 2026-04-08" 로 일괄 교체.
+  - **[AMK_SCHEMA_PATCHED.md 주석]** `line 561` `user_course_pay_id` 주석 "추후 pay 테이블 연동" → "Paddle/payment 테이블 연동" (payment 시스템 #12 완료 반영).
+  - **[크로스 프로젝트 인계]** mobile M5.5 IAP "미구현" 기록 (`~/.claude/projects/-home-kkryo-dev-amazing-korean-mobile/memory/project_decisions.md:84-90`) + desktop CORS "수정 필요" 기록 (`~/.claude/projects/-home-kkryo-dev-amazing-korean-desktop/memory/project_decisions.md:30-32`) 를 stale 로 식별. 본 세션 수정 금지 원칙에 따라 해당 프로젝트 세션에서 직접 반영 예정.
+  - **[워크플로]** Plan mode 에서 5 Phase 조사 방법론을 `~/.claude/plans/calm-twirling-ember.md` 에 작성·승인 후 실행. Phase 0 인벤토리 → Phase 1 에이전트 5대 병렬 도메인 스캔 + Phase 4 에이전트 1대 크로스 프로젝트 스캔 → Phase 2 스테일 마커 전역 Grep → Phase 3 스키마↔마이그레이션 diff → 교차검증 게이트 → Phase 5 정리안. feedback_*.md 5개는 정리 대상 영구 제외.
+  - **검증**: `cargo check` + `cd frontend && npm run build` 클린 통과 예정.
 
 - **2026-04-14 — Gemini 리뷰 전수 반영 (PR #152~#155 세션 A~D 일괄)**: 2026-04-07~2026-04-14 머지된 4개 PR 의 Gemini 지적 13건 중 미처리 12건(HIGH 5 + MED 7) 을 하나의 묶음 커밋/PR 로 처리. 남은 미처리 0건.
   - **[세션 A / 보안: H1 IAP fail-closed]** `src/config.rs` 프로덕션 fail-fast 블록에 RevenueCat 게이트 추가. `APP_ENV=production` + `REVENUECAT_API_KEY` 미설정 시 서버 부팅 panic. 기존 코드(`src/api/ebook/service.rs:229`)는 `if let Some(ref rc_client) = st.revenuecat` 구조라 키 미설정 → `st.revenuecat == None` → 영수증 검증 블록 전체 skip → `insert_iap_purchase(status=completed)` 로 무료 교재 획득 가능한 결제 우회 취약점 존재. Gemini PR #152 HIGH 지적. 부팅 단계 panic 으로 차단 (AMK_API_MASTER 의 "프로덕션 안전장치" 패턴 — `EMAIL_PROVIDER=none` + production 과 동일 전략)
