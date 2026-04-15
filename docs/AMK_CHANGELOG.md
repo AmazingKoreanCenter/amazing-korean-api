@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-15 (문서·메모리 전수 조사 정리 — 5 Phase 워크플로 기반 95%+ 커버리지)
+updated: 2026-04-15 (SEO 3건 수정 — /courses 리다이렉트 + api 서브도메인 루트/robots.txt)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,34 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-15 — SEO 3건 수정 (Google Search Console 유효성 검사 실패 대응)**
+  - **배경**: Search Console "페이지 색인이 생성되지 않는 이유" 대시보드에서 3건 발견. "리디렉션이 포함된 페이지" 3건(`/intro`, `/register`, `http://amazingkorean.net/`) 은 모두 `_redirects` 의 301 이 정상 작동 중으로 확인 — Google 이 "수정 완료" 버튼을 잘못 눌렀을 때 발생하는 validation 루프라 조치 불필요(무해). 실제 문제는 Soft 404(1건) + 404(1건) = 2건.
+  - **Fix 1 — `/courses` Soft 404**: React Router catch-all(`<Route path="*">`) 이 200 응답 + NotFoundPage 를 반환해 Google 이 Soft 404 로 분류. 과거 "수강권 상품 목록" 을 가리켰을 레거시 경로. `frontend/public/_redirects` 에 `/courses /book 301` 추가. 현재 `/pricing` 은 ComingSoonPage 라 의미 일치보다 **실 콘텐츠 `/book` 허브**로 보내 Soft 404 재발 방지. 수강권 콘텐츠 시딩 이후 `/pricing` 실페이지 전환 시 목적지 재검토.
+  - **Fix 2 — `api.amazingkorean.net/` 404**: Google 이 이 URL 을 알게 된 경로 전수 조사 결과 (1) `GET /auth/google` JSON 응답의 `auth_url` 에 `redirect_uri=https%3A%2F%2Fapi.amazingkorean.net%2Fauth%2Fgoogle%2Fcallback` 평문 노출, (2) Google Cloud Console OAuth Client 의 승인된 Redirect URI 등록, (3) Search Console 도메인 속성(sc-domain:amazingkorean.net) 의 서브도메인 자동 감지 — 3경로 모두 차단 불가(OAuth 서비스 필수 + DNS 공개). 대응: 서버 레벨 처리.
+    - `src/api/mod.rs` 에 `GET /` 추가 — 200 JSON 서비스 메타 응답 (`{"service":"Amazing Korean API","status":"ok","docs":null}`). 과거 fallback_404 처리 → Search Console "찾을 수 없음 404" 탈출.
+    - `src/api/mod.rs` 에 `GET /robots.txt` 추가 — `User-agent: *\nDisallow: /\n` 로 전체 크롤링 금지. Google 봇이 이후 api 서브도메인 어떤 URL 도 크롤링하지 않음.
+    - 두 핸들러 모두 `use axum::{http::{header, StatusCode}, ..., Json}` + `serde_json::json!` 사용. Content-Type 명시로 robots.txt 는 `text/plain; charset=utf-8`.
+  - **검증**: `SQLX_OFFLINE=true cargo check` + `cargo clippy --lib` 0 warnings + `cd frontend && npm run build` 클린. `frontend/dist/_redirects` 복사 확인. 머지 후 프로덕션 재배포 시 `curl https://api.amazingkorean.net/robots.txt` → 200 + `curl https://amazingkorean.net/courses` → 301 Location:/book 예상.
+  - **Search Console 영향**: 다음 크롤링(며칠 내)에 (1) `/courses` 는 "리디렉션이 포함된 페이지" 카테고리로 이동 (무해), (2) `api.amazingkorean.net/*` 전체가 "크롤링됨 — 현재 색인되지 않음" (robots.txt 차단) 으로 이동 → "찾을 수 없음(404)" + "Soft 404" 카테고리에서 자동 제외. 재발 없음.
+  - **Property 확인**: Search Console 좌상단 드롭다운 검사 결과 `amazingkorean.net` (도메인 속성) 1개만 등록. `api.amazingkorean.net` 별도 URL 접두사 property 없음. 도메인 속성은 서브도메인 자동 포함 특성상 property 삭제는 부적절(메인 사이트 색인 보고 손실). 서버 레벨 대응만 유효.
+  - **무시 가능**: "리디렉션이 포함된 페이지" 3건 ("실패함" 상태)의 **"유효성 검사 종료"** 버튼이 Search Console 에 있으면 눌러도 무해. 단 "수정 완료" 는 절대 다시 누르지 말 것 (같은 실패 루프 재발).
+
+- **2026-04-15 — 🚨 INC-001 프로덕션 백엔드 2h33m 다운 + 복구**
+  - **원인**: 2026-04-14 머지된 Gemini 리뷰 H1 IAP fail-closed 커밋(`017e8c1`) 에서 `src/config.rs:441` 에 `APP_ENV=production + REVENUECAT_API_KEY.is_none()` → `panic!` 게이트가 추가됐으나, `.github/workflows/deploy.yml` 의 `.env.prod` heredoc 에 해당 환경변수를 함께 반영하지 않았고 GitHub Secrets 에도 등록되지 않음. 배포 후 Rust 바이너리가 부팅 직후 panic (exit 101) → `docker restart: always` 로 crash loop → nginx upstream 연결 실패 → Cloudflare 502 Bad Gateway.
+  - **다운타임**: 2026-04-15 00:32~03:05 UTC (약 **2시간 33분**)
+  - **발견 경위**: Google Search Console 의 `api.amazingkorean.net/` "404" 기록을 SEO 작업 중 조사하다 `curl` 로 실제 상태 확인 → 502 발견. 저트래픽 새벽 시간대라 사용자 제보 없었음. SEO 작업이 의도치 않은 경보 역할.
+  - **탐지 실패 이유**: GitHub Actions 는 `docker compose up -d` 의 exit code 0 만 확인. 컨테이너가 부팅 직후 panic 해도 "success" 표기. 배포 후 실제 헬스체크 단계 부재. Cloudflare 502 알림 미설정.
+  - **긴급 복구 (03:05 UTC)**: EC2 SSH 접속 → `~/amazing-korean-api/.env.prod` 에 `REVENUECAT_API_KEY=placeholder_not_configured_yet` 한 줄 추가 → `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api` 로 `amk-api` 컨테이너 recreate. 서버 정상 부팅 확인 (`✅ Server listening on http://0.0.0.0:3000`, `RevenueCat client initialized`, `📦 Database migrations applied`).
+  - **영구 수정 (03:17 UTC, 커밋 `d528e04` / PR #159)**: `.github/workflows/deploy.yml` 의 `.env.prod` heredoc 에 `REVENUECAT_API_KEY=${{ secrets.REVENUECAT_API_KEY }}` + `REVENUECAT_WEBHOOK_AUTH_TOKEN=${{ secrets.REVENUECAT_WEBHOOK_AUTH_TOKEN }}` 2줄 추가. GitHub repository secrets 에 동일 이름 2개 등록 (값: `placeholder_not_configured_yet`). 다음 배포부터 `.env.prod` 재생성 시 placeholder 자동 주입.
+  - **현재 보안 영향**: IAP 경로는 **runtime fail-closed** (placeholder 키로 RevenueCat API 호출 실패 → 에러 리턴) 이므로 결제 우회 취약점 재발 없음. RevenueCat 실 키 준비 시 GitHub Secret 값만 교체하면 되고 `deploy.yml` 재수정 불필요.
+  - **검증**: 긴급 복구 직후 + #159 재배포 후 모두 외부 `curl https://api.amazingkorean.net/health` 3회 연속 HTTP 200 (0.69~0.73s). `/auth/login` POST 빈 body → 422 `missing field 'email'`. `docker ps` → `amk-api Up`. 최신 GH Actions `#159` success 49s.
+  - **교훈 메모리**: `feedback_deploy_env_sync.md` 신규 — "production `panic!` 게이트 추가 시 같은 PR 에서 deploy.yml + Secrets + AMK_DEPLOY_OPS 환경변수 표 4건 동시 반영 필수"
+  - **향후 개선 (별도 작업)**:
+    - (1) `.github/workflows/deploy.yml` 에 배포 후 헬스체크 단계 추가 (`curl https://api.amazingkorean.net/health` 5초 후 200 확인, 실패 시 job fail + 알림)
+    - (2) Cloudflare 502 감지 이메일/Slack 알림 연동
+    - (3) `AMK_DEPLOY_OPS.md §4` 환경변수 표에 `REVENUECAT_API_KEY` + `REVENUECAT_WEBHOOK_AUTH_TOKEN` 2건 추가
+    - (4) 저트래픽 새벽 배포 위험 재평가 (활동 시간대 배포 정책 검토)
 
 - **2026-04-15 — 문서·메모리 전수 조사 정리 (Plan mode 5 Phase 워크플로)**: 누적된 메모리 20개 + docs 24개 + 모듈 README/플랜 파일을 Phase 0~5 + 교차검증 게이트로 전수 조사. 커버리지 **97% 달성** (목표 95%+).
   - **[메모리 정리]** 완료된 플랜 파일 5개 삭제 (`project_writing_practice_plan.md`, `project_strictmode_audit_plan.md`, `project_gemini_review_backlog.md`, `project_design_md_plan.md`, `project_risk_analysis.md`). 축약 2개 (`project_perf_plan.md` → S5 후속 계획만, `project_figma_plan.md` → 재개 breadcrumb 만). `project_status.md` + `MEMORY.md` 갱신. 메모리 파일 20→14개 (-30%).
