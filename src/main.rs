@@ -200,6 +200,13 @@ async fn main() -> anyhow::Result<()> {
 }
 
 /// PROD-4: 보안 헤더 미들웨어 — 모든 응답에 보안 헤더 추가
+///
+/// SEO: `x-robots-tag: noindex, nofollow` 는 Google Search Console 이
+/// `api.amazingkorean.net` 을 색인하지 않도록 HTTP 레벨에서 차단한다. robots.txt
+/// 경로가 Cloudflare Managed robots.txt 주입(`User-agent: *` + `Allow: /`) 과
+/// 충돌하는 것과 독립적으로 작동하고, 주입되는 content-body 를 건드릴 수 없는
+/// Cloudflare 라 할지라도 HTTP 응답 헤더는 우회 불가. robots.txt 의 user-agent
+/// 그룹별 Disallow 와 함께 belt-and-suspenders 전략.
 async fn security_headers(
     request: axum::http::Request<axum::body::Body>,
     next: axum::middleware::Next,
@@ -213,5 +220,6 @@ async fn security_headers(
         "permissions-policy",
         "camera=(), microphone=(), geolocation=()".parse().unwrap(),
     );
+    headers.insert("x-robots-tag", "noindex, nofollow".parse().unwrap());
     response
 }

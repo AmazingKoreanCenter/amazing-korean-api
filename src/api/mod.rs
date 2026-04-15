@@ -102,10 +102,53 @@ async fn root_service_info() -> impl IntoResponse {
 /// Why: api 서브도메인은 사람이 브라우저로 읽는 콘텐츠가 아니라 JSON API 다.
 /// Google 색인 대상이 아님을 명시해 Search Console 의 "Soft 404" / "리디렉션" /
 /// "찾을 수 없음" 카테고리에 api 경로가 뜨지 않도록 차단한다.
+///
+/// Cloudflare Managed robots.txt 대응: Cloudflare 가 zone 레벨에서
+/// `# BEGIN Cloudflare Managed content` 블록을 본문 앞에 자동 주입하는데,
+/// 그 블록의 `User-agent: *` + `Allow: /` 가 우리의 `User-agent: *` +
+/// `Disallow: /` 와 경로 길이가 같아 Google 의 tie-breaking 규칙에서 Allow 가
+/// 승리해 Disallow 가 무력화된다. 해결: 각 검색 봇을 이름으로 **더 구체적으로**
+/// 지정하면 Google 은 더 구체적인 user-agent 그룹을 우선 선택한다 (RFC 9309 +
+/// Google robots.txt spec). Cloudflare 의 `*` 그룹은 이름이 명시된 크롤러에
+/// 대해 무시된다.
 async fn robots_txt() -> impl IntoResponse {
+    let body = "\
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Googlebot-Image
+Disallow: /
+
+User-agent: Googlebot-News
+Disallow: /
+
+User-agent: Googlebot-Video
+Disallow: /
+
+User-agent: AdsBot-Google
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
+
+User-agent: Yeti
+Disallow: /
+
+User-agent: NaverBot
+Disallow: /
+
+User-agent: Daum
+Disallow: /
+
+User-agent: *
+Disallow: /
+";
     (
         StatusCode::OK,
         [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
-        "User-agent: *\nDisallow: /\n",
+        body,
     )
 }
