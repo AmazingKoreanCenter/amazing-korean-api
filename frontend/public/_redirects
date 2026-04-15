@@ -2,3 +2,7 @@
 # Cloudflare Pages 엣지에서 처리 (SPA index.html 도달 전)
 /register /signup 301
 /intro /about 301
+# /courses: 과거 "수강권 상품 목록" 경로. 현재 /pricing(ComingSoon)으로 개념
+# 이관됐으나 Soft 404 회피 위해 콘텐츠 있는 /book 허브로 리다이렉트.
+# 수강권 콘텐츠 시딩 이후 /pricing 이 실제 페이지가 되면 목적지 재검토.
+/courses /book 301

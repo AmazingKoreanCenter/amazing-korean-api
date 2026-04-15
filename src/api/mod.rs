@@ -1,4 +1,11 @@
-use axum::{middleware, response::IntoResponse, routing::get};
+use axum::{
+    http::{header, StatusCode},
+    middleware,
+    response::IntoResponse,
+    routing::get,
+    Json,
+};
+use serde_json::json;
 
 use crate::docs::ApiDoc;
 use crate::error::AppError;
@@ -54,6 +61,13 @@ pub fn app_router(state: AppState) -> axum::Router {
         .route("/healthz", get(health::handler::health))
         .route("/health", get(health::handler::health))
         .route("/ready", get(health::handler::ready))
+        // SEO: api 서브도메인 루트 + robots.txt — Google Search Console 의
+        // "찾을 수 없음(404)" + "Soft 404" 카테고리 회피용.
+        // api.amazingkorean.net 은 Google OAuth redirect_uri 로 불가피하게
+        // 외부 노출되므로 (1) 루트는 200 JSON 서비스 메타 응답,
+        // (2) robots.txt 는 전체 크롤링 금지.
+        .route("/", get(root_service_info))
+        .route("/robots.txt", get(robots_txt))
         .fallback(fallback_404);
 
     // PROD-6: enable_docs=false(기본값)이면 Swagger UI 비활성화
@@ -69,4 +83,29 @@ pub fn app_router(state: AppState) -> axum::Router {
 /// PROD-8: 존재하지 않는 라우트에 JSON 404 응답
 async fn fallback_404() -> impl IntoResponse {
     AppError::NotFound.into_response()
+}
+
+/// 루트 경로 — 서비스 메타 정보 200 JSON 응답
+/// Why: Google 이 OAuth redirect_uri 경로로 api 서브도메인을 알게 되고, 이후
+/// Domain Property 자동 감지로 api.amazingkorean.net/ 을 크롤링한다. 과거엔
+/// fallback_404 로 처리돼 Search Console 에 "찾을 수 없음(404)" 으로 분류됐다.
+/// 200 을 돌려주면 해당 카테고리에서 빠지고, robots.txt 와 조합해 색인 제외 상태로 유지된다.
+async fn root_service_info() -> impl IntoResponse {
+    Json(json!({
+        "service": "Amazing Korean API",
+        "status": "ok",
+        "docs": null
+    }))
+}
+
+/// robots.txt — 전체 크롤링 금지
+/// Why: api 서브도메인은 사람이 브라우저로 읽는 콘텐츠가 아니라 JSON API 다.
+/// Google 색인 대상이 아님을 명시해 Search Console 의 "Soft 404" / "리디렉션" /
+/// "찾을 수 없음" 카테고리에 api 경로가 뜨지 않도록 차단한다.
+async fn robots_txt() -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+        "User-agent: *\nDisallow: /\n",
+    )
 }
