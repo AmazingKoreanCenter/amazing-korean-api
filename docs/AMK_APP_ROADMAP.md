@@ -284,8 +284,8 @@ RDS (4일) → 세션 제한 (2일) — 앱 개발 이후
 | `AMK_MARKET_ANALYSIS.md` §7 | 실행 로드맵 | 개발 전 준비 + 앱 개발 단계 |
 | `AMK_STATUS.md` §8.2 #8-9 | 진행 예정 | Phase 2/3 한줄 요약 |
 | `AMK_API_EBOOK.md` | 앱 확장 로드맵 | Phase 1~3 한줄 요약 |
-| `AMK_PIPELINE.md` §11 | 온디바이스 AI | 모바일 AI 배포 전략 |
-| `AMK_MACMINI_SETUP.md` | iOS 개발 환경 | Xcode, iOS 시뮬레이터, Rust 타겟 |
+| `amazing-korean-ai/docs/AMK_AI_PIPELINE.md` §11 | 온디바이스 AI | 모바일 AI 배포 전략 (이관됨) |
+| `amazing-korean-ai/docs/AMK_AI_MACMINI.md` | iOS 개발 환경 | Xcode, iOS 시뮬레이터, Rust 타겟 (이관됨) |
 
 ---
 

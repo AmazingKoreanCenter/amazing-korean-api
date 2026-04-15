@@ -109,7 +109,7 @@ audience: server / database / backend / frontend / lead / AI agent
   - [`AMK_API_FUTURE.md`](./AMK_API_FUTURE.md) — 미구현 (시딩, 발음, 조음, TTS)
 - **프론트엔드**: [`AMK_FRONTEND.md`](./AMK_FRONTEND.md) — 구조, 라우팅, 상태관리, UI/UX
 - **작업 현황**: [`AMK_STATUS.md`](./AMK_STATUS.md) — 완료/예정 항목, 로드맵, 체크리스트
-- **파이프라인**: [`AMK_PIPELINE.md`](./AMK_PIPELINE.md) - 멀티 AI 오케스트레이션, 작업 흐름
+- **파이프라인**: `amazing-korean-ai/docs/AMK_AI_PIPELINE.md` — 멀티 AI 오케스트레이션, 작업 흐름 (이관됨)
 - **시장 분석**: [`AMK_MARKET_ANALYSIS.md`](./AMK_MARKET_ANALYSIS.md) - 경쟁사 분석, 결제 전략
 
 ### 0.4 AI 에이전트 협업 규칙
@@ -117,7 +117,7 @@ audience: server / database / backend / frontend / lead / AI agent
 > Claude Code, Gemini (OpenClaw), Codex 등 코딩 에이전트 공통 규칙
 
 1. **SSOT 우선순위**: 이 문서(`AMK_API_MASTER.md`)가 최우선 참조. 코드와 문서가 다를 경우 이 문서 기준으로 코드 수정
-2. **문서 구조**: 스펙/규칙은 이 파일, 코드 예시는 [`AMK_CODE_PATTERNS.md`](./AMK_CODE_PATTERNS.md), 배포/운영은 [`AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md), 작업 흐름/역할 분리는 [`AMK_PIPELINE.md`](./AMK_PIPELINE.md)
+2. **문서 구조**: 스펙/규칙은 이 파일, 코드 예시는 [`AMK_CODE_PATTERNS.md`](./AMK_CODE_PATTERNS.md), 배포/운영은 [`AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md), 작업 흐름/역할 분리는 `amazing-korean-ai/docs/AMK_AI_PIPELINE.md` (이관됨)
 3. **네이밍/패턴 준수**: Section 3 규칙 + `AMK_CODE_PATTERNS.md` 패턴을 따를 것
 4. **에러 처리 필수**: Silent Failure 금지, 사용자에게 명확한 피드백 제공 (toast, 에러 페이지 등)
 5. **타입 일관성**: 프론트엔드는 `types.ts` 정의 타입만 사용, 백엔드 DTO는 DB 스키마와 일치

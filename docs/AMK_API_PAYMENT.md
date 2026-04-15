@@ -57,13 +57,11 @@
   "subscription": {
     "subscription_id": 1,
     "user_id": 42,
-    "provider": "paddle",              // ⚠️ 미구현 (코드에 없음)
     "provider_subscription_id": "sub_01...",
     "provider_customer_id": "ctm_01...",
     "status": "active",
     "billing_interval": "month_3",
     "current_price_cents": 2500,
-    "currency": "USD",                 // ⚠️ 미구현 (코드에 없음)
     "current_period_start": "2026-02-15T00:00:00Z",
     "current_period_end": "2026-05-15T00:00:00Z",
     "trial_ends_at": null,
@@ -167,10 +165,7 @@
 {
   "user_id": 42,
   "courses_granted": 5,
-  "expire_at": "2026-12-31T23:59:59Z",
-  "granted_by": 1,                       // ⚠️ 미구현 (코드에 없음)
-  "reason": "VIP 사용자 수동 부여",       // ⚠️ 미구현 (코드에 없음)
-  "created_at": "2026-02-16T00:00:00Z"   // ⚠️ 미구현 (코드에 없음)
+  "expire_at": "2026-12-31T23:59:59Z"
 }
 ```
 
@@ -194,10 +189,8 @@
     {
       "user_id": 42,
       "user_email": "user@example.com",
-      "user_nickname": "korean_learner",    // ⚠️ 미구현 (코드에 없음)
-      "active_courses": 5,                  // ⚠️ 미구현 (코드: course_count)
-      "earliest_enrolled": "2026-01-01T00:00:00Z",  // ⚠️ 미구현 (코드에 없음)
-      "latest_expire": "2026-12-31T23:59:59Z"       // ⚠️ 미구현 (코드: expire_at)
+      "course_count": 5,
+      "expire_at": "2026-12-31T23:59:59Z"
     }
   ],
   "meta": { "page": 1, "size": 20, "total_count": 3, "total_pages": 1 }
@@ -259,7 +252,6 @@
   "status": "active",
   "billing_interval": "month_3",
   "current_price_cents": 2500,
-  "currency": "USD",              // ⚠️ 미구현 (코드에 없음)
   "current_period_start": "2026-02-15T00:00:00Z",
   "current_period_end": "2026-05-15T00:00:00Z",
   "trial_ends_at": null,
