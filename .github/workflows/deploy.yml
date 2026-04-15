@@ -96,6 +96,8 @@ jobs:
             PADDLE_DISCOUNT_MONTH_3=${{ secrets.PADDLE_DISCOUNT_MONTH_3 }}
             PADDLE_DISCOUNT_MONTH_6=${{ secrets.PADDLE_DISCOUNT_MONTH_6 }}
             PADDLE_DISCOUNT_MONTH_12=${{ secrets.PADDLE_DISCOUNT_MONTH_12 }}
+            REVENUECAT_API_KEY=${{ secrets.REVENUECAT_API_KEY }}
+            REVENUECAT_WEBHOOK_AUTH_TOKEN=${{ secrets.REVENUECAT_WEBHOOK_AUTH_TOKEN }}
             EOF
 
             # Restart containers
