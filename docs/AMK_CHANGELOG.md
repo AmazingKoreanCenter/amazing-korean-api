@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-15 (SEO 3건 수정 — /courses 리다이렉트 + api 서브도메인 루트/robots.txt)
+updated: 2026-04-15 (SEO hardening — Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,15 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-15 — SEO hardening: Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어**
+  - **배경**: 커밋 `c8014df` 의 `GET /robots.txt` 핸들러(`User-agent: *\nDisallow: /\n`) 배포 후 외부 검증 중 발견 — Cloudflare 가 zone 레벨에서 `# BEGIN Cloudflare Managed content` 블록을 **본문 앞에 자동 주입**하고 있었다. 주입된 블록의 `User-agent: *` + `Allow: /` 가 우리의 `User-agent: *` + `Disallow: /` 와 경로 길이가 같아 Google 의 tie-breaking 규칙(`Allow` 승리)에서 **우리의 Disallow 가 무력화**됨. 프론트엔드(`amazingkorean.net/robots.txt`) 도 동일 주입 확인 — zone-wide 설정.
+  - **원인**: Cloudflare 의 "Content Signals" / "Managed robots.txt" 신규 기능 (2024~2025 롤아웃). 사용자가 의도적으로 활성화했는지 Cloudflare 가 자동으로 켰는지 기록 없음.
+  - **Fix 1 — `src/api/mod.rs::robots_txt` 확장 (방법 A)**: `User-agent: *` 한 블록 대신 **명시적 크롤러 이름 10종** 각각 `Disallow: /` 를 나열. RFC 9309 + Google 의 robots.txt 파싱 규칙상 **더 구체적인 user-agent 그룹이 우선**하므로, Cloudflare 가 `*` 블록을 앞에 주입해도 Googlebot/Bingbot 등은 자기 이름이 명시된 그룹을 따른다. 등록 크롤러: `Googlebot`, `Googlebot-Image`, `Googlebot-News`, `Googlebot-Video`, `AdsBot-Google`, `Bingbot`, `DuckDuckBot`, `Yeti`(Naver), `NaverBot`, `Daum`(Kakao) + 마지막에 `*` 폴백. 한국 시장 메인 검색엔진 전수 대응.
+  - **Fix 2 — `src/main.rs::security_headers` 미들웨어 확장 (방법 B-2 전역 주입)**: 기존 보안 헤더 미들웨어(x-content-type-options, x-frame-options, x-xss-protection, permissions-policy) 에 `x-robots-tag: noindex, nofollow` 한 줄 추가. **Axum `.layer()` 체인이므로 api 서브도메인 모든 응답에 자동 주입됨**. Cloudflare 는 응답 본문(robots.txt) 은 조작하지만 **HTTP 헤더는 우회 불가**. robots.txt 와 독립적으로 작동하는 2중 방어.
+  - **Fix 3 — Cloudflare Dashboard 설정 (방법 C, 사용자 작업)**: 사용자가 Cloudflare Zone 설정에서 Managed robots.txt 주입 기능 자체를 끄거나 `api.*` 서브도메인에서만 제외하는 Transform Rule 추가. 이번 배포 스코프 밖, 사용자 후속 처리 예정.
+  - **검증**: `SQLX_OFFLINE=true cargo check` 6.72s + `cargo clippy --lib` 0 warnings 11.53s. 배포 후 예상: `curl -I https://api.amazingkorean.net/` 응답에 `x-robots-tag: noindex, nofollow` 헤더 + `curl https://api.amazingkorean.net/robots.txt` 본문 마지막에 명시적 Googlebot 블록. Google 크롤러는 자기 user-agent 이름을 우선 매칭 → Disallow 따름.
+  - **중요**: 이 수정은 **백엔드 전체 응답에 `X-Robots-Tag: noindex, nofollow`** 를 붙이므로, 만약 향후 api 경로 중 **Google 에게 색인되길 원하는 공개 엔드포인트**가 생기면 해당 엔드포인트에서 헤더를 override/제거해야 한다. 현재는 전 api 가 색인 대상이 아니므로 문제 없음.
 
 - **2026-04-15 — SEO 3건 수정 (Google Search Console 유효성 검사 실패 대응)**
   - **배경**: Search Console "페이지 색인이 생성되지 않는 이유" 대시보드에서 3건 발견. "리디렉션이 포함된 페이지" 3건(`/intro`, `/register`, `http://amazingkorean.net/`) 은 모두 `_redirects` 의 301 이 정상 작동 중으로 확인 — Google 이 "수정 완료" 버튼을 잘못 눌렀을 때 발생하는 validation 루프라 조치 불필요(무해). 실제 문제는 Soft 404(1건) + 404(1건) = 2건.
