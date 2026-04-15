@@ -64,13 +64,20 @@ export const WritingPracticeInput = forwardRef<HTMLTextAreaElement, WritingPract
     const expectedChars = useMemo(() => Array.from(compareTarget), [compareTarget]);
     const actualChars = useMemo(() => Array.from(text), [text]);
 
+    // 마지막 입력 글자가 한글 IME 조합 중이면 그 위치를 pending 으로 유지해
+    // '가' 를 목표로 치는 도중 'ㄱ' 만 본 상태에서 wrong 으로 반짝이는 현상을 제거한다.
+    // 조합이 끝난 시점(onCompositionEnd)에 isComposing=false 로 돌아오면 정상 비교로 복귀.
     const charResults: CharResult[] = useMemo(() => {
       const max = Math.max(expectedChars.length, actualChars.length);
       const results: CharResult[] = [];
+      const lastActualIdx = actualChars.length - 1;
       for (let i = 0; i < max; i += 1) {
         const expected = expectedChars[i] ?? "";
         const actual = actualChars[i] ?? "";
+        const isComposingHere = isComposing && i === lastActualIdx;
         if (actual === "") {
+          results.push({ index: i, expected, actual, status: "pending" });
+        } else if (isComposingHere) {
           results.push({ index: i, expected, actual, status: "pending" });
         } else if (actual === expected) {
           results.push({ index: i, expected, actual, status: "correct" });
@@ -79,7 +86,7 @@ export const WritingPracticeInput = forwardRef<HTMLTextAreaElement, WritingPract
         }
       }
       return results;
-    }, [expectedChars, actualChars]);
+    }, [expectedChars, actualChars, isComposing]);
 
     // 통계 누적: mistake는 한 번 찍히면 계속 유지 (자가교정해도 기록은 남김)
     useEffect(() => {
@@ -111,9 +118,30 @@ export const WritingPracticeInput = forwardRef<HTMLTextAreaElement, WritingPract
       });
     }, [actualChars, expectedChars, onStatsChange]);
 
-    // 다음에 기대되는 자모(키보드 하이라이트용)
+    // 다음에 기대되는 자모(키보드 하이라이트용).
+    // 조합 중이면 "현재 조합 중 음절에서 아직 남은 자모" 를 표시해야 한다.
+    // 기존처럼 actualChars.length 를 nextCharIdx 로 쓰면 'ㄱ' 입력 순간 length=1 이 되어
+    // 다음 음절의 첫 자모로 점프해 엉뚱한 키가 하이라이트된다.
     useEffect(() => {
       if (!onNextExpectedJamo) return;
+
+      if (isComposing && actualChars.length > 0) {
+        const lastIdx = actualChars.length - 1;
+        const currentActual = actualChars[lastIdx];
+        const currentExpected = expectedChars[lastIdx];
+        if (!currentExpected) {
+          onNextExpectedJamo(null);
+          return;
+        }
+        const actualJamos = decomposeSyllable(currentActual);
+        const expectedJamos = decomposeSyllable(currentExpected);
+        // 이미 입력된 자모 수만큼 건너뛴 위치가 다음 기대 자모.
+        // 현재 입력이 기대와 다르더라도(오타 조합 중) 동일 인덱스의 기대 자모를
+        // 안내해 학습자가 다음에 눌러야 할 키를 파악할 수 있게 한다.
+        onNextExpectedJamo(expectedJamos[actualJamos.length] ?? null);
+        return;
+      }
+
       const nextCharIdx = actualChars.length;
       const nextExpectedChar = expectedChars[nextCharIdx];
       if (!nextExpectedChar) {
@@ -122,7 +150,7 @@ export const WritingPracticeInput = forwardRef<HTMLTextAreaElement, WritingPract
       }
       const jamos = decomposeSyllable(nextExpectedChar);
       onNextExpectedJamo(jamos[0] ?? null);
-    }, [actualChars, expectedChars, onNextExpectedJamo]);
+    }, [actualChars, expectedChars, isComposing, onNextExpectedJamo]);
 
     const handleChange = useCallback(
       (event: React.ChangeEvent<HTMLTextAreaElement>) => {

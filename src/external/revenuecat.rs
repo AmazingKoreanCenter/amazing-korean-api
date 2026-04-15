@@ -112,8 +112,11 @@ impl RevenueCatClient for RevenueCatApiClient {
             .map_err(|e| AppError::External(format!("RevenueCat response parse error: {}", e)))?;
 
         let entitlements = data.subscriber.entitlements.into_iter().map(|(k, v)| {
+            // Why: 문자열 사전순 비교는 타임존 포맷(`Z` vs `+00:00`)이나 초 정밀도
+            // 차이에서 오판한다. RFC3339 파싱 후 UTC 비교로 정확도 확보.
             let is_active = v.expires_date.as_ref()
-                .map(|d| d > &chrono::Utc::now().to_rfc3339())
+                .and_then(|d| chrono::DateTime::parse_from_rfc3339(d).ok())
+                .map(|d| d.with_timezone(&chrono::Utc) > chrono::Utc::now())
                 .unwrap_or(true); // non-subscription entitlements는 만료 없음
 
             (k, RevenueCatEntitlement {

@@ -127,6 +127,16 @@ async fn main() -> anyhow::Result<()> {
             None
         };
 
+    // 6.6) Apple OAuth 클라이언트 (싱글톤 — reqwest 커넥션 풀 + JWKS 캐시 공유)
+    let apple_oauth: Option<Arc<external::apple::AppleOAuthClient>> =
+        if let Some(client_id) = &cfg.apple_client_id {
+            tracing::info!("Apple OAuth client initialized");
+            Some(Arc::new(external::apple::AppleOAuthClient::new(client_id.clone())))
+        } else {
+            tracing::info!("Apple OAuth client disabled (APPLE_CLIENT_ID not set)");
+            None
+        };
+
     // 6.9) E-book 워터마크 폰트 초기화
     let watermark_font_path = format!("{}/NotoSans-Regular.ttf", cfg.ebook_page_images_dir);
     amazing_korean_api::api::ebook::watermark::init_font(&watermark_font_path);
@@ -141,6 +151,7 @@ async fn main() -> anyhow::Result<()> {
         ipgeo,
         payment,
         revenuecat,
+        apple_oauth,
     };
 
     // 8) [CORS] 설정 정의

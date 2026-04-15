@@ -434,6 +434,16 @@ impl Config {
                     "Unknown EMAIL_PROVIDER '{}'. Must be 'resend' or 'none'.", other
                 ),
             }
+
+            // IAP 영수증 검증 게이트: REVENUECAT_API_KEY 미설정 시 서버 부팅 실패.
+            // Why: st.revenuecat == None 이면 create_iap_purchase 가 영수증 검증을
+            // 건너뛰고 completed 구매를 생성해 결제 우회가 가능해진다.
+            if revenuecat_api_key.is_none() {
+                panic!(
+                    "REVENUECAT_API_KEY must be set in production to enable IAP receipt validation. \
+                     Without it, the server would fail-open on /api/ebook/iap and allow payment bypass."
+                );
+            }
         }
 
         // HMAC 키 (필수, 로테이션 안 함)

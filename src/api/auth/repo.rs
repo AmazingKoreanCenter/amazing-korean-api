@@ -537,14 +537,15 @@ impl AuthRepo {
         Ok(())
     }
 
-    /// 사용자의 가장 오래된 활성 세션 N개 조회 (FIFO 퇴장용)
+    /// 사용자의 가장 오래된 활성 세션 N개 조회 (FIFO 퇴장용).
+    /// refresh_hash 를 함께 반환하여 eviction 루프에서 추가 DB 조회(N+1) 를 제거한다.
     pub async fn find_active_sessions_oldest(
         pool: &PgPool,
         user_id: i64,
         limit: usize,
-    ) -> AppResult<Vec<String>> {
-        let rows = sqlx::query_scalar::<_, String>(r#"
-            SELECT login_session_id::text
+    ) -> AppResult<Vec<(String, String)>> {
+        let rows = sqlx::query_as::<_, (String, String)>(r#"
+            SELECT login_session_id::text, login_refresh_hash
             FROM public.login
             WHERE user_id = $1 AND login_state = 'active'::login_state_enum
             ORDER BY login_begin_at ASC
@@ -556,6 +557,52 @@ impl AuthRepo {
         .await?;
 
         Ok(rows)
+    }
+
+    /// 세션 ID 배치로 refresh_hash 조회 (유령 세션 정리 루프의 N+1 제거용).
+    /// 반환값: session_id → refresh_hash 맵. 매칭되지 않은 session_id 는 키에 없음.
+    pub async fn find_login_refresh_hashes_by_session_ids(
+        pool: &PgPool,
+        session_ids: &[String],
+    ) -> AppResult<std::collections::HashMap<String, String>> {
+        if session_ids.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+        let rows = sqlx::query_as::<_, (String, String)>(r#"
+            SELECT login_session_id::text, login_refresh_hash
+            FROM public.login
+            WHERE login_session_id::text = ANY($1)
+        "#)
+        .bind(session_ids)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows.into_iter().collect())
+    }
+
+    /// 세션 ID 배치로 login_state 를 일괄 변경 (eviction/ghost cleanup 루프의 N+1 UPDATE 제거용).
+    pub async fn update_login_states_by_sessions(
+        pool: &PgPool,
+        session_ids: &[String],
+        state: &str,
+        revoked_reason: Option<&str>,
+    ) -> AppResult<()> {
+        if session_ids.is_empty() {
+            return Ok(());
+        }
+        sqlx::query(r#"
+            UPDATE public.login
+            SET login_state = CAST($2 AS login_state_enum),
+                login_revoked_reason = $3
+            WHERE login_session_id::text = ANY($1)
+        "#)
+        .bind(session_ids)
+        .bind(state)
+        .bind(revoked_reason)
+        .execute(pool)
+        .await?;
+
+        Ok(())
     }
 
     // ---------------------------------------------------------------------

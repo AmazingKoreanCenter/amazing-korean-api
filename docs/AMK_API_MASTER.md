@@ -323,7 +323,9 @@ EMAIL_FROM_ADDRESS=noreply@amazingkorean.net  # 발신 주소
   - 응답에 `remaining_attempts` 포함 (잔여 발송 횟수, 프론트엔드 표시)
   - 이메일 발송 실패 시 rate limit 카운터 자동 롤백 (`DECR`) — 사용자 시도 낭비 방지
 - TTL: 인증코드 10분 만료
-- 프로덕션 fail-fast: `APP_ENV=production` + `EMAIL_PROVIDER=none` → 서버 부팅 실패
+- 프로덕션 fail-fast:
+  - `APP_ENV=production` + `EMAIL_PROVIDER=none` → 서버 부팅 실패
+  - `APP_ENV=production` + `REVENUECAT_API_KEY` 미설정 → 서버 부팅 실패 (IAP 영수증 검증 우회 방지)
 
 #### 2.4.2 Google OAuth
 
@@ -983,7 +985,16 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
 | Manager | 3 | 로그인 거부 (403) | `MAX_SESSIONS_MANAGER` |
 | Learner | 5 | 가장 오래된 세션 자동 퇴장 (FIFO) | `MAX_SESSIONS_LEARNER` |
 
-- **유령 세션 정리**: `SMEMBERS` + `EXISTS` 체크 후 만료된 세션 자동 제거
+- **유령 세션 정리**: `SMEMBERS` + `EXISTS` 체크 후 만료된 세션 자동 제거.
+  - refresh_hash 는 `find_login_refresh_hashes_by_session_ids` 로 **배치 조회** (N+1 제거).
+  - DB 상태 업데이트는 `update_login_states_by_sessions` 로 **배치 UPDATE**.
+- **FIFO 퇴장**: `find_active_sessions_oldest` 가 `(session_id, refresh_hash)` 튜플을
+  반환해 eviction 루프에서 추가 DB 조회 없이 Redis 키를 즉시 정리.
+- **Fail-closed**: `enforce_session_limit` 의 모든 Redis 호출은 `unwrap_or` 가 아닌
+  `?` 로 에러 전파. 일시적 Redis 장애가 유효 세션을 "만료" 로 오판해 강제 로그아웃
+  시키는 것을 방지.
+- **FIFO 보호**: DB 가 빈 목록을 반환하면 Redis SET 은 무순서라 FIFO 를 보장할 수 없다.
+  조용히 랜덤 eviction 하는 대신 에러 로그 + 요청 실패로 중단 (`500`).
 - **적용 지점**: `login()` (비MFA), `create_oauth_session()` (OAuth/MFA)
 - **거부 에러**: `403 AUTH_403_SESSION_LIMIT:{max_sessions}`
 
