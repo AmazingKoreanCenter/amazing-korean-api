@@ -11,17 +11,16 @@
  *   상세 조회: 300 RPS, P95 < 50ms
  *   진도 저장: 100 RPS, P95 < 150ms
  *
- * 시나리오: 로그인 → 비디오 목록 → 비디오 상세 → 학습 목록 → 학습 상세 → 토큰 갱신 → 로그아웃
+ * 시나리오: 로그인 → 비디오 목록 → 비디오 상세 → 학습 목록 → 학습 상세 → 진도 저장 → 토큰 갱신 → 로그아웃
+ *
+ * Tagging 정책: http.* 호출에 `tags: { endpoint: ... }` 부여 → config.js 의
+ * `http_req_duration{endpoint:auth}` 형식 thresholds 가 기본 metric 에 tag 필터로
+ * 매칭된다. 커스텀 `Trend` 를 만들면 동일 이름의 별개 metric 이 생성되어
+ * thresholds 가 데이터를 못 보게 되므로 절대 금지.
  */
 import http from "k6/http";
 import { check, sleep } from "k6";
-import { Trend } from "k6/metrics";
 import { BASE_URL, TEST_USER, THRESHOLDS } from "./config.js";
-
-const authDuration = new Trend("http_req_duration{endpoint:auth}");
-const listDuration = new Trend("http_req_duration{endpoint:list}");
-const detailDuration = new Trend("http_req_duration{endpoint:detail}");
-const progressDuration = new Trend("http_req_duration{endpoint:progress}");
 
 export const options = {
   stages: [
@@ -34,8 +33,18 @@ export const options = {
   thresholds: THRESHOLDS,
 };
 
-function authHeaders(token) {
-  return { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } };
+function authParams(token, endpoint) {
+  return {
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    tags: { endpoint },
+  };
+}
+
+function jsonParams(endpoint) {
+  return {
+    headers: { "Content-Type": "application/json" },
+    tags: { endpoint },
+  };
 }
 
 export default function () {
@@ -45,9 +54,8 @@ export default function () {
     const res = http.post(
       `${BASE_URL}/api/auth/login`,
       JSON.stringify({ login_id: TEST_USER.login_id, password: TEST_USER.password }),
-      { headers: { "Content-Type": "application/json" } }
+      jsonParams("auth")
     );
-    authDuration.add(res.timings.duration);
     if (res.status !== 200) return;
     const body = res.json();
     accessToken = body.access_token;
@@ -58,8 +66,7 @@ export default function () {
   // 2. 비디오 목록
   let videoId;
   {
-    const res = http.get(`${BASE_URL}/api/videos`, authHeaders(accessToken));
-    listDuration.add(res.timings.duration);
+    const res = http.get(`${BASE_URL}/api/videos`, authParams(accessToken, "list"));
     check(res, { "videos 200": (r) => r.status === 200 });
     const body = res.json();
     if (body.data && body.data.length > 0) {
@@ -70,8 +77,7 @@ export default function () {
 
   // 3. 비디오 상세
   if (videoId) {
-    const res = http.get(`${BASE_URL}/api/videos/${videoId}`, authHeaders(accessToken));
-    detailDuration.add(res.timings.duration);
+    const res = http.get(`${BASE_URL}/api/videos/${videoId}`, authParams(accessToken, "detail"));
     check(res, { "video detail 200": (r) => r.status === 200 });
   }
   sleep(0.5);
@@ -79,8 +85,7 @@ export default function () {
   // 4. 학습 목록
   let studyId;
   {
-    const res = http.get(`${BASE_URL}/api/studies`, authHeaders(accessToken));
-    listDuration.add(res.timings.duration);
+    const res = http.get(`${BASE_URL}/api/studies`, authParams(accessToken, "list"));
     check(res, { "studies 200": (r) => r.status === 200 });
     const body = res.json();
     if (body.data && body.data.length > 0) {
@@ -89,37 +94,48 @@ export default function () {
   }
   sleep(0.5);
 
-  // 5. 학습 상세
+  // 5. 학습 상세 + task 목록
+  let taskId;
   if (studyId) {
-    const res = http.get(`${BASE_URL}/api/studies/${studyId}`, authHeaders(accessToken));
-    detailDuration.add(res.timings.duration);
+    const res = http.get(`${BASE_URL}/api/studies/${studyId}`, authParams(accessToken, "detail"));
     check(res, { "study detail 200": (r) => r.status === 200 });
+    const body = res.json();
+    if (body.tasks && body.tasks.length > 0) {
+      taskId = body.tasks[Math.floor(Math.random() * body.tasks.length)].task_id;
+    }
   }
   sleep(0.5);
 
-  // 6. 레슨 목록
+  // 6. 진도 확인 (task status — 사용자 학습 진도 조회 대표 엔드포인트)
+  if (taskId) {
+    const res = http.get(
+      `${BASE_URL}/api/studies/tasks/${taskId}/status`,
+      authParams(accessToken, "progress")
+    );
+    check(res, { "task status 200": (r) => r.status === 200 });
+  }
+  sleep(0.5);
+
+  // 7. 레슨 목록
   {
-    const res = http.get(`${BASE_URL}/api/lessons`, authHeaders(accessToken));
-    listDuration.add(res.timings.duration);
+    const res = http.get(`${BASE_URL}/api/lessons`, authParams(accessToken, "list"));
     check(res, { "lessons 200": (r) => r.status === 200 });
   }
   sleep(0.5);
 
-  // 7. 토큰 갱신
+  // 8. 토큰 갱신
   if (refreshToken) {
     const res = http.post(
       `${BASE_URL}/api/auth/refresh`,
       JSON.stringify({ refresh_token: refreshToken }),
-      { headers: { "Content-Type": "application/json" } }
+      jsonParams("auth")
     );
-    authDuration.add(res.timings.duration);
     check(res, { "refresh 200": (r) => r.status === 200 });
   }
   sleep(0.5);
 
-  // 8. 로그아웃
+  // 9. 로그아웃
   {
-    const res = http.post(`${BASE_URL}/api/auth/logout`, null, authHeaders(accessToken));
-    authDuration.add(res.timings.duration);
+    http.post(`${BASE_URL}/api/auth/logout`, null, authParams(accessToken, "auth"));
   }
 }

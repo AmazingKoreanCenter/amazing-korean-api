@@ -36,6 +36,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Noto Color Emoji: 국기 이모지 전용, 비동기 로딩 (render-blocking 제거) -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" media="print" onload="this.media='all'" />
+    <!-- noscript fallback: JS 비활성 환경에서는 onload 가 실행되지 않아 이모지 폰트가 로드되지 않는다. -->
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" />
+    </noscript>
     <style>
       .emoji-flag { font-family: 'Noto Color Emoji', sans-serif; }
     </style>

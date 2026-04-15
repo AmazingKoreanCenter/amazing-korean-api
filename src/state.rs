@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use crate::config::Config;
+use crate::external::apple::AppleOAuthClient;
 use crate::external::email::EmailSender;
 use crate::external::ipgeo::IpGeoClient;
 use crate::external::payment::PaymentProvider;
@@ -24,6 +25,8 @@ pub struct AppState {
     pub payment: Option<Arc<dyn PaymentProvider>>,
     /// RevenueCat 클라이언트 (모바일 IAP 영수증 검증)
     pub revenuecat: Option<Arc<dyn RevenueCatClient>>,
+    /// Apple OAuth 클라이언트 (Sign in with Apple — JWKS 캐시 + reqwest 커넥션 풀 싱글톤)
+    pub apple_oauth: Option<Arc<AppleOAuthClient>>,
 }
 
 impl AsRef<AppState> for AppState {

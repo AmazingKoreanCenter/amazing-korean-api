@@ -1,5 +1,8 @@
 use reqwest::Client;
 use serde::Deserialize;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 use crate::api::auth::service::OAuthUserInfo;
 use crate::error::{AppError, AppResult};
@@ -7,10 +10,17 @@ use crate::error::{AppError, AppResult};
 const APPLE_JWKS_URL: &str = "https://appleid.apple.com/auth/keys";
 const APPLE_ISSUER: &str = "https://appleid.apple.com";
 
-/// Apple OAuth 클라이언트 (Sign in with Apple — 모바일 ID token 직접 검증)
+/// Apple OAuth 클라이언트 (Sign in with Apple — 모바일 ID token 직접 검증).
+///
+/// AppState 에 `Arc<AppleOAuthClient>` 싱글톤으로 보관해 요청마다 재생성하지 않도록
+/// 한다. `reqwest::Client` 는 내부 커넥션 풀을 가지고 있어 재사용이 필수. JWKS 는
+/// 토큰 `kid` 기반으로 캐싱해 매 로그인마다 Apple 서버를 때리지 않는다.
 pub struct AppleOAuthClient {
     client: Client,
     client_id: String, // Apple Bundle ID (e.g., net.amazingkorean.app)
+    /// kid → DecodingKey 캐시. Apple 이 키 로테이션을 해도 토큰 kid 가 바뀌면
+    /// cache miss 로 떨어져 자동으로 새 키를 가져온다.
+    jwks_cache: Arc<RwLock<HashMap<String, jsonwebtoken::DecodingKey>>>,
 }
 
 /// Apple JWKS response
@@ -49,7 +59,41 @@ impl AppleOAuthClient {
         Self {
             client: Client::new(),
             client_id,
+            jwks_cache: Arc::new(RwLock::new(HashMap::new())),
         }
+    }
+
+    /// kid 에 대응하는 DecodingKey 를 캐시에서 조회하거나, miss 시 Apple JWKS 를
+    /// 한 번만 호출해 캐시에 적재한다.
+    async fn get_decoding_key(&self, kid: &str) -> AppResult<jsonwebtoken::DecodingKey> {
+        // 1차 read-lock 으로 캐시 조회
+        {
+            let cache = self.jwks_cache.read().await;
+            if let Some(key) = cache.get(kid) {
+                return Ok(key.clone());
+            }
+        }
+
+        // Cache miss — JWKS 전체를 가져와 캐시에 모두 적재.
+        let jwks: AppleJwks = self.client
+            .get(APPLE_JWKS_URL)
+            .send()
+            .await
+            .map_err(|e| AppError::External(format!("Failed to fetch Apple JWKS: {}", e)))?
+            .json()
+            .await
+            .map_err(|e| AppError::External(format!("Failed to parse Apple JWKS: {}", e)))?;
+
+        let mut cache = self.jwks_cache.write().await;
+        for jwk in &jwks.keys {
+            let decoding_key = jsonwebtoken::DecodingKey::from_rsa_components(&jwk.n, &jwk.e)
+                .map_err(|e| AppError::External(format!("Failed to create Apple decoding key: {}", e)))?;
+            cache.insert(jwk.kid.clone(), decoding_key);
+        }
+
+        cache.get(kid)
+            .cloned()
+            .ok_or_else(|| AppError::External("No matching key found in Apple JWKS".into()))
     }
 
     /// ID Token 디코딩 + Apple JWKS 서명 검증 (google.rs::decode_id_token 패턴 복제)
@@ -61,24 +105,8 @@ impl AppleOAuthClient {
         let kid = header.kid
             .ok_or_else(|| AppError::External("Apple ID token missing kid in header".into()))?;
 
-        // Apple JWKS에서 공개키 가져오기
-        let jwks: AppleJwks = self.client
-            .get(APPLE_JWKS_URL)
-            .send()
-            .await
-            .map_err(|e| AppError::External(format!("Failed to fetch Apple JWKS: {}", e)))?
-            .json()
-            .await
-            .map_err(|e| AppError::External(format!("Failed to parse Apple JWKS: {}", e)))?;
-
-        // kid에 매칭되는 키 찾기
-        let jwk = jwks.keys.iter()
-            .find(|k| k.kid == kid)
-            .ok_or_else(|| AppError::External("No matching key found in Apple JWKS".into()))?;
-
-        // RSA 공개키로 디코딩 키 생성
-        let decoding_key = jsonwebtoken::DecodingKey::from_rsa_components(&jwk.n, &jwk.e)
-            .map_err(|e| AppError::External(format!("Failed to create Apple decoding key: {}", e)))?;
+        // 캐시 우선 조회, miss 면 JWKS 1회 fetch + 전체 적재
+        let decoding_key = self.get_decoding_key(&kid).await?;
 
         // 검증 설정: issuer + audience + 서명
         let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);

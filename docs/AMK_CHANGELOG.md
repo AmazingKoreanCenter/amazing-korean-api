@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-14 (S4 + StrictMode 전수 점검)
+updated: 2026-04-14 (Gemini 세션 A~D 일괄 — IAP fail-closed + auth N+1 + K6 tags + Apple OAuth 싱글톤 + IME 조합 버그)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,45 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-14 — Gemini 리뷰 전수 반영 (PR #152~#155 세션 A~D 일괄)**: 2026-04-07~2026-04-14 머지된 4개 PR 의 Gemini 지적 13건 중 미처리 12건(HIGH 5 + MED 7) 을 하나의 묶음 커밋/PR 로 처리. 남은 미처리 0건.
+  - **[세션 A / 보안: H1 IAP fail-closed]** `src/config.rs` 프로덕션 fail-fast 블록에 RevenueCat 게이트 추가. `APP_ENV=production` + `REVENUECAT_API_KEY` 미설정 시 서버 부팅 panic. 기존 코드(`src/api/ebook/service.rs:229`)는 `if let Some(ref rc_client) = st.revenuecat` 구조라 키 미설정 → `st.revenuecat == None` → 영수증 검증 블록 전체 skip → `insert_iap_purchase(status=completed)` 로 무료 교재 획득 가능한 결제 우회 취약점 존재. Gemini PR #152 HIGH 지적. 부팅 단계 panic 으로 차단 (AMK_API_MASTER 의 "프로덕션 안전장치" 패턴 — `EMAIL_PROVIDER=none` + production 과 동일 전략)
+  - **[세션 A / M1 RFC3339]** `src/external/revenuecat.rs:114-119` — `v.expires_date` 를 `chrono::DateTime::parse_from_rfc3339` 로 파싱 후 UTC 비교. 기존에는 `d > &chrono::Utc::now().to_rfc3339()` 의 문자열 사전순 비교였고, 타임존 포맷(`Z` vs `+00:00`) 이나 초 정밀도 차이에서 오판 가능. Gemini PR #152 MEDIUM 지적
+  - **[세션 C / auth N+1 + fail-closed: H2+H3+M4+M5]** `src/api/auth/service.rs::enforce_session_limit` 전면 리팩터 + `src/api/auth/repo.rs` 에 배치 repo 함수 2개 신규.
+    - **H2 유령 세션 정리 N+1 제거**: 기존 루프 안에서 `find_login_by_session_id` 를 세션마다 1회씩 호출(유저당 최대 5회) 하던 패턴 제거. 신규 `find_login_refresh_hashes_by_session_ids(&[sid]) -> HashMap<sid, refresh_hash>` 배치 조회로 **DB 쿼리 1회** 로 통합. 배치 DB UPDATE 는 신규 `update_login_states_by_sessions(&[sid], state, reason)` 로 일괄 처리.
+    - **H2 Redis fail-closed**: `redis_conn.exists(...).await.unwrap_or(false)` 패턴을 `?` 전파로 전환. 일시적 Redis 장애가 유효 세션을 "만료" 로 오판해 학습자를 강제 로그아웃시키는 문제를 차단. `security_patterns` 메모리의 fail-closed 원칙 반영.
+    - **H3 eviction 루프 N+1 제거**: 기존에 evict 대상마다 `find_login_by_session_id` 를 한 번 더 호출해 `refresh_hash` 를 조회하던 구조 제거. `find_active_sessions_oldest` 반환 타입을 `Vec<String>` → `Vec<(String, String)>` 로 변경(**M5** 와 한 덩어리) 해 1회 조회에 session_id + refresh_hash 를 함께 가져오도록 수정. DB 상태 업데이트도 배치 UPDATE 로 통합.
+    - **M4 silent random eviction 방지**: DB fallback 이 빈 결과이면 Redis SET 의 `smembers` 를 재호출해 `take(evict_count)` 하던 기존 로직 제거. Redis Set 은 무순서라 FIFO 가 파괴되는 문제. 대체로 경고 로그 + `AppError::Internal("session eviction aborted")` 반환으로 명시적 실패 처리.
+    - **단일 호출부**(`login` → `enforce_session_limit`) 확인 + clippy 0 경고.
+  - **[세션 D / 성능 테스트: H4 K6 tags + M7 progress 시나리오]** `k6/scenario_load.js` + `k6/scenario_smoke.js` 재작성.
+    - `new Trend("http_req_duration{endpoint:auth}")` 같은 커스텀 Trend 4개 삭제. 같은 이름의 별개 metric 을 만들던 패턴 → config 의 `http_req_duration{endpoint:auth}` thresholds 는 기본 metric 에 `tag` 필터를 거는 문법이므로 커스텀 Trend 로는 절대 매칭 안 됨 (지금까지 K6 thresholds 검증이 실질 no-op 였던 원인).
+    - http.get/post 호출부에 `tags: { endpoint: "auth" | "list" | "detail" | "progress" }` 직접 부여 → config.js 의 thresholds 가 기본 `http_req_duration` 에 태그 필터로 매칭되어 정상 동작.
+    - progress 시나리오 신규 추가: 존재하지 않던 `/api/studies/{id}/progress` 대신 기존 `GET /api/studies/tasks/{id}/status` 를 `endpoint:progress` 로 태그해 "진도 확인" 지표 대표 엔드포인트로 사용 (study 상세에서 tasks 목록 추출 후 랜덤 선택).
+  - **[세션 D / 성능: M2+M3 Apple OAuth 싱글톤 + JWKS 캐시]** `src/external/apple.rs` 리라이트 + `src/state.rs` 에 `apple_oauth: Option<Arc<AppleOAuthClient>>` 신규 + `src/main.rs` 초기화 블록 6.6 신규 + `apple_mobile_login` 핸들러에서 `st.apple_oauth` 재사용.
+    - `AppleOAuthClient` 에 `jwks_cache: Arc<RwLock<HashMap<String, DecodingKey>>>` 필드 추가. `get_decoding_key(kid)` 가 read-lock 캐시 조회 후 miss 시 JWKS 1회 fetch + 전체 키 배치 적재. 모바일 Apple 로그인 요청마다 `https://appleid.apple.com/auth/keys` 를 매번 호출하던 문제 해결.
+    - `reqwest::Client` 도 싱글톤 내부에 1회만 생성되어 커넥션 풀 재사용.
+    - 기존 `AppleOAuthClient::new(client_id.clone())` 를 handler 에서 매 호출 시 생성하던 패턴 제거 (`st.revenuecat` / `st.google_oauth` 기존 싱글톤 패턴과 동일).
+  - **[세션 D / UX: M6 Noto Color Emoji noscript fallback]** `frontend/index.html` 의 `<link rel="stylesheet" ... onload="this.media='all'">` 비동기 로드 패턴은 JS 비활성 환경에서 동작하지 않아 이모지 폰트가 로드되지 않음. `<noscript>` 블록 신규 추가로 JS off 환경에서 동기 로드 fallback. 기존 SEO 본문용 `<noscript>` 와 별개.
+  - **[세션 B / 학습 UX: H5 한글 IME 조합 버그]** `frontend/src/category/study/component/writing/WritingPracticeInput.tsx` — 3개 문제 동시 수정.
+    - **(1) charResults 음절 단위 비교 오작동**: '가' 입력 중 'ㄱ' 만 친 순간 `actual === expected` 실패로 즉시 `wrong` 표시 → 마지막 글자(`i === lastActualIdx`) 가 `isComposing=true` 면 `pending` 으로 유지. `isComposing` 을 useMemo 의존성에 추가.
+    - **(2) 다음 자모 하이라이트 점프**: 기존 `nextCharIdx = actualChars.length` 는 'ㄱ' 조합 중 `length=1` 이 되어 다음 음절의 첫 자모로 점프해 엉뚱한 키 하이라이트. 조합 중 분기 신규 — `decomposeSyllable(actualChars[last])` 와 `decomposeSyllable(expectedChars[last])` 를 비교해 "현재 조합 중 음절에서 이미 입력된 자모 수만큼 건너뛴 다음 기대 자모" 를 반환.
+    - **(3) isComposing 반영 누락**: 기존 `isComposing` state 가 mistakes 통계 skip 에만 쓰이고 charResults 계산에는 영향 없던 문제 — charResults useMemo 와 키보드 하이라이트 useEffect 의 의존성 배열에 `isComposing` 추가.
+    - **검증 한계**: Playwright 는 native IME composition 이벤트를 생성하지 못해 자동화된 E2E 로 재현 불가. 수동 브라우저(macOS 2-set 한국어 IME) 검증 필요 — 마지막 검증 단계에서 수기 수행.
+  - **[보너스 / 감사 중 발견한 동일 안티패턴 4건 추가 반영]** 커밋 전 검증 과정에서
+    `enforce_session_limit` 와 동일한 `unwrap_or(false)` fail-open + `find_login_by_session_id`
+    N+1 패턴이 다른 세션 정리 경로 4개에도 존재함을 확인 → 같은 묶음 PR 로 일괄 처리.
+    - **`reset_password`** (service.rs:892-915): Redis 세션 정리 블록을 `smembers(?) + find_login_refresh_hashes_by_session_ids` 배치 조회 + 전체 Redis 호출 `?` 전파로 교체
+    - **`logout`** (service.rs:942-950): 단일 세션 정리의 `unwrap_or(())` 3건을 `?` 전파로 교체 (N+1 없음, fail-closed 만)
+    - **`logout_all`** (service.rs:1020-1035): `find_login_by_session_id` 루프 N+1 제거 → 배치 조회. Redis 호출 전부 `?` 전파
+    - **`reset_password_with_token`** (service.rs:1253-1274): `reset_password` 와 동일 패턴 일괄 교체
+    - **미수정 유지**: rate-limit DECR 롤백 / verification-code / OAuth-state / MFA-token 의 `unwrap_or(())` 는 TTL 이 안전망이라 의도적으로 fail-open 유지 (security-critical 경로 아님)
+  - **[파일 변경]**
+    - Rust: `src/config.rs`, `src/state.rs`, `src/main.rs`, `src/external/revenuecat.rs`, `src/external/apple.rs`, `src/api/auth/service.rs`, `src/api/auth/repo.rs`
+    - Frontend: `frontend/index.html`, `frontend/src/category/study/component/writing/WritingPracticeInput.tsx`
+    - K6: `k6/scenario_load.js`, `k6/scenario_smoke.js`
+    - 문서: `docs/AMK_API_MASTER.md`, `docs/AMK_API_EBOOK.md`, `docs/AMK_STATUS.md`, `docs/AMK_CHANGELOG.md`
+  - **[검증]** `cargo check`, `cargo clippy --lib` (0 warnings), `cd frontend && npm run build` (tsc + vite 클린 통과). Playwright E2E 미실행(기존 `writing_practice.spec.ts` 는 비조합 jamo 경로만 커버).
+  - **[남은 Gemini 백로그]** 0건. 추후 PR 머지 시 Gemini 리뷰는 리뷰 달린 당시 세션에 즉시 반영 원칙으로 변경 검토 (feedback_work_rules 갱신 후보).
 
 - **2026-04-14 — 속도 개선 Phase S4 + React 19 StrictMode 위험 패턴 전수 점검**
   - [S4-1 audit 툴] `frontend/perf-audit/audit.mjs` — `PERF_TARGET_URL` env 오버라이드 추가. 설정 시 vite preview 기동을 건너뛰고 원격 URL 을 baseURL 로 사용 (프로덕션 재측정용). `LOCAL_PREVIEW_URL` / `BASE_URL` / `SKIP_PREVIEW` 플래그 분리, preview 종료 처리에 null 체크 추가. 부수 버그 수정: `userDataDir` 를 `chrome-launcher` 에 넘기기 전에 `mkdirSync(..., {recursive:true})` 로 선생성 (기존에는 `ENOENT: no such file or directory, open '/tmp/lighthouse-profile-.../chrome-out.log'` 로 실패)
