@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-15 (SEO hardening — Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어)
+updated: 2026-04-16 (Gemini 백로그 MEDIUM 2건 — robots 크롤러 배열화 + security_headers 정적 검증)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,11 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — Gemini 백로그 MEDIUM 2건 반영: robots 크롤러 배열화 + security_headers 정적 검증**
+  - **PR #161 L148 (robots.txt 크롤러 배열화)** — `src/api/mod.rs::robots_txt` 의 하드코딩된 긴 문자열 리터럴 본문을 `const CRAWLERS: &[&str]` 배열 + `format!`/`join("\n")` 구조로 전환. 크롤러 추가/삭제 시 한 줄 편집으로 가능. 출력 본문은 바이트 단위 동일 (각 엔트리 끝 `\n` + join 사이 `\n` → 기존 빈 줄 포맷 유지).
+  - **PR #161 L223 (security_headers 정적 검증)** — `src/main.rs::security_headers` 의 5개 `.parse().unwrap()` 호출을 `HeaderName::from_static` + `HeaderValue::from_static` 패턴으로 전환. 런타임 panic 방지 + 컴파일 타임 헤더 이름/값 유효성 검증. 대상 헤더: `x-content-type-options`, `x-frame-options`, `x-xss-protection`, `permissions-policy`, `x-robots-tag`. `HeaderName`/`HeaderValue` 는 `main.rs` 상단에 이미 import 되어 있어 추가 의존성 없음.
+  - **검증**: `cargo check` 6.81s 클린 + `cargo clippy --lib --bins` 0 warnings 13.87s 클린. robots.txt 응답 본문 형식 동일성 수동 확인 (각 엔트리 사이 빈 줄 + 말미 `\n` 유지).
 
 - **2026-04-15 — SEO hardening: Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어**
   - **배경**: 커밋 `c8014df` 의 `GET /robots.txt` 핸들러(`User-agent: *\nDisallow: /\n`) 배포 후 외부 검증 중 발견 — Cloudflare 가 zone 레벨에서 `# BEGIN Cloudflare Managed content` 블록을 **본문 앞에 자동 주입**하고 있었다. 주입된 블록의 `User-agent: *` + `Allow: /` 가 우리의 `User-agent: *` + `Disallow: /` 와 경로 길이가 같아 Google 의 tie-breaking 규칙(`Allow` 승리)에서 **우리의 Disallow 가 무력화**됨. 프론트엔드(`amazingkorean.net/robots.txt`) 도 동일 주입 확인 — zone-wide 설정.

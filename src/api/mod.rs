@@ -112,40 +112,24 @@ async fn root_service_info() -> impl IntoResponse {
 /// Google robots.txt spec). Cloudflare 의 `*` 그룹은 이름이 명시된 크롤러에
 /// 대해 무시된다.
 async fn robots_txt() -> impl IntoResponse {
-    let body = "\
-User-agent: Googlebot
-Disallow: /
-
-User-agent: Googlebot-Image
-Disallow: /
-
-User-agent: Googlebot-News
-Disallow: /
-
-User-agent: Googlebot-Video
-Disallow: /
-
-User-agent: AdsBot-Google
-Disallow: /
-
-User-agent: Bingbot
-Disallow: /
-
-User-agent: DuckDuckBot
-Disallow: /
-
-User-agent: Yeti
-Disallow: /
-
-User-agent: NaverBot
-Disallow: /
-
-User-agent: Daum
-Disallow: /
-
-User-agent: *
-Disallow: /
-";
+    const CRAWLERS: &[&str] = &[
+        "Googlebot",
+        "Googlebot-Image",
+        "Googlebot-News",
+        "Googlebot-Video",
+        "AdsBot-Google",
+        "Bingbot",
+        "DuckDuckBot",
+        "Yeti",      // Naver
+        "NaverBot",
+        "Daum",      // Kakao
+        "*",         // 폴백
+    ];
+    let body = CRAWLERS
+        .iter()
+        .map(|ua| format!("User-agent: {}\nDisallow: /\n", ua))
+        .collect::<Vec<_>>()
+        .join("\n");
     (
         StatusCode::OK,
         [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
