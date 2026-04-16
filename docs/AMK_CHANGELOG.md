@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-15 (SEO hardening — Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어)
+updated: 2026-04-16 (Gemini 백로그 auth 성능 5건 — Redis 파이프라인/배치 + JWKS DCL)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,16 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — Gemini 백로그 auth 성능 MEDIUM 5건 반영: Redis 파이프라인/배치 + JWKS DCL**
+  - **PR #157 L190 (exists 파이프라인화 × 2)** — `enforce_session_limit` 의 유령 세션 탐지 2단계(`ak:session` 존재 확인 + `ak:refresh` 존재 확인) 를 `redis::pipe()` 로 묶어 단일 파이프라인으로 전송. 세션 N개일 때 네트워크 왕복 2N → 2 회로 감소. `refresh_hashes` 에 없는 sid 는 DB 레코드 자체가 없어 보존 근거 없음 → 파이프라인 체크 전에 즉시 유령 처리.
+  - **PR #157 L216 (유령 정리 SREM 배치)** — `redis_conn.srem(&session_key, &ghost_ids)` 로 단일 호출. 기존 sid 별 루프(N 왕복) → 1 회.
+  - **PR #157 L264 (eviction DEL+SREM 배치)** — Learner 세션 초과 시 FIFO eviction 에서 각 세션별 3 키 삭제(`ak:refresh:{hash}` + `ak:session:{sid}` + SREM) 를 DEL one-shot(2N 키) + SREM one-shot(N 멤버) 으로 전환. 3N → 2 회.
+  - **PR #157 L1044 (logout_all DEL+SREM 배치)** — `logout` 의 `sessions_to_invalidate` 루프를 DEL one-shot + SREM one-shot 으로 전환. 세션 수에 비례하는 왕복 → 2 회. `refresh_hashes.get(sid).is_none()` 케이스는 DEL 키 목록에서 제외해 Redis 서버에 불필요한 NIL 키 전달 방지.
+  - **PR #157 L92 (apple.rs JWKS Double-Checked Locking)** — `get_decoding_key` 의 write-lock 획득 직후 재확인 (`if let Some(key) = cache.get(kid) { return Ok(key.clone()); }`) 추가. read-lock 해제와 write-lock 획득 사이에 다른 동시 요청이 이미 JWKS 를 적재했을 경우 중복 `DecodingKey::from_rsa_components` 생성/삽입 회피. 캐시 미스 동시 발생 시 작업량 감소.
+  - **Soundness 검증**: `enforce_session_limit` 의 L1a 로직 — `session_ids: Vec<String>` 을 `.into_iter()` 로 소비하지만 이후 `session_expired_candidates` 만 사용하므로 안전. L1c 의 `ghosts` 순서는 (a) `refresh_hashes` 에 없는 sid 우선 + (b) Redis 확인 후 false sid 추가 — 기존 순서와 다르지만 DB UPDATE 는 set 의미라 순서 무관. 배치 SREM 은 존재하지 않는 멤버 무시하므로 중복 제거 불필요.
+  - **검증**: `cargo check` 7.85s + `cargo clippy --lib --bins` 0 warnings 13.92s (최초 clippy `filter_map_bool_then` 1건 → `filter + map` 으로 리팩터 후 클린).
+  - **Gemini 백로그 상태**: PR #157~#163 HIGH 2 + MEDIUM 16 전건 처리 완료. `project_gemini_review_backlog.md` 메모리 삭제 대상.
 
 - **2026-04-15 — SEO hardening: Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어**
   - **배경**: 커밋 `c8014df` 의 `GET /robots.txt` 핸들러(`User-agent: *\nDisallow: /\n`) 배포 후 외부 검증 중 발견 — Cloudflare 가 zone 레벨에서 `# BEGIN Cloudflare Managed content` 블록을 **본문 앞에 자동 주입**하고 있었다. 주입된 블록의 `User-agent: *` + `Allow: /` 가 우리의 `User-agent: *` + `Disallow: /` 와 경로 길이가 같아 Google 의 tie-breaking 규칙(`Allow` 승리)에서 **우리의 Disallow 가 무력화**됨. 프론트엔드(`amazingkorean.net/robots.txt`) 도 동일 주입 확인 — zone-wide 설정.

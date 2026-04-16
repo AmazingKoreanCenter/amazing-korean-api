@@ -85,6 +85,12 @@ impl AppleOAuthClient {
             .map_err(|e| AppError::External(format!("Failed to parse Apple JWKS: {}", e)))?;
 
         let mut cache = self.jwks_cache.write().await;
+        // Double-checked locking: read-lock 해제와 write-lock 획득 사이에 다른 요청이
+        // 이미 JWKS 를 적재했을 수 있음. 중복 DecodingKey 생성/삽입을 피해 동시
+        // 캐시 미스 시 작업량을 감소시킨다.
+        if let Some(key) = cache.get(kid) {
+            return Ok(key.clone());
+        }
         for jwk in &jwks.keys {
             let decoding_key = jsonwebtoken::DecodingKey::from_rsa_components(&jwk.n, &jwk.e)
                 .map_err(|e| AppError::External(format!("Failed to create Apple decoding key: {}", e)))?;
