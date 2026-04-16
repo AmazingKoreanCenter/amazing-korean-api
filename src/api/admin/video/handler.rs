@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::{
     extract::{Path, Query, State},
     http::{header::USER_AGENT, HeaderMap, StatusCode},
@@ -137,7 +138,7 @@ pub async fn admin_create_video(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<VideoCreateReq>,
+    AppJson(req): AppJson<VideoCreateReq>,
 ) -> Result<(StatusCode, Json<AdminVideoRes>), AppError> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -174,7 +175,7 @@ pub async fn admin_bulk_create_videos(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<VideoBulkCreateReq>,
+    AppJson(req): AppJson<VideoBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<VideoBulkCreateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -217,7 +218,7 @@ pub async fn admin_bulk_update_videos(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<VideoBulkUpdateReq>,
+    AppJson(req): AppJson<VideoBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<VideoBulkUpdateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -260,7 +261,7 @@ pub async fn admin_bulk_update_video_tags(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<VideoTagBulkUpdateReq>,
+    AppJson(req): AppJson<VideoTagBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<VideoBulkUpdateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -307,7 +308,7 @@ pub async fn admin_update_video(
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
     Path(video_id): Path<i64>,
-    Json(req): Json<VideoUpdateReq>,
+    AppJson(req): AppJson<VideoUpdateReq>,
 ) -> AppResult<Json<AdminVideoRes>> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -349,7 +350,7 @@ pub async fn admin_update_video_tags(
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
     Path(video_id): Path<i64>,
-    Json(req): Json<VideoTagUpdateReq>,
+    AppJson(req): AppJson<VideoTagUpdateReq>,
 ) -> AppResult<Json<AdminVideoRes>> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -404,7 +405,7 @@ pub async fn admin_get_vimeo_preview(
 pub async fn admin_create_vimeo_upload_ticket(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
-    Json(req): Json<VimeoUploadTicketReq>,
+    AppJson(req): AppJson<VimeoUploadTicketReq>,
 ) -> AppResult<Json<VimeoUploadTicketRes>> {
     let res = super::service::admin_create_vimeo_upload_ticket(&st, auth_user.sub, req).await?;
     Ok(Json(res))

@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use super::{
     dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes},
     service::UserService,
@@ -35,7 +36,7 @@ use axum::{
 pub async fn signup(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<SignupReq>,
+    AppJson(req): AppJson<SignupReq>,
 ) -> AppResult<(StatusCode, Json<SignupRes>)> {
     let ip = extract_client_ip(&headers);
 
@@ -96,7 +97,7 @@ pub async fn get_me(
 pub async fn update_me(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
-    Json(req): Json<ProfileUpdateReq>,
+    AppJson(req): AppJson<ProfileUpdateReq>,
 ) -> AppResult<Json<ProfileRes>> {
     let user = UserService::update_me(&st, auth_user.sub, req).await?;
     Ok(Json(user))
@@ -147,7 +148,7 @@ pub async fn get_settings(
 pub async fn update_settings(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
-    Json(req): Json<SettingsUpdateReq>,
+    AppJson(req): AppJson<SettingsUpdateReq>,
 ) -> AppResult<Json<SettingsRes>> {
     let settings = UserService::update_settings(&st, auth_user.sub, req).await?;
     Ok(Json(settings))

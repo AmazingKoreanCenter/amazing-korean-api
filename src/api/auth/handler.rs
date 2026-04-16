@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -86,7 +87,7 @@ pub async fn login(
     State(st): State<AppState>,
     headers: HeaderMap,
     jar: CookieJar,
-    Json(req): Json<LoginReq>,
+    AppJson(req): AppJson<LoginReq>,
 ) -> Result<axum::response::Response, AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
@@ -123,7 +124,7 @@ pub async fn refresh(
     State(st): State<AppState>,
     headers: HeaderMap,
     jar: CookieJar,
-    /* Json(req): Json<RefreshReq>, */
+    /* AppJson(req): AppJson<RefreshReq>, */
 ) -> Result<(CookieJar, Json<LoginRes>), AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
@@ -179,7 +180,7 @@ pub async fn refresh(
 pub async fn login_mobile(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<LoginReq>,
+    AppJson(req): AppJson<LoginReq>,
 ) -> Result<axum::response::Response, AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
@@ -220,7 +221,7 @@ pub async fn login_mobile(
 pub async fn refresh_mobile(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<RefreshReq>,
+    AppJson(req): AppJson<RefreshReq>,
 ) -> Result<Json<LoginMobileRes>, AppError> {
     // X-Platform 헤더 검증 (웹 클라이언트의 쿠키 보안 우회 방지)
     // mobile: Flutter 모바일 앱, desktop: Tauri 데스크탑 앱
@@ -263,7 +264,7 @@ pub async fn refresh_mobile(
 pub async fn find_id(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<FindIdReq>,
+    AppJson(req): AppJson<FindIdReq>,
 ) -> Result<Json<FindIdRes>, AppError> {
     let ip = extract_client_ip(&headers);
     let res = AuthService::find_id(&st, req, ip).await?;
@@ -285,7 +286,7 @@ pub async fn find_id(
 pub async fn find_password(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<FindPasswordReq>,
+    AppJson(req): AppJson<FindPasswordReq>,
 ) -> Result<Json<FindPasswordRes>, AppError> {
     let ip = extract_client_ip(&headers);
     let res = AuthService::find_password(&st, req, ip).await?;
@@ -308,7 +309,7 @@ pub async fn find_password(
 pub async fn reset_password(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<ResetPwReq>,
+    AppJson(req): AppJson<ResetPwReq>,
 ) -> Result<Json<ResetPwRes>, AppError> {
     let ip = extract_client_ip(&headers);
     // 새 서비스 메서드 사용 (JWT 토큰 + Redis 토큰 모두 지원)
@@ -375,7 +376,7 @@ pub async fn logout_all(
     State(st): State<AppState>,
     headers: HeaderMap,
     jar: CookieJar,
-    Json(req): Json<LogoutAllReq>,
+    AppJson(req): AppJson<LogoutAllReq>,
 ) -> Result<(CookieJar, Json<LogoutRes>), AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
@@ -429,7 +430,7 @@ pub async fn logout_all(
 pub async fn request_reset(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<RequestResetReq>,
+    AppJson(req): AppJson<RequestResetReq>,
 ) -> Result<Json<RequestResetRes>, AppError> {
     let ip = extract_client_ip(&headers);
     let res = AuthService::request_password_reset(&st, &req.email, ip).await?;
@@ -452,7 +453,7 @@ pub async fn request_reset(
 pub async fn verify_reset(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<VerifyResetReq>,
+    AppJson(req): AppJson<VerifyResetReq>,
 ) -> Result<Json<VerifyResetRes>, AppError> {
     let ip = extract_client_ip(&headers);
     let res = AuthService::verify_reset_code(&st, &req.email, &req.code, ip).await?;
@@ -479,7 +480,7 @@ pub async fn verify_reset(
 pub async fn verify_email(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<VerifyEmailReq>,
+    AppJson(req): AppJson<VerifyEmailReq>,
 ) -> Result<Json<VerifyEmailRes>, AppError> {
     let ip = extract_client_ip(&headers);
     let res = AuthService::verify_email(&st, req, ip).await?;
@@ -502,7 +503,7 @@ pub async fn verify_email(
 pub async fn resend_verification(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<ResendVerificationReq>,
+    AppJson(req): AppJson<ResendVerificationReq>,
 ) -> Result<Json<ResendVerificationRes>, AppError> {
     let ip = extract_client_ip(&headers);
     let res = AuthService::resend_verification(&st, req, ip).await?;
@@ -650,7 +651,7 @@ pub async fn mfa_setup(
 pub async fn mfa_verify_setup(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
-    Json(req): Json<MfaVerifySetupReq>,
+    AppJson(req): AppJson<MfaVerifySetupReq>,
 ) -> Result<Json<MfaVerifySetupRes>, AppError> {
     let res = AuthService::mfa_verify_setup(&st, auth_user.sub, &req.code).await?;
     Ok(Json(res))
@@ -672,7 +673,7 @@ pub async fn mfa_login(
     State(st): State<AppState>,
     headers: HeaderMap,
     jar: CookieJar,
-    Json(req): Json<MfaLoginReq>,
+    AppJson(req): AppJson<MfaLoginReq>,
 ) -> Result<(CookieJar, Json<LoginRes>), AppError> {
     let ip = extract_client_ip(&headers);
 
@@ -698,7 +699,7 @@ pub async fn mfa_login(
 pub async fn mfa_disable(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
-    Json(req): Json<MfaDisableReq>,
+    AppJson(req): AppJson<MfaDisableReq>,
 ) -> Result<Json<MfaDisableRes>, AppError> {
     let res = AuthService::mfa_disable(&st, auth_user.sub, auth_user.role, req.target_user_id).await?;
     Ok(Json(res))
@@ -723,7 +724,7 @@ pub async fn mfa_disable(
 pub async fn google_mobile_login(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<GoogleMobileLoginReq>,
+    AppJson(req): AppJson<GoogleMobileLoginReq>,
 ) -> Result<axum::response::Response, AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
@@ -764,7 +765,7 @@ pub async fn google_mobile_login(
 pub async fn apple_mobile_login(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<AppleMobileLoginReq>,
+    AppJson(req): AppJson<AppleMobileLoginReq>,
 ) -> Result<axum::response::Response, AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
@@ -805,7 +806,7 @@ pub async fn apple_mobile_login(
 pub async fn mfa_login_mobile(
     State(st): State<AppState>,
     headers: HeaderMap,
-    Json(req): Json<MfaLoginReq>,
+    AppJson(req): AppJson<MfaLoginReq>,
 ) -> Result<Json<LoginMobileRes>, AppError> {
     let ip = extract_client_ip(&headers);
 

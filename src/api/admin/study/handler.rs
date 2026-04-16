@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
@@ -138,7 +139,7 @@ pub async fn admin_create_study(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<StudyCreateReq>,
+    AppJson(req): AppJson<StudyCreateReq>,
 ) -> Result<(StatusCode, Json<AdminStudyRes>), AppError> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -175,7 +176,7 @@ pub async fn admin_bulk_create_studies(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<StudyBulkCreateReq>,
+    AppJson(req): AppJson<StudyBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<StudyBulkCreateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -222,7 +223,7 @@ pub async fn admin_update_study(
     AuthUser(auth_user): AuthUser,
     Path(study_id): Path<i64>,
     headers: HeaderMap,
-    Json(req): Json<StudyUpdateReq>,
+    AppJson(req): AppJson<StudyUpdateReq>,
 ) -> AppResult<Json<AdminStudyRes>> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -260,7 +261,7 @@ pub async fn admin_bulk_update_studies(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<StudyBulkUpdateReq>,
+    AppJson(req): AppJson<StudyBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<StudyBulkUpdateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -461,7 +462,7 @@ pub async fn admin_update_task_status(
     AuthUser(auth_user): AuthUser,
     Path(task_id): Path<i64>,
     headers: HeaderMap,
-    Json(req): Json<TaskStatusUpdateReq>,
+    AppJson(req): AppJson<TaskStatusUpdateReq>,
 ) -> AppResult<Json<AdminTaskStatusRes>> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -500,7 +501,7 @@ pub async fn admin_bulk_update_task_status(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<TaskStatusBulkUpdateReq>,
+    AppJson(req): AppJson<TaskStatusBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<TaskStatusBulkUpdateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -547,7 +548,7 @@ pub async fn admin_create_task_explain(
     AuthUser(auth_user): AuthUser,
     Path(task_id): Path<i64>,
     headers: HeaderMap,
-    Json(req): Json<TaskExplainCreateReq>,
+    AppJson(req): AppJson<TaskExplainCreateReq>,
 ) -> Result<(StatusCode, Json<AdminTaskExplainRes>), AppError> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -588,7 +589,7 @@ pub async fn admin_update_task_explain(
     AuthUser(auth_user): AuthUser,
     Path(task_id): Path<i64>,
     headers: HeaderMap,
-    Json(req): Json<TaskExplainUpdateReq>,
+    AppJson(req): AppJson<TaskExplainUpdateReq>,
 ) -> AppResult<Json<AdminTaskExplainRes>> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -627,7 +628,7 @@ pub async fn admin_bulk_create_task_explains(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<TaskExplainBulkCreateReq>,
+    AppJson(req): AppJson<TaskExplainBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<TaskExplainBulkCreateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -671,7 +672,7 @@ pub async fn admin_bulk_update_task_explains(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<TaskExplainBulkUpdateReq>,
+    AppJson(req): AppJson<TaskExplainBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<TaskExplainBulkUpdateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -713,7 +714,7 @@ pub async fn admin_create_study_task(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<StudyTaskCreateReq>,
+    AppJson(req): AppJson<StudyTaskCreateReq>,
 ) -> Result<(StatusCode, Json<AdminStudyTaskDetailRes>), AppError> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -750,7 +751,7 @@ pub async fn admin_bulk_create_study_tasks(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<StudyTaskBulkCreateReq>,
+    AppJson(req): AppJson<StudyTaskBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<StudyTaskBulkCreateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -793,7 +794,7 @@ pub async fn admin_bulk_update_study_tasks(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<StudyTaskBulkUpdateReq>,
+    AppJson(req): AppJson<StudyTaskBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<StudyTaskBulkUpdateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -840,7 +841,7 @@ pub async fn admin_update_study_task(
     AuthUser(auth_user): AuthUser,
     Path(task_id): Path<i64>,
     headers: HeaderMap,
-    Json(req): Json<StudyTaskUpdateReq>,
+    AppJson(req): AppJson<StudyTaskUpdateReq>,
 ) -> AppResult<Json<AdminStudyTaskDetailRes>> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);

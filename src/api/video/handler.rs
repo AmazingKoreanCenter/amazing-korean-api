@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::extract::{Path, Query, State};
 use axum::Json;
 
@@ -110,7 +111,7 @@ pub async fn update_video_progress(
     State(state): State<AppState>,
     AuthUser(auth_user): AuthUser,
     Path(IdParam { id }): Path<IdParam>,
-    Json(req): Json<VideoProgressUpdateReq>,
+    AppJson(req): AppJson<VideoProgressUpdateReq>,
 ) -> AppResult<Json<VideoProgressRes>> {
     let progress = VideoService::update_video_progress(&state, auth_user.sub, id, req).await?;
     Ok(Json(progress))

@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::extract::{Path, Query, State};
 use axum::Json;
 
@@ -113,7 +114,7 @@ pub async fn submit_answer(
     State(state): State<AppState>,
     auth_user: AuthUser,
     Path(task_id): Path<i32>,
-    Json(req): Json<SubmitAnswerReq>,
+    AppJson(req): AppJson<SubmitAnswerReq>,
 ) -> AppResult<Json<SubmitAnswerRes>> {
     let res = StudyService::submit_answer(&state, auth_user, task_id, req).await?;
     Ok(Json(res))
@@ -189,7 +190,7 @@ pub async fn get_task_explain(
 pub async fn start_writing_session(
     State(state): State<AppState>,
     auth_user: AuthUser,
-    Json(req): Json<StartWritingSessionReq>,
+    AppJson(req): AppJson<StartWritingSessionReq>,
 ) -> AppResult<Json<WritingSessionRes>> {
     let res = StudyService::start_writing_session(&state, auth_user, req).await?;
     Ok(Json(res))
@@ -217,7 +218,7 @@ pub async fn finish_writing_session(
     State(state): State<AppState>,
     auth_user: AuthUser,
     Path(session_id): Path<i64>,
-    Json(req): Json<FinishWritingSessionReq>,
+    AppJson(req): AppJson<FinishWritingSessionReq>,
 ) -> AppResult<Json<WritingSessionRes>> {
     let res = StudyService::finish_writing_session(&state, auth_user, session_id, req).await?;
     Ok(Json(res))

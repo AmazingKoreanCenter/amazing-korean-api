@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-16 (요청 trace_id 구현 — task_local UUID v7 미들웨어)
+updated: 2026-04-16 (JsonRejection → AppError 통합 — AppJson<T> 커스텀 extractor)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,26 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — JsonRejection → AppError 통합: `AppJson<T>` 커스텀 extractor 로 에러 응답 envelope + trace_id 전 경로 통일**
+  - **배경**: #69 trace_id 구현 런타임 검증에서 발견된 갭. axum `Json<T>` extractor 는 JsonRejection 시 `text/plain` 응답을 직접 반환 → `AMK_API_MASTER §3.4` 표준 에러 envelope (`code/http_status/message/details/trace_id`) 과 `x-request-id` body 매칭 규약 우회. 프론트엔드 에러 파싱 분기 불가능.
+  - **신규 `src/extract.rs`** — `AppJson<T>(pub T)` + `FromRequest` 구현. 내부적으로 `Json<T>::from_request()` 호출하고 `JsonRejection` 을 `map_json_rejection()` 으로 `AppError` 변환:
+    - `JsonDataError` (필드 누락/타입 불일치) → `AppError::Unprocessable` (422, "Invalid JSON data: ...")
+    - `JsonSyntaxError` (깨진 JSON) → `AppError::BadRequest` (400, "Malformed JSON: ...")
+    - `MissingJsonContentType` → `AppError::BadRequest` (400, "Expected Content-Type: application/json")
+    - `BytesRejection` → `AppError::BadRequest` (400, "Failed to read request body: ...")
+    - 기타 (non-exhaustive 대비) → `AppError::Unprocessable` (body_text 전달)
+  - **`src/lib.rs`** — `pub mod extract;` 추가.
+  - **19 핸들러 파일 × 80 call sites 치환** — `Json(x): Json<T>` (요청 바디 extractor) → `AppJson(x): AppJson<T>`. 응답 직렬화 `Json(res)` 는 실패 가능성 없어 `axum::Json` 그대로 유지 (변경 X). 치환 방식: `perl -i -pe 's/Json\(([a-zA-Z_][a-zA-Z0-9_]*)\): Json<([^>]+)>/AppJson(\1): AppJson<\2>/g'` + 파일별 `use crate::extract::AppJson;` 임포트 삽입. 대상 파일: auth / user / video / study / lesson / course / textbook / ebook / payment 일반 9개 + admin/email / admin/translation / admin/video / admin/lesson / admin/user / admin/upgrade / admin/textbook / admin/study / admin/ebook / admin/payment 10개 = 19개.
+  - **`docs/AMK_CODE_PATTERNS.md`** — §1.3(에러 처리 핵심 포인트+규칙) 에 `AppJson<T>` 문단 추가, §1.4(handler 예제) login 시그니처에 `AppJson(req): AppJson<LoginReq>` 반영 + 주석 블록으로 사용 규약 설명, 파일 개요 표의 Extractor 열을 `Json` → `AppJson` 로 일괄 갱신.
+  - **`docs/AMK_STATUS.md`** — §8.1 #70 완료 행 추가, §8.2 #20 백로그를 strikethrough + ✅ 완료 참조로 갱신.
+  - **검증**: `cargo check --lib` 11.77s + `cargo clippy --lib --bins` 24.53s **0 warnings**. 기존 `axum::Json` import 는 응답 직렬화에서 여전히 사용 중이라 unused-import 경고 없음.
+  - **런타임 검증 (로컬 `127.0.0.1:3100` + `curl -i` 4/4 전부 통과)**:
+    1. 필드 누락 `POST /auth/login -d '{}'` → **이전** 422 `text/plain`, **현재** 422 JSON `{"error":{"code":"UNPROCESSABLE_ENTITY","http_status":422,"message":"Invalid JSON data: Failed to deserialize the JSON body into the target type: missing field \`email\` at line 1 column 2","trace_id":"test-data-err"}}`
+    2. JSON 문법 오류 `-d '{invalid json}'` → 400 `BAD_REQUEST` "Malformed JSON: Failed to parse the request body as JSON: key must be a string at line 1 column 2"
+    3. Content-Type 누락 → 400 `BAD_REQUEST` "Expected Content-Type: application/json"
+    4. 유효 JSON + 잘못된 자격 → 401 `UNAUTHORIZED` AUTH_401_BAD_CREDENTIALS (기존 핸들러 AppError 경로, 회귀 없음)
+  - **효과**: 프론트엔드는 모든 에러 응답을 단일 JSON 스키마로 파싱 가능. `x-request-id` body ↔ 헤더 매칭이 JsonRejection 경로에서도 성립해 trace_id 기반 디버깅 커버리지 100% 달성.
 
 - **2026-04-16 — 요청 trace_id 구현: `task_local!` + UUID v7 미들웨어로 에러 응답/로그 상관추적**
   - **신규 `src/trace_id.rs`** — `tokio::task_local! REQUEST_ID: String` + `middleware` async fn + `current() -> Option<String>` + `TraceId(String)` newtype. 들어오는 `x-request-id` 헤더가 유효(ASCII alphanumeric/`-`/`_`, ≤128자) 하면 승계, 없으면 `uuid::Uuid::now_v7().to_string()` 생성. `task_local.scope(id, next.run(req))` 로 하위 전 지점에서 `crate::trace_id::current()` 동기 조회 가능. 응답 헤더 `x-request-id` 로 에코백.

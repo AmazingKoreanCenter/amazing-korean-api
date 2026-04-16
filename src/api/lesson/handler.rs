@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::extract::{Path, Query, State};
 use axum::Json;
 
@@ -134,7 +135,7 @@ pub async fn update_lesson_progress(
     State(state): State<AppState>,
     AuthUser(auth_user): AuthUser,
     Path(lesson_id): Path<i64>,
-    Json(req): Json<LessonProgressUpdateReq>,
+    AppJson(req): AppJson<LessonProgressUpdateReq>,
 ) -> AppResult<Json<LessonProgressRes>> {
     let res = LessonService::update_lesson_progress(&state.db, auth_user.sub, lesson_id, req).await?;
     Ok(Json(res))

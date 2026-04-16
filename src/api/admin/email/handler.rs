@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::{extract::State, Json};
 use validator::Validate;
 
@@ -39,7 +40,7 @@ use serde_json::json;
 pub async fn send_test_email(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
-    Json(req): Json<TestEmailReq>,
+    AppJson(req): AppJson<TestEmailReq>,
 ) -> AppResult<Json<TestEmailRes>> {
     // 1. Admin/Manager 권한 확인
     if !matches!(auth_user.role, UserAuth::Admin | UserAuth::Manager | UserAuth::Hymn) {

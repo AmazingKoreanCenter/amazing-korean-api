@@ -4,6 +4,7 @@
 //! - GET /admin/upgrade/verify: 초대 코드 검증
 //! - POST /admin/upgrade/accept: 관리자 계정 생성
 
+use crate::extract::AppJson;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -41,7 +42,7 @@ use crate::{
 pub async fn create_invite(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
-    Json(req): Json<UpgradeInviteReq>,
+    AppJson(req): AppJson<UpgradeInviteReq>,
 ) -> Result<Json<UpgradeInviteRes>, AppError> {
     let res = UpgradeService::create_invite(&st, claims.sub, req).await?;
     Ok(Json(res))
@@ -89,7 +90,7 @@ pub async fn verify_invite(
 )]
 pub async fn accept_invite(
     State(st): State<AppState>,
-    Json(req): Json<UpgradeAcceptReq>,
+    AppJson(req): AppJson<UpgradeAcceptReq>,
 ) -> Result<(StatusCode, Json<UpgradeAcceptRes>), AppError> {
     let res = UpgradeService::accept_invite(&st, req).await?;
     Ok((StatusCode::CREATED, Json(res)))

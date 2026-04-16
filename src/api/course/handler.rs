@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use super::{
     dto::{CourseListItem, CourseListQuery, CreateCourseReq},
     service::CourseService,
@@ -24,7 +25,7 @@ pub async fn list(
 pub async fn create(
     State(st): State<AppState>,
     AuthUser(_claims): AuthUser,
-    Json(payload): Json<CreateCourseReq>,
+    AppJson(payload): AppJson<CreateCourseReq>,
 ) -> AppResult<Json<serde_json::Value>> {
     payload
         .validate()
