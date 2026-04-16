@@ -316,7 +316,7 @@ impl IntoResponse for AppError {
                 "http_status": status.as_u16(),
                 "message": message,
                 "details": details,
-                "trace_id": "PLACEHOLDER"  // 실제 구현 시 AppError 필드 또는 Axum Extension 에서 추출한 ID 사용 (현재 src/error.rs:210 은 placeholder 상태)
+                "trace_id": crate::trace_id::current().unwrap_or_else(|| "unknown".to_string()),  // src/trace_id.rs 의 task_local! 에서 주입 (UUID v7 또는 업스트림 x-request-id 승계)
             }
         });
 
@@ -337,6 +337,11 @@ impl IntoResponse for AppError {
 - `?` 연산자로 에러 전파 → 자동으로 HTTP 응답 변환
 - `#[from]` 어트리뷰트로 인프라 에러 자동 래핑
 - 429 응답 시 `Retry-After` 헤더 자동 추가
+- **trace_id**: `src/trace_id.rs` 미들웨어가 요청별 UUID v7 을 `tokio::task_local!` 에 주입.
+  `AppError::into_response` 에서 `trace_id::current()` 로 동기 조회.
+  - 들어오는 `x-request-id` 헤더가 유효(ASCII alphanumeric/`-`/`_`, ≤128자)하면 승계, 없으면 UUID v7 생성
+  - 응답 헤더 `x-request-id` 로 에코백 (CORS `expose_headers` 로 브라우저에도 노출)
+  - 핸들러에서 `Extension<TraceId>` 로 직접 추출도 가능 (로깅 span, 감사 로그 기록 시 사용)
 
 **⚠️ 규칙**:
 - 새 에러 타입 필요 시 → `AppError` variant 추가

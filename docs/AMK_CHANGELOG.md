@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-16 (Gemini 백로그 auth 성능 5건 — Redis 파이프라인/배치 + JWKS DCL)
+updated: 2026-04-16 (요청 trace_id 구현 — task_local UUID v7 미들웨어)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,25 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — 요청 trace_id 구현: `task_local!` + UUID v7 미들웨어로 에러 응답/로그 상관추적**
+  - **신규 `src/trace_id.rs`** — `tokio::task_local! REQUEST_ID: String` + `middleware` async fn + `current() -> Option<String>` + `TraceId(String)` newtype. 들어오는 `x-request-id` 헤더가 유효(ASCII alphanumeric/`-`/`_`, ≤128자) 하면 승계, 없으면 `uuid::Uuid::now_v7().to_string()` 생성. `task_local.scope(id, next.run(req))` 로 하위 전 지점에서 `crate::trace_id::current()` 동기 조회 가능. 응답 헤더 `x-request-id` 로 에코백.
+  - **`src/error.rs:210`** — `"trace_id": "req-TODO"` 하드코딩 플레이스홀더 → `crate::trace_id::current().unwrap_or_else(|| "unknown".to_string())` 로 교체. 표준 에러 바디(`AMK_API_MASTER §3.4`) 의 `trace_id` 필드가 드디어 실 값 전달. INC-001 (2026-04-15 2h33m 다운) 진단 속도 저하 원인 중 하나 제거.
+  - **`src/main.rs`** — trace_id 미들웨어를 CORS + `security_headers` 보다 **바깥쪽** 에 바인딩 (요청 진입 시 가장 먼저, 응답 나갈 때 가장 마지막). CORS `allow_headers` 에 `x-request-id` 추가(업스트림 승계용) + `expose_headers([x-request-id])` 추가(브라우저 fetch 에서 응답 헤더 읽기 허용).
+  - **`src/lib.rs`** — `pub mod trace_id;` 추가.
+  - **`Cargo.toml`** — `uuid` feature 에 `"v7"` 추가 (기존 `"v4"` 유지). UUID v7 은 시간 정렬 형식으로 로그/DB 인덱스 조회에 유리.
+  - **`docs/AMK_CODE_PATTERNS.md:319`** — `"PLACEHOLDER"` 주석 + `req_id` 변수 미정의 제거. 실제 구현 참조 주석 (`src/trace_id.rs` 의 `task_local!` 에서 주입) 로 교체. 에러 처리 섹션 "🔑 핵심 포인트" 에 trace_id 문단 4줄 추가 (미들웨어 위치, 승계 규칙, 응답 헤더, Extension 추출).
+  - **`docs/AMK_STATUS.md §8.1`** — 완료 항목 #69 행 추가.
+  - **스코프 변경**: `project_status.md` 의 D+4~D+5 예정 🅱️ 작업을 D+0 앞당겨 처리 (Gemini 백로그 완료 후 잔여 여력). 🅰️ E-book session_id 필수화 Phase 1 관측 일정과 완전 독립.
+  - **정적 검증**: `cargo check` 31.65s + `cargo clippy --lib --bins` 28.37s 둘 다 0 warnings 클린. 프론트엔드 build 영향 없음 (에러 응답 스키마 동일, `trace_id` 필드는 이미 존재).
+  - **런타임 검증 (로컬 `127.0.0.1:3100` 실기동 + `curl -i` 6 시나리오 전부 통과)**:
+    1. 헤더 누락 404 → 신규 UUID v7 생성 (예: `019d947b-7db2-7121-9bba-8f819a65dffa`, 3번째 그룹 첫 nibble=`7` 버전, 4번째 그룹 첫 nibble=`9` RFC 4122 variant 확인)
+    2. 유효한 업스트림 `x-request-id: cf-ray-abc123-DEF_456` → 그대로 승계 (응답 헤더 + body `trace_id` 양쪽)
+    3. 악성 업스트림 값 `hack; rm -rf /` → 형식 검증 거부, UUID v7 재생성
+    4. 200자 초과 업스트림 값 → 길이 검증 거부, UUID v7 재생성
+    5. body `trace_id` ↔ 응답 헤더 `x-request-id` 동일성 (MATCH) — `task_local!` scope 가 핸들러/에러 변환 전 지점에서 동일 값 조회함을 증명
+    6. 핸들러 경유 AppError (`POST /auth/login` 잘못된 자격 → 401 `AUTH_401_BAD_CREDENTIALS`) → 업스트림 ID `handler-path-2` body + 헤더 반영
+  - **알려진 갭 (별개)**: Axum `Json<T>` extractor 실패 (잘못된 JSON 바디 → 422) 는 표준 에러 envelope 을 우회해 `text/plain` 응답으로 빠져나감. `x-request-id` 응답 헤더는 붙으나 body 는 AppError 스키마 아님. trace_id 구현과 무관한 기존 동작. 향후 `JsonRejection` 커스텀 추출기로 AppError 매핑 시 전 경로 통일 가능 (`AMK_STATUS.md §8.2 보류/조건부` 에 등록).
 
 - **2026-04-16 — Gemini 백로그 auth 성능 MEDIUM 5건 반영: Redis 파이프라인/배치 + JWKS DCL**
   - **PR #157 L190 (exists 파이프라인화 × 2)** — `enforce_session_limit` 의 유령 세션 탐지 2단계(`ak:session` 존재 확인 + `ak:refresh` 존재 확인) 를 `redis::pipe()` 로 묶어 단일 파이프라인으로 전송. 세션 N개일 때 네트워크 왕복 2N → 2 회로 감소. `refresh_hashes` 에 없는 sid 는 DB 레코드 자체가 없어 보존 근거 없음 → 파이프라인 체크 전에 즉시 유령 처리.

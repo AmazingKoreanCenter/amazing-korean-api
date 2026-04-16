@@ -175,13 +175,18 @@ async fn main() -> anyhow::Result<()> {
             Method::DELETE,
             Method::OPTIONS
         ])
-        .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT, HeaderName::from_static("x-ebook-viewer"), HeaderName::from_static("x-ebook-session"), HeaderName::from_static("x-ebook-signature"), HeaderName::from_static("x-ebook-timestamp"), HeaderName::from_static("x-platform")])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT, HeaderName::from_static("x-request-id"), HeaderName::from_static("x-ebook-viewer"), HeaderName::from_static("x-ebook-session"), HeaderName::from_static("x-ebook-signature"), HeaderName::from_static("x-ebook-timestamp"), HeaderName::from_static("x-platform")])
+        .expose_headers([HeaderName::from_static("x-request-id")])
         .allow_credentials(true); // 쿠키(Refresh Token) 교환을 위해 필수
 
-    // 8) 라우터에 CORS + 보안 헤더 레이어 적용
+    // 8) 라우터에 trace_id → CORS → 보안 헤더 레이어 적용
+    //    trace_id 는 가장 바깥쪽 (요청 진입 시 먼저 주입 · 응답 헤더 최종 에코)
     let app = api::app_router(app_state)
         .layer(cors)
-        .layer(axum::middleware::from_fn(security_headers));
+        .layer(axum::middleware::from_fn(security_headers))
+        .layer(axum::middleware::from_fn(
+            amazing_korean_api::trace_id::middleware,
+        ));
 
     // 9) 서버 시작
     let listener = TcpListener::bind(&cfg.bind_addr).await?;
