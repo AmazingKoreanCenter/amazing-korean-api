@@ -316,7 +316,7 @@ impl IntoResponse for AppError {
                 "http_status": status.as_u16(),
                 "message": message,
                 "details": details,
-                "trace_id": req_id  // Axum trace middleware 에서 주입 (예시)
+                "trace_id": "PLACEHOLDER"  // 실제 구현 시 AppError 필드 또는 Axum Extension 에서 추출한 ID 사용 (현재 src/error.rs:210 은 placeholder 상태)
             }
         });
 

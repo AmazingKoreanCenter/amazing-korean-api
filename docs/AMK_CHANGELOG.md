@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-15 (SEO hardening — Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어)
+updated: 2026-04-16 (Gemini 백로그 문서 MEDIUM 3건 — BingBot 오타 + req_id placeholder + payment 테이블명)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,12 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — Gemini 백로그 문서 MEDIUM 3건 반영 + 2건 NIT**
+  - **PR #162 L27 (BingBot → Bingbot)**: `docs/AMK_CHANGELOG.md:27` 의 `BingBot` 표기를 `Bingbot` 으로 수정. 검색 엔진 공식 명칭 + 같은 항목 내 다른 행(L17 등)에서 사용한 `Bingbot` 표기와 일관성 확보.
+  - **PR #158 L319 (`req_id` placeholder 명확화)**: `docs/AMK_CODE_PATTERNS.md:319` 의 `"trace_id": req_id` (변수 미정의) 를 `"trace_id": "PLACEHOLDER" // 실제 구현 시 AppError 필드 또는 Axum Extension 에서 추출한 ID 사용 (현재 src/error.rs:210 은 placeholder 상태)` 로 변경. 패턴 문서로서의 정확성 + `src/error.rs:210` 실제 상태와 명시적 연결.
+  - **PR #158 L560 (`payment` → `transactions` 테이블명)**: `docs/AMK_SCHEMA_PATCHED.md:560` `user_course_pay_id` 주석의 `Paddle/payment 테이블` 를 `Paddle/transactions 테이블` 로 수정. 스키마에 `payment` 테이블은 없고 실제 결제 레코드는 `transactions` 테이블 (`migrations/20260215_payment_system.sql:57`) 에 저장되므로 문서 정확성 복구.
+  - **NIT (PR #162 L29 + PR #158 L77, 메모리 파일 외부 참조)**: `feedback_seo_api_subdomain.md` 같은 교훈 메모리 파일이 Git 저장소 외부(`~/.claude/...`) 에 위치한다는 지적. **NIT 처리 사유**: (1) 1인 CEO 프로젝트라 외부 협업자 부재, (2) 메모리 시스템은 CLAUDE.md 에 정의된 개인 컨텍스트 저장소로 의도적 분리, (3) 교훈 핵심 요약은 이미 CHANGELOG/STATUS 본문에 인라인 포함 (예: L30 "X-Robots-Tag 전역 헤더 메인 + robots.txt 보조. Cloudflare 관리형 robots.txt 주입 우회 전략") 되어 메모리 파일 없이도 내용 파악 가능.
 
 - **2026-04-15 — SEO hardening: Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어**
   - **배경**: 커밋 `c8014df` 의 `GET /robots.txt` 핸들러(`User-agent: *\nDisallow: /\n`) 배포 후 외부 검증 중 발견 — Cloudflare 가 zone 레벨에서 `# BEGIN Cloudflare Managed content` 블록을 **본문 앞에 자동 주입**하고 있었다. 주입된 블록의 `User-agent: *` + `Allow: /` 가 우리의 `User-agent: *` + `Disallow: /` 와 경로 길이가 같아 Google 의 tie-breaking 규칙(`Allow` 승리)에서 **우리의 Disallow 가 무력화**됨. 프론트엔드(`amazingkorean.net/robots.txt`) 도 동일 주입 확인 — zone-wide 설정.
@@ -24,7 +30,7 @@ owner: HYMN Co., Ltd. (Amazing Korean)
     - `curl "https://api.amazingkorean.net/robots.txt?bust=..."` (캐시 우회) → Googlebot/Bingbot/DuckDuckBot/Yeti/NaverBot/Daum 블록 모두 포함된 확장된 본문 ✅ (서버는 확장된 버전 정상 응답)
     - `/courses` → 301 /book + 기존 엔드포인트 회귀 없음 ✅
   - **Cloudflare 캐시 관찰**: 일반 요청은 `cf-cache-status: HIT` + `age: 1310s` + `cache-control: max-age=14400` (4h TTL 자동) → 04:21:45 UTC 캐시 버전 서빙 중. 4시간 후 자동 만료, 또는 Cloudflare Dashboard 수동 퍼지 가능. X-Robots-Tag 가 이미 결정적 차단 역할을 하므로 캐시 만료 대기가 가장 안전한 선택.
-  - **Cloudflare 관리형 robots.txt 상태 확인**: AI Crawl Control 페이지에서 토글 ON 확인. zone-wide 단일 토글, 호스트/경로 제외 미지원. 프론트엔드 AI 봇 자동 차단 유지 혜택 때문에 **OFF 하지 않고 유지** (저희 코드 수정이 Cloudflare 와 독립 작동하도록 설계됨). AI Crawl Control 대시보드 지표: 지난 24시간 AI 크롤러 23건 감지, 15건 HTTP 403 차단, BingBot 7건 허용 (75% 증가), OAI-SearchBot 1건 허용.
+  - **Cloudflare 관리형 robots.txt 상태 확인**: AI Crawl Control 페이지에서 토글 ON 확인. zone-wide 단일 토글, 호스트/경로 제외 미지원. 프론트엔드 AI 봇 자동 차단 유지 혜택 때문에 **OFF 하지 않고 유지** (저희 코드 수정이 Cloudflare 와 독립 작동하도록 설계됨). AI Crawl Control 대시보드 지표: 지난 24시간 AI 크롤러 23건 감지, 15건 HTTP 403 차단, Bingbot 7건 허용 (75% 증가), OAI-SearchBot 1건 허용.
   - **중요**: 이 수정은 **백엔드 전체 응답에 `X-Robots-Tag: noindex, nofollow`** 를 붙이므로, 만약 향후 api 경로 중 **Google 에게 색인되길 원하는 공개 엔드포인트**가 생기면 해당 엔드포인트에서 헤더를 override/제거해야 한다. 현재는 전 api 가 색인 대상이 아니므로 문제 없음.
   - **교훈 메모리**: `feedback_seo_api_subdomain.md` 신규 — "API 서브도메인 색인 차단은 X-Robots-Tag 전역 헤더 메인 + robots.txt 보조. Cloudflare 관리형 robots.txt 주입 우회 전략".
 
