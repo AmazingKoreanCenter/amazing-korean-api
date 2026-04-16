@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-16 (Gemini 백로그 HIGH 2건 반영 — login_session_id UUID 인덱스 활용)
+updated: 2026-04-16 (Gemini 백로그 i18n 4건 — kk/hi/mn locale 자연스러움 개선)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,12 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — Gemini 백로그 i18n MEDIUM 4건 반영: kk/hi/mn locale 자연스러움 개선**
+  - **PR #163 L744 (kk)** — `frontend/src/i18n/locales/kk.json:744` `notFoundDesc` 의 `ISBN мұрақаты` (= "ISBN 아카이브") → `ISBN нөмірі` (= "ISBN 번호") 로 수정. 카자흐어 단어 의미 오류 (archive ↔ number).
+  - **PR #163 L722, L727 (hi)** — `frontend/src/i18n/locales/hi.json:722,727` 의 `टू-फैक्टर` (Two-Factor) 표기를 `टू-फ़ैक्टर` (nukta `फ़` 사용) 로 변경. 같은 mfa 섹션 내 title (line 702) 과의 표기 일관성 확보.
+  - **PR #163 L804 (mn)** — `frontend/src/i18n/locales/mn.json:804` `nextButton` 의 `Дараа нь` (= "afterwards") → `Дараах` (= "Next", UI 관습) 로 수정.
+  - **검증**: i18n JSON 3 파일 모두 string value 내부 텍스트만 변경 — JSON 구조 무영향. 추후 frontend 빌드 시 자동 검증.
 
 - **2026-04-16 — Gemini 백로그 HIGH 2건 반영: `login_session_id` UUID 인덱스 활용**
   - **PR #157 L578/L603 HIGH 2건** — `src/api/auth/repo.rs::find_login_refresh_hashes_by_session_ids` (SELECT) 와 `update_login_states_by_sessions` (UPDATE) 가 `WHERE login_session_id::text = ANY($1)` 로 컬럼 측 캐스팅을 사용. `login_session_id uuid UNIQUE NOT NULL` 의 자동 UNIQUE 인덱스가 무력화되어 풀 테이블 스캔 위험.
