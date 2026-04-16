@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-16 (속도 개선 Phase S5 — Swiper CSS 분리 + Pretendard 비동기 + 추가 lazy 5개)
+updated: 2026-04-16 (#67 E-book session_id 필수화 — Phase 1 관측 로깅 패치 배포)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,16 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — #67 E-book session_id 필수화 Phase 1 관측 로깅 배포**
+  - **목적**: `verify_session(session_id: Option<&str>)` 의 `Option` 제거 + `None → Forbidden("Missing session header")` 로 fail-closed 전환하기 전에 프로덕션 트래픽 표본으로 미전송 케이스 0건 확인. INC-001 (2026-04-15 프로덕션 2h33m 다운) 경험 반영 — "fail-closed 게이트 추가는 코드 분석만 신뢰하지 말고 프로덕션 로그로 선확인" 방침.
+  - **코드 변경**: `src/api/ebook/service.rs:504` `verify_session` 진입부에 `session_id.is_none()` 분기 추가 — `tracing::warn!(user_id, "EBOOK_SESSION_AUDIT: verify_session called without x-ebook-session header")`. 기존 로직(미제공 시 Redis 키 존재만 확인)은 그대로 유지. doc 코멘트의 `TODO` 에 전환 목표일 `2026-04-24` 명시.
+  - **모바일/데스크탑 리포 사전 grep 결과**:
+    - `amazing-korean-mobile/lib/api/ebook_api.dart:50,68` — `required String sessionId` + `'X-Ebook-Session': sessionId` 항상 전송 → 안전 ✓
+    - `amazing-korean-desktop/src/category/ebook/ebook_api.ts:76,92,114,132` — 웹과 동일한 optional 패턴 (`sessionId?: string` + `...(sessionId ? {...} : {})`). `ebook_viewer_page.tsx:404` 에서 `meta?.session_id` 를 sessionId 변수에 넣고 모든 호출에 전달 → meta 로드 후엔 항상 sessionId 있음. 다만 D+8 Phase 2 일괄 전환 시 데스크탑 `ebook_api.ts` + `use_page_image.ts` + `ebook_viewer_page.tsx` 도 웹과 동일하게 필수화 필요.
+  - **관측 계획**: 5~7일 (D+0 ~ D+7=2026-04-23). 완료 조건 `docker logs amk-api --since 168h 2>&1 | grep EBOOK_SESSION_AUDIT | wc -l` → **0건**. 0건 아닐 시 샘플 user_id/UA/시간대 분석. D+8=2026-04-24 Phase 2~5 일괄 전환 (백+웹+데스크탑 동일 PR 동시 배포).
+  - **검증**: `cargo check` 14.86s 클린. 핵심 변경은 조건부 로그 1개라 회귀 위험 최소.
+  - **메모리**: `feedback_security_patterns.md` §session_id 필수화 마이그레이션 Phase 1 진행 중 표기 유지. `project_status.md` D+0 단계 갱신 (별도 커밋).
 
 - **2026-04-16 — 속도 개선 Phase S5: Swiper CSS 분리 + Pretendard 비동기 + 추가 lazy 5개**
   - **S5-1 Swiper CSS 지연 로딩**: `frontend/src/index.css` 의 `@import "swiper/css"` 4줄을 제거하고 실제 사용처 `frontend/src/category/textbook/page/seal_list.tsx` 로 이동. 카탈로그 페이지(`TextbookCatalogPage`/`EbookCatalogPage`)도 eager → lazy 로 전환해 Swiper CSS 가 비-Book 페이지에서 완전히 제외되도록 함. `frontend/src/vite-env.d.ts` 신규 — `swiper/css` 등 sub-path CSS import 의 TypeScript 타입 선언 (`vite/client` 기본 타입은 sub-path 미커버).
