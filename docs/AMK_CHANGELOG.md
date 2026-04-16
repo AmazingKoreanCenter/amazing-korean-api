@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-15 (SEO hardening — Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어)
+updated: 2026-04-16 (Gemini 백로그 HIGH 2건 반영 — login_session_id UUID 인덱스 활용)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,14 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — Gemini 백로그 HIGH 2건 반영: `login_session_id` UUID 인덱스 활용**
+  - **PR #157 L578/L603 HIGH 2건** — `src/api/auth/repo.rs::find_login_refresh_hashes_by_session_ids` (SELECT) 와 `update_login_states_by_sessions` (UPDATE) 가 `WHERE login_session_id::text = ANY($1)` 로 컬럼 측 캐스팅을 사용. `login_session_id uuid UNIQUE NOT NULL` 의 자동 UNIQUE 인덱스가 무력화되어 풀 테이블 스캔 위험.
+  - **수정**: 컬럼 측 캐스팅 제거 + 파라미터 측 캐스팅 (`WHERE login_session_id = ANY($1::uuid[])`). `&[String]` (sqlx 인코딩 = `text[]`) 을 SQL 단에서 `uuid[]` 로 변환 → 컬럼 비교는 `uuid = uuid` 유지 → UNIQUE 인덱스 사용. SELECT 의 `login_session_id::text` 출력 캐스팅은 반환 타입 `(String, String)` 매칭 위해 유지 (인덱스 영향 없음).
+  - **호출부 영향 범위 검증**: 5곳 모두 입력이 UUID 문자열 보장. (a) `service.rs:179,896,1272` — `redis_conn.smembers("ak:user_sessions:{uid}")` (Redis SET 멤버는 login_session_id), (b) `service.rs:999` — `find_user_session_ids_tx(uid)` (DB 쿼리), (c) `service.rs:1031` — `sessions_to_invalidate` (위 두 경로의 합). `::uuid[]` 캐스팅 시 invalid UUID 노출 가능성 0.
+  - **시그니처 변경 없음**: `&[String]` 유지 — Gemini 가 제안한 `&[Uuid]` 변경은 5개 호출부 + 호출부의 String→Uuid 변환 로직 추가가 필요해 영향 범위 확대. 파라미터 측 SQL 캐스팅이 동등한 인덱스 효과를 가져와 더 작은 변경 surface 선택.
+  - **검증**: `cargo check` 7.25s + `cargo clippy --lib` 0 warnings 13.88s. 통합 테스트는 마이그레이션 + DB 실행 필요라 별도 — 두 함수 모두 sqlx::query/query_as (런타임 SQL) 라 컴파일 타임 검증 없으나, `::uuid[]` 는 PostgreSQL 표준 캐스트로 검증 부담 낮음.
+  - **남은 Gemini 백로그**: MEDIUM 16건 (D+2~3 세션에서 처리 예정 — `project_gemini_review_backlog.md`).
 
 - **2026-04-15 — SEO hardening: Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어**
   - **배경**: 커밋 `c8014df` 의 `GET /robots.txt` 핸들러(`User-agent: *\nDisallow: /\n`) 배포 후 외부 검증 중 발견 — Cloudflare 가 zone 레벨에서 `# BEGIN Cloudflare Managed content` 블록을 **본문 앞에 자동 주입**하고 있었다. 주입된 블록의 `User-agent: *` + `Allow: /` 가 우리의 `User-agent: *` + `Disallow: /` 와 경로 길이가 같아 Google 의 tie-breaking 규칙(`Allow` 승리)에서 **우리의 Disallow 가 무력화**됨. 프론트엔드(`amazingkorean.net/robots.txt`) 도 동일 주입 확인 — zone-wide 설정.
