@@ -175,13 +175,18 @@ async fn main() -> anyhow::Result<()> {
             Method::DELETE,
             Method::OPTIONS
         ])
-        .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT, HeaderName::from_static("x-ebook-viewer"), HeaderName::from_static("x-ebook-session"), HeaderName::from_static("x-ebook-signature"), HeaderName::from_static("x-ebook-timestamp"), HeaderName::from_static("x-platform")])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT, HeaderName::from_static("x-request-id"), HeaderName::from_static("x-ebook-viewer"), HeaderName::from_static("x-ebook-session"), HeaderName::from_static("x-ebook-signature"), HeaderName::from_static("x-ebook-timestamp"), HeaderName::from_static("x-platform")])
+        .expose_headers([HeaderName::from_static("x-request-id")])
         .allow_credentials(true); // 쿠키(Refresh Token) 교환을 위해 필수
 
-    // 8) 라우터에 CORS + 보안 헤더 레이어 적용
+    // 8) 라우터에 trace_id → CORS → 보안 헤더 레이어 적용
+    //    trace_id 는 가장 바깥쪽 (요청 진입 시 먼저 주입 · 응답 헤더 최종 에코)
     let app = api::app_router(app_state)
         .layer(cors)
-        .layer(axum::middleware::from_fn(security_headers));
+        .layer(axum::middleware::from_fn(security_headers))
+        .layer(axum::middleware::from_fn(
+            amazing_korean_api::trace_id::middleware,
+        ));
 
     // 9) 서버 시작
     let listener = TcpListener::bind(&cfg.bind_addr).await?;
@@ -213,13 +218,25 @@ async fn security_headers(
 ) -> axum::response::Response {
     let mut response = next.run(request).await;
     let headers = response.headers_mut();
-    headers.insert("x-content-type-options", "nosniff".parse().unwrap());
-    headers.insert("x-frame-options", "DENY".parse().unwrap());
-    headers.insert("x-xss-protection", "0".parse().unwrap());
     headers.insert(
-        "permissions-policy",
-        "camera=(), microphone=(), geolocation=()".parse().unwrap(),
+        HeaderName::from_static("x-content-type-options"),
+        HeaderValue::from_static("nosniff"),
     );
-    headers.insert("x-robots-tag", "noindex, nofollow".parse().unwrap());
+    headers.insert(
+        HeaderName::from_static("x-frame-options"),
+        HeaderValue::from_static("DENY"),
+    );
+    headers.insert(
+        HeaderName::from_static("x-xss-protection"),
+        HeaderValue::from_static("0"),
+    );
+    headers.insert(
+        HeaderName::from_static("permissions-policy"),
+        HeaderValue::from_static("camera=(), microphone=(), geolocation=()"),
+    );
+    headers.insert(
+        HeaderName::from_static("x-robots-tag"),
+        HeaderValue::from_static("noindex, nofollow"),
+    );
     response
 }

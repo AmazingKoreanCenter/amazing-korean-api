@@ -557,7 +557,7 @@ CREATE TABLE user_course (
   user_course_last_lesson_id INT,                                      -- 마지막 학습 수업 : 최근 학습한 수업 id(FK)
   user_course_last_progress_at TIMESTAMPTZ,                            -- 마지막 학습 시간 : 최근 학습 활동 시간
   user_course_granted_by_user_id BIGINT,                               -- 수강권 부여자 : 수동 부여 시 관리자 id(FK, 선택)
-  user_course_pay_id BIGINT,                                           -- 결제 id : 결제 시스템 연동용 id (Paddle/payment 테이블 연동)
+  user_course_pay_id BIGINT,                                           -- 결제 id : 결제 시스템 연동용 id (Paddle/transactions 테이블 연동)
   user_course_created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),           -- 수강권 생성 시간 : 수강권 발급/구매 시간
   user_course_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()            -- 수강권 수정 시간 : 수강권 정보 수정 시간
 );

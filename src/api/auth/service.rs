@@ -179,41 +179,60 @@ impl AuthService {
         let session_ids: Vec<String> = redis_conn.smembers(&session_key).await
             .map_err(|e| AppError::Internal(format!("redis smembers failed: {e}")))?;
 
-        // 1a. ak:session 이 사라진 세션만 추림 (1차 유령 후보).
-        let mut session_expired_candidates: Vec<String> = Vec::new();
-        for sid in &session_ids {
-            let session_exists: bool = redis_conn.exists(format!("ak:session:{}", sid)).await
-                .map_err(|e| AppError::Internal(format!("redis exists(ak:session) failed: {e}")))?;
-            if !session_exists {
-                session_expired_candidates.push(sid.clone());
+        // 1a. ak:session 이 사라진 세션만 추림 (1차 유령 후보) — Redis 파이프라인으로 N 왕복 제거.
+        let session_expired_candidates: Vec<String> = if session_ids.is_empty() {
+            Vec::new()
+        } else {
+            let mut pipe = redis::pipe();
+            for sid in &session_ids {
+                pipe.exists(format!("ak:session:{}", sid));
             }
-        }
+            let exists_results: Vec<bool> = pipe.query_async(redis_conn).await
+                .map_err(|e| AppError::Internal(format!("redis pipeline exists(ak:session) failed: {e}")))?;
+            session_ids.into_iter().zip(exists_results.into_iter())
+                .filter(|(_, exists)| !*exists)
+                .map(|(sid, _)| sid)
+                .collect()
+        };
 
         // 1b. 후보에 대해 refresh_hash 를 **한 번의 DB 쿼리** 로 배치 조회 (N+1 제거).
         let refresh_hashes = AuthRepo::find_login_refresh_hashes_by_session_ids(
             &st.db, &session_expired_candidates,
         ).await?;
 
-        // 1c. ak:refresh 까지 사라진 세션만 실제 유령으로 확정.
-        let mut ghost_ids: Vec<String> = Vec::new();
-        for sid in &session_expired_candidates {
-            let has_refresh = match refresh_hashes.get(sid) {
-                Some(hash) => redis_conn.exists(format!("ak:refresh:{}", hash)).await
-                    .map_err(|e| AppError::Internal(format!("redis exists(ak:refresh) failed: {e}")))?,
-                // DB 레코드 자체가 없으면 세션을 보존할 근거가 없다 → 유령 처리.
-                None => false,
-            };
-            if !has_refresh {
-                ghost_ids.push(sid.clone());
+        // 1c. ak:refresh 까지 사라진 세션만 실제 유령으로 확정 — 파이프라인으로 배치.
+        // refresh_hashes 에 없는 sid 는 DB 레코드 자체가 없어 보존 근거 없음 → 즉시 유령 처리.
+        let ghost_ids: Vec<String> = if session_expired_candidates.is_empty() {
+            Vec::new()
+        } else {
+            let mut check_sids: Vec<(String, String)> = Vec::new(); // (sid, refresh_hash)
+            let mut ghosts: Vec<String> = Vec::new();
+            for sid in &session_expired_candidates {
+                match refresh_hashes.get(sid) {
+                    Some(hash) => check_sids.push((sid.clone(), hash.clone())),
+                    None => ghosts.push(sid.clone()),
+                }
             }
-        }
+            if !check_sids.is_empty() {
+                let mut pipe = redis::pipe();
+                for (_, hash) in &check_sids {
+                    pipe.exists(format!("ak:refresh:{}", hash));
+                }
+                let exists_results: Vec<bool> = pipe.query_async(redis_conn).await
+                    .map_err(|e| AppError::Internal(format!("redis pipeline exists(ak:refresh) failed: {e}")))?;
+                for ((sid, _), &has_refresh) in check_sids.into_iter().zip(exists_results.iter()) {
+                    if !has_refresh {
+                        ghosts.push(sid);
+                    }
+                }
+            }
+            ghosts
+        };
 
-        // 1d. 배치 cleanup — Redis SREM 은 sid 별, DB UPDATE 는 한 번의 쿼리.
+        // 1d. 배치 cleanup — Redis SREM + DB UPDATE 모두 한 번의 호출.
         if !ghost_ids.is_empty() {
-            for sid in &ghost_ids {
-                let _: () = redis_conn.srem(&session_key, sid).await
-                    .map_err(|e| AppError::Internal(format!("redis srem failed: {e}")))?;
-            }
+            let _: () = redis_conn.srem(&session_key, &ghost_ids).await
+                .map_err(|e| AppError::Internal(format!("redis srem(batch) failed: {e}")))?;
             AuthRepo::update_login_states_by_sessions(
                 &st.db, &ghost_ids, "expired", Some("session_expired"),
             ).await?;
@@ -254,14 +273,14 @@ impl AuthService {
                 oldest_sessions.iter().map(|(sid, _)| sid.clone()).collect();
 
             // Redis cleanup — 각 세션별 3개 키 (refresh/session/user_sessions set 멤버).
-            for (sid, refresh_hash) in &oldest_sessions {
-                let _: () = redis_conn.del(format!("ak:refresh:{}", refresh_hash)).await
-                    .map_err(|e| AppError::Internal(format!("redis del(ak:refresh) failed: {e}")))?;
-                let _: () = redis_conn.del(format!("ak:session:{}", sid)).await
-                    .map_err(|e| AppError::Internal(format!("redis del(ak:session) failed: {e}")))?;
-                let _: () = redis_conn.srem(&session_key, sid).await
-                    .map_err(|e| AppError::Internal(format!("redis srem failed: {e}")))?;
-            }
+            // 배치 처리로 네트워크 왕복 3N → 2 회(DEL one-shot + SREM one-shot).
+            let keys_to_del: Vec<String> = oldest_sessions.iter()
+                .flat_map(|(sid, hash)| [format!("ak:refresh:{}", hash), format!("ak:session:{}", sid)])
+                .collect();
+            let _: () = redis_conn.del(&keys_to_del).await
+                .map_err(|e| AppError::Internal(format!("redis del(batch) failed: {e}")))?;
+            let _: () = redis_conn.srem(&session_key, &evict_sids).await
+                .map_err(|e| AppError::Internal(format!("redis srem(batch) failed: {e}")))?;
 
             // DB 상태 업데이트 — 배치 UPDATE 한 번.
             AuthRepo::update_login_states_by_sessions(
@@ -1032,15 +1051,21 @@ impl AuthService {
             &st.db, &sessions_to_invalidate,
         ).await?;
 
+        // 배치 처리: DEL + SREM 한 번씩 (기존 3N 왕복 → 2 회).
+        let mut keys_to_del: Vec<String> = Vec::with_capacity(sessions_to_invalidate.len() * 2);
         for sid in &sessions_to_invalidate {
             if let Some(hash) = refresh_hashes.get(sid) {
-                let _: () = redis_conn.del(format!("ak:refresh:{}", hash)).await
-                    .map_err(|e| AppError::Internal(format!("redis del(ak:refresh) failed: {e}")))?;
+                keys_to_del.push(format!("ak:refresh:{}", hash));
             }
-            let _: () = redis_conn.del(format!("ak:session:{}", sid)).await
-                .map_err(|e| AppError::Internal(format!("redis del(ak:session) failed: {e}")))?;
-            let _: () = redis_conn.srem(format!("ak:user_sessions:{}", uid), sid).await
-                .map_err(|e| AppError::Internal(format!("redis srem failed: {e}")))?;
+            keys_to_del.push(format!("ak:session:{}", sid));
+        }
+        if !keys_to_del.is_empty() {
+            let _: () = redis_conn.del(&keys_to_del).await
+                .map_err(|e| AppError::Internal(format!("redis del(batch) failed: {e}")))?;
+        }
+        if !sessions_to_invalidate.is_empty() {
+            let _: () = redis_conn.srem(format!("ak:user_sessions:{}", uid), &sessions_to_invalidate).await
+                .map_err(|e| AppError::Internal(format!("redis srem(batch) failed: {e}")))?;
         }
 
         if req.everywhere {

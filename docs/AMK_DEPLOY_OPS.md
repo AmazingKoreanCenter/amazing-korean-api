@@ -139,8 +139,8 @@ FRONTEND_URL=https://amazingkorean.net
 # APPLE_TEAM_ID=<team-id>          # Apple Team ID
 
 # ─── RevenueCat (모바일 IAP) ───
-# REVENUECAT_API_KEY=<api-key>     # RevenueCat 서버 API 키
-# REVENUECAT_WEBHOOK_AUTH_TOKEN=<token>  # RevenueCat 웹훅 Bearer 토큰
+REVENUECAT_API_KEY=<api-key>              # RevenueCat 서버 API 키
+REVENUECAT_WEBHOOK_AUTH_TOKEN=<token>     # RevenueCat 웹훅 Bearer 토큰
 
 # ─── 동시 세션 수 제한 (역할별) ───
 # MAX_SESSIONS_LEARNER=5           # 기본: 5 (초과 시 가장 오래된 세션 자동 퇴장)
@@ -184,6 +184,9 @@ PADDLE_PRICE_MONTH_3=pri_xxx          # 3개월 Price ID ($30, 정가)
 PADDLE_PRICE_MONTH_6=pri_xxx          # 6개월 Price ID ($60, 정가)
 PADDLE_PRICE_MONTH_12=pri_xxx         # 12개월 Price ID ($120, 정가)
 PADDLE_PRICE_EBOOK=pri_xxx            # E-book 일회성 Price ID ($10 USD)
+PADDLE_DISCOUNT_MONTH_3=dsc_xxx       # 3개월 할인 ID
+PADDLE_DISCOUNT_MONTH_6=dsc_xxx       # 6개월 할인 ID
+PADDLE_DISCOUNT_MONTH_12=dsc_xxx      # 12개월 할인 ID
 ```
 
 > **Google OAuth 설정 시 주의**: Google Cloud Console → 사용자 인증 정보 → 승인된 리디렉션 URI에 `https://api.amazingkorean.net/auth/google/callback`을 반드시 추가해야 합니다.

@@ -571,7 +571,7 @@ impl AuthRepo {
         let rows = sqlx::query_as::<_, (String, String)>(r#"
             SELECT login_session_id::text, login_refresh_hash
             FROM public.login
-            WHERE login_session_id::text = ANY($1)
+            WHERE login_session_id = ANY($1::uuid[])
         "#)
         .bind(session_ids)
         .fetch_all(pool)
@@ -594,7 +594,7 @@ impl AuthRepo {
             UPDATE public.login
             SET login_state = CAST($2 AS login_state_enum),
                 login_revoked_reason = $3
-            WHERE login_session_id::text = ANY($1)
+            WHERE login_session_id = ANY($1::uuid[])
         "#)
         .bind(session_ids)
         .bind(state)

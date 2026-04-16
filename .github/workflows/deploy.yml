@@ -105,3 +105,41 @@ jobs:
 
             # Cleanup old images
             docker image prune -f
+
+      - name: Health check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/amazing-korean-api
+
+            echo "Waiting for server to start..."
+            sleep 10
+
+            # Health check via nginx (실제 프로덕션 트래픽 경로).
+            # api 컨테이너는 포트를 호스트에 publish 하지 않고 내부 docker
+            # network 에서 nginx 가 upstream api:3000 으로 proxy. 따라서
+            # 호스트에서 curl localhost:3000 은 연결 불가 → nginx :80 경유
+            # + Host 헤더로 server_name 매칭해서 /health 까지 도달.
+            for i in 1 2 3 4 5; do
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                -H 'Host: api.amazingkorean.net' \
+                http://localhost/health || true)
+              if [ "$STATUS" = "200" ]; then
+                echo "Health check passed (attempt $i)"
+                exit 0
+              fi
+              echo "Health check failed (attempt $i, status=$STATUS), retrying in 10s..."
+              sleep 10
+            done
+
+            echo "Health check failed after 5 attempts"
+            echo "=== Container status ==="
+            docker compose -f docker-compose.prod.yml --env-file .env.prod ps
+            echo "=== api Exit code (crash loop 확인) ==="
+            docker ps -a --filter "name=amk-api" --format "table {{.Names}}\t{{.Status}}\t{{.RunningFor}}"
+            echo "=== api container logs (tail 100) ==="
+            docker compose -f docker-compose.prod.yml --env-file .env.prod logs --tail=100 api
+            exit 1

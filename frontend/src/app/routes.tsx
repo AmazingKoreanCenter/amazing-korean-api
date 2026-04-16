@@ -5,11 +5,11 @@ import { RootLayout } from "@/components/layout/root_layout";
 
 // Public 핵심 — 첫 페인트 경로라 eager. 메인 번들에 유지.
 import HomePage from "@/category/home/home_page";
-import { AboutPage } from "@/category/about/page/about_page";
-import { LoginPage } from "@/category/auth/page/login_page";
-import { SignupPage } from "@/category/auth/page/signup_page";
-import { BookHubPage } from "@/category/book/page/book_hub_page";
-import { BookLandingPage } from "@/category/book/page/book_landing_page";
+const AboutPage = lazy(() => import("@/category/about/page/about_page").then((m) => ({ default: m.AboutPage })));
+const LoginPage = lazy(() => import("@/category/auth/page/login_page").then((m) => ({ default: m.LoginPage })));
+const SignupPage = lazy(() => import("@/category/auth/page/signup_page").then((m) => ({ default: m.SignupPage })));
+const BookHubPage = lazy(() => import("@/category/book/page/book_hub_page").then((m) => ({ default: m.BookHubPage })));
+const BookLandingPage = lazy(() => import("@/category/book/page/book_landing_page").then((m) => ({ default: m.BookLandingPage })));
 
 // React.lazy는 default export만 지원. named export 모듈은 .then() 어댑터로
 // { default: m.ExportName } 형태로 변환해야 함 (React 공식 문서 참조).
@@ -80,16 +80,16 @@ const TermsPage = lazy(() => import("@/category/legal/page/terms_page").then((m)
 const PrivacyPage = lazy(() => import("@/category/legal/page/privacy_page").then((m) => ({ default: m.PrivacyPage })));
 const RefundPolicyPage = lazy(() => import("@/category/legal/page/refund_policy_page").then((m) => ({ default: m.RefundPolicyPage })));
 
-// Textbook 카탈로그 — Public, eager
-import { TextbookCatalogPage } from "@/category/textbook/page/textbook_catalog_page";
+// Textbook 카탈로그 — Public, lazy (Swiper CSS 지연 로딩)
+const TextbookCatalogPage = lazy(() => import("@/category/textbook/page/textbook_catalog_page").then((m) => ({ default: m.TextbookCatalogPage })));
 // Textbook 후속 — 주문/상태/마이/인쇄, lazy
 const TextbookOrderPage = lazy(() => import("@/category/textbook/page/textbook_order_page").then((m) => ({ default: m.TextbookOrderPage })));
 const TextbookOrderStatusPage = lazy(() => import("@/category/textbook/page/textbook_order_status_page").then((m) => ({ default: m.TextbookOrderStatusPage })));
 const TextbookMyOrdersPage = lazy(() => import("@/category/textbook/page/textbook_my_orders_page").then((m) => ({ default: m.TextbookMyOrdersPage })));
 const TextbookOrderPrint = lazy(() => import("@/category/textbook/page/textbook_order_print").then((m) => ({ default: m.TextbookOrderPrint })));
 
-// E-book 카탈로그 — Public, eager
-import { EbookCatalogPage } from "@/category/ebook/page/ebook_catalog_page";
+// E-book 카탈로그 — Public, lazy (Swiper CSS 지연 로딩)
+const EbookCatalogPage = lazy(() => import("@/category/ebook/page/ebook_catalog_page").then((m) => ({ default: m.EbookCatalogPage })));
 // E-book 후속 — 무거운 뷰어/구매/마이, lazy
 const EbookViewerPage = lazy(() => import("@/category/ebook/page/ebook_viewer_page").then((m) => ({ default: m.EbookViewerPage })));
 const EbookMyPurchasesPage = lazy(() => import("@/category/ebook/page/ebook_my_purchases_page").then((m) => ({ default: m.EbookMyPurchasesPage })));

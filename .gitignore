@@ -7,6 +7,10 @@
 .idea/
 .DS_Store
 
+# Lighthouse Chrome 프로필 임시 디렉터리 (WSL2 + chrome-launcher 호환성 이슈로
+# Windows 경로명을 가진 디렉터리가 frontend/ 에 생성됨)
+frontend/C:\\*
+
 # Secrets (절대 커밋 금지)
 .env
 .env.local

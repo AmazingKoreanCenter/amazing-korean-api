@@ -207,7 +207,7 @@ impl IntoResponse for AppError {
                 "http_status": status.as_u16(),
                 "message": message,
                 "details": details,
-                "trace_id": "req-TODO",
+                "trace_id": crate::trace_id::current().unwrap_or_else(|| "unknown".to_string()),
             }
         });
 

@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-15 (SEO hardening — Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어)
+updated: 2026-04-16 (요청 trace_id 구현 — task_local UUID v7 미들웨어)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,85 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — 요청 trace_id 구현: `task_local!` + UUID v7 미들웨어로 에러 응답/로그 상관추적**
+  - **신규 `src/trace_id.rs`** — `tokio::task_local! REQUEST_ID: String` + `middleware` async fn + `current() -> Option<String>` + `TraceId(String)` newtype. 들어오는 `x-request-id` 헤더가 유효(ASCII alphanumeric/`-`/`_`, ≤128자) 하면 승계, 없으면 `uuid::Uuid::now_v7().to_string()` 생성. `task_local.scope(id, next.run(req))` 로 하위 전 지점에서 `crate::trace_id::current()` 동기 조회 가능. 응답 헤더 `x-request-id` 로 에코백.
+  - **`src/error.rs:210`** — `"trace_id": "req-TODO"` 하드코딩 플레이스홀더 → `crate::trace_id::current().unwrap_or_else(|| "unknown".to_string())` 로 교체. 표준 에러 바디(`AMK_API_MASTER §3.4`) 의 `trace_id` 필드가 드디어 실 값 전달. INC-001 (2026-04-15 2h33m 다운) 진단 속도 저하 원인 중 하나 제거.
+  - **`src/main.rs`** — trace_id 미들웨어를 CORS + `security_headers` 보다 **바깥쪽** 에 바인딩 (요청 진입 시 가장 먼저, 응답 나갈 때 가장 마지막). CORS `allow_headers` 에 `x-request-id` 추가(업스트림 승계용) + `expose_headers([x-request-id])` 추가(브라우저 fetch 에서 응답 헤더 읽기 허용).
+  - **`src/lib.rs`** — `pub mod trace_id;` 추가.
+  - **`Cargo.toml`** — `uuid` feature 에 `"v7"` 추가 (기존 `"v4"` 유지). UUID v7 은 시간 정렬 형식으로 로그/DB 인덱스 조회에 유리.
+  - **`docs/AMK_CODE_PATTERNS.md:319`** — `"PLACEHOLDER"` 주석 + `req_id` 변수 미정의 제거. 실제 구현 참조 주석 (`src/trace_id.rs` 의 `task_local!` 에서 주입) 로 교체. 에러 처리 섹션 "🔑 핵심 포인트" 에 trace_id 문단 4줄 추가 (미들웨어 위치, 승계 규칙, 응답 헤더, Extension 추출).
+  - **`docs/AMK_STATUS.md §8.1`** — 완료 항목 #69 행 추가.
+  - **스코프 변경**: `project_status.md` 의 D+4~D+5 예정 🅱️ 작업을 D+0 앞당겨 처리 (Gemini 백로그 완료 후 잔여 여력). 🅰️ E-book session_id 필수화 Phase 1 관측 일정과 완전 독립.
+  - **정적 검증**: `cargo check` 31.65s + `cargo clippy --lib --bins` 28.37s 둘 다 0 warnings 클린. 프론트엔드 build 영향 없음 (에러 응답 스키마 동일, `trace_id` 필드는 이미 존재).
+  - **런타임 검증 (로컬 `127.0.0.1:3100` 실기동 + `curl -i` 6 시나리오 전부 통과)**:
+    1. 헤더 누락 404 → 신규 UUID v7 생성 (예: `019d947b-7db2-7121-9bba-8f819a65dffa`, 3번째 그룹 첫 nibble=`7` 버전, 4번째 그룹 첫 nibble=`9` RFC 4122 variant 확인)
+    2. 유효한 업스트림 `x-request-id: cf-ray-abc123-DEF_456` → 그대로 승계 (응답 헤더 + body `trace_id` 양쪽)
+    3. 악성 업스트림 값 `hack; rm -rf /` → 형식 검증 거부, UUID v7 재생성
+    4. 200자 초과 업스트림 값 → 길이 검증 거부, UUID v7 재생성
+    5. body `trace_id` ↔ 응답 헤더 `x-request-id` 동일성 (MATCH) — `task_local!` scope 가 핸들러/에러 변환 전 지점에서 동일 값 조회함을 증명
+    6. 핸들러 경유 AppError (`POST /auth/login` 잘못된 자격 → 401 `AUTH_401_BAD_CREDENTIALS`) → 업스트림 ID `handler-path-2` body + 헤더 반영
+  - **알려진 갭 (별개)**: Axum `Json<T>` extractor 실패 (잘못된 JSON 바디 → 422) 는 표준 에러 envelope 을 우회해 `text/plain` 응답으로 빠져나감. `x-request-id` 응답 헤더는 붙으나 body 는 AppError 스키마 아님. trace_id 구현과 무관한 기존 동작. 향후 `JsonRejection` 커스텀 추출기로 AppError 매핑 시 전 경로 통일 가능 (`AMK_STATUS.md §8.2 보류/조건부` 에 등록).
+
+- **2026-04-16 — Gemini 백로그 auth 성능 MEDIUM 5건 반영: Redis 파이프라인/배치 + JWKS DCL**
+  - **PR #157 L190 (exists 파이프라인화 × 2)** — `enforce_session_limit` 의 유령 세션 탐지 2단계(`ak:session` 존재 확인 + `ak:refresh` 존재 확인) 를 `redis::pipe()` 로 묶어 단일 파이프라인으로 전송. 세션 N개일 때 네트워크 왕복 2N → 2 회로 감소. `refresh_hashes` 에 없는 sid 는 DB 레코드 자체가 없어 보존 근거 없음 → 파이프라인 체크 전에 즉시 유령 처리.
+  - **PR #157 L216 (유령 정리 SREM 배치)** — `redis_conn.srem(&session_key, &ghost_ids)` 로 단일 호출. 기존 sid 별 루프(N 왕복) → 1 회.
+  - **PR #157 L264 (eviction DEL+SREM 배치)** — Learner 세션 초과 시 FIFO eviction 에서 각 세션별 3 키 삭제를 DEL one-shot(2N 키) + SREM one-shot(N 멤버) 으로 전환. 3N → 2 회.
+  - **PR #157 L1044 (logout_all DEL+SREM 배치)** — `logout` 의 `sessions_to_invalidate` 루프를 DEL one-shot + SREM one-shot 으로 전환. 세션 수에 비례하는 왕복 → 2 회. `refresh_hashes.get(sid).is_none()` 케이스는 DEL 키 목록에서 제외해 Redis 서버에 불필요한 NIL 키 전달 방지.
+  - **PR #157 L92 (apple.rs JWKS Double-Checked Locking)** — `get_decoding_key` 의 write-lock 획득 직후 재확인 (`if let Some(key) = cache.get(kid) { return Ok(key.clone()); }`) 추가. read-lock 해제와 write-lock 획득 사이에 다른 동시 요청이 이미 JWKS 를 적재했을 경우 중복 `DecodingKey::from_rsa_components` 생성/삽입 회피.
+  - **Soundness 검증**: `session_ids: Vec<String>` 를 `.into_iter()` 로 소비하나 이후 `session_expired_candidates` 만 사용 → 안전. `ghosts` 순서는 DB UPDATE 가 set 의미라 무관. 배치 SREM 은 존재하지 않는 멤버 무시.
+  - **검증**: `cargo check` 7.85s + `cargo clippy --lib --bins` 0 warnings 13.92s (최초 clippy `filter_map_bool_then` 1건 → `filter + map` 으로 리팩터 후 클린).
+
+- **2026-04-16 — Gemini 백로그 MEDIUM 2건 반영: robots 크롤러 배열화 + security_headers 정적 검증**
+  - **PR #161 L148 (robots.txt 크롤러 배열화)** — `src/api/mod.rs::robots_txt` 의 하드코딩된 긴 문자열 리터럴 본문을 `const CRAWLERS: &[&str]` 배열 + `format!`/`join("\n")` 구조로 전환. 크롤러 추가/삭제 시 한 줄 편집으로 가능. 출력 본문은 바이트 단위 동일 (각 엔트리 끝 `\n` + join 사이 `\n` → 기존 빈 줄 포맷 유지).
+  - **PR #161 L223 (security_headers 정적 검증)** — `src/main.rs::security_headers` 의 5개 `.parse().unwrap()` 호출을 `HeaderName::from_static` + `HeaderValue::from_static` 패턴으로 전환. 런타임 panic 방지 + 컴파일 타임 헤더 이름/값 유효성 검증. 대상 헤더: `x-content-type-options`, `x-frame-options`, `x-xss-protection`, `permissions-policy`, `x-robots-tag`.
+  - **검증**: `cargo check` 6.81s 클린 + `cargo clippy --lib --bins` 0 warnings 13.87s. robots.txt 응답 본문 형식 동일성 수동 확인.
+
+- **2026-04-16 — Gemini 백로그 문서 MEDIUM 3건 반영 + 2건 NIT**
+  - **PR #162 L27 (BingBot → Bingbot)**: `docs/AMK_CHANGELOG.md` SEO hardening 검증 항목의 `BingBot` 표기를 `Bingbot` 으로 수정. 검색 엔진 공식 명칭 + 내부 일관성.
+  - **PR #158 L319 (`req_id` placeholder 명확화)**: `docs/AMK_CODE_PATTERNS.md:319` 의 `"trace_id": req_id` (변수 미정의) 를 `"trace_id": "PLACEHOLDER" // 실제 구현 시 AppError 필드 또는 Axum Extension 에서 추출한 ID 사용 (현재 src/error.rs:210 은 placeholder 상태)` 로 변경.
+  - **PR #158 L560 (`payment` → `transactions` 테이블명)**: `docs/AMK_SCHEMA_PATCHED.md:560` `user_course_pay_id` 주석의 `Paddle/payment 테이블` 를 `Paddle/transactions 테이블` 로 수정. 스키마에 `payment` 테이블은 없고 실제 결제는 `transactions` (`migrations/20260215_payment_system.sql:57`) 에 저장.
+  - **NIT 2건 (PR #162 L29 + PR #158 L77, 메모리 파일 외부 참조)**: 1인 CEO 프로젝트 + 메모리 시스템은 CLAUDE.md 에 정의된 개인 컨텍스트 저장소로 의도적 분리 + 교훈 핵심 요약은 이미 CHANGELOG/STATUS 본문에 인라인 포함.
+
+- **2026-04-16 — Gemini 백로그 i18n MEDIUM 4건 반영: kk/hi/mn locale 자연스러움 개선**
+  - **PR #163 L744 (kk)** — `frontend/src/i18n/locales/kk.json:744` `notFoundDesc` 의 `ISBN мұрақаты` (= "ISBN 아카이브") → `ISBN нөмірі` (= "ISBN 번호") 로 수정. 카자흐어 단어 의미 오류 (archive ↔ number).
+  - **PR #163 L722, L727 (hi)** — `frontend/src/i18n/locales/hi.json:722,727` 의 `टू-फैक्टर` (Two-Factor) 표기를 `टू-फ़ैक्टर` (nukta `फ़` 사용) 로 변경. 같은 mfa 섹션 내 title (line 702) 과의 표기 일관성 확보.
+  - **PR #163 L804 (mn)** — `frontend/src/i18n/locales/mn.json:804` `nextButton` 의 `Дараа нь` (= "afterwards") → `Дараах` (= "Next", UI 관습) 로 수정.
+  - **검증**: i18n JSON 3 파일 모두 string value 내부 텍스트만 변경 — JSON 구조 무영향. 추후 frontend 빌드 시 자동 검증.
+
+- **2026-04-16 — Gemini 백로그 HIGH 2건 반영: `login_session_id` UUID 인덱스 활용**
+  - **PR #157 L578/L603 HIGH 2건** — `src/api/auth/repo.rs::find_login_refresh_hashes_by_session_ids` (SELECT) 와 `update_login_states_by_sessions` (UPDATE) 가 `WHERE login_session_id::text = ANY($1)` 로 컬럼 측 캐스팅을 사용. `login_session_id uuid UNIQUE NOT NULL` 의 자동 UNIQUE 인덱스가 무력화되어 풀 테이블 스캔 위험.
+  - **수정**: 컬럼 측 캐스팅 제거 + 파라미터 측 캐스팅 (`WHERE login_session_id = ANY($1::uuid[])`). `&[String]` (sqlx 인코딩 = `text[]`) 을 SQL 단에서 `uuid[]` 로 변환 → 컬럼 비교는 `uuid = uuid` 유지 → UNIQUE 인덱스 사용. SELECT 의 `login_session_id::text` 출력 캐스팅은 반환 타입 `(String, String)` 매칭 위해 유지 (인덱스 영향 없음).
+  - **호출부 영향 범위 검증**: 5곳 모두 입력이 UUID 문자열 보장. (a) `service.rs:179,896,1272` — `redis_conn.smembers("ak:user_sessions:{uid}")` (Redis SET 멤버는 login_session_id), (b) `service.rs:999` — `find_user_session_ids_tx(uid)` (DB 쿼리), (c) `service.rs:1031` — `sessions_to_invalidate` (위 두 경로의 합). `::uuid[]` 캐스팅 시 invalid UUID 노출 가능성 0.
+  - **시그니처 변경 없음**: `&[String]` 유지 — Gemini 가 제안한 `&[Uuid]` 변경은 5개 호출부 + 호출부의 String→Uuid 변환 로직 추가가 필요해 영향 범위 확대. 파라미터 측 SQL 캐스팅이 동등한 인덱스 효과를 가져와 더 작은 변경 surface 선택.
+  - **검증**: `cargo check` 7.25s + `cargo clippy --lib` 0 warnings 13.88s. 통합 테스트는 마이그레이션 + DB 실행 필요라 별도 — 두 함수 모두 sqlx::query/query_as (런타임 SQL) 라 컴파일 타임 검증 없으나, `::uuid[]` 는 PostgreSQL 표준 캐스트로 검증 부담 낮음.
+  - **남은 Gemini 백로그**: MEDIUM 16건 (D+2~3 세션에서 처리 예정 — `project_gemini_review_backlog.md`).
+
+- **2026-04-16 — #67 E-book session_id 필수화 Phase 1 관측 로깅 배포**
+  - **목적**: `verify_session(session_id: Option<&str>)` 의 `Option` 제거 + `None → Forbidden("Missing session header")` 로 fail-closed 전환하기 전에 프로덕션 트래픽 표본으로 미전송 케이스 0건 확인. INC-001 (2026-04-15 프로덕션 2h33m 다운) 경험 반영 — "fail-closed 게이트 추가는 코드 분석만 신뢰하지 말고 프로덕션 로그로 선확인" 방침.
+  - **코드 변경**: `src/api/ebook/service.rs:504` `verify_session` 진입부에 `session_id.is_none()` 분기 추가 — `tracing::warn!(user_id, "EBOOK_SESSION_AUDIT: verify_session called without x-ebook-session header")`. 기존 로직(미제공 시 Redis 키 존재만 확인)은 그대로 유지. doc 코멘트의 `TODO` 에 전환 목표일 `2026-04-24` 명시.
+  - **모바일/데스크탑 리포 사전 grep 결과**:
+    - `amazing-korean-mobile/lib/api/ebook_api.dart:50,68` — `required String sessionId` + `'X-Ebook-Session': sessionId` 항상 전송 → 안전 ✓
+    - `amazing-korean-desktop/src/category/ebook/ebook_api.ts:76,92,114,132` — 웹과 동일한 optional 패턴 (`sessionId?: string` + `...(sessionId ? {...} : {})`). `ebook_viewer_page.tsx:404` 에서 `meta?.session_id` 를 sessionId 변수에 넣고 모든 호출에 전달 → meta 로드 후엔 항상 sessionId 있음. 다만 D+8 Phase 2 일괄 전환 시 데스크탑 `ebook_api.ts` + `use_page_image.ts` + `ebook_viewer_page.tsx` 도 웹과 동일하게 필수화 필요.
+  - **관측 계획**: 5~7일 (D+0 ~ D+7=2026-04-23). 완료 조건 `docker logs amk-api --since 168h 2>&1 | grep EBOOK_SESSION_AUDIT | wc -l` → **0건**. 0건 아닐 시 샘플 user_id/UA/시간대 분석. D+8=2026-04-24 Phase 2~5 일괄 전환 (백+웹+데스크탑 동일 PR 동시 배포).
+  - **검증**: `cargo check` 14.86s 클린. 핵심 변경은 조건부 로그 1개라 회귀 위험 최소.
+  - **메모리**: `feedback_security_patterns.md` §session_id 필수화 마이그레이션 Phase 1 진행 중 표기 유지. `project_status.md` D+0 단계 갱신 (별도 커밋).
+
+- **2026-04-16 — 속도 개선 Phase S5: Swiper CSS 분리 + Pretendard 비동기 + 추가 lazy 5개**
+  - **S5-1 Swiper CSS 지연 로딩**: `frontend/src/index.css` 의 `@import "swiper/css"` 4줄을 제거하고 실제 사용처 `frontend/src/category/textbook/page/seal_list.tsx` 로 이동. 카탈로그 페이지(`TextbookCatalogPage`/`EbookCatalogPage`)도 eager → lazy 로 전환해 Swiper CSS 가 비-Book 페이지에서 완전히 제외되도록 함. `frontend/src/vite-env.d.ts` 신규 — `swiper/css` 등 sub-path CSS import 의 TypeScript 타입 선언 (`vite/client` 기본 타입은 sub-path 미커버).
+  - **S5-2~S5-3 SKIP**: 히어로 이미지 preload (book-hub) 와 cover srcset 검토 결과 — 히어로 이미지는 이미 `loading="eager"` + `fetchPriority="high"` 적용됨(S3) + URL 이 i18n 언어 기반 동적 결정이라 HTML 정적 preload 불가. cover 이미지는 이미 40KB webp 로 충분히 작아 srcset 효과 미미. **FCP 개선이 우선 병목**으로 판단해 폰트/번들 최적화에 집중.
+  - **S5-4 Pretendard 비동기 로딩**: `frontend/index.html` Pretendard CSS 를 `media="print" onload="this.media='all'"` 패턴으로 전환 (Noto Color Emoji 와 동일 패턴). render-blocking 제거. preload hint 는 유지해 다운로드 자체는 조기 시작. `<noscript>` fallback 추가.
+  - **S5-5 SKIP**: Critical CSS inline (`critters` 등) 은 SPA 에서 비실용적 — 빌드 타임 HTML body 가 `<div id="root"></div>` 만 있어 분석 불가. 진정한 효과를 보려면 SSR/prerender (Cloudflare Workers, vite-plugin-ssg) 도입이 필요한데 이는 아키텍처 변경 수준이라 본 Phase 스코프 밖.
+  - **S5-6 추가 lazy 전환**: 측정 중 book-hub FCP 8s 비정상값 발견 — `BookHubPage`/`BookLandingPage`/`AboutPage`/`LoginPage`/`SignupPage` 5개를 eager → lazy 로 전환 (HomePage 만 eager 유지, 랜딩 페이지). `frontend/src/app/routes.tsx` 정적 import 5개 → `lazy(() => import(...))` 으로 변경.
+  - **번들 크기 변화**: `index-*.js` (메인 청크) **277KB → 199KB (-78KB, -28%)**. Swiper CSS 가 `vendor-swiper-*.css` (4.7KB) 로 분리되어 비-Book 페이지에서 다운로드 안 됨.
+  - **로컬 Lighthouse 측정 결과** (S4 Prod 베이스라인 → S5 Local v3, 비교 제한적이나 개선 트렌드 명확): home **64→87** (FCP 5785→2612ms), faq **72→88** (FCP 4039→2719ms), book-hub **61→76** (LCP 9287→4375ms, **-53%**), textbook **67→74** (LCP 7644→4058ms), ebook **64→71** (LCP 8228→4391ms). 90+ 목표 부분 달성 (home/faq 근접). 잔여 갭은 SPA 구조적 한계 (CSS 66KB render-blocking + JS 199KB 파싱 시간) 로 SSR 없이는 추가 개선 어려움.
+  - **검증**: `npm run build` 8.27s 클린, 8 페이지 Lighthouse 측정 모두 통과 (Perf 71~88).
+  - **메모리 갱신**: `project_perf_plan.md` — S5 완료 표기, 잔여 90+ 미달분은 SSR 도입 시점으로 이연.
+
+- **2026-04-16 — 후속 작업 3건: DEPLOY_OPS 환경변수 동기화 + 배포 헬스체크 + sitemap 보강**
+  - **DEPLOY_OPS §4 환경변수 표 동기화**: REVENUECAT_API_KEY + REVENUECAT_WEBHOOK_AUTH_TOKEN 2건 주석 해제 (deploy.yml 활성화 반영). PADDLE_DISCOUNT_MONTH_3/6/12 3건 추가 (deploy.yml에만 존재하던 누락분).
+  - **deploy.yml 배포 후 헬스체크 단계 추가**: `deploy` job에 Health check step 신규. SSH로 EC2 내부 `curl http://localhost:3000/health` 실행, 최대 5회 재시도(10초 간격). 실패 시 `docker compose logs --tail=50` 출력 후 workflow 실패 처리. INC-001(2h33m 다운, 2026-04-15) 재발 방지 — 당시 `docker compose up -d` exit 0으로 "success" 표기돼 탐지 실패했던 문제 해소.
+  - **sitemap.xml에 /book, /book/textbook, /book/ebook 3건 추가**: #34 Book 허브 라우트 재구성(2026-03-25) 이후 누락됐던 경로. priority: /book 0.8, /book/textbook·/book/ebook 0.7, changefreq monthly.
 
 - **2026-04-15 — SEO hardening: Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어**
   - **배경**: 커밋 `c8014df` 의 `GET /robots.txt` 핸들러(`User-agent: *\nDisallow: /\n`) 배포 후 외부 검증 중 발견 — Cloudflare 가 zone 레벨에서 `# BEGIN Cloudflare Managed content` 블록을 **본문 앞에 자동 주입**하고 있었다. 주입된 블록의 `User-agent: *` + `Allow: /` 가 우리의 `User-agent: *` + `Disallow: /` 와 경로 길이가 같아 Google 의 tie-breaking 규칙(`Allow` 승리)에서 **우리의 Disallow 가 무력화**됨. 프론트엔드(`amazingkorean.net/robots.txt`) 도 동일 주입 확인 — zone-wide 설정.
@@ -24,7 +103,7 @@ owner: HYMN Co., Ltd. (Amazing Korean)
     - `curl "https://api.amazingkorean.net/robots.txt?bust=..."` (캐시 우회) → Googlebot/Bingbot/DuckDuckBot/Yeti/NaverBot/Daum 블록 모두 포함된 확장된 본문 ✅ (서버는 확장된 버전 정상 응답)
     - `/courses` → 301 /book + 기존 엔드포인트 회귀 없음 ✅
   - **Cloudflare 캐시 관찰**: 일반 요청은 `cf-cache-status: HIT` + `age: 1310s` + `cache-control: max-age=14400` (4h TTL 자동) → 04:21:45 UTC 캐시 버전 서빙 중. 4시간 후 자동 만료, 또는 Cloudflare Dashboard 수동 퍼지 가능. X-Robots-Tag 가 이미 결정적 차단 역할을 하므로 캐시 만료 대기가 가장 안전한 선택.
-  - **Cloudflare 관리형 robots.txt 상태 확인**: AI Crawl Control 페이지에서 토글 ON 확인. zone-wide 단일 토글, 호스트/경로 제외 미지원. 프론트엔드 AI 봇 자동 차단 유지 혜택 때문에 **OFF 하지 않고 유지** (저희 코드 수정이 Cloudflare 와 독립 작동하도록 설계됨). AI Crawl Control 대시보드 지표: 지난 24시간 AI 크롤러 23건 감지, 15건 HTTP 403 차단, BingBot 7건 허용 (75% 증가), OAI-SearchBot 1건 허용.
+  - **Cloudflare 관리형 robots.txt 상태 확인**: AI Crawl Control 페이지에서 토글 ON 확인. zone-wide 단일 토글, 호스트/경로 제외 미지원. 프론트엔드 AI 봇 자동 차단 유지 혜택 때문에 **OFF 하지 않고 유지** (저희 코드 수정이 Cloudflare 와 독립 작동하도록 설계됨). AI Crawl Control 대시보드 지표: 지난 24시간 AI 크롤러 23건 감지, 15건 HTTP 403 차단, Bingbot 7건 허용 (75% 증가), OAI-SearchBot 1건 허용.
   - **중요**: 이 수정은 **백엔드 전체 응답에 `X-Robots-Tag: noindex, nofollow`** 를 붙이므로, 만약 향후 api 경로 중 **Google 에게 색인되길 원하는 공개 엔드포인트**가 생기면 해당 엔드포인트에서 헤더를 override/제거해야 한다. 현재는 전 api 가 색인 대상이 아니므로 문제 없음.
   - **교훈 메모리**: `feedback_seo_api_subdomain.md` 신규 — "API 서브도메인 색인 차단은 X-Robots-Tag 전역 헤더 메인 + robots.txt 보조. Cloudflare 관리형 robots.txt 주입 우회 전략".
 
