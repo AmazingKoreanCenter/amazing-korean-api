@@ -500,8 +500,14 @@ impl EbookService {
 
     /// 뷰어 세션 검증 (페이지/타일 요청 시, Redis 장애 = fail closed)
     /// session_id가 제공되면 저장된 값과 비교, 미제공 시 존재만 확인 (하위 호환)
-    /// TODO: session_id 필수화 — 프론트엔드 x-ebook-session 헤더 전송 확인 후 None → Forbidden 전환
+    /// TODO(2026-04-24): session_id 필수화 — Phase 1 관측(2026-04-16~) 완료 후 None → Forbidden 전환
     pub async fn verify_session(st: &AppState, user_id: i64, session_id: Option<&str>) -> AppResult<()> {
+        if session_id.is_none() {
+            tracing::warn!(
+                user_id = user_id,
+                "EBOOK_SESSION_AUDIT: verify_session called without x-ebook-session header"
+            );
+        }
         let session_key = format!("ebook_viewer:{}", user_id);
         let mut redis_conn = st
             .redis
