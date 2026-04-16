@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-16 (Gemini 백로그 문서 MEDIUM 3건 — BingBot 오타 + req_id placeholder + payment 테이블명)
+updated: 2026-04-16 (Gemini 백로그 MEDIUM 2건 — robots 크롤러 배열화 + security_headers 정적 검증)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,11 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — Gemini 백로그 MEDIUM 2건 반영: robots 크롤러 배열화 + security_headers 정적 검증**
+  - **PR #161 L148 (robots.txt 크롤러 배열화)** — `src/api/mod.rs::robots_txt` 의 하드코딩된 긴 문자열 리터럴 본문을 `const CRAWLERS: &[&str]` 배열 + `format!`/`join("\n")` 구조로 전환. 크롤러 추가/삭제 시 한 줄 편집으로 가능. 출력 본문은 바이트 단위 동일 (각 엔트리 끝 `\n` + join 사이 `\n` → 기존 빈 줄 포맷 유지).
+  - **PR #161 L223 (security_headers 정적 검증)** — `src/main.rs::security_headers` 의 5개 `.parse().unwrap()` 호출을 `HeaderName::from_static` + `HeaderValue::from_static` 패턴으로 전환. 런타임 panic 방지 + 컴파일 타임 헤더 이름/값 유효성 검증. 대상 헤더: `x-content-type-options`, `x-frame-options`, `x-xss-protection`, `permissions-policy`, `x-robots-tag`.
+  - **검증**: `cargo check` 6.81s 클린 + `cargo clippy --lib --bins` 0 warnings 13.87s. robots.txt 응답 본문 형식 동일성 수동 확인.
 
 - **2026-04-16 — Gemini 백로그 문서 MEDIUM 3건 반영 + 2건 NIT**
   - **PR #162 L27 (BingBot → Bingbot)**: `docs/AMK_CHANGELOG.md` SEO hardening 검증 항목의 `BingBot` 표기를 `Bingbot` 으로 수정. 검색 엔진 공식 명칭 + 내부 일관성.
