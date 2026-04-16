@@ -4,7 +4,9 @@
       "Bash(cargo build:*)",
       "Read(/tmp/amk-translate/**)",
       "Write(/tmp/amk-translate/**)",
-      "Edit(/tmp/amk-translate/**)"
+      "Edit(/tmp/amk-translate/**)",
+      "Bash(awk '{print $5, $9}')",
+      "Bash(awk '{print $2}')"
     ]
   }
 }

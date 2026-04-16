@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-16 (후속 작업 3건 — DEPLOY_OPS 환경변수 동기화 + 배포 헬스체크 + sitemap 보강)
+updated: 2026-04-16 (속도 개선 Phase S5 — Swiper CSS 분리 + Pretendard 비동기 + 추가 lazy 5개)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,17 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — 속도 개선 Phase S5: Swiper CSS 분리 + Pretendard 비동기 + 추가 lazy 5개**
+  - **S5-1 Swiper CSS 지연 로딩**: `frontend/src/index.css` 의 `@import "swiper/css"` 4줄을 제거하고 실제 사용처 `frontend/src/category/textbook/page/seal_list.tsx` 로 이동. 카탈로그 페이지(`TextbookCatalogPage`/`EbookCatalogPage`)도 eager → lazy 로 전환해 Swiper CSS 가 비-Book 페이지에서 완전히 제외되도록 함. `frontend/src/vite-env.d.ts` 신규 — `swiper/css` 등 sub-path CSS import 의 TypeScript 타입 선언 (`vite/client` 기본 타입은 sub-path 미커버).
+  - **S5-2~S5-3 SKIP**: 히어로 이미지 preload (book-hub) 와 cover srcset 검토 결과 — 히어로 이미지는 이미 `loading="eager"` + `fetchPriority="high"` 적용됨(S3) + URL 이 i18n 언어 기반 동적 결정이라 HTML 정적 preload 불가. cover 이미지는 이미 40KB webp 로 충분히 작아 srcset 효과 미미. **FCP 개선이 우선 병목**으로 판단해 폰트/번들 최적화에 집중.
+  - **S5-4 Pretendard 비동기 로딩**: `frontend/index.html` Pretendard CSS 를 `media="print" onload="this.media='all'"` 패턴으로 전환 (Noto Color Emoji 와 동일 패턴). render-blocking 제거. preload hint 는 유지해 다운로드 자체는 조기 시작. `<noscript>` fallback 추가.
+  - **S5-5 SKIP**: Critical CSS inline (`critters` 등) 은 SPA 에서 비실용적 — 빌드 타임 HTML body 가 `<div id="root"></div>` 만 있어 분석 불가. 진정한 효과를 보려면 SSR/prerender (Cloudflare Workers, vite-plugin-ssg) 도입이 필요한데 이는 아키텍처 변경 수준이라 본 Phase 스코프 밖.
+  - **S5-6 추가 lazy 전환**: 측정 중 book-hub FCP 8s 비정상값 발견 — `BookHubPage`/`BookLandingPage`/`AboutPage`/`LoginPage`/`SignupPage` 5개를 eager → lazy 로 전환 (HomePage 만 eager 유지, 랜딩 페이지). `frontend/src/app/routes.tsx` 정적 import 5개 → `lazy(() => import(...))` 으로 변경.
+  - **번들 크기 변화**: `index-*.js` (메인 청크) **277KB → 199KB (-78KB, -28%)**. Swiper CSS 가 `vendor-swiper-*.css` (4.7KB) 로 분리되어 비-Book 페이지에서 다운로드 안 됨.
+  - **로컬 Lighthouse 측정 결과** (S4 Prod 베이스라인 → S5 Local v3, 비교 제한적이나 개선 트렌드 명확): home **64→87** (FCP 5785→2612ms), faq **72→88** (FCP 4039→2719ms), book-hub **61→76** (LCP 9287→4375ms, **-53%**), textbook **67→74** (LCP 7644→4058ms), ebook **64→71** (LCP 8228→4391ms). 90+ 목표 부분 달성 (home/faq 근접). 잔여 갭은 SPA 구조적 한계 (CSS 66KB render-blocking + JS 199KB 파싱 시간) 로 SSR 없이는 추가 개선 어려움.
+  - **검증**: `npm run build` 8.27s 클린, 8 페이지 Lighthouse 측정 모두 통과 (Perf 71~88).
+  - **메모리 갱신**: `project_perf_plan.md` — S5 완료 표기, 잔여 90+ 미달분은 SSR 도입 시점으로 이연.
 
 - **2026-04-16 — 후속 작업 3건: DEPLOY_OPS 환경변수 동기화 + 배포 헬스체크 + sitemap 보강**
   - **DEPLOY_OPS §4 환경변수 표 동기화**: REVENUECAT_API_KEY + REVENUECAT_WEBHOOK_AUTH_TOKEN 2건 주석 해제 (deploy.yml 활성화 반영). PADDLE_DISCOUNT_MONTH_3/6/12 3건 추가 (deploy.yml에만 존재하던 누락분).
