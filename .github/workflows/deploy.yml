@@ -105,3 +105,29 @@ jobs:
 
             # Cleanup old images
             docker image prune -f
+
+      - name: Health check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Waiting for server to start..."
+            sleep 10
+
+            # Health check (최대 5회 재시도, 10초 간격)
+            for i in 1 2 3 4 5; do
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health || true)
+              if [ "$STATUS" = "200" ]; then
+                echo "Health check passed (attempt $i)"
+                exit 0
+              fi
+              echo "Health check failed (attempt $i, status=$STATUS), retrying in 10s..."
+              sleep 10
+            done
+
+            echo "Health check failed after 5 attempts"
+            echo "=== Container logs ==="
+            docker compose -f docker-compose.prod.yml logs --tail=50
+            exit 1

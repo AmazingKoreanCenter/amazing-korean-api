@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-15 (SEO hardening — Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어)
+updated: 2026-04-16 (후속 작업 3건 — DEPLOY_OPS 환경변수 동기화 + 배포 헬스체크 + sitemap 보강)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,11 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-16 — 후속 작업 3건: DEPLOY_OPS 환경변수 동기화 + 배포 헬스체크 + sitemap 보강**
+  - **DEPLOY_OPS §4 환경변수 표 동기화**: REVENUECAT_API_KEY + REVENUECAT_WEBHOOK_AUTH_TOKEN 2건 주석 해제 (deploy.yml 활성화 반영). PADDLE_DISCOUNT_MONTH_3/6/12 3건 추가 (deploy.yml에만 존재하던 누락분).
+  - **deploy.yml 배포 후 헬스체크 단계 추가**: `deploy` job에 Health check step 신규. SSH로 EC2 내부 `curl http://localhost:3000/health` 실행, 최대 5회 재시도(10초 간격). 실패 시 `docker compose logs --tail=50` 출력 후 workflow 실패 처리. INC-001(2h33m 다운, 2026-04-15) 재발 방지 — 당시 `docker compose up -d` exit 0으로 "success" 표기돼 탐지 실패했던 문제 해소.
+  - **sitemap.xml에 /book, /book/textbook, /book/ebook 3건 추가**: #34 Book 허브 라우트 재구성(2026-03-25) 이후 누락됐던 경로. priority: /book 0.8, /book/textbook·/book/ebook 0.7, changefreq monthly.
 
 - **2026-04-15 — SEO hardening: Cloudflare Managed robots.txt 우회 + X-Robots-Tag 전역 미들웨어**
   - **배경**: 커밋 `c8014df` 의 `GET /robots.txt` 핸들러(`User-agent: *\nDisallow: /\n`) 배포 후 외부 검증 중 발견 — Cloudflare 가 zone 레벨에서 `# BEGIN Cloudflare Managed content` 블록을 **본문 앞에 자동 주입**하고 있었다. 주입된 블록의 `User-agent: *` + `Allow: /` 가 우리의 `User-agent: *` + `Disallow: /` 와 경로 길이가 같아 Google 의 tie-breaking 규칙(`Allow` 승리)에서 **우리의 Disallow 가 무력화**됨. 프론트엔드(`amazingkorean.net/robots.txt`) 도 동일 주입 확인 — zone-wide 설정.
