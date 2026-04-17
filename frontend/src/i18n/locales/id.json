@@ -215,7 +215,10 @@
     "validationBirthdayFormat": "Please enter a valid date (YYYY-MM-DD).",
     "validationCountryRequired": "Please select a country.",
     "validationLanguageRequired": "Please select a language.",
-    "validationPasswordMax": "Password must be 72 characters or less."
+    "validationPasswordMax": "Password must be 72 characters or less.",
+    "mfaBackupPlaceholder": "Kode cadangan 8 karakter",
+    "mfaUseBackupCode": "Gunakan kode cadangan",
+    "mfaUseAuthApp": "Gunakan aplikasi autentikator"
   },
   "user": {
     "myPageTitle": "Halaman Saya",
@@ -333,7 +336,11 @@
     "ctaTitle": "Mulailah sekarang",
     "ctaDescription": "Daftar gratis dan mulai belajar bahasa Korea.",
     "ctaStart": "Mulai Gratis",
-    "ctaBrowseBooks": "Lihat Buku Ajar"
+    "ctaBrowseBooks": "Lihat Buku Ajar",
+    "stat1Title": "34 Bahasa, 68 Edisi Buku Teks",
+    "stat1Desc": "Pelajari bahasa Korea dalam bahasa Anda dengan buku teks khusus untuk setiap bahasa.",
+    "stat2Title": "500 Kalimat Dasar",
+    "stat2Desc": "Pembelajaran dasar bahasa Korea berdasarkan tata bahasa dasar (tenses, partikel) dan struktur kalimat (predikat, keterangan)."
   },
   "study": {
     "heroBadge": "Pembelajaran Bahasa Korea Sistematis",
@@ -515,7 +522,8 @@
       "searchPlaceholder": "Search language...",
       "noResults": "No results found.",
       "bookTitle": "Amazing Korean Basics - {{language}}",
-      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK."
+      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK.",
+      "pricePerUnit": "15.000 KRW"
     },
     "detail": {
       "viewDetail": "View Details",
@@ -538,7 +546,10 @@
       "success": "Pembelian selesai.",
       "error": "Terjadi kesalahan saat pembelian.",
       "cardPayment": "Card Payment",
-      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+      "paddleNote": "International card payment via Paddle. Charges will be in USD.",
+      "paddleUnavailable": "Pembayaran kartu tidak tersedia.",
+      "checkoutSuccess": "Pembayaran selesai.",
+      "cancelSuccess": "Pesanan dibatalkan."
     },
     "purchaseComplete": {
       "title": "Pembelian Selesai",
@@ -576,7 +587,10 @@
       "empty": "Belum ada E-book yang dibeli.",
       "browseCatalog": "Lihat E-book",
       "openViewer": "Buka Pembaca",
-      "loadError": "Gagal memuat riwayat pembelian."
+      "loadError": "Gagal memuat riwayat pembelian.",
+      "payNow": "Bayar Sekarang",
+      "cancelOrder": "Batalkan Pesanan",
+      "processing": "Memproses pembayaran..."
     },
     "viewer": {
       "toc": "Daftar Isi",
@@ -586,7 +600,13 @@
       "copyrightNotice": "Konten ini dilindungi oleh undang-undang hak cipta.",
       "copyrightLegal": "Pelanggaran terhadap langkah perlindungan teknis dapat dihukum berdasarkan Pasal 104-2 UU Hak Cipta Korea.",
       "copyrightWatermark": "E-book ini mengandung watermark digital untuk identifikasi pembeli.",
-      "copyrightConfirm": "Saya mengerti"
+      "copyrightConfirm": "Saya mengerti",
+      "notFoundDesc": "Kode pembelian tidak ditemukan atau Anda tidak memiliki akses.",
+      "paymentRequired": "Pembayaran belum selesai.",
+      "paymentRequiredDesc": "Anda dapat melihat E-book setelah pembayaran selesai. Untuk transfer bank, akses akan diberikan setelah konfirmasi admin.",
+      "goToMyEbooks": "Buka E-book Saya",
+      "spreadView": "Tampilan dua halaman",
+      "singleView": "Tampilan satu halaman"
     }
   },
   "textbook": {
@@ -613,7 +633,12 @@
       "viewCarousel": "Tampilan Carousel",
       "searchPlaceholder": "Cari bahasa...",
       "noResults": "Tidak ada hasil ditemukan.",
-      "bookDescription": "Buku teks belajar bahasa Korea yang sistematis. Diterjemahkan oleh pakar penutur asli setiap bahasa."
+      "bookDescription": "Buku teks belajar bahasa Korea yang sistematis. Diterjemahkan oleh pakar penutur asli setiap bahasa.",
+      "isbnPending": "Tambahan ~1 minggu untuk pendaftaran ISBN & pencetakan",
+      "bookTitle": "Amazing Korean Basic - {{language}}",
+      "editionInfo": "{{edition}} · Min. jumlah pesanan 10 eksemplar",
+      "bookDescriptionStudent": "Buku teks dasar untuk belajar bahasa Korea.\nDisusun dalam bahasa Korea - Inggris - {{language}},\nini adalah langkah pertama menuju kemahiran bahasa Korea dasar\ndan persiapan untuk TOPIK dan EPS-TOPIK.",
+      "bookDescriptionTeacher": "Buku teks dasar untuk mengajar bahasa Korea.\nDisusun dalam bahasa Korea - Inggris - {{language}},\nini adalah langkah pertama dalam mengajarkan bahasa Korea dasar\ndan persiapan untuk TOPIK dan EPS-TOPIK."
     },
     "detail": {
       "modalTitle": "Detail Buku",
@@ -680,6 +705,125 @@
       "notFound": "Pesanan tidak ditemukan.",
       "quoteNotice": "Penawaran ini berdasarkan pengajuan pesanan dan jumlah pembayaran aktual dapat berbeda.",
       "confirmationNotice": "Konfirmasi ini hanya untuk verifikasi status pesanan dan bukan merupakan tanda terima resmi."
+    },
+    "order": {
+      "sectionItems": "Pilih Buku Teks",
+      "language": "Bahasa",
+      "languagePlaceholder": "Pilih bahasa",
+      "textbookType": "Jenis",
+      "typeStudent": "Siswa",
+      "typeTeacher": "Guru",
+      "quantity": "Jumlah",
+      "currency": "KRW",
+      "addItem": "Tambah Item",
+      "totalQuantity": "Total Jumlah",
+      "unit": " eksemplar",
+      "totalAmount": "Total Harga",
+      "minQuantityError": "Minimum pemesanan adalah {{min}} eksemplar",
+      "duplicateItemError": "Kombinasi bahasa dan tipe duplikat",
+      "minQuantityHint": "Min {{min}} eksemplar",
+      "isbnNotice": "Beberapa bahasa memerlukan pendaftaran ISBN sebelum dicetak. Pengiriman untuk bahasa tersebut mungkin memakan waktu tambahan sekitar 1 minggu.",
+      "sectionOrderer": "Informasi Pemesan",
+      "ordererName": "Nama",
+      "ordererNamePlaceholder": "John Doe",
+      "ordererPhone": "Nomor Telepon",
+      "ordererEmail": "Email",
+      "sectionOrg": "Organisasi",
+      "optional": "Opsional",
+      "orgName": "Nama Organisasi",
+      "orgNamePlaceholder": "Akademi Bahasa Korea",
+      "orgType": "Jenis Organisasi",
+      "orgTypePlaceholder": "Pilih jenis",
+      "orgTypeAcademy": "Akademi",
+      "orgTypeUniversity": "Universitas",
+      "orgTypeSchool": "Sekolah",
+      "orgTypeIndividual": "Individu",
+      "orgTypeOther": "Lainnya",
+      "sectionDelivery": "Info Pengiriman",
+      "postalCode": "Kode Pos",
+      "address": "Alamat",
+      "addressPlaceholder": "Jl. Main Street 123...",
+      "addressDetail": "Detail Alamat",
+      "addressDetailPlaceholder": "Gedung, Lantai, dll.",
+      "sectionPayment": "Info Pembayaran",
+      "paymentMethodNote": "Saat ini hanya mendukung transfer bank. Detail transfer akan diberikan setelah pesanan dibuat.",
+      "depositorName": "Nama Penyetor",
+      "depositorNamePlaceholder": "Jika berbeda dengan pemesan",
+      "sectionTax": "Faktur Pajak",
+      "taxInvoiceLabel": "Minta faktur pajak",
+      "taxBizNumber": "Nomor Registrasi Bisnis",
+      "taxCompanyName": "Nama Perusahaan",
+      "taxCompanyNamePlaceholder": "Masukkan nama perusahaan",
+      "taxRepName": "Nama Perwakilan",
+      "taxRepNamePlaceholder": "Nama perwakilan",
+      "taxAddress": "Alamat Bisnis",
+      "taxAddressPlaceholder": "Alamat pada pendaftaran bisnis",
+      "taxBizType": "Jenis Bisnis",
+      "taxBizTypePlaceholder": "mis. Jasa, Ritel",
+      "taxBizItem": "Bidang Usaha",
+      "taxBizItemPlaceholder": "mis. Pendidikan, Penerbitan",
+      "taxEmail": "Email Faktur Pajak",
+      "sectionNotes": "Catatan",
+      "notesPlaceholder": "Permintaan tambahan",
+      "submitting": "Memproses...",
+      "submitButton": "Buat Pesanan",
+      "successToast": "Pesanan telah berhasil dikirim!",
+      "errorToast": "Pesanan gagal. Silakan coba lagi.",
+      "completeTitle": "Pesanan Berhasil Dikirim",
+      "completeDesc": "Harap simpan kode pesanan di bawah ini. Anda akan membutuhkannya untuk melacak pesanan Anda.",
+      "orderCode": "Kode Pesanan",
+      "codeCopied": "Kode pesanan telah disalin",
+      "bankTransferGuide": "Informasi Transfer Bank",
+      "bankAccount": "Transfer ke: {{account}}",
+      "bankNote": "Mohon sertakan kode pesanan atau nama Anda pada catatan transfer.",
+      "trackGuide": "Anda dapat memeriksa status pesanan Anda menggunakan tombol di bawah ini.",
+      "trackButton": "Lacak Pesanan",
+      "validationNameRequired": "Silakan masukkan nama Anda.",
+      "validationEmailRequired": "Silakan masukkan email Anda.",
+      "validationEmailFormat": "Silakan masukkan alamat email yang valid.",
+      "validationPhoneRequired": "Silakan masukkan nomor telepon Anda.",
+      "validationAddressRequired": "Silakan masukkan alamat pengiriman.",
+      "validationLanguageRequired": "Silakan pilih bahasa.",
+      "validationQuantityMin": "Jumlah minimal adalah 1.",
+      "validationQuantityMax": "Jumlah harus 9.999 atau kurang.",
+      "validationItemsRequired": "Silakan tambahkan setidaknya satu buku teks."
+    },
+    "status": {
+      "title": "Lacak Pesanan",
+      "subtitle": "Masukkan kode pesanan Anda untuk memeriksa status pesanan.",
+      "placeholder": "TB-260226-0001",
+      "search": "Cari",
+      "notFound": "Pesanan tidak ditemukan",
+      "notFoundDesc": "Silakan periksa kode pesanan Anda dan coba lagi.",
+      "orderedAt": "Dipesan pada:",
+      "initialHint": "Masukkan kode pesanan Anda untuk memeriksa status pesanan.",
+      "label": {
+        "pending": "Pesanan Diterima",
+        "confirmed": "Dikonfirmasi",
+        "paid": "Pembayaran Terkonfirmasi",
+        "printing": "Sedang Dicetak",
+        "shipped": "Dikirim",
+        "delivered": "Telah Diterima",
+        "canceled": "Dibatalkan"
+      },
+      "step": {
+        "pending": "Diterima",
+        "confirmed": "Dikonfirmasi",
+        "paid": "Lunas",
+        "printing": "Sedang dicetak",
+        "shipped": "Dikirim",
+        "delivered": "Terkirim"
+      },
+      "orderDetail": "Detail Pesanan",
+      "colLanguage": "Bahasa",
+      "colType": "Tipe",
+      "colQuantity": "Jumlah",
+      "colUnitPrice": "Harga Satuan",
+      "colSubtotal": "Subtotal",
+      "total": "Total",
+      "ordererInfo": "Info Pemesan",
+      "deliveryInfo": "Info Pengiriman",
+      "notes": "Catatan"
     }
   },
   "seo": {
@@ -746,6 +890,12 @@
     "textbookStatus": {
       "title": "Status Pesanan - Amazing Korean",
       "description": "Periksa status pesanan buku teks Anda."
+    },
+    "book": {
+      "title": "Informasi Buku Teks Amazing Korean Basic {{language}}",
+      "description": "Detail dan informasi pembelian buku teks Amazing Korean Basic {{language}}.",
+      "notFoundTitle": "Buku Teks Tidak Ditemukan - Amazing Korean",
+      "notFoundDescription": "ISBN tidak valid."
     }
   },
   "bookHub": {

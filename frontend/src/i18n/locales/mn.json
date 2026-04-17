@@ -215,7 +215,10 @@
     "validationBirthdayFormat": "Please enter a valid date (YYYY-MM-DD).",
     "validationCountryRequired": "Please select a country.",
     "validationLanguageRequired": "Please select a language.",
-    "validationPasswordMax": "Password must be 72 characters or less."
+    "validationPasswordMax": "Password must be 72 characters or less.",
+    "mfaBackupPlaceholder": "8 тэмдэгт бүхий нөөц код",
+    "mfaUseBackupCode": "Нөөц код ашиглах",
+    "mfaUseAuthApp": "Баталгаажуулах апп ашиглах"
   },
   "user": {
     "myPageTitle": "Миний хуудас",
@@ -333,7 +336,11 @@
     "ctaTitle": "Одоо эхлээрэй",
     "ctaDescription": "Үнэгүй бүртгүүлж солонгос хэл сурч эхлээрэй.",
     "ctaStart": "Үнэгүй эхлэх",
-    "ctaBrowseBooks": "Сурах бичиг үзэх"
+    "ctaBrowseBooks": "Сурах бичиг үзэх",
+    "stat1Title": "34 хэл, 68 сурах бичгийн хувилбар",
+    "stat1Desc": "Хэл бүрт зориулсан тусгай сурах бичгүүдийг ашиглан Солонгос хэлийг өөрийн хэлээрээ сураарай.",
+    "stat2Title": "500 суурь өгүүлбэр",
+    "stat2Desc": "Үндсэн хэл зүй (цаг, нөхцөл) болон өгүүлбэрийн бүтэц (үгэн дэс, нөхцөл)-д суурилсан Солонгос хэлний суурь сургалт."
   },
   "study": {
     "heroBadge": "Системтэй солонгос хэлний сургалт",
@@ -515,7 +522,8 @@
       "searchPlaceholder": "Search language...",
       "noResults": "No results found.",
       "bookTitle": "Amazing Korean Basics - {{language}}",
-      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK."
+      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK.",
+      "pricePerUnit": "15,000 KRW"
     },
     "detail": {
       "viewDetail": "View Details",
@@ -538,7 +546,10 @@
       "success": "Худалдан авалт амжилттай.",
       "error": "Худалдан авах үед алдаа гарлаа.",
       "cardPayment": "Card Payment",
-      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+      "paddleNote": "International card payment via Paddle. Charges will be in USD.",
+      "paddleUnavailable": "Картын төлбөр хийх боломжгүй байна.",
+      "checkoutSuccess": "Төлбөр амжилттай боллоо.",
+      "cancelSuccess": "Захиалга цуцлагдлаа."
     },
     "purchaseComplete": {
       "title": "Худалдан авалт дууссан",
@@ -576,7 +587,10 @@
       "empty": "Худалдан авсан цахим ном байхгүй.",
       "browseCatalog": "Цахим ном үзэх",
       "openViewer": "Уншигч нээх",
-      "loadError": "Худалдан авалтын түүх ачаалж чадсангүй."
+      "loadError": "Худалдан авалтын түүх ачаалж чадсангүй.",
+      "payNow": "Одоо төлөх",
+      "cancelOrder": "Захиалга цуцлах",
+      "processing": "Төлбөр боловсруулж байна..."
     },
     "viewer": {
       "toc": "Агуулга",
@@ -586,7 +600,13 @@
       "copyrightNotice": "Энэ контент нь зохиогчийн эрхийн хуулиар хамгаалагдсан.",
       "copyrightLegal": "Техникийн хамгаалалтын арга хэмжээг тойрч гарах нь БНСУ-ын Зохиогчийн эрхийн хуулийн 104-2 дугаар зүйлийн дагуу шийтгэгдэнэ.",
       "copyrightWatermark": "Энэ E-book нь худалдан авагчийг тодорхойлох дижитал усан тэмдэгтэй.",
-      "copyrightConfirm": "Ойлголоо"
+      "copyrightConfirm": "Ойлголоо",
+      "notFoundDesc": "Худалдан авсан код байхгүй эсвэл Та хандах эрхгүй байна.",
+      "paymentRequired": "Төлбөр амжилттай болсонгүй.",
+      "paymentRequiredDesc": "Төлбөр амжилттай болсны дараа Та E-book-оо үзэх боломжтой. Банкны шилжүүлгийн хувьд админ баталгаажуулсны дараа хандах эрх нээгдэх болно.",
+      "goToMyEbooks": "Миний e-номмууд руу очих",
+      "spreadView": "Хоёр хуудас зэрэг харах",
+      "singleView": "Нэг хуудас харах"
     }
   },
   "textbook": {
@@ -613,7 +633,12 @@
       "viewCarousel": "Карусель харагдац",
       "searchPlaceholder": "Хэл хайх...",
       "noResults": "Үр дүн олдсонгүй.",
-      "bookDescription": "Системтэй солонгос хэлний сурах бичиг. Хэл бүрийн төрөлх хэлтэй мэргэжилтнүүд орчуулсан."
+      "bookDescription": "Системтэй солонгос хэлний сурах бичиг. Хэл бүрийн төрөлх хэлтэй мэргэжилтнүүд орчуулсан.",
+      "isbnPending": "ISBN бүртгэл болон хэвлэлтэд ~1 долоо хоногийн нэмэлт хугацаа шаардлагатай.",
+      "bookTitle": "Amazing Korean Basic - {{language}}",
+      "editionInfo": "{{edition}} · Доод тал нь 10 ширхэг захиалга",
+      "bookDescriptionStudent": "Солонгос хэл сурахад зориулсан суурь сурах бичвэр.\nСолонгос - Англи - {{language}} хэлний хослолоор,\nсолонгос хэлний анхан шатны мэдлэг олгох болон\nTOPIK, EPS-TOPIK шалгалтанд бэлдэх анхны алхам юм.",
+      "bookDescriptionTeacher": "Солонгос хэл заахад зориулсан суурь сурах бичвэр.\nСолонгос - Англи - {{language}} хэлний хослолоор,\nсолонгос хэлний анхан шатны зааварчилгаа болон\nTOPIK, EPS-TOPIK шалгалтанд бэлдэх анхны алхам юм."
     },
     "detail": {
       "modalTitle": "Сурах бичгийн дэлгэрэнгүй",
@@ -680,6 +705,125 @@
       "notFound": "Захиалга олдсонгүй.",
       "quoteNotice": "Энэ үнийн санал нь захиалга илгээсэн дээр үндэслэсэн бөгөөд бодит төлбөрийн дүн өөр байж болно.",
       "confirmationNotice": "Энэ баталгаа нь зөвхөн захиалгын төлөв шалгах зорилготой бөгөөд албан ёсны баримт биш юм."
+    },
+    "order": {
+      "sectionItems": "Сурах бичвэр сонгох",
+      "language": "Хэл",
+      "languagePlaceholder": "Хэл сонгох",
+      "textbookType": "Төрөл",
+      "typeStudent": "Сурагч",
+      "typeTeacher": "Багш",
+      "quantity": "Тоо ширхэг",
+      "currency": "KRW",
+      "addItem": "Нэмэх",
+      "totalQuantity": "Нийт тоо ширхэг",
+      "unit": " ширхэг",
+      "totalAmount": "Нийт дүн",
+      "minQuantityError": "Доод захиалгын хэмжээ {{min}} ширхэг байх ёстой",
+      "duplicateItemError": "Хэл болон төрлийн давхардсан хослол байна",
+      "minQuantityHint": "Доод хэмжээ {{min}} ширхэг",
+      "isbnNotice": "Зарим хэлний хувьд хэвлэхийн өмнө ISBN бүртгэл шаардлагатай байдаг тул хүргэлт ойролцоогоор 1 долоо хоногоор илүү хугацаа ордог.",
+      "sectionOrderer": "Захиалагчийн мэдээлэл",
+      "ordererName": "Нэр",
+      "ordererNamePlaceholder": "Жон До",
+      "ordererPhone": "Утас",
+      "ordererEmail": "Имэйл",
+      "sectionOrg": "Байгууллага",
+      "optional": "Заавал биш",
+      "orgName": "Байгууллагын нэр",
+      "orgNamePlaceholder": "Солонгос хэлний академи",
+      "orgType": "Байгууллагын төрөл",
+      "orgTypePlaceholder": "Төрөл сонгох",
+      "orgTypeAcademy": "Академи",
+      "orgTypeUniversity": "Их сургууль",
+      "orgTypeSchool": "Сургууль",
+      "orgTypeIndividual": "Хувь хүн",
+      "orgTypeOther": "Бусад",
+      "sectionDelivery": "Хүргэлтийн мэдээлэл",
+      "postalCode": "Шуудангийн индекс",
+      "address": "Хаяг",
+      "addressPlaceholder": "Мэйний гудамж, 123...",
+      "addressDetail": "Хаягийн дэлгэрэнгүй",
+      "addressDetailPlaceholder": "Барилга, давхар гэх мэт",
+      "sectionPayment": "Төлбөрийн мэдээлэл",
+      "paymentMethodNote": "Одоогоор зөвхөн банкны шилжүүлэг ашиглах боломжтой. Захиалга өгсний дараа шилжүүлгийн дэлгэрэнгүй мэдээллийг өгөх болно.",
+      "depositorName": "Төлбөр төлөгчийн нэр",
+      "depositorNamePlaceholder": "Захиалагчаас өөр бол",
+      "sectionTax": "Татварын нэхэмжлэх",
+      "taxInvoiceLabel": "Татварын нэхэмжлэх авах хүсэлт",
+      "taxBizNumber": "Бизнесийн бүртгэлийн дугаар",
+      "taxCompanyName": "Компанийын нэр",
+      "taxCompanyNamePlaceholder": "Компанийын нэрийг оруулна уу",
+      "taxRepName": "Төлөөлөгчийн нэр",
+      "taxRepNamePlaceholder": "Төлөөлөгчийн нэрийг оруулна уу",
+      "taxAddress": "Бизнесийн хаяг",
+      "taxAddressPlaceholder": "Бизнесийн бүртгэлийн хаяг",
+      "taxBizType": "Бизнесийн төрөл",
+      "taxBizTypePlaceholder": "Жишээ нь: Үйлчилгээ, Худалдаа",
+      "taxBizItem": "Бизнесийн чиглэл",
+      "taxBizItemPlaceholder": "Жишээ нь: Боловсрол, Хэвлэл",
+      "taxEmail": "Татварын нэхэмжлэхийн и-мэйл",
+      "sectionNotes": "Тэмдэглэл",
+      "notesPlaceholder": "Нэмэлт хүсэлт",
+      "submitting": "Боловсруулж байна...",
+      "submitButton": "Захиалга өгөх",
+      "successToast": "Захиалга амжилттай илгээгдлээ!",
+      "errorToast": "Захиалга амжилтгүй боллоо. Дахин оролдоно уу.",
+      "completeTitle": "Захиалга илгээгдсэн",
+      "completeDesc": "Захиалгын дугаарыг доор хадгалаарай. Захиалгаа хянахын тулд энэ дугаар шаардлагатай болно.",
+      "orderCode": "Захиалгын дугаар",
+      "codeCopied": "Захиалгын код хуулбарлагдав",
+      "bankTransferGuide": "Банкны шилжүүлгийн мэдээлэл",
+      "bankAccount": "Шилжүүлэх данс: {{account}}",
+      "bankNote": "Шилжүүлгийн санамж хэсэгт захиалгын код эсвэл өөрийн нэрийг заавал оруулна уу.",
+      "trackGuide": "Та доорх товчлуурыг ашиглан захиалгын төлөвөө шалгах боломжтой.",
+      "trackButton": "Захиалга хянах",
+      "validationNameRequired": "Нэрээ оруулна уу.",
+      "validationEmailRequired": "Имэйл хаягаа оруулна уу.",
+      "validationEmailFormat": "Имэйл хаягаа зөв оруулна уу.",
+      "validationPhoneRequired": "Утасны дугаараа оруулна уу.",
+      "validationAddressRequired": "Хүргэлтийн хаягаа оруулна уу.",
+      "validationLanguageRequired": "Хэлээ сонгоно уу.",
+      "validationQuantityMin": "Тоо ширхэг нь хамгийн багадаа 1 байх ёстой.",
+      "validationQuantityMax": "Тоо ширхэг нь 9,999-ээс дээшгүй байх ёстой.",
+      "validationItemsRequired": "Доор хаяж нэг сурах бичиг нэмнэ үү."
+    },
+    "status": {
+      "title": "Захиалга хянах",
+      "subtitle": "Захиалгын төлөвийг шалгахын тулд захиалгын кодыг оруулна уу.",
+      "placeholder": "TB-260226-0001",
+      "search": "Хайх",
+      "notFound": "Захиалга олдсонгүй",
+      "notFoundDesc": "Захиалгын кодоо шалгаж, дахин оролдоно уу.",
+      "orderedAt": "Захиалсан огноо:",
+      "initialHint": "Захиалгын төлөв шалгахын тулд захиалгын кодоо оруулна уу.",
+      "label": {
+        "pending": "Захиалга хүлээн авсан",
+        "confirmed": "Баталгаажсан",
+        "paid": "Төлбөр баталгаажсан",
+        "printing": "Хэвлэгдэж байна",
+        "shipped": "Илгээгдсэн",
+        "delivered": "Хүргэгдсэн",
+        "canceled": "Цуцлагдсан"
+      },
+      "step": {
+        "pending": "Хүлээн авсан",
+        "confirmed": "Баталгаажсан",
+        "paid": "Төлбөр төлөгдсөн",
+        "printing": "Хэвлэгдэж байна",
+        "shipped": "Илгээгдсэн",
+        "delivered": "Хүргэгдсэн"
+      },
+      "orderDetail": "Захиалгын дэлгэрэнгүй",
+      "colLanguage": "Хэл",
+      "colType": "Төрөл",
+      "colQuantity": "Тоо ширхэг",
+      "colUnitPrice": "Нэгж үнэ",
+      "colSubtotal": "Дунд дүн",
+      "total": "Нийт дүн",
+      "ordererInfo": "Захиалагчийн мэдээлэл",
+      "deliveryInfo": "Хүргэлтийн мэдээлэл",
+      "notes": "Тэмдэглэл"
     }
   },
   "seo": {
@@ -746,6 +890,12 @@
     "textbookStatus": {
       "title": "Захиалгын байдал - Amazing Korean",
       "description": "Сурах бичгийн захиалгын байдлыг шалгана уу."
+    },
+    "book": {
+      "title": "Amazing Korean Basic {{language}} - Сурах бичгийн мэдээлэл",
+      "description": "Amazing Korean Basic {{language}} сурах бичгийн дэлгэрэнгүй мэдээлэл болон худалдан авах мэдээлэл.",
+      "notFoundTitle": "Сурах бичгийг олоогүй - Amazing Korean",
+      "notFoundDescription": "ISBN код буруу байна."
     }
   },
   "bookHub": {

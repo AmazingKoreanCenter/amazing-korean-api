@@ -215,7 +215,10 @@
     "validationBirthdayFormat": "Please enter a valid date (YYYY-MM-DD).",
     "validationCountryRequired": "Please select a country.",
     "validationLanguageRequired": "Please select a language.",
-    "validationPasswordMax": "Password must be 72 characters or less."
+    "validationPasswordMax": "Password must be 72 characters or less.",
+    "mfaBackupPlaceholder": "8位备份码",
+    "mfaUseBackupCode": "使用备份码",
+    "mfaUseAuthApp": "使用身份验证器"
   },
   "user": {
     "myPageTitle": "我的页面",
@@ -333,7 +336,11 @@
     "ctaTitle": "现在就开始吧",
     "ctaDescription": "免费注册，开始学习韩语。",
     "ctaStart": "免费开始",
-    "ctaBrowseBooks": "浏览教材"
+    "ctaBrowseBooks": "浏览教材",
+    "stat1Title": "34 种语言，68 版教材",
+    "stat1Desc": "通过针对每种语言编写的专属教材，用您的母语学习韩语。",
+    "stat2Title": "500 个基础句子",
+    "stat2Desc": "基于基础语法（时态、助词）和句子结构（谓语、状语）的韩语基础学习。"
   },
   "study": {
     "heroBadge": "系统化韩语学习",
@@ -515,7 +522,8 @@
       "searchPlaceholder": "Search language...",
       "noResults": "No results found.",
       "bookTitle": "Amazing Korean Basics - {{language}}",
-      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK."
+      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK.",
+      "pricePerUnit": "15,000 韩元"
     },
     "detail": {
       "viewDetail": "View Details",
@@ -538,7 +546,10 @@
       "success": "购买完成。",
       "error": "购买过程中发生错误。",
       "cardPayment": "Card Payment",
-      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+      "paddleNote": "International card payment via Paddle. Charges will be in USD.",
+      "paddleUnavailable": "无法使用银行卡支付。",
+      "checkoutSuccess": "支付成功。",
+      "cancelSuccess": "订单已取消。"
     },
     "purchaseComplete": {
       "title": "购买完成",
@@ -576,7 +587,10 @@
       "empty": "没有已购买的电子书。",
       "browseCatalog": "浏览电子书",
       "openViewer": "打开阅读器",
-      "loadError": "加载购买记录失败。"
+      "loadError": "加载购买记录失败。",
+      "payNow": "立即支付",
+      "cancelOrder": "取消订单",
+      "processing": "正在处理支付..."
     },
     "viewer": {
       "toc": "目录",
@@ -586,7 +600,13 @@
       "copyrightNotice": "本内容受版权法保护。",
       "copyrightLegal": "规避技术保护措施将依据韩国著作权法第104条之2受到处罚。",
       "copyrightWatermark": "本E-book已嵌入用于购买者识别的数字水印。",
-      "copyrightConfirm": "我已了解"
+      "copyrightConfirm": "我已了解",
+      "notFoundDesc": "购买码不存在或您没有访问权限。",
+      "paymentRequired": "支付未完成。",
+      "paymentRequiredDesc": "支付完成后即可查看电子书。如果是银行转账，将在管理员确认后开通访问权限。",
+      "goToMyEbooks": "前往我的电子书",
+      "spreadView": "双页视图",
+      "singleView": "单页视图"
     }
   },
   "textbook": {
@@ -613,7 +633,12 @@
       "viewCarousel": "轮播视图",
       "searchPlaceholder": "搜索语言...",
       "noResults": "未找到结果。",
-      "bookDescription": "系统化的韩语学习教材。由各语言母语专家翻译。"
+      "bookDescription": "系统化的韩语学习教材。由各语言母语专家翻译。",
+      "isbnPending": "ISBN 注册与印刷需额外约 1 周时间",
+      "bookTitle": "Amazing Korean 基础 - {{language}}",
+      "editionInfo": "{{edition}} · 最少起订量 10 本",
+      "bookDescriptionStudent": "韩语学习的基础教材。\n采用韩语 - 英语 - {{language}} 编写，\n是掌握韩语基础并\n备考 TOPIK 和 EPS-TOPIK 的第一步。",
+      "bookDescriptionTeacher": "韩语教学的基础教材。\n采用韩语 - 英语 - {{language}} 编写，\n是开展韩语基础教学并\n备考 TOPIK 和 EPS-TOPIK 的第一步。"
     },
     "detail": {
       "modalTitle": "教材详情",
@@ -680,6 +705,125 @@
         "delivered": "已送达",
         "canceled": "已取消"
       }
+    },
+    "order": {
+      "sectionItems": "选择教材",
+      "language": "语言",
+      "languagePlaceholder": "请选择语言",
+      "textbookType": "类型",
+      "typeStudent": "学生",
+      "typeTeacher": "教师",
+      "quantity": "数量",
+      "currency": "KRW",
+      "addItem": "添加项目",
+      "totalQuantity": "总数量",
+      "unit": " 本",
+      "totalAmount": "总金额",
+      "minQuantityError": "最小起订量为 {{min}} 本",
+      "duplicateItemError": "语言与类型组合重复",
+      "minQuantityHint": "最小 {{min}} 本",
+      "isbnNotice": "部分语言在印刷前需要进行 ISBN 注册。这些语言的配送时间可能会额外增加约 1 周。",
+      "sectionOrderer": "订购人信息",
+      "ordererName": "姓名",
+      "ordererNamePlaceholder": "张三",
+      "ordererPhone": "电话",
+      "ordererEmail": "电子邮件",
+      "sectionOrg": "机构",
+      "optional": "可选",
+      "orgName": "机构名称",
+      "orgNamePlaceholder": "韩语学院",
+      "orgType": "机构类型",
+      "orgTypePlaceholder": "请选择类型",
+      "orgTypeAcademy": "学院",
+      "orgTypeUniversity": "大学",
+      "orgTypeSchool": "学校",
+      "orgTypeIndividual": "个人",
+      "orgTypeOther": "其他",
+      "sectionDelivery": "收货信息",
+      "postalCode": "邮政编码",
+      "address": "地址",
+      "addressPlaceholder": "123 Main Street...",
+      "addressDetail": "详细地址",
+      "addressDetailPlaceholder": "楼层、房间号等",
+      "sectionPayment": "支付信息",
+      "paymentMethodNote": "目前仅支持银行转账。提交订单后将为您提供转账详情。",
+      "depositorName": "付款人姓名",
+      "depositorNamePlaceholder": "若与下单人不同",
+      "sectionTax": "税务发票",
+      "taxInvoiceLabel": "申请税务发票",
+      "taxBizNumber": "纳税人识别号",
+      "taxCompanyName": "公司名称",
+      "taxCompanyNamePlaceholder": "请输入公司名称",
+      "taxRepName": "代表人姓名",
+      "taxRepNamePlaceholder": "请输入代表人姓名",
+      "taxAddress": "营业地址",
+      "taxAddressPlaceholder": "营业执照上的地址",
+      "taxBizType": "业务类型",
+      "taxBizTypePlaceholder": "例如：服务、零售",
+      "taxBizItem": "业务项目",
+      "taxBizItemPlaceholder": "例如：教育、出版",
+      "taxEmail": "税务发票邮箱",
+      "sectionNotes": "备注",
+      "notesPlaceholder": "其他需求",
+      "submitting": "处理中...",
+      "submitButton": "提交订单",
+      "successToast": "订单已提交！",
+      "errorToast": "订单提交失败，请重试。",
+      "completeTitle": "订单已提交",
+      "completeDesc": "请妥善保存下方的订单编号。您将需要使用它来查询订单进度。",
+      "orderCode": "订单编号",
+      "codeCopied": "订单编号已复制",
+      "bankTransferGuide": "银行转账信息",
+      "bankAccount": "转账至：{{account}}",
+      "bankNote": "请在转账备注中注明订单编号或您的姓名。",
+      "trackGuide": "您可以通过下方按钮查询订单状态。",
+      "trackButton": "追踪订单",
+      "validationNameRequired": "请输入您的姓名。",
+      "validationEmailRequired": "请输入您的电子邮箱。",
+      "validationEmailFormat": "请输入有效的电子邮箱地址。",
+      "validationPhoneRequired": "请输入您的电话号码。",
+      "validationAddressRequired": "请输入收货地址。",
+      "validationLanguageRequired": "请选择语言。",
+      "validationQuantityMin": "数量至少为 1。",
+      "validationQuantityMax": "数量不能超过 9,999。",
+      "validationItemsRequired": "请至少添加一本教材。"
+    },
+    "status": {
+      "title": "查询订单",
+      "subtitle": "请输入您的订单编号以查询订单状态。",
+      "placeholder": "TB-260226-0001",
+      "search": "查询",
+      "notFound": "未找到订单",
+      "notFoundDesc": "请检查您的订单代码并重试。",
+      "orderedAt": "下单日期：",
+      "initialHint": "请输入您的订单代码以查询订单状态。",
+      "label": {
+        "pending": "订单已收到",
+        "confirmed": "已确认",
+        "paid": "支付成功",
+        "printing": "印刷中",
+        "shipped": "已发货",
+        "delivered": "已送达",
+        "canceled": "已取消"
+      },
+      "step": {
+        "pending": "已收到",
+        "confirmed": "已确认",
+        "paid": "已支付",
+        "printing": "印刷中",
+        "shipped": "已发货",
+        "delivered": "已送达"
+      },
+      "orderDetail": "订单详情",
+      "colLanguage": "语言",
+      "colType": "类型",
+      "colQuantity": "数量",
+      "colUnitPrice": "单价",
+      "colSubtotal": "小计",
+      "total": "总计",
+      "ordererInfo": "订购人信息",
+      "deliveryInfo": "配送信息",
+      "notes": "备注"
     }
   },
   "seo": {
@@ -746,6 +890,12 @@
     "textbookStatus": {
       "title": "订单查询 - Amazing Korean",
       "description": "查询教材订单状态。"
+    },
+    "book": {
+      "title": "Amazing Korean Basic {{language}} - 教材信息",
+      "description": "Amazing Korean Basic {{language}} 教材详情及购买信息。",
+      "notFoundTitle": "未找到教材 - Amazing Korean",
+      "notFoundDescription": "ISBN 无效。"
     }
   },
   "bookHub": {

@@ -215,7 +215,10 @@
     "validationBirthdayFormat": "Please enter a valid date (YYYY-MM-DD).",
     "validationCountryRequired": "Please select a country.",
     "validationLanguageRequired": "Please select a language.",
-    "validationPasswordMax": "Password must be 72 characters or less."
+    "validationPasswordMax": "Password must be 72 characters or less.",
+    "mfaBackupPlaceholder": "Mã dự phòng 8 ký tự",
+    "mfaUseBackupCode": "Sử dụng mã dự phòng",
+    "mfaUseAuthApp": "Sử dụng ứng dụng xác thực"
   },
   "user": {
     "myPageTitle": "Trang cá nhân",
@@ -333,7 +336,11 @@
     "ctaTitle": "Hãy bắt đầu ngay",
     "ctaDescription": "Đăng ký miễn phí và bắt đầu học tiếng Hàn.",
     "ctaStart": "Bắt đầu miễn phí",
-    "ctaBrowseBooks": "Xem giáo trình"
+    "ctaBrowseBooks": "Xem giáo trình",
+    "stat1Title": "34 Ngôn ngữ, 68 Phiên bản Sách giáo khoa",
+    "stat1Desc": "Học tiếng Hàn bằng ngôn ngữ của bạn với các sách giáo khoa chuyên biệt cho từng ngôn ngữ.",
+    "stat2Title": "500 Câu nền tảng",
+    "stat2Desc": "Học tiếng Hàn nền tảng dựa trên ngữ pháp cơ bản (thì, tiểu từ) và cấu trúc câu (vị ngữ, trạng ngữ)."
   },
   "study": {
     "heroBadge": "Học tiếng Hàn có hệ thống",
@@ -515,7 +522,8 @@
       "searchPlaceholder": "Search language...",
       "noResults": "No results found.",
       "bookTitle": "Amazing Korean Basics - {{language}}",
-      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK."
+      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK.",
+      "pricePerUnit": "15.000 KRW"
     },
     "detail": {
       "viewDetail": "View Details",
@@ -538,7 +546,10 @@
       "success": "Mua hàng thành công.",
       "error": "Đã xảy ra lỗi trong quá trình mua hàng.",
       "cardPayment": "Card Payment",
-      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+      "paddleNote": "International card payment via Paddle. Charges will be in USD.",
+      "paddleUnavailable": "Không thể thanh toán bằng thẻ.",
+      "checkoutSuccess": "Thanh toán hoàn tất.",
+      "cancelSuccess": "Đã hủy đơn hàng."
     },
     "purchaseComplete": {
       "title": "Mua thành công",
@@ -576,7 +587,10 @@
       "empty": "Chưa có E-book nào được mua.",
       "browseCatalog": "Xem E-book",
       "openViewer": "Mở trình xem",
-      "loadError": "Không thể tải lịch sử mua hàng."
+      "loadError": "Không thể tải lịch sử mua hàng.",
+      "payNow": "Thanh toán ngay",
+      "cancelOrder": "Hủy đơn hàng",
+      "processing": "Đang xử lý thanh toán..."
     },
     "viewer": {
       "toc": "Mục lục",
@@ -586,7 +600,13 @@
       "copyrightNotice": "Nội dung này được bảo vệ bởi luật bản quyền.",
       "copyrightLegal": "Việc phá vỡ các biện pháp bảo vệ kỹ thuật sẽ bị xử phạt theo Điều 104-2 Luật Bản quyền Hàn Quốc.",
       "copyrightWatermark": "E-book này có chứa hình mờ kỹ thuật số để nhận dạng người mua.",
-      "copyrightConfirm": "Tôi đã hiểu"
+      "copyrightConfirm": "Tôi đã hiểu",
+      "notFoundDesc": "Mã mua hàng không tồn tại hoặc bạn không có quyền truy cập.",
+      "paymentRequired": "Chưa hoàn tất thanh toán.",
+      "paymentRequiredDesc": "Bạn có thể xem E-book sau khi hoàn tất thanh toán. Đối với chuyển khoản ngân hàng, quyền truy cập sẽ được cấp sau khi quản trị viên xác nhận.",
+      "goToMyEbooks": "Đi đến E-book của tôi",
+      "spreadView": "Chế độ xem hai trang",
+      "singleView": "Chế độ xem một trang"
     }
   },
   "textbook": {
@@ -613,7 +633,12 @@
       "viewCarousel": "Dạng băng chuyền",
       "searchPlaceholder": "Tìm ngôn ngữ...",
       "noResults": "Không tìm thấy kết quả.",
-      "bookDescription": "Sách giáo khoa học tiếng Hàn có hệ thống. Được dịch bởi chuyên gia bản ngữ của từng ngôn ngữ."
+      "bookDescription": "Sách giáo khoa học tiếng Hàn có hệ thống. Được dịch bởi chuyên gia bản ngữ của từng ngôn ngữ.",
+      "isbnPending": "Cần thêm khoảng 1 tuần để đăng ký ISBN & in ấn",
+      "bookTitle": "Amazing Korean Basic - {{language}}",
+      "editionInfo": "{{edition}} · Số lượng đặt hàng tối thiểu 10 bản",
+      "bookDescriptionStudent": "Sách giáo khoa nền tảng để học tiếng Hàn.\nĐược biên soạn bằng tiếng Hàn - tiếng Anh - {{language}},\nđây là bước đầu tiên để đạt được trình độ tiếng Hàn cơ bản\nvà chuẩn bị cho kỳ thi TOPIK và EPS-TOPIK.",
+      "bookDescriptionTeacher": "Sách giáo khoa nền tảng để dạy tiếng Hàn.\nĐược biên soạn bằng tiếng Hàn - tiếng Anh - {{language}},\nđây là bước đầu tiên để giảng dạy tiếng Hàn cơ bản\nvà chuẩn bị cho kỳ thi TOPIK và EPS-TOPIK."
     },
     "detail": {
       "modalTitle": "Chi tiết giáo trình",
@@ -680,6 +705,125 @@
         "delivered": "Đã giao",
         "canceled": "Đã hủy"
       }
+    },
+    "order": {
+      "sectionItems": "Chọn sách giáo khoa",
+      "language": "Ngôn ngữ",
+      "languagePlaceholder": "Chọn một ngôn ngữ",
+      "textbookType": "Loại",
+      "typeStudent": "Học sinh",
+      "typeTeacher": "Giáo viên",
+      "quantity": "Số lượng",
+      "currency": "KRW",
+      "addItem": "Thêm mục",
+      "totalQuantity": "Tổng số lượng",
+      "unit": " cuốn",
+      "totalAmount": "Tổng cộng",
+      "minQuantityError": "Số lượng đặt hàng tối thiểu là {{min}} cuốn",
+      "duplicateItemError": "Trùng lặp ngôn ngữ và loại",
+      "minQuantityHint": "Tối thiểu {{min}} cuốn",
+      "isbnNotice": "Một số ngôn ngữ yêu cầu đăng ký ISBN trước khi in. Thời gian giao hàng cho các ngôn ngữ này có thể mất thêm khoảng 1 tuần.",
+      "sectionOrderer": "Thông tin người đặt",
+      "ordererName": "Họ và tên",
+      "ordererNamePlaceholder": "Nguyễn Văn A",
+      "ordererPhone": "Số điện thoại",
+      "ordererEmail": "Email",
+      "sectionOrg": "Tổ chức",
+      "optional": "Không bắt buộc",
+      "orgName": "Tên tổ chức",
+      "orgNamePlaceholder": "Học viện Tiếng Hàn",
+      "orgType": "Loại hình tổ chức",
+      "orgTypePlaceholder": "Chọn loại hình",
+      "orgTypeAcademy": "Học viện",
+      "orgTypeUniversity": "Trường đại học",
+      "orgTypeSchool": "Trường học",
+      "orgTypeIndividual": "Cá nhân",
+      "orgTypeOther": "Khác",
+      "sectionDelivery": "Thông tin giao hàng",
+      "postalCode": "Mã bưu điện",
+      "address": "Địa chỉ",
+      "addressPlaceholder": "123 Đường Main...",
+      "addressDetail": "Chi tiết địa chỉ",
+      "addressDetailPlaceholder": "Tòa nhà, tầng, v.v.",
+      "sectionPayment": "Thông tin thanh toán",
+      "paymentMethodNote": "Hiện tại chỉ hỗ trợ chuyển khoản ngân hàng. Thông tin chuyển khoản sẽ được cung cấp sau khi gửi đơn hàng.",
+      "depositorName": "Tên người chuyển khoản",
+      "depositorNamePlaceholder": "Nếu khác với người đặt hàng",
+      "sectionTax": "Hóa đơn thuế",
+      "taxInvoiceLabel": "Yêu cầu xuất hóa đơn thuế",
+      "taxBizNumber": "Mã số đăng ký kinh doanh",
+      "taxCompanyName": "Tên công ty",
+      "taxCompanyNamePlaceholder": "Nhập tên công ty",
+      "taxRepName": "Tên người đại diện",
+      "taxRepNamePlaceholder": "Tên người đại diện",
+      "taxAddress": "Địa chỉ kinh doanh",
+      "taxAddressPlaceholder": "Địa chỉ trên giấy phép kinh doanh",
+      "taxBizType": "Loại hình kinh doanh",
+      "taxBizTypePlaceholder": "VD: Dịch vụ, Bán lẻ",
+      "taxBizItem": "Ngành nghề kinh doanh",
+      "taxBizItemPlaceholder": "VD: Giáo dục, Xuất bản",
+      "taxEmail": "Email nhận hóa đơn thuế",
+      "sectionNotes": "Ghi chú",
+      "notesPlaceholder": "Yêu cầu bổ sung",
+      "submitting": "Đang xử lý...",
+      "submitButton": "Đặt hàng",
+      "successToast": "Đã gửi đơn hàng thành công!",
+      "errorToast": "Đặt hàng thất bại. Vui lòng thử lại.",
+      "completeTitle": "Đã gửi đơn hàng",
+      "completeDesc": "Vui lòng lưu lại mã đơn hàng dưới đây. Bạn sẽ cần mã này để theo dõi đơn hàng.",
+      "orderCode": "Mã đơn hàng",
+      "codeCopied": "Đã sao chép mã đơn hàng",
+      "bankTransferGuide": "Thông tin chuyển khoản",
+      "bankAccount": "Chuyển khoản đến: {{account}}",
+      "bankNote": "Vui lòng ghi mã đơn hàng hoặc tên của bạn vào nội dung chuyển khoản.",
+      "trackGuide": "Bạn có thể kiểm tra tình trạng đơn hàng bằng nút bên dưới.",
+      "trackButton": "Theo dõi đơn hàng",
+      "validationNameRequired": "Vui lòng nhập tên của bạn.",
+      "validationEmailRequired": "Vui lòng nhập email của bạn.",
+      "validationEmailFormat": "Vui lòng nhập địa chỉ email hợp lệ.",
+      "validationPhoneRequired": "Vui lòng nhập số điện thoại của bạn.",
+      "validationAddressRequired": "Vui lòng nhập địa chỉ giao hàng.",
+      "validationLanguageRequired": "Vui lòng chọn một ngôn ngữ.",
+      "validationQuantityMin": "Số lượng phải ít nhất là 1.",
+      "validationQuantityMax": "Số lượng phải từ 9.999 trở xuống.",
+      "validationItemsRequired": "Vui lòng thêm ít nhất một cuốn sách giáo khoa."
+    },
+    "status": {
+      "title": "Theo dõi đơn hàng",
+      "subtitle": "Nhập mã đơn hàng để kiểm tra tình trạng đơn hàng.",
+      "placeholder": "TB-260226-0001",
+      "search": "Tìm kiếm",
+      "notFound": "Không tìm thấy đơn hàng",
+      "notFoundDesc": "Vui lòng kiểm tra lại mã đơn hàng và thử lại.",
+      "orderedAt": "Ngày đặt hàng:",
+      "initialHint": "Nhập mã đơn hàng của bạn để kiểm tra tình trạng đơn hàng.",
+      "label": {
+        "pending": "Đã nhận đơn hàng",
+        "confirmed": "Đã xác nhận",
+        "paid": "Đã xác nhận thanh toán",
+        "printing": "Đang in",
+        "shipped": "Đã gửi hàng",
+        "delivered": "Đã giao hàng",
+        "canceled": "Đã hủy"
+      },
+      "step": {
+        "pending": "Đã nhận",
+        "confirmed": "Đã xác nhận",
+        "paid": "Đã thanh toán",
+        "printing": "Đang in",
+        "shipped": "Đã giao hàng",
+        "delivered": "Đã giao"
+      },
+      "orderDetail": "Chi tiết đơn hàng",
+      "colLanguage": "Ngôn ngữ",
+      "colType": "Loại",
+      "colQuantity": "Số lượng",
+      "colUnitPrice": "Đơn giá",
+      "colSubtotal": "Thành tiền",
+      "total": "Tổng cộng",
+      "ordererInfo": "Thông tin người đặt",
+      "deliveryInfo": "Thông tin giao hàng",
+      "notes": "Ghi chú"
     }
   },
   "seo": {
@@ -746,6 +890,12 @@
     "textbookStatus": {
       "title": "Theo dõi đơn hàng - Amazing Korean",
       "description": "Theo dõi tình trạng đơn hàng giáo trình."
+    },
+    "book": {
+      "title": "Amazing Korean Basic {{language}} - Thông tin sách giáo khoa",
+      "description": "Thông tin chi tiết và cách thức mua sách giáo khoa Amazing Korean Basic {{language}}.",
+      "notFoundTitle": "Không tìm thấy sách giáo khoa - Amazing Korean",
+      "notFoundDescription": "Mã ISBN không hợp lệ."
     }
   },
   "bookHub": {

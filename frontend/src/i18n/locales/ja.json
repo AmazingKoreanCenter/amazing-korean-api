@@ -215,7 +215,10 @@
     "validationBirthdayFormat": "Please enter a valid date (YYYY-MM-DD).",
     "validationCountryRequired": "Please select a country.",
     "validationLanguageRequired": "Please select a language.",
-    "validationPasswordMax": "Password must be 72 characters or less."
+    "validationPasswordMax": "Password must be 72 characters or less.",
+    "mfaBackupPlaceholder": "8文字のバックアップコード",
+    "mfaUseBackupCode": "バックアップコードを使用する",
+    "mfaUseAuthApp": "認証アプリを使用する"
   },
   "user": {
     "myPageTitle": "マイページ",
@@ -333,7 +336,11 @@
     "ctaTitle": "今すぐ始めてみましょう",
     "ctaDescription": "無料で登録して韓国語学習を始めてみましょう。",
     "ctaStart": "無料で始める",
-    "ctaBrowseBooks": "教材を見る"
+    "ctaBrowseBooks": "教材を見る",
+    "stat1Title": "34言語、68種類の教科書",
+    "stat1Desc": "各言語専用の教科書を使って、自分の言語で韓国語を学習できます。",
+    "stat2Title": "500の基礎例文",
+    "stat2Desc": "基本的な文法（時制、助詞）と文構造（述語、副詞）に基づいた、韓国語の基礎学習。"
   },
   "study": {
     "heroBadge": "体系的な韓国語学習",
@@ -515,7 +522,8 @@
       "searchPlaceholder": "Search language...",
       "noResults": "No results found.",
       "bookTitle": "Amazing Korean Basics - {{language}}",
-      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK."
+      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK.",
+      "pricePerUnit": "15,000 KRW"
     },
     "detail": {
       "viewDetail": "View Details",
@@ -538,7 +546,10 @@
       "success": "購入が完了しました。",
       "error": "購入中にエラーが発生しました。",
       "cardPayment": "Card Payment",
-      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+      "paddleNote": "International card payment via Paddle. Charges will be in USD.",
+      "paddleUnavailable": "クレジットカード決済はご利用いただけません。",
+      "checkoutSuccess": "決済が完了しました。",
+      "cancelSuccess": "注文をキャンセルしました。"
     },
     "purchaseComplete": {
       "title": "購入完了",
@@ -576,7 +587,10 @@
       "empty": "購入したE-bookはありません。",
       "browseCatalog": "E-bookを見る",
       "openViewer": "ビューアで開く",
-      "loadError": "購入履歴の読み込みに失敗しました。"
+      "loadError": "購入履歴の読み込みに失敗しました。",
+      "payNow": "今すぐ支払う",
+      "cancelOrder": "注文をキャンセルする",
+      "processing": "決済処理中..."
     },
     "viewer": {
       "toc": "目次",
@@ -586,7 +600,13 @@
       "copyrightNotice": "このコンテンツは著作権法により保護されています。",
       "copyrightLegal": "技術的保護手段の回避は韓国著作権法第104条の2に基づき処罰されます。",
       "copyrightWatermark": "本E-bookには購入者識別用のデジタル透かしが適用されています。",
-      "copyrightConfirm": "確認しました"
+      "copyrightConfirm": "確認しました",
+      "notFoundDesc": "購入コードが存在しないか、アクセス権限がありません。",
+      "paymentRequired": "決済が完了していません。",
+      "paymentRequiredDesc": "決済完了後に電子書籍を閲覧できます。銀行振込の場合、管理者による確認後にアクセスが可能になります。",
+      "goToMyEbooks": "マイ電子書籍へ移動",
+      "spreadView": "見開き表示",
+      "singleView": "1ページ表示"
     }
   },
   "textbook": {
@@ -613,7 +633,12 @@
       "viewCarousel": "カルーセル表示",
       "searchPlaceholder": "言語を検索...",
       "noResults": "検索結果がありません。",
-      "bookDescription": "体系的な韓国語学習テキストです。各言語のネイティブ専門家が翻訳しました。"
+      "bookDescription": "体系的な韓国語学習テキストです。各言語のネイティブ専門家が翻訳しました。",
+      "isbnPending": "ISBN登録と印刷のため、追加で約1週間ほどかかります。",
+      "bookTitle": "Amazing Korean Basic - {{language}}",
+      "editionInfo": "{{edition}} · 最小注文数 10冊",
+      "bookDescriptionStudent": "韓国語学習のための基礎的な教科書です。\n韓国語・英語・{{language}}で構成されており、\n韓国語の基礎習得、および\nTOPIKやEPS-TOPIK対策への第一歩となります。",
+      "bookDescriptionTeacher": "韓国語指導のための基礎的な教科書です。\n韓国語・英語・{{language}}で構成されており、\n韓国語の基礎的な指導、および\nTOPIKやEPS-TOPIK対策への第一歩となります。"
     },
     "detail": {
       "modalTitle": "教材詳細",
@@ -680,6 +705,125 @@
       "notFound": "注文が見つかりません。",
       "quoteNotice": "この見積書は注文申請に基づくものであり、実際のお支払い金額は異なる場合があります。",
       "confirmationNotice": "この確認書は注文状況の確認用であり、正式な領収書ではありません。"
+    },
+    "order": {
+      "sectionItems": "教材を選択",
+      "language": "言語",
+      "languagePlaceholder": "言語を選択",
+      "textbookType": "タイプ",
+      "typeStudent": "学生",
+      "typeTeacher": "講師",
+      "quantity": "数量",
+      "currency": "KRW",
+      "addItem": "アイテムを追加",
+      "totalQuantity": "合計数量",
+      "unit": "部",
+      "totalAmount": "合計金額",
+      "minQuantityError": "最小注文数は{{min}}部です",
+      "duplicateItemError": "言語とタイプの組み合わせが重複しています",
+      "minQuantityHint": "最小{{min}}部",
+      "isbnNotice": "一部の言語では、印刷前にISBN登録が必要です。そのため、これらの言語の配送には、追加で約1週間ほどお時間をいただく場合があります。",
+      "sectionOrderer": "注文者情報",
+      "ordererName": "氏名",
+      "ordererNamePlaceholder": "山田 太郎",
+      "ordererPhone": "電話番号",
+      "ordererEmail": "メールアドレス",
+      "sectionOrg": "組織",
+      "optional": "任意",
+      "orgName": "組織名",
+      "orgNamePlaceholder": "韓国語学院",
+      "orgType": "組織種別",
+      "orgTypePlaceholder": "タイプを選択",
+      "orgTypeAcademy": "アカデミー",
+      "orgTypeUniversity": "大学",
+      "orgTypeSchool": "学校",
+      "orgTypeIndividual": "個人",
+      "orgTypeOther": "その他",
+      "sectionDelivery": "配送情報",
+      "postalCode": "郵便番号",
+      "address": "住所",
+      "addressPlaceholder": "東京都千代田区1-2-3...",
+      "addressDetail": "住所の詳細",
+      "addressDetailPlaceholder": "建物名、階数など",
+      "sectionPayment": "お支払い情報",
+      "paymentMethodNote": "現在、銀行振込のみご利用いただけます。振込先などの詳細は、注文完了後にご案内いたします。",
+      "depositorName": "振込人名",
+      "depositorNamePlaceholder": "注文者と異なる場合",
+      "sectionTax": "適格請求書",
+      "taxInvoiceLabel": "適格請求書の発行を希望する",
+      "taxBizNumber": "事業者登録番号",
+      "taxCompanyName": "会社名",
+      "taxCompanyNamePlaceholder": "会社名を入力してください",
+      "taxRepName": "代表者名",
+      "taxRepNamePlaceholder": "代表者名を入力してください",
+      "taxAddress": "所在地",
+      "taxAddressPlaceholder": "事業登録上の住所",
+      "taxBizType": "業種",
+      "taxBizTypePlaceholder": "例：サービス、小売",
+      "taxBizItem": "事業内容",
+      "taxBizItemPlaceholder": "例：教育、出版",
+      "taxEmail": "請求書送付用メールアドレス",
+      "sectionNotes": "備考",
+      "notesPlaceholder": "その他ご要望",
+      "submitting": "処理中...",
+      "submitButton": "注文を確定する",
+      "successToast": "注文が完了しました！",
+      "errorToast": "注文に失敗しました。もう一度お試しください。",
+      "completeTitle": "注文完了",
+      "completeDesc": "以下の注文コードを大切に保管してください。注文の追跡に必要となります。",
+      "orderCode": "注文コード",
+      "codeCopied": "注文コードをコピーしました",
+      "bankTransferGuide": "銀行振込のご案内",
+      "bankAccount": "振込先: {{account}}",
+      "bankNote": "振込の際、振込人名欄に注文コードまたはお名前をご記入ください。",
+      "trackGuide": "下記のボタンから注文状況を確認できます。",
+      "trackButton": "注文を追跡する",
+      "validationNameRequired": "名前を入力してください。",
+      "validationEmailRequired": "メールアドレスを入力してください。",
+      "validationEmailFormat": "有効なメールアドレスを入力してください。",
+      "validationPhoneRequired": "電話番号を入力してください。",
+      "validationAddressRequired": "配送先住所を入力してください。",
+      "validationLanguageRequired": "言語を選択してください。",
+      "validationQuantityMin": "数量は1個以上である必要があります。",
+      "validationQuantityMax": "数量は9,999個以下である必要があります。",
+      "validationItemsRequired": "教科書を少なくとも1冊追加してください。"
+    },
+    "status": {
+      "title": "注文状況の確認",
+      "subtitle": "注文状況を確認するには、注文コードを入力してください。",
+      "placeholder": "TB-260226-0001",
+      "search": "サーチ",
+      "notFound": "注文が見つかりませんでした。",
+      "notFoundDesc": "注文コードを確認して、もう一度お試しください。",
+      "orderedAt": "注文日:",
+      "initialHint": "注文ステータスを確認するには、注文コードを入力してください。",
+      "label": {
+        "pending": "注文受付済み",
+        "confirmed": "確定済み",
+        "paid": "支払い完了",
+        "printing": "印刷中",
+        "shipped": "発送済み",
+        "delivered": "配達済み",
+        "canceled": "キャンセル済み"
+      },
+      "step": {
+        "pending": "受付済み",
+        "confirmed": "確定済み",
+        "paid": "支払い済み",
+        "printing": "印刷中",
+        "shipped": "発送済み",
+        "delivered": "配送完了"
+      },
+      "orderDetail": "注文詳細",
+      "colLanguage": "言語",
+      "colType": "タイプ",
+      "colQuantity": "数量",
+      "colUnitPrice": "単価",
+      "colSubtotal": "小計",
+      "total": "合計",
+      "ordererInfo": "注文者情報",
+      "deliveryInfo": "配送情報",
+      "notes": "備考"
     }
   },
   "seo": {
@@ -746,6 +890,12 @@
     "textbookStatus": {
       "title": "注文状況確認 - Amazing Korean",
       "description": "教材の注文状況を確認します。"
+    },
+    "book": {
+      "title": "Amazing Korean Basic {{language}} - 教科書情報",
+      "description": "Amazing Korean Basic {{language}} 教科書の詳細および購入情報。",
+      "notFoundTitle": "教科書が見つかりませんでした - Amazing Korean",
+      "notFoundDescription": "ISBNが無効です。"
     }
   },
   "bookHub": {
