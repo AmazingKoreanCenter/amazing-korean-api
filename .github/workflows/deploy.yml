@@ -42,13 +42,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Sync docker-compose.prod.yml to EC2
+      - name: Sync docker-compose.prod.yml + nginx config to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.prod.yml"
+          # docker-compose.prod.yml → ~/amazing-korean-api/
+          # nginx/nginx.conf     → ~/amazing-korean-api/nginx/nginx.conf (경로 보존)
+          source: "docker-compose.prod.yml,nginx/nginx.conf"
           target: "~/amazing-korean-api/"
 
       - name: Deploy to EC2
@@ -102,6 +104,17 @@ jobs:
 
             # Restart containers
             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+            # nginx.conf 는 volume-mount (docker-compose.prod.yml L122) 되어 있어
+            # 파일이 바뀌어도 컨테이너는 재시작 안 됨. 변경사항 반영 위해 reload 호출.
+            # syntax check(-t) 실패 시 reload 생략 → 기존 정상 설정 유지 (fail-safe).
+            if docker exec amk-nginx nginx -t 2>&1; then
+              docker exec amk-nginx nginx -s reload
+              echo "nginx config reloaded"
+            else
+              echo "nginx config syntax error — reload skipped, keeping old config"
+              exit 1
+            fi
 
             # Cleanup old images
             docker image prune -f
