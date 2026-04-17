@@ -11,7 +11,11 @@
       "Bash(set -e)",
       "Bash(awk 'BEGIN{b=0} /^$/{b=1;next} !b{print} b{print \"BODY:\",$0}')",
       "Bash(awk '{print $3}')",
-      "Bash(DATABASE_URL='postgres://postgres:postgres@127.0.0.1:5432/amazing_korean_db' cargo sqlx prepare --workspace -- --all-targets)"
+      "Bash(DATABASE_URL='postgres://postgres:postgres@127.0.0.1:5432/amazing_korean_db' cargo sqlx prepare --workspace -- --all-targets)",
+      "Bash(awk -F: '$2 > 1 {print}')",
+      "Bash(perl -i -pe 's/900/500/g; s/៩០០/៥០០/g; s/၉၀၀/၅၀၀/g; s/९००/५००/g;' src/i18n/locales/*.json)",
+      "Bash(perl -i -pe 's/Basic 900/Basic 500/g' src/category/admin/page/admin_studies_page.tsx src/category/admin/page/admin_study_create.tsx src/category/admin/page/admin_study_detail.tsx src/category/admin/page/admin_study_stats_page.tsx grep -rn \"Basic 900\\\\|basic_900\\\\|Basic900\" src/)",
+      "Bash(perl -i -pe 's/\\\\bbasic_900\\\\b/basic_500/g' /home/kkryo/dev/amazing-korean-api/docs/AMK_API_FUTURE.md /home/kkryo/dev/amazing-korean-api/docs/AMK_STATUS.md grep -n \"basic_900\" /home/kkryo/dev/amazing-korean-api/docs/AMK_STATUS.md /home/kkryo/dev/amazing-korean-api/docs/AMK_API_FUTURE.md)"
     ]
   }
 }
