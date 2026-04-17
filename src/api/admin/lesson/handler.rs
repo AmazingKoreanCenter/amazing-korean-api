@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
@@ -174,7 +175,7 @@ pub async fn admin_update_lesson_progress(
     AuthUser(auth_user): AuthUser,
     Path(lesson_id): Path<i32>,
     headers: HeaderMap,
-    Json(req): Json<LessonProgressUpdateReq>,
+    AppJson(req): AppJson<LessonProgressUpdateReq>,
 ) -> AppResult<Json<AdminLessonProgressRes>> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -212,7 +213,7 @@ pub async fn admin_bulk_update_lesson_progress(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<LessonProgressBulkUpdateReq>,
+    AppJson(req): AppJson<LessonProgressBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<LessonProgressBulkUpdateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -259,7 +260,7 @@ pub async fn admin_create_lesson_item(
     AuthUser(auth_user): AuthUser,
     Path(lesson_id): Path<i32>,
     headers: HeaderMap,
-    Json(req): Json<LessonItemCreateReq>,
+    AppJson(req): AppJson<LessonItemCreateReq>,
 ) -> AppResult<(StatusCode, Json<AdminLessonItemRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -298,7 +299,7 @@ pub async fn admin_bulk_create_lesson_items(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<LessonItemBulkCreateReq>,
+    AppJson(req): AppJson<LessonItemBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<LessonItemBulkCreateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -342,7 +343,7 @@ pub async fn admin_bulk_update_lesson_items(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<LessonItemBulkUpdateReq>,
+    AppJson(req): AppJson<LessonItemBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<LessonItemBulkUpdateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -384,7 +385,7 @@ pub async fn admin_bulk_delete_lesson_items(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<LessonItemBulkDeleteReq>,
+    AppJson(req): AppJson<LessonItemBulkDeleteReq>,
 ) -> AppResult<(StatusCode, Json<LessonItemBulkDeleteRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -432,7 +433,7 @@ pub async fn admin_update_lesson_item(
     AuthUser(auth_user): AuthUser,
     Path((lesson_id, seq)): Path<(i32, i32)>,
     headers: HeaderMap,
-    Json(req): Json<LessonItemUpdateReq>,
+    AppJson(req): AppJson<LessonItemUpdateReq>,
 ) -> AppResult<Json<AdminLessonItemRes>> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -470,7 +471,7 @@ pub async fn admin_create_lesson(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<LessonCreateReq>,
+    AppJson(req): AppJson<LessonCreateReq>,
 ) -> AppResult<(StatusCode, Json<AdminLessonRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -507,7 +508,7 @@ pub async fn admin_bulk_create_lessons(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<LessonBulkCreateReq>,
+    AppJson(req): AppJson<LessonBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<LessonBulkCreateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -551,7 +552,7 @@ pub async fn admin_bulk_update_lessons(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<LessonBulkUpdateReq>,
+    AppJson(req): AppJson<LessonBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<LessonBulkUpdateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -598,7 +599,7 @@ pub async fn admin_update_lesson(
     AuthUser(auth_user): AuthUser,
     Path(lesson_id): Path<i32>,
     headers: HeaderMap,
-    Json(req): Json<LessonUpdateReq>,
+    AppJson(req): AppJson<LessonUpdateReq>,
 ) -> AppResult<Json<AdminLessonRes>> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);

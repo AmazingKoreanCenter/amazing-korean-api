@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::extract::{Path, State};
 use axum::http::HeaderMap;
 use axum::Json;
@@ -47,7 +48,7 @@ pub async fn create_order(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<CreateOrderReq>,
+    AppJson(req): AppJson<CreateOrderReq>,
 ) -> AppResult<Json<OrderRes>> {
     // IP 기반 Rate Limiting (주문 스팸 방지)
     let client_ip = extract_client_ip(&headers);

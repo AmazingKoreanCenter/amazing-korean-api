@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::Json;
@@ -93,7 +94,7 @@ pub async fn update_status(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     Path(id): Path<i64>,
-    Json(req): Json<AdminUpdateStatusReq>,
+    AppJson(req): AppJson<AdminUpdateStatusReq>,
 ) -> AppResult<Json<OrderRes>> {
     let res =
         AdminTextbookService::update_status(&st, auth_user.sub, id, req.status).await?;
@@ -121,7 +122,7 @@ pub async fn update_tracking(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     Path(id): Path<i64>,
-    Json(req): Json<AdminUpdateTrackingReq>,
+    AppJson(req): AppJson<AdminUpdateTrackingReq>,
 ) -> AppResult<Json<OrderRes>> {
     let res = AdminTextbookService::update_tracking(
         &st,

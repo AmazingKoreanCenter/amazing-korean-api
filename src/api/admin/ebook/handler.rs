@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::extract::{Path, Query, State};
 use axum::Json;
 
@@ -36,7 +37,7 @@ pub async fn update_status(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
     Path(id): Path<i64>,
-    Json(req): Json<AdminUpdateEbookStatusReq>,
+    AppJson(req): AppJson<AdminUpdateEbookStatusReq>,
 ) -> AppResult<Json<AdminEbookPurchaseItem>> {
     let res = AdminEbookService::update_status(&st, claims.sub, id, req).await?;
     Ok(Json(res))

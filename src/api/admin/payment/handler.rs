@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::{
     extract::{Path, Query, State},
     http::{header::USER_AGENT, HeaderMap, StatusCode},
@@ -130,7 +131,7 @@ pub async fn cancel_subscription(
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
     Path(id): Path<i64>,
-    Json(req): Json<AdminCancelSubReq>,
+    AppJson(req): AppJson<AdminCancelSubReq>,
 ) -> AppResult<Json<AdminSubDetailRes>> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
@@ -200,7 +201,7 @@ pub async fn create_grant(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<AdminGrantReq>,
+    AppJson(req): AppJson<AdminGrantReq>,
 ) -> AppResult<(StatusCode, Json<AdminGrantRes>)> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);

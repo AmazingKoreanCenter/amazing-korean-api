@@ -342,11 +342,18 @@ impl IntoResponse for AppError {
   - 들어오는 `x-request-id` 헤더가 유효(ASCII alphanumeric/`-`/`_`, ≤128자)하면 승계, 없으면 UUID v7 생성
   - 응답 헤더 `x-request-id` 로 에코백 (CORS `expose_headers` 로 브라우저에도 노출)
   - 핸들러에서 `Extension<TraceId>` 로 직접 추출도 가능 (로깅 span, 감사 로그 기록 시 사용)
+- **요청 바디 파싱**: 추출기는 항상 `AppJson<T>` (src/extract.rs) 사용. axum 기본
+  `Json<T>` 는 JsonRejection 시 `text/plain` 응답으로 표준 envelope + trace_id 를
+  우회하므로 요청 파싱 용도로는 **금지**. 응답 직렬화용 `Json(res)` 는 그대로 OK.
+  - `AppJson<T>` 가 JsonRejection 을 AppError 로 매핑:
+    JsonDataError → Unprocessable(422), JsonSyntaxError/MissingContentType/
+    BytesRejection → BadRequest(400). 전 경로 envelope + trace_id 통일.
 
 **⚠️ 규칙**:
 - 새 에러 타입 필요 시 → `AppError` variant 추가
 - 서비스/레포에서 `Err(AppError::NotFound)` 형태로 반환
 - 프론트엔드는 `error.code` 필드로 에러 종류 판단
+- 요청 바디 파싱 핸들러 파라미터는 `AppJson(x): AppJson<T>` 형태 고정
 
 ---
 
@@ -2265,11 +2272,13 @@ impl XxxService {
 
 | 파일 | 라인수 | Extractor 사용 | 주요 역할 | 특징 |
 |------|--------|---------------|----------|------|
-| [auth/handler.rs](src/api/auth/handler.rs) | 282 | State, HeaderMap, CookieJar, Json, AuthUser | 로그인, 토큰 갱신, 로그아웃 | Cookie 직접 관리 |
-| [user/handler.rs](src/api/user/handler.rs) | 240 | State, HeaderMap, CookieJar, Json, AuthUser | 회원가입, 프로필, 설정 | 201 + Location 헤더 |
-| [video/handler.rs](src/api/video/handler.rs) | 117 | State, Query, Path, Json, AuthUser | 비디오 목록, 진도 | 완전히 얇은 레이어 |
-| [study/handler.rs](src/api/study/handler.rs) | 142 | State, Query, Path, Json, AuthUser, OptionalAuthUser | 학습 과제, 채점 | Optional 인증 |
-| [lesson/handler.rs](src/api/lesson/handler.rs) | 150 | State, Query, Path, Json, AuthUser | 레슨 목록, 진도 | Service 인스턴스화 ⚠️ |
+| [auth/handler.rs](src/api/auth/handler.rs) | 282 | State, HeaderMap, CookieJar, AppJson, AuthUser | 로그인, 토큰 갱신, 로그아웃 | Cookie 직접 관리 |
+| [user/handler.rs](src/api/user/handler.rs) | 240 | State, HeaderMap, CookieJar, AppJson, AuthUser | 회원가입, 프로필, 설정 | 201 + Location 헤더 |
+| [video/handler.rs](src/api/video/handler.rs) | 117 | State, Query, Path, AppJson, AuthUser | 비디오 목록, 진도 | 완전히 얇은 레이어 |
+| [study/handler.rs](src/api/study/handler.rs) | 142 | State, Query, Path, AppJson, AuthUser, OptionalAuthUser | 학습 과제, 채점 | Optional 인증 |
+| [lesson/handler.rs](src/api/lesson/handler.rs) | 150 | State, Query, Path, AppJson, AuthUser | 레슨 목록, 진도 | Service 인스턴스화 ⚠️ |
+
+> **추출기 규약**: 요청 바디 파싱은 항상 `AppJson<T>` (src/extract.rs). 응답 직렬화는 `axum::Json` 그대로. 상세는 §1.3 에러 처리 + 아래 login 예제 주석 참조.
 
 #### 1️⃣ Auth Domain ([auth/handler.rs](src/api/auth/handler.rs))
 
@@ -2315,7 +2324,7 @@ pub async fn login(
     State(st): State<AppState>,
     headers: HeaderMap,
     jar: CookieJar,
-    Json(req): Json<LoginReq>,
+    AppJson(req): AppJson<LoginReq>,  // ⚠️ 요청 파싱은 AppJson, 응답은 Json (아래 참고)
 ) -> Result<(CookieJar, Json<LoginRes>), AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
@@ -2326,6 +2335,17 @@ pub async fn login(
 
     Ok((jar, Json(login_res)))
 }
+
+// ⚠️ 요청 바디 파싱 추출기는 반드시 `AppJson<T>` 를 쓸 것 (src/extract.rs).
+// axum 기본 `Json<T>` extractor 는 JsonRejection 시 `text/plain` 응답을 직접
+// 반환해 AMK_API_MASTER §3.4 표준 에러 envelope (code/http_status/message/
+// details/trace_id) 과 `x-request-id` 매칭 규약을 우회한다. `AppJson` 은
+// 내부적으로 `Json<T>` 를 호출하고 JsonRejection 을 AppError 로 매핑:
+//   - JsonDataError (필드 누락/타입 불일치) → AppError::Unprocessable (422)
+//   - JsonSyntaxError (깨진 JSON)           → AppError::BadRequest (400)
+//   - MissingJsonContentType                → AppError::BadRequest (400)
+//   - BytesRejection                        → AppError::BadRequest (400)
+// 응답 직렬화(`Json(res)`)는 실패 가능성이 없으므로 `axum::Json` 그대로 사용.
 
 // 3. Refresh Handler - Handler가 Cookie 직접 생성
 pub async fn refresh(

@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
@@ -69,7 +70,7 @@ pub async fn get_subscription(
 pub async fn cancel_subscription(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
-    Json(req): Json<CancelSubscriptionReq>,
+    AppJson(req): AppJson<CancelSubscriptionReq>,
 ) -> AppResult<Json<SubscriptionRes>> {
     let res = PaymentService::cancel_subscription(&st, auth_user.sub, req.immediately).await?;
     Ok(Json(res))

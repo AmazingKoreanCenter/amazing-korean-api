@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::body::Body;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, Response, StatusCode};
@@ -27,7 +28,7 @@ pub async fn create_purchase(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<CreatePurchaseReq>,
+    AppJson(req): AppJson<CreatePurchaseReq>,
 ) -> AppResult<Json<super::dto::PurchaseRes>> {
     // IP 기반 Rate Limiting (구매 스팸 방지)
     let client_ip = extract_client_ip(&headers);
@@ -60,7 +61,7 @@ pub async fn create_iap_purchase(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<CreateIapPurchaseReq>,
+    AppJson(req): AppJson<CreateIapPurchaseReq>,
 ) -> AppResult<Json<super::dto::PurchaseRes>> {
     // IP 기반 Rate Limiting (기존 purchase와 동일)
     let client_ip = extract_client_ip(&headers);
@@ -129,7 +130,7 @@ pub async fn get_viewer_meta(
 pub async fn heartbeat(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
-    Json(req): Json<HeartbeatReq>,
+    AppJson(req): AppJson<HeartbeatReq>,
 ) -> AppResult<Json<HeartbeatRes>> {
     let res = EbookService::heartbeat(&st, claims.sub, &req.session_id).await?;
     Ok(Json(res))

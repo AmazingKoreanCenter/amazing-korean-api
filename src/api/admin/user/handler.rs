@@ -1,4 +1,5 @@
 // FILE: src/api/admin/user/handler.rs
+use crate::extract::AppJson;
 use axum::{
     extract::{Path, Query, State},
     http::{header::LOCATION, header::USER_AGENT, HeaderMap, HeaderValue, StatusCode},
@@ -123,7 +124,7 @@ pub async fn admin_create_user(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<AdminCreateUserReq>,
+    AppJson(req): AppJson<AdminCreateUserReq>,
 ) -> AppResult<(StatusCode, HeaderMap, Json<AdminUserRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -164,7 +165,7 @@ pub async fn admin_create_users_bulk(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<AdminBulkCreateReq>,
+    AppJson(req): AppJson<AdminBulkCreateReq>,
 ) -> AppResult<(StatusCode, Json<AdminBulkCreateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -288,7 +289,7 @@ pub async fn admin_update_user(
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
     Path(user_id): Path<i64>,
-    Json(req): Json<AdminUpdateUserReq>,
+    AppJson(req): AppJson<AdminUpdateUserReq>,
 ) -> AppResult<Json<AdminUserRes>> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
@@ -324,7 +325,7 @@ pub async fn admin_update_users_bulk(
     State(st): State<AppState>,
     AuthUser(auth_user): AuthUser,
     headers: HeaderMap,
-    Json(req): Json<AdminBulkUpdateReq>,
+    AppJson(req): AppJson<AdminBulkUpdateReq>,
 ) -> AppResult<(StatusCode, Json<AdminBulkUpdateRes>)> {
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);

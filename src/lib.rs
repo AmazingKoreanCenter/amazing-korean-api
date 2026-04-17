@@ -3,6 +3,7 @@ pub mod config;
 pub mod crypto;
 pub mod docs;
 pub mod error;
+pub mod extract;
 pub mod external;
 pub mod state;
 pub mod trace_id;

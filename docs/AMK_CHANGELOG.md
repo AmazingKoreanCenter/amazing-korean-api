@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-16 (요청 trace_id 구현 — task_local UUID v7 미들웨어)
+updated: 2026-04-17 (INC-001 재발 방지 외부 모니터링 — UptimeRobot HTTP 모니터)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,43 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-17 — INC-001 재발 방지 외부 모니터링 구축 (UptimeRobot HTTP 모니터) + nginx gzip 튜닝**
+  - **UptimeRobot Free 플랜 HTTP 모니터 세팅** — `https://api.amazingkorean.net/health`, 5분 간격, 이메일 알림 → `amazingkoreancenter@gmail.com`. GitHub Actions deploy "success" false positive 와 독립된 외부 감시 체계. 발사 테스트 (Keyword 모니터 keyword 를 `__DOWN_TEST__` 로 임시 변경) 에서 DOWN 알림 1~2분 내 수신 확인 완료.
+  - **`nginx/nginx.conf`**:
+    - `gzip_min_length 1024;` 추가 → 작은 응답(< 1KB) 전반 압축 제외. CPU 이익 무 + keyword 매칭 기반 외부 모니터 호환성 개선.
+    - `location = /health { gzip off; ... }` 블록 추가 → origin 레벨 명시 (이중 안전장치). 응답 평문 유지로 향후 grey-cloud 도입 시 즉시 keyword 매칭 가능한 기반 보존.
+  - **`.github/workflows/deploy.yml`**:
+    - `Sync docker-compose.prod.yml + nginx config to EC2` step 의 scp source 에 `nginx/nginx.conf` 추가 (기존엔 `docker-compose.prod.yml` 만 동기화 → nginx 설정 수정해도 EC2 미반영 버그).
+    - `Deploy to EC2` step 에 `nginx -t && nginx -s reload` 추가. volume-mount 된 config 는 컨테이너 재시작 없이 반영 안 되므로 명시적 reload. syntax error 시 스킵 + exit 1 (fail-safe).
+  - **`docs/AMK_DEPLOY_OPS.md §7.5`** 신규 — 외부 모니터링 구성·발사 테스트 절차·향후 업그레이드 옵션 섹션.
+  - **`docs/AMK_STATUS.md §8.1`** #71 완료 행 추가 + #63 INC-001 행의 "Cloudflare 502 알림" 항목을 UptimeRobot 로 해결 표기.
+  - **학습 (Keyword 모니터 포기 경위)**: 초기에 Keyword 모니터(`live` substring 검색) 로 세팅했으나 CF Free 플랜 edge 가 `Accept-Encoding: gzip` 요청에 대해 **자체 Brotli/gzip 재압축** 수행 → UptimeRobot probe 가 raw 바이트에서 `live` 검색 실패 → 영원히 DOWN. 3가지 회피 시도 후 불가 확정:
+    1. nginx `gzip off` → CF 가 edge 에서 재압축, 무관.
+    2. `add_header Cache-Control "no-transform" always;` → curl 실측에서 origin 응답에 헤더가 안 나옴 (nginx add_header 가 `proxy_pass` 와 조합 시 이슈인지, CF 가 strip 하는지 불명. 추가 디버그 ROI 낮음).
+    3. CF Custom Request Headers (UptimeRobot `Accept-Encoding: identity`) → CF Pro 이상만 가능, Free 불가.
+  - **현실적 판단**: INC-001 감지 목적은 HTTP 상태코드 200 모니터로 100% 달성 (컨테이너 crash → CF 521 → 200 아님 → DOWN). Keyword 가 추가로 커버하는 "200 OK + 이상한 body" 는 현실적 발생 빈도 낮음. 과도한 엔지니어링 회피.
+  - **향후 업그레이드 옵션**: Cloudflare Pro 구독 시 CF Health Checks (60초 간격) 로 전환 가능. 또는 `origin-*` grey-cloud 서브도메인 + 자체 SSL 로 CF 우회 시 Keyword 복원 가능 (작업 공수 중).
+
+- **2026-04-16 — JsonRejection → AppError 통합: `AppJson<T>` 커스텀 extractor 로 에러 응답 envelope + trace_id 전 경로 통일**
+  - **배경**: #69 trace_id 구현 런타임 검증에서 발견된 갭. axum `Json<T>` extractor 는 JsonRejection 시 `text/plain` 응답을 직접 반환 → `AMK_API_MASTER §3.4` 표준 에러 envelope (`code/http_status/message/details/trace_id`) 과 `x-request-id` body 매칭 규약 우회. 프론트엔드 에러 파싱 분기 불가능.
+  - **신규 `src/extract.rs`** — `AppJson<T>(pub T)` + `FromRequest` 구현. 내부적으로 `Json<T>::from_request()` 호출하고 `JsonRejection` 을 `map_json_rejection()` 으로 `AppError` 변환:
+    - `JsonDataError` (필드 누락/타입 불일치) → `AppError::Unprocessable` (422, "Invalid JSON data: ...")
+    - `JsonSyntaxError` (깨진 JSON) → `AppError::BadRequest` (400, "Malformed JSON: ...")
+    - `MissingJsonContentType` → `AppError::BadRequest` (400, "Expected Content-Type: application/json")
+    - `BytesRejection` → `AppError::BadRequest` (400, "Failed to read request body: ...")
+    - 기타 (non-exhaustive 대비) → `AppError::Unprocessable` (body_text 전달)
+  - **`src/lib.rs`** — `pub mod extract;` 추가.
+  - **19 핸들러 파일 × 80 call sites 치환** — `Json(x): Json<T>` (요청 바디 extractor) → `AppJson(x): AppJson<T>`. 응답 직렬화 `Json(res)` 는 실패 가능성 없어 `axum::Json` 그대로 유지 (변경 X). 치환 방식: `perl -i -pe 's/Json\(([a-zA-Z_][a-zA-Z0-9_]*)\): Json<([^>]+)>/AppJson(\1): AppJson<\2>/g'` + 파일별 `use crate::extract::AppJson;` 임포트 삽입. 대상 파일: auth / user / video / study / lesson / course / textbook / ebook / payment 일반 9개 + admin/email / admin/translation / admin/video / admin/lesson / admin/user / admin/upgrade / admin/textbook / admin/study / admin/ebook / admin/payment 10개 = 19개.
+  - **`docs/AMK_CODE_PATTERNS.md`** — §1.3(에러 처리 핵심 포인트+규칙) 에 `AppJson<T>` 문단 추가, §1.4(handler 예제) login 시그니처에 `AppJson(req): AppJson<LoginReq>` 반영 + 주석 블록으로 사용 규약 설명, 파일 개요 표의 Extractor 열을 `Json` → `AppJson` 로 일괄 갱신.
+  - **`docs/AMK_STATUS.md`** — §8.1 #70 완료 행 추가, §8.2 #20 백로그를 strikethrough + ✅ 완료 참조로 갱신.
+  - **검증**: `cargo check --lib` 11.77s + `cargo clippy --lib --bins` 24.53s **0 warnings**. 기존 `axum::Json` import 는 응답 직렬화에서 여전히 사용 중이라 unused-import 경고 없음.
+  - **런타임 검증 (로컬 `127.0.0.1:3100` + `curl -i` 4/4 전부 통과)**:
+    1. 필드 누락 `POST /auth/login -d '{}'` → **이전** 422 `text/plain`, **현재** 422 JSON `{"error":{"code":"UNPROCESSABLE_ENTITY","http_status":422,"message":"Invalid JSON data: Failed to deserialize the JSON body into the target type: missing field \`email\` at line 1 column 2","trace_id":"test-data-err"}}`
+    2. JSON 문법 오류 `-d '{invalid json}'` → 400 `BAD_REQUEST` "Malformed JSON: Failed to parse the request body as JSON: key must be a string at line 1 column 2"
+    3. Content-Type 누락 → 400 `BAD_REQUEST` "Expected Content-Type: application/json"
+    4. 유효 JSON + 잘못된 자격 → 401 `UNAUTHORIZED` AUTH_401_BAD_CREDENTIALS (기존 핸들러 AppError 경로, 회귀 없음)
+  - **효과**: 프론트엔드는 모든 에러 응답을 단일 JSON 스키마로 파싱 가능. `x-request-id` body ↔ 헤더 매칭이 JsonRejection 경로에서도 성립해 trace_id 기반 디버깅 커버리지 100% 달성.
 
 - **2026-04-16 — 요청 trace_id 구현: `task_local!` + UUID v7 미들웨어로 에러 응답/로그 상관추적**
   - **신규 `src/trace_id.rs`** — `tokio::task_local! REQUEST_ID: String` + `middleware` async fn + `current() -> Option<String>` + `TraceId(String)` newtype. 들어오는 `x-request-id` 헤더가 유효(ASCII alphanumeric/`-`/`_`, ≤128자) 하면 승계, 없으면 `uuid::Uuid::now_v7().to_string()` 생성. `task_local.scope(id, next.run(req))` 로 하위 전 지점에서 `crate::trace_id::current()` 동기 조회 가능. 응답 헤더 `x-request-id` 로 에코백.

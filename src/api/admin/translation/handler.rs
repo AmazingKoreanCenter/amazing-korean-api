@@ -1,3 +1,4 @@
+use crate::extract::AppJson;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::Json;
@@ -52,7 +53,7 @@ pub async fn admin_list_translations(
 pub async fn admin_create_translation(
     State(st): State<AppState>,
     AuthUser(_auth): AuthUser,
-    Json(req): Json<TranslationCreateReq>,
+    AppJson(req): AppJson<TranslationCreateReq>,
 ) -> AppResult<(StatusCode, Json<TranslationRes>)> {
     let res = TranslationService::create_translation(&st.db, req).await?;
     Ok((StatusCode::CREATED, Json(res)))
@@ -74,7 +75,7 @@ pub async fn admin_create_translation(
 pub async fn admin_bulk_create_translations(
     State(st): State<AppState>,
     AuthUser(_auth): AuthUser,
-    Json(req): Json<TranslationBulkCreateReq>,
+    AppJson(req): AppJson<TranslationBulkCreateReq>,
 ) -> AppResult<Json<TranslationBulkCreateRes>> {
     let res = TranslationService::bulk_create_translations(&st.db, req).await?;
     Ok(Json(res))
@@ -121,7 +122,7 @@ pub async fn admin_update_translation(
     State(st): State<AppState>,
     AuthUser(_auth): AuthUser,
     Path(id): Path<i64>,
-    Json(req): Json<TranslationUpdateReq>,
+    AppJson(req): AppJson<TranslationUpdateReq>,
 ) -> AppResult<Json<TranslationRes>> {
     let res = TranslationService::update_translation(&st.db, id, req).await?;
     Ok(Json(res))
@@ -145,7 +146,7 @@ pub async fn admin_update_translation_status(
     State(st): State<AppState>,
     AuthUser(_auth): AuthUser,
     Path(id): Path<i64>,
-    Json(req): Json<TranslationStatusReq>,
+    AppJson(req): AppJson<TranslationStatusReq>,
 ) -> AppResult<Json<TranslationRes>> {
     let res = TranslationService::update_translation_status(&st.db, id, req).await?;
     Ok(Json(res))
