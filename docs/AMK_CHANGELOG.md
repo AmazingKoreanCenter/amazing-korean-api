@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-16 (JsonRejection → AppError 통합 — AppJson<T> 커스텀 extractor)
+updated: 2026-04-17 (INC-001 재발 방지 외부 모니터링 — UptimeRobot HTTP 모니터)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,23 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-17 — INC-001 재발 방지 외부 모니터링 구축 (UptimeRobot HTTP 모니터) + nginx gzip 튜닝**
+  - **UptimeRobot Free 플랜 HTTP 모니터 세팅** — `https://api.amazingkorean.net/health`, 5분 간격, 이메일 알림 → `amazingkoreancenter@gmail.com`. GitHub Actions deploy "success" false positive 와 독립된 외부 감시 체계. 발사 테스트 (Keyword 모니터 keyword 를 `__DOWN_TEST__` 로 임시 변경) 에서 DOWN 알림 1~2분 내 수신 확인 완료.
+  - **`nginx/nginx.conf`**:
+    - `gzip_min_length 1024;` 추가 → 작은 응답(< 1KB) 전반 압축 제외. CPU 이익 무 + keyword 매칭 기반 외부 모니터 호환성 개선.
+    - `location = /health { gzip off; ... }` 블록 추가 → origin 레벨 명시 (이중 안전장치). 응답 평문 유지로 향후 grey-cloud 도입 시 즉시 keyword 매칭 가능한 기반 보존.
+  - **`.github/workflows/deploy.yml`**:
+    - `Sync docker-compose.prod.yml + nginx config to EC2` step 의 scp source 에 `nginx/nginx.conf` 추가 (기존엔 `docker-compose.prod.yml` 만 동기화 → nginx 설정 수정해도 EC2 미반영 버그).
+    - `Deploy to EC2` step 에 `nginx -t && nginx -s reload` 추가. volume-mount 된 config 는 컨테이너 재시작 없이 반영 안 되므로 명시적 reload. syntax error 시 스킵 + exit 1 (fail-safe).
+  - **`docs/AMK_DEPLOY_OPS.md §7.5`** 신규 — 외부 모니터링 구성·발사 테스트 절차·향후 업그레이드 옵션 섹션.
+  - **`docs/AMK_STATUS.md §8.1`** #71 완료 행 추가 + #63 INC-001 행의 "Cloudflare 502 알림" 항목을 UptimeRobot 로 해결 표기.
+  - **학습 (Keyword 모니터 포기 경위)**: 초기에 Keyword 모니터(`live` substring 검색) 로 세팅했으나 CF Free 플랜 edge 가 `Accept-Encoding: gzip` 요청에 대해 **자체 Brotli/gzip 재압축** 수행 → UptimeRobot probe 가 raw 바이트에서 `live` 검색 실패 → 영원히 DOWN. 3가지 회피 시도 후 불가 확정:
+    1. nginx `gzip off` → CF 가 edge 에서 재압축, 무관.
+    2. `add_header Cache-Control "no-transform" always;` → curl 실측에서 origin 응답에 헤더가 안 나옴 (nginx add_header 가 `proxy_pass` 와 조합 시 이슈인지, CF 가 strip 하는지 불명. 추가 디버그 ROI 낮음).
+    3. CF Custom Request Headers (UptimeRobot `Accept-Encoding: identity`) → CF Pro 이상만 가능, Free 불가.
+  - **현실적 판단**: INC-001 감지 목적은 HTTP 상태코드 200 모니터로 100% 달성 (컨테이너 crash → CF 521 → 200 아님 → DOWN). Keyword 가 추가로 커버하는 "200 OK + 이상한 body" 는 현실적 발생 빈도 낮음. 과도한 엔지니어링 회피.
+  - **향후 업그레이드 옵션**: Cloudflare Pro 구독 시 CF Health Checks (60초 간격) 로 전환 가능. 또는 `origin-*` grey-cloud 서브도메인 + 자체 SSL 로 CF 우회 시 Keyword 복원 가능 (작업 공수 중).
 
 - **2026-04-16 — JsonRejection → AppError 통합: `AppJson<T>` 커스텀 extractor 로 에러 응답 envelope + trace_id 전 경로 통일**
   - **배경**: #69 trace_id 구현 런타임 검증에서 발견된 갭. axum `Json<T>` extractor 는 JsonRejection 시 `text/plain` 응답을 직접 반환 → `AMK_API_MASTER §3.4` 표준 에러 envelope (`code/http_status/message/details/trace_id`) 과 `x-request-id` body 매칭 규약 우회. 프론트엔드 에러 파싱 분기 불가능.

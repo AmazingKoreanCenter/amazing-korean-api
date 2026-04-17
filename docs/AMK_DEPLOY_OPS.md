@@ -812,6 +812,73 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
     6.  **404 JSON**: `curl https://api.amazingkorean.net/nonexistent`로 JSON `{"error":{"code":"NOT_FOUND",...}}` 응답 확인.
     7.  **Swagger 비활성화**: `curl https://api.amazingkorean.net/docs`가 404 JSON 반환 확인 (`ENABLE_DOCS=0` 시).
 
+## 7.5. 외부 모니터링 & 알림 (External Uptime Monitoring)
+
+> INC-001 (2026-04-15 프로덕션 2h33m 다운) 재발 방지.
+> GitHub Actions 의 deploy "success" 가 실제 서비스 가동을 보장하지 않는 것이 교훈이라 **독립된 외부 감시** 체계를 둔다.
+
+### 구성
+
+| 항목 | 값 |
+|------|-----|
+| 서비스 | **UptimeRobot** (Free 플랜, 50 모니터 한도) |
+| 모니터 타입 | **HTTP / website monitoring** (Status code 200 기반) |
+| 대상 URL | `https://api.amazingkorean.net/health` |
+| Interval | **5 minutes** (Free 플랜 최소) |
+| Alert 채널 | E-mail → `amazingkoreancenter@gmail.com` |
+| Region | Default (auto-select, N. America) |
+
+### 왜 Status code 모니터인가 (Keyword 모니터 포기 경위)
+
+초기 설계로 Keyword 모니터(body 에 `live` 문자열 검색) 를 시도했으나 **Cloudflare Free 플랜에서 불가능**:
+
+1. nginx `/health` 응답을 40B JSON 으로 반환 → CF edge 가 `Accept-Encoding: gzip` 요청에 대해 **자체 Brotli/gzip 압축** → UptimeRobot probe 가 raw 바이트에서 `live` substring 검색 실패 → 영원히 DOWN.
+2. nginx `gzip off` + `Cache-Control: no-transform` 헤더 시도했으나 CF 가 무시하거나 헤더 자체를 strip (curl 실측 확인).
+3. CF Free 플랜은 **Custom Request Headers** 도 유료 (UptimeRobot 측에서 `Accept-Encoding: identity` 보내는 회피 불가).
+4. Grey-cloud DNS + 자체 SSL 은 작업 과다 (Let's Encrypt 자동 갱신 등).
+
+**결론**: 상태코드 200 체크만으로 INC-001 감지 목적 달성. 실제 INC-001 은 컨테이너 crash → CF 521 → 200 아님 → DOWN 감지됨. "200 + 이상한 body" 시나리오는 현실적 발생 빈도 낮음.
+
+### 발사 테스트 (최초 세팅 시 1회)
+
+```
+Keyword (임시) 모니터로 테스트 → 알림 이메일 수신 확인 → 실 HTTP 모니터로 교체
+```
+
+2026-04-17 초기 세팅 시 DOWN 알림 1~2분 내 수신 확인됨 (Keyword 모니터로 발사).
+
+재발사 절차 (정기 점검 시):
+1. EC2 SSH → `docker compose -f docker-compose.prod.yml --env-file .env.prod stop api`
+2. 5~10분 대기 → 이메일 수신 확인
+3. `docker compose ... start api` → 복구 알림 수신 확인
+
+### 향후 업그레이드 옵션
+
+- **Cloudflare Pro ($25/월)**: CF Health Checks (60초 간격) + Notifications → 즉시성 향상, 외부 의존 축소.
+- **grey-cloud 서브도메인**: `origin-health.amazingkorean.net` A 레코드 직접 EC2 IP + 자체 SSL → CF 우회해 Keyword 모니터 복원 가능. 작업 공수 중.
+- **Better Uptime / Pingdom**: 복수 regions, 3분 간격 등 UptimeRobot Free 보다 세밀.
+
+### nginx `/health` 특수 처리
+
+외부 모니터링 확장성 대비 origin 응답을 평문으로 유지:
+
+```nginx
+# nginx/nginx.conf
+gzip_min_length 1024;  # 작은 응답 전반 압축 제외
+
+location = /health {
+    gzip off;          # origin 레벨 명시 (이중 안전장치)
+    proxy_pass http://api;
+    ...
+}
+```
+
+CF 재압축은 Free 플랜에서 끊기 어려우나 origin 은 깨끗하게 유지 → 향후 grey-cloud 도입 시 즉시 keyword 매칭 동작.
+
+[⬆️ 목차로 돌아가기](#-목차-table-of-contents)
+
+---
+
 ## 8. 향후 확장 계획 (Roadmap)
 
 - **자동화 테스트 도입 (Phase 3 이후)**
