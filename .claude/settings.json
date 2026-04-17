@@ -11,7 +11,6 @@
       "Bash(set -e)",
       "Bash(awk 'BEGIN{b=0} /^$/{b=1;next} !b{print} b{print \"BODY:\",$0}')",
       "Bash(awk '{print $3}')",
-      "Bash(DATABASE_URL='postgres://postgres:postgres@127.0.0.1:5432/amazing_korean_db' cargo sqlx prepare --workspace -- --all-targets)",
       "Bash(awk -F: '$2 > 1 {print}')",
       "Bash(perl -i -pe 's/900/500/g; s/៩០០/៥០០/g; s/၉၀၀/၅၀၀/g; s/९००/५००/g;' src/i18n/locales/*.json)"
     ]

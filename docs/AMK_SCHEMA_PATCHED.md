@@ -893,6 +893,7 @@ CREATE INDEX index_admin_user_id_video ON admin_video_log (admin_user_id);
 CREATE INDEX index_admin_pick_video_id ON admin_video_log (admin_pick_video_id);
 CREATE INDEX IF NOT EXISTS index_study_state_access ON study (study_state, study_access);
 CREATE UNIQUE INDEX unique_study_id_study_task_seq ON study_task (study_id, study_task_seq);
+CREATE UNIQUE INDEX uq_study_task_idx ON study_task (study_task_idx);
 CREATE INDEX index_study_task_kind ON study_task (study_task_kind);
 CREATE UNIQUE INDEX unique_study_task_explain_lang ON study_explain (study_task_id, explain_lang);
 CREATE INDEX index_explain_lang ON study_explain (explain_lang);
