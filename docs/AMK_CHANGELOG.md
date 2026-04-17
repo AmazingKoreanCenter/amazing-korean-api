@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-18 (교재 500문장 시딩 선행 마이그레이션 1/3 — study_task_idx + supported_language_enum 확장)
+updated: 2026-04-18 (교재 500문장 시딩 선행 마이그레이션 2/4 — test-* 레거시 리셋)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -11,7 +11,14 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
-- **2026-04-18 — 교재 500문장 시딩 선행 마이그레이션 (PR #1 / M01 + M04)**
+- **2026-04-18 — 교재 500문장 시딩 선행 마이그레이션 2/4 (M02 — test-* 레거시 리셋)**
+  - **M02 — `migrations/20260419_reset_test_studies.sql`**: `seeds/20260208_AMK_V1_SEED.sql` 로 주입된 `test-1`~`test-9` 더미 study + 연관 데이터 전량 삭제. `study` / `study_task` IDENTITY 시퀀스 `RESTART WITH 1` 로 리셋하여 후속 시딩(M05~M08) 시점에 `study_id = 1` 부터 할당되도록 함.
+  - **삭제 순서**: `content_translations` (study/study_task_*) → `study_task_log` → `study_task_status` → `study_task_explain` → `lesson_item` (task 연결) → `admin_study_log` 전량 → `study_task_choice/typing/voice/writing` → `writing_practice_session` (task 기반만, 자유 연습은 보존) → `study_task` → `study`.
+  - **로컬 검증**: 적용 후 `SELECT COUNT(*) FROM study; FROM study_task;` → 0, `SELECT last_value, is_called FROM study_study_id_seq; study_task_study_task_id_seq;` → (1, false) = 다음 INSERT 가 1 할당, 자유 연습 세션 25개 보존 ✅.
+  - **스키마 문서 불일치 동기 수정**: `AMK_SCHEMA_PATCHED.md §2.4.6` 에서 `study_explain` 으로 표기돼 있던 3곳을 **실 DB 테이블명 `study_task_explain`** 으로 정정. 원본 `20260208_AMK_V1.sql` 은 `study_explain` 으로 생성하나 어느 시점에 DB 레벨 rename 이 적용됐고 (원인 마이그레이션 파일 미발견), 20260212 이후 신규 마이그레이션은 `study_task_explain` 전제로 작성됨 — 문서가 실 DB 에 뒤처진 상태였음.
+  - **프로덕션 적용 전 사전 확인 필수**: `SELECT COUNT(*) FROM study WHERE study_idx NOT LIKE 'test-%'` = 0 확인. 0 이 아니면 실 콘텐츠 존재 가능성 → 별도 백업 전략 선행.
+
+- **2026-04-18 — 교재 500문장 시딩 선행 마이그레이션 1/4 (M01 + M04)**
   - **목적**: 교재(`amazing-korean-books/scripts/textbook/data/sentences.json`) 의 500문장 × 36개 언어 번역 시딩을 앞두고, 실 데이터 INSERT 전 스키마를 정리하는 단계. 총 8개 마이그레이션 (M01~M08) 중 스키마 확장 2건만 우선.
   - **M01 — `migrations/20260418_study_task_idx.sql`**: `study_task` 테이블에 `study_task_idx varchar(100) NOT NULL UNIQUE` 컬럼 추가. 해설집 문장 참조 안정 키 + 재시딩 멱등성 + `content_translations.content_id` 논리 연결 안정성의 3가지 요구를 단일 컬럼으로 해결. 기존 레거시 행은 `'legacy-' || study_task_id` 로 백필 (후속 M02 에서 전량 삭제 예정).
   - **M04 — `migrations/20260421_expand_supported_languages.sql`**: `supported_language_enum` 에 13개 언어 추가 (`tl`, `tr`, `bn`, `ar`, `ur`, `fa`, `lo`, `ky`, `it`, `sw`, `uk`, `am`, `pl`). sentences.json 의 36개 번역 중 기존 enum(22개) 미지원 13개를 커버. `pt_pt` (Portuguese-Portugal variant) 는 `pt` (Brazil) 로 병합 — UX 이득 대비 이중 저장 오버헤드 불분명. `user_language_enum` (UI 언어) 는 별도 정책으로 미확장.
