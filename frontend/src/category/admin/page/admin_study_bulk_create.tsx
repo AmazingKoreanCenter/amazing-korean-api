@@ -43,7 +43,7 @@ export function AdminStudyBulkCreate() {
       return [];
     }
 
-    const validPrograms = ["basic_pronunciation", "basic_word", "basic_900", "topik_read", "topik_listen", "topik_write", "tbc"];
+    const validPrograms = ["basic_pronunciation", "basic_word", "basic_500", "topik_read", "topik_listen", "topik_write", "tbc"];
     const validStates = ["ready", "open", "close"];
     const validAccess = ["public", "paid", "private", "promote"];
 
@@ -139,7 +139,7 @@ export function AdminStudyBulkCreate() {
     switch (program) {
       case "basic_pronunciation":
       case "basic_word":
-      case "basic_900":
+      case "basic_500":
         return "secondary" as const;
       case "topik_read":
       case "topik_listen":
@@ -178,7 +178,7 @@ TBC-001,tbc,ready,public,Lesson 1 Introduction,Welcome to lesson 1,This is descr
 TBC-002,basic_word,open,paid,Lesson 2 Basics,Basic concepts,Another description`}
           </pre>
           <div className="text-sm text-muted-foreground mt-2 space-y-1">
-            <p><strong>study_program</strong>: basic_pronunciation, basic_word, basic_900, topik_read, topik_listen, topik_write, tbc (default: tbc)</p>
+            <p><strong>study_program</strong>: basic_pronunciation, basic_word, basic_500, topik_read, topik_listen, topik_write, tbc (default: tbc)</p>
             <p><strong>study_state</strong>: ready, open, close (default: ready)</p>
             <p><strong>study_access</strong>: public, paid, private, promote (default: public)</p>
           </div>

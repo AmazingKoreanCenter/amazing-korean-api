@@ -17,7 +17,7 @@ CREATE TYPE video_state_enum AS ENUM ('ready', 'open', 'close');
 CREATE TYPE video_access_enum AS ENUM ('public', 'paid', 'private', 'promote');
 CREATE TYPE study_state_enum AS ENUM ('ready', 'open', 'close');
 CREATE TYPE study_access_enum AS ENUM ('public', 'paid', 'private', 'promote');
-CREATE TYPE study_program_enum AS ENUM ('basic_pronunciation', 'basic_word', 'basic_900', 'topik_read', 'topik_listen', 'topik_write', 'tbc');
+CREATE TYPE study_program_enum AS ENUM ('basic_pronunciation', 'basic_word', 'basic_500', 'topik_read', 'topik_listen', 'topik_write', 'tbc');
 CREATE TYPE study_task_kind_enum AS ENUM ('choice', 'typing', 'voice', 'writing');
 CREATE TYPE writing_level_enum AS ENUM ('beginner', 'intermediate', 'advanced');
 CREATE TYPE writing_practice_type_enum AS ENUM ('jamo', 'syllable', 'word', 'sentence', 'paragraph');
@@ -322,7 +322,7 @@ CREATE TABLE study (
   study_idx varchar(100) UNIQUE NOT NULL,                     -- 학습 문제 인덱스 : 외부 공개용 인덱스
   study_state study_state_enum NOT NULL DEFAULT 'ready',      -- 학습 문제 상태 : 학습 문제 준비, 학습 문제 공개, 학습 문제 비공개로 구분
   study_access study_access_enum NOT NULL DEFAULT 'public',   -- 학습 문제 접근 : 공용, 유료, 일부공개, 광고로 구분
-  study_program study_program_enum NOT NULL DEFAULT 'tbc',    -- 학습 문제 프로그램 : 기초 발음, 기초 단어, 기초 500문장 (enum값 basic_900은 레거시), 토픽 읽기, 토픽 듣기, 토픽 쓰기, 추후 확정으로 구분
+  study_program study_program_enum NOT NULL DEFAULT 'tbc',    -- 학습 문제 프로그램 : 기초 발음, 기초 단어, 기초 500문장(basic_500), 토픽 읽기, 토픽 듣기, 토픽 쓰기, 추후 확정으로 구분
   study_title varchar(80),                                    -- 학습 문제 제목 : 학습 문제들을 모아놓은 
   study_subtitle varchar(120),                                -- 학습 문제 부제목 : 
   study_description text,                                     -- 학습 문제 설명 : 

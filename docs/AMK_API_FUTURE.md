@@ -17,13 +17,13 @@
 | JSON 파일 | 내용 | Study Program |
 |-----------|------|---------------|
 | vocabulary.json | 어휘 카드 (한국어 + 20개 언어 번역, 280+) | basic_word |
-| sentences.json | 문법 예문 (한국어 + 번역, 496+) | basic_900 |
+| sentences.json | 문법 예문 (한국어 + 번역, 496+) | basic_500 |
 | pronunciation.json | 한글 조합표 (자음×모음, 테이블 7+) | basic_pronunciation |
 | pronunciation_test.json | 발음 테스트 연습 문제 | basic_pronunciation |
-| particles.json | 조사 활용표 | basic_900 |
-| conjugation.json | 동사/형용사 활용 (현재/과거/미래) | basic_900 |
-| structure.json | 문장 구조 (의문사 패턴) | basic_900 |
-| appendix.json | 숫자, 문법 연습 | basic_900 |
+| particles.json | 조사 활용표 | basic_500 |
+| conjugation.json | 동사/형용사 활용 (현재/과거/미래) | basic_500 |
+| structure.json | 문장 구조 (의문사 패턴) | basic_500 |
+| appendix.json | 숫자, 문법 연습 | basic_500 |
 
 **DB 계층 구조**:
 ```

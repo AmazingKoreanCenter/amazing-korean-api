@@ -1250,7 +1250,7 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
 - `study`
   - 학습 문제 정보(상태, 프로그램, 문제 정보)
   - `study_state_enum` ('ready', 'open', 'close') 학습 문제 상태
-  - `study_program_enum` ('basic_pronunciation', 'basic_word', 'basic_900', 'topik_read', 'topik_listen', 'topik_write', 'tbc') 학습 프로그램 분류
+  - `study_program_enum` ('basic_pronunciation', 'basic_word', 'basic_500', 'topik_read', 'topik_listen', 'topik_write', 'tbc') 학습 프로그램 분류
 - `study_task`
   - 학습 문제 세부 정보(종류, 순서)
   - `study_task_kind_enum` ('choice', 'typing', 'voice') 학습 문제 유형

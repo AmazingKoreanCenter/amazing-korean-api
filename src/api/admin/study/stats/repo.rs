@@ -34,7 +34,7 @@ pub async fn fetch_program_counts(db: &PgPool) -> AppResult<ProgramStats> {
         SELECT
             COALESCE(SUM(CASE WHEN study_program = 'basic_pronunciation' THEN 1 ELSE 0 END), 0) AS basic_pronunciation,
             COALESCE(SUM(CASE WHEN study_program = 'basic_word' THEN 1 ELSE 0 END), 0) AS basic_word,
-            COALESCE(SUM(CASE WHEN study_program = 'basic_900' THEN 1 ELSE 0 END), 0) AS basic_900,
+            COALESCE(SUM(CASE WHEN study_program = 'basic_500' THEN 1 ELSE 0 END), 0) AS basic_500,
             COALESCE(SUM(CASE WHEN study_program = 'topik_read' THEN 1 ELSE 0 END), 0) AS topik_read,
             COALESCE(SUM(CASE WHEN study_program = 'topik_listen' THEN 1 ELSE 0 END), 0) AS topik_listen,
             COALESCE(SUM(CASE WHEN study_program = 'topik_write' THEN 1 ELSE 0 END), 0) AS topik_write,
@@ -48,7 +48,7 @@ pub async fn fetch_program_counts(db: &PgPool) -> AppResult<ProgramStats> {
     Ok(ProgramStats {
         basic_pronunciation: row.try_get::<i64, _>("basic_pronunciation").unwrap_or(0),
         basic_word: row.try_get::<i64, _>("basic_word").unwrap_or(0),
-        basic_900: row.try_get::<i64, _>("basic_900").unwrap_or(0),
+        basic_500: row.try_get::<i64, _>("basic_500").unwrap_or(0),
         topik_read: row.try_get::<i64, _>("topik_read").unwrap_or(0),
         topik_listen: row.try_get::<i64, _>("topik_listen").unwrap_or(0),
         topik_write: row.try_get::<i64, _>("topik_write").unwrap_or(0),

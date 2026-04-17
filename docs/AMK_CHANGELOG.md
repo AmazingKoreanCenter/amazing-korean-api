@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-18 (교재 500문장 시딩 선행 마이그레이션 2/4 — test-* 레거시 리셋)
+updated: 2026-04-18 (교재 500문장 시딩 선행 마이그레이션 M01~M04 완료)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,14 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-18 — 교재 500문장 시딩 선행 마이그레이션 4/4 (M03 — `basic_900` → `basic_500` enum 개명)**
+  - **M03 — `migrations/20260420_rename_basic_900.sql`**: `ALTER TYPE study_program_enum RENAME VALUE 'basic_900' TO 'basic_500'` (PostgreSQL 10+ atomic). 500문장 교재 시딩을 앞두고 레거시 명칭(실은 500문장) 을 정정.
+  - **Rust 동기화**: `src/types.rs` `StudyProgram::Basic900` → `Basic500`, `src/api/study/service.rs` enum 매칭 + 에러 메시지, `src/api/study/handler.rs` Swagger description, `src/api/admin/study/stats/repo.rs` + `dto.rs` 통계 필드 `basic_900` → `basic_500`.
+  - **Frontend 동기화**: `frontend/src/category/admin/study/types.ts` Zod 필드 + `frontend/src/category/study/types.ts` + 관리자/학습 페이지 5건 + **i18n locale 22개** (`programBasic900` 키 → `programBasic500`, 레이블 숫자 "900" → "500"; 크메르어 ៩០០ → ៥០០, 미얀마어 ၉၀၀ → ၅၀၀, 네팔어 ९०० → ५०० 등 다국어 숫자 포함).
+  - **문서 동기화**: `AMK_API_MASTER §4.7` enum 목록, `AMK_SCHEMA_PATCHED §2.4.1` ENUM 정의 + "(enum값 basic_900은 레거시)" 주석 제거, `AMK_API_FUTURE §시딩 계획` 프로그램 매핑 5곳, `AMK_CODE_PATTERNS §Triple Derive 예시` (serde rename 샘플).
+  - **검증**: `cargo check --all-targets` ✅, `cargo clippy --all-targets -- -D warnings` 0 warnings ✅, `cargo sqlx prepare` (enum rename 후 offline 캐시 재생성, 변경 없음 — 쿼리 레벨 변화 없음) ✅, 로컬 DB `SELECT unnest(enum_range(NULL::study_program_enum))` → `basic_500` 포함/`basic_900` 부재 ✅, `cd frontend && npm run build` 9.36s 클린 ✅.
+  - **실행 전제**: 본 마이그레이션은 M02 의 test-* 리셋(`basic_900` program 5건 포함 전량 삭제) 직후 실행됨. 따라서 rename 대상 실 데이터 0 행 — enum 타입 정의만 갱신. 프로덕션 적용 시에도 M02 가 선행 필요.
 
 - **2026-04-18 — 교재 500문장 시딩 선행 마이그레이션 2/4 (M02 — test-* 레거시 리셋)**
   - **M02 — `migrations/20260419_reset_test_studies.sql`**: `seeds/20260208_AMK_V1_SEED.sql` 로 주입된 `test-1`~`test-9` 더미 study + 연관 데이터 전량 삭제. `study` / `study_task` IDENTITY 시퀀스 `RESTART WITH 1` 로 리셋하여 후속 시딩(M05~M08) 시점에 `study_id = 1` 부터 할당되도록 함.

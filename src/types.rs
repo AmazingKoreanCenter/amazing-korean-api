@@ -323,9 +323,9 @@ pub enum StudyAccess {
 pub enum StudyProgram {
     BasicPronunciation,
     BasicWord,
-    #[sqlx(rename = "basic_900")] // 숫자가 포함된 경우 명시적 rename 필요
-    #[serde(rename = "basic_900")]
-    Basic900,
+    #[sqlx(rename = "basic_500")] // 숫자가 포함된 경우 명시적 rename 필요
+    #[serde(rename = "basic_500")]
+    Basic500,
     TopikRead,
     TopikListen,
     TopikWrite,

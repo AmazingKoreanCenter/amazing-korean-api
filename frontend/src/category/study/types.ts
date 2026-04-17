@@ -5,7 +5,7 @@ import { z } from "zod";
 export const studyProgramSchema = z.enum([
   "basic_pronunciation",
   "basic_word",
-  "basic_900",
+  "basic_500",
   "topik_read",
   "topik_listen",
   "topik_write",

@@ -525,7 +525,7 @@ export type TopStudiesQuery = z.infer<typeof topStudiesQuerySchema>;
 export const programStatsSchema = z.object({
   basic_pronunciation: z.number().int(),
   basic_word: z.number().int(),
-  basic_900: z.number().int(),
+  basic_500: z.number().int(),
   topik_read: z.number().int(),
   topik_listen: z.number().int(),
   topik_write: z.number().int(),

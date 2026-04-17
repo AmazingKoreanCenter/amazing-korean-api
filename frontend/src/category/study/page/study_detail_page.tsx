@@ -30,7 +30,7 @@ export function StudyDetailPage() {
   const PROGRAM_LABELS: Record<StudyProgram, string> = {
     basic_pronunciation: t("study.programBasicPronunciation"),
     basic_word: t("study.programBasicWord"),
-    basic_900: t("study.programBasic900"),
+    basic_500: t("study.programBasic500"),
     topik_read: t("study.programTopikRead"),
     topik_listen: t("study.programTopikListen"),
     topik_write: t("study.programTopikWrite"),
