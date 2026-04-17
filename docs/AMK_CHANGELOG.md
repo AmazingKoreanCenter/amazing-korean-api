@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-17 (INC-001 재발 방지 외부 모니터링 — UptimeRobot HTTP 모니터)
+updated: 2026-04-18 (교재 500문장 시딩 선행 마이그레이션 1/3 — study_task_idx + supported_language_enum 확장)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,15 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-18 — 교재 500문장 시딩 선행 마이그레이션 (PR #1 / M01 + M04)**
+  - **목적**: 교재(`amazing-korean-books/scripts/textbook/data/sentences.json`) 의 500문장 × 36개 언어 번역 시딩을 앞두고, 실 데이터 INSERT 전 스키마를 정리하는 단계. 총 8개 마이그레이션 (M01~M08) 중 스키마 확장 2건만 우선.
+  - **M01 — `migrations/20260418_study_task_idx.sql`**: `study_task` 테이블에 `study_task_idx varchar(100) NOT NULL UNIQUE` 컬럼 추가. 해설집 문장 참조 안정 키 + 재시딩 멱등성 + `content_translations.content_id` 논리 연결 안정성의 3가지 요구를 단일 컬럼으로 해결. 기존 레거시 행은 `'legacy-' || study_task_id` 로 백필 (후속 M02 에서 전량 삭제 예정).
+  - **M04 — `migrations/20260421_expand_supported_languages.sql`**: `supported_language_enum` 에 13개 언어 추가 (`tl`, `tr`, `bn`, `ar`, `ur`, `fa`, `lo`, `ky`, `it`, `sw`, `uk`, `am`, `pl`). sentences.json 의 36개 번역 중 기존 enum(22개) 미지원 13개를 커버. `pt_pt` (Portuguese-Portugal variant) 는 `pt` (Brazil) 로 병합 — UX 이득 대비 이중 저장 오버헤드 불분명. `user_language_enum` (UI 언어) 는 별도 정책으로 미확장.
+  - **Rust 동기화**: `src/types.rs` `SupportedLanguage` enum 에 13개 variant 추가 (`Tl`, `Tr`, `Bn`, `Ar`, `Ur`, `Fa`, `Lo`, `Ky`, `It`, `Sw`, `Uk`, `Am`, `Pl`). 주석 "21개 → 35개 (ko, en 포함)" 갱신.
+  - **문서 동기화**: `AMK_API_MASTER.md §4.8` supported_language_enum 목록 22개 → 35개로 갱신. `AMK_SCHEMA_PATCHED.md §2.4.2` study_task 정의에 `study_task_idx` 행 추가.
+  - **검증**: `cargo check --all-targets` ✅, `cargo clippy --all-targets -- -D warnings` 0 warnings ✅, `cargo sqlx prepare` 쿼리 캐시 재생성 (변경 없음 — 신규 enum 값은 아직 쿼리에서 사용 안 됨) ✅, 로컬 DB (`docker exec amk-pg ...`) 에 M01 + M04 적용 성공 — `\d study_task` 에서 `study_task_idx` + `uq_study_task_idx` UNIQUE 인덱스 확인, `enum_range(NULL::supported_language_enum)` 35개 ✅.
+  - **다음 단계 (이 PR 범위 밖)**: PR #2 = M02 (test-* 레거시 리셋), PR #3 = M03 (basic_900 → basic_500 enum 개명 + Rust/Frontend 동기화). 그 후 M05~M08 시딩 본체 (sentences.json → SQL 생성 스크립트는 amazing-korean-books 쪽 one-off).
 
 - **2026-04-17 — INC-001 재발 방지 외부 모니터링 구축 (UptimeRobot HTTP 모니터) + nginx gzip 튜닝**
   - **UptimeRobot Free 플랜 HTTP 모니터 세팅** — `https://api.amazingkorean.net/health`, 5분 간격, 이메일 알림 → `amazingkoreancenter@gmail.com`. GitHub Actions deploy "success" false positive 와 독립된 외부 감시 체계. 발사 테스트 (Keyword 모니터 keyword 를 `__DOWN_TEST__` 로 임시 변경) 에서 DOWN 알림 1~2분 내 수신 확인 완료.

@@ -337,6 +337,7 @@ CREATE TABLE study_task (
   updated_by_user_id bigint NOT NULL,                              -- 문제 업로드 id : 문제를 생성/수정한 관리자 id(FK)
   study_task_kind study_task_kind_enum NOT NULL,                   -- 문제 종류 : choice(객관식), typing(쓰기), voice(말하기), writing(한글 자판 연습)
   study_task_seq int NOT NULL DEFAULT 1,                           -- 문제 순서 : 학습 세트 내 문제 표시 순서
+  study_task_idx varchar(100) NOT NULL UNIQUE,                     -- 외부 공개용 안정 참조 키 : 해설집 참조·재시딩 멱등성용 (예: amk500-sent-001)
   study_task_created_at timestamptz NOT NULL DEFAULT (now()),      -- 문제 생성 시간 : 문제 등록 시간
   study_task_updated_at timestamptz NOT NULL DEFAULT (now())       -- 문제 수정 시간 : 문제 정보 수정 시간
 );
