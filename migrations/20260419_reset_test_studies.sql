@@ -38,11 +38,15 @@ DELETE FROM study_task_log    WHERE study_task_id IN (SELECT study_task_id FROM 
 DELETE FROM study_task_status WHERE study_task_id IN (SELECT study_task_id FROM study_task);
 DELETE FROM study_task_explain WHERE study_task_id IN (SELECT study_task_id FROM study_task);
 
--- 수업 연결 (task 참조) 제거
-DELETE FROM lesson_item WHERE study_task_id IS NOT NULL;
+-- 수업 연결 (task 참조) 제거 — 현재 존재하는 study_task 에 연결된 lesson_item 만
+DELETE FROM lesson_item
+ WHERE study_task_id IN (SELECT study_task_id FROM study_task);
 
--- 관리자 작업 로그 전량 제거 (test 기반이라 의미 없음)
-DELETE FROM admin_study_log;
+-- 관리자 작업 로그 — 삭제 대상 study_id/study_task_id 에 해당하는 로그만
+-- (전량 DELETE 는 위험 — 실 관리자 로그 누적 가능성)
+DELETE FROM admin_study_log
+ WHERE admin_pick_study_id IN (SELECT study_id FROM study)
+    OR admin_pick_task_id  IN (SELECT study_task_id FROM study_task);
 
 -- study_task 서브테이블 삭제
 DELETE FROM study_task_choice  WHERE study_task_id IN (SELECT study_task_id FROM study_task);
@@ -50,9 +54,10 @@ DELETE FROM study_task_typing  WHERE study_task_id IN (SELECT study_task_id FROM
 DELETE FROM study_task_voice   WHERE study_task_id IN (SELECT study_task_id FROM study_task);
 DELETE FROM study_task_writing WHERE study_task_id IN (SELECT study_task_id FROM study_task);
 
--- writing_practice_session 중 study_task_id 참조(자유 연습 아닌 태스크 기반) 제거.
+-- writing_practice_session 중 현재 study_task 에 연결된 task 기반 세션만 제거.
 -- 자유 연습 세션(study_task_id IS NULL) 은 보존.
-DELETE FROM writing_practice_session WHERE study_task_id IS NOT NULL;
+DELETE FROM writing_practice_session
+ WHERE study_task_id IN (SELECT study_task_id FROM study_task);
 
 -- 부모 삭제
 DELETE FROM study_task;

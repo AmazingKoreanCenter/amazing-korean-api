@@ -11,6 +11,11 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-04-18 — Gemini 리뷰 반영 (PR #172 MEDIUM 4건)**
+  - **`.claude/settings.json`**: 문법 오류가 있는 Bash permission entry 2건 제거 — (1) `perl ... src/... grep -rn ...` 가 하나의 entry 에 병합돼 있어 `grep` 이 `perl` 의 파일 인자로 취급되는 구조, (2) 같은 entry 에 로컬 절대경로 `/home/kkryo/...` 포함. 두 entry 모두 실제 매칭 불가능한 형태였으므로 삭제.
+  - **`migrations/20260419_reset_test_studies.sql`**: DELETE 조건을 의도 명시적으로 변경 — (a) `lesson_item WHERE study_task_id IS NOT NULL` → `WHERE study_task_id IN (SELECT study_task_id FROM study_task)`, (b) `admin_study_log` 전량 삭제 → `WHERE admin_pick_study_id IN (SELECT study_id FROM study) OR admin_pick_task_id IN (SELECT study_task_id FROM study_task)` (실 관리자 로그 누적 시 보호), (c) `writing_practice_session WHERE study_task_id IS NOT NULL` → `WHERE study_task_id IN (SELECT study_task_id FROM study_task)`. 현재 study_task 전량 삭제 전 시점에 실행되므로 삭제 범위는 종전과 동일하지만, DELETE 문만 독립적으로 읽어도 의도가 명확해지고 혹시 실 데이터가 존재하는 경우에도 보호됨.
+  - **검증**: `cargo check` 클린. SQL 의미 동일성 유지 (study_task IN (SELECT ...) 조건이 study_task 전량 삭제 대상 집합과 일치).
+
 - **2026-04-18 — 교재 500문장 시딩 선행 마이그레이션 4/4 (M03 — `basic_900` → `basic_500` enum 개명)**
   - **M03 — `migrations/20260420_rename_basic_900.sql`**: `ALTER TYPE study_program_enum RENAME VALUE 'basic_900' TO 'basic_500'` (PostgreSQL 10+ atomic). 500문장 교재 시딩을 앞두고 레거시 명칭(실은 500문장) 을 정정.
   - **Rust 동기화**: `src/types.rs` `StudyProgram::Basic900` → `Basic500`, `src/api/study/service.rs` enum 매칭 + 에러 메시지, `src/api/study/handler.rs` Swagger description, `src/api/admin/study/stats/repo.rs` + `dto.rs` 통계 필드 `basic_900` → `basic_500`.
