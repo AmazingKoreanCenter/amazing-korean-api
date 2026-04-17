@@ -626,7 +626,7 @@ fn parse_study_program(value: &str) -> Option<StudyProgram> {
     match value {
         "basic_pronunciation" => Some(StudyProgram::BasicPronunciation),
         "basic_word" => Some(StudyProgram::BasicWord),
-        "basic_900" => Some(StudyProgram::Basic900),
+        "basic_500" => Some(StudyProgram::Basic500),
         "topik_read" => Some(StudyProgram::TopikRead),
         "topik_listen" => Some(StudyProgram::TopikListen),
         "topik_write" => Some(StudyProgram::TopikWrite),
@@ -636,7 +636,7 @@ fn parse_study_program(value: &str) -> Option<StudyProgram> {
 }
 
 fn invalid_program_message() -> String {
-    "program must be one of: basic_pronunciation, basic_word, basic_900, topik_read, topik_listen, topik_write, tbc".into()
+    "program must be one of: basic_pronunciation, basic_word, basic_500, topik_read, topik_listen, topik_write, tbc".into()
 }
 
 fn invalid_sort_message() -> String {

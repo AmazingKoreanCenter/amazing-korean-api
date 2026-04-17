@@ -44,7 +44,7 @@ fn default_sort_by() -> String {
 pub struct ProgramStats {
     pub basic_pronunciation: i64,
     pub basic_word: i64,
-    pub basic_900: i64,
+    pub basic_500: i64,
     pub topik_read: i64,
     pub topik_listen: i64,
     pub topik_write: i64,

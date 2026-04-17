@@ -223,7 +223,7 @@ pub enum TranslationStatus {
     Approved,
 }
 
-/// 번역 지원 언어 — 21개 (아랍어 제외)
+/// 번역 지원 언어 — 35개 (ko, en 포함)
 /// content_translations 테이블 전용 (user 테이블과 독립적으로 확장 가능)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
 #[sqlx(type_name = "supported_language_enum", rename_all = "lowercase")]
@@ -255,6 +255,19 @@ pub enum SupportedLanguage {
     Uz,
     Kk,
     Tg,
+    Tl,
+    Tr,
+    Bn,
+    Ar,
+    Ur,
+    Fa,
+    Lo,
+    Ky,
+    It,
+    Sw,
+    Uk,
+    Am,
+    Pl,
 }
 
 // -----------------------------------------------------------------------------
@@ -310,9 +323,9 @@ pub enum StudyAccess {
 pub enum StudyProgram {
     BasicPronunciation,
     BasicWord,
-    #[sqlx(rename = "basic_900")] // 숫자가 포함된 경우 명시적 rename 필요
-    #[serde(rename = "basic_900")]
-    Basic900,
+    #[sqlx(rename = "basic_500")] // 숫자가 포함된 경우 명시적 rename 필요
+    #[serde(rename = "basic_500")]
+    Basic500,
     TopikRead,
     TopikListen,
     TopikWrite,

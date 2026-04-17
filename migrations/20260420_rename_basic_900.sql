@@ -1,0 +1,26 @@
+-- =============================================================================
+-- study_program_enum: basic_900 → basic_500 개명
+-- =============================================================================
+-- 목적:
+--   500문장 교재 시딩을 앞두고 레거시 명칭 'basic_900' (실은 500문장) 을
+--   'basic_500' 으로 정정. docs/AMK_SCHEMA_PATCHED.md:325 주석에서 이미
+--   "(enum값 basic_900은 레거시)" 로 표기돼 있던 부분을 실제 enum 값 차원
+--   에서 통일.
+--
+-- 영향:
+--   - Rust src/types.rs StudyProgram::Basic900 → Basic500 (동일 커밋 반영)
+--   - src/api/study/service.rs, handler.rs, admin/study/stats/*
+--   - frontend/src/category/admin/study/types.ts + i18n locale 27개
+--     (programBasic900 → programBasic500)
+--
+-- 실행 시점:
+--   이 마이그레이션은 M02 로 test-* 데이터(basic_900 program 5건 포함) 가
+--   전량 삭제된 후 실행된다. 따라서 rename 대상 실 데이터는 0 행이며
+--   ALTER TYPE ... RENAME VALUE 는 enum 타입 정의만 갱신.
+--
+--   프로덕션도 동일하게 M02 가 선행해 test-* 삭제를 완료한 후 M03 이
+--   실행됨. 혹시 test-* 외의 basic_900 실 데이터가 있더라도 enum rename
+--   은 PostgreSQL 10+ atomic 연산이라 기존 row 의 값도 새 이름으로 보임.
+-- =============================================================================
+
+ALTER TYPE study_program_enum RENAME VALUE 'basic_900' TO 'basic_500';

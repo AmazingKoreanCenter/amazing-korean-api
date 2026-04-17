@@ -45,7 +45,7 @@ export function StudyListPage() {
   const PROGRAM_LABELS: Record<StudyProgram, string> = {
     basic_pronunciation: t("study.programBasicPronunciation"),
     basic_word: t("study.programBasicWord"),
-    basic_900: t("study.programBasic900"),
+    basic_500: t("study.programBasic500"),
     topik_read: t("study.programTopikRead"),
     topik_listen: t("study.programTopikListen"),
     topik_write: t("study.programTopikWrite"),
@@ -56,7 +56,7 @@ export function StudyListPage() {
     { value: "all", label: t("study.filterAll") },
     { value: "basic_pronunciation", label: PROGRAM_LABELS.basic_pronunciation },
     { value: "basic_word", label: PROGRAM_LABELS.basic_word },
-    { value: "basic_900", label: PROGRAM_LABELS.basic_900 },
+    { value: "basic_500", label: PROGRAM_LABELS.basic_500 },
     { value: "topik_read", label: PROGRAM_LABELS.topik_read },
     { value: "topik_listen", label: PROGRAM_LABELS.topik_listen },
     { value: "topik_write", label: PROGRAM_LABELS.topik_write },

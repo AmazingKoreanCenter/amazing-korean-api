@@ -161,7 +161,7 @@ export function AdminStudiesPage() {
     switch (program) {
       case "basic_pronunciation":
       case "basic_word":
-      case "basic_900":
+      case "basic_500":
         return "sky" as const;
       case "topik_read":
       case "topik_listen":
@@ -530,7 +530,7 @@ export function AdminStudiesPage() {
                 <SelectContent>
                   <SelectItem value="basic_pronunciation">Basic Pronunciation</SelectItem>
                   <SelectItem value="basic_word">Basic Word</SelectItem>
-                  <SelectItem value="basic_900">Basic 900</SelectItem>
+                  <SelectItem value="basic_500">Basic 500</SelectItem>
                   <SelectItem value="topik_read">TOPIK Read</SelectItem>
                   <SelectItem value="topik_listen">TOPIK Listen</SelectItem>
                   <SelectItem value="topik_write">TOPIK Write</SelectItem>

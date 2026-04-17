@@ -402,8 +402,8 @@ pub enum LessonType {
 #[derive(Clone, Debug, Serialize, Deserialize, Type, ToSchema, PartialEq)]
 #[sqlx(type_name = "user_level")]
 pub enum UserLevel {
-    #[serde(rename = "basic_900")]     // JSON: "basic_900"
-    Basic900,
+    #[serde(rename = "basic_500")]     // JSON: "basic_500"
+    Basic500,
     #[serde(rename = "basic_1800")]
     Basic1800,
     // ...

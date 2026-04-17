@@ -25,7 +25,7 @@ use super::service::StudyService;
     params(
         ("page" = Option<u32>, Query, description = "Page number (default 1)"),
         ("per_page" = Option<u32>, Query, description = "Items per page (default 10, max 100)"),
-        ("program" = Option<String>, Query, description = "Program filter (basic_900, topik_read, etc)"),
+        ("program" = Option<String>, Query, description = "Program filter (basic_500, topik_read, etc)"),
         ("sort" = Option<String>, Query, description = "Sort order (latest, oldest, alphabetical)")
     ),
     responses(

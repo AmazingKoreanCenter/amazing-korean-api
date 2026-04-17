@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-17 (INC-001 재발 방지 외부 모니터링 — UptimeRobot HTTP 모니터)
+updated: 2026-04-18 (INC-002 복구 — M02 테이블명 오인 + nginx reload race 2중 수정)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,53 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-18 — 🚨 INC-002: 프로덕션 crash loop (M02 테이블명 오인 + nginx reload race) 2중 복구**
+  - **INC-002 발생 타임라인**:
+    - 05:15 UTC — PR #172 `b75134e` (M01+M04) 배포 ✅ 성공
+    - 05:27 UTC — PR #172 `d009ff8` (M02+M03 추가) 배포 → api 컨테이너 crash loop 시작
+    - 05:33 UTC — PR #172 `2970b48` (Gemini 반영) 배포 → 동일 crash loop 지속
+    - 05:32~05:54 UTC — 외부 `https://api.amazingkorean.net/health` HTTP 502 (약 20분 다운)
+  - **원인 1 — M02 테이블명 오인 (primary root cause)**: `20260419_reset_test_studies.sql` 에서 테이블명을 `study_task_explain` 으로 작성. 프로덕션 실 테이블명은 `study_explain` (원본 `20260208_AMK_V1.sql` 기준). 로컬 DB 의 이상 rename 상태 (`study_task_explain` 로 존재) 를 실 상태로 오판. 프로덕션 마이그레이션 실행 시 `relation "study_task_explain" does not exist` 에러 → api Rust 부팅 시 `sqlx migrate` 실패 → `exit 1` → `restart: always` crash loop.
+  - **원인 2 — nginx reload DNS race (secondary)**: `docker compose up -d` 비동기 recreate 직후 `docker exec amk-nginx nginx -t` 가 실행되면 api 컨테이너가 docker internal DNS (127.0.0.11) 에 재등록되기 전이라 `host not found in upstream "api:3000"` syntax error. 기존 deploy.yml 은 이때 `exit 1` 로 워크플로 실패 처리 → GitHub Actions "failure" 시그널. 본질적으로 service 는 nginx 기존 config 로 살아있지만 GA 는 "실패" 로 기록되고 후속 디버깅 혼란.
+  - **복구 방안**:
+    - **원인 1**: `migrations/20260419_reset_test_studies.sql` 의 `study_task_explain` → `study_explain` 정정 (테이블명 참조 3곳). `content_type = 'study_task_explain'` enum 값은 그대로 유지 (enum 값과 물리 테이블명은 별개). `AMK_SCHEMA_PATCHED.md §2.4.6` 도 원본 `study_explain` 으로 원복.
+    - **원인 2**: `.github/workflows/deploy.yml` 의 nginx reload 블록을 **재시도 루프 (6회 × 5초)** + **fail-safe `exit 0`** 로 변경. api DNS 재등록 대기 + 최종 실패 시에도 기존 config 로 서빙되므로 워크플로 실패로 만들지 않음.
+  - **로컬 DB 정리**: 로컬의 이상 rename 된 `study_task_explain` 을 `ALTER TABLE study_task_explain RENAME TO study_explain` 으로 prod 와 동기화.
+  - **교훈 (feedback_migration_safety.md 에 추가 예정)**:
+    1. 마이그레이션 SQL 작성 시 **프로덕션 실 DB 상태를 기준으로 검증**. 로컬 DB 는 누적된 수동 변경으로 실 상태와 다를 수 있음. 작성 전 `docker exec -it amk-pg-prod psql ...` 로 실제 `\dt` 확인이 필수.
+    2. nginx reload (volume-mount) 처럼 **docker internal DNS 에 의존하는 step 은 재시도 + fail-safe** 필수. `exit 1` 는 실제 서비스 다운이 있을 때만.
+    3. deploy GitHub Actions "failure" ≠ 서비스 다운. 이번처럼 nginx reload 실패만으로도 GA 는 failure 처리되므로, 진짜 서비스 상태는 별도 외부 모니터 (UptimeRobot #71, 2026-04-17 도입) 로 판단.
+  - **검증**: `cargo check` 클린. 로컬 DB rename 완료. 코드 변경 4건 (M02 SQL, SCHEMA_PATCHED, deploy.yml, CHANGELOG).
+
+- **2026-04-18 — Gemini 리뷰 반영 (PR #172 MEDIUM 4건)**
+  - **`.claude/settings.json`**: 문법 오류가 있는 Bash permission entry 2건 제거 — (1) `perl ... src/... grep -rn ...` 가 하나의 entry 에 병합돼 있어 `grep` 이 `perl` 의 파일 인자로 취급되는 구조, (2) 같은 entry 에 로컬 절대경로 `/home/kkryo/...` 포함. 두 entry 모두 실제 매칭 불가능한 형태였으므로 삭제.
+  - **`migrations/20260419_reset_test_studies.sql`**: DELETE 조건을 의도 명시적으로 변경 — (a) `lesson_item WHERE study_task_id IS NOT NULL` → `WHERE study_task_id IN (SELECT study_task_id FROM study_task)`, (b) `admin_study_log` 전량 삭제 → `WHERE admin_pick_study_id IN (SELECT study_id FROM study) OR admin_pick_task_id IN (SELECT study_task_id FROM study_task)` (실 관리자 로그 누적 시 보호), (c) `writing_practice_session WHERE study_task_id IS NOT NULL` → `WHERE study_task_id IN (SELECT study_task_id FROM study_task)`. 현재 study_task 전량 삭제 전 시점에 실행되므로 삭제 범위는 종전과 동일하지만, DELETE 문만 독립적으로 읽어도 의도가 명확해지고 혹시 실 데이터가 존재하는 경우에도 보호됨.
+  - **검증**: `cargo check` 클린. SQL 의미 동일성 유지 (study_task IN (SELECT ...) 조건이 study_task 전량 삭제 대상 집합과 일치).
+
+- **2026-04-18 — 교재 500문장 시딩 선행 마이그레이션 4/4 (M03 — `basic_900` → `basic_500` enum 개명)**
+  - **M03 — `migrations/20260420_rename_basic_900.sql`**: `ALTER TYPE study_program_enum RENAME VALUE 'basic_900' TO 'basic_500'` (PostgreSQL 10+ atomic). 500문장 교재 시딩을 앞두고 레거시 명칭(실은 500문장) 을 정정.
+  - **Rust 동기화**: `src/types.rs` `StudyProgram::Basic900` → `Basic500`, `src/api/study/service.rs` enum 매칭 + 에러 메시지, `src/api/study/handler.rs` Swagger description, `src/api/admin/study/stats/repo.rs` + `dto.rs` 통계 필드 `basic_900` → `basic_500`.
+  - **Frontend 동기화**: `frontend/src/category/admin/study/types.ts` Zod 필드 + `frontend/src/category/study/types.ts` + 관리자/학습 페이지 5건 + **i18n locale 22개** (`programBasic900` 키 → `programBasic500`, 레이블 숫자 "900" → "500"; 크메르어 ៩០០ → ៥០០, 미얀마어 ၉၀၀ → ၅၀၀, 네팔어 ९०० → ५०० 등 다국어 숫자 포함).
+  - **문서 동기화**: `AMK_API_MASTER §4.7` enum 목록, `AMK_SCHEMA_PATCHED §2.4.1` ENUM 정의 + "(enum값 basic_900은 레거시)" 주석 제거, `AMK_API_FUTURE §시딩 계획` 프로그램 매핑 5곳, `AMK_CODE_PATTERNS §Triple Derive 예시` (serde rename 샘플).
+  - **검증**: `cargo check --all-targets` ✅, `cargo clippy --all-targets -- -D warnings` 0 warnings ✅, `cargo sqlx prepare` (enum rename 후 offline 캐시 재생성, 변경 없음 — 쿼리 레벨 변화 없음) ✅, 로컬 DB `SELECT unnest(enum_range(NULL::study_program_enum))` → `basic_500` 포함/`basic_900` 부재 ✅, `cd frontend && npm run build` 9.36s 클린 ✅.
+  - **실행 전제**: 본 마이그레이션은 M02 의 test-* 리셋(`basic_900` program 5건 포함 전량 삭제) 직후 실행됨. 따라서 rename 대상 실 데이터 0 행 — enum 타입 정의만 갱신. 프로덕션 적용 시에도 M02 가 선행 필요.
+
+- **2026-04-18 — 교재 500문장 시딩 선행 마이그레이션 2/4 (M02 — test-* 레거시 리셋)**
+  - **M02 — `migrations/20260419_reset_test_studies.sql`**: `seeds/20260208_AMK_V1_SEED.sql` 로 주입된 `test-1`~`test-9` 더미 study + 연관 데이터 전량 삭제. `study` / `study_task` IDENTITY 시퀀스 `RESTART WITH 1` 로 리셋하여 후속 시딩(M05~M08) 시점에 `study_id = 1` 부터 할당되도록 함.
+  - **삭제 순서**: `content_translations` (study/study_task_*) → `study_task_log` → `study_task_status` → `study_task_explain` → `lesson_item` (task 연결) → `admin_study_log` 전량 → `study_task_choice/typing/voice/writing` → `writing_practice_session` (task 기반만, 자유 연습은 보존) → `study_task` → `study`.
+  - **로컬 검증**: 적용 후 `SELECT COUNT(*) FROM study; FROM study_task;` → 0, `SELECT last_value, is_called FROM study_study_id_seq; study_task_study_task_id_seq;` → (1, false) = 다음 INSERT 가 1 할당, 자유 연습 세션 25개 보존 ✅.
+  - **스키마 문서 불일치 동기 수정**: `AMK_SCHEMA_PATCHED.md §2.4.6` 에서 `study_explain` 으로 표기돼 있던 3곳을 **실 DB 테이블명 `study_task_explain`** 으로 정정. 원본 `20260208_AMK_V1.sql` 은 `study_explain` 으로 생성하나 어느 시점에 DB 레벨 rename 이 적용됐고 (원인 마이그레이션 파일 미발견), 20260212 이후 신규 마이그레이션은 `study_task_explain` 전제로 작성됨 — 문서가 실 DB 에 뒤처진 상태였음.
+  - **프로덕션 적용 전 사전 확인 필수**: `SELECT COUNT(*) FROM study WHERE study_idx NOT LIKE 'test-%'` = 0 확인. 0 이 아니면 실 콘텐츠 존재 가능성 → 별도 백업 전략 선행.
+
+- **2026-04-18 — 교재 500문장 시딩 선행 마이그레이션 1/4 (M01 + M04)**
+  - **목적**: 교재(`amazing-korean-books/scripts/textbook/data/sentences.json`) 의 500문장 × 36개 언어 번역 시딩을 앞두고, 실 데이터 INSERT 전 스키마를 정리하는 단계. 총 8개 마이그레이션 (M01~M08) 중 스키마 확장 2건만 우선.
+  - **M01 — `migrations/20260418_study_task_idx.sql`**: `study_task` 테이블에 `study_task_idx varchar(100) NOT NULL UNIQUE` 컬럼 추가. 해설집 문장 참조 안정 키 + 재시딩 멱등성 + `content_translations.content_id` 논리 연결 안정성의 3가지 요구를 단일 컬럼으로 해결. 기존 레거시 행은 `'legacy-' || study_task_id` 로 백필 (후속 M02 에서 전량 삭제 예정).
+  - **M04 — `migrations/20260421_expand_supported_languages.sql`**: `supported_language_enum` 에 13개 언어 추가 (`tl`, `tr`, `bn`, `ar`, `ur`, `fa`, `lo`, `ky`, `it`, `sw`, `uk`, `am`, `pl`). sentences.json 의 36개 번역 중 기존 enum(22개) 미지원 13개를 커버. `pt_pt` (Portuguese-Portugal variant) 는 `pt` (Brazil) 로 병합 — UX 이득 대비 이중 저장 오버헤드 불분명. `user_language_enum` (UI 언어) 는 별도 정책으로 미확장.
+  - **Rust 동기화**: `src/types.rs` `SupportedLanguage` enum 에 13개 variant 추가 (`Tl`, `Tr`, `Bn`, `Ar`, `Ur`, `Fa`, `Lo`, `Ky`, `It`, `Sw`, `Uk`, `Am`, `Pl`). 주석 "21개 → 35개 (ko, en 포함)" 갱신.
+  - **문서 동기화**: `AMK_API_MASTER.md §4.8` supported_language_enum 목록 22개 → 35개로 갱신. `AMK_SCHEMA_PATCHED.md §2.4.2` study_task 정의에 `study_task_idx` 행 추가.
+  - **검증**: `cargo check --all-targets` ✅, `cargo clippy --all-targets -- -D warnings` 0 warnings ✅, `cargo sqlx prepare` 쿼리 캐시 재생성 (변경 없음 — 신규 enum 값은 아직 쿼리에서 사용 안 됨) ✅, 로컬 DB (`docker exec amk-pg ...`) 에 M01 + M04 적용 성공 — `\d study_task` 에서 `study_task_idx` + `uq_study_task_idx` UNIQUE 인덱스 확인, `enum_range(NULL::supported_language_enum)` 35개 ✅.
+  - **다음 단계 (이 PR 범위 밖)**: PR #2 = M02 (test-* 레거시 리셋), PR #3 = M03 (basic_900 → basic_500 enum 개명 + Rust/Frontend 동기화). 그 후 M05~M08 시딩 본체 (sentences.json → SQL 생성 스크립트는 amazing-korean-books 쪽 one-off).
 
 - **2026-04-17 — INC-001 재발 방지 외부 모니터링 구축 (UptimeRobot HTTP 모니터) + nginx gzip 튜닝**
   - **UptimeRobot Free 플랜 HTTP 모니터 세팅** — `https://api.amazingkorean.net/health`, 5분 간격, 이메일 알림 → `amazingkoreancenter@gmail.com`. GitHub Actions deploy "success" false positive 와 독립된 외부 감시 체계. 발사 테스트 (Keyword 모니터 keyword 를 `__DOWN_TEST__` 로 임시 변경) 에서 DOWN 알림 1~2분 내 수신 확인 완료.

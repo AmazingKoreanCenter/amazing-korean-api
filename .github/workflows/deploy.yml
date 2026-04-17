@@ -107,13 +107,30 @@ jobs:
 
             # nginx.conf 는 volume-mount (docker-compose.prod.yml L122) 되어 있어
             # 파일이 바뀌어도 컨테이너는 재시작 안 됨. 변경사항 반영 위해 reload 호출.
-            # syntax check(-t) 실패 시 reload 생략 → 기존 정상 설정 유지 (fail-safe).
-            if docker exec amk-nginx nginx -t 2>&1; then
-              docker exec amk-nginx nginx -s reload
-              echo "nginx config reloaded"
-            else
-              echo "nginx config syntax error — reload skipped, keeping old config"
-              exit 1
+            # 재시도 루프:
+            #   docker compose up -d 는 api 컨테이너 recreate 를 비동기로 시작
+            #   하므로, api 가 docker internal DNS (127.0.0.11) 에 재등록되기
+            #   전에 nginx -t 가 돌면 `host not found in upstream api:3000` 으로
+            #   실패한다 (INC-002, 2026-04-18 약 20분 다운). 최대 6회 × 5초
+            #   재시도로 DNS 재등록을 대기한다.
+            # fail-safe:
+            #   6회 전부 실패해도 nginx 는 기존 정상 config 로 계속 서빙 중
+            #   이므로 워크플로 전체를 실패로 만들지 않는다. nginx.conf 변경이
+            #   실제로 반영이 안 된 경우는 다음 배포에서 재시도되며, 서비스
+            #   트래픽은 단절 없이 유지된다.
+            nginx_reloaded=false
+            for i in 1 2 3 4 5 6; do
+              if docker exec amk-nginx nginx -t 2>&1; then
+                docker exec amk-nginx nginx -s reload
+                echo "nginx config reloaded (attempt $i)"
+                nginx_reloaded=true
+                break
+              fi
+              echo "nginx -t failed (attempt $i/6) — retry in 5s"
+              sleep 5
+            done
+            if [ "$nginx_reloaded" = "false" ]; then
+              echo "⚠️  nginx -t failed 6x — reload skipped, keeping old config (fail-safe)"
             fi
 
             # Cleanup old images

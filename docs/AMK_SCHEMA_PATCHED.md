@@ -17,7 +17,7 @@ CREATE TYPE video_state_enum AS ENUM ('ready', 'open', 'close');
 CREATE TYPE video_access_enum AS ENUM ('public', 'paid', 'private', 'promote');
 CREATE TYPE study_state_enum AS ENUM ('ready', 'open', 'close');
 CREATE TYPE study_access_enum AS ENUM ('public', 'paid', 'private', 'promote');
-CREATE TYPE study_program_enum AS ENUM ('basic_pronunciation', 'basic_word', 'basic_900', 'topik_read', 'topik_listen', 'topik_write', 'tbc');
+CREATE TYPE study_program_enum AS ENUM ('basic_pronunciation', 'basic_word', 'basic_500', 'topik_read', 'topik_listen', 'topik_write', 'tbc');
 CREATE TYPE study_task_kind_enum AS ENUM ('choice', 'typing', 'voice', 'writing');
 CREATE TYPE writing_level_enum AS ENUM ('beginner', 'intermediate', 'advanced');
 CREATE TYPE writing_practice_type_enum AS ENUM ('jamo', 'syllable', 'word', 'sentence', 'paragraph');
@@ -322,7 +322,7 @@ CREATE TABLE study (
   study_idx varchar(100) UNIQUE NOT NULL,                     -- 학습 문제 인덱스 : 외부 공개용 인덱스
   study_state study_state_enum NOT NULL DEFAULT 'ready',      -- 학습 문제 상태 : 학습 문제 준비, 학습 문제 공개, 학습 문제 비공개로 구분
   study_access study_access_enum NOT NULL DEFAULT 'public',   -- 학습 문제 접근 : 공용, 유료, 일부공개, 광고로 구분
-  study_program study_program_enum NOT NULL DEFAULT 'tbc',    -- 학습 문제 프로그램 : 기초 발음, 기초 단어, 기초 500문장 (enum값 basic_900은 레거시), 토픽 읽기, 토픽 듣기, 토픽 쓰기, 추후 확정으로 구분
+  study_program study_program_enum NOT NULL DEFAULT 'tbc',    -- 학습 문제 프로그램 : 기초 발음, 기초 단어, 기초 500문장(basic_500), 토픽 읽기, 토픽 듣기, 토픽 쓰기, 추후 확정으로 구분
   study_title varchar(80),                                    -- 학습 문제 제목 : 학습 문제들을 모아놓은 
   study_subtitle varchar(120),                                -- 학습 문제 부제목 : 
   study_description text,                                     -- 학습 문제 설명 : 
@@ -337,6 +337,7 @@ CREATE TABLE study_task (
   updated_by_user_id bigint NOT NULL,                              -- 문제 업로드 id : 문제를 생성/수정한 관리자 id(FK)
   study_task_kind study_task_kind_enum NOT NULL,                   -- 문제 종류 : choice(객관식), typing(쓰기), voice(말하기), writing(한글 자판 연습)
   study_task_seq int NOT NULL DEFAULT 1,                           -- 문제 순서 : 학습 세트 내 문제 표시 순서
+  study_task_idx varchar(100) NOT NULL UNIQUE,                     -- 외부 공개용 안정 참조 키 : 해설집 참조·재시딩 멱등성용 (예: amk500-sent-001)
   study_task_created_at timestamptz NOT NULL DEFAULT (now()),      -- 문제 생성 시간 : 문제 등록 시간
   study_task_updated_at timestamptz NOT NULL DEFAULT (now())       -- 문제 수정 시간 : 문제 정보 수정 시간
 );
@@ -892,8 +893,9 @@ CREATE INDEX index_admin_user_id_video ON admin_video_log (admin_user_id);
 CREATE INDEX index_admin_pick_video_id ON admin_video_log (admin_pick_video_id);
 CREATE INDEX IF NOT EXISTS index_study_state_access ON study (study_state, study_access);
 CREATE UNIQUE INDEX unique_study_id_study_task_seq ON study_task (study_id, study_task_seq);
+CREATE UNIQUE INDEX uq_study_task_idx ON study_task (study_task_idx);
 CREATE INDEX index_study_task_kind ON study_task (study_task_kind);
-CREATE UNIQUE INDEX unique_study_explain_lang ON study_explain (study_task_id, explain_lang);
+CREATE UNIQUE INDEX unique_study_task_explain_lang ON study_explain (study_task_id, explain_lang);
 CREATE INDEX index_explain_lang ON study_explain (explain_lang);
 CREATE INDEX idx_study_task_log_user_task ON study_task_log (user_id, study_task_id);
 CREATE INDEX index_admin_study_actor ON admin_study_log (admin_user_id);

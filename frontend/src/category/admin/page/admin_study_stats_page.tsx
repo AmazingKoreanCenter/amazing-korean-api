@@ -144,7 +144,7 @@ function DistributionCard({
 const programBadgeColors: Record<string, string> = {
   basic_pronunciation: "bg-chart-1/10 text-chart-1",
   basic_word: "bg-chart-2/10 text-chart-2",
-  basic_900: "bg-chart-6/10 text-chart-6",
+  basic_500: "bg-chart-6/10 text-chart-6",
   topik_read: "bg-chart-4/10 text-chart-4",
   topik_listen: "bg-chart-5/10 text-chart-5",
   topik_write: "bg-chart-3/10 text-chart-3",
@@ -342,7 +342,7 @@ export function AdminStudyStatsPage() {
     ? [
         { label: "Basic Pron.", value: summaryData.by_program.basic_pronunciation, color: "bg-chart-1" },
         { label: "Basic Word", value: summaryData.by_program.basic_word, color: "bg-chart-2" },
-        { label: "Basic 900", value: summaryData.by_program.basic_900, color: "bg-chart-6" },
+        { label: "Basic 500", value: summaryData.by_program.basic_500, color: "bg-chart-6" },
         { label: "TOPIK Read", value: summaryData.by_program.topik_read, color: "bg-chart-4" },
         { label: "TOPIK Listen", value: summaryData.by_program.topik_listen, color: "bg-chart-5" },
         { label: "TOPIK Write", value: summaryData.by_program.topik_write, color: "bg-chart-3" },
