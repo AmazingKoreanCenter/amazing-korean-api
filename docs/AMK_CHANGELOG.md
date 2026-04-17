@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-18 (교재 500문장 시딩 선행 마이그레이션 M01~M04 완료)
+updated: 2026-04-18 (INC-002 복구 — M02 테이블명 오인 + nginx reload race 2중 수정)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,24 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-18 — 🚨 INC-002: 프로덕션 crash loop (M02 테이블명 오인 + nginx reload race) 2중 복구**
+  - **INC-002 발생 타임라인**:
+    - 05:15 UTC — PR #172 `b75134e` (M01+M04) 배포 ✅ 성공
+    - 05:27 UTC — PR #172 `d009ff8` (M02+M03 추가) 배포 → api 컨테이너 crash loop 시작
+    - 05:33 UTC — PR #172 `2970b48` (Gemini 반영) 배포 → 동일 crash loop 지속
+    - 05:32~05:54 UTC — 외부 `https://api.amazingkorean.net/health` HTTP 502 (약 20분 다운)
+  - **원인 1 — M02 테이블명 오인 (primary root cause)**: `20260419_reset_test_studies.sql` 에서 테이블명을 `study_task_explain` 으로 작성. 프로덕션 실 테이블명은 `study_explain` (원본 `20260208_AMK_V1.sql` 기준). 로컬 DB 의 이상 rename 상태 (`study_task_explain` 로 존재) 를 실 상태로 오판. 프로덕션 마이그레이션 실행 시 `relation "study_task_explain" does not exist` 에러 → api Rust 부팅 시 `sqlx migrate` 실패 → `exit 1` → `restart: always` crash loop.
+  - **원인 2 — nginx reload DNS race (secondary)**: `docker compose up -d` 비동기 recreate 직후 `docker exec amk-nginx nginx -t` 가 실행되면 api 컨테이너가 docker internal DNS (127.0.0.11) 에 재등록되기 전이라 `host not found in upstream "api:3000"` syntax error. 기존 deploy.yml 은 이때 `exit 1` 로 워크플로 실패 처리 → GitHub Actions "failure" 시그널. 본질적으로 service 는 nginx 기존 config 로 살아있지만 GA 는 "실패" 로 기록되고 후속 디버깅 혼란.
+  - **복구 방안**:
+    - **원인 1**: `migrations/20260419_reset_test_studies.sql` 의 `study_task_explain` → `study_explain` 정정 (테이블명 참조 3곳). `content_type = 'study_task_explain'` enum 값은 그대로 유지 (enum 값과 물리 테이블명은 별개). `AMK_SCHEMA_PATCHED.md §2.4.6` 도 원본 `study_explain` 으로 원복.
+    - **원인 2**: `.github/workflows/deploy.yml` 의 nginx reload 블록을 **재시도 루프 (6회 × 5초)** + **fail-safe `exit 0`** 로 변경. api DNS 재등록 대기 + 최종 실패 시에도 기존 config 로 서빙되므로 워크플로 실패로 만들지 않음.
+  - **로컬 DB 정리**: 로컬의 이상 rename 된 `study_task_explain` 을 `ALTER TABLE study_task_explain RENAME TO study_explain` 으로 prod 와 동기화.
+  - **교훈 (feedback_migration_safety.md 에 추가 예정)**:
+    1. 마이그레이션 SQL 작성 시 **프로덕션 실 DB 상태를 기준으로 검증**. 로컬 DB 는 누적된 수동 변경으로 실 상태와 다를 수 있음. 작성 전 `docker exec -it amk-pg-prod psql ...` 로 실제 `\dt` 확인이 필수.
+    2. nginx reload (volume-mount) 처럼 **docker internal DNS 에 의존하는 step 은 재시도 + fail-safe** 필수. `exit 1` 는 실제 서비스 다운이 있을 때만.
+    3. deploy GitHub Actions "failure" ≠ 서비스 다운. 이번처럼 nginx reload 실패만으로도 GA 는 failure 처리되므로, 진짜 서비스 상태는 별도 외부 모니터 (UptimeRobot #71, 2026-04-17 도입) 로 판단.
+  - **검증**: `cargo check` 클린. 로컬 DB rename 완료. 코드 변경 4건 (M02 SQL, SCHEMA_PATCHED, deploy.yml, CHANGELOG).
 
 - **2026-04-18 — Gemini 리뷰 반영 (PR #172 MEDIUM 4건)**
   - **`.claude/settings.json`**: 문법 오류가 있는 Bash permission entry 2건 제거 — (1) `perl ... src/... grep -rn ...` 가 하나의 entry 에 병합돼 있어 `grep` 이 `perl` 의 파일 인자로 취급되는 구조, (2) 같은 entry 에 로컬 절대경로 `/home/kkryo/...` 포함. 두 entry 모두 실제 매칭 불가능한 형태였으므로 삭제.

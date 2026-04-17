@@ -417,8 +417,8 @@ CREATE TABLE writing_practice_seed (
   UNIQUE (writing_level, writing_practice_type, seq)
 );
 
--- 2.4.6 study_task_explain : 학습 문제 해설 (다국어 지원)
-CREATE TABLE study_task_explain (
+-- 2.4.6 study_explain : 학습 문제 해설 (다국어 지원)
+CREATE TABLE study_explain (
   study_task_id int NOT NULL,                                 -- 학습 문제 id : 학습 문제 DB 고유 번호(FK)
   explain_lang user_set_language_enum NOT NULL DEFAULT 'ko',  -- 해설 언어 : ko(한국어), en(영어)
   explain_title varchar(120),                                 -- 해설 제목 : 해설 제목 (선택)
@@ -833,7 +833,7 @@ ALTER TABLE study_task_voice ADD FOREIGN KEY (study_task_id) REFERENCES study_ta
 ALTER TABLE study_task_writing ADD FOREIGN KEY (study_task_id) REFERENCES study_task (study_task_id);
 ALTER TABLE writing_practice_session ADD FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE;
 ALTER TABLE writing_practice_session ADD FOREIGN KEY (study_task_id) REFERENCES study_task (study_task_id) ON DELETE SET NULL;
-ALTER TABLE study_task_explain ADD FOREIGN KEY (study_task_id) REFERENCES study_task (study_task_id);
+ALTER TABLE study_explain ADD FOREIGN KEY (study_task_id) REFERENCES study_task (study_task_id);
 ALTER TABLE study_task_status ADD CONSTRAINT fk_study_task_status_task FOREIGN KEY (study_task_id) REFERENCES study_task (study_task_id) ON DELETE CASCADE;
 ALTER TABLE study_task_status ADD FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE;
 ALTER TABLE study_task_log ADD CONSTRAINT fk_study_task_log_task FOREIGN KEY (study_task_id) REFERENCES study_task (study_task_id) ON DELETE CASCADE;
@@ -894,8 +894,8 @@ CREATE INDEX index_admin_pick_video_id ON admin_video_log (admin_pick_video_id);
 CREATE INDEX IF NOT EXISTS index_study_state_access ON study (study_state, study_access);
 CREATE UNIQUE INDEX unique_study_id_study_task_seq ON study_task (study_id, study_task_seq);
 CREATE INDEX index_study_task_kind ON study_task (study_task_kind);
-CREATE UNIQUE INDEX unique_study_task_explain_lang ON study_task_explain (study_task_id, explain_lang);
-CREATE INDEX index_explain_lang ON study_task_explain (explain_lang);
+CREATE UNIQUE INDEX unique_study_task_explain_lang ON study_explain (study_task_id, explain_lang);
+CREATE INDEX index_explain_lang ON study_explain (explain_lang);
 CREATE INDEX idx_study_task_log_user_task ON study_task_log (user_id, study_task_id);
 CREATE INDEX index_admin_study_actor ON admin_study_log (admin_user_id);
 CREATE INDEX index_admin_study_target ON admin_study_log (admin_pick_study_id);

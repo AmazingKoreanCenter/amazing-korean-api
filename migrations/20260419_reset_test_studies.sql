@@ -13,10 +13,15 @@
 --     풀이이므로 의미 없음 (시드 콘텐츠 부재 상태였음)
 --
 -- 참고:
---   - 테이블명은 실 DB 기준(study_task_explain). 원본 20260208_AMK_V1.sql 은
---     study_explain 이었으나 DB 레벨에서 study_task_explain 으로 rename 된
---     상태. AMK_SCHEMA_PATCHED.md §2.4.6 동기화는 본 PR 에서 함께 진행.
+--   - 테이블명은 원본 `20260208_AMK_V1.sql` 기준 `study_explain`. content_type
+--     enum 값 'study_task_explain' (20260212 에서 추가) 과 혼동하지 말 것 —
+--     enum 값은 그대로이되 물리 테이블명은 study_explain.
 --   - sqlx migrator 가 파일 단위 트랜잭션 처리. 명시적 BEGIN/COMMIT 생략.
+--
+-- INC-002 (2026-04-18): 초판에서 테이블명을 `study_task_explain` 으로 썼다가
+--   프로덕션에서 `relation "study_task_explain" does not exist` 실패 → api
+--   crash loop → 약 20분 다운. 로컬 DB 의 이상 rename 상태를 실 DB 로 오인한
+--   실수. feedback_migration_safety.md 에 재발 방지 규칙 추가 예정.
 -- =============================================================================
 
 -- 1. 자식 테이블 먼저 삭제 (일부 FK 는 ON DELETE CASCADE 없음)
@@ -36,7 +41,7 @@ DELETE FROM content_translations
 -- (트랜잭션 중 FK 순서 의존 최소화)
 DELETE FROM study_task_log    WHERE study_task_id IN (SELECT study_task_id FROM study_task);
 DELETE FROM study_task_status WHERE study_task_id IN (SELECT study_task_id FROM study_task);
-DELETE FROM study_task_explain WHERE study_task_id IN (SELECT study_task_id FROM study_task);
+DELETE FROM study_explain WHERE study_task_id IN (SELECT study_task_id FROM study_task);
 
 -- 수업 연결 (task 참조) 제거 — 현재 존재하는 study_task 에 연결된 lesson_item 만
 DELETE FROM lesson_item
