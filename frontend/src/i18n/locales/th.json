@@ -215,7 +215,10 @@
     "validationBirthdayFormat": "Please enter a valid date (YYYY-MM-DD).",
     "validationCountryRequired": "Please select a country.",
     "validationLanguageRequired": "Please select a language.",
-    "validationPasswordMax": "Password must be 72 characters or less."
+    "validationPasswordMax": "Password must be 72 characters or less.",
+    "mfaBackupPlaceholder": "รหัสสำรอง 8 ตัวอักษร",
+    "mfaUseBackupCode": "ใช้รหัสสำรอง",
+    "mfaUseAuthApp": "ใช้แอปยืนยันตัวตน"
   },
   "user": {
     "myPageTitle": "หน้าของฉัน",
@@ -333,7 +336,11 @@
     "ctaTitle": "เริ่มต้นเลยตอนนี้",
     "ctaDescription": "สมัครฟรีและเริ่มเรียนภาษาเกาหลีเลย",
     "ctaStart": "เริ่มต้นฟรี",
-    "ctaBrowseBooks": "ดูตำราเรียน"
+    "ctaBrowseBooks": "ดูตำราเรียน",
+    "stat1Title": "34 ภาษา, หนังสือเรียน 68 ฉบับ",
+    "stat1Desc": "เรียนภาษาเกาหลีในภาษาของคุณ ด้วยหนังสือเรียนที่ออกแบบมาเพื่อแต่ละภาษาโดยเฉพาะ",
+    "stat2Title": "500 ประโยคพื้นฐาน",
+    "stat2Desc": "เรียนรู้พื้นฐานภาษาเกาหลีผ่านไวยากรณ์พื้นฐาน (กาล, คำช่วย) และโครงสร้างประโยค (ภาคแสดง, ส่วนขยาย)"
   },
   "study": {
     "heroBadge": "เรียนภาษาเกาหลีอย่างเป็นระบบ",
@@ -515,7 +522,8 @@
       "searchPlaceholder": "Search language...",
       "noResults": "No results found.",
       "bookTitle": "Amazing Korean Basics - {{language}}",
-      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK."
+      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK.",
+      "pricePerUnit": "15,000 วอน"
     },
     "detail": {
       "viewDetail": "View Details",
@@ -538,7 +546,10 @@
       "success": "ซื้อสำเร็จ",
       "error": "เกิดข้อผิดพลาดระหว่างการซื้อ",
       "cardPayment": "Card Payment",
-      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+      "paddleNote": "International card payment via Paddle. Charges will be in USD.",
+      "paddleUnavailable": "ไม่สามารถชำระเงินผ่านบัตรได้",
+      "checkoutSuccess": "ชำระเงินเสร็จสมบูรณ์",
+      "cancelSuccess": "ยกเลิกคำสั่งซื้อแล้ว"
     },
     "purchaseComplete": {
       "title": "ซื้อสำเร็จ",
@@ -576,7 +587,10 @@
       "empty": "ยังไม่มี E-book ที่ซื้อ",
       "browseCatalog": "ดู E-book",
       "openViewer": "เปิดโปรแกรมอ่าน",
-      "loadError": "โหลดประวัติการซื้อไม่สำเร็จ"
+      "loadError": "โหลดประวัติการซื้อไม่สำเร็จ",
+      "payNow": "ชำระเงินทันที",
+      "cancelOrder": "ยกเลิกคำสั่งซื้อ",
+      "processing": "กำลังดำเนินการชำระเงิน..."
     },
     "viewer": {
       "toc": "สารบัญ",
@@ -586,7 +600,13 @@
       "copyrightNotice": "เนื้อหานี้ได้รับการคุ้มครองตามกฎหมายลิขสิทธิ์",
       "copyrightLegal": "การหลีกเลี่ยงมาตรการป้องกันทางเทคนิคมีโทษตามมาตรา 104-2 พ.ร.บ.ลิขสิทธิ์เกาหลี",
       "copyrightWatermark": "E-book นี้มีลายน้ำดิจิทัลเพื่อระบุตัวตนผู้ซื้อ",
-      "copyrightConfirm": "รับทราบแล้ว"
+      "copyrightConfirm": "รับทราบแล้ว",
+      "notFoundDesc": "ไม่พบรหัสการสั่งซื้อ หรือคุณไม่มีสิทธิ์เข้าถึง",
+      "paymentRequired": "การชำระเงินยังไม่เสร็จสมบูรณ์",
+      "paymentRequiredDesc": "คุณสามารถอ่าน E-book ได้หลังจากชำระเงินเสร็จสมบูรณ์ สำหรับการโอนเงินผ่านธนาคาร สิทธิ์การเข้าถึงจะได้รับการอนุมัติหลังจากผู้ดูแลระบบยืนยันแล้ว",
+      "goToMyEbooks": "ไปที่อีบุ๊กของฉัน",
+      "spreadView": "มุมมองแบบสองหน้า",
+      "singleView": "มุมมองแบบหน้าเดียว"
     }
   },
   "textbook": {
@@ -613,7 +633,12 @@
       "viewCarousel": "มุมมองแบบหมุน",
       "searchPlaceholder": "ค้นหาภาษา...",
       "noResults": "ไม่พบผลลัพธ์",
-      "bookDescription": "หนังสือเรียนภาษาเกาหลีอย่างเป็นระบบ แปลโดยผู้เชี่ยวชาญเจ้าของภาษาในแต่ละภาษา"
+      "bookDescription": "หนังสือเรียนภาษาเกาหลีอย่างเป็นระบบ แปลโดยผู้เชี่ยวชาญเจ้าของภาษาในแต่ละภาษา",
+      "isbnPending": "ใช้เวลาเพิ่มเติมประมาณ 1 สัปดาห์ สำหรับการลงทะเบียน ISBN และการพิมพ์",
+      "bookTitle": "Amazing Korean Basic - {{language}}",
+      "editionInfo": "{{edition}} · จำนวนสั่งซื้อขั้นต่ำ 10 เล่ม",
+      "bookDescriptionStudent": "หนังสือเรียนระดับพื้นฐานสำหรับการเรียนภาษาเกาหลี\nประกอบด้วยภาษาเกาหลี - ภาษาอังกฤษ - {{language}}\nเป็นก้าวแรกสู่ความเชี่ยวชาญภาษาเกาหลีระดับพื้นฐาน\nและการเตรียมตัวสอบ TOPIK และ EPS-TOPIK",
+      "bookDescriptionTeacher": "หนังสือเรียนระดับพื้นฐานสำหรับการสอนภาษาเกาหลี\nประกอบด้วยภาษาเกาหลี - ภาษาอังกฤษ - {{language}}\nเป็นก้าวแรกสำหรับการสอนภาษาเกาหลีระดับพื้นฐาน\nและการเตรียมตัวสอบ TOPIK และ EPS-TOPIK"
     },
     "detail": {
       "modalTitle": "รายละเอียดตำราเรียน",
@@ -680,6 +705,125 @@
       "notFound": "ไม่พบคำสั่งซื้อ",
       "quoteNotice": "ใบเสนอราคานี้อ้างอิงจากการส่งคำสั่งซื้อ ยอดชำระจริงอาจแตกต่างกัน",
       "confirmationNotice": "การยืนยันนี้ใช้สำหรับตรวจสอบสถานะคำสั่งซื้อเท่านั้น ไม่ใช่ใบเสร็จรับเงินอย่างเป็นทางการ"
+    },
+    "order": {
+      "sectionItems": "เลือกหนังสือเรียน",
+      "language": "ภาษา",
+      "languagePlaceholder": "เลือกภาษา",
+      "textbookType": "ประเภท",
+      "typeStudent": "นักเรียน",
+      "typeTeacher": "ครู",
+      "quantity": "จำนวน",
+      "currency": "วอน",
+      "addItem": "เพิ่มรายการ",
+      "totalQuantity": "จำนวนรวม",
+      "unit": " เล่ม",
+      "totalAmount": "ยอดรวม",
+      "minQuantityError": "จำนวนสั่งซื้อขั้นต่ำคือ {{min}} เล่ม",
+      "duplicateItemError": "มีการเลือกภาษาและประเภทซ้ำกัน",
+      "minQuantityHint": "ขั้นต่ำ {{min}} เล่ม",
+      "isbnNotice": "บางภาษาจำเป็นต้องมีการลงทะเบียน ISBN ก่อนการจัดพิมพ์ ซึ่งอาจทำให้ระยะเวลาการจัดส่งนานขึ้นประมาณ 1 สัปดาห์",
+      "sectionOrderer": "ข้อมูลผู้สั่งซื้อ",
+      "ordererName": "ชื่อ",
+      "ordererNamePlaceholder": "สมชาย ใจดี",
+      "ordererPhone": "เบอร์โทรศัพท์",
+      "ordererEmail": "อีเมล",
+      "sectionOrg": "องค์กร",
+      "optional": "ไม่บังคับ",
+      "orgName": "ชื่อองค์กร",
+      "orgNamePlaceholder": "สถาบันสอนภาษาเกาหลี",
+      "orgType": "ประเภทองค์กร",
+      "orgTypePlaceholder": "เลือกประเภท",
+      "orgTypeAcademy": "สถาบัน",
+      "orgTypeUniversity": "มหาวิทยาลัย",
+      "orgTypeSchool": "โรงเรียน",
+      "orgTypeIndividual": "บุคคลธรรมดา",
+      "orgTypeOther": "อื่นๆ",
+      "sectionDelivery": "ข้อมูลการจัดส่ง",
+      "postalCode": "รหัสไปรษณีย์",
+      "address": "ที่อยู่",
+      "addressPlaceholder": "123 ถนนเมน...",
+      "addressDetail": "รายละเอียดที่อยู่",
+      "addressDetailPlaceholder": "อาคาร, ชั้น, ฯลฯ",
+      "sectionPayment": "ข้อมูลการชำระเงิน",
+      "paymentMethodNote": "ขณะนี้รองรับเฉพาะการโอนเงินผ่านธนาคารเท่านั้น รายละเอียดการโอนจะแจ้งให้ทราบหลังจากส่งคำสั่งซื้อแล้ว",
+      "depositorName": "ชื่อผู้โอน",
+      "depositorNamePlaceholder": "หากไม่ตรงกับชื่อผู้สั่งซื้อ",
+      "sectionTax": "ใบกำกับภาษี",
+      "taxInvoiceLabel": "ขอใบกำกับภาษี",
+      "taxBizNumber": "เลขประจำตัวผู้เสียภาษี",
+      "taxCompanyName": "ชื่อบริษัท",
+      "taxCompanyNamePlaceholder": "กรอกชื่อบริษัท",
+      "taxRepName": "ชื่อผู้แทน",
+      "taxRepNamePlaceholder": "กรอกชื่อผู้แทน",
+      "taxAddress": "ที่อยู่ธุรกิจ",
+      "taxAddressPlaceholder": "ที่อยู่ตามใบทะเบียนพาณิชย์",
+      "taxBizType": "ประเภทธุรกิจ",
+      "taxBizTypePlaceholder": "เช่น บริการ, ค้าปลีก",
+      "taxBizItem": "รายการธุรกิจ",
+      "taxBizItemPlaceholder": "เช่น การศึกษา, การจัดพิมพ์",
+      "taxEmail": "อีเมลสำหรับใบกำกับภาษี",
+      "sectionNotes": "หมายเหตุ",
+      "notesPlaceholder": "คำขอเพิ่มเติม",
+      "submitting": "กำลังดำเนินการ...",
+      "submitButton": "สั่งซื้อ",
+      "successToast": "ส่งคำสั่งซื้อเรียบร้อยแล้ว!",
+      "errorToast": "การสั่งซื้อล้มเหลว กรุณาลองใหม่อีกครั้ง",
+      "completeTitle": "การสั่งซื้อเสร็จสมบูรณ์",
+      "completeDesc": "กรุณาเก็บรหัสคำสั่งซื้อด้านล่างนี้ไว้ เพื่อใช้ในการติดตามสถานะคำสั่งซื้อของคุณ",
+      "orderCode": "รหัสคำสั่งซื้อ",
+      "codeCopied": "คัดลอกรหัสการสั่งซื้อแล้ว",
+      "bankTransferGuide": "ข้อมูลการโอนเงินผ่านธนาคาร",
+      "bankAccount": "โอนเงินไปที่: {{account}}",
+      "bankNote": "กรุณาระบุรหัสการสั่งซื้อหรือชื่อของคุณในบันทึกการโอนเงิน",
+      "trackGuide": "คุณสามารถตรวจสอบสถานะการสั่งซื้อได้ที่ปุ่มด้านล่างนี้",
+      "trackButton": "ติดตามคำสั่งซื้อ",
+      "validationNameRequired": "กรุณากรอกชื่อของคุณ",
+      "validationEmailRequired": "กรุณากรอกอีเมลของคุณ",
+      "validationEmailFormat": "กรุณากรอกที่อยู่อีเมลที่ถูกต้อง",
+      "validationPhoneRequired": "กรุณากรอกเบอร์โทรศัพท์ของคุณ",
+      "validationAddressRequired": "กรุณากรอกที่อยู่ในการจัดส่ง",
+      "validationLanguageRequired": "กรุณาเลือกภาษา",
+      "validationQuantityMin": "จำนวนต้องมีอย่างน้อย 1",
+      "validationQuantityMax": "จำนวนต้องไม่เกิน 9,999",
+      "validationItemsRequired": "กรุณาเพิ่มหนังสือเรียนอย่างน้อย 1 เล่ม"
+    },
+    "status": {
+      "title": "ติดตามสถานะคำสั่งซื้อ",
+      "subtitle": "กรุณากรอกรหัสคำสั่งซื้อเพื่อตรวจสอบสถานะการสั่งซื้อ",
+      "placeholder": "TB-260226-0001",
+      "search": "ค้นหา",
+      "notFound": "ไม่พบคำสั่งซื้อ",
+      "notFoundDesc": "กรุณาตรวจสอบรหัสการสั่งซื้อของคุณแล้วลองใหม่อีกครั้ง",
+      "orderedAt": "สั่งซื้อเมื่อ:",
+      "initialHint": "กรุณากรอกรหัสการสั่งซื้อเพื่อตรวจสอบสถานะการสั่งซื้อ",
+      "label": {
+        "pending": "ได้รับคำสั่งซื้อแล้ว",
+        "confirmed": "ยืนยันแล้ว",
+        "paid": "ชำระเงินเรียบร้อยแล้ว",
+        "printing": "กำลังพิมพ์",
+        "shipped": "จัดส่งแล้ว",
+        "delivered": "จัดส่งสำเร็จ",
+        "canceled": "ยกเลิกแล้ว"
+      },
+      "step": {
+        "pending": "ได้รับแล้ว",
+        "confirmed": "ยืนยันแล้ว",
+        "paid": "ชำระเงินแล้ว",
+        "printing": "กำลังพิมพ์",
+        "shipped": "จัดส่งแล้ว",
+        "delivered": "จัดส่งแล้ว"
+      },
+      "orderDetail": "รายละเอียดการสั่งซื้อ",
+      "colLanguage": "ภาษา",
+      "colType": "ประเภท",
+      "colQuantity": "จำนวน",
+      "colUnitPrice": "ราคาต่อหน่วย",
+      "colSubtotal": "ยอดรวมย่อย",
+      "total": "ยอดรวม",
+      "ordererInfo": "ข้อมูลผู้สั่งซื้อ",
+      "deliveryInfo": "ข้อมูลการจัดส่ง",
+      "notes": "หมายเหตุ"
     }
   },
   "seo": {
@@ -746,6 +890,12 @@
     "textbookStatus": {
       "title": "สถานะการสั่งซื้อ - Amazing Korean",
       "description": "ตรวจสอบสถานะการสั่งซื้อตำราเรียน"
+    },
+    "book": {
+      "title": "Amazing Korean Basic {{language}} - ข้อมูลหนังสือเรียน",
+      "description": "รายละเอียดและข้อมูลการสั่งซื้อหนังสือเรียน Amazing Korean Basic {{language}}",
+      "notFoundTitle": "ไม่พบหนังสือเรียน - Amazing Korean",
+      "notFoundDescription": "หมายเลข ISBN ไม่ถูกต้อง"
     }
   },
   "bookHub": {

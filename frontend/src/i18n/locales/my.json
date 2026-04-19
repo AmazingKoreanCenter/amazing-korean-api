@@ -215,7 +215,10 @@
     "validationBirthdayFormat": "Please enter a valid date (YYYY-MM-DD).",
     "validationCountryRequired": "Please select a country.",
     "validationLanguageRequired": "Please select a language.",
-    "validationPasswordMax": "Password must be 72 characters or less."
+    "validationPasswordMax": "Password must be 72 characters or less.",
+    "mfaBackupPlaceholder": "စာလုံး ၈ လုံးပါသော backup code",
+    "mfaUseBackupCode": "Backup code ကို အသုံးပြုရန်",
+    "mfaUseAuthApp": "Authenticator app ကို အသုံးပြုရန်"
   },
   "user": {
     "myPageTitle": "ကျွန်ုပ်စာမျက်နှာ",
@@ -333,7 +336,11 @@
     "ctaTitle": "ယခုပဲ စတင်ကြည့်ပါ",
     "ctaDescription": "အခမဲ့ စာရင်းသွင်းပြီး ကိုရီးယားဘာသာ သင်ယူမှုကို စတင်ပါ။",
     "ctaStart": "အခမဲ့ စတင်ပါ",
-    "ctaBrowseBooks": "ဖတ်စာအုပ် ကြည့်ရန်"
+    "ctaBrowseBooks": "ဖတ်စာအုပ် ကြည့်ရန်",
+    "stat1Title": "ဘာသာစကား ၃၄ မျိုး၊ သင်ရိုးညွှန်ကြားစာ မူကွဲ ၆၈ မျိုး",
+    "stat1Desc": "ဘာသာစကားတစ်ခုချင်းစီအတွက် သီးသန့်ပြုလုပ်ထားသော သင်ရိုးညွှန်ကြားစာများဖြင့် သင်နှစ်သက်ရာ ဘာသာစကားဖြင့် ကိုရီးယားဘာသာကို လေ့လာနိုင်ပါသည်။",
+    "stat2Title": "အခြေခံဝါကျ ၅၀၀",
+    "stat2Desc": "အခြေခံသဒ္ဒါ (ကာလ၊ ဝိဘတ်) နှင့် ဝါကျတည်ဆောက်ပုံ (ကြိယာ၊ ကြိယာဝိသေသန) တို့ကို အခြေခံထားသည့် ကိုရီးယားဘာသာ အခြေခံသင်ယူမှု။"
   },
   "study": {
     "heroBadge": "စနစ်တကျ ကိုရီးယားဘာသာ သင်ယူရေး",
@@ -515,7 +522,8 @@
       "searchPlaceholder": "Search language...",
       "noResults": "No results found.",
       "bookTitle": "Amazing Korean Basics - {{language}}",
-      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK."
+      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK.",
+      "pricePerUnit": "15,000 KRW"
     },
     "detail": {
       "viewDetail": "View Details",
@@ -538,7 +546,10 @@
       "success": "ဝယ်ယူမှု ပြီးပါပြီ။",
       "error": "ဝယ်ယူစဉ် အမှားတစ်ခု ဖြစ်ပေါ်ခဲ့သည်။",
       "cardPayment": "Card Payment",
-      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+      "paddleNote": "International card payment via Paddle. Charges will be in USD.",
+      "paddleUnavailable": "ကတ်ဖြင့် ငွေပေးချေ၍ မရနိုင်ပါ။",
+      "checkoutSuccess": "ငွေပေးချေမှု အောင်မြင်ပါသည်။",
+      "cancelSuccess": "အော်ဒါကို ပယ်ဖျက်လိုက်ပါသည်။"
     },
     "purchaseComplete": {
       "title": "Purchase Complete",
@@ -576,7 +587,10 @@
       "empty": "ဝယ်ယူထားသော E-book မရှိပါ။",
       "browseCatalog": "E-book များ ကြည့်ရှုရန်",
       "openViewer": "ကြည့်ရှုရန် ဖွင့်ပါ",
-      "loadError": "ဝယ်ယူမှု မှတ်တမ်း ဖွင့်၍မရပါ။"
+      "loadError": "ဝယ်ယူမှု မှတ်တမ်း ဖွင့်၍မရပါ။",
+      "payNow": "အခုပဲ ငွေပေးချေမည်",
+      "cancelOrder": "အော်ဒါကို ပယ်ဖျက်ရန်",
+      "processing": "ငွေပေးချေမှုကို လုပ်ဆောင်နေသည်..."
     },
     "viewer": {
       "toc": "မာတိကာ",
@@ -586,7 +600,13 @@
       "copyrightNotice": "ဤအကြောင်းအရာသည် မူပိုင်ခွင့်ဥပဒေဖြင့် ကာကွယ်ထားပါသည်။",
       "copyrightLegal": "နည်းပညာကာကွယ်ရေးအစီအမံများကို ကျော်လွှားခြင်းသည် ကိုရီးယားမူပိုင်ခွင့်ဥပဒေ ပုဒ်မ ၁၀၄-၂ အရ အပြစ်ပေးခံရမည်။",
       "copyrightWatermark": "ဤ E-book တွင် ဝယ်ယူသူ ခွဲခြားသိရှိရေးအတွက် ဒစ်ဂျစ်တယ် ရေစာ ထည့်သွင်းထားပါသည်။",
-      "copyrightConfirm": "နားလည်ပါပြီ"
+      "copyrightConfirm": "နားလည်ပါပြီ",
+      "notFoundDesc": "ဝယ်ယူမှုကုဒ် မရှိခြင်း သို့မဟုတ် ဝင်ရောက်ကြည့်ရှုခွင့် မရှိခြင်း ဖြစ်ပါသည်။",
+      "paymentRequired": "ငွေပေးချေမှု မပြီးမြောက်သေးပါ။",
+      "paymentRequiredDesc": "ငွေပေးချေမှု အောင်မြင်ပြီးနောက် E-book ကို ကြည့်ရှုနိုင်ပါသည်။ ဘဏ်မှတစ်ဆင့် ငွေလွှဲပါက Admin မှ အတည်ပြုပြီးမှသာ ဝင်ရောက်ကြည့်ရှုခွင့် ရရှိမည် ဖြစ်ပါသည်။",
+      "goToMyEbooks": "ကျွန်ုပ်၏ E-books များသို့ သွားရန်",
+      "spreadView": "စာမျက်နှာနှစ်မျက်နှာတွဲကြည့်ခြင်း",
+      "singleView": "စာမျက်နှာတစ်ခုချင်းစီကြည့်ခြင်း"
     }
   },
   "textbook": {
@@ -613,7 +633,12 @@
       "viewCarousel": "ကာရိုဆယ် မြင်ကွင်း",
       "searchPlaceholder": "ဘာသာစကား ရှာရန်...",
       "noResults": "ရလဒ် မတွေ့ပါ။",
-      "bookDescription": "စနစ်တကျ ကိုရီးယား သင်ယူမှု ဖတ်စာအုပ်။ ဘာသာစကားတစ်ခုချင်းစီ၏ ဇာတိ ကျွမ်းကျင်သူများ ဘာသာပြန်ဆိုထားသည်။"
+      "bookDescription": "စနစ်တကျ ကိုရီးယား သင်ယူမှု ဖတ်စာအုပ်။ ဘာသာစကားတစ်ခုချင်းစီ၏ ဇာတိ ကျွမ်းကျင်သူများ ဘာသာပြန်ဆိုထားသည်။",
+      "isbnPending": "ISBN မှတ်ပုံတင်ခြင်းနှင့် ပုံနှိပ်ခြင်းအတွက် နောက်ထပ် ၁ ပတ်ခန့် ကြာမြင့်နိုင်ပါသည်။",
+      "bookTitle": "Amazing Korean အခြေခံ - {{language}}",
+      "editionInfo": "{{edition}} · အနည်းဆုံး ၁၀ အုပ် မှာယူရပါမည်။",
+      "bookDescriptionStudent": "ကိုရီးယားဘာသာစကား လေ့လာရန် အခြေခံသင်ရိုးစာအုပ် ဖြစ်ပါသည်။\nကိုရီးယား - အင်္ဂလိပ် - {{language}} ဘာသာစကားများဖြင့် ရေးသားထားပြီး\nကိုရီးယားဘာသာစကား အခြေခံကျွမ်းကျင်မှု ရရှိရန်နှင့်\nTOPIK နှင့် EPS-TOPIK စာမေးပွဲများအတွက် ပြင်ဆင်ရန် ပထမဆုံးခြေလှမ်း ဖြစ်ပါသည်။",
+      "bookDescriptionTeacher": "ကိုရီးယားဘာသာစကား သင်ကြားရန် အခြေခံသင်ရိုးစာအbruch ဖြစ်ပါသည်။\nကိုရီးယား - အင်္ဂလိပ် - {{language}} ဘာသာစကားများဖြင့် ရေးသားထားပြီး\nကိုရီးယားဘာသာစကား အခြေခံသင်ကြားမှုနှင့်\nTOPIK နှင့် EPS-TOPIK စာမေးပွဲများအတွက် ပြင်ဆင်ရန် ပထမဆုံးခြေလှမ်း ဖြစ်ပါသည်။"
     },
     "detail": {
       "modalTitle": "ဖတ်စာအသေးစိတ်",
@@ -680,6 +705,125 @@
       "notFound": "မှာယူမှု မတွေ့ပါ။",
       "quoteNotice": "ဤစျေးနှုန်းအဆိုပြုသည် မှာယူမှုပေးပို့ချက်အပေါ် အခြေခံထားပြီး အမှန်တကယ်ငွေပေးချေမှုပမာဏ ကွာခြားနိုင်ပါသည်။",
       "confirmationNotice": "ဤအတည်ပြုချက်သည် မှာယူမှုအခြေအနေ စစ်ဆေးရန်အတွက်သာဖြစ်ပြီး တရားဝင်ပြေစာမဟုတ်ပါ။"
+    },
+    "order": {
+      "sectionItems": "သင်ရိုးညွှန်းတမ်းစာအုပ်များကို ရွေးချယ်ပါ",
+      "language": "ဘာသာစကား",
+      "languagePlaceholder": "ဘာသာစကားတစ်ခုကို ရွေးချယ်ပါ",
+      "textbookType": "အမျိုးအစား",
+      "typeStudent": "ကျောင်းသား",
+      "typeTeacher": "ဆရာ",
+      "quantity": "အရေအတွက်",
+      "currency": "KRW",
+      "addItem": "ပစ္စည်းထည့်ရန်",
+      "totalQuantity": "စုစုပေါင်းအရေအတွက်",
+      "unit": " အုပ်",
+      "totalAmount": "စုစုပေါင်းကျသင့်ငွေ",
+      "minQuantityError": "အနည်းဆုံး {{min}} အုပ် မှာယူရပါမည်",
+      "duplicateItemError": "ဘာသာစကားနှင့် အမျိုးအစား ပူးတွဲမှု ထပ်နေပါသည်",
+      "minQuantityHint": "အနည်းဆုံး {{min}} အုပ်",
+      "isbnNotice": "အချို့သော ဘာသာစကားများအတွက် ပုံနှိပ်ခြင်းမပြုမီ ISBN မှတ်ပုံတင်ရန် လိုအပ်ပါသည်။ ထို့ကြောင့် ပို့ဆောင်မှုကြာချိန်မှာ ၁ ပတ်ခန့် ပိုမိုကြာမြင့်နိုင်ပါသည်။",
+      "sectionOrderer": "မှာယူသူ၏ အချက်အလက်များ",
+      "ordererName": "အမည်",
+      "ordererNamePlaceholder": "John Doe",
+      "ordererPhone": "ဖုန်းနံပါတ်",
+      "ordererEmail": "အီးမေးလ်",
+      "sectionOrg": "အဖွဲ့အစည်း",
+      "optional": "စိတ်ကြိုက်",
+      "orgName": "အဖွဲ့အစည်းအမည်",
+      "orgNamePlaceholder": "ကိုရီးယားဘာသာစကား အကယ်ဒမီ",
+      "orgType": "အဖွဲ့အစည်း အမျိုးအစား",
+      "orgTypePlaceholder": "အမျိုးအစားကို ရွေးချယ်ပါ",
+      "orgTypeAcademy": "အကယ်ဒမီ",
+      "orgTypeUniversity": "တက္ကသိုလ်",
+      "orgTypeSchool": "ကျောင်း",
+      "orgTypeIndividual": "တစ်ဦးချင်း",
+      "orgTypeOther": "အခြား",
+      "sectionDelivery": "ပို့ဆောင်မှု အချက်အလက်",
+      "postalCode": "စာတိုက်သင်္ကေတ",
+      "address": "လိပ်စာ",
+      "addressPlaceholder": "၁၂၃ Main Street...",
+      "addressDetail": "လိပ်စာအသေးစိတ်",
+      "addressDetailPlaceholder": "အဆောက်အအုံ၊ အလွှာ စသည်ဖြင့်",
+      "sectionPayment": "ငွေပေးချေမှု အချက်အလက်",
+      "paymentMethodNote": "လက်ရှိတွင် ဘဏ်မှတစ်ဆင့် ငွေလွှဲခြင်းကိုသာ လက်ခံပါသည်။ အော်ဒါတင်ပြီးနောက် ငွေလွှဲရမည့် အသေးစိတ်အချက်အလက်များကို ပေးပို့ပေးပါမည်။",
+      "depositorName": "ငွေသွင်းသူအမည်",
+      "depositorNamePlaceholder": "မှာယူသူနှင့် မတူပါက",
+      "sectionTax": "အခွန်ပြေစာ",
+      "taxInvoiceLabel": "အခွန်ပြေစာ တောင်းဆိုရန်",
+      "taxBizNumber": "လုပ်ငန်းမှတ်ပုံတင်အမှတ်",
+      "taxCompanyName": "ကုမ္ပဏီအမည်",
+      "taxCompanyNamePlaceholder": "ကုမ္ပဏီအမည်ကို ရိုက်ထည့်ပါ",
+      "taxRepName": "ကိုယ်စားလှယ်အမည်",
+      "taxRepNamePlaceholder": "ကိုယ်စားလှယ်အမည်ကို ရိုက်ထည့်ပါ",
+      "taxAddress": "လုပ်ငန်းလိပ်စာ",
+      "taxAddressPlaceholder": "လုပ်ငန်းမှတ်ပုံတင်တွင် ပါရှိသော လိပ်စာ",
+      "taxBizType": "လုပ်ငန်းအမျိုးအစား",
+      "taxBizTypePlaceholder": "ဥပမာ - ဝန်ဆောင်မှု၊ လက်လီရောင်းချခြင်း",
+      "taxBizItem": "လုပ်ငန်းအကြောင်းအရာ",
+      "taxBizItemPlaceholder": "ဥပမာ - ပညာရေး၊ စာပေထုတ်ဝေခြင်း",
+      "taxEmail": "အခွန်ပြေစာ အီးမေးလ်",
+      "sectionNotes": "မှတ်ချက်",
+      "notesPlaceholder": "အခြားလိုအပ်ချက်များ",
+      "submitting": "လုပ်ဆောင်နေသည်...",
+      "submitButton": "အော်ဒါမှာယူရန်",
+      "successToast": "အော်ဒါတင်သွင်းမှု အောင်မြင်ပါသည်။",
+      "errorToast": "အော်ဒါတင်သွင်းမှု မအောင်မြင်ပါ။ နောက်တစ်ကြိမ် ပြန်လည်ကြိုးစားကြည့်ပါ။",
+      "completeTitle": "အော်ဒါတင်သွင်းပြီးပါပြီ",
+      "completeDesc": "အောက်ပါ အော်ဒါကုဒ်ကို သိမ်းဆည်းထားပေးပါ။ အော်ဒါအခြေအနေကို စစ်ဆေးရန်အတွက် ၎င်းကို လိုအပ်ပါလိမ့်မည်။",
+      "orderCode": "အော်ဒါကုဒ်",
+      "codeCopied": "အော်ဒါကုဒ် ကူးယူပြီးပါပြီ",
+      "bankTransferGuide": "ဘဏ်မှ ငွေလွှဲရန် အချက်အလက်များ",
+      "bankAccount": "လွှဲပြောင်းရမည့်အကောင့်: {{account}}",
+      "bankNote": "ငွေလွှဲမှတ်ချက်တွင် အော်ဒါကုဒ် သို့မဟုတ် သင့်အမည်ကို ထည့်သွင်းပေးပါရန်။",
+      "trackGuide": "အောက်ပါခလုတ်ကို အသုံးပြု၍ သင်၏ အော်ဒါအခြေအနေကို စစ်ဆေးနိုင်ပါသည်။",
+      "trackButton": "အော်ဒါခြေရာခံရန်",
+      "validationNameRequired": "နာမည်ကို ထည့်သွင်းပေးပါ။",
+      "validationEmailRequired": "အီးမေးလ်ကို ထည့်သွင်းပေးပါ။",
+      "validationEmailFormat": "မှန်ကန်သော အီးမေးလ်လိပ်စာကို ထည့်သွင်းပေးပါ။",
+      "validationPhoneRequired": "ဖုန်းနံပါတ်ကို ထည့်သွင်းပေးပါ။",
+      "validationAddressRequired": "ပို့ဆောင်ရမည့် လိပ်စာကို ကျေးဇူးပြု၍ ထည့်သွင်းပေးပါ။",
+      "validationLanguageRequired": "ဘာသာစကားကို ကျေးဇူးပြု၍ ရွေးချယ်ပေးပါ။",
+      "validationQuantityMin": "အရေအတွက်သည် အနည်းဆုံး ၁ ခု ဖြစ်ရပါမည်။",
+      "validationQuantityMax": "အရေအတွက်သည် ၉,၉၉၉ ထက် မကျော်လွန်ရပါ။",
+      "validationItemsRequired": "သင်ခန်းစာစာအုပ် အနည်းဆုံး တစ်အုပ် ထည့်သွင်းပေးပါ။"
+    },
+    "status": {
+      "title": "အော်ဒါခြေရာခံခြင်း",
+      "subtitle": "အော်ဒါအခြေအနေကို စစ်ဆေးရန် သင်၏ အော်ဒါကုဒ်ကို ရိုက်ထည့်ပါ။",
+      "placeholder": "TB-260226-0001",
+      "search": "ရှာဖွေရန်",
+      "notFound": "အော်ဒါကို ရှာမတွေ့ပါ",
+      "notFoundDesc": "အော်ဒါကုဒ်ကို ပြန်လည်စစ်ဆေးပြီး ထပ်မံကြိုးစားကြည့်ပါ။",
+      "orderedAt": "မှာယူသည့်နေ့စွဲ -",
+      "initialHint": "အော်ဒါအခြေအနေကို စစ်ဆေးရန် သင်၏အော်ဒါကုဒ်ကို ရိုက်ထည့်ပါ။",
+      "label": {
+        "pending": "အော်ဒါလက်ခံရရှိပြီး",
+        "confirmed": "အတည်ပြုပြီး",
+        "paid": "ငွေပေးချေမှု အတည်ပြုပြီး",
+        "printing": "ပုံနှိပ်နေသည်",
+        "shipped": "ပို့ဆောင်ပြီး",
+        "delivered": "ပို့ဆောင်ပြီးစီးသည်",
+        "canceled": "ပယ်ဖျက်ပြီး"
+      },
+      "step": {
+        "pending": "လက်ခံရရှိသည်",
+        "confirmed": "အတည်ပြုပြီး",
+        "paid": "ငွေပေးချေပြီး",
+        "printing": "ပုံနှိပ်နေသည်",
+        "shipped": "ပို့ဆောင်ပြီး",
+        "delivered": "ပို့ဆောင်ပြီး"
+      },
+      "orderDetail": "အမှာစာ အသေးစိတ်",
+      "colLanguage": "ဘာသာစကား",
+      "colType": "အမျိုးအစား",
+      "colQuantity": "အရေအတွက်",
+      "colUnitPrice": "တစ်ခုချင်းစီစျေးနှုန်း",
+      "colSubtotal": "ကြားစုစုပေါင်း",
+      "total": "စုစုပေါင်း",
+      "ordererInfo": "မှာယူသူအချက်အလက်",
+      "deliveryInfo": "ပို့ဆောင်မှုအချက်အလက်",
+      "notes": "မှတ်ချက်"
     }
   },
   "seo": {
@@ -746,6 +890,12 @@
     "textbookStatus": {
       "title": "မှာယူမှု အခြေအနေ - Amazing Korean",
       "description": "ဖတ်စာ မှာယူမှု အခြေအနေ စစ်ဆေးပါ။"
+    },
+    "book": {
+      "title": "Amazing Korean အခြေခံ {{language}} - ပြဌာန်းစာအုပ် အချက်အလက်များ",
+      "description": "Amazing Korean အခြေခံ {{language}} ပြဌာန်းစာအုပ်၏ အသေးစိတ်အချက်အလက်များနှင့် ဝယ်ယူနိုင်မှုဆိုင်ရာ အချက်အလက်များ။",
+      "notFoundTitle": "ပြဌာန်းစာအုပ် ရှာမတွေ့ပါ - Amazing Korean",
+      "notFoundDescription": "ISBN မမှန်ကန်ပါ။"
     }
   },
   "bookHub": {

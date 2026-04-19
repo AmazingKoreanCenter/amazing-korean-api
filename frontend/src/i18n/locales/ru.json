@@ -215,7 +215,10 @@
     "validationBirthdayFormat": "Please enter a valid date (YYYY-MM-DD).",
     "validationCountryRequired": "Please select a country.",
     "validationLanguageRequired": "Please select a language.",
-    "validationPasswordMax": "Password must be 72 characters or less."
+    "validationPasswordMax": "Password must be 72 characters or less.",
+    "mfaBackupPlaceholder": "8-значный резервный код",
+    "mfaUseBackupCode": "Использовать резервный код",
+    "mfaUseAuthApp": "Использовать приложение для аутентификации"
   },
   "user": {
     "myPageTitle": "Мой профиль",
@@ -333,7 +336,11 @@
     "ctaTitle": "Начните прямо сейчас",
     "ctaDescription": "Зарегистрируйтесь бесплатно и начните изучать корейский.",
     "ctaStart": "Начать бесплатно",
-    "ctaBrowseBooks": "Посмотреть учебники"
+    "ctaBrowseBooks": "Посмотреть учебники",
+    "stat1Title": "34 языка, 68 изданий учебников",
+    "stat1Desc": "Изучайте корейский на своем языке с помощью специальных учебников для каждого языка.",
+    "stat2Title": "500 базовых предложений",
+    "stat2Desc": "Основы изучения корейского языка на базе базовой грамматики (времена, частицы) и структуры предложения (сказуемые, обстоятельства)."
   },
   "study": {
     "heroBadge": "Систематическое изучение корейского",
@@ -515,7 +522,8 @@
       "searchPlaceholder": "Search language...",
       "noResults": "No results found.",
       "bookTitle": "Amazing Korean Basics - {{language}}",
-      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK."
+      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK.",
+      "pricePerUnit": "15 000 KRW"
     },
     "detail": {
       "viewDetail": "View Details",
@@ -538,7 +546,10 @@
       "success": "Покупка завершена.",
       "error": "Произошла ошибка при покупке.",
       "cardPayment": "Card Payment",
-      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+      "paddleNote": "International card payment via Paddle. Charges will be in USD.",
+      "paddleUnavailable": "Оплата картой недоступна.",
+      "checkoutSuccess": "Оплата завершена.",
+      "cancelSuccess": "Заказ отменен."
     },
     "purchaseComplete": {
       "title": "Покупка завершена",
@@ -576,7 +587,10 @@
       "empty": "Нет купленных электронных книг.",
       "browseCatalog": "Просмотреть каталог",
       "openViewer": "Открыть книгу",
-      "loadError": "Не удалось загрузить покупки."
+      "loadError": "Не удалось загрузить покупки.",
+      "payNow": "Оплатить сейчас",
+      "cancelOrder": "Отменить заказ",
+      "processing": "Обработка платежа..."
     },
     "viewer": {
       "toc": "Оглавление",
@@ -586,7 +600,13 @@
       "copyrightNotice": "Данный контент защищён законом об авторском праве.",
       "copyrightLegal": "Обход технических средств защиты наказывается в соответствии со статьёй 104-2 Закона об авторском праве Республики Корея.",
       "copyrightWatermark": "Данная электронная книга содержит цифровые водяные знаки для идентификации покупателя.",
-      "copyrightConfirm": "Понятно"
+      "copyrightConfirm": "Понятно",
+      "notFoundDesc": "Код покупки не существует или у вас нет доступа.",
+      "paymentRequired": "Оплата не завершена.",
+      "paymentRequiredDesc": "Вы сможете просмотреть электронную книгу после завершения оплаты. При банковском переводе доступ будет предоставлен после подтверждения администратором.",
+      "goToMyEbooks": "Перейти к моим электронным книгам",
+      "spreadView": "Двухстраничный вид",
+      "singleView": "Одностраничный вид"
     }
   },
   "textbook": {
@@ -613,7 +633,12 @@
       "viewCarousel": "Карусель",
       "searchPlaceholder": "Поиск языка...",
       "noResults": "Результаты не найдены.",
-      "bookDescription": "Систематический учебник корейского языка. Переведён носителями каждого языка."
+      "bookDescription": "Систематический учебник корейского языка. Переведён носителями каждого языка.",
+      "isbnPending": "Дополнительно ~1 неделя на регистрацию ISBN и печать",
+      "bookTitle": "Amazing Korean Basic — {{language}}",
+      "editionInfo": "{{edition}} · Мин. заказ: 10 экз.",
+      "bookDescriptionStudent": "Базовый учебник для изучения корейского языка.\nСоставлен на корейском, английском и {{language}} языках.\nЭто первый шаг к освоению основ корейского языка\nи подготовке к экзаменам TOPIK и EPS-TOPIK.",
+      "bookDescriptionTeacher": "Базовый учебник для преподавания корейского языка.\nСоставлен на корейском, английском и {{language}} языках.\nЭто первый шаг в обучении основам корейского языка\nи подготовке к экзаменам TOPIK и EPS-TOPIK."
     },
     "detail": {
       "modalTitle": "Подробности учебника",
@@ -680,6 +705,125 @@
       "notFound": "Заказ не найден.",
       "quoteNotice": "Данное предложение основано на оформлении заказа, фактическая сумма оплаты может отличаться.",
       "confirmationNotice": "Данное подтверждение предназначено только для проверки статуса заказа и не является официальной квитанцией."
+    },
+    "order": {
+      "sectionItems": "Выберите учебники",
+      "language": "Язык",
+      "languagePlaceholder": "Выберите язык",
+      "textbookType": "Тип",
+      "typeStudent": "Студент",
+      "typeTeacher": "Преподаватель",
+      "quantity": "Кол-во",
+      "currency": "KRW",
+      "addItem": "Добавить товар",
+      "totalQuantity": "Общее количество",
+      "unit": " экз.",
+      "totalAmount": "Итого",
+      "minQuantityError": "Минимальный заказ — {{min}} экз.",
+      "duplicateItemError": "Дубликат сочетания языка и типа",
+      "minQuantityHint": "Мин. {{min}} экз.",
+      "isbnNotice": "Для некоторых языков требуется регистрация ISBN перед печатью. Доставка может занять примерно на 1 неделю больше.",
+      "sectionOrderer": "Информация о заказчике",
+      "ordererName": "Имя",
+      "ordererNamePlaceholder": "Иван Иванов",
+      "ordererPhone": "Телефон",
+      "ordererEmail": "Email",
+      "sectionOrg": "Организация",
+      "optional": "Необязательно",
+      "orgName": "Название организации",
+      "orgNamePlaceholder": "Академия корейского языка",
+      "orgType": "Тип организации",
+      "orgTypePlaceholder": "Выберите тип",
+      "orgTypeAcademy": "Академия",
+      "orgTypeUniversity": "Университет",
+      "orgTypeSchool": "Школа",
+      "orgTypeIndividual": "Физическое лицо",
+      "orgTypeOther": "Другое",
+      "sectionDelivery": "Информация о доставке",
+      "postalCode": "Почтовый индекс",
+      "address": "Адрес",
+      "addressPlaceholder": "ул. Главная, 123...",
+      "addressDetail": "Детали адреса",
+      "addressDetailPlaceholder": "Корпус, этаж и т. д.",
+      "sectionPayment": "Информация об оплате",
+      "paymentMethodNote": "На данный момент поддерживается только банковский перевод. Реквизиты перевода будут предоставлены после оформления заказа.",
+      "depositorName": "Имя плательщика",
+      "depositorNamePlaceholder": "Если отличается от имени заказчика",
+      "sectionTax": "Счет-фактура",
+      "taxInvoiceLabel": "Запросить счет-фактуру",
+      "taxBizNumber": "Регистрационный номер компании",
+      "taxCompanyName": "Название компании",
+      "taxCompanyNamePlaceholder": "Введите название компании",
+      "taxRepName": "Имя представителя",
+      "taxRepNamePlaceholder": "Имя представителя",
+      "taxAddress": "Адрес компании",
+      "taxAddressPlaceholder": "Адрес в свидетельстве о регистрации",
+      "taxBizType": "Тип бизнеса",
+      "taxBizTypePlaceholder": "например, услуги, розничная торговля",
+      "taxBizItem": "Вид деятельности",
+      "taxBizItemPlaceholder": "например, образование, издательское дело",
+      "taxEmail": "Email для счета-фактуры",
+      "sectionNotes": "Примечания",
+      "notesPlaceholder": "Дополнительные пожелания",
+      "submitting": "Обработка...",
+      "submitButton": "Оформить заказ",
+      "successToast": "Заказ оформлен!",
+      "errorToast": "Ошибка оформления заказа. Пожалуйста, попробуйте еще раз.",
+      "completeTitle": "Заказ оформлен",
+      "completeDesc": "Пожалуйста, сохраните код заказа, указанный ниже. Он понадобится вам для отслеживания заказа.",
+      "orderCode": "Код заказа",
+      "codeCopied": "Код заказа скопирован",
+      "bankTransferGuide": "Информация о банковском переводе",
+      "bankAccount": "Перевод на: {{account}}",
+      "bankNote": "Пожалуйста, укажите код заказа или ваше имя в назначении платежа.",
+      "trackGuide": "Вы можете проверить статус вашего заказа с помощью кнопки ниже.",
+      "trackButton": "Отследить заказ",
+      "validationNameRequired": "Пожалуйста, введите ваше имя.",
+      "validationEmailRequired": "Пожалуйста, введите ваш email.",
+      "validationEmailFormat": "Пожалуйста, введите корректный адрес электронной почты.",
+      "validationPhoneRequired": "Пожалуйста, введите ваш номер телефона.",
+      "validationAddressRequired": "Пожалуйста, введите адрес доставки.",
+      "validationLanguageRequired": "Пожалуйста, выберите язык.",
+      "validationQuantityMin": "Количество должно быть не менее 1.",
+      "validationQuantityMax": "Количество не должно превышать 9 999.",
+      "validationItemsRequired": "Пожалуйста, добавьте хотя бы один учебник."
+    },
+    "status": {
+      "title": "Отслеживание заказа",
+      "subtitle": "Введите код заказа, чтобы проверить его статус.",
+      "placeholder": "TB-260226-0001",
+      "search": "Поиск",
+      "notFound": "Заказ не найден",
+      "notFoundDesc": "Пожалуйста, проверьте код заказа и попробуйте еще раз.",
+      "orderedAt": "Дата заказа:",
+      "initialHint": "Введите код заказа, чтобы проверить статус заказа.",
+      "label": {
+        "pending": "Заказ получен",
+        "confirmed": "Подтвержден",
+        "paid": "Оплата подтверждена",
+        "printing": "В печати",
+        "shipped": "Отправлено",
+        "delivered": "Доставлено",
+        "canceled": "Отменено"
+      },
+      "step": {
+        "pending": "Получен",
+        "confirmed": "Подтвержден",
+        "paid": "Оплачен",
+        "printing": "В печати",
+        "shipped": "Отправлен",
+        "delivered": "Доставлено"
+      },
+      "orderDetail": "Детали заказа",
+      "colLanguage": "Язык",
+      "colType": "Тип",
+      "colQuantity": "Кол-во",
+      "colUnitPrice": "Цена за единицу",
+      "colSubtotal": "Промежуточный итог",
+      "total": "Итого",
+      "ordererInfo": "Информация о заказчике",
+      "deliveryInfo": "Информация о доставке",
+      "notes": "Заметки"
     }
   },
   "seo": {
@@ -746,6 +890,12 @@
     "textbookStatus": {
       "title": "Статус заказа - Amazing Korean",
       "description": "Отследите статус заказа учебников."
+    },
+    "book": {
+      "title": "Amazing Korean Basic {{language}} — информация об учебнике",
+      "description": "Подробная информация и сведения о покупке учебника Amazing Korean Basic {{language}}.",
+      "notFoundTitle": "Учебник не найден — Amazing Korean",
+      "notFoundDescription": "Неверный ISBN."
     }
   },
   "bookHub": {
