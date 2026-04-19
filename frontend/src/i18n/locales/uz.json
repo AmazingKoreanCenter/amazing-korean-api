@@ -637,8 +637,8 @@
       "isbnPending": "ISBN ro'yxatdan o'tkazish va chop etish uchun qo'shimcha ~1 hafta vaqt talab etiladi",
       "bookTitle": "Amazing Korean Basic - {{language}}",
       "editionInfo": "{{edition}} · Minimal buyurtma miqdori: 10 nusxa",
-      "bookDescriptionStudent": "Koreys tilini o'rganish uchun asosiy darslik.\nKoreys, ingliz va {{language}} tillari asosida tuzilgan\nbu koreys tilini boshlang'ich darajada o'rganish,\nshuningdek, TOPIK va EPS-TOPIK imtihonlariga tayyorlanish\nudagi birinchi qadamdir.",
-      "bookDescriptionTeacher": "Koreys tilini o'rgatish uchun asosiy darslik.\nKoreys, ingliz va {{language}} tillari asosida tuzilgan\nbu koreys tilini boshlang'ich darajada o'rgatish,\nshuningdek, TOPIK va EPS-TOPIK imtihonlariga tayyorlanish\nudagi birinchi qadamdir."
+      "bookDescriptionStudent": "Koreys tilini o'rganish uchun asosiy darslik.\nKoreys - ingliz - {{language}} tillarining\norasida tuzilgan. Bu koreys tilini\nbazaviy darajada o'rganish, shuningdek\nTOPIK va EPS-TOPIK imtihonlariga tayyorlanish\nuchun birinchi qadamdir.",
+      "bookDescriptionTeacher": "Koreys tilini o'rgatish uchun asosiy darslik.\nKoreys - ingliz - {{language}} tillarining\norasida tuzilgan. Bu koreys tilini\nbazaviy darajada o'rgatish, shuningdek\nTOPIK va EPS-TOPIK imtihonlariga tayyorlanish\nuchun birinchi qadamdir."
     },
     "myOrders": {
       "badge": "Mening buyurtmalarim",
