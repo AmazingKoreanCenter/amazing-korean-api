@@ -233,7 +233,7 @@ pub async fn admin_list_task_explains(
     let total_count = sqlx::query_scalar::<_, i64>(
         r#"
         SELECT COUNT(*)
-        FROM study_task_explain
+        FROM study_explain
         WHERE study_task_id = $1
         "#,
     )
@@ -251,7 +251,7 @@ pub async fn admin_list_task_explains(
             explain_media_url,
             explain_created_at,
             explain_updated_at
-        FROM study_task_explain
+        FROM study_explain
         WHERE study_task_id = $1
         ORDER BY explain_lang ASC
         LIMIT $2 OFFSET $3
@@ -407,7 +407,7 @@ pub async fn exists_task_explain(
         r#"
         SELECT EXISTS(
             SELECT 1
-            FROM study_task_explain
+            FROM study_explain
             WHERE study_task_id = $1
               AND explain_lang = $2
         )
@@ -428,7 +428,7 @@ pub async fn create_task_explain(
 ) -> AppResult<AdminTaskExplainRes> {
     let created = sqlx::query_as::<_, AdminTaskExplainRes>(
         r#"
-        INSERT INTO study_task_explain (
+        INSERT INTO study_explain (
             study_task_id,
             explain_lang,
             explain_title,
@@ -472,7 +472,7 @@ pub async fn find_task_explain(
             explain_media_url,
             explain_created_at,
             explain_updated_at
-        FROM study_task_explain
+        FROM study_explain
         WHERE study_task_id = $1
           AND explain_lang = $2
         "#,
@@ -500,7 +500,7 @@ pub async fn find_task_explain_tx(
             explain_media_url,
             explain_created_at,
             explain_updated_at
-        FROM study_task_explain
+        FROM study_explain
         WHERE study_task_id = $1
           AND explain_lang = $2
         "#,
@@ -518,7 +518,7 @@ pub async fn update_task_explain(
     study_task_id: i32,
     req: &TaskExplainUpdateReq,
 ) -> AppResult<()> {
-    let mut builder = QueryBuilder::<Postgres>::new("UPDATE study_task_explain SET ");
+    let mut builder = QueryBuilder::<Postgres>::new("UPDATE study_explain SET ");
     let mut is_first = true;
 
     if let Some(ref title) = req.explain_title {

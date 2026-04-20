@@ -363,7 +363,7 @@ pub async fn admin_get_study_task(
 #[utoipa::path(
     get,
     path = "/admin/studies/tasks/explain",
-    tag = "admin_study_task_explain",
+    tag = "admin_study_explain",
     params(
         ("task_id" = i32, Query, description = "Study Task ID"),
         ("page" = u64, Query, description = "Page number, defaults to 1", example = 1),
@@ -527,7 +527,7 @@ pub async fn admin_bulk_update_task_status(
 #[utoipa::path(
     post,
     path = "/admin/studies/tasks/{task_id}/explain",
-    tag = "admin_study_task_explain",
+    tag = "admin_study_explain",
     request_body = TaskExplainCreateReq,
     params(
         ("task_id" = i64, Path, description = "Study Task ID")
@@ -569,7 +569,7 @@ pub async fn admin_create_task_explain(
 #[utoipa::path(
     patch,
     path = "/admin/studies/tasks/{task_id}/explain",
-    tag = "admin_study_task_explain",
+    tag = "admin_study_explain",
     request_body = TaskExplainUpdateReq,
     params(
         ("task_id" = i64, Path, description = "Study Task ID")
@@ -610,7 +610,7 @@ pub async fn admin_update_task_explain(
 #[utoipa::path(
     post,
     path = "/admin/studies/tasks/bulk/explain",
-    tag = "admin_study_task_explain",
+    tag = "admin_study_explain",
     request_body = TaskExplainBulkCreateReq,
     responses(
         (status = 201, description = "All created", body = TaskExplainBulkCreateRes),
@@ -654,7 +654,7 @@ pub async fn admin_bulk_create_task_explains(
 #[utoipa::path(
     patch,
     path = "/admin/studies/tasks/bulk/explain",
-    tag = "admin_study_task_explain",
+    tag = "admin_study_explain",
     request_body = TaskExplainBulkUpdateReq,
     responses(
         (status = 200, description = "All updated", body = TaskExplainBulkUpdateRes),

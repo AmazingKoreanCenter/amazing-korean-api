@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-19 (교재 영수증 + 관리자 대리 주문 생성 기능 — PR #174)
+updated: 2026-04-19 (#76 study_task_explain → study_explain Rust 코드 일치화 — 잠복 버그 fix)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,20 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-19 — #76 잠복 버그 fix: `study_task_explain` → `study_explain` Rust 코드 참조 일치화**
+  - **발견 경위**: PR #174 (#73 영수증 + #75 대리 주문) 작업 중 `cargo sqlx prepare` 실행 시 `relation "study_task_explain" does not exist` 에러. 원본 `migrations/20260208_AMK_V1.sql` + 프로덕션 DB (`docker exec amk-pg-prod psql -c "\dt study*"` 으로 실증) + 로컬 DB 모두 **`study_explain`** 이지만 Rust 코드 16곳이 `study_task_explain` 을 참조 중. 현재 study 콘텐츠가 프로덕션에 없어 이 경로가 호출된 적 없었기에 런타임 에러가 노출되지 않은 장기 잠복 버그.
+  - **수정 범위** (총 16곳):
+    - **SQL 테이블명 참조** (10곳): `src/api/study/repo.rs` (1), `src/api/admin/study/repo.rs` (7), `src/api/admin/translation/repo.rs` (2) — `FROM`/`JOIN`/`INSERT INTO`/`UPDATE` 절의 테이블명.
+    - **audit_log target_table** (5곳): `src/api/admin/study/service.rs` — `write_audit_log(..., "study_task_explain", ...)` 호출 5건. `feedback_audit_log_convention.md` 의 "target_table = 실 테이블명" 원칙에 맞춤.
+    - **OpenAPI tag** (5곳): `src/api/admin/study/handler.rs` — `tag = "admin_study_task_explain"` → `tag = "admin_study_explain"`. Swagger UI 카테고리 이름. 내부 전용이라 외부 참조 없음 확인 후 일관성 위해 변경.
+  - **변경 대상 아님**: `content_type_enum` 값 `'study_task_explain'` (20260212 마이그레이션에서 추가, `content_translations.content_type` 에 저장된 enum 값) — enum 레이어이지 물리 테이블명과 독립. 유지.
+  - **검증**:
+    - `DATABASE_URL=... cargo sqlx prepare --workspace -- --all-targets` ✅ — 이전 PR #174 에서 실패하던 쿼리 캐시 이제 생성 성공
+    - `cargo check --all-targets` 클린 ✅
+    - `cargo clippy --all-targets -- -D warnings` 0 warnings ✅
+    - `cd frontend && npm run build` 클린 ✅ (프론트 변경 없음)
+  - **교훈**: INC-002 (2026-04-18) 때 "로컬 DB 의 이상 rename 을 실 DB 로 오판" 실수 이후, 로컬/prod DB 상태를 실 명령으로 대조한 덕에 발견. `feedback_migration_safety.md §"2026-04-18 INC-002 추가 교훈"` 의 "Rust 코드·DB 테이블명 cross-check" 원칙이 다음 잠복 버그 예방에 계속 적용될 것.
 
 - **2026-04-19 — 관리자 대리 주문 생성 기능 (`POST /admin/textbook/orders`)**
   - **배경**: 영수증 발급 기능(#73) 과 페어. 외부(전화·이메일·오프라인) 주문을 시스템에 입력하거나, 영수증·통계 관리를 위해 관리자가 직접 주문 생성. 대리 주문을 `paid` 로 즉시 생성 → 영수증 발급 버튼 활성화 → 인쇄.

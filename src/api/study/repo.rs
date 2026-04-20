@@ -517,6 +517,14 @@ impl StudyRepo {
         Ok(try_count.unwrap_or(0))
     }
 
+    /// 사용자용 해설 조회.
+    ///
+    /// `study_explain` 은 `(study_task_id, explain_lang)` 이 UNIQUE 키라
+    /// 단일 태스크에 여러 언어 해설이 공존 가능. 언어 필터 없이 `fetch_optional`
+    /// 하면 Postgres 가 비결정적으로 하나를 골라 반환 — 사용자 언어별 일관성
+    /// 보장 불가. 현재 소비자 API 는 아직 `?lang=` 파라미터를 받지 않으므로
+    /// 일단 기본 언어 `'ko'` 해설을 반환한다. 향후 `?lang=` 도입 시 이 함수
+    /// 시그니처에 `lang` 파라미터 추가하여 확장.
     pub async fn find_task_explain(
         pool: &PgPool,
         task_id: i32,
@@ -528,10 +536,11 @@ impl StudyRepo {
                 e.explain_title::TEXT AS "explain_title?",
                 e.explain_text::TEXT AS "explain_text?",
                 e.explain_media_url::TEXT AS "explain_media_url?"
-            FROM study_task_explain e
+            FROM study_explain e
             INNER JOIN study_task t ON e.study_task_id = t.study_task_id
             INNER JOIN study s ON t.study_id = s.study_id
             WHERE e.study_task_id = $1
+              AND e.explain_lang = 'ko'::user_set_language_enum
               AND s.study_state = 'open'::study_state_enum
             "#,
             task_id
