@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-19 (교재 주문 영수증 발급 기능 — ?type=receipt 분기 추가)
+updated: 2026-04-19 (교재 영수증 + 관리자 대리 주문 생성 기능 — PR #174)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,25 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-19 — 관리자 대리 주문 생성 기능 (`POST /admin/textbook/orders`)**
+  - **배경**: 영수증 발급 기능(#73) 과 페어. 외부(전화·이메일·오프라인) 주문을 시스템에 입력하거나, 영수증·통계 관리를 위해 관리자가 직접 주문 생성. 대리 주문을 `paid` 로 즉시 생성 → 영수증 발급 버튼 활성화 → 인쇄.
+  - **백엔드**:
+    - `textbook/repo.rs InsertOrderParams.user_id: i64 → Option<i64>` — `textbook.user_id` DB 컬럼은 원래 NULLABLE, 비회원 주문 저장 가능. Rust params 만 NOT NULL 로 강제돼 있던 것 정리. 사용자 `create_order` 는 `Some(user_id)` 전달 (동작 불변).
+    - `admin/textbook/dto.rs AdminCreateOrderReq` 신규 — `user_id: Option<i64>` (귀속 or NULL), `initial_status: pending|confirmed|paid`, `enforce_min_quantity: bool` (기본 false), 나머지 `CreateOrderReq` 와 동일.
+    - `admin/textbook/service.rs::create_order` — 검증(min_quantity enforce 옵션 따름) → `generate_order_code` + `insert_order` + `insert_items` → `initial_status != pending` 이면 `update_status` 호출하여 `paid_at` 자동 세팅 → `admin_textbook_log` 에 `AdminAction::Create` 기록 (after 스냅샷) → confirmation 이메일 fire-and-forget.
+    - `admin/textbook/handler.rs::admin_create_order` + `router.rs`: `POST /admin/textbook/orders` 등록.
+    - `textbook/service.rs` 의 `UNIT_PRICE`, `MIN_TOTAL_QUANTITY`, `catalog_languages` 를 `pub(crate)` 로 승격 (admin service 재사용).
+  - **프론트엔드**:
+    - `admin/textbook/types.ts AdminCreateOrderReq` 인터페이스.
+    - `admin_api.ts::createAdminTextbookOrder` + `use_admin_textbook::useAdminCreateTextbookOrder` 훅 (onSuccess 시 orders list invalidate).
+    - `admin/textbook/page/admin_textbook_order_create.tsx` 신규 — 관리자 옵션(initial_status/user_id/enforce_min_quantity) + 신청자/배송/품목/세금계산서/비고 섹션. 품목 동적 배열. 카탈로그 훅으로 언어 목록 로드 (available: true 만 노출). 제출 성공 시 생성된 주문 상세로 네비게이션.
+    - `routes.tsx`: `/admin/textbook/orders/new` 등록. `:orderId` 동적 세그먼트 앞에 배치 (순서 충돌 방지).
+    - `admin_textbook_orders_page.tsx` 헤더에 "+ 새 주문 생성" 버튼.
+    - i18n ko/en: `admin.textbook.newOrder` + `admin.textbook.create.*` (title/subtitle/adminOptions/initialStatus/userId/enforceMinQty/orderer/delivery/items/taxInvoice/notes/cancel/submit/success/err 등 40여 키). 관리자 섹션 정책 상 다른 locale 스킵.
+  - **재사용**: `TextbookRepo::{generate_order_code, insert_order, insert_items, update_status, insert_admin_log}`, `TextbookService::get_order_by_id`, `EmailTemplate::TextbookOrderConfirmation`.
+  - **검증**: `cargo check --all-targets` 클린 ✅, `cd frontend && npm run build` 8.95s 클린 ✅ (메인 번들 204kB). `cargo sqlx prepare` 는 별도 잠복 버그 (`study_task_explain` Rust 참조 vs 실 DB `study_explain`) 로 실패 — 이번 변경과 무관, 후속 PR 에서 별도 처리.
+  - **후속 작업 (별도 PR)**: (1) 잠복 버그 fix — `study_task_explain` → `study_explain` Rust 9곳, (2) 사용자 검색 UI (`user_id` 수동 입력 → 자동완성), (3) `admin_textbook_log` 에 `Create` 액션 조회 UI.
 
 - **2026-04-19 — 교재 주문 간이 영수증 발급 기능 (`?type=receipt`)**
   - **배경**: 실 주문 1건에서 간이 영수증 발급 요청. 기존 견적서(`?type=quote`) / 주문확인서(`?type=confirmation`) 인쇄 페이지에 3번째 타입 추가로 시스템화.
