@@ -1,13 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
+  createAdminTextbookOrder,
   getAdminTextbookOrders,
   getAdminTextbookOrder,
   updateAdminTextbookOrderStatus,
   updateAdminTextbookOrderTracking,
   deleteAdminTextbookOrder,
 } from "../../admin_api";
-import type { AdminTextbookListReq, AdminUpdateStatusReq, AdminUpdateTrackingReq } from "../types";
+import type {
+  AdminCreateOrderReq,
+  AdminTextbookListReq,
+  AdminUpdateStatusReq,
+  AdminUpdateTrackingReq,
+} from "../types";
 
 // =============================================================================
 // Query Keys
@@ -83,6 +89,19 @@ export const useAdminDeleteTextbookOrder = () => {
 
   return useMutation({
     mutationFn: (id: number) => deleteAdminTextbookOrder(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: adminTextbookKeys.orders,
+      });
+    },
+  });
+};
+
+export const useAdminCreateTextbookOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: AdminCreateOrderReq) => createAdminTextbookOrder(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: adminTextbookKeys.orders,

@@ -12,6 +12,7 @@ import type {
   AdminGrantListRes,
 } from "./payment/types";
 import type {
+  AdminCreateOrderReq,
   AdminTextbookListReq,
   AdminTextbookListRes,
   AdminUpdateStatusReq,
@@ -745,6 +746,12 @@ export const getAdminTextbookOrders = (params: AdminTextbookListReq) =>
   request<AdminTextbookListRes>("/admin/textbook/orders", {
     method: "GET",
     params,
+  });
+
+export const createAdminTextbookOrder = (data: AdminCreateOrderReq) =>
+  request<OrderRes>("/admin/textbook/orders", {
+    method: "POST",
+    data,
   });
 
 export const getAdminTextbookOrder = (id: number) =>

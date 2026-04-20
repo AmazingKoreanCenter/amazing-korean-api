@@ -687,7 +687,17 @@
       "pdfGuide": "如需保存为PDF，请在打印对话框中选择“另存为PDF”。",
       "notFound": "未找到订单。",
       "quoteNotice": "本报价单基于订单提交时的信息，实际付款金额可能有所不同。",
-      "confirmationNotice": "本确认书仅用于订单状态核实，非正式收据。"
+      "confirmationNotice": "本确认书仅用于订单状态核实，非正式收据。",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     },
     "myOrders": {
       "badge": "我的订单",

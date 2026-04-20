@@ -6,7 +6,7 @@ use super::handler;
 
 pub fn admin_textbook_router() -> Router<AppState> {
     Router::new()
-        .route("/orders", get(handler::list_orders))
+        .route("/orders", get(handler::list_orders).post(handler::admin_create_order))
         .route("/orders/{id}", get(handler::get_order))
         .route("/orders/{id}/status", patch(handler::update_status))
         .route("/orders/{id}/tracking", patch(handler::update_tracking))

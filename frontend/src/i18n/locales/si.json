@@ -704,7 +704,17 @@
       "pdfGuide": "PDF ලෙස සුරැකීමට, මුද්‍රණ සංවාදයේ 'PDF ලෙස සුරකින්න' තෝරන්න.",
       "notFound": "ඇණවුම හමු නොවීය.",
       "quoteNotice": "මෙම මිල කැඳවීම ඇණවුම් ඉදිරිපත් කිරීම මත පදනම් වන අතර සැබෑ ගෙවීම් මුදල වෙනස් විය හැක.",
-      "confirmationNotice": "මෙම තහවුරුව ඇණවුම් තත්ත්ව සත්‍යාපන අරමුණු සඳහා පමණක් වන අතර නිල රිසිට්පතක් නොවේ."
+      "confirmationNotice": "මෙම තහවුරුව ඇණවුම් තත්ත්ව සත්‍යාපන අරමුණු සඳහා පමණක් වන අතර නිල රිසිට්පතක් නොවේ.",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     },
     "order": {
       "sectionItems": "පෙළපොත් තෝරන්න",

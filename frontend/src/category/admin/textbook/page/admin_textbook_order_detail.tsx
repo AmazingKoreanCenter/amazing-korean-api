@@ -156,6 +156,17 @@ export function AdminTextbookOrderDetail() {
               {t("admin.textbook.printConfirmation")}
             </Link>
           </Button>
+          {order.paid_at && (
+            <Button variant="outline" size="sm" asChild>
+              <Link
+                to={`/admin/textbook/orders/${id}/print?type=receipt`}
+                target="_blank"
+              >
+                <Printer className="mr-1 h-4 w-4" />
+                {t("admin.textbook.printReceipt")}
+              </Link>
+            </Button>
+          )}
           <Button
             variant="destructive"
             size="sm"

@@ -693,7 +693,17 @@
       "pdfGuide": "PDF sifatida saqlash uchun chop dialog oynasida 'PDF saqlash' ni tanlang.",
       "notFound": "Buyurtma topilmadi.",
       "quoteNotice": "Ushbu narx taklifi buyurtma topshirilgan vaqtda tuzilgan va haqiqiy summa farq qilishi mumkin.",
-      "confirmationNotice": "Ushbu tasdiq faqat buyurtma holatini tekshirish uchun mo'ljallangan va rasmiy kvitansiya emas."
+      "confirmationNotice": "Ushbu tasdiq faqat buyurtma holatini tekshirish uchun mo'ljallangan va rasmiy kvitansiya emas.",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     },
     "detail": {
       "modalTitle": "Darslik tafsilotlari",

@@ -301,7 +301,7 @@ export function TextbookOrderStatusPage() {
                   </div>
                 )}
 
-                {/* 견적서 / 주문확인서 버튼 */}
+                {/* 견적서 / 주문확인서 / 영수증 버튼 */}
                 <div className="flex flex-wrap gap-2 pt-4 border-t">
                   <Button
                     variant="outline"
@@ -329,6 +329,21 @@ export function TextbookOrderStatusPage() {
                     <ClipboardCheck className="h-4 w-4 mr-1" />
                     {t("textbook.print.confirmationTitle")}
                   </Button>
+                  {order.paid_at && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        window.open(
+                          `/book/textbook/order/${order.order_code}/print?type=receipt`,
+                          "_blank",
+                        )
+                      }
+                    >
+                      <FileText className="h-4 w-4 mr-1" />
+                      {t("textbook.print.receiptTitle")}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

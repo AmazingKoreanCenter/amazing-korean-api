@@ -704,7 +704,17 @@
       "pdfGuide": "PDF хэлбэрээр хадгалахын тулд хэвлэх цонхонд 'PDF хэлбэрээр хадгалах' гэснийг сонгоно уу.",
       "notFound": "Захиалга олдсонгүй.",
       "quoteNotice": "Энэ үнийн санал нь захиалга илгээсэн дээр үндэслэсэн бөгөөд бодит төлбөрийн дүн өөр байж болно.",
-      "confirmationNotice": "Энэ баталгаа нь зөвхөн захиалгын төлөв шалгах зорилготой бөгөөд албан ёсны баримт биш юм."
+      "confirmationNotice": "Энэ баталгаа нь зөвхөн захиалгын төлөв шалгах зорилготой бөгөөд албан ёсны баримт биш юм.",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     },
     "order": {
       "sectionItems": "Сурах бичвэр сонгох",

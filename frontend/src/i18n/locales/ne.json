@@ -704,7 +704,17 @@
       "pdfGuide": "PDF को रूपमा सेभ गर्न, प्रिन्ट डायलगमा 'PDF को रूपमा सेभ गर्नुहोस्' चयन गर्नुहोस्।",
       "notFound": "अर्डर फेला परेन।",
       "quoteNotice": "यो कोटेशन अर्डर सबमिशनमा आधारित छ र वास्तविक भुक्तानी रकम फरक हुन सक्छ।",
-      "confirmationNotice": "यो पुष्टि अर्डर स्थिति प्रमाणीकरणको लागि मात्र हो र आधिकारिक रसिद होइन।"
+      "confirmationNotice": "यो पुष्टि अर्डर स्थिति प्रमाणीकरणको लागि मात्र हो र आधिकारिक रसिद होइन।",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     },
     "order": {
       "sectionItems": "पाठ्यपुस्तकहरू छनोट गर्नुहोस्",

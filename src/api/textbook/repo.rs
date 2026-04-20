@@ -76,9 +76,12 @@ const ORDER_COLUMNS: &str = r#"
 "#;
 
 /// 교재 주문 생성 파라미터
+///
+/// `user_id`: 일반 사용자 주문은 `Some(claims.sub)`, 관리자 대리 주문은
+///   `None` 또는 귀속시킬 사용자 id. DB 컬럼은 nullable.
 pub struct InsertOrderParams<'a> {
     pub order_code: &'a str,
-    pub user_id: i64,
+    pub user_id: Option<i64>,
     pub orderer_name: &'a str,
     pub orderer_email: &'a str,
     pub orderer_phone: &'a str,
@@ -374,7 +377,19 @@ impl TextbookRepo {
     // Admin: 상태 변경
     // =========================================================================
 
-    /// 주문 상태 업데이트
+    /// 상태별 타임스탬프 컬럼 결정
+    fn status_timestamp_col(status: TextbookOrderStatus) -> Option<&'static str> {
+        match status {
+            TextbookOrderStatus::Confirmed => Some("confirmed_at"),
+            TextbookOrderStatus::Paid => Some("paid_at"),
+            TextbookOrderStatus::Shipped => Some("shipped_at"),
+            TextbookOrderStatus::Delivered => Some("delivered_at"),
+            TextbookOrderStatus::Canceled => Some("canceled_at"),
+            _ => None, // Pending, Printing — 별도 타임스탬프 없음
+        }
+    }
+
+    /// 주문 상태 업데이트 (Pool 기반, 상태 전환 API 용)
     pub async fn update_status(
         pool: &PgPool,
         order_id: i64,
@@ -382,17 +397,7 @@ impl TextbookRepo {
     ) -> AppResult<()> {
         let now = Utc::now();
 
-        // 상태별 타임스탬프 컬럼 결정
-        let timestamp_col: Option<&str> = match new_status {
-            TextbookOrderStatus::Confirmed => Some("confirmed_at"),
-            TextbookOrderStatus::Paid => Some("paid_at"),
-            TextbookOrderStatus::Shipped => Some("shipped_at"),
-            TextbookOrderStatus::Delivered => Some("delivered_at"),
-            TextbookOrderStatus::Canceled => Some("canceled_at"),
-            _ => None, // Pending, Printing — 별도 타임스탬프 없음
-        };
-
-        if let Some(col) = timestamp_col {
+        if let Some(col) = Self::status_timestamp_col(new_status) {
             let query = format!(
                 "UPDATE textbook SET status = $1, {} = $3, updated_at = NOW() WHERE order_id = $2 AND is_deleted = false",
                 col
@@ -410,6 +415,40 @@ impl TextbookRepo {
             .bind(new_status)
             .bind(order_id)
             .execute(pool)
+            .await?;
+        }
+
+        Ok(())
+    }
+
+    /// 주문 상태 업데이트 (트랜잭션 내 사용 — 원자성 필요 시)
+    /// 관리자 대리 주문 생성 시 insert + 초기 상태 세팅이 원자적으로
+    /// 이루어지도록 동일 트랜잭션 내에서 호출.
+    pub async fn update_status_in_tx(
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        order_id: i64,
+        new_status: TextbookOrderStatus,
+    ) -> AppResult<()> {
+        let now = Utc::now();
+
+        if let Some(col) = Self::status_timestamp_col(new_status) {
+            let query = format!(
+                "UPDATE textbook SET status = $1, {} = $3, updated_at = NOW() WHERE order_id = $2 AND is_deleted = false",
+                col
+            );
+            sqlx::query(&query)
+                .bind(new_status)
+                .bind(order_id)
+                .bind(now)
+                .execute(&mut **tx)
+                .await?;
+        } else {
+            sqlx::query(
+                "UPDATE textbook SET status = $1, updated_at = NOW() WHERE order_id = $2 AND is_deleted = false",
+            )
+            .bind(new_status)
+            .bind(order_id)
+            .execute(&mut **tx)
             .await?;
         }
 

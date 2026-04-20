@@ -9,7 +9,8 @@ use crate::error::AppResult;
 use crate::state::AppState;
 
 use super::dto::{
-    AdminTextbookListReq, AdminTextbookListRes, AdminUpdateStatusReq, AdminUpdateTrackingReq,
+    AdminCreateOrderReq, AdminTextbookListReq, AdminTextbookListRes, AdminUpdateStatusReq,
+    AdminUpdateTrackingReq,
 };
 use super::service::AdminTextbookService;
 
@@ -132,6 +133,33 @@ pub async fn update_tracking(
         req.tracking_provider.as_deref(),
     )
     .await?;
+    Ok(Json(res))
+}
+
+/// POST /admin/textbook/orders
+///
+/// 관리자 대리 주문 생성. 외부 채널(전화·이메일·오프라인) 주문 시스템 입력용.
+/// 최소 수량(10권) 제약 기본 면제. `initial_status` 로 paid 즉시 세팅 가능.
+#[utoipa::path(
+    post,
+    path = "/admin/textbook/orders",
+    tag = "Admin Textbook",
+    security(("bearerAuth" = [])),
+    request_body = AdminCreateOrderReq,
+    responses(
+        (status = 200, description = "주문 생성 완료", body = OrderRes),
+        (status = 400, description = "요청 형식 오류"),
+        (status = 401, description = "인증 필요"),
+        (status = 403, description = "권한 없음"),
+        (status = 422, description = "도메인 제약 위반")
+    )
+)]
+pub async fn admin_create_order(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    AppJson(req): AppJson<AdminCreateOrderReq>,
+) -> AppResult<Json<OrderRes>> {
+    let res = AdminTextbookService::create_order(&st, auth_user.sub, req).await?;
     Ok(Json(res))
 }
 
