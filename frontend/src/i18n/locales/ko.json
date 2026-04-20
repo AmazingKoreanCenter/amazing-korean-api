@@ -956,7 +956,8 @@
           "addressRequired": "배송 주소는 필수입니다.",
           "itemsRequired": "주문 품목의 언어를 선택해주세요.",
           "taxRequired": "세금계산서 필수 항목을 입력해주세요.",
-          "generic": "주문 생성 중 오류가 발생했습니다."
+          "generic": "주문 생성 중 오류가 발생했습니다.",
+          "userIdInvalid": "사용자 ID는 양의 정수여야 합니다."
         }
       }
     },

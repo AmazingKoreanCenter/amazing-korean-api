@@ -122,8 +122,26 @@ export function AdminTextbookOrderCreate() {
       }
     }
 
+    // user_id 엄격 파싱: 양의 정수 문자열만 허용.
+    // Number() 는 "1.5", "1e3" 등을 허용해 백엔드 i64 deserialize 실패를
+    // 유발하고, NaN 을 JSON.stringify 가 null 로 변환하면 의도한 귀속이
+    // silently 소실됨.
+    let parsedUserId: number | undefined = undefined;
+    const userIdInput = userId.trim();
+    if (userIdInput) {
+      if (!/^\d+$/.test(userIdInput)) {
+        toast.error(t("admin.textbook.create.err.userIdInvalid"));
+        return;
+      }
+      parsedUserId = Number(userIdInput);
+      if (!Number.isSafeInteger(parsedUserId) || parsedUserId <= 0) {
+        toast.error(t("admin.textbook.create.err.userIdInvalid"));
+        return;
+      }
+    }
+
     const payload: AdminCreateOrderReq = {
-      user_id: userId.trim() ? Number(userId) : undefined,
+      user_id: parsedUserId,
       initial_status: initialStatus,
       enforce_min_quantity: enforceMinQuantity,
       orderer_name: ordererName,
@@ -147,7 +165,9 @@ export function AdminTextbookOrderCreate() {
       items: items.map((it) => ({
         language: it.language as TextbookLanguage,
         textbook_type: it.textbook_type,
-        quantity: it.quantity,
+        // quantity 는 백엔드 i32. 브라우저가 소수점 입력을 허용하는
+        // 경우가 있으므로 정수 보장.
+        quantity: Math.max(1, Math.floor(it.quantity)),
       })),
       notes: notes.trim() || undefined,
     };

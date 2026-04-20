@@ -199,15 +199,16 @@ impl AdminTextbookService {
 
         TextbookRepo::insert_items(&mut tx, order_id, &items).await?;
 
-        tx.commit().await?;
-
         // -----------------------------------------------------------------
-        // 3. 초기 상태가 pending 이 아니면 update_status 로 타임스탬프 세팅
-        //    (paid_at / confirmed_at 자동) — 트랜잭션 커밋 후 별도 호출
+        // 3. 초기 상태가 pending 이 아니면 동일 트랜잭션 내에서 상태 + 타임스탬프
+        //    업데이트 (paid_at / confirmed_at). insert 와 원자적으로 처리되어
+        //    초기 상태 세팅 실패 시 주문 전체가 롤백됨 — 고아 Pending 상태 방지.
         // -----------------------------------------------------------------
         if initial_status != TextbookOrderStatus::Pending {
-            TextbookRepo::update_status(&st.db, order_id, initial_status).await?;
+            TextbookRepo::update_status_in_tx(&mut tx, order_id, initial_status).await?;
         }
+
+        tx.commit().await?;
 
         // -----------------------------------------------------------------
         // 4. 관리자 감사 로그 — AdminAction::Create

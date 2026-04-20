@@ -956,7 +956,8 @@
           "addressRequired": "Delivery address is required.",
           "itemsRequired": "Please select language for each order item.",
           "taxRequired": "Please fill in required tax invoice fields.",
-          "generic": "An error occurred while creating the order."
+          "generic": "An error occurred while creating the order.",
+          "userIdInvalid": "User ID must be a positive integer."
         }
       }
     },
