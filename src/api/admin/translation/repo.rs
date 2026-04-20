@@ -342,7 +342,7 @@ impl TranslationRepo {
                         CONCAT('Study#', st.study_id, ' Task#', st.study_task_seq) AS label,
                         ste.explain_title AS detail
                     FROM study_task st
-                    JOIN study_task_explain ste ON ste.study_task_id = st.study_task_id
+                    JOIN study_explain ste ON ste.study_task_id = st.study_task_id
                         AND ste.explain_lang = 'ko'
                     ORDER BY st.study_task_id, st.study_id, st.study_task_seq
                     "#,
@@ -564,7 +564,7 @@ impl TranslationRepo {
                 let row = sqlx::query_as::<_, ExplainSourceRow>(
                     r#"
                     SELECT explain_title, explain_text
-                    FROM study_task_explain
+                    FROM study_explain
                     WHERE study_task_id = $1 AND explain_lang = 'ko'
                     "#,
                 )

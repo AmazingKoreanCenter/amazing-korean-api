@@ -528,7 +528,7 @@ impl StudyRepo {
                 e.explain_title::TEXT AS "explain_title?",
                 e.explain_text::TEXT AS "explain_text?",
                 e.explain_media_url::TEXT AS "explain_media_url?"
-            FROM study_task_explain e
+            FROM study_explain e
             INNER JOIN study_task t ON e.study_task_id = t.study_task_id
             INNER JOIN study s ON t.study_id = s.study_id
             WHERE e.study_task_id = $1
