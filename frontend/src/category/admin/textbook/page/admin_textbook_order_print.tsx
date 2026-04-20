@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useAdminTextbookOrderDetail } from "../hook/use_admin_textbook";
-import { TEXTBOOK_SUPPLIER } from "@/category/textbook/supplier_info";
+import {
+  ReceiptSignature,
+  ReceiptSupplierBox,
+  ReceiptTotalBreakdown,
+} from "@/category/textbook/receipt_parts";
 
 export function AdminTextbookOrderPrint() {
   const { t } = useTranslation();
@@ -49,12 +53,6 @@ export function AdminTextbookOrderPrint() {
       </div>
     );
   }
-
-  const vatRate = 0.1;
-  const supplyAmount = isReceipt
-    ? Math.round(order.total_amount / (1 + vatRate))
-    : 0;
-  const vatAmount = isReceipt ? order.total_amount - supplyAmount : 0;
 
   const docDate = isReceipt && order.paid_at
     ? new Date(order.paid_at).toLocaleDateString()
@@ -105,22 +103,7 @@ export function AdminTextbookOrderPrint() {
         </div>
 
         {/* 공급자 정보 (영수증 전용) */}
-        {isReceipt && (
-          <div className="mb-6 p-4 border rounded">
-            <h3 className="font-bold mb-2">
-              {t("admin.textbook.print.supplier")}
-            </h3>
-            <p>{TEXTBOOK_SUPPLIER.companyName}</p>
-            <p>
-              {t("admin.textbook.print.bizNumber")}:{" "}
-              {TEXTBOOK_SUPPLIER.bizNumber}
-            </p>
-            <p>
-              {t("admin.textbook.print.repName")}: {TEXTBOOK_SUPPLIER.repName}
-            </p>
-            <p>{TEXTBOOK_SUPPLIER.address}</p>
-          </div>
-        )}
+        {isReceipt && <ReceiptSupplierBox ns="admin.textbook.print" t={t} />}
 
         {/* 수신자 정보 */}
         <div className="mb-6 p-4 border rounded">
@@ -196,29 +179,12 @@ export function AdminTextbookOrderPrint() {
 
         {/* 합계 박스 */}
         {isReceipt ? (
-          <div className="p-4 border-2 border-black rounded mb-6">
-            <div className="flex justify-between py-1">
-              <span>{t("admin.textbook.print.supplyAmount")}</span>
-              <span>
-                {supplyAmount.toLocaleString()} {order.currency}
-              </span>
-            </div>
-            <div className="flex justify-between py-1 border-b">
-              <span>{t("admin.textbook.print.vatAmount")}</span>
-              <span>
-                {vatAmount.toLocaleString()} {order.currency}
-              </span>
-            </div>
-            <div className="flex justify-between py-2 font-bold text-lg">
-              <span>{t("admin.textbook.print.receiptTotal")}</span>
-              <span className="text-xl">
-                {order.total_amount.toLocaleString()} {order.currency}
-              </span>
-            </div>
-            <p className="text-center mt-2 text-sm">
-              {t("admin.textbook.print.receiptNotice")}
-            </p>
-          </div>
+          <ReceiptTotalBreakdown
+            totalAmount={order.total_amount}
+            currency={order.currency}
+            ns="admin.textbook.print"
+            t={t}
+          />
         ) : (
           <div className="p-4 border-2 border-black rounded mb-6 text-center">
             <p className="text-lg font-bold">
@@ -290,22 +256,7 @@ export function AdminTextbookOrderPrint() {
         )}
 
         {/* 서명란 (영수증 전용) */}
-        {isReceipt && (
-          <div className="mt-8 mb-6 flex justify-end">
-            <div className="text-right">
-              <p className="text-sm mb-2">
-                {t("admin.textbook.print.issuedBy")}
-              </p>
-              <p className="font-bold">{TEXTBOOK_SUPPLIER.companyName}</p>
-              <p className="text-sm">
-                {t("admin.textbook.print.repName")}: {TEXTBOOK_SUPPLIER.repName}
-              </p>
-              <div className="mt-6 w-40 border-t pt-1 text-xs text-center text-muted-foreground print:text-gray-600">
-                {t("admin.textbook.print.sealLine")}
-              </div>
-            </div>
-          </div>
-        )}
+        {isReceipt && <ReceiptSignature ns="admin.textbook.print" t={t} />}
 
         {/* 푸터 */}
         <div className="mt-12 pt-4 border-t text-center text-xs text-muted-foreground print:text-gray-500">
