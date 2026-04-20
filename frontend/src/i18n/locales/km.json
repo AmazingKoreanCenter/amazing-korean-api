@@ -215,7 +215,10 @@
     "validationBirthdayFormat": "Please enter a valid date (YYYY-MM-DD).",
     "validationCountryRequired": "Please select a country.",
     "validationLanguageRequired": "Please select a language.",
-    "validationPasswordMax": "Password must be 72 characters or less."
+    "validationPasswordMax": "Password must be 72 characters or less.",
+    "mfaBackupPlaceholder": "កូដបម្រុង ៨ តួអក្សរ",
+    "mfaUseBackupCode": "ប្រើកូដបម្រុង",
+    "mfaUseAuthApp": "ប្រើកម្មវិធីផ្ទៀងផ្ទាត់"
   },
   "user": {
     "myPageTitle": "ទំព័ររបស់ខ្ញុំ",
@@ -333,7 +336,11 @@
     "ctaTitle": "ចាប់ផ្តើមឥឡូវនេះ",
     "ctaDescription": "ចុះឈ្មោះដោយឥតគិតថ្លៃ ហើយចាប់ផ្តើមរៀនភាសាកូរ៉េ។",
     "ctaStart": "ចាប់ផ្តើមដោយឥតគិតថ្លៃ",
-    "ctaBrowseBooks": "រកមើលសៀវភៅសិក្សា"
+    "ctaBrowseBooks": "រកមើលសៀវភៅសិក្សា",
+    "stat1Title": "34 ភាសា និង 68 កំណែសៀវភៅសិក្សា",
+    "stat1Desc": "រៀនភាសាកូរ៉េតាមរយៈភាសារបស់អ្នក ជាមួយនឹងសៀវភៅសិក្សាដែលរៀបចំឡើងយ៉ាងពិសេសសម្រាប់ភាសានីមួយៗ។",
+    "stat2Title": "500 ប្រយោគមូលដ្ឋាន",
+    "stat2Desc": "ការរៀនមូលដ្ឋានភាសាកូរ៉េផ្អែកលើវេយ្យាករណ៍មូលដ្ឋាន (កាល, បុព្វសព្ទ) និងរចនាសម្ព័ន្ធប្រយោគ (អង្គកិរិយា, កិរិយាសព្វនាម)។"
   },
   "study": {
     "heroBadge": "សិក្សាភាសាកូរ៉េជាប្រព័ន្ធ",
@@ -515,7 +522,8 @@
       "searchPlaceholder": "Search language...",
       "noResults": "No results found.",
       "bookTitle": "Amazing Korean Basics - {{language}}",
-      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK."
+      "bookDescription": "A foundational textbook for learning Korean.\nComposed in Korean - English - {{language}},\nit is the first step toward basic Korean proficiency\nand preparation for TOPIK and EPS-TOPIK.",
+      "pricePerUnit": "15,000 KRW"
     },
     "detail": {
       "viewDetail": "View Details",
@@ -538,7 +546,10 @@
       "success": "ការទិញជោគជ័យ។",
       "error": "មានបញ្ហាកើតឡើងក្នុងពេលទិញ។",
       "cardPayment": "Card Payment",
-      "paddleNote": "International card payment via Paddle. Charges will be in USD."
+      "paddleNote": "International card payment via Paddle. Charges will be in USD.",
+      "paddleUnavailable": "ការបង់ប្រាក់តាមកាតមិនអាចប្រើប្រាស់បានទេ។",
+      "checkoutSuccess": "ការបង់ប្រាក់ត្រូវបានបញ្ចប់។",
+      "cancelSuccess": "ការបញ្ជាទិញត្រូវបានលុបចោល។"
     },
     "purchaseComplete": {
       "title": "ការទិញបានបញ្ចប់",
@@ -576,7 +587,10 @@
       "empty": "មិនមានសៀវភៅអេឡិចត្រូនិកដែលបានទិញទេ។",
       "browseCatalog": "មើលសៀវភៅ",
       "openViewer": "បើកកម្មវិធីអាន",
-      "loadError": "មិនអាចផ្ទុកប្រវត្តិទិញបានទេ។"
+      "loadError": "មិនអាចផ្ទុកប្រវត្តិទិញបានទេ។",
+      "payNow": "បង់ប្រាក់ឥឡូវនេះ",
+      "cancelOrder": "លុបចោលការបញ្ជាទិញ",
+      "processing": "កំពុងដំណើរការការបង់ប្រាក់..."
     },
     "viewer": {
       "toc": "មាតិកា",
@@ -586,7 +600,13 @@
       "copyrightNotice": "មាតិកានេះត្រូវបានការពារដោយច្បាប់កម្មសិទ្ធិអ្នកនិពន្ធ។",
       "copyrightLegal": "ការគេចពីវិធានការការពារបច្ចេកទេសត្រូវផ្តន្ទាទោសតាममាត្រា 104-2 នៃច្បាប់កម្មសិទ្ធិអ្នកនិពន្ធកូរ៉េ។",
       "copyrightWatermark": "E-book នេះមានសញ្ញាទឹកឌីជីថលសម្រាប់កំណត់អត្តសញ្ញាណអ្នកទិញ។",
-      "copyrightConfirm": "ខ្ញុំយល់ហើយ"
+      "copyrightConfirm": "ខ្ញុំយល់ហើយ",
+      "notFoundDesc": "លេខកូដបញ្ជាទិញមិនមាន ឬអ្នកមិនមានសិទ្ធិចូលប្រើប្រាស់ទេ។",
+      "paymentRequired": "ការបង់ប្រាក់មិនទាន់បានបញ្ចប់ទេ។",
+      "paymentRequiredDesc": "អ្នកអាចមើល E-book បាន បន្ទាប់ពីការបង់ប្រាក់ត្រូវបានបញ្ចប់។ ចំពោះការផ្ទេរតាមធនាគារ សិទ្ធិចូលប្រើប្រាស់នឹងត្រូវបានផ្តល់ជូន បន្ទាប់ពីមានការបញ្ជាក់ពីអ្នកគ្រប់គ្រង។",
+      "goToMyEbooks": "ទៅកាន់សៀវភៅអេឡិចត្រូនិចរបស់ខ្ញុំ",
+      "spreadView": "ទិដ្ឋភាពពីរទំព័រ",
+      "singleView": "ទិដ្ឋភាពមួយទំព័រ"
     }
   },
   "textbook": {
@@ -613,7 +633,12 @@
       "viewCarousel": "ទិដ្ឋភាពរង្វិល",
       "searchPlaceholder": "ស្វែងរកភាសា...",
       "noResults": "រកមិនឃើញលទ្ធផល។",
-      "bookDescription": "សៀវភៅសិក្សាភាសាកូរ៉េជាប្រព័ន្ធ។ បកប្រែដោយអ្នកជំនាញជាម្ចាស់ភាសានីមួយៗ។"
+      "bookDescription": "សៀវភៅសិក្សាភាសាកូរ៉េជាប្រព័ន្ធ។ បកប្រែដោយអ្នកជំនាញជាម្ចាស់ភាសានីមួយៗ។",
+      "isbnPending": "ត្រូវការពេលបន្ថែមប្រហែល 1 សប្តាហ៍ សម្រាប់ការចុះបញ្ជី ISBN និងការបោះពុម្ព",
+      "bookTitle": "Amazing Korean កម្រិតមូលដ្ឋាន - {{language}}",
+      "editionInfo": "{{edition}} · ចំនួនកម្មង់អប្បបរមា 10 ក្បាល",
+      "bookDescriptionStudent": "សៀវភៅសិក្សាមូលដ្ឋានសម្រាប់រៀនភាសាកូរ៉េ។\nរៀបចំឡើងជាភាសាកូរ៉េ - អង់គ្លេស - {{language}}\nវាគឺជាជំហានដំបូងឆ្ពោះទៅរកការមានសមត្ថភាពភាសាកូរ៉េកម្រិតមូលដ្ឋាន\nនិងការត្រៀមខ្លួនសម្រាប់ការប្រឡង TOPIK និង EPS-TOPIK។",
+      "bookDescriptionTeacher": "សៀវភៅសិក្សាមូលដ្ឋានសម្រាប់បង្រៀនភាសាកូរ៉េ។\nរៀបចំឡើងជាភាសាកូរ៉េ - អង់គ្លេស - {{language}}\nវាគឺជាជំហានដំបូងឆ្ពោះទៅរកការបង្រៀនភាសាកូរ៉េកម្រិតមូលដ្ឋាន\nនិងការត្រៀមខ្លួនសម្រាប់ការប្រឡង TOPIK និង EPS-TOPIK។"
     },
     "myOrders": {
       "badge": "ការបញ្ជាទិញរបស់ខ្ញុំ",
@@ -690,6 +715,125 @@
       "vatAmount": "VAT (10%)",
       "issuedBy": "Issued by",
       "sealLine": "(Seal)"
+    },
+    "order": {
+      "sectionItems": "ជ្រើសរើសសៀវភៅសិក្សា",
+      "language": "ភាសា",
+      "languagePlaceholder": "ជ្រើសរើសភាសា",
+      "textbookType": "ប្រភេទ",
+      "typeStudent": "សិស្ស",
+      "typeTeacher": "គ្រូបង្រៀន",
+      "quantity": "ចំនួន",
+      "currency": "KRW",
+      "addItem": "បន្ថែមមុខទំនិញ",
+      "totalQuantity": "ចំនួនសរុប",
+      "unit": "ក្បាល",
+      "totalAmount": "ចំនួនសរុប",
+      "minQuantityError": "ការកម្មង់អប្បបរមាគឺ {{min}} ក្បាល",
+      "duplicateItemError": "មានការស្ទួនគ្នានៃភាសា និងប្រភេទ",
+      "minQuantityHint": "អប្បបរមា {{min}} ក្បាល",
+      "isbnNotice": "ភាសាខ្លះតម្រូវឱ្យមានការចុះបញ្ជី ISBN មុនពេលបោះពុម្ព។ ការដឹកជញ្ជូនសម្រាប់ភាសាទាំងនេះអាចនឹងចំណាយពេលបន្ថែមប្រហែល ១ សប្តាហ៍។",
+      "sectionOrderer": "ព័ត៌មានអ្នកបញ្ជាទិញ",
+      "ordererName": "ឈ្មោះ",
+      "ordererNamePlaceholder": "John Doe",
+      "ordererPhone": "លេខទូរស័ព្ទ",
+      "ordererEmail": "អ៊ីមែល",
+      "sectionOrg": "អង្គភាព",
+      "optional": "មិនបង្ខំ",
+      "orgName": "ឈ្មោះអង្គភាព",
+      "orgNamePlaceholder": "សាលាភាសាកូរ៉េ",
+      "orgType": "ប្រភេទស្ថាប័ន",
+      "orgTypePlaceholder": "ជ្រើសរើសប្រភេទ",
+      "orgTypeAcademy": "វិទ្យាស្ថាន",
+      "orgTypeUniversity": "សាកលវិទ្យាល័យ",
+      "orgTypeSchool": "សាលារៀន",
+      "orgTypeIndividual": "បុគ្គល",
+      "orgTypeOther": "ផ្សេងៗ",
+      "sectionDelivery": "ព័ត៌មានដឹកជញ្ជូន",
+      "postalCode": "លេខកូដប្រៃសណីយ៍",
+      "address": "អាសយដ្ឋាន",
+      "addressPlaceholder": "ផ្លូវលេខ ១២៣...",
+      "addressDetail": "ព័ត៌មានលម្អិតអាសយដ្ឋាន",
+      "addressDetailPlaceholder": "អគារ, ជាន់, ។ល។",
+      "sectionPayment": "ព័ត៌មានការបង់ប្រាក់",
+      "paymentMethodNote": "បច្ចុប្បន្នមានតែការផ្ទេរតាមធនាគារប៉ុណ្ណោះ។ ព័ត៌មានលម្អិតអំពីការផ្ទេរនឹងត្រូវបានផ្តល់ជូន បន្ទាប់ពីការបញ្ជាទិញត្រូវបានបញ្ជូនរួចរាល់។",
+      "depositorName": "ឈ្មោះអ្នកដាក់ប្រាក់",
+      "depositorNamePlaceholder": "ប្រសិនបើខុសពីអ្នកបញ្ជាទិញ",
+      "sectionTax": "វិក្កយបត្រពន្ធ",
+      "taxInvoiceLabel": "ស្នើសុំវិក្កយបត្រពន្ធ",
+      "taxBizNumber": "លេខចុះបញ្ជីពាណិជ្ជកម្ម",
+      "taxCompanyName": "ឈ្មោះក្រុមហ៊ុន",
+      "taxCompanyNamePlaceholder": "បញ្ចូលឈ្មោះក្រុមហ៊ុន",
+      "taxRepName": "ឈ្មោះតំណាង",
+      "taxRepNamePlaceholder": "បញ្ចូលឈ្មោះតំណាង",
+      "taxAddress": "អាសយដ្ឋានអាជីវកម្ម",
+      "taxAddressPlaceholder": "អាសយដ្ឋានតាមការចុះបញ្ជីអាជីវកម្ម",
+      "taxBizType": "ប្រភេទអាជីវកម្ម",
+      "taxBizTypePlaceholder": "ឧទាហរណ៍៖ សេវាកម្ម, លក់រាយ",
+      "taxBizItem": "មុខវិស័យអាជីវកម្ម",
+      "taxBizItemPlaceholder": "ឧទាហរណ៍៖ ការអប់រំ, ការបោះពុម្ព",
+      "taxEmail": "អ៊ីមែលវិក្កយបត្រពន្ធ",
+      "sectionNotes": "កំណត់សម្គាល់",
+      "notesPlaceholder": "សំណើបន្ថែម",
+      "submitting": "កំពុងដំណើរការ...",
+      "submitButton": "បញ្ជាទិញ",
+      "successToast": "ការបញ្ជាទិញត្រូវបានដាក់ជូនរួចរាល់ហើយ!",
+      "errorToast": "ការបញ្ជាទិញបានបរាជ័យ។ សូមព្យាយាមម្តងទៀត។",
+      "completeTitle": "ការបញ្ជូនការបញ្ជាទិញរួចរាល់",
+      "completeDesc": "សូមរក្សាទុកលេខកូដបញ្ជាទិញរបស់អ្នកនៅខាងក្រោម។ អ្នកនឹងត្រូវប្រើវាដើម្បីតាមដានការបញ្ជាទិញរបស់អ្នក។",
+      "orderCode": "លេខកូដបញ្ជាទិញ",
+      "codeCopied": "ចម្លងលេខកូដបញ្ជាទិញរួចរាល់",
+      "bankTransferGuide": "ព័ត៌មានអំពីការផ្ទេរប្រាក់តាមធនាគារ",
+      "bankAccount": "ផ្ទេរទៅកាន់៖ {{account}}",
+      "bankNote": "សូមបញ្ចូលលេខកូដបញ្ជាទិញ ឬឈ្មោះរបស់អ្នកនៅក្នុងកំណត់សម្គាល់នៃការផ្ទេរ។",
+      "trackGuide": "អ្នកអាចពិនិត្យមើលស្ថានភាពបញ្ជាទិញរបស់អ្នកបានតាមរយៈប៊ូតុងខាងក្រោម។",
+      "trackButton": "តាមដានការបញ្ជាទិញ",
+      "validationNameRequired": "សូមបញ្ចូលឈ្មោះរបស់អ្នក។",
+      "validationEmailRequired": "សូមបញ្ចូលអ៊ីមែលរបស់អ្នក។",
+      "validationEmailFormat": "សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលឱ្យបានត្រឹមត្រូវ។",
+      "validationPhoneRequired": "សូមបញ្ចូលលេខទូរស័ព្ទរបស់អ្នក។",
+      "validationAddressRequired": "សូមបញ្ចូលអាសយដ្ឋានដឹកជញ្ជូន។",
+      "validationLanguageRequired": "សូមជ្រើសរើសភាសា។",
+      "validationQuantityMin": "ចំនួនត្រូវតែយ៉ាងហោចណាស់ ១។",
+      "validationQuantityMax": "ចំនួនត្រូវតែមិនលើសពី ៩,៩៩៩។",
+      "validationItemsRequired": "សូមបន្ថែមសៀវភៅសិក្សាយ៉ាងហោចណាស់ ១ ក្បាល។"
+    },
+    "status": {
+      "title": "តាមដានការបញ្ជាទិញ",
+      "subtitle": "សូមបញ្ចូលលេខកូដបញ្ជាទិញរបស់អ្នក ដើម្បីពិនិត្យមើលស្ថានភាពនៃការបញ្ជាទិញ។",
+      "placeholder": "TB-260226-0001",
+      "search": "ស្វែងរក",
+      "notFound": "រកមិនឃើញការបញ្ជាទិញឡើយ",
+      "notFoundDesc": "សូមពិនិត្យមើលលេខកូដបញ្ជាទិញរបស់អ្នកឡើងវិញ រួចព្យាយាមម្តងទៀត។",
+      "orderedAt": "បានបញ្ជាទិញនៅថ្ងៃទី៖",
+      "initialHint": "សូមបញ្ចូលលេខកូដបញ្ជាទិញរបស់អ្នក ដើម្បីពិនិត្យមើលស្ថានភាពនៃការបញ្ជាទិញ។",
+      "label": {
+        "pending": "បានទទួលការបញ្ជាទិញ",
+        "confirmed": "បានបញ្ជាក់រួចរាល់",
+        "paid": "ការទូទាត់ត្រូវបានបញ្ជាក់",
+        "printing": "កំពុងបោះពុម្ព",
+        "shipped": "បានបញ្ជូនចេញ",
+        "delivered": "បានដឹកជញ្ជូនរួចរាល់",
+        "canceled": "បានលុបចោល"
+      },
+      "step": {
+        "pending": "បានទទួល",
+        "confirmed": "បានបញ្ជាក់",
+        "paid": "បានបង់ប្រាក់",
+        "printing": "កំពុងបោះពុម្ព",
+        "shipped": "បានបញ្ជូនរួចរាល់",
+        "delivered": "បានដឹកជញ្ជូនរួចរាល់"
+      },
+      "orderDetail": "ព័ត៌មានលម្អិតនៃការបញ្ជាទិញ",
+      "colLanguage": "ភាសា",
+      "colType": "ប្រភេទ",
+      "colQuantity": "បរិមាណ",
+      "colUnitPrice": "តម្លៃឯកតា",
+      "colSubtotal": "ទឹកប្រាក់សរុប",
+      "total": "សរុបទាំងអស់",
+      "ordererInfo": "ព័ត៌មានអ្នកបញ្ជាទិញ",
+      "deliveryInfo": "ព័ត៌មានដឹកជញ្ជូន",
+      "notes": "កំណត់សម្គាល់"
     }
   },
   "seo": {
@@ -756,6 +900,12 @@
     "textbookStatus": {
       "title": "ស្ថានភាពការបញ្ជាទិញ - Amazing Korean",
       "description": "ពិនិត្យស្ថានភាពការបញ្ជាទិញសៀវភៅ។"
+    },
+    "book": {
+      "title": "Amazing Korean Basic {{language}} - ព័ត៌មានសៀវភៅសិក្សា",
+      "description": "ព័ត៌មានលម្អិត និងការទិញសៀវភៅសិក្សា Amazing Korean Basic {{language}}។",
+      "notFoundTitle": "រកមិនឃើញសៀវភៅសិក្សា - Amazing Korean",
+      "notFoundDescription": "លេខ ISBN មិនត្រឹមត្រូវ។"
     }
   },
   "bookHub": {
