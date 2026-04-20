@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-18 (INC-002 복구 — M02 테이블명 오인 + nginx reload race 2중 수정)
+updated: 2026-04-19 (교재 주문 영수증 발급 기능 — ?type=receipt 분기 추가)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,22 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-19 — 교재 주문 간이 영수증 발급 기능 (`?type=receipt`)**
+  - **배경**: 실 주문 1건에서 간이 영수증 발급 요청. 기존 견적서(`?type=quote`) / 주문확인서(`?type=confirmation`) 인쇄 페이지에 3번째 타입 추가로 시스템화.
+  - **신규 공급자 상수** — `frontend/src/category/textbook/supplier_info.ts`: HYMN 법인 정보 (상호 `(주) 힘 HYMN Co., Ltd.` / 사업자등록번호 `505-88-03252` / 대표자 `김경륜 (Kyoung Ryun KIM)` / 주소 `세종시 한누리대로 350 6층 SB3호`). 법인 고정값이라 i18n 아닌 상수 파일.
+  - **사용자 인쇄 페이지** — `frontend/src/category/textbook/page/textbook_order_print.tsx`: `isReceipt = type === "receipt"` 분기. (a) 공급자 정보 박스 추가, (b) 발행일을 `paid_at` 기준으로 표시, (c) 합계 박스를 공급가액 / VAT (10%) / 합계 3단 분리 (`total_amount / 1.1` 역산), (d) 입금 계좌 박스 비노출, (e) 서명란 (HYMN 대표자명 + 인감 라인) 추가, (f) `paid_at` 이 null 이면 발급 거부 안내.
+  - **관리자 인쇄 페이지** — `frontend/src/category/admin/textbook/page/admin_textbook_order_print.tsx`: 위와 동일 분기 적용.
+  - **버튼 추가**:
+    - 사용자 주문 상태 페이지 (`textbook_order_status_page.tsx`): 기존 견적서/주문확인서 버튼 옆에 영수증 버튼. `order.paid_at != null` 조건으로 조건부 노출.
+    - 관리자 주문 상세 (`admin_textbook_order_detail.tsx`): 동일 조건부 노출.
+  - **i18n 업데이트**:
+    - `textbook.print` (22개 locale 전체): 영수 관련 키 10개 추가 (`receiptTitle`/`receiptTotal`/`receiptNotice`/`receiptUnpaid`/`paidDate`/`supplier`/`supplyAmount`/`vatAmount`/`issuedBy`/`sealLine`). ko/en 완전 번역, 나머지 20개 locale 은 영어 fallback.
+    - `admin.textbook.print` (ko/en 만 — 관리자 섹션은 원래 2개 언어 지원): 동일 10개 키.
+    - `admin.textbook.printReceipt`: 버튼 레이블.
+  - **VAT 분리 표시**: 총액이 VAT 포함이라는 기존 가정 유지. `supplyAmount = Math.round(total_amount / 1.1)` / `vatAmount = total_amount - supplyAmount`. 간이영수증은 세법상 서식 자유이나 실무상 공급가액/세액 분리가 명확한 편이 증빙용으로 유리.
+  - **검증**: `cd frontend && npm run build` 9.31s 클린 ✅.
+  - **다음 단계 (후속 요청 시)**: 법인 인감 이미지 업로드 기능 (현재는 `(인)` 텍스트), 영수증 고유번호 체계 (현재는 order_code 재사용), 다른 locale 개별 번역 (현재는 영어 fallback).
 
 - **2026-04-18 — 🚨 INC-002: 프로덕션 crash loop (M02 테이블명 오인 + nginx reload race) 2중 복구**
   - **INC-002 발생 타임라인**:

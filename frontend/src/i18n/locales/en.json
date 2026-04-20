@@ -850,6 +850,7 @@
       "canceledAt": "Canceled",
       "printQuote": "Quote",
       "printConfirmation": "Confirmation",
+      "printReceipt": "Receipt",
       "delete": "Delete",
       "deleteConfirmTitle": "Delete Order",
       "deleteConfirmDesc": "Are you sure you want to delete order {{code}}? This action cannot be undone.",
@@ -894,7 +895,17 @@
         "notes": "Notes",
         "footer": "This document was generated electronically and is valid without a signature.",
         "companyInfo": "㈜ 힘 | amazingkorean.net",
-        "printButton": "Print / Save as PDF"
+        "printButton": "Print / Save as PDF",
+        "receiptTitle": "Receipt",
+        "receiptTotal": "Amount Received",
+        "receiptNotice": "Received the above amount in full.",
+        "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+        "paidDate": "Payment Date",
+        "supplier": "Supplier",
+        "supplyAmount": "Supply Amount",
+        "vatAmount": "VAT (10%)",
+        "issuedBy": "Issued by",
+        "sealLine": "(Seal)"
       }
     },
     "ebook": {
@@ -1022,7 +1033,17 @@
       "pdfGuide": "To save as PDF, select 'Save as PDF' in the print dialog.",
       "notFound": "Order not found.",
       "quoteNotice": "This quote is based on the order submission and the actual payment amount may differ.",
-      "confirmationNotice": "This confirmation is for order status verification purposes only and is not an official receipt."
+      "confirmationNotice": "This confirmation is for order status verification purposes only and is not an official receipt.",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     },
     "order": {
       "sectionItems": "Select Textbooks",

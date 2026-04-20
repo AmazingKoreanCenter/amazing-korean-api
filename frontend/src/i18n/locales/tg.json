@@ -598,7 +598,17 @@
       "pdfGuide": "Барои нигоҳ доштан ҳамчун PDF, дар равзанаи чоп 'Ҳамчун PDF нигоҳ доштан'-ро интихоб кунед.",
       "notFound": "Фармоиш ёфт нашуд.",
       "quoteNotice": "Ин нархнома ба фиристодани фармоиш асос ёфтааст ва маблағи воқеии пардохт метавонад фарқ кунад.",
-      "confirmationNotice": "Ин тасдиқ танҳо барои санҷиши ҳолати фармоиш аст ва расиди расмӣ нест."
+      "confirmationNotice": "Ин тасдиқ танҳо барои санҷиши ҳолати фармоиш аст ва расиди расмӣ нест.",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     }
   },
   "seo": {

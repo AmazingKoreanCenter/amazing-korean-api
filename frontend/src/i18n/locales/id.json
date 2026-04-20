@@ -679,7 +679,17 @@
       "pdfGuide": "Untuk menyimpan sebagai PDF, pilih 'Simpan sebagai PDF' di dialog cetak.",
       "notFound": "Pesanan tidak ditemukan.",
       "quoteNotice": "Penawaran ini berdasarkan pengajuan pesanan dan jumlah pembayaran aktual dapat berbeda.",
-      "confirmationNotice": "Konfirmasi ini hanya untuk verifikasi status pesanan dan bukan merupakan tanda terima resmi."
+      "confirmationNotice": "Konfirmasi ini hanya untuk verifikasi status pesanan dan bukan merupakan tanda terima resmi.",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     }
   },
   "seo": {

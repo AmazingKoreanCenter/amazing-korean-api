@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useAdminTextbookOrderDetail } from "../hook/use_admin_textbook";
+import { TEXTBOOK_SUPPLIER } from "@/category/textbook/supplier_info";
 
 export function AdminTextbookOrderPrint() {
   const { t } = useTranslation();
@@ -16,9 +17,12 @@ export function AdminTextbookOrderPrint() {
   const { data: order, isLoading } = useAdminTextbookOrderDetail(id);
 
   const isQuote = type === "quote";
-  const docTitle = isQuote
-    ? t("admin.textbook.print.quoteTitle")
-    : t("admin.textbook.print.confirmationTitle");
+  const isReceipt = type === "receipt";
+  const docTitle = isReceipt
+    ? t("admin.textbook.print.receiptTitle")
+    : isQuote
+      ? t("admin.textbook.print.quoteTitle")
+      : t("admin.textbook.print.confirmationTitle");
 
   if (isLoading) {
     return (
@@ -36,6 +40,25 @@ export function AdminTextbookOrderPrint() {
       </div>
     );
   }
+
+  // 영수증은 입금 완료 후에만 발급 가능
+  if (isReceipt && !order.paid_at) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        {t("admin.textbook.print.receiptUnpaid")}
+      </div>
+    );
+  }
+
+  const vatRate = 0.1;
+  const supplyAmount = isReceipt
+    ? Math.round(order.total_amount / (1 + vatRate))
+    : 0;
+  const vatAmount = isReceipt ? order.total_amount - supplyAmount : 0;
+
+  const docDate = isReceipt && order.paid_at
+    ? new Date(order.paid_at).toLocaleDateString()
+    : new Date(order.created_at).toLocaleDateString();
 
   return (
     <>
@@ -64,8 +87,13 @@ export function AdminTextbookOrderPrint() {
               {order.order_code}
             </p>
             <p>
-              <strong>{t("admin.textbook.print.date")}:</strong>{" "}
-              {new Date(order.created_at).toLocaleDateString()}
+              <strong>
+                {isReceipt
+                  ? t("admin.textbook.print.paidDate")
+                  : t("admin.textbook.print.date")}
+                :
+              </strong>{" "}
+              {docDate}
             </p>
           </div>
           <div className="text-right">
@@ -75,6 +103,24 @@ export function AdminTextbookOrderPrint() {
             </p>
           </div>
         </div>
+
+        {/* 공급자 정보 (영수증 전용) */}
+        {isReceipt && (
+          <div className="mb-6 p-4 border rounded">
+            <h3 className="font-bold mb-2">
+              {t("admin.textbook.print.supplier")}
+            </h3>
+            <p>{TEXTBOOK_SUPPLIER.companyName}</p>
+            <p>
+              {t("admin.textbook.print.bizNumber")}:{" "}
+              {TEXTBOOK_SUPPLIER.bizNumber}
+            </p>
+            <p>
+              {t("admin.textbook.print.repName")}: {TEXTBOOK_SUPPLIER.repName}
+            </p>
+            <p>{TEXTBOOK_SUPPLIER.address}</p>
+          </div>
+        )}
 
         {/* 수신자 정보 */}
         <div className="mb-6 p-4 border rounded">
@@ -149,31 +195,59 @@ export function AdminTextbookOrderPrint() {
         </table>
 
         {/* 합계 박스 */}
-        <div className="p-4 border-2 border-black rounded mb-6 text-center">
-          <p className="text-lg font-bold">
-            {isQuote
-              ? t("admin.textbook.print.quoteTotal")
-              : t("admin.textbook.print.confirmationTotal")}
-            :{" "}
-            <span className="text-xl">
-              {order.total_amount.toLocaleString()} {order.currency}
-            </span>
-          </p>
-          <p className="text-xs text-muted-foreground print:text-gray-600 mt-1">
-            ({t("admin.textbook.print.vatIncluded")})
-          </p>
-        </div>
+        {isReceipt ? (
+          <div className="p-4 border-2 border-black rounded mb-6">
+            <div className="flex justify-between py-1">
+              <span>{t("admin.textbook.print.supplyAmount")}</span>
+              <span>
+                {supplyAmount.toLocaleString()} {order.currency}
+              </span>
+            </div>
+            <div className="flex justify-between py-1 border-b">
+              <span>{t("admin.textbook.print.vatAmount")}</span>
+              <span>
+                {vatAmount.toLocaleString()} {order.currency}
+              </span>
+            </div>
+            <div className="flex justify-between py-2 font-bold text-lg">
+              <span>{t("admin.textbook.print.receiptTotal")}</span>
+              <span className="text-xl">
+                {order.total_amount.toLocaleString()} {order.currency}
+              </span>
+            </div>
+            <p className="text-center mt-2 text-sm">
+              {t("admin.textbook.print.receiptNotice")}
+            </p>
+          </div>
+        ) : (
+          <div className="p-4 border-2 border-black rounded mb-6 text-center">
+            <p className="text-lg font-bold">
+              {isQuote
+                ? t("admin.textbook.print.quoteTotal")
+                : t("admin.textbook.print.confirmationTotal")}
+              :{" "}
+              <span className="text-xl">
+                {order.total_amount.toLocaleString()} {order.currency}
+              </span>
+            </p>
+            <p className="text-xs text-muted-foreground print:text-gray-600 mt-1">
+              ({t("admin.textbook.print.vatIncluded")})
+            </p>
+          </div>
+        )}
 
-        {/* 입금 계좌 안내 */}
-        <div className="mb-6 p-4 border rounded">
-          <h3 className="font-bold mb-2">
-            {t("admin.textbook.print.bankInfo")}
-          </h3>
-          <p>{t("admin.textbook.print.bankAccount")}</p>
-          <p className="text-xs text-muted-foreground print:text-gray-600 mt-1">
-            {t("admin.textbook.print.bankNote")}
-          </p>
-        </div>
+        {/* 입금 계좌 안내 (영수증엔 표시 안 함) */}
+        {!isReceipt && (
+          <div className="mb-6 p-4 border rounded">
+            <h3 className="font-bold mb-2">
+              {t("admin.textbook.print.bankInfo")}
+            </h3>
+            <p>{t("admin.textbook.print.bankAccount")}</p>
+            <p className="text-xs text-muted-foreground print:text-gray-600 mt-1">
+              {t("admin.textbook.print.bankNote")}
+            </p>
+          </div>
+        )}
 
         {/* 세금계산서 정보 */}
         {order.tax_invoice && (
@@ -212,6 +286,24 @@ export function AdminTextbookOrderPrint() {
               {t("admin.textbook.print.notes")}
             </h3>
             <p className="whitespace-pre-wrap">{order.notes}</p>
+          </div>
+        )}
+
+        {/* 서명란 (영수증 전용) */}
+        {isReceipt && (
+          <div className="mt-8 mb-6 flex justify-end">
+            <div className="text-right">
+              <p className="text-sm mb-2">
+                {t("admin.textbook.print.issuedBy")}
+              </p>
+              <p className="font-bold">{TEXTBOOK_SUPPLIER.companyName}</p>
+              <p className="text-sm">
+                {t("admin.textbook.print.repName")}: {TEXTBOOK_SUPPLIER.repName}
+              </p>
+              <div className="mt-6 w-40 border-t pt-1 text-xs text-center text-muted-foreground print:text-gray-600">
+                {t("admin.textbook.print.sealLine")}
+              </div>
+            </div>
           </div>
         )}
 

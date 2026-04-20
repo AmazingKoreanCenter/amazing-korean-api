@@ -679,7 +679,17 @@
       "pdfGuide": "หากต้องการบันทึกเป็น PDF ให้เลือก 'บันทึกเป็น PDF' ในหน้าต่างพิมพ์",
       "notFound": "ไม่พบคำสั่งซื้อ",
       "quoteNotice": "ใบเสนอราคานี้อ้างอิงจากการส่งคำสั่งซื้อ ยอดชำระจริงอาจแตกต่างกัน",
-      "confirmationNotice": "การยืนยันนี้ใช้สำหรับตรวจสอบสถานะคำสั่งซื้อเท่านั้น ไม่ใช่ใบเสร็จรับเงินอย่างเป็นทางการ"
+      "confirmationNotice": "การยืนยันนี้ใช้สำหรับตรวจสอบสถานะคำสั่งซื้อเท่านั้น ไม่ใช่ใบเสร็จรับเงินอย่างเป็นทางการ",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     }
   },
   "seo": {

@@ -850,6 +850,7 @@
       "canceledAt": "취소",
       "printQuote": "견적서",
       "printConfirmation": "주문확인서",
+      "printReceipt": "영수증",
       "delete": "삭제",
       "deleteConfirmTitle": "주문 삭제",
       "deleteConfirmDesc": "주문 {{code}}을(를) 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
@@ -894,7 +895,17 @@
         "notes": "비고",
         "footer": "본 문서는 전자적으로 생성되었으며 서명 없이 유효합니다.",
         "companyInfo": "㈜ 힘 | amazingkorean.net",
-        "printButton": "인쇄 / PDF 저장"
+        "printButton": "인쇄 / PDF 저장",
+        "receiptTitle": "영수증",
+        "receiptTotal": "영수 금액",
+        "receiptNotice": "위 금액을 정히 영수함.",
+        "receiptUnpaid": "입금 완료 전에는 영수증을 발급할 수 없습니다.",
+        "paidDate": "영수일",
+        "supplier": "공급자",
+        "supplyAmount": "공급가액",
+        "vatAmount": "부가세 (10%)",
+        "issuedBy": "발행",
+        "sealLine": "(인)"
       }
     },
     "ebook": {
@@ -1022,7 +1033,17 @@
       "pdfGuide": "PDF로 저장하려면 인쇄 대화상자에서 'PDF로 저장'을 선택하세요.",
       "notFound": "주문을 찾을 수 없습니다.",
       "quoteNotice": "본 견적서는 주문 접수 기준으로 작성되었으며, 실제 결제 금액과 다를 수 있습니다.",
-      "confirmationNotice": "본 확인서는 주문 상태 확인용이며, 공식 영수증이 아닙니다."
+      "confirmationNotice": "본 확인서는 주문 상태 확인용이며, 공식 영수증이 아닙니다.",
+      "receiptTitle": "영수증",
+      "receiptTotal": "영수 금액",
+      "receiptNotice": "위 금액을 정히 영수함.",
+      "receiptUnpaid": "입금 완료 전에는 영수증을 발급할 수 없습니다.",
+      "paidDate": "영수일",
+      "supplier": "공급자",
+      "supplyAmount": "공급가액",
+      "vatAmount": "부가세 (10%)",
+      "issuedBy": "발행",
+      "sealLine": "(인)"
     },
     "order": {
       "sectionItems": "교재 선택",

@@ -598,7 +598,17 @@
       "pdfGuide": "Pour enregistrer en PDF, sélectionnez 'Enregistrer en PDF' dans la boîte de dialogue d'impression.",
       "notFound": "Commande introuvable.",
       "quoteNotice": "Ce devis est basé sur la soumission de commande et le montant réel du paiement peut différer.",
-      "confirmationNotice": "Cette confirmation sert uniquement à vérifier le statut de la commande et ne constitue pas un reçu officiel."
+      "confirmationNotice": "Cette confirmation sert uniquement à vérifier le statut de la commande et ne constitue pas un reçu officiel.",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     }
   },
   "seo": {

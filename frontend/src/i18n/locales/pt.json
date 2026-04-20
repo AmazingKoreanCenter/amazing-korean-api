@@ -598,7 +598,17 @@
       "pdfGuide": "Para salvar como PDF, selecione 'Salvar como PDF' na caixa de diálogo de impressão.",
       "notFound": "Pedido não encontrado.",
       "quoteNotice": "Este orçamento é baseado no envio do pedido e o valor real do pagamento pode diferir.",
-      "confirmationNotice": "Esta confirmação é apenas para verificação do status do pedido e não é um recibo oficial."
+      "confirmationNotice": "Esta confirmação é apenas para verificação do status do pedido e não é um recibo oficial.",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     }
   },
   "seo": {

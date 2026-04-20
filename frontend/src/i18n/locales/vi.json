@@ -662,7 +662,17 @@
       "pdfGuide": "Để lưu PDF, chọn 'Lưu dưới dạng PDF' trong hộp thoại in.",
       "notFound": "Không tìm thấy đơn hàng.",
       "quoteNotice": "Báo giá này dựa trên đơn đặt hàng và số tiền thanh toán thực tế có thể khác.",
-      "confirmationNotice": "Xác nhận này chỉ nhằm mục đích xác minh trạng thái đơn hàng và không phải là biên lai chính thức."
+      "confirmationNotice": "Xác nhận này chỉ nhằm mục đích xác minh trạng thái đơn hàng và không phải là biên lai chính thức.",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     },
     "myOrders": {
       "badge": "Đơn hàng của tôi",

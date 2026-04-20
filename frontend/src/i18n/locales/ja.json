@@ -679,7 +679,17 @@
       "pdfGuide": "PDFで保存するには、印刷ダイアログで「PDFとして保存」を選択してください。",
       "notFound": "注文が見つかりません。",
       "quoteNotice": "この見積書は注文申請に基づくものであり、実際のお支払い金額は異なる場合があります。",
-      "confirmationNotice": "この確認書は注文状況の確認用であり、正式な領収書ではありません。"
+      "confirmationNotice": "この確認書は注文状況の確認用であり、正式な領収書ではありません。",
+      "receiptTitle": "Receipt",
+      "receiptTotal": "Amount Received",
+      "receiptNotice": "Received the above amount in full.",
+      "receiptUnpaid": "Receipt cannot be issued until payment is confirmed.",
+      "paidDate": "Payment Date",
+      "supplier": "Supplier",
+      "supplyAmount": "Supply Amount",
+      "vatAmount": "VAT (10%)",
+      "issuedBy": "Issued by",
+      "sealLine": "(Seal)"
     }
   },
   "seo": {
