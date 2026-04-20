@@ -8,8 +8,8 @@ use super::dto::{
 };
 use super::repo::{TextbookItemRow, TextbookOrderRow, TextbookRepo};
 
-const UNIT_PRICE: i32 = 25_000; // KRW
-const MIN_TOTAL_QUANTITY: i32 = 10;
+pub(crate) const UNIT_PRICE: i32 = 25_000; // KRW
+pub(crate) const MIN_TOTAL_QUANTITY: i32 = 10;
 
 pub struct TextbookService;
 
@@ -121,7 +121,7 @@ impl TextbookService {
             &mut tx,
             &super::repo::InsertOrderParams {
                 order_code: &order_code,
-                user_id,
+                user_id: Some(user_id),
                 orderer_name: &req.orderer_name,
                 orderer_email: &req.orderer_email,
                 orderer_phone: &req.orderer_phone,
@@ -322,7 +322,7 @@ fn language_display_name(lang: &TextbookLanguage) -> String {
 
 /// 교재 카탈로그 언어 목록 (language, 한국어명, 영어명, 사용가능여부, isbn_ready)
 /// ISBN 발급 완료 9개: ja, zh_cn, vi, th, ne, ru, km, tl, id
-fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str, bool, bool)> {
+pub(crate) fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str, bool, bool)> {
     vec![
         (TextbookLanguage::Ja, "일본어", "Japanese", true, true),
         (TextbookLanguage::ZhCn, "중국어(간체)", "Chinese (Simplified)", true, true),

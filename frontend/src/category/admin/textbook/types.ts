@@ -1,4 +1,8 @@
-import type { TextbookOrderStatus } from "@/category/textbook/types";
+import type {
+  CreateOrderItemReq,
+  TextbookOrderStatus,
+  TextbookPaymentMethod,
+} from "@/category/textbook/types";
 
 // =============================================================================
 // 공통
@@ -42,4 +46,51 @@ export interface AdminUpdateStatusReq {
 export interface AdminUpdateTrackingReq {
   tracking_number?: string;
   tracking_provider?: string;
+}
+
+// =============================================================================
+// 관리자 대리 주문 생성 (POST /admin/textbook/orders)
+// =============================================================================
+
+export interface AdminCreateOrderReq {
+  /** 주문을 귀속시킬 사용자 id (선택). 없으면 비회원 주문. */
+  user_id?: number;
+  /** 초기 상태 (기본 pending). paid 로 지정 시 paid_at 자동 세팅. */
+  initial_status?: "pending" | "confirmed" | "paid";
+  /** 최소 수량(10권) 제약 강제 여부 (기본 false). */
+  enforce_min_quantity?: boolean;
+
+  /** 신청자 정보 */
+  orderer_name: string;
+  orderer_email: string;
+  orderer_phone: string;
+
+  /** 기관 정보 (선택) */
+  org_name?: string;
+  org_type?: string;
+
+  /** 배송 정보 */
+  delivery_postal_code?: string;
+  delivery_address: string;
+  delivery_detail?: string;
+
+  /** 결제 정보 */
+  payment_method: TextbookPaymentMethod;
+  depositor_name?: string;
+
+  /** 세금계산서 */
+  tax_invoice: boolean;
+  tax_biz_number?: string;
+  tax_company_name?: string;
+  tax_rep_name?: string;
+  tax_address?: string;
+  tax_biz_type?: string;
+  tax_biz_item?: string;
+  tax_email?: string;
+
+  /** 주문 항목 */
+  items: CreateOrderItemReq[];
+
+  /** 비고 (관리자 메모 가능) */
+  notes?: string;
 }

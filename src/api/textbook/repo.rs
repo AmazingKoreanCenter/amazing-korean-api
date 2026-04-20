@@ -76,9 +76,12 @@ const ORDER_COLUMNS: &str = r#"
 "#;
 
 /// 교재 주문 생성 파라미터
+///
+/// `user_id`: 일반 사용자 주문은 `Some(claims.sub)`, 관리자 대리 주문은
+///   `None` 또는 귀속시킬 사용자 id. DB 컬럼은 nullable.
 pub struct InsertOrderParams<'a> {
     pub order_code: &'a str,
-    pub user_id: i64,
+    pub user_id: Option<i64>,
     pub orderer_name: &'a str,
     pub orderer_email: &'a str,
     pub orderer_phone: &'a str,

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Search, BookOpen, Eye } from "lucide-react";
+import { Search, BookOpen, Eye, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +79,12 @@ export function AdminTextbookOrdersPage() {
           <BookOpen className="h-6 w-6" />
           {t("admin.textbook.title")}
         </h1>
+        <Button asChild size="sm">
+          <Link to="/admin/textbook/orders/new">
+            <Plus className="h-4 w-4 mr-1" />
+            {t("admin.textbook.newOrder")}
+          </Link>
+        </Button>
       </div>
 
       {/* Search & Filter */}

@@ -70,6 +70,7 @@ const AdminSubscriptionDetail = lazy(() => import("@/category/admin/payment/page
 const AdminTransactionsPage = lazy(() => import("@/category/admin/payment/page/admin_transactions_page").then((m) => ({ default: m.AdminTransactionsPage })));
 const AdminGrantsPage = lazy(() => import("@/category/admin/payment/page/admin_grants_page").then((m) => ({ default: m.AdminGrantsPage })));
 const AdminTextbookOrdersPage = lazy(() => import("@/category/admin/textbook/page/admin_textbook_orders_page").then((m) => ({ default: m.AdminTextbookOrdersPage })));
+const AdminTextbookOrderCreate = lazy(() => import("@/category/admin/textbook/page/admin_textbook_order_create").then((m) => ({ default: m.AdminTextbookOrderCreate })));
 const AdminTextbookOrderDetail = lazy(() => import("@/category/admin/textbook/page/admin_textbook_order_detail").then((m) => ({ default: m.AdminTextbookOrderDetail })));
 const AdminTextbookOrderPrint = lazy(() => import("@/category/admin/textbook/page/admin_textbook_order_print").then((m) => ({ default: m.AdminTextbookOrderPrint })));
 const AdminEbookPurchasesPage = lazy(() => import("@/category/admin/ebook/page/admin_ebook_purchases_page").then((m) => ({ default: m.AdminEbookPurchasesPage })));
@@ -239,6 +240,7 @@ export function AppRoutes() {
           <Route path="payment/grants" element={<AdminGrantsPage />} />
           <Route path="textbook" element={<Navigate to="textbook/orders" replace />} />
           <Route path="textbook/orders" element={<AdminTextbookOrdersPage />} />
+          <Route path="textbook/orders/new" element={<AdminTextbookOrderCreate />} />
           <Route path="textbook/orders/:orderId" element={<AdminTextbookOrderDetail />} />
           <Route path="textbook/orders/:orderId/print" element={<AdminTextbookOrderPrint />} />
           <Route path="ebook" element={<Navigate to="ebook/purchases" replace />} />
