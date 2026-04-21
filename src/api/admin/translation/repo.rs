@@ -442,8 +442,8 @@ impl TranslationRepo {
                     // 필드명만 노출하고 source_text 는 None.
                     for (name, text) in [
                         ("video_idx", Some(r.video_idx)),
-                        ("video_title", None),
-                        ("video_subtitle", None),
+                        ("video_title", None::<String>),
+                        ("video_subtitle", None::<String>),
                     ] {
                         fields.push(SourceFieldItem {
                             content_type: ContentType::Video,
