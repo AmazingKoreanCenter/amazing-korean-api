@@ -762,7 +762,7 @@ draft → reviewed → approved
 **Query Parameters**
 | 파라미터 | 타입 | 필수 | 설명 |
 |----------|------|------|------|
-| `content_type` | string | ✅ | 콘텐츠 유형 (video, lesson, study, study_task_choice, study_task_typing, study_task_voice, study_task_explain). **주의**: `course`·`video_tag`·`study_task_writing` 은 현재 stub 으로 빈 배열 반환. Q1a 에서 매핑 보강 예정 (plans/translation-field-name-alignment.md §2.2) |
+| `content_type` | string | ✅ | 콘텐츠 유형 (video, lesson, study, study_task_choice, study_task_typing, study_task_voice, study_task_explain, course, study_task_writing). **주의**: `video_tag` 는 직접 선택하지 않음 (Video 선택 시 연결된 tag 가 §9-10 source-fields 응답에 함께 포함됨) |
 
 **응답 (성공 200)**
 ```json
@@ -847,25 +847,30 @@ draft → reviewed → approved
 
 #### 기존 콘텐츠 API `?lang=` 쿼리 파라미터 확장 (🟡 부분 구현, 편차 있음)
 
-> **2026-04-21 정합 조사 결과** — 기존 "⬜ 미구현" 표기는 사실과 불일치. Consumer service 4 도메인 중 6 엔드포인트가 이미 번역 주입 로직 보유. 단, (1) 스펙과 다른 "덮어쓰기" 방식으로 구현됐고, (2) `field_name` 불일치 잠복 버그로 실제 번역이 반환되지 않는 상태. 상세는 [plans/translation-field-name-alignment.md](../../.claude/plans/translation-field-name-alignment.md) 참조.
+> **2026-04-21 정합 조사 결과** — 기존 "⬜ 미구현" 표기는 사실과 불일치. Consumer service 4 도메인 중 6 엔드포인트가 이미 번역 주입 로직 보유. 단, (1) 스펙과 다른 "덮어쓰기" 방식으로 구현됐고, (2) `field_name` 불일치 잠복 버그로 실제 번역이 반환되지 않는 상태였음. 상세는 [plans/translation-field-name-alignment.md](../../.claude/plans/translation-field-name-alignment.md) 참조.
 
-##### 🟢 이미 구현된 부분 (덮어쓰기 방식)
+##### 🟢 이미 구현된 부분 (덮어쓰기 방식, Q1a 필드명 정합 완료 2026-04-21)
 
-| 엔드포인트 | 번역 주입 필드 | 코드 위치 |
-|-----------|---------------|-----------|
-| `GET /courses` | title, subtitle | [src/api/course/service.rs](../src/api/course/service.rs) |
-| `GET /courses/{id}` | title, subtitle | 동일 |
-| `GET /lessons` | title, description | [src/api/lesson/service.rs](../src/api/lesson/service.rs) |
-| `GET /lessons/{id}` | title, description | 동일 |
-| `GET /videos` (목록) | title, subtitle | [src/api/video/service.rs](../src/api/video/service.rs) |
-| `GET /studies` | title, subtitle | [src/api/study/service.rs](../src/api/study/service.rs) |
-| `GET /studies/{id}` | title, subtitle | 동일 |
+| 엔드포인트 | 번역 주입 필드 (`field_name`) | 코드 위치 |
+|-----------|-------------------------------|-----------|
+| `GET /courses` | `course_title`, `course_subtitle` | [src/api/course/service.rs](../src/api/course/service.rs) |
+| `GET /courses/{id}` | `course_title`, `course_subtitle` | 동일 |
+| `GET /lessons` | `lesson_title`, `lesson_description` | [src/api/lesson/service.rs](../src/api/lesson/service.rs) |
+| `GET /lessons/{id}` | `lesson_title`, `lesson_description` | 동일 |
+| `GET /videos` (목록) | `video_title`, `video_subtitle` | [src/api/video/service.rs](../src/api/video/service.rs) |
+| `GET /studies` | `study_title`, `study_subtitle` | [src/api/study/service.rs](../src/api/study/service.rs) |
+| `GET /studies/{id}` | `study_title`, `study_subtitle` | 동일 |
 
-##### 🚨 잠복 버그 (field_name 규약 불일치) — Q1a 에서 수정
+##### 🟢 Q1a 잠복 버그 해소 완료 (field_name 규약 불일치 수정, 2026-04-21)
 
-프로덕션 `content_translations` 실 데이터는 **긴 이름** (`lesson_title`, `lesson_description` 등) 으로 저장됨. 그러나 Consumer service 4곳은 **짧은 이름** (`"title"`, `"description"`) 으로 조회. **결과: 프로덕션에 `lesson_title = 'approved'` 1건이 존재해도 `?lang=en` 호출 시 절대 반환되지 않음**. 2026-04-19 #76 (`study_task_explain` 잠복 버그) 와 동종 패턴.
+**수정 전**: Consumer service 4곳이 짧은 이름 (`"title"`, `"description"`) 으로 조회. 프로덕션 `content_translations` 실 데이터는 긴 이름 (`lesson_title` 등) 로 저장되어 있어 `?lang=en` 호출 시 절대 반환되지 않음. 2026-04-19 #76 (`study_task_explain`) 와 동종 패턴.
 
-**정합 방향**: 긴 이름 (`{table}_{column}`) 표준으로 통일. Consumer service 4곳 수정. 마이그레이션 불필요 (실 데이터 8 row 전부 이미 긴 이름).
+**수정 내용**:
+- Consumer service 4곳 `field_name` 조회 키를 긴 이름 (`{table}_{column}`) 으로 치환 — course/lesson/study/video service.rs
+- admin `find_content_records` 에 Course, StudyTaskWriting 매핑 추가
+- admin `find_source_fields` 에 Course, StudyTaskWriting 매핑 추가. Video 에 `video_title`/`video_subtitle` 필드 노출 (단, `video` 테이블에 물리 컬럼 부재 → `source_text=None`. 관리자가 비디오 레벨 오버라이드 번역을 입력할 수 있도록 필드명만 노출)
+
+**검증**: 마이그레이션 불필요 (실 데이터 8 row 전부 이미 긴 이름). `lesson_title = 'approved'` 1건이 정상 반환되기 시작 = 의도된 동작 복원.
 
 ##### ⬜ 미구현 부분 — Q1b 에서 구현
 

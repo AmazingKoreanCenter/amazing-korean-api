@@ -258,6 +258,20 @@ impl TranslationRepo {
                 .fetch_all(pool)
                 .await?
             }
+            ContentType::Course => {
+                sqlx::query_as::<_, ContentRecordItem>(
+                    r#"
+                    SELECT
+                        course_id::bigint AS id,
+                        course_idx AS label,
+                        course_title AS detail
+                    FROM course
+                    ORDER BY course_id
+                    "#,
+                )
+                .fetch_all(pool)
+                .await?
+            }
             ContentType::Lesson => {
                 sqlx::query_as::<_, ContentRecordItem>(
                     r#"
@@ -350,7 +364,23 @@ impl TranslationRepo {
                 .fetch_all(pool)
                 .await?
             }
-            // VideoTag, Course — 직접 선택하지 않음 (Video 내부에서 처리)
+            ContentType::StudyTaskWriting => {
+                sqlx::query_as::<_, ContentRecordItem>(
+                    r#"
+                    SELECT
+                        st.study_task_id::bigint AS id,
+                        CONCAT('Study#', st.study_id, ' Task#', st.study_task_seq) AS label,
+                        LEFT(stw.study_task_writing_prompt, 50) AS detail
+                    FROM study_task st
+                    JOIN study_task_writing stw ON stw.study_task_id = st.study_task_id
+                    WHERE st.study_task_kind = 'writing'
+                    ORDER BY st.study_id, st.study_task_seq
+                    "#,
+                )
+                .fetch_all(pool)
+                .await?
+            }
+            // VideoTag — 직접 선택하지 않음 (Video 내부에서 처리)
             _ => Vec::new(),
         };
 
@@ -370,6 +400,33 @@ impl TranslationRepo {
         let mut fields = Vec::new();
 
         match content_type {
+            ContentType::Course => {
+                let row = sqlx::query_as::<_, CourseSourceRow>(
+                    r#"
+                    SELECT course_idx, course_title, course_subtitle, course_description
+                    FROM course WHERE course_id = $1
+                    "#,
+                )
+                .bind(content_id)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(r) = row {
+                    for (name, text) in [
+                        ("course_idx", Some(r.course_idx)),
+                        ("course_title", Some(r.course_title)),
+                        ("course_subtitle", r.course_subtitle),
+                        ("course_description", r.course_description),
+                    ] {
+                        fields.push(SourceFieldItem {
+                            content_type: ContentType::Course,
+                            content_id,
+                            field_name: name.to_string(),
+                            source_text: text,
+                        });
+                    }
+                }
+            }
             ContentType::Video => {
                 // video 테이블 자체 필드
                 let row = sqlx::query_as::<_, VideoSourceRow>(
@@ -380,12 +437,21 @@ impl TranslationRepo {
                 .await?;
 
                 if let Some(r) = row {
-                    fields.push(SourceFieldItem {
-                        content_type: ContentType::Video,
-                        content_id,
-                        field_name: "video_idx".to_string(),
-                        source_text: Some(r.video_idx),
-                    });
+                    // video_title/video_subtitle 은 video 테이블에 물리 컬럼이 없음 (video_tag
+                    // 집계로 파생). 관리자가 비디오 레벨 오버라이드 번역을 입력할 수 있도록
+                    // 필드명만 노출하고 source_text 는 None.
+                    for (name, text) in [
+                        ("video_idx", Some(r.video_idx)),
+                        ("video_title", None),
+                        ("video_subtitle", None),
+                    ] {
+                        fields.push(SourceFieldItem {
+                            content_type: ContentType::Video,
+                            content_id,
+                            field_name: name.to_string(),
+                            source_text: text,
+                        });
+                    }
                 }
 
                 // video에 연결된 video_tag 필드들
@@ -586,7 +652,33 @@ impl TranslationRepo {
                     }
                 }
             }
-            _ => {} // VideoTag, Course — 직접 호출되지 않음
+            ContentType::StudyTaskWriting => {
+                let row = sqlx::query_as::<_, WritingSourceRow>(
+                    r#"
+                    SELECT study_task_writing_prompt, study_task_writing_answer, study_task_writing_hint
+                    FROM study_task_writing WHERE study_task_id = $1
+                    "#,
+                )
+                .bind(content_id)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(r) = row {
+                    for (name, text) in [
+                        ("study_task_writing_prompt", Some(r.study_task_writing_prompt)),
+                        ("study_task_writing_answer", Some(r.study_task_writing_answer)),
+                        ("study_task_writing_hint", r.study_task_writing_hint),
+                    ] {
+                        fields.push(SourceFieldItem {
+                            content_type: ContentType::StudyTaskWriting,
+                            content_id,
+                            field_name: name.to_string(),
+                            source_text: text,
+                        });
+                    }
+                }
+            }
+            _ => {} // VideoTag — 직접 호출되지 않음 (Video 내부에서 집계)
         }
 
         Ok(fields)
@@ -768,4 +860,19 @@ struct VoiceSourceRow {
 struct ExplainSourceRow {
     explain_title: Option<String>,
     explain_text: Option<String>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct CourseSourceRow {
+    course_idx: String,
+    course_title: String,
+    course_subtitle: Option<String>,
+    course_description: Option<String>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct WritingSourceRow {
+    study_task_writing_prompt: String,
+    study_task_writing_answer: String,
+    study_task_writing_hint: Option<String>,
 }
