@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-21 (Q1 선행 정합 조사 — field_name 규약 + §9-841 재작성)
+updated: 2026-04-21 (Q1a field_name 잠복 버그 fix)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,29 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-21 (저녁) — Q1a: field_name 잠복 버그 fix (Consumer `?lang=` 정합 + admin 매핑 보강)**
+  - **배경**: PR #176 (Phase 0 문서 정합) 머지 완료 직후 진입. 플랜 `.claude/plans/translation-field-name-alignment.md §2.2` 를 SSoT 로 Q1a 코드 작업. 프로덕션 `content_translations` 실 데이터는 긴 이름(`lesson_title` 등)으로 저장돼 있으나 Consumer service 4곳이 짧은 이름(`"title"` 등)으로 조회 → `?lang=` 호출 시 번역이 절대 반환되지 않는 잠복 버그 해소.
+  - **Consumer service 4곳 field_name 치환** (긴 이름 `{table}_{column}` 표준):
+    - [src/api/course/service.rs](../src/api/course/service.rs) — `"title"`→`"course_title"`, `"subtitle"`→`"course_subtitle"` (list + get_by_id)
+    - [src/api/lesson/service.rs](../src/api/lesson/service.rs) — `"title"`→`"lesson_title"`, `"description"`→`"lesson_description"` (list_lessons + get_lesson_detail)
+    - [src/api/study/service.rs](../src/api/study/service.rs) — `"title"`→`"study_title"`, `"subtitle"`→`"study_subtitle"` (list_studies + get_study_detail)
+    - [src/api/video/service.rs](../src/api/video/service.rs) — `"title"`→`"video_title"`, `"subtitle"`→`"video_subtitle"` (list_videos)
+  - **admin [src/api/admin/translation/repo.rs](../src/api/admin/translation/repo.rs) 매핑 보강**:
+    - `find_content_records` — `ContentType::Course` 브랜치 신규 (course_id/course_idx/course_title). `ContentType::StudyTaskWriting` 브랜치 신규 (study_task join + study_task_writing_prompt LEFT 50). 기존 `_ => Vec::new()` 는 `VideoTag` 만 남음.
+    - `find_source_fields` — `ContentType::Course` 브랜치 신규 (course_idx/title/subtitle/description). `ContentType::StudyTaskWriting` 브랜치 신규 (prompt/answer/hint). Video 에 `video_title`/`video_subtitle` 필드 노출하되 `source_text=None` (video 테이블에 물리 컬럼 없음, video_tag 집계 기반이라 관리자가 비디오 레벨 오버라이드 번역 입력용으로만 노출).
+    - Row 구조체 신규 추가: `CourseSourceRow`, `WritingSourceRow`.
+  - **문서 동기화**:
+    - `AMK_API_LEARNING.md §9-841` — "🚨 잠복 버그 (Q1a 에서 수정)" → "🟢 Q1a 잠복 버그 해소 완료". 각 엔드포인트 `field_name` 긴 이름으로 명시.
+    - `AMK_API_LEARNING.md §9-9` content_type 허용 목록 주의 문구 갱신 — Course·StudyTaskWriting 모두 구현 완료, VideoTag 만 직접 선택 불가.
+    - `AMK_STATUS.md §8.2` Q1a 행을 ✅ 완료 처리 (2026-04-21).
+  - **검증**:
+    - `cargo check` 19.63s 클린 (eslint/warning 0)
+    - `cargo clippy --lib --bins -- -D warnings` 23.17s 클린
+    - 마이그레이션 불필요 — 실 DB 8 row 전부 이미 긴 이름 규약 준수
+    - 스키마 하드코딩 쿼리(비 매크로) 사용이라 `cargo sqlx prepare` 재생성 불필요
+  - **행동 변화**: 프로덕션에 존재하는 `lesson_title = 'approved'` 1건이 처음으로 `?lang=en` 호출 시 정상 반환됨 = 의도된 동작 복원. 프론트·모바일·데스크탑 Consumer `?lang=` 호출 0건이라 회귀 리스크 없음.
+  - **다음 단계**: Q1b (미구현분 구현 — `GET /videos/{id}` + `GET /studies/tasks/{id}` + `GET /studies/tasks/{id}/explain` 에 `?lang=` 추가) → Q1c (응답 스키마 최종 정렬).
 
 - **2026-04-21 (오후) — Q1 선행 정합 조사: `field_name` 규약 확정 + §9-841 재작성 + Q1 → Q1a/b/c 분해**
   - **머지 커밋**: `7035131` (PR [#176](https://github.com/AmazingKoreanCenter/amazing-korean-api/pull/176), `docs/translation-phase-0-alignment → main`, 2026-04-21 머지 완료 후 브랜치 삭제됨)

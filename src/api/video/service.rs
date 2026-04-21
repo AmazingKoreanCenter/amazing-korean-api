@@ -35,10 +35,10 @@ impl VideoService {
             .await?;
 
             for item in data.iter_mut() {
-                if let Some(t) = translations.get(&(item.video_id, "title".to_string())) {
+                if let Some(t) = translations.get(&(item.video_id, "video_title".to_string())) {
                     item.title = Some(t.text.clone());
                 }
-                if let Some(t) = translations.get(&(item.video_id, "subtitle".to_string())) {
+                if let Some(t) = translations.get(&(item.video_id, "video_subtitle".to_string())) {
                     item.subtitle = Some(t.text.clone());
                 }
             }

@@ -95,10 +95,10 @@ impl StudyService {
 
             for item in list.iter_mut() {
                 let id = i64::from(item.study_id);
-                if let Some(t) = translations.get(&(id, "title".to_string())) {
+                if let Some(t) = translations.get(&(id, "study_title".to_string())) {
                     item.title = Some(t.text.clone());
                 }
-                if let Some(t) = translations.get(&(id, "subtitle".to_string())) {
+                if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
                     item.subtitle = Some(t.text.clone());
                 }
             }
@@ -174,10 +174,10 @@ impl StudyService {
             .await?;
 
             let id = i64::from(study.study_id);
-            if let Some(t) = translations.get(&(id, "title".to_string())) {
+            if let Some(t) = translations.get(&(id, "study_title".to_string())) {
                 title = Some(t.text.clone());
             }
-            if let Some(t) = translations.get(&(id, "subtitle".to_string())) {
+            if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
                 subtitle = Some(t.text.clone());
             }
         }

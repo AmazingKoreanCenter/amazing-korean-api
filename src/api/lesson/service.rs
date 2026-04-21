@@ -54,10 +54,10 @@ impl LessonService {
             .await?;
 
             for item in items.iter_mut() {
-                if let Some(t) = translations.get(&(item.id, "title".to_string())) {
+                if let Some(t) = translations.get(&(item.id, "lesson_title".to_string())) {
                     item.title = t.text.clone();
                 }
-                if let Some(t) = translations.get(&(item.id, "description".to_string())) {
+                if let Some(t) = translations.get(&(item.id, "lesson_description".to_string())) {
                     item.description = Some(t.text.clone());
                 }
             }
@@ -117,10 +117,10 @@ impl LessonService {
             )
             .await?;
 
-            if let Some(t) = translations.get(&(lesson.lesson_id, "title".to_string())) {
+            if let Some(t) = translations.get(&(lesson.lesson_id, "lesson_title".to_string())) {
                 title = t.text.clone();
             }
-            if let Some(t) = translations.get(&(lesson.lesson_id, "description".to_string())) {
+            if let Some(t) = translations.get(&(lesson.lesson_id, "lesson_description".to_string())) {
                 description = Some(t.text.clone());
             }
         }
