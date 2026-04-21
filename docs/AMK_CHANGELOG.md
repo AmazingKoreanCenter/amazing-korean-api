@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-19 (#76 study_task_explain → study_explain Rust 코드 일치화 — 잠복 버그 fix)
+updated: 2026-04-21 (작업 큐 재정리 — 이 리포 독립 착수 가능 Q1~Q9 소섹션 신설)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,15 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-21 — 작업 큐 재정리 (이 리포 독립 착수 가능 Q1~Q9 소섹션 신설)**
+  - **목적**: PR #174/#175 머지 완료 후 이 리포(amazing-korean-api) 내에서 **외부 의존 없이 단독 진행 가능한 작업**을 한 곳에 명시화. M05~M08 시딩 본체(`amazing-korean-books gen_seed_sql.js` 선행 필요)를 기다리는 동안 병행 가능 큐 정리.
+  - **`AMK_STATUS.md §8.2`** 하단에 **"이 리포(amazing-korean-api) 독립 착수 가능 큐"** 소섹션 신설. 9건 (Q1~Q9) 을 우선순위·공수·근거 테이블로 정리.
+  - **Q1 (높음)**: `?lang=` Consumer API 확장 — `/courses`·`/lessons/{id}`·`/studies/{id}`·`/studies/tasks/{id}`·`/videos/{id}` 에 쿼리 파라미터 + `_translated` 필드 + fallback(lang → en → ko). 스펙은 `AMK_API_LEARNING.md §9-841` 에 확정돼 있으나 "⬜ 미구현" 상태. M05~M08 시딩 완료 시 소비자가 자국어 학습 가능해야 하는 필수 기능.
+  - **Q2~Q6 (중간)**: #73 영수증 후속 3건 (법인 인감 이미지 업로드 / 영수증 고유번호 체계 / 기타 locale 영수증 번역) + #75 대리 주문 후속 2건 (사용자 검색 UI / `admin_textbook_log` Create 액션 조회 UI). 각 반나절 공수.
+  - **Q7~Q9 (낮음)**: Paddle Live 전환 (KYB 대기) / K6 성능 테스트 (테스트 계정 필요) / E-book 로컬 파일시스템 의존 해소 (RDS 이전 선행).
+  - **큐 외 일정 대기**: #67 D+7 관측 로그 체크 (2026-04-23) + Phase 2~5 일괄 전환 (2026-04-24).
+  - **SSoT**: `AMK_STATUS.md §8.2` (이 문서). `memory/project_status.md` + `memory/MEMORY.md` 도 동일 구조로 동기화.
 
 - **2026-04-19 — #76 잠복 버그 fix: `study_task_explain` → `study_explain` Rust 코드 참조 일치화**
   - **발견 경위**: PR #174 (#73 영수증 + #75 대리 주문) 작업 중 `cargo sqlx prepare` 실행 시 `relation "study_task_explain" does not exist` 에러. 원본 `migrations/20260208_AMK_V1.sql` + 프로덕션 DB (`docker exec amk-pg-prod psql -c "\dt study*"` 으로 실증) + 로컬 DB 모두 **`study_explain`** 이지만 Rust 코드 16곳이 `study_task_explain` 을 참조 중. 현재 study 콘텐츠가 프로덕션에 없어 이 경로가 호출된 적 없었기에 런타임 에러가 노출되지 않은 장기 잠복 버그.
