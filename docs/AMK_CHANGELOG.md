@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-21 (작업 큐 재정리 — 이 리포 독립 착수 가능 Q1~Q9 소섹션 신설)
+updated: 2026-04-21 (Q1 선행 정합 조사 — field_name 규약 + §9-841 재작성)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,23 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-21 (오후) — Q1 선행 정합 조사: `field_name` 규약 확정 + §9-841 재작성 + Q1 → Q1a/b/c 분해**
+  - **배경**: Q1 (`?lang=` Consumer API 확장) 착수 전 문서·코드·DB 3자 대조 결과, `AMK_STATUS.md §8.2 Q1` + `AMK_API_LEARNING.md §9-841` 의 "⬜ 미구현" 표기가 사실과 불일치. Consumer service 4 도메인 중 6 엔드포인트는 이미 번역 주입 로직 보유. 단, (1) `field_name` 짧은이름(`"title"`) vs 실 DB 긴이름(`lesson_title`) 불일치로 번역이 반환되지 않는 잠복 버그, (2) 스펙은 `_translated` 접미사 방식이나 구현은 덮어쓰기 방식이라 양방향 편차.
+  - **DB 실태 쿼리 결과** (2026-04-21): `content_translations` 총 8 row 전부 긴 이름 (`lesson_title`, `lesson_description`, `lesson_subtitle`, `lesson_idx`, `video_tag_key`/`title`/`subtitle`, `video_idx`). 프로덕션에 `lesson_title = 'approved'` 1건 존재하지만 Consumer `?lang=` 호출 시 절대 반환되지 않는 상태 = **#76 (`study_task_explain`) 과 동종의 실증된 잠복 버그**.
+  - **프론트 영향도 조사**: Consumer `?lang=` 호출은 amazing-korean-api/frontend 0건, amazing-korean-mobile 0건, amazing-korean-desktop 0건. 덮어쓰기 vs `_translated` 접미사 선택의 회귀 리스크 사실상 0 → 설계 자유도 확보.
+  - **정합 조치 (코드 0줄, 문서만)**:
+    - **plans/translation-field-name-alignment.md** 신규 — field_name 매핑 매트릭스 10 ContentType × (consumer 조회 키 / admin source_fields 제안 키 / 실 DB 저장값 / 정합 방향) + Q1a/b/c 분해 근거 문서화. Q1 코드 작업 진입 전 SSoT.
+    - **AMK_SCHEMA_PATCHED.md §2.7.1 content_translations** — field_name 주석 `(예: title, subtitle, description, question, choice_1 등)` → `(예: lesson_title, study_subtitle, study_task_choice_question, explain_title 등)` 긴 이름 규약 명시. content_type 나열에 `study_task_explain`, `study_task_writing` 보강.
+    - **AMK_API_MASTER.md §4.8** — field_name 설명 동일 기준으로 긴 이름 규약 명시. content_type_enum 에 `study_task_writing` 추가.
+    - **AMK_API_LEARNING.md §9-1~§9-3** — 예시 JSON 의 `field_name: "title"` → `"lesson_title"`. §9-2 바로 아래 "field_name 규약" 각주 추가.
+    - **AMK_API_LEARNING.md §9-9** — `content_type` 허용 목록에서 `study_task_writing` 은 현재 stub 이므로 각주 명시. Course·VideoTag 도 Q1a 에서 매핑 보강 예정 표기.
+    - **AMK_API_LEARNING.md §9-13** — 응답 예시 `{"stats": {...}}` → 실제 구조 `{"items": [...], "total_translations": N}` 로 교체.
+    - **AMK_API_LEARNING.md §9-841** — "⬜ 미구현" → "🟡 부분 구현, 편차 있음" 으로 전면 재작성. 🟢 이미 구현 / 🚨 잠복 버그 / ⬜ 미구현 / ⬜ 스펙 정렬 4 섹션 재구성. 번역 입력 경로 "서버 사이드 스크립트" 방향 명시.
+    - **AMK_STATUS.md §8.2** — Q1 한 줄 → **Q1a (field_name 잠복 버그 fix, 0.5일)** / **Q1b (미구현분 구현, 0.5~1일)** / **Q1c (응답 스키마 최종 정렬, 0.5일)** 3행으로 분해. 각 공수 + 선후관계 명시.
+  - **수정 대상 코드 (Q1a 이후 PR 에서 처리)**: `src/api/{course,lesson,study,video}/service.rs` 7곳 field_name 치환, `src/api/admin/translation/repo.rs` 의 `find_content_records` / `find_source_fields` Course·StudyTaskWriting 매핑 추가, Video source_fields 에 `video_title`·`video_subtitle` 필드 보강.
+  - **교훈**: `feedback_migration_safety.md` 의 "로컬 DB 이상 상태를 실 DB 로 오판" (INC-002) + `feedback_work_rules.md` 의 "검증 필수" 원칙을 **문서 측에도 확장** — 문서만 읽고 "미구현" 이라 가정하지 말 것. 코드 + DB 실측 + 프론트 사용 현황 3자 대조가 스펙 작업 PR 의 사전 필수 스텝.
+  - **검증**: 이 PR 은 코드 0줄. `git diff --stat main -- 'src/**/*.rs' 'migrations/*.sql' 'frontend/**/*'` 가 비어있어야 함.
 
 - **2026-04-21 — 작업 큐 재정리 (이 리포 독립 착수 가능 Q1~Q9 소섹션 신설)**
   - **목적**: PR #174/#175 머지 완료 후 이 리포(amazing-korean-api) 내에서 **외부 의존 없이 단독 진행 가능한 작업**을 한 곳에 명시화. M05~M08 시딩 본체(`amazing-korean-books gen_seed_sql.js` 선행 필요)를 기다리는 동안 병행 가능 큐 정리.
