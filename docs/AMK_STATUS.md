@@ -130,7 +130,9 @@
 
 | # | 우선 | 작업 | 공수 | 근거 |
 |:-:|:----:|------|:----:|------|
-| Q1 | **높음** | **`?lang=` Consumer API 확장** — 모든 콘텐츠 API (`/courses`, `/lessons/{id}`, `/studies/{id}`, `/studies/tasks/{id}`, `/videos/{id}`) 에 `?lang=` 쿼리 파라미터 추가. Fallback 순서(lang → en → ko), `_translated` 접미사 필드. Admin 번역 CRUD(9-1~9-13)는 완료. | 1~2일 | [AMK_API_LEARNING.md §9-841](./AMK_API_LEARNING.md) 스펙 확정, "⬜ 미구현" 명시. M05~M08 시딩 완료 시 소비자가 자국어 학습 가능해야 함 |
+| Q1a | **높음** | **field_name 잠복 버그 fix (Consumer `?lang=` 정합)** — Consumer service 4곳 (course/lesson/study/video) 이 짧은 이름 (`"title"` 등) 으로 조회 → DB 실 데이터는 긴 이름 (`lesson_title` 등) → `?lang=` 호출해도 번역 절대 반환 안 됨. 긴 이름 표준으로 통일 + admin `find_content_records`/`find_source_fields` 에 Course·StudyTaskWriting 매핑 추가. 마이그레이션 불필요. | 0.5일 | 2026-04-21 정합 조사. #76 동종 패턴. 실 `lesson_title='approved'` 1건 정상 반환 복원 |
+| Q1b | **높음** | **`?lang=` 미구현분 구현** — `GET /videos/{id}` + `GET /studies/tasks/{id}` + `GET /studies/tasks/{id}/explain` 에 `?lang=` 파라미터 추가. task payload(choice/typing/voice/writing) 내부 + study_explain 본문 번역 주입. video_tag 번역 적용. | 0.5~1일 | Q1a 선행 필수. [AMK_API_LEARNING.md §9-841](./AMK_API_LEARNING.md) "⬜ 미구현" 부분 |
+| Q1c | **높음** | **응답 스키마 최종 정렬** — 덮어쓰기 유지 vs `_translated` 접미사 방식 사용자 최종 결정 + 선택된 방식으로 스펙 재정렬. `translation_lang`/`translation_coverage` 메타 필드 추가 여부. 프론트 소비 0건 확인돼 회귀 리스크 없음. | 0.5일 | Q1a/Q1b 완료 후. 최종 구현과 §9-841 스펙 일치 보장 |
 | Q2 | 중간 | 법인 인감 이미지 업로드 — 영수증 서명란의 `(인)` 텍스트를 PNG/SVG 이미지로 대체. `supplier_info.ts` 에 `sealImageUrl` 추가, `ReceiptSignature` 에 `<img>` 렌더. | 반나절 | #73 영수증 "다음 단계" (AMK_CHANGELOG 2026-04-19) |
 | Q3 | 중간 | 영수증 고유번호 체계 — 현재 `order_code` 재사용. 별도 `receipt_no` 필드(`R-YYYYMMDD-NNNN`) 추가 or 조합 규칙 정의. | 반나절 | 동일 |
 | Q4 | 중간 | 기타 locale 영수증 번역 개별 추가 — 현재 20개 locale 은 영어 fallback. 일본어/중국어 우선 번역 권장. | 반나절 | 동일 |

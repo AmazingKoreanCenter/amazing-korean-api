@@ -641,7 +641,7 @@ draft → reviewed → approved
       "translation_id": 1,
       "content_type": "lesson",
       "content_id": 42,
-      "field_name": "title",
+      "field_name": "lesson_title",
       "lang": "en",
       "translated_text": "Introduction to Korean Alphabet",
       "status": "approved",
@@ -664,11 +664,13 @@ draft → reviewed → approved
 {
   "content_type": "lesson",
   "content_id": 42,
-  "field_name": "title",
+  "field_name": "lesson_title",
   "lang": "en",
   "translated_text": "Introduction to Korean Alphabet"
 }
 ```
+
+> **field_name 규약**: `{table}_{column}` 긴 이름 형식 준수 (예: `lesson_title`, `study_task_choice_question`). 2026-04-21 정합 확정. [plans/translation-field-name-alignment.md](../../.claude/plans/translation-field-name-alignment.md) §2.1 참조.
 
 **응답 (성공 201)**
 ```json
@@ -676,7 +678,7 @@ draft → reviewed → approved
   "translation_id": 1,
   "content_type": "lesson",
   "content_id": 42,
-  "field_name": "title",
+  "field_name": "lesson_title",
   "lang": "en",
   "translated_text": "Introduction to Korean Alphabet",
   "status": "draft",
@@ -695,9 +697,9 @@ draft → reviewed → approved
 ```json
 {
   "translations": [
-    { "content_type": "lesson", "content_id": 42, "field_name": "title", "lang": "en", "translated_text": "Introduction to Korean Alphabet" },
-    { "content_type": "lesson", "content_id": 42, "field_name": "description", "lang": "en", "translated_text": "Learn Hangul basics" },
-    { "content_type": "lesson", "content_id": 42, "field_name": "title", "lang": "ja", "translated_text": "韓国語アルファベット入門" }
+    { "content_type": "lesson", "content_id": 42, "field_name": "lesson_title", "lang": "en", "translated_text": "Introduction to Korean Alphabet" },
+    { "content_type": "lesson", "content_id": 42, "field_name": "lesson_description", "lang": "en", "translated_text": "Learn Hangul basics" },
+    { "content_type": "lesson", "content_id": 42, "field_name": "lesson_title", "lang": "ja", "translated_text": "韓国語アルファベット入門" }
   ]
 }
 ```
@@ -760,7 +762,7 @@ draft → reviewed → approved
 **Query Parameters**
 | 파라미터 | 타입 | 필수 | 설명 |
 |----------|------|------|------|
-| `content_type` | string | ✅ | 콘텐츠 유형 (video, lesson, study, study_task_choice, study_task_typing, study_task_voice, study_task_writing, study_task_explain) |
+| `content_type` | string | ✅ | 콘텐츠 유형 (video, lesson, study, study_task_choice, study_task_typing, study_task_voice, study_task_explain). **주의**: `course`·`video_tag`·`study_task_writing` 은 현재 stub 으로 빈 배열 반환. Q1a 에서 매핑 보강 예정 (plans/translation-field-name-alignment.md §2.2) |
 
 **응답 (성공 200)**
 ```json
@@ -829,7 +831,12 @@ draft → reviewed → approved
 **응답 (성공 200)**
 ```json
 {
-  "stats": { ... }
+  "items": [
+    { "content_type": "lesson", "lang": "en", "status": "approved", "count": 1 },
+    { "content_type": "lesson", "lang": "en", "status": "draft", "count": 3 },
+    { "content_type": "video_tag", "lang": "en", "status": "draft", "count": 3 }
+  ],
+  "total_translations": 8
 }
 ```
 
@@ -838,40 +845,52 @@ draft → reviewed → approved
 
 ---
 
-#### 기존 콘텐츠 API `?lang=` 쿼리 파라미터 확장 (⬜ 미구현)
+#### 기존 콘텐츠 API `?lang=` 쿼리 파라미터 확장 (🟡 부분 구현, 편차 있음)
 
-> 모든 기존 콘텐츠 조회 API(lessons, courses, studies, videos)에 `?lang=` 쿼리 파라미터가 추가된다.
-> **현재 상태**: 스펙 확정, 미구현. 관리자 번역 CRUD(9-1~9-12)는 완료되었으나, Consumer API에서 번역을 소비하는 `?lang=` 파라미터와 `_translated` 접미사 필드는 아직 구현되지 않음.
+> **2026-04-21 정합 조사 결과** — 기존 "⬜ 미구현" 표기는 사실과 불일치. Consumer service 4 도메인 중 6 엔드포인트가 이미 번역 주입 로직 보유. 단, (1) 스펙과 다른 "덮어쓰기" 방식으로 구현됐고, (2) `field_name` 불일치 잠복 버그로 실제 번역이 반환되지 않는 상태. 상세는 [plans/translation-field-name-alignment.md](../../.claude/plans/translation-field-name-alignment.md) 참조.
 
-| 기존 엔드포인트 | 확장 예시 | 동작 |
-|----------------|-----------|------|
-| `GET /courses` | `GET /courses?lang=en` | 코스 목록에 영어 번역 포함 |
-| `GET /courses/{id}` | `GET /courses/{id}?lang=ja` | 코스 상세에 일본어 번역 포함 |
-| `GET /lessons/{id}` | `GET /lessons/{id}?lang=vi` | 레슨 상세에 베트남어 번역 포함 |
-| `GET /studies/tasks/{id}` | `GET /studies/tasks/{id}?lang=zh-CN` | 학습 Task에 중국어(간체) 번역 포함 |
+##### 🟢 이미 구현된 부분 (덮어쓰기 방식)
 
-**Fallback 동작**:
+| 엔드포인트 | 번역 주입 필드 | 코드 위치 |
+|-----------|---------------|-----------|
+| `GET /courses` | title, subtitle | [src/api/course/service.rs](../src/api/course/service.rs) |
+| `GET /courses/{id}` | title, subtitle | 동일 |
+| `GET /lessons` | title, description | [src/api/lesson/service.rs](../src/api/lesson/service.rs) |
+| `GET /lessons/{id}` | title, description | 동일 |
+| `GET /videos` (목록) | title, subtitle | [src/api/video/service.rs](../src/api/video/service.rs) |
+| `GET /studies` | title, subtitle | [src/api/study/service.rs](../src/api/study/service.rs) |
+| `GET /studies/{id}` | title, subtitle | 동일 |
+
+##### 🚨 잠복 버그 (field_name 규약 불일치) — Q1a 에서 수정
+
+프로덕션 `content_translations` 실 데이터는 **긴 이름** (`lesson_title`, `lesson_description` 등) 으로 저장됨. 그러나 Consumer service 4곳은 **짧은 이름** (`"title"`, `"description"`) 으로 조회. **결과: 프로덕션에 `lesson_title = 'approved'` 1건이 존재해도 `?lang=en` 호출 시 절대 반환되지 않음**. 2026-04-19 #76 (`study_task_explain` 잠복 버그) 와 동종 패턴.
+
+**정합 방향**: 긴 이름 (`{table}_{column}`) 표준으로 통일. Consumer service 4곳 수정. 마이그레이션 불필요 (실 데이터 8 row 전부 이미 긴 이름).
+
+##### ⬜ 미구현 부분 — Q1b 에서 구현
+
+- `GET /videos/{id}` — `?lang=` 파라미터 자체 없음. VideoDetailRes 에 title/subtitle 필드 부재
+- `GET /studies/tasks/{id}` — `?lang=` 없음. choice/typing/voice/writing payload 내부 번역 미주입
+- `GET /studies/tasks/{id}/explain` — `?lang=` 없음. study_explain title/text 미번역
+- video list/detail 의 `video_tag` 번역 미적용
+
+##### ⬜ 스펙 정렬 — Q1c 에서 확정
+
+현재 구현은 "원본 필드 덮어쓰기" 방식. 스펙 원안은 "`_translated` 접미사 + 원본 유지 + `translation_lang`/`translation_coverage` 메타" 방식. 프론트·모바일·데스크탑 어느 쪽도 Consumer `?lang=` 를 호출하고 있지 않음(2026-04-21 grep 확인) → **프론트 회귀 리스크 0**, 설계 자유. 사용자 최종 결정 후 이 섹션 재갱신.
+
+##### Fallback 동작 (현재 구현 기준)
+
 1. 요청된 `lang`의 `approved` 번역이 존재하면 → 번역된 텍스트 반환
 2. 요청된 `lang`의 번역이 없으면 → `en` (영어) `approved` 번역 시도
 3. `en` 번역도 없으면 → `ko` (한국어 원본) 반환
+4. `lang=ko` 요청 시 번역 조회 스킵 (원본 반환)
 
-**응답 확장 필드**: `?lang=` 지정 시 응답에 `_translated` 접미사 필드가 추가된다.
-```json
-{
-  "lesson_id": 42,
-  "lesson_title": "한글 소개",
-  "lesson_title_translated": "Introduction to Korean Alphabet",
-  "lesson_description": "한글 기초를 배워보세요",
-  "lesson_description_translated": "Learn Hangul basics",
-  "translation_lang": "en",
-  "translation_coverage": { "title": true, "description": true }
-}
-```
+##### 확장 병목
 
-**다국어 확장 병목 포인트**:
 1. **번역 품질** — AI 번역 70-80% 정확도, 네이티브 검수 필수 (특히 문법 설명 텍스트)
 2. **RTL 테스트** — 아랍어 추가 시 전체 UI 양방향 테스트 필요 (현재 LTR 전용)
-3. **콘텐츠 규모** — 비디오 100개 × 21언어 × 3필드 = 6,300+ 레코드 관리
+3. **콘텐츠 규모** — 비디오 100개 × 21 언어 × 3 필드 = 6,300+ 레코드 관리
+4. **번역 입력 경로** (2026-04-21) — Google Translate API 해지 후 **서버 사이드 번역 스크립트** (amazing-korean-books 또는 amazing-korean-ai) 를 통한 bulk 생성으로 전환 예정. admin 웹 UI 는 검수(draft → reviewed → approved) 전용.
 
 </details>
 
