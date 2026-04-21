@@ -124,6 +124,24 @@ pub struct StudyDetailRes {
     pub meta: StudyListMeta,
 }
 
+// --- 2. Detail & Task Request ---
+
+/// 학습 문제 상세 조회 요청 (Query String) — 번역 언어 파라미터
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct StudyTaskDetailReq {
+    /// 번역 언어 (없으면 한국어 원본)
+    pub lang: Option<SupportedLanguage>,
+}
+
+/// 해설 조회 요청 (Query String) — 번역 언어 파라미터
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct TaskExplainReq {
+    /// 번역 언어 (없으면 한국어 원본)
+    pub lang: Option<SupportedLanguage>,
+}
+
 // --- 2. Detail & Task Response ---
 
 /// 학습 문제 상세 정보 (Payload 포함)

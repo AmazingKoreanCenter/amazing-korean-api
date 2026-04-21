@@ -8,7 +8,7 @@ use crate::api::video::dto::{
 use crate::api::video::repo::VideoRepo;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
-use crate::types::ContentType;
+use crate::types::{ContentType, SupportedLanguage};
 
 pub struct VideoService;
 
@@ -63,9 +63,34 @@ impl VideoService {
     }
 
     /// 비디오 상세 조회
-    pub async fn get_video_detail(st: &AppState, video_id: i64) -> AppResult<VideoDetailRes> {
-        let video = VideoRepo::get_video_detail(&st.db, video_id).await?;
-        video.ok_or(AppError::NotFound)
+    pub async fn get_video_detail(
+        st: &AppState,
+        video_id: i64,
+        lang: Option<SupportedLanguage>,
+    ) -> AppResult<VideoDetailRes> {
+        let mut video = VideoRepo::get_video_detail(&st.db, video_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        // 번역 주입: content_type=video field_name=video_title/video_subtitle 오버라이드
+        if let Some(lang) = lang {
+            let translations = TranslationRepo::find_translations_for_contents(
+                &st.db,
+                ContentType::Video,
+                &[video.video_id],
+                lang,
+            )
+            .await?;
+
+            if let Some(t) = translations.get(&(video.video_id, "video_title".to_string())) {
+                video.title = Some(t.text.clone());
+            }
+            if let Some(t) = translations.get(&(video.video_id, "video_subtitle".to_string())) {
+                video.subtitle = Some(t.text.clone());
+            }
+        }
+
+        Ok(video)
     }
 
     /// 내 진도율 조회

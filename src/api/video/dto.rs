@@ -50,6 +50,14 @@ pub struct IdParam {
     pub id: i64,
 }
 
+/// 비디오 상세 조회 요청 (Query String) — 번역 언어 파라미터
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct VideoDetailReq {
+    /// 번역 언어 (없으면 한국어 원본)
+    pub lang: Option<SupportedLanguage>,
+}
+
 /// 학습 진도 업데이트 요청
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 #[serde(rename_all = "snake_case")]
@@ -137,12 +145,20 @@ pub struct VideoDetailRes {
     pub video_id: i64,
     pub video_url_vimeo: String,
     pub video_state: String,
-    
+
+    /// 비디오 제목 (video_tag_title MAX 집계, ?lang= 지정 시 content_translations 의
+    /// content_type=video field_name=video_title 으로 오버라이드됨)
+    pub title: Option<String>,
+
+    /// 비디오 부제목 (video_tag_subtitle MAX 집계, ?lang= 지정 시 content_translations 의
+    /// content_type=video field_name=video_subtitle 으로 오버라이드됨)
+    pub subtitle: Option<String>,
+
     // DB의 JSONB 타입을 Rust 구조체로 매핑
     // Swagger 문서에는 Vec<VideoTagDetail>로 표시되도록 설정
     #[schema(value_type = Vec<VideoTagDetail>)]
     pub tags: Json<Vec<VideoTagDetail>>,
-    
+
     pub created_at: DateTime<Utc>,
 }
 

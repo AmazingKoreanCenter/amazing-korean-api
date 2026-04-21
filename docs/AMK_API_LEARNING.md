@@ -169,8 +169,8 @@
 
 #### 5.4-2 : `GET /videos/{id}` (비디오 상세)
 - **성공 → 200 OK**
-  - When: 상세 진입, 존재하는 영상 id
-  - Then: **200**, 본문에 메타(제목, 설명, 길이, `video_url_vimeo`, **VIDEO_TAG 배열**)
+  - When: 상세 진입, 존재하는 영상 id. 옵션 `?lang=<언어>` 지정 시 번역 오버라이드.
+  - Then: **200**, 본문에 `video_id`, `video_url_vimeo`, `video_state`, `title`, `subtitle`, `tags[]`, `created_at`. `title`/`subtitle` 은 `video_tag_title`/`video_tag_subtitle` MAX 집계 → `?lang=` 있을 때 `content_translations` 의 `video_title`/`video_subtitle` 로 오버라이드 (fallback: lang → en → 원본).
   - 상태축: Auth=pass 또는 stop / Page=`video` init→ready / Request=`video` pending→success / **Data=`video` present**
 - **실패(없는 영상) → 404 Not Found**
   - When: 잘못된 id
@@ -301,7 +301,8 @@
 
 #### 5.5-3 : `GET /studies/tasks/{id}` (학습 문제 상세)
 - 성공 → **200**
-  - Then: **200**, 문제 본문/보기/메타(난이도/분류) → **STUDY_TASK_LOG** `view` 업데이트
+  - When: 상세 진입. 옵션 `?lang=<언어>` 지정 시 payload 번역 오버라이드.
+  - Then: **200**, 문제 본문/보기/메타(난이도/분류) → **STUDY_TASK_LOG** `view` 업데이트. `?lang=` 있을 때 task kind 별로 `content_translations` 조회 → choice(`study_task_choice_question`/`_1~4`), typing(`study_task_typing_question`), voice(`study_task_voice_question`), writing(`study_task_writing_prompt`/`_answer`/`_hint`) 필드 오버라이드.
   - 상태축: Auth=pass 또는 stop / Page=`task` init→ready / Request=`task` pending→success / Data=`task` present
 - 실패(없는 문항) → **404**
   - 잘못된 `{id}`
@@ -348,7 +349,8 @@
 
 #### 5.5-6 : `GET /studies/tasks/{id}/explain` (해설 보기)
 - 성공 → **200**
-  - Then: **200**,`{ explain_title, explain_text, explain_media_url }` → **STUDY_TASK_LOG** `explain` 업데이트
+  - When: 최소 1회 시도 후. 옵션 `?lang=<언어>` 지정 시 번역 오버라이드.
+  - Then: **200**,`{ title, explanation, resources[] }` → **STUDY_TASK_LOG** `explain` 업데이트. `?lang=` 있을 때 `content_translations` 의 `explain_title`/`explain_text` 로 오버라이드 (fallback: lang → en → 원본).
   - 상태축: Auth=pass 또는 stop / Page=`explain` init→ready / Request=`explain` pending→success / Data=`explain` present
 - 실패(해설 없음/없는 문항) → **404**
   - 자료 미제공 또는 잘못된 `{id}`
@@ -849,7 +851,7 @@ draft → reviewed → approved
 
 > **2026-04-21 정합 조사 결과** — 기존 "⬜ 미구현" 표기는 사실과 불일치. Consumer service 4 도메인 중 6 엔드포인트가 이미 번역 주입 로직 보유. 단, (1) 스펙과 다른 "덮어쓰기" 방식으로 구현됐고, (2) `field_name` 불일치 잠복 버그로 실제 번역이 반환되지 않는 상태였음. 상세는 [plans/translation-field-name-alignment.md](../../.claude/plans/translation-field-name-alignment.md) 참조.
 
-##### 🟢 이미 구현된 부분 (덮어쓰기 방식, Q1a 필드명 정합 완료 2026-04-21)
+##### 🟢 이미 구현된 부분 (덮어쓰기 방식, Q1a+Q1b 완료 2026-04-21)
 
 | 엔드포인트 | 번역 주입 필드 (`field_name`) | 코드 위치 |
 |-----------|-------------------------------|-----------|
@@ -858,8 +860,11 @@ draft → reviewed → approved
 | `GET /lessons` | `lesson_title`, `lesson_description` | [src/api/lesson/service.rs](../src/api/lesson/service.rs) |
 | `GET /lessons/{id}` | `lesson_title`, `lesson_description` | 동일 |
 | `GET /videos` (목록) | `video_title`, `video_subtitle` | [src/api/video/service.rs](../src/api/video/service.rs) |
+| `GET /videos/{id}` **Q1b** | `video_title`, `video_subtitle` | 동일. VideoDetailRes 에 `title`/`subtitle` 필드 신규 추가 (video_tag_title MAX 집계) |
 | `GET /studies` | `study_title`, `study_subtitle` | [src/api/study/service.rs](../src/api/study/service.rs) |
 | `GET /studies/{id}` | `study_title`, `study_subtitle` | 동일 |
+| `GET /studies/tasks/{id}` **Q1b** | task_kind 별 분기 — choice: `study_task_choice_question`, `study_task_choice_1~4` / typing: `study_task_typing_question` / voice: `study_task_voice_question` / writing: `study_task_writing_prompt`, `study_task_writing_answer`, `study_task_writing_hint` | 동일 |
+| `GET /studies/tasks/{id}/explain` **Q1b** | `explain_title`, `explain_text` | 동일 |
 
 ##### 🟢 Q1a 잠복 버그 해소 완료 (field_name 규약 불일치 수정, 2026-04-21)
 
@@ -872,12 +877,12 @@ draft → reviewed → approved
 
 **검증**: 마이그레이션 불필요 (실 데이터 8 row 전부 이미 긴 이름). `lesson_title = 'approved'` 1건이 정상 반환되기 시작 = 의도된 동작 복원.
 
-##### ⬜ 미구현 부분 — Q1b 에서 구현
+##### 🟢 Q1b 미구현분 구현 완료 (2026-04-21)
 
-- `GET /videos/{id}` — `?lang=` 파라미터 자체 없음. VideoDetailRes 에 title/subtitle 필드 부재
-- `GET /studies/tasks/{id}` — `?lang=` 없음. choice/typing/voice/writing payload 내부 번역 미주입
-- `GET /studies/tasks/{id}/explain` — `?lang=` 없음. study_explain title/text 미번역
-- video list/detail 의 `video_tag` 번역 미적용
+- ✅ `GET /videos/{id}` — `?lang=` 파라미터 추가, VideoDetailRes 에 `title`/`subtitle` 필드 신규. Repo `get_video_detail` SQL 이 `MAX(video_tag_title)`/`MAX(video_tag_subtitle)` 로 집계 → 서비스에서 `video_title`/`video_subtitle` 번역 오버라이드.
+- ✅ `GET /studies/tasks/{id}` — `?lang=` 파라미터 추가. task kind 별 `ContentType::StudyTask*` 로 분기하여 payload 필드 오버라이드 (choice 5필드, typing 1필드, voice 1필드, writing 3필드).
+- ✅ `GET /studies/tasks/{id}/explain` — `?lang=` 파라미터 추가. `study_task_explain` → `explain_title`/`explain_text` 오버라이드.
+- ⚠️ video list/detail 의 `video_tag` 번역 — **Q1c 로 이연**. 구현하려면 response 에 `video_tag_id` 노출이 필요한데, 이는 Q1c "응답 스키마 최종 정렬" 범위 (덮어쓰기 vs `_translated` 접미사 결정과 함께 일괄 설계).
 
 ##### ⬜ 스펙 정렬 — Q1c 에서 확정
 

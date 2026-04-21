@@ -148,6 +148,11 @@ impl VideoRepo {
                 v.video_id::bigint as video_id,
                 v.video_url_vimeo,
                 v.video_state::text as video_state,
+                -- 비디오는 자체 title/subtitle 컬럼이 없어 video_tag_title/subtitle 의
+                -- MAX 집계로 파생. 서비스 계층에서 content_translations 의 video_title/
+                -- video_subtitle 이 있으면 오버라이드.
+                MAX(vt.video_tag_title) as title,
+                MAX(vt.video_tag_subtitle) as subtitle,
                 COALESCE(
                     jsonb_agg(
                         jsonb_build_object(

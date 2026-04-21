@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-21 (Q1a field_name 잠복 버그 fix)
+updated: 2026-04-21 (Q1b Consumer `?lang=` 미구현분 구현)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,32 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-21 (늦은 밤) — Q1b: Consumer `?lang=` 미구현분 구현 (videos/{id} + studies/tasks/{id} + /explain)**
+  - **배경**: [PR #178](https://github.com/AmazingKoreanCenter/amazing-korean-api/pull/178) (Q1a field_name 잠복 버그 fix) + [PR #179](https://github.com/AmazingKoreanCenter/amazing-korean-api/pull/179) (Gemini MEDIUM 1건 반영) 머지 후속. 플랜 `.claude/plans/translation-field-name-alignment.md §2.2` Q1b 스코프 이행.
+  - **3개 엔드포인트 `?lang=` 파라미터 추가 + 번역 주입**:
+    - [src/api/video/handler.rs](../src/api/video/handler.rs) `get_video_detail` — `Query<VideoDetailReq>` 수용
+    - [src/api/video/dto.rs](../src/api/video/dto.rs) — `VideoDetailReq { lang }` 신규, `VideoDetailRes` 에 `title: Option<String>`/`subtitle: Option<String>` 필드 추가
+    - [src/api/video/repo.rs](../src/api/video/repo.rs) `get_video_detail` SQL — `MAX(video_tag_title)`/`MAX(video_tag_subtitle)` 집계 추가 (`video` 테이블 자체엔 title/subtitle 컬럼 부재)
+    - [src/api/video/service.rs](../src/api/video/service.rs) `get_video_detail` — `lang: Option<SupportedLanguage>` 인자 추가, `content_type=Video` `field_name=video_title`/`video_subtitle` 오버라이드
+    - [src/api/study/handler.rs](../src/api/study/handler.rs) `get_study_task` + `get_task_explain` — `Query<StudyTaskDetailReq>`/`Query<TaskExplainReq>` 수용
+    - [src/api/study/dto.rs](../src/api/study/dto.rs) — `StudyTaskDetailReq { lang }`, `TaskExplainReq { lang }` 신규
+    - [src/api/study/service.rs](../src/api/study/service.rs) `get_study_task` — task kind 별 `ContentType::StudyTask*` 로 분기 + payload 필드 오버라이드 (choice 5필드 question/1~4, typing 1필드 question, voice 1필드 question, writing 3필드 prompt/answer/hint). 헬퍼 `content_type_for_task_kind` 추가.
+    - [src/api/study/service.rs](../src/api/study/service.rs) `get_task_explain` — `content_type=StudyTaskExplain` `field_name=explain_title`/`explain_text` 오버라이드
+  - **field_name 규약**: Q1a 에서 확정한 긴 이름 (`{table}_{column}`) 표준 준수. `explain_*` 는 예외 (study_explain 테이블이 `study_` prefix 이미 중첩).
+  - **video_tag 번역 주입 (옵셔널 — 이연)**: 플랜 §2 는 video list/detail 에 video_tag 번역 주입도 Q1b 스코프에 포함시켰으나, response 에 `video_tag_id` 노출 필요성 때문에 **Q1c (응답 스키마 최종 정렬) 로 이연**. 덮어쓰기 vs `_translated` 접미사 결정과 함께 일괄 설계.
+  - **문서 동기화**:
+    - `AMK_API_LEARNING.md §9-841` — "⬜ Q1b 미구현 부분" → "🟢 Q1b 구현 완료". `🟢 이미 구현된 부분` 표에 Q1b 3개 엔드포인트 행 추가.
+    - `AMK_API_LEARNING.md §5.4-2` (videos/{id}) — `?lang=` 파라미터 및 title/subtitle 신규 필드 명시.
+    - `AMK_API_LEARNING.md §5.5-3` (studies/tasks/{id}) — `?lang=` 파라미터 및 task kind 별 번역 필드 명시.
+    - `AMK_API_LEARNING.md §5.5-6` (studies/tasks/{id}/explain) — `?lang=` 파라미터 및 explain_title/explain_text 오버라이드 명시.
+    - `AMK_STATUS.md §8.2` Q1b 행을 ✅ 완료 처리.
+  - **검증**:
+    - `cargo check` 23.34s 클린
+    - `cargo clippy --lib --bins -- -D warnings` 22.99s 클린
+    - `sqlx prepare` 재생성 불필요 (`get_video_detail` 의 `query_as::<_, VideoDetailRes>` 는 매크로 아님. 다른 수정 파일은 SQL 변경 없음)
+  - **회귀 리스크**: 프론트·모바일·데스크탑 Consumer `?lang=` 호출 0건 (2026-04-21 확인) → 사용자 가시 변화 없음. 번역 데이터가 `content_translations` 에 없으면 원본 그대로 반환.
+  - **다음 단계**: Q1c (응답 스키마 최종 정렬) — 덮어쓰기 vs `_translated` 접미사 + `translation_lang`/`translation_coverage` 메타 + Video 테이블 title/subtitle 물리 컬럼 추가 여부 + video_tag 번역 주입 설계 사용자 최종 결정.
 
 - **2026-04-21 (저녁) — Q1a: field_name 잠복 버그 fix (Consumer `?lang=` 정합 + admin 매핑 보강)**
   - **배경**: PR #176 (Phase 0 문서 정합) 머지 완료 직후 진입. 플랜 `.claude/plans/translation-field-name-alignment.md §2.2` 를 SSoT 로 Q1a 코드 작업. 프로덕션 `content_translations` 실 데이터는 긴 이름(`lesson_title` 등)으로 저장돼 있으나 Consumer service 4곳이 짧은 이름(`"title"` 등)으로 조회 → `?lang=` 호출 시 번역이 절대 반환되지 않는 잠복 버그 해소.
