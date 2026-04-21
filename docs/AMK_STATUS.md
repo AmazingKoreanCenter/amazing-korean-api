@@ -123,6 +123,27 @@
 **대표 시나리오**: 회원가입 → 로그인 → 비디오 조회 → 시청 → 진도 저장 → 학습 문제 풀이
 | 7 | 마케팅/데이터 분석 | 기능 | 사용자 세그먼트, 리텐션 분석, 마케팅 자동화 | 데이터 기반 의사결정 | 사용자 확보 후 |
 
+#### 이 리포(amazing-korean-api) 독립 착수 가능 큐 (2026-04-21 정리)
+
+> 외부 의존 없이 이 리포 내에서 단독 진행 가능한 작업. 우선순위순 정렬.
+> M05~M08 시딩 본체 작업은 `amazing-korean-books` `scripts/textbook/gen_seed_sql.js` 선행 필요해 이 목록에서 제외.
+
+| # | 우선 | 작업 | 공수 | 근거 |
+|:-:|:----:|------|:----:|------|
+| Q1 | **높음** | **`?lang=` Consumer API 확장** — 모든 콘텐츠 API (`/courses`, `/lessons/{id}`, `/studies/{id}`, `/studies/tasks/{id}`, `/videos/{id}`) 에 `?lang=` 쿼리 파라미터 추가. Fallback 순서(lang → en → ko), `_translated` 접미사 필드. Admin 번역 CRUD(9-1~9-13)는 완료. | 1~2일 | [AMK_API_LEARNING.md §9-841](./AMK_API_LEARNING.md) 스펙 확정, "⬜ 미구현" 명시. M05~M08 시딩 완료 시 소비자가 자국어 학습 가능해야 함 |
+| Q2 | 중간 | 법인 인감 이미지 업로드 — 영수증 서명란의 `(인)` 텍스트를 PNG/SVG 이미지로 대체. `supplier_info.ts` 에 `sealImageUrl` 추가, `ReceiptSignature` 에 `<img>` 렌더. | 반나절 | #73 영수증 "다음 단계" (AMK_CHANGELOG 2026-04-19) |
+| Q3 | 중간 | 영수증 고유번호 체계 — 현재 `order_code` 재사용. 별도 `receipt_no` 필드(`R-YYYYMMDD-NNNN`) 추가 or 조합 규칙 정의. | 반나절 | 동일 |
+| Q4 | 중간 | 기타 locale 영수증 번역 개별 추가 — 현재 20개 locale 은 영어 fallback. 일본어/중국어 우선 번역 권장. | 반나절 | 동일 |
+| Q5 | 중간 | 사용자 검색 UI — 관리자 대리 주문 생성 (`/admin/textbook/orders/new`) 의 `user_id` 수동 입력을 이메일·이름 자동완성으로 개선. 백엔드 `GET /admin/users/search?q=` 활용. | 반나절 | #75 "후속 작업" (AMK_CHANGELOG 2026-04-19) |
+| Q6 | 중간 | `admin_textbook_log` Create 액션 조회 UI — 관리자가 어느 주문을 대리 생성했는지 감사 로그에서 조회 가능하도록 admin 페이지에 탭·필터 추가. | 반나절 | 동일 |
+| Q7 | 낮음 | **Paddle Live 전환** — GitHub Secrets 12개 일괄 교체 + 배포 + E2E 검증 | 1일 | §8.2 #1. **블록: KYB/Onfido 인증 대기** (외부 의존) |
+| Q8 | 낮음 | **K6 성능 테스트 실행** — `k6/` 디렉터리 세팅은 완료. 테스트 계정 생성 후 smoke + load 시나리오 실행 | 0.5일 | §8.2 #12. **블록: 테스트 계정 생성 필요** |
+| Q9 | 낮음 | **E-book 로컬 파일시스템 의존 해소** — `ebook/service.rs` 9곳 `fs::read` 를 S3/CDN 으로 전환. RDS 이전 선행 작업. | 3~5일 | §8.2 #6 검증된 리스크 CRITICAL. 앱 개발 이후 공식 로드맵에 있음 |
+
+**큐 외 대기** (이 리포 작업이지만 일정 대기):
+- **#67 D+7 관측 로그 체크** — 2026-04-23 (2일 뒤). `docker logs amk-api --since 168h 2>&1 \| grep EBOOK_SESSION_AUDIT \| wc -l` → 0 건 확인
+- **#67 Phase 2~5 일괄 전환** — 2026-04-24 (3일 뒤). 백+웹+데스크탑 동일 PR
+
 #### 검증된 리스크 (2026-03-31 코드베이스 팩트체크 완료)
 
 | 작업 | 리스크 | 심각도 | 근거 |
