@@ -24,27 +24,27 @@ impl VideoRepo {
                 -- 1. [중요] INT4 -> INT8 캐스팅 (패닉 방지)
                 v.video_id::bigint as video_id,
                 v.video_idx,
-                
-                -- 2. 1:N 관계에서 제목 가져오기 (MAX 사용)
-                MAX(vt.video_tag_title) as title,
-                MAX(vt.video_tag_subtitle) as subtitle,
-                
+
+                -- 2. video 테이블의 title/subtitle 물리 컬럼 직접 참조 (Q1c B)
+                v.video_title as title,
+                v.video_subtitle as subtitle,
+
                 -- 3. DB에 없는 컬럼 NULL/기본값 처리
                 NULL::integer as duration_seconds,
                 NULL::text as language,
                 NULL::text as thumbnail_url,
                 false as has_captions,
-                
+
                 v.video_state::text as state,
                 v.video_access::text as access,
                 v.video_created_at as created_at,
-                
+
                 -- 태그 집계
                 COALESCE(
                     array_agg(vt.video_tag_key) FILTER (WHERE vt.video_tag_key IS NOT NULL),
                     '{}'::varchar[]
                 ) as tags,
-                
+
                 COUNT(*) OVER() as total_count
             FROM video v
             LEFT JOIN video_tag_map vtm ON vtm.video_id = v.video_id
@@ -63,13 +63,18 @@ impl VideoRepo {
             qb.push(" AND v.video_state = 'open'::video_state_enum");
         }
 
-        // 2-2. Search (Tag Title/Subtitle 기준)
+        // 2-2. Search (video title/subtitle + tag title/subtitle 기준, Q1c B 이후)
         if let Some(q) = &req.q {
             if !q.trim().is_empty() {
-                qb.push(" AND (vt.video_tag_title ILIKE ");
-                qb.push_bind(format!("%{}%", q));
+                let like = format!("%{}%", q);
+                qb.push(" AND (v.video_title ILIKE ");
+                qb.push_bind(like.clone());
+                qb.push(" OR v.video_subtitle ILIKE ");
+                qb.push_bind(like.clone());
+                qb.push(" OR vt.video_tag_title ILIKE ");
+                qb.push_bind(like.clone());
                 qb.push(" OR vt.video_tag_subtitle ILIKE ");
-                qb.push_bind(format!("%{}%", q));
+                qb.push_bind(like);
                 qb.push(" )");
             }
         }
@@ -90,6 +95,7 @@ impl VideoRepo {
             r#"
             GROUP BY
                 v.video_id, v.video_idx,
+                v.video_title, v.video_subtitle,
                 v.video_state, v.video_access, v.video_created_at
             "#
         );
@@ -148,14 +154,15 @@ impl VideoRepo {
                 v.video_id::bigint as video_id,
                 v.video_url_vimeo,
                 v.video_state::text as video_state,
-                -- 비디오는 자체 title/subtitle 컬럼이 없어 video_tag_title/subtitle 의
-                -- MAX 집계로 파생. 서비스 계층에서 content_translations 의 video_title/
-                -- video_subtitle 이 있으면 오버라이드.
-                MAX(vt.video_tag_title) as title,
-                MAX(vt.video_tag_subtitle) as subtitle,
+                -- Q1c B: video 테이블 title/subtitle 물리 컬럼 직접 참조 (서비스 계층에서
+                -- content_translations 의 video_title/video_subtitle 로 오버라이드).
+                v.video_title as title,
+                v.video_subtitle as subtitle,
+                -- Q1c C: tags 에 id 포함 (서비스 계층 video_tag 번역 주입용).
                 COALESCE(
                     jsonb_agg(
                         jsonb_build_object(
+                            'id', vt.video_tag_id,
                             'key', vt.video_tag_key,
                             'title', vt.video_tag_title,
                             'subtitle', vt.video_tag_subtitle

@@ -879,21 +879,38 @@ draft → reviewed → approved
 
 ##### 🟢 Q1b 미구현분 구현 완료 (2026-04-21)
 
-- ✅ `GET /videos/{id}` — `?lang=` 파라미터 추가, VideoDetailRes 에 `title`/`subtitle` 필드 신규. Repo `get_video_detail` SQL 이 `MAX(video_tag_title)`/`MAX(video_tag_subtitle)` 로 집계 → 서비스에서 `video_title`/`video_subtitle` 번역 오버라이드.
+- ✅ `GET /videos/{id}` — `?lang=` 파라미터 추가, VideoDetailRes 에 `title`/`subtitle` 필드 신규.
 - ✅ `GET /studies/tasks/{id}` — `?lang=` 파라미터 추가. task kind 별 `ContentType::StudyTask*` 로 분기하여 payload 필드 오버라이드 (choice 5필드, typing 1필드, voice 1필드, writing 3필드).
 - ✅ `GET /studies/tasks/{id}/explain` — `?lang=` 파라미터 추가. `study_task_explain` → `explain_title`/`explain_text` 오버라이드.
-- ⚠️ video list/detail 의 `video_tag` 번역 — **Q1c 로 이연**. 구현하려면 response 에 `video_tag_id` 노출이 필요한데, 이는 Q1c "응답 스키마 최종 정렬" 범위 (덮어쓰기 vs `_translated` 접미사 결정과 함께 일괄 설계).
 
-##### ⬜ 스펙 정렬 — Q1c 에서 확정
+##### 🟢 Q1c 응답 스키마 최종 정렬 완료 (2026-04-21, 사용자 결정 3건 채택)
 
-현재 구현은 "원본 필드 덮어쓰기" 방식. 스펙 원안은 "`_translated` 접미사 + 원본 유지 + `translation_lang`/`translation_coverage` 메타" 방식. 프론트·모바일·데스크탑 어느 쪽도 Consumer `?lang=` 를 호출하고 있지 않음(2026-04-21 grep 확인) → **프론트 회귀 리스크 0**, 설계 자유. 사용자 최종 결정 후 이 섹션 재갱신.
+**결정 A — 덮어쓰기 유지 + 루트 메타 2필드 추가**:
+- 10 Consumer 엔드포인트 응답 루트에 `translation_meta: TranslationMeta` 신규 필드.
+- `TranslationMeta { translation_lang: Option<SupportedLanguage>, translation_coverage: TranslationCoverage }`.
+- `TranslationCoverage` enum: `NotRequested` (`?lang=` 미요청) / `Full` (전 필드 user_lang) / `Partial` (일부 user_lang + 일부 fallback/none) / `None` (0 필드 번역).
+- 코드: [src/api/admin/translation/dto.rs](../src/api/admin/translation/dto.rs) TranslationMeta + TranslationCoverage.
+
+**결정 B — Video 테이블에 title/subtitle 물리 컬럼 추가**:
+- 마이그레이션 `migrations/20260422_video_title_subtitle.sql`: `ALTER TABLE video ADD video_title VARCHAR(150) NOT NULL, ADD video_subtitle VARCHAR(250)`. 기존 `MAX(video_tag_title)`/`MAX(video_tag_subtitle)` 집계 결과로 백필 후 DEFAULT 제거.
+- Repo `list_videos`/`get_video_detail` SQL: `MAX(video_tag_title) as title` → `v.video_title as title`.
+- admin `find_source_fields` Video 의 `source_text=None` stub 제거 → 실 컬럼 매핑.
+- admin Create/Update API 에 `video_title`/`video_subtitle` 입력 필드 추가 (backward-compat: 미제공 시 `video_tag_title`/`video_tag_subtitle` 폴백).
+
+**결정 C — video_tag 번역 주입 (`VideoTagDetail.id` 노출)**:
+- `VideoTagDetail` 구조체에 `id: i64` 필드 신규.
+- Repo `get_video_detail` SQL 의 `jsonb_build_object` 에 `'id', vt.video_tag_id` 포함.
+- Service `get_video_detail` 에서 tags[] 의 `id` 수집 → `content_type=VideoTag content_id IN (ids)` 로 번역 일괄 조회 → `video_tag_title`/`video_tag_subtitle` 오버라이드.
+- `GET /videos` (목록) 의 `tags: Vec<String>` (tag_key 만) 은 그대로 유지 — 목록에선 분류 키만 사용.
 
 ##### Fallback 동작 (현재 구현 기준)
 
-1. 요청된 `lang`의 `approved` 번역이 존재하면 → 번역된 텍스트 반환
-2. 요청된 `lang`의 번역이 없으면 → `en` (영어) `approved` 번역 시도
-3. `en` 번역도 없으면 → `ko` (한국어 원본) 반환
-4. `lang=ko` 요청 시 번역 조회 스킵 (원본 반환)
+1. 요청된 `lang`의 `approved` 번역이 존재하면 → 번역된 텍스트 반환 (`translation_coverage=full` 또는 `partial`)
+2. 요청된 `lang`의 번역이 없으면 → `en` (영어) `approved` 번역 시도 (`translation_coverage=partial`)
+3. `en` 번역도 없으면 → `ko` (한국어 원본) 반환 (`translation_coverage=none` 또는 `partial`)
+4. `lang=ko` 요청 시 번역 조회 스킵 (원본 반환, `translation_coverage=full` — 원본이 곧 번역)
+5. `?lang=` 미요청 시 (`translation_coverage=not_requested`)
+
 
 ##### 확장 병목
 

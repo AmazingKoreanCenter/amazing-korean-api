@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+
 use validator::Validate;
 
+use crate::api::admin::translation::dto::{TranslatedField, TranslationMeta};
 use crate::api::admin::translation::repo::TranslationRepo;
 use crate::api::video::dto::{
     VideoDetailRes, VideoListMeta, VideoListReq, VideoListRes, VideoProgressRes,
-    VideoProgressUpdateReq,
+    VideoProgressUpdateReq, VideoTagDetail,
 };
 use crate::api::video::repo::VideoRepo;
 use crate::error::{AppError, AppResult};
@@ -23,26 +26,41 @@ impl VideoService {
         // 2. Repo Call (Data + Total Count)
         let (mut data, total_count) = VideoRepo::list_videos(&st.db, &req).await?;
 
-        // 2-1. 번역 주입
-        if let Some(lang) = req.lang {
-            let ids: Vec<i64> = data.iter().map(|v| v.video_id).collect();
-            let translations = TranslationRepo::find_translations_for_contents(
-                &st.db,
-                ContentType::Video,
-                &ids,
-                lang,
-            )
-            .await?;
+        // 2-1. 번역 주입 + 메타 계산 (Q1c A)
+        let translation_meta = match req.lang {
+            None => TranslationMeta::not_requested(),
+            Some(SupportedLanguage::Ko) => TranslationMeta::ko_full(),
+            Some(user_lang) => {
+                let ids: Vec<i64> = data.iter().map(|v| v.video_id).collect();
+                let translations = TranslationRepo::find_translations_for_contents(
+                    &st.db,
+                    ContentType::Video,
+                    &ids,
+                    user_lang,
+                )
+                .await?;
 
-            for item in data.iter_mut() {
-                if let Some(t) = translations.get(&(item.video_id, "video_title".to_string())) {
-                    item.title = Some(t.text.clone());
+                let mut translated = 0usize;
+                let mut fallback = 0usize;
+                for item in data.iter_mut() {
+                    if let Some(t) =
+                        translations.get(&(item.video_id, "video_title".to_string()))
+                    {
+                        item.title = Some(t.text.clone());
+                        count_field(t, user_lang, &mut translated, &mut fallback);
+                    }
+                    if let Some(t) =
+                        translations.get(&(item.video_id, "video_subtitle".to_string()))
+                    {
+                        item.subtitle = Some(t.text.clone());
+                        count_field(t, user_lang, &mut translated, &mut fallback);
+                    }
                 }
-                if let Some(t) = translations.get(&(item.video_id, "video_subtitle".to_string())) {
-                    item.subtitle = Some(t.text.clone());
-                }
+                // 요청 필드 = video 당 2 (title + subtitle) × 항목 수
+                let requested = data.len().saturating_mul(2);
+                TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
-        }
+        };
 
         // 3. Calc Meta
         let total_pages = if total_count == 0 {
@@ -58,6 +76,7 @@ impl VideoService {
                 current_page: req.page,
                 per_page: req.per_page,
             },
+            translation_meta,
             data,
         })
     }
@@ -72,24 +91,63 @@ impl VideoService {
             .await?
             .ok_or(AppError::NotFound)?;
 
-        // 번역 주입: content_type=video field_name=video_title/video_subtitle 오버라이드
-        if let Some(lang) = lang {
-            let translations = TranslationRepo::find_translations_for_contents(
-                &st.db,
-                ContentType::Video,
-                &[video.video_id],
-                lang,
-            )
-            .await?;
+        let translation_meta = match lang {
+            None => TranslationMeta::not_requested(),
+            Some(SupportedLanguage::Ko) => TranslationMeta::ko_full(),
+            Some(user_lang) => {
+                let mut translated = 0usize;
+                let mut fallback = 0usize;
 
-            if let Some(t) = translations.get(&(video.video_id, "video_title".to_string())) {
-                video.title = Some(t.text.clone());
-            }
-            if let Some(t) = translations.get(&(video.video_id, "video_subtitle".to_string())) {
-                video.subtitle = Some(t.text.clone());
-            }
-        }
+                // Video 레벨 번역 (content_type=video, 2 필드)
+                let video_translations = TranslationRepo::find_translations_for_contents(
+                    &st.db,
+                    ContentType::Video,
+                    &[video.video_id],
+                    user_lang,
+                )
+                .await?;
 
+                if let Some(t) =
+                    video_translations.get(&(video.video_id, "video_title".to_string()))
+                {
+                    video.title = Some(t.text.clone());
+                    count_field(t, user_lang, &mut translated, &mut fallback);
+                }
+                if let Some(t) =
+                    video_translations.get(&(video.video_id, "video_subtitle".to_string()))
+                {
+                    video.subtitle = Some(t.text.clone());
+                    count_field(t, user_lang, &mut translated, &mut fallback);
+                }
+
+                // Video 태그 번역 (Q1c C) — 상세 응답 tags[] 에만 적용
+                let tag_ids: Vec<i64> = video.tags.iter().map(|t| t.id).collect();
+                let tag_count = tag_ids.len();
+                if !tag_ids.is_empty() {
+                    let tag_translations = TranslationRepo::find_translations_for_contents(
+                        &st.db,
+                        ContentType::VideoTag,
+                        &tag_ids,
+                        user_lang,
+                    )
+                    .await?;
+
+                    apply_tag_translations(
+                        &mut video.tags.0,
+                        &tag_translations,
+                        user_lang,
+                        &mut translated,
+                        &mut fallback,
+                    );
+                }
+
+                // 요청 필드 = video 2 (title + subtitle) + tag 당 2 (title + subtitle)
+                let requested = 2 + tag_count.saturating_mul(2);
+                TranslationMeta::from_counts(user_lang, requested, translated, fallback)
+            }
+        };
+
+        video.translation_meta = translation_meta;
         Ok(video)
     }
 
@@ -168,5 +226,39 @@ impl VideoService {
         }
 
         Ok(res)
+    }
+}
+
+/// 번역 1건에 대해 user_lang 일치 / fallback 여부 집계
+fn count_field(
+    t: &TranslatedField,
+    user_lang: SupportedLanguage,
+    translated: &mut usize,
+    fallback: &mut usize,
+) {
+    if t.actual_lang == user_lang {
+        *translated += 1;
+    } else {
+        *fallback += 1;
+    }
+}
+
+/// VideoTag 번역을 tags[] 에 주입 (Q1c C)
+fn apply_tag_translations(
+    tags: &mut [VideoTagDetail],
+    translations: &HashMap<(i64, String), TranslatedField>,
+    user_lang: SupportedLanguage,
+    translated: &mut usize,
+    fallback: &mut usize,
+) {
+    for tag in tags.iter_mut() {
+        if let Some(t) = translations.get(&(tag.id, "video_tag_title".to_string())) {
+            tag.title = Some(t.text.clone());
+            count_field(t, user_lang, translated, fallback);
+        }
+        if let Some(t) = translations.get(&(tag.id, "video_tag_subtitle".to_string())) {
+            tag.subtitle = Some(t.text.clone());
+            count_field(t, user_lang, translated, fallback);
+        }
     }
 }

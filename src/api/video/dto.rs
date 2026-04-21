@@ -4,6 +4,7 @@ use sqlx::{types::Json, FromRow};
 use utoipa::ToSchema;
 use validator::Validate;
 
+use crate::api::admin::translation::dto::TranslationMeta;
 use crate::types::SupportedLanguage;
 
 // =====================================================================
@@ -122,6 +123,8 @@ pub struct VideoListMeta {
 #[serde(rename_all = "snake_case")]
 pub struct VideoListRes {
     pub meta: VideoListMeta,
+    /// 번역 메타 (Q1c A) — 번역 적용 범위 + 실제 반환 언어
+    pub translation_meta: TranslationMeta,
     pub data: Vec<VideoListItem>,
 }
 
@@ -133,6 +136,9 @@ pub struct VideoListRes {
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 #[serde(rename_all = "snake_case")]
 pub struct VideoTagDetail {
+    /// video_tag_id — Q1c C 이후 노출 (서비스 계층에서 번역 주입 키로 사용됨,
+    /// 외부 클라이언트가 태그 식별 및 관련 영상 필터에 활용 가능)
+    pub id: i64,
     pub key: Option<String>,
     pub title: Option<String>,
     pub subtitle: Option<String>,
@@ -146,12 +152,12 @@ pub struct VideoDetailRes {
     pub video_url_vimeo: String,
     pub video_state: String,
 
-    /// 비디오 제목 (video_tag_title MAX 집계, ?lang= 지정 시 content_translations 의
-    /// content_type=video field_name=video_title 으로 오버라이드됨)
+    /// 비디오 제목 (Q1c B 이후 video 테이블 자체 컬럼. ?lang= 지정 시
+    /// content_translations 의 content_type=video field_name=video_title 으로 오버라이드)
     pub title: Option<String>,
 
-    /// 비디오 부제목 (video_tag_subtitle MAX 집계, ?lang= 지정 시 content_translations 의
-    /// content_type=video field_name=video_subtitle 으로 오버라이드됨)
+    /// 비디오 부제목 (Q1c B 이후 video 테이블 자체 컬럼. ?lang= 지정 시
+    /// content_type=video field_name=video_subtitle 오버라이드)
     pub subtitle: Option<String>,
 
     // DB의 JSONB 타입을 Rust 구조체로 매핑
@@ -160,6 +166,11 @@ pub struct VideoDetailRes {
     pub tags: Json<Vec<VideoTagDetail>>,
 
     pub created_at: DateTime<Utc>,
+
+    /// 번역 메타 (Q1c A) — 응답 시 서비스 계층에서 주입. Repo FromRow 단계엔 기본값.
+    #[sqlx(skip)]
+    #[serde(default)]
+    pub translation_meta: TranslationMeta,
 }
 
 // ----------------------

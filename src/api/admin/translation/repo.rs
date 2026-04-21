@@ -428,22 +428,19 @@ impl TranslationRepo {
                 }
             }
             ContentType::Video => {
-                // video 테이블 자체 필드
+                // Q1c B: video 테이블의 title/subtitle 물리 컬럼 추가 이후 실 컬럼 매핑.
                 let row = sqlx::query_as::<_, VideoSourceRow>(
-                    r#"SELECT video_idx FROM video WHERE video_id = $1"#,
+                    r#"SELECT video_idx, video_title, video_subtitle FROM video WHERE video_id = $1"#,
                 )
                 .bind(content_id)
                 .fetch_optional(pool)
                 .await?;
 
                 if let Some(r) = row {
-                    // video_title/video_subtitle 은 video 테이블에 물리 컬럼이 없음 (video_tag
-                    // 집계로 파생). 관리자가 비디오 레벨 오버라이드 번역을 입력할 수 있도록
-                    // 필드명만 노출하고 source_text 는 None.
                     for (name, text) in [
                         ("video_idx", Some(r.video_idx)),
-                        ("video_title", None::<String>),
-                        ("video_subtitle", None::<String>),
+                        ("video_title", Some(r.video_title)),
+                        ("video_subtitle", r.video_subtitle),
                     ] {
                         fields.push(SourceFieldItem {
                             content_type: ContentType::Video,
@@ -782,8 +779,10 @@ impl TranslationRepo {
         for row in rows {
             let key = (row.content_id, row.field_name.clone());
             // 이미 사용자 언어 번역이 있으면 스킵 (ORDER BY로 user_lang이 먼저 옴)
+            let actual_lang = row.lang;
             result.entry(key).or_insert_with(|| TranslatedField {
                 text: row.translated_text,
+                actual_lang,
                 fallback_used: row.lang != user_lang,
             });
         }
@@ -808,6 +807,8 @@ struct TranslationRow {
 #[derive(Debug, sqlx::FromRow)]
 struct VideoSourceRow {
     video_idx: String,
+    video_title: String,
+    video_subtitle: Option<String>,
 }
 
 #[derive(Debug, sqlx::FromRow)]

@@ -508,6 +508,8 @@ pub async fn admin_bulk_update_videos(
             }
 
             let update_req = VideoUpdateReq {
+                video_title: None,
+                video_subtitle: None,
                 video_tag_title: item.video_tag_title.clone(),
                 video_tag_subtitle: item.video_tag_subtitle.clone(),
                 video_tag_key: item.video_tag_key.clone(),
@@ -680,6 +682,8 @@ pub async fn admin_bulk_update_video_tags(
             }
 
             let update_req = VideoUpdateReq {
+                video_title: None,
+                video_subtitle: None,
                 video_tag_title: item.video_tag_title.clone(),
                 video_tag_subtitle: item.video_tag_subtitle.clone(),
                 video_tag_key: item.video_tag_key.clone(),

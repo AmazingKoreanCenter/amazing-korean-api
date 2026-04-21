@@ -1,6 +1,7 @@
 use redis::AsyncCommands;
 use tracing::warn;
 
+use crate::api::admin::translation::dto::{TranslatedField, TranslationMeta};
 use crate::api::admin::translation::repo::TranslationRepo;
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -82,27 +83,37 @@ impl StudyService {
             return Err(AppError::Internal("total_pages overflow".into()));
         }
 
-        // 번역 주입
-        if let Some(lang) = req.lang {
-            let ids: Vec<i64> = list.iter().map(|s| i64::from(s.study_id)).collect();
-            let translations = TranslationRepo::find_translations_for_contents(
-                &st.db,
-                ContentType::Study,
-                &ids,
-                lang,
-            )
-            .await?;
+        // 번역 주입 + 메타 계산 (Q1c A)
+        let translation_meta = match req.lang {
+            None => TranslationMeta::not_requested(),
+            Some(SupportedLanguage::Ko) => TranslationMeta::ko_full(),
+            Some(user_lang) => {
+                let ids: Vec<i64> = list.iter().map(|s| i64::from(s.study_id)).collect();
+                let translations = TranslationRepo::find_translations_for_contents(
+                    &st.db,
+                    ContentType::Study,
+                    &ids,
+                    user_lang,
+                )
+                .await?;
 
-            for item in list.iter_mut() {
-                let id = i64::from(item.study_id);
-                if let Some(t) = translations.get(&(id, "study_title".to_string())) {
-                    item.title = Some(t.text.clone());
+                let mut translated = 0usize;
+                let mut fallback = 0usize;
+                for item in list.iter_mut() {
+                    let id = i64::from(item.study_id);
+                    if let Some(t) = translations.get(&(id, "study_title".to_string())) {
+                        item.title = Some(t.text.clone());
+                        count_field(t, user_lang, &mut translated, &mut fallback);
+                    }
+                    if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
+                        item.subtitle = Some(t.text.clone());
+                        count_field(t, user_lang, &mut translated, &mut fallback);
+                    }
                 }
-                if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
-                    item.subtitle = Some(t.text.clone());
-                }
+                let requested = list.len().saturating_mul(2);
+                TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
-        }
+        };
 
         Ok(StudyListResp {
             list,
@@ -112,6 +123,7 @@ impl StudyService {
                 total_count,
                 total_pages: total_pages_i64 as u32,
             },
+            translation_meta,
         })
     }
 
@@ -160,27 +172,36 @@ impl StudyService {
             return Err(AppError::Internal("total_pages overflow".into()));
         }
 
-        // 번역 주입
+        // 번역 주입 + 메타 계산 (Q1c A)
         let mut title = study.title;
         let mut subtitle = study.subtitle;
 
-        if let Some(lang) = req.lang {
-            let translations = TranslationRepo::find_translations_for_contents(
-                &st.db,
-                ContentType::Study,
-                &[i64::from(study.study_id)],
-                lang,
-            )
-            .await?;
+        let translation_meta = match req.lang {
+            None => TranslationMeta::not_requested(),
+            Some(SupportedLanguage::Ko) => TranslationMeta::ko_full(),
+            Some(user_lang) => {
+                let translations = TranslationRepo::find_translations_for_contents(
+                    &st.db,
+                    ContentType::Study,
+                    &[i64::from(study.study_id)],
+                    user_lang,
+                )
+                .await?;
 
-            let id = i64::from(study.study_id);
-            if let Some(t) = translations.get(&(id, "study_title".to_string())) {
-                title = Some(t.text.clone());
+                let id = i64::from(study.study_id);
+                let mut translated = 0usize;
+                let mut fallback = 0usize;
+                if let Some(t) = translations.get(&(id, "study_title".to_string())) {
+                    title = Some(t.text.clone());
+                    count_field(t, user_lang, &mut translated, &mut fallback);
+                }
+                if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
+                    subtitle = Some(t.text.clone());
+                    count_field(t, user_lang, &mut translated, &mut fallback);
+                }
+                TranslationMeta::from_counts(user_lang, 2, translated, fallback)
             }
-            if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
-                subtitle = Some(t.text.clone());
-            }
-        }
+        };
 
         Ok(StudyDetailRes {
             study_id: study.study_id,
@@ -196,6 +217,7 @@ impl StudyService {
                 total_count,
                 total_pages: total_pages_i64 as u32,
             },
+            translation_meta,
         })
     }
 
@@ -213,82 +235,91 @@ impl StudyService {
         let task = StudyRepo::find_task_detail(&st.db, i64::from(task_id)).await?;
         let mut task = task.ok_or(AppError::NotFound)?;
 
-        // 번역 주입: task kind 별로 content_type 매핑 + payload 필드 오버라이드.
-        // field_name 은 admin find_source_fields 와 동일한 긴 이름 규약 (Q1a 정합).
-        if let Some(lang) = lang {
-            let content_type = content_type_for_task_kind(task.kind);
-            let content_id = i64::from(task.task_id);
-            let translations = TranslationRepo::find_translations_for_contents(
-                &st.db,
-                content_type,
-                &[content_id],
-                lang,
-            )
-            .await?;
+        // 번역 주입 + 메타 계산 (Q1c A) — task kind 별로 content_type 매핑 + payload 필드
+        // 오버라이드. field_name 은 admin find_source_fields 와 동일한 긴 이름 규약 (Q1a 정합).
+        task.translation_meta = match lang {
+            None => TranslationMeta::not_requested(),
+            Some(SupportedLanguage::Ko) => TranslationMeta::ko_full(),
+            Some(user_lang) => {
+                let content_type = content_type_for_task_kind(task.kind);
+                let content_id = i64::from(task.task_id);
+                let translations = TranslationRepo::find_translations_for_contents(
+                    &st.db,
+                    content_type,
+                    &[content_id],
+                    user_lang,
+                )
+                .await?;
 
-            match &mut task.payload {
-                TaskPayload::Choice(p) => {
-                    if let Some(t) = translations
-                        .get(&(content_id, "study_task_choice_question".to_string()))
-                    {
-                        p.question = t.text.clone();
-                    }
-                    if let Some(t) =
-                        translations.get(&(content_id, "study_task_choice_1".to_string()))
-                    {
-                        p.choice_1 = t.text.clone();
-                    }
-                    if let Some(t) =
-                        translations.get(&(content_id, "study_task_choice_2".to_string()))
-                    {
-                        p.choice_2 = t.text.clone();
-                    }
-                    if let Some(t) =
-                        translations.get(&(content_id, "study_task_choice_3".to_string()))
-                    {
-                        p.choice_3 = t.text.clone();
-                    }
-                    if let Some(t) =
-                        translations.get(&(content_id, "study_task_choice_4".to_string()))
-                    {
-                        p.choice_4 = t.text.clone();
-                    }
-                }
-                TaskPayload::Typing(p) => {
-                    if let Some(t) = translations
-                        .get(&(content_id, "study_task_typing_question".to_string()))
-                    {
-                        p.question = t.text.clone();
-                    }
-                }
-                TaskPayload::Voice(p) => {
-                    if let Some(t) = translations
-                        .get(&(content_id, "study_task_voice_question".to_string()))
-                    {
-                        p.question = t.text.clone();
-                    }
-                }
-                TaskPayload::Writing(p) => {
-                    if let Some(t) = translations
-                        .get(&(content_id, "study_task_writing_prompt".to_string()))
-                    {
-                        p.prompt = t.text.clone();
-                    }
-                    if p.answer.is_some() {
-                        if let Some(t) = translations
-                            .get(&(content_id, "study_task_writing_answer".to_string()))
-                        {
-                            p.answer = Some(t.text.clone());
+                let mut translated = 0usize;
+                let mut fallback = 0usize;
+                let requested = match &mut task.payload {
+                    TaskPayload::Choice(p) => {
+                        for (field, slot) in [
+                            ("study_task_choice_question", &mut p.question),
+                            ("study_task_choice_1", &mut p.choice_1),
+                            ("study_task_choice_2", &mut p.choice_2),
+                            ("study_task_choice_3", &mut p.choice_3),
+                            ("study_task_choice_4", &mut p.choice_4),
+                        ] {
+                            if let Some(t) = translations.get(&(content_id, field.to_string())) {
+                                *slot = t.text.clone();
+                                count_field(t, user_lang, &mut translated, &mut fallback);
+                            }
                         }
+                        5
                     }
-                    if let Some(t) = translations
-                        .get(&(content_id, "study_task_writing_hint".to_string()))
-                    {
-                        p.hint = Some(t.text.clone());
+                    TaskPayload::Typing(p) => {
+                        if let Some(t) = translations
+                            .get(&(content_id, "study_task_typing_question".to_string()))
+                        {
+                            p.question = t.text.clone();
+                            count_field(t, user_lang, &mut translated, &mut fallback);
+                        }
+                        1
                     }
-                }
+                    TaskPayload::Voice(p) => {
+                        if let Some(t) = translations
+                            .get(&(content_id, "study_task_voice_question".to_string()))
+                        {
+                            p.question = t.text.clone();
+                            count_field(t, user_lang, &mut translated, &mut fallback);
+                        }
+                        1
+                    }
+                    TaskPayload::Writing(p) => {
+                        if let Some(t) = translations
+                            .get(&(content_id, "study_task_writing_prompt".to_string()))
+                        {
+                            p.prompt = t.text.clone();
+                            count_field(t, user_lang, &mut translated, &mut fallback);
+                        }
+                        let mut requested = 1usize;
+                        if p.answer.is_some() {
+                            requested += 1;
+                            if let Some(t) = translations
+                                .get(&(content_id, "study_task_writing_answer".to_string()))
+                            {
+                                p.answer = Some(t.text.clone());
+                                count_field(t, user_lang, &mut translated, &mut fallback);
+                            }
+                        }
+                        if p.hint.is_some() {
+                            requested += 1;
+                            if let Some(t) = translations
+                                .get(&(content_id, "study_task_writing_hint".to_string()))
+                            {
+                                p.hint = Some(t.text.clone());
+                                count_field(t, user_lang, &mut translated, &mut fallback);
+                            }
+                        }
+                        requested
+                    }
+                };
+
+                TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
-        }
+        };
 
         if let Some(AuthUser(claims)) = auth {
             if let Err(err) = StudyRepo::log_task_action(
@@ -479,26 +510,36 @@ impl StudyService {
             title: row.explain_title,
             explanation: row.explain_text,
             resources,
+            translation_meta: TranslationMeta::not_requested(),
         };
 
-        // 번역 주입: content_type=study_task_explain, field_name=explain_title/explain_text
-        if let Some(lang) = lang {
-            let content_id = i64::from(task_id);
-            let translations = TranslationRepo::find_translations_for_contents(
-                &st.db,
-                ContentType::StudyTaskExplain,
-                &[content_id],
-                lang,
-            )
-            .await?;
+        // 번역 주입 + 메타 계산 (Q1c A) — content_type=study_task_explain, field_name=explain_title/explain_text
+        response.translation_meta = match lang {
+            None => TranslationMeta::not_requested(),
+            Some(SupportedLanguage::Ko) => TranslationMeta::ko_full(),
+            Some(user_lang) => {
+                let content_id = i64::from(task_id);
+                let translations = TranslationRepo::find_translations_for_contents(
+                    &st.db,
+                    ContentType::StudyTaskExplain,
+                    &[content_id],
+                    user_lang,
+                )
+                .await?;
 
-            if let Some(t) = translations.get(&(content_id, "explain_title".to_string())) {
-                response.title = Some(t.text.clone());
+                let mut translated = 0usize;
+                let mut fallback = 0usize;
+                if let Some(t) = translations.get(&(content_id, "explain_title".to_string())) {
+                    response.title = Some(t.text.clone());
+                    count_field(t, user_lang, &mut translated, &mut fallback);
+                }
+                if let Some(t) = translations.get(&(content_id, "explain_text".to_string())) {
+                    response.explanation = Some(t.text.clone());
+                    count_field(t, user_lang, &mut translated, &mut fallback);
+                }
+                TranslationMeta::from_counts(user_lang, 2, translated, fallback)
             }
-            if let Some(t) = translations.get(&(content_id, "explain_text".to_string())) {
-                response.explanation = Some(t.text.clone());
-            }
-        }
+        };
 
         if let Err(err) = StudyRepo::log_task_action(
             &st.db,
@@ -727,6 +768,20 @@ fn content_type_for_task_kind(kind: StudyTaskKind) -> ContentType {
         StudyTaskKind::Typing => ContentType::StudyTaskTyping,
         StudyTaskKind::Voice => ContentType::StudyTaskVoice,
         StudyTaskKind::Writing => ContentType::StudyTaskWriting,
+    }
+}
+
+/// 번역 1건 집계 (user_lang 일치 vs fallback) — Q1c A
+fn count_field(
+    t: &TranslatedField,
+    user_lang: SupportedLanguage,
+    translated: &mut usize,
+    fallback: &mut usize,
+) {
+    if t.actual_lang == user_lang {
+        *translated += 1;
+    } else {
+        *fallback += 1;
     }
 }
 

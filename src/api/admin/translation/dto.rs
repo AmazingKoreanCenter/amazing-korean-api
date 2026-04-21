@@ -223,5 +223,92 @@ pub struct TranslationStatsRes {
 #[derive(Debug, Clone)]
 pub struct TranslatedField {
     pub text: String,
+    /// 실제 반환된 번역의 언어 (user_lang 일치 시 user_lang, en fallback 시 En, 원본 사용 시 Ko)
+    pub actual_lang: crate::types::SupportedLanguage,
     pub fallback_used: bool,
+}
+
+/// Consumer `?lang=` 응답의 번역 메타 범위 — Q1c 결정 A (2026-04-21)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum TranslationCoverage {
+    /// `?lang=` 파라미터 없이 호출 (번역 조회 스킵)
+    NotRequested,
+    /// 요청 필드 전부 사용자 언어 번역 반환
+    Full,
+    /// 일부 필드는 사용자 언어, 일부는 fallback (en 또는 ko)
+    Partial,
+    /// 번역 데이터 없음 — 전부 원본 반환
+    None,
+}
+
+/// Consumer `?lang=` 응답 루트에 포함되는 번역 메타 — Q1c 결정 A (2026-04-21)
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct TranslationMeta {
+    /// 실제로 반환된 번역 언어 (요청 lang 과 다를 수 있음 — fallback 발생 시)
+    /// `None` 이면 `?lang=` 미요청 또는 번역 전무.
+    pub translation_lang: Option<crate::types::SupportedLanguage>,
+
+    /// 번역 범위
+    pub translation_coverage: TranslationCoverage,
+}
+
+impl TranslationMeta {
+    /// `?lang=` 요청이 없는 경우의 메타
+    pub fn not_requested() -> Self {
+        Self {
+            translation_lang: None,
+            translation_coverage: TranslationCoverage::NotRequested,
+        }
+    }
+
+    /// `?lang=ko` 로 원본 언어 자체 요청 (원본이 ko 라 별도 번역 없음, 원본이 곧 번역)
+    pub fn ko_full() -> Self {
+        Self {
+            translation_lang: Some(crate::types::SupportedLanguage::Ko),
+            translation_coverage: TranslationCoverage::Full,
+        }
+    }
+
+    /// 번역 조회 결과로부터 메타 계산
+    ///
+    /// - `requested_fields`: 이 응답이 번역을 시도하려 한 필드 수
+    /// - `translated_fields`: 실제로 user_lang 으로 반환된 필드 수
+    /// - `fallback_fields`: en 또는 ko 로 fallback 된 필드 수
+    /// - `user_lang`: 요청된 언어
+    pub fn from_counts(
+        user_lang: crate::types::SupportedLanguage,
+        requested_fields: usize,
+        translated_fields: usize,
+        fallback_fields: usize,
+    ) -> Self {
+        if requested_fields == 0 {
+            // 번역 대상이 아예 없는 경우 (id 만 반환된 리소스 등)
+            return Self {
+                translation_lang: Some(user_lang),
+                translation_coverage: TranslationCoverage::None,
+            };
+        }
+
+        let covered = translated_fields + fallback_fields;
+        let coverage = if covered == 0 {
+            TranslationCoverage::None
+        } else if translated_fields == requested_fields {
+            TranslationCoverage::Full
+        } else {
+            TranslationCoverage::Partial
+        };
+
+        Self {
+            translation_lang: Some(user_lang),
+            translation_coverage: coverage,
+        }
+    }
+}
+
+impl Default for TranslationMeta {
+    fn default() -> Self {
+        Self::not_requested()
+    }
 }

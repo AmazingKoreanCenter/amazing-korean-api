@@ -220,6 +220,21 @@ pub async fn admin_create_video(
     // video_state 기본값: ready
     let video_state = req.video_state.as_deref().unwrap_or("ready");
 
+    // Q1c B — video_title/video_subtitle 필드 추가. 미제공 시 video_tag_title/subtitle
+    // 로 폴백 (admin 프론트 마이그레이션 중 backward-compat).
+    let video_title: &str = req
+        .video_title
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or(req.video_tag_title.trim());
+    let video_subtitle: Option<&str> = req
+        .video_subtitle
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .or(req.video_tag_subtitle.as_deref());
+
     // 1. VIDEO 테이블 Insert
     let video_row = sqlx::query(
         r#"
@@ -228,9 +243,11 @@ pub async fn admin_create_video(
             video_idx,
             video_state,
             video_access,
-            video_url_vimeo
+            video_url_vimeo,
+            video_title,
+            video_subtitle
         )
-        VALUES ($1, $2, $3::video_state_enum, $4::video_access_enum, $5)
+        VALUES ($1, $2, $3::video_state_enum, $4::video_access_enum, $5, $6, $7)
         RETURNING
             video_id::bigint,
             video_created_at,
@@ -245,6 +262,8 @@ pub async fn admin_create_video(
     .bind(video_state)
     .bind(&req.video_access)
     .bind(req.video_url_vimeo.trim())
+    .bind(video_title)
+    .bind(video_subtitle)
     .fetch_one(&mut **tx)
     .await?;
 
@@ -404,7 +423,23 @@ pub async fn admin_update_video(
         is_first = false;
     }
 
-    // (4) 필수 업데이트 필드 (updated_by, updated_at)
+    // (5) Q1c B — video_title
+    if let Some(ref title) = req.video_title {
+        if !is_first { builder.push(", "); }
+        builder.push("video_title = ");
+        builder.push_bind(title);
+        is_first = false;
+    }
+
+    // (6) Q1c B — video_subtitle
+    if let Some(ref subtitle) = req.video_subtitle {
+        if !is_first { builder.push(", "); }
+        builder.push("video_subtitle = ");
+        builder.push_bind(subtitle);
+        is_first = false;
+    }
+
+    // (7) 필수 업데이트 필드 (updated_by, updated_at)
     if !is_first { builder.push(", "); }
     builder.push("updated_by_user_id = ");
     builder.push_bind(actor_user_id);
