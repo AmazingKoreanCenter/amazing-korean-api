@@ -12,6 +12,7 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
 - **2026-04-21 (오후) — Q1 선행 정합 조사: `field_name` 규약 확정 + §9-841 재작성 + Q1 → Q1a/b/c 분해**
+  - **머지 커밋**: `7035131` (PR [#176](https://github.com/AmazingKoreanCenter/amazing-korean-api/pull/176), `docs/translation-phase-0-alignment → main`, 2026-04-21 머지 완료 후 브랜치 삭제됨)
   - **배경**: Q1 (`?lang=` Consumer API 확장) 착수 전 문서·코드·DB 3자 대조 결과, `AMK_STATUS.md §8.2 Q1` + `AMK_API_LEARNING.md §9-841` 의 "⬜ 미구현" 표기가 사실과 불일치. Consumer service 4 도메인 중 6 엔드포인트는 이미 번역 주입 로직 보유. 단, (1) `field_name` 짧은이름(`"title"`) vs 실 DB 긴이름(`lesson_title`) 불일치로 번역이 반환되지 않는 잠복 버그, (2) 스펙은 `_translated` 접미사 방식이나 구현은 덮어쓰기 방식이라 양방향 편차.
   - **DB 실태 쿼리 결과** (2026-04-21): `content_translations` 총 8 row 전부 긴 이름 (`lesson_title`, `lesson_description`, `lesson_subtitle`, `lesson_idx`, `video_tag_key`/`title`/`subtitle`, `video_idx`). 프로덕션에 `lesson_title = 'approved'` 1건 존재하지만 Consumer `?lang=` 호출 시 절대 반환되지 않는 상태 = **#76 (`study_task_explain`) 과 동종의 실증된 잠복 버그**.
   - **프론트 영향도 조사**: Consumer `?lang=` 호출은 amazing-korean-api/frontend 0건, amazing-korean-mobile 0건, amazing-korean-desktop 0건. 덮어쓰기 vs `_translated` 접미사 선택의 회귀 리스크 사실상 0 → 설계 자유도 확보.
