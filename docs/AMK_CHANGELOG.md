@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-22 (QA 런 결과 수신 + 세션 종료 + 내일 처리 계획 기록)
+updated: 2026-04-22 (Q10 프론트 3건 + Q12 JWT TTL 답변 완료 — QA run 2026-04-22 대응)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,26 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-22 (심야 — 다음 세션) — Q10 프론트 3건 fix + Q12 JWT TTL QA 답변**
+  - **배경**: 2026-04-22 저녁에 수신한 QA Mac Mini 자동 런 결과 (`2026-04-22T01-35-53Z`) 의 Q10 (프론트 수정 3건 묶음) + Q12 (JWT TTL QA 전용 연장 답변) 를 이번 세션에서 처리. Q11 (pt footer 오버랩) 은 footer breakpoint 변경이 전역 디자인 영향이라 별도 PR 로 남김.
+  - **Q10.1/.2 — subtitle `<br className="hidden sm:block" />` 공백 누락 fix (전수 6곳)**:
+    - QA 리포트가 지적한 파일: `ebook_catalog_page.tsx:97-102`, `textbook_catalog_page.tsx:97`. 원인: `i > 0 && <br className="hidden sm:block" />` 에서 `sm` 미만 (모바일) 은 `<br>` 이 `display:none` 이라 단어 사이 공백이 사라짐 (`"languages,available"` 처럼 붙음).
+    - **전수조사 결과 동일 패턴 6곳** — QA 지적 2곳 외에 `coming_soon_page.tsx:54`, `error/error_page.tsx:25`, `error/access_denied_page.tsx:26`, `error/not_found_page.tsx:26` 에서도 동일 버그 잠복. 모두 같은 fix 적용 (feedback_work_rules 전수조사 원칙).
+    - **수정안**: `{i > 0 && <br className="hidden sm:block" />}` → `{i > 0 && <>{" "}<br className="hidden sm:block" /></>}`. 모바일에서는 공백 문자가 보존되어 단어 구분, 데스크톱에서는 `<br>` 우선 (공백은 시각적 무시).
+  - **Q10.3 — `/book` 캐러셀 dot `aria-label` 누락 fix (전수 3곳)**:
+    - QA 리포트가 지적한 파일: `book_hub_page.tsx:112` (dot 버튼에 `aria-label` / `aria-current` 없음 → 접근성상 dead-button).
+    - **전수조사 결과 동일 패턴 3곳** — `book/page/book_hub_page.tsx`, `ebook/page/ebook_detail_modal.tsx:107`, `textbook/page/textbook_detail_modal.tsx:116`. 모두 같은 fix 적용.
+    - **수정안**: `<button>` 에 `aria-label={t("common.goToSlide", { n: i + 1 })}` + `aria-current={i === slideIndex ? "true" : undefined}` 추가. i18n 키 `common.goToSlide` 신규 추가 (ko: `"{{n}}번 슬라이드로 이동"`, en: `"Go to slide {{n}}"`). 나머지 20개 locale 은 en 영어 fallback.
+  - **Q12 — JWT TTL QA 전용 연장 답변 (비코딩)**:
+    - 현재 값: `JWT_ACCESS_TTL_MIN=15` (분 단위 default). env override 지원 (`src/config.rs:126`).
+    - **권장: 옵션 A** — QA 전용 `.env.qa` 에서 `JWT_ACCESS_TTL_MIN=360` (6h) 오버라이드. 프로덕션 `.env` 에는 영향 없음. API 코드 변경 불필요.
+    - **옵션 B (refresh 플로우) 참고정보** — 웹 로그인은 `ak_refresh` HttpOnly 쿠키 (SameSite=Lax, Secure in prod) 로 refresh_token 전달. Playwright `storageState().origins[].cookies[]` 자동 저장. 모바일은 JSON body 로 반환 (`MobileLoginRes.refresh_token`). `POST /auth/refresh` 쿠키 기반, body 없음.
+    - **API 팀 답변**: `docs/QA_결과.md §6.1` 신규 섹션 + 체크박스 6건 모두 답변 기록. §6.2 에 OpenAPI drift 도 QA drift tolerance 권장 답변.
+  - **QA 3.2 OpenAPI drift**: API 팀이 overrides 수작업 동기화 불가 → QA 가 warn 격하 (Security 위반 anon→admin 200 만 fail). `docs/QA_결과.md §6.2` 에 답변 기록.
+  - **검증**: `npm run build` 9.74s 성공, 번들 크기 변화 없음.
+  - **변경 파일 수**: 프론트 9 파일 (subtitle fix 6 + aria-label fix 3) + i18n 2 파일 (ko.json + en.json 각 `common.goToSlide` 키 1개) + docs 2 파일 (QA_결과.md §6 + STATUS.md Q10/Q12 완료 처리).
+  - **큐 상태**: Q10 ✅ / Q12 ✅. Q11 (pt footer) 은 별도 PR 로 남김 — footer 컴포넌트 breakpoint 변경은 전 언어 영향이라 디자인 레이어 검토 필요.
 
 - **2026-04-22 (밤) — QA 자동화 런 결과 수신 + 오늘 세션 종료 + 처리 계획**
   - **QA run 근거**: `amazing-korean-ai/scripts/qa` Mac Mini 자동 QA 오케스트레이터 (Playwright 1838 tests + Gemma 4 26b 3444 calls + Fuzz 1200 requests). 근거 run `tests/qa-results/2026-04-22T01-35-53Z/`. 총 2시간 27분 소요.

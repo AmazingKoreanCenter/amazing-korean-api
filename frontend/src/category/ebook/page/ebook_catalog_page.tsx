@@ -96,7 +96,12 @@ export function EbookCatalogPage() {
         title={t("ebook.catalog.title")}
         subtitle={t("ebook.catalog.subtitle").split("\n").map((line, i) => (
           <span key={i}>
-            {i > 0 && <br className="hidden sm:block" />}
+            {i > 0 && (
+              <>
+                {" "}
+                <br className="hidden sm:block" />
+              </>
+            )}
             {line}
           </span>
         ))}

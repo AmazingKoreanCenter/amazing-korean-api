@@ -25,7 +25,8 @@
     "toggleTheme": "테마 변경",
     "themeLight": "라이트",
     "themeDark": "다크",
-    "themeSystem": "시스템"
+    "themeSystem": "시스템",
+    "goToSlide": "{{n}}번 슬라이드로 이동"
   },
   "nav": {
     "about": "소개",

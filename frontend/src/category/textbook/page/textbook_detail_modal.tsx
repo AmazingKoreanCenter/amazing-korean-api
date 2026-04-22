@@ -113,6 +113,8 @@ export function TextbookDetailModal({
                   key={i}
                   type="button"
                   onClick={() => setSlideIndex(i)}
+                  aria-label={t("common.goToSlide", { n: i + 1 })}
+                  aria-current={i === slideIndex ? "true" : undefined}
                   className={`w-2 h-2 rounded-full transition-colors ${
                     i === slideIndex ? "bg-primary" : "bg-muted-foreground/30"
                   }`}

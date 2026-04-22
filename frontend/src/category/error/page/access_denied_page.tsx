@@ -23,7 +23,12 @@ export function AccessDeniedPage() {
         title={t("error.accessDeniedTitle")}
         subtitle={t("error.accessDeniedDescription").split("\n").map((line, i) => (
           <span key={i}>
-            {i > 0 && <br className="hidden sm:block" />}
+            {i > 0 && (
+              <>
+                {" "}
+                <br className="hidden sm:block" />
+              </>
+            )}
             {line}
           </span>
         ))}

@@ -141,9 +141,9 @@
 | Q7 | 낮음 | **Paddle Live 전환** — GitHub Secrets 12개 일괄 교체 + 배포 + E2E 검증 | 1일 | §8.2 #1. **블록: KYB/Onfido 인증 대기** (외부 의존) |
 | Q8 | 낮음 | **K6 성능 테스트 실행** — `k6/` 디렉터리 세팅은 완료. 테스트 계정 생성 후 smoke + load 시나리오 실행 | 0.5일 | §8.2 #12. **블록: 테스트 계정 생성 필요** |
 | Q9 | 낮음 | **E-book 로컬 파일시스템 의존 해소** — `ebook/service.rs` 9곳 `fs::read` 를 S3/CDN 으로 전환. RDS 이전 선행 작업. | 3~5일 | §8.2 #6 검증된 리스크 CRITICAL. 앱 개발 이후 공식 로드맵에 있음 |
-| Q10 | **높음** | **QA run 2026-04-22 프론트 수정 3건 묶음** — 2.1 ebook subtitle 공백 누락(14 locale 모바일), 2.2 textbook subtitle 공백 누락(km/my/th), 2.4 `/book` 캐러셀 dot `aria-label` 누락(en/ja). 2.1/2.2 원인 동일 (`<br className="hidden sm:block" />` 모바일 공백 대체 없음). 수정안: `<> <br className="hidden sm:block" /></>` 로 모바일 공백 보존. | 30분 | `docs/QA_결과.md` 2.1/2.2/2.4 (Mac Mini 자동 QA 런 `2026-04-22T01-35-53Z`) |
+| ~~Q10~~ | ✅ 완료 | ~~QA run 2026-04-22 프론트 수정 3건 묶음~~ — 2.1 ebook subtitle 공백 + 2.2 textbook subtitle 공백 + 2.4 `/book` 캐러셀 dot `aria-label`. `<br className="hidden sm:block" />` 패턴 **전수 6곳** (ebook/textbook 카탈로그 + coming_soon + error 3종) 모두 `<>{" "}<br.../></>` 로 교체 (모바일 공백 보존). 캐러셀 dot 은 전수 **3곳** (book_hub + ebook_detail_modal + textbook_detail_modal) 에 `aria-label={t("common.goToSlide", { n })}` + `aria-current` 추가. i18n 키 `common.goToSlide` 신규 (ko/en). **2026-04-22 완료** (`npm run build` 9.74s 성공). | 30분 | `docs/QA_결과.md` 2.1/2.2/2.4 |
 | Q11 | 낮음 | **QA 2.3 pt 데스크톱 footer 텍스트 오버랩** — 포르투갈어만 해당 (copyright 문구 길이). footer 컴포넌트 `flex-wrap` + link 묶음 줄바꿈. | 0.5~1시간 | `docs/QA_결과.md` 2.3 (1 언어만 영향 → 우선도 낮음) |
-| Q12 | 중간 | **QA 3.1 JWT TTL QA 전용 연장 설정 답변** — QA full run 2h30m 동안 `QA_USER_TOKEN`/`QA_ADMIN_TOKEN` 만료로 70건 fail. 권장: QA `.env` 에서 `JWT_ACCESS_TTL_SEC=21600` (6h) 오버라이드 허용. 프로덕션 무영향. 현재 TTL 값 `config.rs` 확인 후 QA 에 응답. | 15분 (응답) | `docs/QA_결과.md` 3.1 |
+| ~~Q12~~ | ✅ 완료 | ~~QA 3.1 JWT TTL QA 전용 연장 설정 답변~~ — 현재 `JWT_ACCESS_TTL_MIN=15` (분, env override 지원). **옵션 A 권장**: QA `.env.qa` 에서 `JWT_ACCESS_TTL_MIN=360` (6h) 주입. 프로덕션 무영향, API 코드 변경 불필요. 옵션 B (refresh 플로우) 참고정보 함께 문서화 (웹은 `ak_refresh` HttpOnly 쿠키, 모바일은 JSON body). **답변은 `docs/QA_결과.md §6.1`** 에 문서화. | 15분 | `docs/QA_결과.md` §6.1 |
 
 **QA 에 QA 쪽 조치로 회송** (이 리포 작업 아님, 외부 협조):
 - **QA 3.2 OpenAPI drift 1328 cell** → QA 가 warn 격하 (Security 위반만 fail). `reference_qa_automation.md` 기록.

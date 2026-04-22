@@ -23,7 +23,12 @@ export function NotFoundPage() {
         title={t("error.notFoundTitle")}
         subtitle={t("error.notFoundDescription").split("\n").map((line, i) => (
           <span key={i}>
-            {i > 0 && <br className="hidden sm:block" />}
+            {i > 0 && (
+              <>
+                {" "}
+                <br className="hidden sm:block" />
+              </>
+            )}
             {line}
           </span>
         ))}

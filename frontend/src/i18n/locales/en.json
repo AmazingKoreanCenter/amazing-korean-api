@@ -25,7 +25,8 @@
     "toggleTheme": "Toggle theme",
     "themeLight": "Light",
     "themeDark": "Dark",
-    "themeSystem": "System"
+    "themeSystem": "System",
+    "goToSlide": "Go to slide {{n}}"
   },
   "nav": {
     "about": "About",
