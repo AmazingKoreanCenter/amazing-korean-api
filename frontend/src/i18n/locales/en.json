@@ -779,6 +779,45 @@
     },
     "textbook": {
       "title": "Textbook Order Management",
+      "logs": {
+        "title": "Audit Logs",
+        "subtitle": "History of admin actions on textbook orders (from admin_textbook_log)",
+        "empty": "No logs match the filter",
+        "loadError": "Failed to load logs",
+        "filter": {
+          "action": "Action",
+          "actionAll": "All actions",
+          "orderId": "Order ID",
+          "orderIdPlaceholder": "e.g. 123",
+          "adminUserId": "Admin User ID",
+          "adminUserIdPlaceholder": "e.g. 456",
+          "apply": "Apply",
+          "reset": "Reset"
+        },
+        "actions": {
+          "create": "Create",
+          "update": "Update",
+          "banned": "Banned",
+          "reorder": "Reorder",
+          "publish": "Publish",
+          "unpublish": "Unpublish",
+          "delete": "Delete"
+        },
+        "table": {
+          "createdAt": "Timestamp",
+          "action": "Action",
+          "admin": "Admin",
+          "order": "Order",
+          "diff": "Changes"
+        },
+        "diff": {
+          "toggle": "Show / hide",
+          "before": "Before",
+          "after": "After",
+          "beforeOnly": "(snapshot before deletion)",
+          "afterOnly": "(newly created)"
+        }
+      },
       "searchPlaceholder": "Search by order code, name, or organization",
       "search": "Search",
       "allStatus": "All Status",

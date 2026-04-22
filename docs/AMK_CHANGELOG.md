@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-22 (Q5 사용자 검색 UI — admin 대리 주문 생성 자동완성)
+updated: 2026-04-22 (Q6 admin_textbook_log 감사 로그 조회 UI)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,38 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-22 (오후) — Q6: admin_textbook_log 감사 로그 조회 UI + 신규 API (반나절)**
+  - **배경**: `admin_textbook_log` 테이블에 관리자 작업 이력은 기록되고 있었으나 (textbook/repo.rs:504 `insert_admin_log`), 조회 API 가 없어 admin UI 에서 "언제 누가 어떤 주문을 create/update/banned 했는지" 확인 불가. Q5 (사용자 검색 UI) 와 짝을 이루는 후속 공사.
+  - **백엔드 — 신규 엔드포인트 `GET /admin/textbook/logs`** (필터 + 페이지네이션):
+    - [src/api/admin/textbook/dto.rs](../src/api/admin/textbook/dto.rs) — `AdminTextbookLogQuery` (action/order_id/admin_user_id/page/per_page), `AdminTextbookLogItem`, `AdminTextbookLogListRes`, `AdminTextbookLogMeta`
+    - [src/api/textbook/repo.rs](../src/api/textbook/repo.rs) — `AdminLogRow` 신규 구조체 (admin_email_enc 는 암호화 상태). `list_admin_logs` 함수 (JOIN users + textbook, 필터 조건부 바인딩, 총 개수 + 페이지 데이터 반환)
+    - [src/api/admin/textbook/service.rs](../src/api/admin/textbook/service.rs) — `list_admin_logs` 서비스. `CryptoService::new(...)` 로 admin_email 복호화 후 응답 DTO 조립. `per_page` 는 `.clamp(1, 100)`.
+    - [src/api/admin/textbook/handler.rs](../src/api/admin/textbook/handler.rs) — `list_admin_logs` 핸들러 (`Query<AdminTextbookLogQuery>` + AuthUser)
+    - [src/api/admin/textbook/router.rs](../src/api/admin/textbook/router.rs) — `.route("/logs", get(handler::list_admin_logs))`
+  - **프론트**:
+    - [frontend/src/category/admin/textbook/types.ts](../frontend/src/category/admin/textbook/types.ts) — `AdminAction` 타입, `AdminTextbookLogQuery`, `AdminTextbookLogItem`, `AdminTextbookLogListRes`, `AdminTextbookLogMeta` 신규
+    - [frontend/src/category/admin/admin_api.ts](../frontend/src/category/admin/admin_api.ts) — `getAdminTextbookLogs(params)` 함수
+    - [frontend/src/category/admin/textbook/hook/use_admin_textbook.ts](../frontend/src/category/admin/textbook/hook/use_admin_textbook.ts) — `useAdminTextbookLogs` 훅 + `adminTextbookKeys.logs`/`logList` query key
+    - **신규 페이지** [frontend/src/category/admin/textbook/page/admin_textbook_logs_page.tsx](../frontend/src/category/admin/textbook/page/admin_textbook_logs_page.tsx) — 필터 (action drop-down + order_id text + admin_user_id text) + 테이블 (timestamp/action badge/admin/order_code/diff) + 페이지네이션. `before_data`/`after_data` JSONB 는 `<details>` 토글로 raw JSON pretty-print.
+    - [frontend/src/app/routes.tsx](../frontend/src/app/routes.tsx) — `textbook/logs` 라우트 추가, lazy import
+    - [frontend/src/category/admin/textbook/page/admin_textbook_orders_page.tsx](../frontend/src/category/admin/textbook/page/admin_textbook_orders_page.tsx) — 상단에 "감사 로그" outline 버튼 추가 (`/admin/textbook/logs` 링크)
+  - **i18n** (ko + en 신규 키, 나머지 18 locale 은 en 폴백):
+    - `admin.textbook.logs.{title,subtitle,empty,loadError,filter,actions,table,diff}` 섹션
+  - **보안 고려**:
+    - admin 이메일은 DB 에 AES-256-GCM 암호화 상태. 서비스에서 복호화 후 응답 — 관리자(JWT auth)만 접근 가능한 엔드포인트이므로 PII 정책 준수.
+    - `CryptoError` → `AppError::Internal(500)` 매핑 (`feedback_security_patterns.md` 불투명화 원칙). decrypt 실패 시 스택 오류 로그 + generic 500.
+  - **검증**:
+    - `cargo check` 16.23s 클린
+    - `cargo clippy --lib --bins -- -D warnings` 22.75s 클린
+    - `frontend: npm run build` 8.04s 성공
+    - `query_as::<_, AdminLogRow>` 런타임 체크 방식이라 sqlx offline cache 재생성 불필요
+  - **테스트 plan (머지 후)**:
+    - admin 로그인 → `/admin/textbook/orders` → "감사 로그" 버튼 → `/admin/textbook/logs` 진입
+    - 액션 필터 Create 선택 → `admin_create_video` 호출 결과 로그 확인
+    - order_id / admin_user_id 조합 필터 → 특정 관리자가 특정 주문에 한 액션만 조회 확인
+    - before/after JSON pretty-print 토글 동작 확인
+  - **다음 단계**: PR #180 (Q5) + 오늘 Q6 를 같은 KKRYOUN 에 스택. 머지 시 함께 배포.
 
 - **2026-04-22 (오후) — Q5: 사용자 검색 UI — admin 대리 주문 생성 자동완성 (프론트 전용, 반나절)**
   - **배경**: PR #174 (#75 관리자 대리 주문 생성) 후속. `admin_textbook_order_create.tsx` 의 `user_id` 텍스트 입력을 자동완성 콤보박스로 개선. 백엔드 `GET /admin/users?q=` 이미 지원 (이메일 blind index exact match / 닉네임 LIKE) → 재사용.

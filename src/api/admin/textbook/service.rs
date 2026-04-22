@@ -3,12 +3,16 @@ use crate::api::textbook::repo::{InsertOrderParams, TextbookRepo};
 use crate::api::textbook::service::{
     TextbookService, UNIT_PRICE, MIN_TOTAL_QUANTITY, build_order_res_from, catalog_languages,
 };
+use crate::crypto::CryptoService;
 use crate::error::{AppError, AppResult};
 use crate::external::email::{send_templated, EmailTemplate};
 use crate::state::AppState;
 use crate::types::{AdminAction, TextbookLanguage, TextbookOrderStatus, TextbookType};
 
-use super::dto::{AdminCreateOrderReq, AdminTextbookListRes, AdminTextbookMeta};
+use super::dto::{
+    AdminCreateOrderReq, AdminTextbookListRes, AdminTextbookLogItem, AdminTextbookLogListRes,
+    AdminTextbookLogMeta, AdminTextbookLogQuery, AdminTextbookMeta,
+};
 
 pub struct AdminTextbookService;
 
@@ -55,6 +59,64 @@ impl AdminTextbookService {
     /// 주문 상세 조회 (관리자)
     pub async fn get_order(st: &AppState, order_id: i64) -> AppResult<OrderRes> {
         TextbookService::get_order_by_id(st, order_id).await
+    }
+
+    /// Q6 (2026-04-22) — admin_textbook_log 감사 로그 조회
+    ///
+    /// 필터 (action/order_id/admin_user_id) + 페이지네이션. repo Row 의
+    /// admin_email_enc 를 crypto 로 복호화해 응답 DTO 조립.
+    pub async fn list_admin_logs(
+        st: &AppState,
+        query: AdminTextbookLogQuery,
+    ) -> AppResult<AdminTextbookLogListRes> {
+        let page = query.page.unwrap_or(1).max(1);
+        let per_page_raw = query.per_page.unwrap_or(20);
+        let per_page = per_page_raw.clamp(1, 100);
+
+        let (total, rows) = TextbookRepo::list_admin_logs(
+            &st.db,
+            query.action,
+            query.order_id,
+            query.admin_user_id,
+            page,
+            per_page,
+        )
+        .await?;
+
+        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+        let mut items = Vec::with_capacity(rows.len());
+        for row in rows {
+            let admin_email = crypto
+                .decrypt(&row.admin_email_enc, "users.user_email")?;
+            items.push(AdminTextbookLogItem {
+                log_id: row.log_id,
+                admin_user_id: row.admin_user_id,
+                admin_email,
+                admin_nickname: row.admin_nickname,
+                order_id: row.order_id,
+                order_code: row.order_code,
+                action: row.action,
+                before_data: row.before_data,
+                after_data: row.after_data,
+                created_at: row.created_at,
+            });
+        }
+
+        let total_pages = if total == 0 {
+            0
+        } else {
+            (total + per_page - 1) / per_page
+        };
+
+        Ok(AdminTextbookLogListRes {
+            items,
+            meta: AdminTextbookLogMeta {
+                total_count: total,
+                total_pages,
+                current_page: page,
+                per_page,
+            },
+        })
     }
 
     /// 관리자 대리 주문 생성

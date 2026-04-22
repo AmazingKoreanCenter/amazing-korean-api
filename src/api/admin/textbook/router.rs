@@ -11,4 +11,6 @@ pub fn admin_textbook_router() -> Router<AppState> {
         .route("/orders/{id}/status", patch(handler::update_status))
         .route("/orders/{id}/tracking", patch(handler::update_tracking))
         .route("/orders/{id}", delete(handler::delete_order))
+        // Q6 (2026-04-22): admin_textbook_log 감사 로그 조회
+        .route("/logs", get(handler::list_admin_logs))
 }

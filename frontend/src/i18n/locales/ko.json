@@ -779,6 +779,45 @@
     },
     "textbook": {
       "title": "교재 주문 관리",
+      "logs": {
+        "title": "감사 로그",
+        "subtitle": "관리자가 수행한 교재 주문 작업 이력 (admin_textbook_log 기반)",
+        "empty": "해당 조건의 로그가 없습니다",
+        "loadError": "로그를 불러오지 못했습니다",
+        "filter": {
+          "action": "액션",
+          "actionAll": "전체 액션",
+          "orderId": "주문 ID",
+          "orderIdPlaceholder": "예: 123",
+          "adminUserId": "관리자 ID",
+          "adminUserIdPlaceholder": "예: 456",
+          "apply": "필터 적용",
+          "reset": "초기화"
+        },
+        "actions": {
+          "create": "생성",
+          "update": "수정",
+          "banned": "차단",
+          "reorder": "재주문",
+          "publish": "공개",
+          "unpublish": "비공개",
+          "delete": "삭제"
+        },
+        "table": {
+          "createdAt": "일시",
+          "action": "액션",
+          "admin": "관리자",
+          "order": "주문",
+          "diff": "변경 내용"
+        },
+        "diff": {
+          "toggle": "보기/숨김",
+          "before": "변경 전",
+          "after": "변경 후",
+          "beforeOnly": "(삭제 전 데이터만 기록)",
+          "afterOnly": "(신규 생성 데이터)"
+        }
+      },
       "searchPlaceholder": "주문번호, 신청자명, 기관명 검색",
       "search": "검색",
       "allStatus": "전체 상태",

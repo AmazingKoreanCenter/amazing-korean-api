@@ -1,9 +1,10 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use validator::Validate;
 
 use crate::api::textbook::dto::CreateOrderItemReq;
-use crate::types::{TextbookOrderStatus, TextbookPaymentMethod};
+use crate::types::{AdminAction, TextbookOrderStatus, TextbookPaymentMethod};
 
 // =============================================================================
 // 목록 조회
@@ -31,6 +32,62 @@ pub struct AdminTextbookMeta {
 pub struct AdminTextbookListRes {
     pub items: Vec<crate::api::textbook::dto::OrderRes>,
     pub meta: AdminTextbookMeta,
+}
+
+// =============================================================================
+// 감사 로그 조회 (Q6, 2026-04-22) — GET /admin/textbook/logs
+// =============================================================================
+//
+// admin_textbook_log 테이블 조회. 관리자가 어느 주문에 대해 언제 어떤 액션
+// (create/update/banned/…) 을 했는지 확인. before_data / after_data 는 JSONB
+// 원본 그대로 전달 (프론트에서 diff 렌더).
+
+/// 감사 로그 조회 필터 (Query String)
+#[derive(Debug, Deserialize, IntoParams, ToSchema)]
+pub struct AdminTextbookLogQuery {
+    /// 액션 필터 (create / update / banned / reorder / publish / unpublish / delete)
+    pub action: Option<AdminAction>,
+
+    /// 특정 주문 로그만 조회
+    pub order_id: Option<i64>,
+
+    /// 특정 관리자가 수행한 로그만 조회
+    pub admin_user_id: Option<i64>,
+
+    pub page: Option<i64>,
+    pub per_page: Option<i64>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminTextbookLogItem {
+    pub log_id: i64,
+    pub admin_user_id: i64,
+    /// 관리자 이메일 (복호화된 평문)
+    pub admin_email: String,
+    pub admin_nickname: String,
+    pub order_id: i64,
+    /// 주문번호 (textbook.order_code)
+    pub order_code: String,
+    pub action: AdminAction,
+    #[schema(value_type = Object)]
+    pub before_data: Option<serde_json::Value>,
+    #[schema(value_type = Object)]
+    pub after_data: Option<serde_json::Value>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminTextbookLogMeta {
+    pub total_count: i64,
+    pub total_pages: i64,
+    pub current_page: i64,
+    pub per_page: i64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminTextbookLogListRes {
+    pub items: Vec<AdminTextbookLogItem>,
+    pub meta: AdminTextbookLogMeta,
 }
 
 // =============================================================================

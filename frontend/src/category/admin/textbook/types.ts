@@ -94,3 +94,51 @@ export interface AdminCreateOrderReq {
   /** 비고 (관리자 메모 가능) */
   notes?: string;
 }
+
+// =============================================================================
+// Q6 감사 로그 조회 (GET /admin/textbook/logs, 2026-04-22)
+// =============================================================================
+
+/** admin_action_enum 값. 관리자 활동 액션 종류. */
+export type AdminAction =
+  | "create"
+  | "update"
+  | "banned"
+  | "reorder"
+  | "publish"
+  | "unpublish"
+  | "delete";
+
+export interface AdminTextbookLogQuery {
+  action?: AdminAction;
+  order_id?: number;
+  admin_user_id?: number;
+  page?: number;
+  per_page?: number;
+}
+
+export interface AdminTextbookLogItem {
+  log_id: number;
+  admin_user_id: number;
+  admin_email: string;
+  admin_nickname: string;
+  order_id: number;
+  order_code: string;
+  action: AdminAction;
+  /** before_data/after_data 는 JSONB raw value — diff 렌더는 프론트에서 */
+  before_data: unknown | null;
+  after_data: unknown | null;
+  created_at: string;
+}
+
+export interface AdminTextbookLogMeta {
+  total_count: number;
+  total_pages: number;
+  current_page: number;
+  per_page: number;
+}
+
+export interface AdminTextbookLogListRes {
+  items: AdminTextbookLogItem[];
+  meta: AdminTextbookLogMeta;
+}

@@ -79,12 +79,19 @@ export function AdminTextbookOrdersPage() {
           <BookOpen className="h-6 w-6" />
           {t("admin.textbook.title")}
         </h1>
-        <Button asChild size="sm">
-          <Link to="/admin/textbook/orders/new">
-            <Plus className="h-4 w-4 mr-1" />
-            {t("admin.textbook.newOrder")}
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild size="sm" variant="outline">
+            <Link to="/admin/textbook/logs">
+              {t("admin.textbook.logs.title")}
+            </Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link to="/admin/textbook/orders/new">
+              <Plus className="h-4 w-4 mr-1" />
+              {t("admin.textbook.newOrder")}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filter */}
