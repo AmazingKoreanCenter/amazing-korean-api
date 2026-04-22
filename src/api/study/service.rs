@@ -1,7 +1,7 @@
 use redis::AsyncCommands;
 use tracing::warn;
 
-use crate::api::admin::translation::dto::{TranslatedField, TranslationMeta};
+use crate::api::admin::translation::dto::TranslationMeta;
 use crate::api::admin::translation::repo::TranslationRepo;
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -103,11 +103,11 @@ impl StudyService {
                     let id = i64::from(item.study_id);
                     if let Some(t) = translations.get(&(id, "study_title".to_string())) {
                         item.title = Some(t.text.clone());
-                        count_field(t, user_lang, &mut translated, &mut fallback);
+                        t.count_to(user_lang, &mut translated, &mut fallback);
                     }
                     if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
                         item.subtitle = Some(t.text.clone());
-                        count_field(t, user_lang, &mut translated, &mut fallback);
+                        t.count_to(user_lang, &mut translated, &mut fallback);
                     }
                 }
                 let requested = list.len().saturating_mul(2);
@@ -193,11 +193,11 @@ impl StudyService {
                 let mut fallback = 0usize;
                 if let Some(t) = translations.get(&(id, "study_title".to_string())) {
                     title = Some(t.text.clone());
-                    count_field(t, user_lang, &mut translated, &mut fallback);
+                    t.count_to(user_lang, &mut translated, &mut fallback);
                 }
                 if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
                     subtitle = Some(t.text.clone());
-                    count_field(t, user_lang, &mut translated, &mut fallback);
+                    t.count_to(user_lang, &mut translated, &mut fallback);
                 }
                 TranslationMeta::from_counts(user_lang, 2, translated, fallback)
             }
@@ -264,7 +264,7 @@ impl StudyService {
                         ] {
                             if let Some(t) = translations.get(&(content_id, field.to_string())) {
                                 *slot = t.text.clone();
-                                count_field(t, user_lang, &mut translated, &mut fallback);
+                                t.count_to(user_lang, &mut translated, &mut fallback);
                             }
                         }
                         5
@@ -274,7 +274,7 @@ impl StudyService {
                             .get(&(content_id, "study_task_typing_question".to_string()))
                         {
                             p.question = t.text.clone();
-                            count_field(t, user_lang, &mut translated, &mut fallback);
+                            t.count_to(user_lang, &mut translated, &mut fallback);
                         }
                         1
                     }
@@ -283,7 +283,7 @@ impl StudyService {
                             .get(&(content_id, "study_task_voice_question".to_string()))
                         {
                             p.question = t.text.clone();
-                            count_field(t, user_lang, &mut translated, &mut fallback);
+                            t.count_to(user_lang, &mut translated, &mut fallback);
                         }
                         1
                     }
@@ -292,7 +292,7 @@ impl StudyService {
                             .get(&(content_id, "study_task_writing_prompt".to_string()))
                         {
                             p.prompt = t.text.clone();
-                            count_field(t, user_lang, &mut translated, &mut fallback);
+                            t.count_to(user_lang, &mut translated, &mut fallback);
                         }
                         let mut requested = 1usize;
                         if p.answer.is_some() {
@@ -301,7 +301,7 @@ impl StudyService {
                                 .get(&(content_id, "study_task_writing_answer".to_string()))
                             {
                                 p.answer = Some(t.text.clone());
-                                count_field(t, user_lang, &mut translated, &mut fallback);
+                                t.count_to(user_lang, &mut translated, &mut fallback);
                             }
                         }
                         if p.hint.is_some() {
@@ -310,7 +310,7 @@ impl StudyService {
                                 .get(&(content_id, "study_task_writing_hint".to_string()))
                             {
                                 p.hint = Some(t.text.clone());
-                                count_field(t, user_lang, &mut translated, &mut fallback);
+                                t.count_to(user_lang, &mut translated, &mut fallback);
                             }
                         }
                         requested
@@ -531,11 +531,11 @@ impl StudyService {
                 let mut fallback = 0usize;
                 if let Some(t) = translations.get(&(content_id, "explain_title".to_string())) {
                     response.title = Some(t.text.clone());
-                    count_field(t, user_lang, &mut translated, &mut fallback);
+                    t.count_to(user_lang, &mut translated, &mut fallback);
                 }
                 if let Some(t) = translations.get(&(content_id, "explain_text".to_string())) {
                     response.explanation = Some(t.text.clone());
-                    count_field(t, user_lang, &mut translated, &mut fallback);
+                    t.count_to(user_lang, &mut translated, &mut fallback);
                 }
                 TranslationMeta::from_counts(user_lang, 2, translated, fallback)
             }
@@ -771,19 +771,6 @@ fn content_type_for_task_kind(kind: StudyTaskKind) -> ContentType {
     }
 }
 
-/// 번역 1건 집계 (user_lang 일치 vs fallback) — Q1c A
-fn count_field(
-    t: &TranslatedField,
-    user_lang: SupportedLanguage,
-    translated: &mut usize,
-    fallback: &mut usize,
-) {
-    if t.actual_lang == user_lang {
-        *translated += 1;
-    } else {
-        *fallback += 1;
-    }
-}
 
 fn parse_study_program(value: &str) -> Option<StudyProgram> {
     match value {

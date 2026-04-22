@@ -47,13 +47,13 @@ impl VideoService {
                         translations.get(&(item.video_id, "video_title".to_string()))
                     {
                         item.title = Some(t.text.clone());
-                        count_field(t, user_lang, &mut translated, &mut fallback);
+                        t.count_to(user_lang, &mut translated, &mut fallback);
                     }
                     if let Some(t) =
                         translations.get(&(item.video_id, "video_subtitle".to_string()))
                     {
                         item.subtitle = Some(t.text.clone());
-                        count_field(t, user_lang, &mut translated, &mut fallback);
+                        t.count_to(user_lang, &mut translated, &mut fallback);
                     }
                 }
                 // 요청 필드 = video 당 2 (title + subtitle) × 항목 수
@@ -111,13 +111,13 @@ impl VideoService {
                     video_translations.get(&(video.video_id, "video_title".to_string()))
                 {
                     video.title = Some(t.text.clone());
-                    count_field(t, user_lang, &mut translated, &mut fallback);
+                    t.count_to(user_lang, &mut translated, &mut fallback);
                 }
                 if let Some(t) =
                     video_translations.get(&(video.video_id, "video_subtitle".to_string()))
                 {
                     video.subtitle = Some(t.text.clone());
-                    count_field(t, user_lang, &mut translated, &mut fallback);
+                    t.count_to(user_lang, &mut translated, &mut fallback);
                 }
 
                 // Video 태그 번역 (Q1c C) — 상세 응답 tags[] 에만 적용
@@ -229,20 +229,6 @@ impl VideoService {
     }
 }
 
-/// 번역 1건에 대해 user_lang 일치 / fallback 여부 집계
-fn count_field(
-    t: &TranslatedField,
-    user_lang: SupportedLanguage,
-    translated: &mut usize,
-    fallback: &mut usize,
-) {
-    if t.actual_lang == user_lang {
-        *translated += 1;
-    } else {
-        *fallback += 1;
-    }
-}
-
 /// VideoTag 번역을 tags[] 에 주입 (Q1c C)
 fn apply_tag_translations(
     tags: &mut [VideoTagDetail],
@@ -254,11 +240,11 @@ fn apply_tag_translations(
     for tag in tags.iter_mut() {
         if let Some(t) = translations.get(&(tag.id, "video_tag_title".to_string())) {
             tag.title = Some(t.text.clone());
-            count_field(t, user_lang, translated, fallback);
+            t.count_to(user_lang, translated, fallback);
         }
         if let Some(t) = translations.get(&(tag.id, "video_tag_subtitle".to_string())) {
             tag.subtitle = Some(t.text.clone());
-            count_field(t, user_lang, translated, fallback);
+            t.count_to(user_lang, translated, fallback);
         }
     }
 }

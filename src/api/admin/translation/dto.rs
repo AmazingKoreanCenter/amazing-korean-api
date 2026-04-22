@@ -228,6 +228,23 @@ pub struct TranslatedField {
     pub fallback_used: bool,
 }
 
+impl TranslatedField {
+    /// 번역 1건에 대해 user_lang 일치 / fallback 여부를 카운터에 집계.
+    /// Q1c A 메타 계산 시 각 Consumer service 에서 사용.
+    pub fn count_to(
+        &self,
+        user_lang: crate::types::SupportedLanguage,
+        translated: &mut usize,
+        fallback: &mut usize,
+    ) {
+        if self.actual_lang == user_lang {
+            *translated += 1;
+        } else {
+            *fallback += 1;
+        }
+    }
+}
+
 /// Consumer `?lang=` 응답의 번역 메타 범위 — Q1c 결정 A (2026-04-21)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "snake_case")]

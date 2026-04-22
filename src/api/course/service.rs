@@ -2,7 +2,7 @@ use super::{
     dto::{CourseDetailRes, CourseListRes},
     repo,
 };
-use crate::api::admin::translation::dto::{TranslatedField, TranslationMeta};
+use crate::api::admin::translation::dto::TranslationMeta;
 use crate::api::admin::translation::repo::TranslationRepo;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
@@ -37,13 +37,13 @@ impl CourseService {
                         .get(&(item.course_id, "course_title".to_string()))
                     {
                         item.course_title = t.text.clone();
-                        count_field(t, user_lang, &mut translated, &mut fallback);
+                        t.count_to(user_lang, &mut translated, &mut fallback);
                     }
                     if let Some(t) = translations
                         .get(&(item.course_id, "course_subtitle".to_string()))
                     {
                         item.course_subtitle = Some(t.text.clone());
-                        count_field(t, user_lang, &mut translated, &mut fallback);
+                        t.count_to(user_lang, &mut translated, &mut fallback);
                     }
                 }
                 let requested = items.len().saturating_mul(2);
@@ -84,13 +84,13 @@ impl CourseService {
                     translations.get(&(item.course_id, "course_title".to_string()))
                 {
                     item.course_title = t.text.clone();
-                    count_field(t, user_lang, &mut translated, &mut fallback);
+                    t.count_to(user_lang, &mut translated, &mut fallback);
                 }
                 if let Some(t) =
                     translations.get(&(item.course_id, "course_subtitle".to_string()))
                 {
                     item.course_subtitle = Some(t.text.clone());
-                    count_field(t, user_lang, &mut translated, &mut fallback);
+                    t.count_to(user_lang, &mut translated, &mut fallback);
                 }
                 TranslationMeta::from_counts(user_lang, 2, translated, fallback)
             }
@@ -113,17 +113,4 @@ impl CourseService {
     }
 }
 
-/// 번역 1건 집계 (user_lang 일치 vs fallback)
-fn count_field(
-    t: &TranslatedField,
-    user_lang: SupportedLanguage,
-    translated: &mut usize,
-    fallback: &mut usize,
-) {
-    if t.actual_lang == user_lang {
-        *translated += 1;
-    } else {
-        *fallback += 1;
-    }
-}
 
