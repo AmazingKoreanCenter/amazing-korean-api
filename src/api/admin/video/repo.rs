@@ -228,12 +228,17 @@ pub async fn admin_create_video(
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .unwrap_or(req.video_tag_title.trim());
+    // Gemini 6차 MEDIUM 반영: video_tag_subtitle 폴백도 trim + empty filter 일관성.
     let video_subtitle: Option<&str> = req
         .video_subtitle
         .as_deref()
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .or(req.video_tag_subtitle.as_deref());
+        .or(req
+            .video_tag_subtitle
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty()));
 
     // 1. VIDEO 테이블 Insert
     let video_row = sqlx::query(
@@ -423,16 +428,26 @@ pub async fn admin_update_video(
         is_first = false;
     }
 
-    // (5) Q1c B — video_title
-    if let Some(ref title) = req.video_title {
+    // (5) Q1c B — video_title (Gemini 6차 HIGH 반영: backward-compat 폴백 + trim)
+    // admin UI 가 Q1c 이전 버전이면 video_tag_title 만 보내는데, 이때도 video 테이블
+    // 의 video_title 컬럼이 video/video_tag 간 불일치 없이 업데이트되도록 폴백.
+    let title_to_update = req.video_title.as_deref()
+        .or(req.video_tag_title.as_deref())
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    if let Some(title) = title_to_update {
         if !is_first { builder.push(", "); }
         builder.push("video_title = ");
         builder.push_bind(title);
         is_first = false;
     }
 
-    // (6) Q1c B — video_subtitle
-    if let Some(ref subtitle) = req.video_subtitle {
+    // (6) Q1c B — video_subtitle (동일 폴백 + trim)
+    let subtitle_to_update = req.video_subtitle.as_deref()
+        .or(req.video_tag_subtitle.as_deref())
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    if let Some(subtitle) = subtitle_to_update {
         if !is_first { builder.push(", "); }
         builder.push("video_subtitle = ");
         builder.push_bind(subtitle);
