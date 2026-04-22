@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-21 (Q1c 응답 스키마 최종 정렬)
+updated: 2026-04-22 (Q1c Gemini 2차 리뷰 반영 — count_field 중복 통합)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,20 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-22 (오전) — Q1c Gemini 2차 리뷰 반영: count_field 중복 → TranslatedField::count_to 메서드 통합**
+  - **배경**: PR #179 스코프 확장 후 사용자가 `/gemini review` 수동 트리거 → 2026-04-22 01:15Z Gemini 2차 리뷰 (MEDIUM 5건, 모두 동일 패턴). `count_field` 헬퍼 함수가 4개 Consumer service 파일에 중복 정의돼 있으니 `TranslatedField` 구조체의 메서드로 이동해 중복 제거 권장.
+  - **반영 내역** (커밋 `7ace98d`, 5 파일 / −82 +46 순 감소):
+    - [src/api/admin/translation/dto.rs](../src/api/admin/translation/dto.rs) — `TranslatedField` 에 `count_to(&self, user_lang, translated, fallback)` 메서드 추가
+    - [src/api/course/service.rs](../src/api/course/service.rs) — 로컬 `count_field` 제거, 호출 사이트를 `t.count_to(...)` 로 변경. 미사용 `TranslatedField` import 제거.
+    - [src/api/lesson/service.rs](../src/api/lesson/service.rs) — 동일
+    - [src/api/study/service.rs](../src/api/study/service.rs) — 동일
+    - [src/api/video/service.rs](../src/api/video/service.rs) — 동일. 단, `TranslatedField` 는 `apply_tag_translations` 함수 시그니처에 여전히 사용되므로 import 유지. `apply_tag_translations` 내부 호출도 `t.count_to(...)` 로 변경.
+  - **Gemini 리뷰 전수 반영**: MEDIUM 5건 / HIGH/CRITICAL 0건. 미처리 0건.
+  - **검증**:
+    - `cargo check` 17.25s 클린
+    - `cargo clippy --lib --bins -- -D warnings` 22.12s 클린
+  - **다음 단계**: PR #179 (4 커밋 스택) 사용자 머지 대기 → Gemini 3차 리뷰 가능성 관찰.
 
 - **2026-04-21 (심야) — Q1c: 응답 스키마 최종 정렬 (결정 3건 확정 + 구현 완료)**
   - **배경**: PR #179 (Q1a Gemini fix + Q1b) 후속. 플랜 `translation-field-name-alignment.md §4` 의 Q1c 사용자 결정 3건을 확정하고 구현.
