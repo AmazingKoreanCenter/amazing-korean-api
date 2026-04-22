@@ -141,10 +141,16 @@
 | Q7 | 낮음 | **Paddle Live 전환** — GitHub Secrets 12개 일괄 교체 + 배포 + E2E 검증 | 1일 | §8.2 #1. **블록: KYB/Onfido 인증 대기** (외부 의존) |
 | Q8 | 낮음 | **K6 성능 테스트 실행** — `k6/` 디렉터리 세팅은 완료. 테스트 계정 생성 후 smoke + load 시나리오 실행 | 0.5일 | §8.2 #12. **블록: 테스트 계정 생성 필요** |
 | Q9 | 낮음 | **E-book 로컬 파일시스템 의존 해소** — `ebook/service.rs` 9곳 `fs::read` 를 S3/CDN 으로 전환. RDS 이전 선행 작업. | 3~5일 | §8.2 #6 검증된 리스크 CRITICAL. 앱 개발 이후 공식 로드맵에 있음 |
+| Q10 | **높음** | **QA run 2026-04-22 프론트 수정 3건 묶음** — 2.1 ebook subtitle 공백 누락(14 locale 모바일), 2.2 textbook subtitle 공백 누락(km/my/th), 2.4 `/book` 캐러셀 dot `aria-label` 누락(en/ja). 2.1/2.2 원인 동일 (`<br className="hidden sm:block" />` 모바일 공백 대체 없음). 수정안: `<> <br className="hidden sm:block" /></>` 로 모바일 공백 보존. | 30분 | `docs/QA_결과.md` 2.1/2.2/2.4 (Mac Mini 자동 QA 런 `2026-04-22T01-35-53Z`) |
+| Q11 | 낮음 | **QA 2.3 pt 데스크톱 footer 텍스트 오버랩** — 포르투갈어만 해당 (copyright 문구 길이). footer 컴포넌트 `flex-wrap` + link 묶음 줄바꿈. | 0.5~1시간 | `docs/QA_결과.md` 2.3 (1 언어만 영향 → 우선도 낮음) |
+| Q12 | 중간 | **QA 3.1 JWT TTL QA 전용 연장 설정 답변** — QA full run 2h30m 동안 `QA_USER_TOKEN`/`QA_ADMIN_TOKEN` 만료로 70건 fail. 권장: QA `.env` 에서 `JWT_ACCESS_TTL_SEC=21600` (6h) 오버라이드 허용. 프로덕션 무영향. 현재 TTL 값 `config.rs` 확인 후 QA 에 응답. | 15분 (응답) | `docs/QA_결과.md` 3.1 |
+
+**QA 에 QA 쪽 조치로 회송** (이 리포 작업 아님, 외부 협조):
+- **QA 3.2 OpenAPI drift 1328 cell** → QA 가 warn 격하 (Security 위반만 fail). `reference_qa_automation.md` 기록.
 
 **큐 외 대기** (이 리포 작업이지만 일정 대기):
-- **#67 D+7 관측 로그 체크** — 2026-04-23 (2일 뒤). `docker logs amk-api --since 168h 2>&1 \| grep EBOOK_SESSION_AUDIT \| wc -l` → 0 건 확인
-- **#67 Phase 2~5 일괄 전환** — 2026-04-24 (3일 뒤). 백+웹+데스크탑 동일 PR
+- **#67 D+7 관측 로그 체크** — 2026-04-23 (1일 뒤). `docker logs amk-api --since 168h 2>&1 \| grep EBOOK_SESSION_AUDIT \| wc -l` → 0 건 확인
+- **#67 Phase 2~5 일괄 전환** — 2026-04-24 (2일 뒤). 백+웹+데스크탑 동일 PR
 
 #### 검증된 리스크 (2026-03-31 코드베이스 팩트체크 완료)
 

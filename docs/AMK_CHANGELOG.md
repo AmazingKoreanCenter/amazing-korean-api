@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-22 (Q1c 잔여 — admin video 편집 UI 에 video_title/subtitle 별도 필드)
+updated: 2026-04-22 (QA 런 결과 수신 + 세션 종료 + 내일 처리 계획 기록)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,21 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-22 (밤) — QA 자동화 런 결과 수신 + 오늘 세션 종료 + 처리 계획**
+  - **QA run 근거**: `amazing-korean-ai/scripts/qa` Mac Mini 자동 QA 오케스트레이터 (Playwright 1838 tests + Gemma 4 26b 3444 calls + Fuzz 1200 requests). 근거 run `tests/qa-results/2026-04-22T01-35-53Z/`. 총 2시간 27분 소요.
+  - **핵심 지표**:
+    - Playwright: 1748 pass / 87 fail. 실제 프로덕트 이슈 **4건**, 나머지는 QA 하네스 버그(12) + JWT 만료 70 + OpenAPI drift 1.
+    - Gemma 시각 검사: 3444 calls, 실질 이슈 **3종** (언어별 분산). False positive rate <1%.
+    - Fuzz: 1200 requests, **unhandled 5xx 0건** ✅. 백엔드 입력 검증 레이어 건강.
+  - **실질 이슈 분류** (처리 방향):
+    - **Q10 (높음, 30분)** — 프론트 수정 3건 묶음: 2.1 ebook subtitle 공백 누락 (14 locale) + 2.2 textbook subtitle 공백 누락 (km/my/th) + 2.4 `/book` 캐러셀 dot `aria-label` 누락 (en/ja). 2.1/2.2 원인 동일 (`<br className="hidden sm:block" />` 모바일 공백 대체 없음).
+    - **Q11 (낮음, ~1h)** — 2.3 pt 데스크톱 footer 텍스트 오버랩 (포르투갈어만 해당).
+    - **Q12 (중간, 15분 응답)** — 3.1 JWT TTL QA 전용 연장 설정 답변. QA full run 2h30m 중 token 만료로 70건 fail. 권장: QA `.env` 에서 `JWT_ACCESS_TTL_SEC=21600` (6h) 오버라이드 허용. 현재 TTL `config.rs` 확인 후 QA 에 응답.
+    - **QA 쪽 회송** — 3.2 OpenAPI drift 1328 cell: API 팀이 overrides 수작업 동기화 대신 QA 가 drift tolerance (warn) 로 전환. Security 위반만 fail. → QA 팀이 조치.
+  - **처리 plan**: `~/.claude/plans/qa-mac-mini-20260422-fixes.md` (신규 세션 시작점 SSoT).
+  - **AMK_STATUS.md §8.2** Q10/Q11/Q12 신규 행 추가.
+  - **다음 세션**: Q10 착수 (프론트 수정 3건 묶음 PR) + Q12 응답 (config.rs 확인 + 답변 문서화).
 
 - **2026-04-22 (저녁) — Q1c 잔여: admin video 편집 UI 에 video_title/subtitle 별도 필드 (반나절)**
   - **배경**: Q1c B (2026-04-21) 에서 `video` 테이블에 `video_title`/`video_subtitle` 물리 컬럼을 추가했으나, admin 프론트엔드 UI 는 여전히 `video_tag_title`/`video_tag_subtitle` 만 입력 받음. 백엔드 backward-compat (video_title 미제공 시 video_tag_title 폴백) 로 동작은 하고 있었지만, 관리자가 "비디오 자체 제목" 과 "태그 분류 제목" 을 **별도로 설정** 할 수 없는 상태. Q1c 잔여 공사로 분리했던 프론트 UI 확장 이번 커밋에서 완료.
