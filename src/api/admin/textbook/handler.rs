@@ -9,8 +9,8 @@ use crate::error::AppResult;
 use crate::state::AppState;
 
 use super::dto::{
-    AdminCreateOrderReq, AdminTextbookListReq, AdminTextbookListRes, AdminUpdateStatusReq,
-    AdminUpdateTrackingReq,
+    AdminCreateOrderReq, AdminTextbookListReq, AdminTextbookListRes, AdminTextbookLogListRes,
+    AdminTextbookLogQuery, AdminUpdateStatusReq, AdminUpdateTrackingReq,
 };
 use super::service::AdminTextbookService;
 
@@ -186,4 +186,29 @@ pub async fn delete_order(
 ) -> AppResult<StatusCode> {
     AdminTextbookService::delete_order(&st, auth_user.sub, id).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// GET /admin/textbook/logs (Q6, 2026-04-22)
+///
+/// admin_textbook_log 감사 로그 조회. action / order_id / admin_user_id 필터 +
+/// 페이지네이션. 관리자 대리 주문 생성(Create 액션) 기록 추적 등 용도.
+#[utoipa::path(
+    get,
+    path = "/admin/textbook/logs",
+    tag = "Admin Textbook",
+    security(("bearerAuth" = [])),
+    params(AdminTextbookLogQuery),
+    responses(
+        (status = 200, description = "감사 로그 목록", body = AdminTextbookLogListRes),
+        (status = 401, description = "인증 필요"),
+        (status = 403, description = "권한 없음")
+    )
+)]
+pub async fn list_admin_logs(
+    State(st): State<AppState>,
+    _auth: AuthUser,
+    Query(req): Query<AdminTextbookLogQuery>,
+) -> AppResult<Json<AdminTextbookLogListRes>> {
+    let res = AdminTextbookService::list_admin_logs(&st, req).await?;
+    Ok(Json(res))
 }

@@ -30,6 +30,8 @@ import type {
   TextbookLanguage,
   TextbookType,
 } from "@/category/textbook/types";
+import { UserSearchCombobox } from "@/category/admin/components/user_search_combobox";
+import type { AdminUserSummary } from "@/category/admin/types";
 
 const UNIT_PRICE = 25_000;
 
@@ -62,6 +64,11 @@ export function AdminTextbookOrderCreate() {
     "pending" | "confirmed" | "paid"
   >("paid");
   const [enforceMinQuantity, setEnforceMinQuantity] = useState(false);
+  // Q5: 검색 콤보박스로 user 선택. 수동 입력 토글 시 직접 user_id 입력.
+  const [selectedUser, setSelectedUser] = useState<AdminUserSummary | null>(
+    null,
+  );
+  const [manualUserIdMode, setManualUserIdMode] = useState(false);
   const [userId, setUserId] = useState("");
 
   // ---- 세금계산서 ----
@@ -122,21 +129,26 @@ export function AdminTextbookOrderCreate() {
       }
     }
 
-    // user_id 엄격 파싱: 양의 정수 문자열만 허용.
-    // Number() 는 "1.5", "1e3" 등을 허용해 백엔드 i64 deserialize 실패를
-    // 유발하고, NaN 을 JSON.stringify 가 null 로 변환하면 의도한 귀속이
-    // silently 소실됨.
+    // user_id 결정 — Q5 검색 선택이 우선. 수동 입력 모드면 userId text 파싱.
     let parsedUserId: number | undefined = undefined;
-    const userIdInput = userId.trim();
-    if (userIdInput) {
-      if (!/^\d+$/.test(userIdInput)) {
-        toast.error(t("admin.textbook.create.err.userIdInvalid"));
-        return;
-      }
-      parsedUserId = Number(userIdInput);
-      if (!Number.isSafeInteger(parsedUserId) || parsedUserId <= 0) {
-        toast.error(t("admin.textbook.create.err.userIdInvalid"));
-        return;
+    if (selectedUser) {
+      parsedUserId = selectedUser.id;
+    } else if (manualUserIdMode) {
+      // 수동 입력 엄격 파싱: 양의 정수 문자열만 허용.
+      // Number() 는 "1.5", "1e3" 등을 허용해 백엔드 i64 deserialize 실패를
+      // 유발하고, NaN 을 JSON.stringify 가 null 로 변환하면 의도한 귀속이
+      // silently 소실됨.
+      const userIdInput = userId.trim();
+      if (userIdInput) {
+        if (!/^\d+$/.test(userIdInput)) {
+          toast.error(t("admin.textbook.create.err.userIdInvalid"));
+          return;
+        }
+        parsedUserId = Number(userIdInput);
+        if (!Number.isSafeInteger(parsedUserId) || parsedUserId <= 0) {
+          toast.error(t("admin.textbook.create.err.userIdInvalid"));
+          return;
+        }
       }
     }
 
@@ -245,19 +257,44 @@ export function AdminTextbookOrderCreate() {
               </p>
             </div>
             <div>
-              <Label htmlFor="userId">
-                {t("admin.textbook.create.userId")}
-              </Label>
-              <Input
-                id="userId"
-                type="number"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder={t("admin.textbook.create.userIdPlaceholder")}
-                className="mt-1"
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="userId">
+                  {t("admin.textbook.create.userId")}
+                </Label>
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => {
+                    setManualUserIdMode((prev) => !prev);
+                    setSelectedUser(null);
+                    setUserId("");
+                  }}
+                >
+                  {manualUserIdMode
+                    ? t("admin.textbook.create.userSearch.toggleSearch")
+                    : t("admin.textbook.create.userSearch.toggleManual")}
+                </button>
+              </div>
+              <div className="mt-1">
+                {manualUserIdMode ? (
+                  <Input
+                    id="userId"
+                    type="number"
+                    value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
+                    placeholder={t("admin.textbook.create.userIdPlaceholder")}
+                  />
+                ) : (
+                  <UserSearchCombobox
+                    value={selectedUser}
+                    onChange={setSelectedUser}
+                  />
+                )}
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {t("admin.textbook.create.userIdHint")}
+                {manualUserIdMode
+                  ? t("admin.textbook.create.userIdHint")
+                  : t("admin.textbook.create.userSearch.hint")}
               </p>
             </div>
             <div className="flex items-end">

@@ -15,6 +15,8 @@ import type {
   AdminCreateOrderReq,
   AdminTextbookListReq,
   AdminTextbookListRes,
+  AdminTextbookLogListRes,
+  AdminTextbookLogQuery,
   AdminUpdateStatusReq,
   AdminUpdateTrackingReq,
 } from "./textbook/types";
@@ -774,4 +776,11 @@ export const updateAdminTextbookOrderTracking = (id: number, data: AdminUpdateTr
 export const deleteAdminTextbookOrder = (id: number) =>
   request<void>(`/admin/textbook/orders/${id}`, {
     method: "DELETE",
+  });
+
+/** Q6 (2026-04-22) — admin_textbook_log 감사 로그 조회 */
+export const getAdminTextbookLogs = (params: AdminTextbookLogQuery) =>
+  request<AdminTextbookLogListRes>("/admin/textbook/logs", {
+    method: "GET",
+    params,
   });

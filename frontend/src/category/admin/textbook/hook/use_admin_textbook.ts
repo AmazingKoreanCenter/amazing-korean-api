@@ -4,6 +4,7 @@ import {
   createAdminTextbookOrder,
   getAdminTextbookOrders,
   getAdminTextbookOrder,
+  getAdminTextbookLogs,
   updateAdminTextbookOrderStatus,
   updateAdminTextbookOrderTracking,
   deleteAdminTextbookOrder,
@@ -11,6 +12,7 @@ import {
 import type {
   AdminCreateOrderReq,
   AdminTextbookListReq,
+  AdminTextbookLogQuery,
   AdminUpdateStatusReq,
   AdminUpdateTrackingReq,
 } from "../types";
@@ -25,6 +27,10 @@ export const adminTextbookKeys = {
     [...adminTextbookKeys.orders, "list", params] as const,
   orderDetail: (id: number) =>
     [...adminTextbookKeys.orders, "detail", id] as const,
+  /** Q6 (2026-04-22) — admin_textbook_log 감사 로그 */
+  logs: ["admin", "textbook", "logs"] as const,
+  logList: (params: AdminTextbookLogQuery) =>
+    [...adminTextbookKeys.logs, "list", params] as const,
 };
 
 // =============================================================================
@@ -43,6 +49,14 @@ export const useAdminTextbookOrderDetail = (id: number) => {
     queryKey: adminTextbookKeys.orderDetail(id),
     queryFn: () => getAdminTextbookOrder(id),
     enabled: id > 0,
+  });
+};
+
+/** Q6 (2026-04-22) — admin_textbook_log 감사 로그 조회 */
+export const useAdminTextbookLogs = (params: AdminTextbookLogQuery) => {
+  return useQuery({
+    queryKey: adminTextbookKeys.logList(params),
+    queryFn: () => getAdminTextbookLogs(params),
   });
 };
 

@@ -779,6 +779,45 @@
     },
     "textbook": {
       "title": "Textbook Order Management",
+      "logs": {
+        "title": "Audit Logs",
+        "subtitle": "History of admin actions on textbook orders (from admin_textbook_log)",
+        "empty": "No logs match the filter",
+        "loadError": "Failed to load logs",
+        "filter": {
+          "action": "Action",
+          "actionAll": "All actions",
+          "orderId": "Order ID",
+          "orderIdPlaceholder": "e.g. 123",
+          "adminUserId": "Admin User ID",
+          "adminUserIdPlaceholder": "e.g. 456",
+          "apply": "Apply",
+          "reset": "Reset"
+        },
+        "actions": {
+          "create": "Create",
+          "update": "Update",
+          "banned": "Banned",
+          "reorder": "Reorder",
+          "publish": "Publish",
+          "unpublish": "Unpublish",
+          "delete": "Delete"
+        },
+        "table": {
+          "createdAt": "Timestamp",
+          "action": "Action",
+          "admin": "Admin",
+          "order": "Order",
+          "diff": "Changes"
+        },
+        "diff": {
+          "toggle": "Show / hide",
+          "before": "Before",
+          "after": "After",
+          "beforeOnly": "(snapshot before deletion)",
+          "afterOnly": "(newly created)"
+        }
+      },
       "searchPlaceholder": "Search by order code, name, or organization",
       "search": "Search",
       "allStatus": "All Status",
@@ -917,6 +956,16 @@
         "userId": "User ID (optional)",
         "userIdPlaceholder": "Leave empty for guest order",
         "userIdHint": "Enter user_id to attribute this order to a specific account",
+        "userSearch": {
+          "placeholder": "Search by email or nickname...",
+          "hint": "Find and select a user by email (exact match) or nickname (partial match). Leave empty for guest order.",
+          "empty": "No results",
+          "minChars": "Enter at least 2 characters",
+          "clear": "Clear selection",
+          "noNickname": "(no nickname)",
+          "toggleManual": "Enter user_id directly",
+          "toggleSearch": "Switch to search mode"
+        },
         "enforceMinQty": "Enforce minimum 10 copies",
         "orderer": "Orderer Information",
         "name": "Name",

@@ -136,8 +136,8 @@
 | Q2 | 중간 | 법인 인감 이미지 업로드 — 영수증 서명란의 `(인)` 텍스트를 PNG/SVG 이미지로 대체. `supplier_info.ts` 에 `sealImageUrl` 추가, `ReceiptSignature` 에 `<img>` 렌더. | 반나절 | #73 영수증 "다음 단계" (AMK_CHANGELOG 2026-04-19) |
 | Q3 | 중간 | 영수증 고유번호 체계 — 현재 `order_code` 재사용. 별도 `receipt_no` 필드(`R-YYYYMMDD-NNNN`) 추가 or 조합 규칙 정의. | 반나절 | 동일 |
 | Q4 | 중간 | 기타 locale 영수증 번역 개별 추가 — 현재 20개 locale 은 영어 fallback. 일본어/중국어 우선 번역 권장. | 반나절 | 동일 |
-| Q5 | 중간 | 사용자 검색 UI — 관리자 대리 주문 생성 (`/admin/textbook/orders/new`) 의 `user_id` 수동 입력을 이메일·이름 자동완성으로 개선. 백엔드 `GET /admin/users/search?q=` 활용. | 반나절 | #75 "후속 작업" (AMK_CHANGELOG 2026-04-19) |
-| Q6 | 중간 | `admin_textbook_log` Create 액션 조회 UI — 관리자가 어느 주문을 대리 생성했는지 감사 로그에서 조회 가능하도록 admin 페이지에 탭·필터 추가. | 반나절 | 동일 |
+| ~~Q5~~ | ✅ 완료 | ~~사용자 검색 UI~~ — `admin_textbook_order_create.tsx` 의 user_id 수동 입력을 검색 콤보박스로 대체. 신규 `UserSearchCombobox` 컴포넌트 (Input + 300ms debounce + 드롭다운). 백엔드 `useAdminUsers({q})` 재사용 (이메일 blind index exact match / 닉네임 LIKE). 수동 입력 토글 폴백 유지. **2026-04-22 완료** (프론트만, `npm run build` 9.09s 성공). | 반나절 | #75 "후속 작업" (AMK_CHANGELOG 2026-04-19) |
+| ~~Q6~~ | ✅ 완료 | ~~`admin_textbook_log` Create 액션 조회 UI~~ — 신규 엔드포인트 `GET /admin/textbook/logs` + action/order_id/admin_user_id 필터 + 페이지네이션. 프론트: `/admin/textbook/logs` 페이지 + orders 페이지 상단 "감사 로그" 버튼. 관리자 이메일은 서비스 레이어에서 `CryptoService.decrypt` 복호화. **2026-04-22 완료** (cargo check + clippy 클린, frontend build 8.04s 성공). | 반나절 | 동일 |
 | Q7 | 낮음 | **Paddle Live 전환** — GitHub Secrets 12개 일괄 교체 + 배포 + E2E 검증 | 1일 | §8.2 #1. **블록: KYB/Onfido 인증 대기** (외부 의존) |
 | Q8 | 낮음 | **K6 성능 테스트 실행** — `k6/` 디렉터리 세팅은 완료. 테스트 계정 생성 후 smoke + load 시나리오 실행 | 0.5일 | §8.2 #12. **블록: 테스트 계정 생성 필요** |
 | Q9 | 낮음 | **E-book 로컬 파일시스템 의존 해소** — `ebook/service.rs` 9곳 `fs::read` 를 S3/CDN 으로 전환. RDS 이전 선행 작업. | 3~5일 | §8.2 #6 검증된 리스크 CRITICAL. 앱 개발 이후 공식 로드맵에 있음 |

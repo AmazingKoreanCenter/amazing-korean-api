@@ -3,7 +3,7 @@ use sqlx::PgPool;
 
 use crate::error::AppResult;
 use crate::types::{
-    TextbookLanguage, TextbookOrderStatus, TextbookPaymentMethod, TextbookType,
+    AdminAction, TextbookLanguage, TextbookOrderStatus, TextbookPaymentMethod, TextbookType,
 };
 
 // =============================================================================
@@ -59,6 +59,23 @@ pub struct TextbookItemRow {
     pub quantity: i32,
     pub unit_price: i32,
     pub subtotal: i32,
+}
+
+/// Q6 감사 로그 조회 Row (admin_textbook_log + users + textbook JOIN 결과).
+/// admin_email_enc 는 users.user_email 원본 (암호화 문자열) — 서비스 레이어에서
+/// crypto.decrypt 후 응답 DTO 로 변환.
+#[derive(Debug, sqlx::FromRow)]
+pub struct AdminLogRow {
+    pub log_id: i64,
+    pub admin_user_id: i64,
+    pub admin_email_enc: String,
+    pub admin_nickname: String,
+    pub order_id: i64,
+    pub order_code: String,
+    pub action: AdminAction,
+    pub before_data: Option<serde_json::Value>,
+    pub after_data: Option<serde_json::Value>,
+    pub created_at: DateTime<Utc>,
 }
 
 /// SELECT 공통 컬럼 리스트
@@ -489,6 +506,70 @@ impl TextbookRepo {
     // =========================================================================
     // Admin: 로그
     // =========================================================================
+
+    /// 관리자 감사 로그 조회 (Q6, 2026-04-22) — admin/textbook/logs 지원.
+    ///
+    /// action/order_id/admin_user_id 필터 + 페이지네이션. users/textbook 과 JOIN
+    /// 해서 관리자 식별 정보 (암호화된 email 포함) + 주문번호 반환.
+    /// email 은 서비스 레이어에서 복호화.
+    pub async fn list_admin_logs(
+        pool: &PgPool,
+        action: Option<crate::types::AdminAction>,
+        order_id: Option<i64>,
+        admin_user_id: Option<i64>,
+        page: i64,
+        per_page: i64,
+    ) -> AppResult<(i64, Vec<AdminLogRow>)> {
+        let offset = (page - 1) * per_page;
+
+        let total: i64 = sqlx::query_scalar(
+            r#"
+            SELECT COUNT(*)
+            FROM admin_textbook_log l
+            WHERE ($1::admin_action_enum IS NULL OR l.action = $1)
+              AND ($2::bigint IS NULL OR l.order_id = $2)
+              AND ($3::bigint IS NULL OR l.admin_user_id = $3)
+            "#,
+        )
+        .bind(action)
+        .bind(order_id)
+        .bind(admin_user_id)
+        .fetch_one(pool)
+        .await?;
+
+        let rows = sqlx::query_as::<_, AdminLogRow>(
+            r#"
+            SELECT
+                l.log_id,
+                l.admin_user_id,
+                u.user_email      AS admin_email_enc,
+                u.user_nickname   AS admin_nickname,
+                l.order_id,
+                t.order_code,
+                l.action AS "action!: crate::types::AdminAction",
+                l.before_data,
+                l.after_data,
+                l.created_at
+            FROM admin_textbook_log l
+            INNER JOIN users u     ON u.user_id  = l.admin_user_id
+            INNER JOIN textbook t  ON t.order_id = l.order_id
+            WHERE ($1::admin_action_enum IS NULL OR l.action = $1)
+              AND ($2::bigint IS NULL OR l.order_id = $2)
+              AND ($3::bigint IS NULL OR l.admin_user_id = $3)
+            ORDER BY l.created_at DESC
+            LIMIT $4 OFFSET $5
+            "#,
+        )
+        .bind(action)
+        .bind(order_id)
+        .bind(admin_user_id)
+        .bind(per_page)
+        .bind(offset)
+        .fetch_all(pool)
+        .await?;
+
+        Ok((total, rows))
+    }
 
     /// 관리자 작업 로그 기록 (ILIKE 특수문자 이스케이프)
     pub async fn insert_admin_log(
