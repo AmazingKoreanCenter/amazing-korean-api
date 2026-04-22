@@ -268,48 +268,78 @@ impl StudyService {
 
                 let mut translated = 0usize;
                 let mut fallback = 0usize;
+                // Gemini 4차 리뷰 반영: Choice/Typing/Voice payload 의 requested 하드코딩
+                // (5 또는 1) 제거. 원본 필드에 값 있을 때만 카운트 (다른 service 일관성).
+                // 특히 Choice 의 choice_3/choice_4 는 2~3지선다일 때 빈 문자열일 수 있음.
                 let requested = match &mut task.payload {
                     TaskPayload::Choice(p) => {
+                        let mut requested = 0usize;
+                        // question 은 필수 (필드 자체가 String, 문제 없이는 task 성립 안 함)
+                        requested += 1;
+                        if let Some(t) = translations
+                            .get(&(content_id, "study_task_choice_question".to_string()))
+                        {
+                            p.question = t.text.clone();
+                            t.count_to(user_lang, &mut translated, &mut fallback);
+                        }
                         for (field, slot) in [
-                            ("study_task_choice_question", &mut p.question),
                             ("study_task_choice_1", &mut p.choice_1),
                             ("study_task_choice_2", &mut p.choice_2),
                             ("study_task_choice_3", &mut p.choice_3),
                             ("study_task_choice_4", &mut p.choice_4),
                         ] {
-                            if let Some(t) = translations.get(&(content_id, field.to_string())) {
-                                *slot = t.text.clone();
+                            // choice_N 은 String 이지만 repo::map_to_res 에서 NULL →
+                            // unwrap_or_default() 로 빈 문자열 처리. 2/3지선다면 choice_3/4
+                            // 가 빈 문자열이니 번역 대상 아님.
+                            if !slot.is_empty() {
+                                requested += 1;
+                                if let Some(t) =
+                                    translations.get(&(content_id, field.to_string()))
+                                {
+                                    *slot = t.text.clone();
+                                    t.count_to(user_lang, &mut translated, &mut fallback);
+                                }
+                            }
+                        }
+                        requested
+                    }
+                    TaskPayload::Typing(p) => {
+                        let mut requested = 0usize;
+                        if !p.question.is_empty() {
+                            requested += 1;
+                            if let Some(t) = translations
+                                .get(&(content_id, "study_task_typing_question".to_string()))
+                            {
+                                p.question = t.text.clone();
                                 t.count_to(user_lang, &mut translated, &mut fallback);
                             }
                         }
-                        5
-                    }
-                    TaskPayload::Typing(p) => {
-                        if let Some(t) = translations
-                            .get(&(content_id, "study_task_typing_question".to_string()))
-                        {
-                            p.question = t.text.clone();
-                            t.count_to(user_lang, &mut translated, &mut fallback);
-                        }
-                        1
+                        requested
                     }
                     TaskPayload::Voice(p) => {
-                        if let Some(t) = translations
-                            .get(&(content_id, "study_task_voice_question".to_string()))
-                        {
-                            p.question = t.text.clone();
-                            t.count_to(user_lang, &mut translated, &mut fallback);
+                        let mut requested = 0usize;
+                        if !p.question.is_empty() {
+                            requested += 1;
+                            if let Some(t) = translations
+                                .get(&(content_id, "study_task_voice_question".to_string()))
+                            {
+                                p.question = t.text.clone();
+                                t.count_to(user_lang, &mut translated, &mut fallback);
+                            }
                         }
-                        1
+                        requested
                     }
                     TaskPayload::Writing(p) => {
-                        if let Some(t) = translations
-                            .get(&(content_id, "study_task_writing_prompt".to_string()))
-                        {
-                            p.prompt = t.text.clone();
-                            t.count_to(user_lang, &mut translated, &mut fallback);
+                        let mut requested = 0usize;
+                        if !p.prompt.is_empty() {
+                            requested += 1;
+                            if let Some(t) = translations
+                                .get(&(content_id, "study_task_writing_prompt".to_string()))
+                            {
+                                p.prompt = t.text.clone();
+                                t.count_to(user_lang, &mut translated, &mut fallback);
+                            }
                         }
-                        let mut requested = 1usize;
                         if p.answer.is_some() {
                             requested += 1;
                             if let Some(t) = translations
