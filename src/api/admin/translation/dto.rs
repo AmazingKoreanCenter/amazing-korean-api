@@ -294,12 +294,25 @@ impl TranslationMeta {
     /// - `translated_fields`: 실제로 user_lang 으로 반환된 필드 수
     /// - `fallback_fields`: en 또는 ko 로 fallback 된 필드 수
     /// - `user_lang`: 요청된 언어
+    ///
+    /// Gemini 5차 리뷰 반영: coverage 는 **user_lang 관점** 으로 판정.
+    /// - `Full`: 모든 requested 필드가 user_lang 으로 번역됨
+    /// - `Partial`: 일부 user_lang + 나머지는 fallback 또는 번역 부재 (혼합 상태)
+    /// - `None`: user_lang 번역이 0 건 (fallback 만 있거나, 아예 없음)
+    ///
+    /// 이 정의는 클라이언트가 "사용자 언어로 제대로 번역된 콘텐츠인가" 를 판단하는 데
+    /// 더 직관적. fallback 만 있는 경우는 원문 대체 역할이지 "user_lang 이 커버된" 것이
+    /// 아니므로 None 으로 간주.
     pub fn from_counts(
         user_lang: crate::types::SupportedLanguage,
         requested_fields: usize,
         translated_fields: usize,
         fallback_fields: usize,
     ) -> Self {
+        // fallback_fields 는 현재 로직에서 직접 사용되지 않지만 (user_lang 관점 판정만
+        // 수행), 디버깅/확장성을 위해 시그니처에 유지.
+        let _ = fallback_fields;
+
         if requested_fields == 0 {
             // 번역 대상이 아예 없는 경우 (id 만 반환된 리소스 등)
             return Self {
@@ -308,11 +321,10 @@ impl TranslationMeta {
             };
         }
 
-        let covered = translated_fields + fallback_fields;
-        let coverage = if covered == 0 {
-            TranslationCoverage::None
-        } else if translated_fields == requested_fields {
+        let coverage = if translated_fields == requested_fields {
             TranslationCoverage::Full
+        } else if translated_fields == 0 {
+            TranslationCoverage::None
         } else {
             TranslationCoverage::Partial
         };
