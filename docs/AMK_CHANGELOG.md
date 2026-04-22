@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-22 (Q6 admin_textbook_log 감사 로그 조회 UI)
+updated: 2026-04-22 (Q1c 잔여 — admin video 편집 UI 에 video_title/subtitle 별도 필드)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,28 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-22 (저녁) — Q1c 잔여: admin video 편집 UI 에 video_title/subtitle 별도 필드 (반나절)**
+  - **배경**: Q1c B (2026-04-21) 에서 `video` 테이블에 `video_title`/`video_subtitle` 물리 컬럼을 추가했으나, admin 프론트엔드 UI 는 여전히 `video_tag_title`/`video_tag_subtitle` 만 입력 받음. 백엔드 backward-compat (video_title 미제공 시 video_tag_title 폴백) 로 동작은 하고 있었지만, 관리자가 "비디오 자체 제목" 과 "태그 분류 제목" 을 **별도로 설정** 할 수 없는 상태. Q1c 잔여 공사로 분리했던 프론트 UI 확장 이번 커밋에서 완료.
+  - **백엔드 확장**:
+    - [src/api/admin/video/dto.rs](../src/api/admin/video/dto.rs) `AdminVideoRes` 에 `video_title: Option<String>`, `video_subtitle: Option<String>` 필드 추가 (`#[serde(skip_serializing_if = "Option::is_none")]`). 기존 `title` 필드는 `video_tag_title` MAX 집계 호환용으로 유지 (legacy)
+    - [src/api/admin/video/repo.rs](../src/api/admin/video/repo.rs) — list/detail/update RETURNING SQL 3곳 모두 `v.video_title`, `v.video_subtitle` SELECT + GROUP BY 추가. create 에서는 INSERT 시 사용한 값 그대로 response 에 반영.
+  - **프론트 타입 확장**:
+    - [frontend/src/category/admin/types.ts](../frontend/src/category/admin/types.ts) (aggregator) — `adminVideoSummarySchema` 에 `video_title`/`video_subtitle` 응답 필드(nullable+optional) 추가. `videoCreateReqSchema`, `videoUpdateReqSchema`, `videoBulkUpdateItemSchema` 에 `video_title`/`video_subtitle` 요청 필드 추가
+    - [frontend/src/category/admin/video/types.ts](../frontend/src/category/admin/video/types.ts) (domain) — 동일 변경 (중복 정의 동기화)
+  - **프론트 UI**:
+    - [frontend/src/category/admin/page/admin_video_create.tsx](../frontend/src/category/admin/page/admin_video_create.tsx) — "Video Title" / "Video Subtitle" 필드 신규. Vimeo 메타데이터 auto-fill 시 video_title 과 tag_title 모두 세팅. onSubmit 시 빈 문자열은 undefined 로 전달해 백엔드 backward-compat 폴백과 호환. "Tag Information" 섹션으로 video_tag_* 필드 명시 분리 + 안내 문구.
+    - [frontend/src/category/admin/page/admin_video_detail.tsx](../frontend/src/category/admin/page/admin_video_detail.tsx) — 수정 모드에 동일 필드 추가. form.reset 에서 video.video_title/subtitle 우선 세팅. onSubmit 에서 빈 문자열은 undefined 로 전달 (UPDATE 스킵 → 기존 값 유지).
+    - [frontend/src/category/admin/page/admin_video_bulk_create.tsx](../frontend/src/category/admin/page/admin_video_bulk_create.tsx) — CSV 컬럼 `video_title`/`video_subtitle` 인식 (optional). 기존 CSV 와 backward-compat.
+  - **검증**:
+    - `cargo check` 10.22s 클린
+    - `cargo clippy --lib --bins -- -D warnings` 14.66s 클린
+    - `frontend: npm run build` 8.72s 성공
+  - **회귀 리스크**:
+    - AdminVideoRes 에 신규 필드만 추가 (`skip_serializing_if` 로 null 직렬화 생략) → 기존 응답 shape 비파괴적
+    - 기존 admin UI 가 여전히 `video.title` 을 쓰는 경우에도 동작 유지 (legacy title 필드 보존)
+    - Create/Update 경로: `video_title` 미제공 시 backend polyfill 로 video_tag_title 사용 → 기존 CSV/자동화 호환
+  - **다음 단계**: #67 Phase 2~5 D-Day (2026-04-24) 또는 Q3 영수증 고유번호 체계 (옵션 결정 후).
 
 - **2026-04-22 (오후) — Q6: admin_textbook_log 감사 로그 조회 UI + 신규 API (반나절)**
   - **배경**: `admin_textbook_log` 테이블에 관리자 작업 이력은 기록되고 있었으나 (textbook/repo.rs:504 `insert_admin_log`), 조회 API 가 없어 admin UI 에서 "언제 누가 어떤 주문을 create/update/banned 했는지" 확인 불가. Q5 (사용자 검색 UI) 와 짝을 이루는 후속 공사.
