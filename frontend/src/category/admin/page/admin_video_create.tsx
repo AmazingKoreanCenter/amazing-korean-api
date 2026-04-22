@@ -49,6 +49,9 @@ export function AdminVideoCreate() {
       video_idx: "",
       video_state: "ready",
       video_access: "private",
+      // Q1c B (2026-04-22): video 테이블 물리 컬럼 필드.
+      video_title: "",
+      video_subtitle: "",
       video_tag_title: "",
       video_tag_subtitle: "",
       video_tag_key: "",
@@ -67,9 +70,12 @@ export function AdminVideoCreate() {
       const data = await previewMutation.mutateAsync(url);
       setVimeoPreview(data);
 
-      // Auto-fill title and description
+      // Auto-fill video + tag title/subtitle (Q1c B 이후 video 필드 우선 세팅,
+      // tag 필드는 동일값으로 초기화하여 사용자가 필요 시 별도 편집).
+      form.setValue("video_title", data.title);
       form.setValue("video_tag_title", data.title);
       if (data.description) {
+        form.setValue("video_subtitle", data.description);
         form.setValue("video_tag_subtitle", data.description);
       }
 
@@ -86,6 +92,10 @@ export function AdminVideoCreate() {
         video_idx: data.video_idx || undefined,
         video_state: data.video_state || undefined,
         video_access: data.video_access,
+        // Q1c B: video 테이블 물리 컬럼. 미입력 시 undefined 로 보내면 backend 가
+        // video_tag_title 로 폴백 (backward-compat).
+        video_title: data.video_title?.trim() || undefined,
+        video_subtitle: data.video_subtitle?.trim() || undefined,
         video_tag_title: data.video_tag_title,
         video_tag_subtitle: data.video_tag_subtitle || undefined,
         video_tag_key: data.video_tag_key || undefined,
@@ -249,35 +259,42 @@ export function AdminVideoCreate() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Video 정보 (Q1c B, 2026-04-22) — video 테이블 물리 컬럼 */}
             <div className="grid gap-4 md:grid-cols-2">
-              {/* Title */}
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="video_tag_title">Title *</Label>
+                <Label htmlFor="video_title">Video Title</Label>
                 <Input
-                  id="video_tag_title"
-                  placeholder="Video title"
-                  {...form.register("video_tag_title")}
+                  id="video_title"
+                  placeholder="e.g., 한글 자음 기초 1강"
+                  maxLength={150}
+                  {...form.register("video_title")}
                 />
-                {form.formState.errors.video_tag_title && (
+                <p className="text-sm text-muted-foreground">
+                  비디오 자체 제목 (video.video_title 컬럼). 비워두면 Tag Title 로 폴백.
+                </p>
+                {form.formState.errors.video_title && (
                   <p className="text-sm text-destructive">
-                    {form.formState.errors.video_tag_title.message}
+                    {form.formState.errors.video_title.message}
                   </p>
                 )}
               </div>
 
-              {/* Subtitle */}
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="video_tag_subtitle">Subtitle / Description</Label>
+                <Label htmlFor="video_subtitle">Video Subtitle</Label>
                 <Textarea
-                  id="video_tag_subtitle"
-                  placeholder="Video description"
-                  rows={3}
-                  {...form.register("video_tag_subtitle")}
+                  id="video_subtitle"
+                  placeholder="비디오 부제목 또는 간단한 설명"
+                  maxLength={250}
+                  rows={2}
+                  {...form.register("video_subtitle")}
                 />
+                <p className="text-sm text-muted-foreground">
+                  비디오 부제목 (video.video_subtitle 컬럼, 선택). 비워두면 Tag Subtitle 폴백.
+                </p>
               </div>
 
               {/* Video Index */}
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="video_idx">Video Index</Label>
                 <Input
                   id="video_idx"
@@ -285,22 +302,64 @@ export function AdminVideoCreate() {
                   maxLength={100}
                   {...form.register("video_idx")}
                 />
-              </div>
-
-              {/* Tag Key */}
-              <div className="space-y-2">
-                <Label htmlFor="video_tag_key">Tag Key</Label>
-                <Input
-                  id="video_tag_key"
-                  placeholder="e.g., lesson-01"
-                  maxLength={30}
-                  {...form.register("video_tag_key")}
-                />
                 <p className="text-sm text-muted-foreground">
-                  Unique identifier (max 30 characters)
+                  비즈니스 식별 코드 (video_idx)
                 </p>
               </div>
+            </div>
 
+            {/* Tag 정보 — video_tag 테이블 (분류/검색용) */}
+            <div className="pt-4 border-t">
+              <h3 className="text-sm font-semibold mb-2">Tag Information</h3>
+              <p className="text-xs text-muted-foreground mb-3">
+                영상을 분류/검색하기 위한 태그 정보. Video Title/Subtitle 과
+                다르게 관리할 수 있지만, 일반적으로 같은 값으로 두어도 됩니다.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Tag Title */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="video_tag_title">Tag Title *</Label>
+                  <Input
+                    id="video_tag_title"
+                    placeholder="Tag title (분류용)"
+                    {...form.register("video_tag_title")}
+                  />
+                  {form.formState.errors.video_tag_title && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.video_tag_title.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Tag Subtitle */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="video_tag_subtitle">Tag Subtitle</Label>
+                  <Textarea
+                    id="video_tag_subtitle"
+                    placeholder="Tag subtitle (선택)"
+                    rows={2}
+                    {...form.register("video_tag_subtitle")}
+                  />
+                </div>
+
+                {/* Tag Key */}
+                <div className="space-y-2">
+                  <Label htmlFor="video_tag_key">Tag Key</Label>
+                  <Input
+                    id="video_tag_key"
+                    placeholder="e.g., lesson-01"
+                    maxLength={30}
+                    {...form.register("video_tag_key")}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Unique identifier (max 30 characters)
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Access & State */}
+            <div className="pt-4 border-t grid gap-4 md:grid-cols-2">
               {/* State */}
               <div className="space-y-2">
                 <Label>State</Label>

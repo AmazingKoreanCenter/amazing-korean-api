@@ -29,10 +29,15 @@ export function AdminVideoBulkCreate() {
     if (lines.length < 2) return [];
 
     const headers = lines[0].toLowerCase().split(",").map((h) => h.trim());
-    // 새로운 순서: video_idx, video_state, video_access, video_tag_title, video_tag_subtitle, video_tag_key, video_url_vimeo
+    // 컬럼: video_idx, video_state, video_access, video_title, video_subtitle,
+    //      video_tag_title, video_tag_subtitle, video_tag_key, video_url_vimeo
+    // Q1c B (2026-04-22): video_title / video_subtitle 컬럼 optional. 미제공 시
+    // backend 가 video_tag_title/subtitle 으로 폴백.
     const idxIdx = headers.indexOf("video_idx");
     const stateIdx = headers.indexOf("video_state");
     const accessIdx = headers.indexOf("video_access");
+    const videoTitleIdx = headers.indexOf("video_title");
+    const videoSubtitleIdx = headers.indexOf("video_subtitle");
     const titleIdx = headers.indexOf("video_tag_title");
     const subtitleIdx = headers.indexOf("video_tag_subtitle");
     const keyIdx = headers.indexOf("video_tag_key");
@@ -63,6 +68,9 @@ export function AdminVideoBulkCreate() {
         video_access: validAccess.includes(accessValue)
           ? (accessValue as "public" | "paid" | "private" | "promote")
           : "private",
+        // Q1c B (2026-04-22): video 테이블 물리 컬럼 (선택).
+        video_title: videoTitleIdx !== -1 ? values[videoTitleIdx] || undefined : undefined,
+        video_subtitle: videoSubtitleIdx !== -1 ? values[videoSubtitleIdx] || undefined : undefined,
         video_tag_title: values[titleIdx] || "",
         video_tag_subtitle: subtitleIdx !== -1 ? values[subtitleIdx] || undefined : undefined,
         video_tag_key: keyIdx !== -1 ? values[keyIdx] || undefined : undefined,
@@ -110,6 +118,8 @@ export function AdminVideoBulkCreate() {
         video_idx,
         video_state,
         video_access,
+        video_title,
+        video_subtitle,
         video_tag_title,
         video_tag_subtitle,
         video_tag_key,
@@ -118,6 +128,8 @@ export function AdminVideoBulkCreate() {
         video_idx: video_idx || undefined,
         video_state: video_state || undefined,
         video_access,
+        video_title: video_title || undefined,
+        video_subtitle: video_subtitle || undefined,
         video_tag_title,
         video_tag_subtitle: video_tag_subtitle || undefined,
         video_tag_key: video_tag_key || undefined,

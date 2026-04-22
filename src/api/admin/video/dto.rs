@@ -278,6 +278,8 @@ pub struct AdminVideoListReq {
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct AdminVideoRes {
     pub id: i64,
+    /// (Legacy) 표시용 title — Q1c B 이전 호환을 위해 video_tag_title MAX 집계 유지.
+    /// 신규 UI 는 `video_title` 필드를 우선 사용 권장.
     pub title: String,
     pub url: Option<String>,
     pub description: Option<String>,
@@ -285,6 +287,11 @@ pub struct AdminVideoRes {
     pub video_state: VideoState,
     pub video_access: VideoAccess,
     pub video_idx: String,
+    /// Q1c B (2026-04-22) — video 테이블 물리 컬럼.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_subtitle: Option<String>,
     pub video_tag_key: Option<String>,
     pub updated_by_user_id: Option<i64>,
     pub created_at: DateTime<Utc>,

@@ -47,6 +47,9 @@ pub async fn admin_list_videos(
             v.video_state::text AS video_state,
             v.video_access::text AS video_access,
             v.video_idx AS video_idx,
+            -- Q1c B (2026-04-22) video 테이블 물리 컬럼 노출
+            v.video_title AS video_title,
+            v.video_subtitle AS video_subtitle,
             MAX(t.video_tag_key) AS video_tag_key,
             v.updated_by_user_id::bigint AS updated_by_user_id,
             v.video_created_at AS created_at,
@@ -74,7 +77,7 @@ pub async fn admin_list_videos(
         list_builder.push(")");
     }
 
-    list_builder.push(" GROUP BY v.video_id, v.video_idx, v.video_url_vimeo, v.video_state, v.video_access, v.updated_by_user_id, v.video_created_at, v.video_updated_at, v.video_duration, v.video_thumbnail ");
+    list_builder.push(" GROUP BY v.video_id, v.video_idx, v.video_url_vimeo, v.video_state, v.video_access, v.video_title, v.video_subtitle, v.updated_by_user_id, v.video_created_at, v.video_updated_at, v.video_duration, v.video_thumbnail ");
 
     let order_by = match sort {
         "id" => "v.video_id",
@@ -118,6 +121,8 @@ pub async fn admin_list_videos(
                 video_state: VideoState::from_str(&state_str).unwrap_or(VideoState::Ready),
                 video_access: VideoAccess::from_str(&access_str).unwrap_or(VideoAccess::Private),
                 video_idx: row.try_get("video_idx").unwrap_or_default(),
+                video_title: row.try_get("video_title").ok(),
+                video_subtitle: row.try_get("video_subtitle").ok(),
                 video_tag_key: row.try_get("video_tag_key").ok(),
                 updated_by_user_id: Some(row.try_get::<i64, _>("updated_by_user_id").unwrap_or(0)),
                 created_at: row.try_get("created_at").unwrap_or_default(),
@@ -143,6 +148,9 @@ pub async fn admin_get_video(pool: &PgPool, video_id: i64) -> AppResult<Option<A
             v.video_state::text AS video_state,
             v.video_access::text AS video_access,
             v.video_idx AS video_idx,
+            -- Q1c B (2026-04-22) video 테이블 물리 컬럼 노출
+            v.video_title AS video_title,
+            v.video_subtitle AS video_subtitle,
             MAX(t.video_tag_key) AS video_tag_key,
             v.updated_by_user_id::bigint AS updated_by_user_id,
             v.video_created_at AS created_at,
@@ -160,7 +168,7 @@ pub async fn admin_get_video(pool: &PgPool, video_id: i64) -> AppResult<Option<A
             GROUP BY video_id
         ) stats ON stats.video_id = v.video_id
         WHERE v.video_id = $1
-        GROUP BY v.video_id, v.video_idx, v.video_url_vimeo, v.video_state, v.video_access, v.updated_by_user_id, v.video_created_at, v.video_updated_at, v.video_duration, v.video_thumbnail
+        GROUP BY v.video_id, v.video_idx, v.video_url_vimeo, v.video_state, v.video_access, v.video_title, v.video_subtitle, v.updated_by_user_id, v.video_created_at, v.video_updated_at, v.video_duration, v.video_thumbnail
         "#,
     )
     .bind(video_id)
@@ -181,6 +189,8 @@ pub async fn admin_get_video(pool: &PgPool, video_id: i64) -> AppResult<Option<A
                 video_state: VideoState::from_str(&state_str).unwrap_or(VideoState::Ready),
                 video_access: VideoAccess::from_str(&access_str).unwrap_or(VideoAccess::Private),
                 video_idx: row.try_get("video_idx").unwrap_or_default(),
+                video_title: row.try_get("video_title").ok(),
+                video_subtitle: row.try_get("video_subtitle").ok(),
                 video_tag_key: row.try_get("video_tag_key").ok(),
                 updated_by_user_id: Some(row.try_get::<i64, _>("updated_by_user_id").unwrap_or(0)),
                 created_at: row.try_get("created_at").unwrap_or_default(),
@@ -325,6 +335,9 @@ pub async fn admin_create_video(
         video_state: VideoState::from_str(&v_state).unwrap_or(VideoState::Ready),
         video_access: VideoAccess::from_str(&video_access).unwrap_or(VideoAccess::Private),
         video_idx: video_idx.to_string(),
+        // Q1c B (2026-04-22) — admin_create_video 가 INSERT 한 video_title/subtitle 반영
+        video_title: Some(video_title.to_string()),
+        video_subtitle: video_subtitle.map(str::to_string),
         video_tag_key: Some(video_tag_key.to_string()),
         updated_by_user_id: Some(actor_user_id),
         created_at,
@@ -537,6 +550,9 @@ pub async fn admin_update_video(
             v.video_url_vimeo as url,
             MAX(t.video_tag_subtitle) as description,
             COALESCE(SUM(s.video_stat_views), 0)::bigint as views,
+            -- Q1c B (2026-04-22) video 테이블 물리 컬럼 노출
+            v.video_title as video_title,
+            v.video_subtitle as video_subtitle,
             MAX(t.video_tag_key) as video_tag_key,
             v.video_duration as video_duration,
             v.video_thumbnail as video_thumbnail
@@ -545,7 +561,7 @@ pub async fn admin_update_video(
         LEFT JOIN video_tag t ON m.video_tag_id = t.video_tag_id
         LEFT JOIN video_stat_daily s ON v.video_id = s.video_id
         WHERE v.video_id = $1
-        GROUP BY v.video_id, v.video_idx, v.video_url_vimeo, v.video_duration, v.video_thumbnail
+        GROUP BY v.video_id, v.video_idx, v.video_url_vimeo, v.video_title, v.video_subtitle, v.video_duration, v.video_thumbnail
         "#
     )
     .bind(video_id)
@@ -561,6 +577,8 @@ pub async fn admin_update_video(
         video_state: VideoState::from_str(&v_state).unwrap_or(VideoState::Ready),
         video_access: VideoAccess::from_str(&v_access).unwrap_or(VideoAccess::Private),
         video_idx: v_idx,
+        video_title: row.try_get("video_title").ok(),
+        video_subtitle: row.try_get("video_subtitle").ok(),
         video_tag_key: row.try_get("video_tag_key").ok(),
         updated_by_user_id: v_updated_by,
         created_at,

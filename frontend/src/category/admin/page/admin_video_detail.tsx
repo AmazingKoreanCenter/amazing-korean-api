@@ -50,6 +50,8 @@ export function AdminVideoDetail() {
   const form = useForm<VideoUpdateReq>({
     resolver: zodResolver(videoUpdateReqSchema),
     defaultValues: {
+      video_title: "",
+      video_subtitle: "",
       video_tag_title: "",
       video_tag_subtitle: "",
       video_tag_key: "",
@@ -64,6 +66,9 @@ export function AdminVideoDetail() {
   useEffect(() => {
     if (video) {
       form.reset({
+        // Q1c B (2026-04-22): video 테이블 물리 컬럼 우선. 응답에 없으면 빈 문자열.
+        video_title: video.video_title || "",
+        video_subtitle: video.video_subtitle || "",
         video_tag_title: video.title || "",
         video_tag_subtitle: video.description || "",
         video_tag_key: video.video_tag_key || "",
@@ -77,7 +82,13 @@ export function AdminVideoDetail() {
 
   const onSubmit = async (data: VideoUpdateReq) => {
     try {
-      await updateMutation.mutateAsync({ id, data });
+      // 빈 문자열은 undefined 로 보내서 backend UPDATE 에서 스킵 (기존 값 유지).
+      const payload: VideoUpdateReq = {
+        ...data,
+        video_title: data.video_title?.trim() || undefined,
+        video_subtitle: data.video_subtitle?.trim() || undefined,
+      };
+      await updateMutation.mutateAsync({ id, data: payload });
       toast.success("Video updated successfully");
       setCooldown(10);
       setTimeout(() => {
@@ -145,13 +156,56 @@ export function AdminVideoDetail() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Q1c B (2026-04-22) — Video 정보 (video 테이블 물리 컬럼) */}
             <div className="grid gap-4 md:grid-cols-2">
-              {/* Title */}
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="video_tag_title">Title *</Label>
+                <Label htmlFor="video_title">Video Title</Label>
+                <Input
+                  id="video_title"
+                  placeholder="e.g., 한글 자음 기초 1강"
+                  maxLength={150}
+                  {...form.register("video_title")}
+                />
+                <p className="text-sm text-muted-foreground">
+                  비디오 자체 제목 (video.video_title 컬럼). 비워두면 기존 값 유지.
+                </p>
+                {form.formState.errors.video_title && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.video_title.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="video_subtitle">Video Subtitle</Label>
+                <Textarea
+                  id="video_subtitle"
+                  placeholder="비디오 부제목 또는 간단한 설명"
+                  maxLength={250}
+                  rows={2}
+                  {...form.register("video_subtitle")}
+                />
+                <p className="text-sm text-muted-foreground">
+                  비디오 부제목 (video.video_subtitle 컬럼, 선택). 비워두면 기존 값 유지.
+                </p>
+              </div>
+            </div>
+
+            {/* Tag 정보 (video_tag 테이블, 분류용) */}
+            <div className="pt-4 border-t">
+              <h3 className="text-sm font-semibold mb-2">Tag Information</h3>
+              <p className="text-xs text-muted-foreground mb-3">
+                영상을 분류/검색하기 위한 태그 정보. Video 와 다르게 관리할 수 있습니다.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Tag Title */}
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="video_tag_title">Tag Title *</Label>
                 <Input
                   id="video_tag_title"
-                  placeholder="Video title"
+                  placeholder="Tag title (분류용)"
                   {...form.register("video_tag_title")}
                 />
                 {form.formState.errors.video_tag_title && (
@@ -161,13 +215,13 @@ export function AdminVideoDetail() {
                 )}
               </div>
 
-              {/* Subtitle / Description */}
+              {/* Tag Subtitle */}
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="video_tag_subtitle">Subtitle / Description</Label>
+                <Label htmlFor="video_tag_subtitle">Tag Subtitle</Label>
                 <Textarea
                   id="video_tag_subtitle"
-                  placeholder="Video description"
-                  rows={3}
+                  placeholder="Tag subtitle (선택)"
+                  rows={2}
                   {...form.register("video_tag_subtitle")}
                 />
               </div>

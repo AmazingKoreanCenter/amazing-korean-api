@@ -194,6 +194,9 @@ export const adminVideoSummarySchema = z.object({
   video_state: videoStateSchema,
   video_access: videoAccessSchema,
   video_idx: z.string(),
+  // Q1c B (2026-04-22) — video 테이블 물리 컬럼 (응답 optional, 구 서버 호환).
+  video_title: z.string().nullable().optional(),
+  video_subtitle: z.string().nullable().optional(),
   video_tag_key: z.string().nullable(),
   updated_by_user_id: z.number().int().nullable(),
   created_at: z.string().datetime(),
@@ -223,6 +226,9 @@ export const videoCreateReqSchema = z.object({
   video_idx: z.string().min(1).max(100).optional(),
   video_state: videoStateSchema.optional(), // 기본값: ready
   video_access: videoAccessSchema,
+  // Q1c B (2026-04-22): video 테이블 물리 컬럼. 비우면 backend 가 video_tag_title 폴백.
+  video_title: z.string().min(1).max(150).optional(),
+  video_subtitle: z.string().max(250).optional(),
   // 2. video_tag 테이블 컬럼
   video_tag_title: z.string().min(1).max(200),
   video_tag_subtitle: z.string().max(500).optional(),
@@ -234,6 +240,9 @@ export type VideoCreateReq = z.infer<typeof videoCreateReqSchema>;
 
 // 비디오 수정 요청
 export const videoUpdateReqSchema = z.object({
+  // Q1c B (2026-04-22): video 테이블 물리 컬럼. 없으면 변경 안 함.
+  video_title: z.string().min(1).max(150).optional(),
+  video_subtitle: z.string().max(250).optional(),
   video_tag_title: z.string().min(1).max(200).optional(),
   video_tag_subtitle: z.string().max(500).optional(),
   video_tag_key: z.string().min(1).max(30).optional(),
@@ -280,6 +289,9 @@ export const videoBulkUpdateItemSchema = z.object({
   video_idx: z.string().min(1).max(100).optional(),
   video_state: videoStateSchema.optional(),
   video_access: videoAccessSchema.optional(),
+  // Q1c B (2026-04-22): video 테이블 물리 컬럼.
+  video_title: z.string().min(1).max(150).optional(),
+  video_subtitle: z.string().max(250).optional(),
   video_tag_title: z.string().min(1).max(200).optional(),
   video_tag_subtitle: z.string().max(500).optional(),
   video_tag_key: z.string().min(1).max(30).optional(),

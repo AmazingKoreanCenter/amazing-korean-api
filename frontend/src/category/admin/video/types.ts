@@ -13,6 +13,11 @@ export const videoAccessInputSchema = z.enum(["public", "private"]);
 export type VideoAccessInput = z.infer<typeof videoAccessInputSchema>;
 
 export const videoCreateReqSchema = z.object({
+  // Q1c B (2026-04-22): video 테이블 물리 컬럼. 비우면 backend 가 video_tag_title
+  // 폴백 (backward-compat).
+  video_title: z.string().min(1).max(150).optional(),
+  video_subtitle: z.string().max(250).optional(),
+  // 태그/분류 정보 (video_tag 테이블).
   video_tag_title: z.string().min(1).max(200),
   video_tag_subtitle: z.string().max(500).optional(),
   video_tag_key: z.string().min(1).max(30).optional(),
@@ -24,6 +29,9 @@ export const videoCreateReqSchema = z.object({
 export type VideoCreateReq = z.infer<typeof videoCreateReqSchema>;
 
 export const videoUpdateReqSchema = z.object({
+  // Q1c B (2026-04-22): video 테이블 물리 컬럼. 없으면 변경 안 함.
+  video_title: z.string().min(1).max(150).optional(),
+  video_subtitle: z.string().max(250).optional(),
   video_tag_title: z.string().min(1).max(200).optional(),
   video_tag_subtitle: z.string().max(500).optional(),
   video_tag_key: z.string().min(1).max(30).optional(),
@@ -154,6 +162,9 @@ export type VideoBulkCreateRes = z.infer<typeof videoBulkCreateResSchema>;
 
 export const videoBulkUpdateItemSchema = z.object({
   id: z.number().int(),
+  // Q1c B (2026-04-22): video 테이블 물리 컬럼.
+  video_title: z.string().min(1).max(150).optional(),
+  video_subtitle: z.string().max(250).optional(),
   video_tag_title: z.string().min(1).max(200).optional(),
   video_tag_subtitle: z.string().max(500).optional(),
   video_tag_key: z.string().min(1).max(30).optional(),
