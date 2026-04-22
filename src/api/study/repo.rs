@@ -122,6 +122,7 @@ impl StudyTaskDetailRow {
             seq: self.seq,
             created_at: self.created_at,
             payload,
+            translation_meta: Default::default(),
         })
     }
 }

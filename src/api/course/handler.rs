@@ -1,6 +1,6 @@
 use crate::extract::AppJson;
 use super::{
-    dto::{CourseListItem, CourseListQuery, CreateCourseReq},
+    dto::{CourseDetailRes, CourseListQuery, CourseListRes, CreateCourseReq},
     service::CourseService,
 };
 use crate::{
@@ -17,9 +17,9 @@ use validator::Validate;
 pub async fn list(
     State(st): State<AppState>,
     Query(query): Query<CourseListQuery>,
-) -> AppResult<Json<Vec<CourseListItem>>> {
-    let items = CourseService::list(&st, query.lang).await?;
-    Ok(Json(items))
+) -> AppResult<Json<CourseListRes>> {
+    let res = CourseService::list(&st, query.lang).await?;
+    Ok(Json(res))
 }
 
 pub async fn create(
@@ -45,7 +45,7 @@ pub async fn get_by_id(
     State(st): State<AppState>,
     Path(id): Path<i64>,
     Query(query): Query<CourseListQuery>,
-) -> AppResult<Json<CourseListItem>> {
-    let item = CourseService::get_by_id(&st, id, query.lang).await?;
-    Ok(Json(item))
+) -> AppResult<Json<CourseDetailRes>> {
+    let res = CourseService::get_by_id(&st, id, query.lang).await?;
+    Ok(Json(res))
 }

@@ -100,8 +100,21 @@ pub struct VideoCreateReq {
     #[schema(example = "private")]
     pub video_access: String,
 
+    /// 비디오 제목 (Q1c B 이후 video 테이블 물리 컬럼). 미제공 시 `video_tag_title` 로 폴백.
+    /// Gemini 5차 리뷰 반영: whitespace-only (" ") 거부 위해 `validate_not_empty_string` 추가.
+    #[validate(length(min = 1, max = 150), custom(function = "validate_not_empty_string"))]
+    #[schema(example = "Rust 비동기 프로그래밍 기초")]
+    pub video_title: Option<String>,
+
+    /// 비디오 부제목 (Q1c B 이후). 미제공 시 `video_tag_subtitle` 로 폴백.
+    #[validate(length(max = 250))]
+    #[schema(example = "Tokio와 Future에 대한 심층 강의입니다.")]
+    pub video_subtitle: Option<String>,
+
     // 2. video_tag 테이블 컬럼
-    #[validate(length(min = 1, max = 200))]
+    /// Gemini 5차 리뷰 반영: whitespace-only (" ") 거부 위해 `validate_not_empty_string` 추가.
+    /// video_title 폴백 대상이기도 해서 NOT NULL 컬럼으로 빈 문자열 들어가는 것 방지.
+    #[validate(length(min = 1, max = 200), custom(function = "validate_not_empty_string"))]
     #[schema(example = "Rust 비동기 프로그래밍 기초")]
     pub video_tag_title: String,
 
@@ -137,6 +150,14 @@ fn validate_state(state: &str) -> Result<(), validator::ValidationError> {
 
 #[derive(Debug, Deserialize, Serialize, Validate, ToSchema)]
 pub struct VideoUpdateReq {
+    /// Q1c B — video 테이블 제목 업데이트 (없으면 변경 안 함)
+    #[validate(length(min = 1, max = 150), custom(function = "validate_not_empty_string"))]
+    pub video_title: Option<String>,
+
+    /// Q1c B — video 테이블 부제목 업데이트 (없으면 변경 안 함)
+    #[validate(length(max = 250))]
+    pub video_subtitle: Option<String>,
+
     #[validate(
         length(min = 1, max = 200),
         custom(function = "validate_not_empty_string")
@@ -180,6 +201,8 @@ pub struct VideoTagUpdateReq {
 impl From<VideoTagUpdateReq> for VideoUpdateReq {
     fn from(req: VideoTagUpdateReq) -> Self {
         Self {
+            video_title: None,
+            video_subtitle: None,
             video_tag_title: req.video_tag_title,
             video_tag_subtitle: req.video_tag_subtitle,
             video_tag_key: req.video_tag_key,

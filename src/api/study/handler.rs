@@ -8,9 +8,10 @@ use crate::state::AppState;
 
 use super::dto::{
     FinishWritingSessionReq, StartWritingSessionReq, StudyDetailReq, StudyDetailRes, StudyListReq,
-    StudyListResp, StudyTaskDetailRes, SubmitAnswerReq, SubmitAnswerRes, TaskExplainRes,
-    TaskStatusRes, WritingPracticeSeedReq, WritingPracticeSeedRes, WritingSessionListReq,
-    WritingSessionListRes, WritingSessionRes, WritingStatsReq, WritingStatsRes,
+    StudyListResp, StudyTaskDetailReq, StudyTaskDetailRes, SubmitAnswerReq, SubmitAnswerRes,
+    TaskExplainReq, TaskExplainRes, TaskStatusRes, WritingPracticeSeedReq, WritingPracticeSeedRes,
+    WritingSessionListReq, WritingSessionListRes, WritingSessionRes, WritingStatsReq,
+    WritingStatsRes,
 };
 use super::service::StudyService;
 
@@ -74,7 +75,8 @@ pub async fn get_study_detail(
     get,
     path = "/studies/tasks/{id}",
     params(
-        ("id" = i32, Path, description = "Study Task ID")
+        ("id" = i32, Path, description = "Study Task ID"),
+        ("lang" = Option<String>, Query, description = "번역 언어 (없으면 한국어 원본)")
     ),
     responses(
         (status = 200, description = "Task Detail", body = StudyTaskDetailRes),
@@ -87,8 +89,9 @@ pub async fn get_study_task(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
     Path(task_id): Path<i32>,
+    Query(req): Query<StudyTaskDetailReq>,
 ) -> AppResult<Json<StudyTaskDetailRes>> {
-    let res = StudyService::get_study_task(&state, task_id, auth).await?;
+    let res = StudyService::get_study_task(&state, task_id, auth, req.lang).await?;
     Ok(Json(res))
 }
 
@@ -149,7 +152,8 @@ pub async fn get_task_status(
     get,
     path = "/studies/tasks/{id}/explain",
     params(
-        ("id" = i32, Path, description = "Study Task ID")
+        ("id" = i32, Path, description = "Study Task ID"),
+        ("lang" = Option<String>, Query, description = "번역 언어 (없으면 한국어 원본)")
     ),
     responses(
         (status = 200, description = "Task Explanation", body = TaskExplainRes),
@@ -164,8 +168,9 @@ pub async fn get_task_explain(
     State(state): State<AppState>,
     auth_user: AuthUser,
     Path(task_id): Path<i32>,
+    Query(req): Query<TaskExplainReq>,
 ) -> AppResult<Json<TaskExplainRes>> {
-    let res = StudyService::get_task_explain(&state, auth_user, task_id).await?;
+    let res = StudyService::get_task_explain(&state, auth_user, task_id, req.lang).await?;
     Ok(Json(res))
 }
 

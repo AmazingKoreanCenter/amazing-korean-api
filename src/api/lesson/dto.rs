@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
+use crate::api::admin::translation::dto::TranslationMeta;
 use crate::types::{LessonAccess, LessonState, SupportedLanguage};
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
@@ -36,6 +37,8 @@ pub struct LessonListMeta {
 pub struct LessonListRes {
     pub items: Vec<LessonRes>,
     pub meta: LessonListMeta,
+    /// 번역 메타 (Q1c A)
+    pub translation_meta: TranslationMeta,
 }
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
@@ -63,6 +66,8 @@ pub struct LessonDetailRes {
     pub lesson_access: LessonAccess,
     pub items: Vec<LessonItemRes>,
     pub meta: LessonListMeta,
+    /// 번역 메타 (Q1c A)
+    pub translation_meta: TranslationMeta,
 }
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]

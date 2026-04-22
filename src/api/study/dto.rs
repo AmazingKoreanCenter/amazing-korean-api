@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
+use crate::api::admin::translation::dto::TranslationMeta;
 use crate::types::{
     StudyProgram, StudyState, StudyTaskKind, SupportedLanguage, WritingLevel,
     WritingPracticeType,
@@ -87,6 +88,8 @@ pub struct StudyListMeta {
 pub struct StudyListResp {
     pub list: Vec<StudySummaryDto>,
     pub meta: StudyListMeta,
+    /// 번역 메타 (Q1c A)
+    pub translation_meta: TranslationMeta,
 }
 
 // --- 1-2. Study Detail Response ---
@@ -122,6 +125,26 @@ pub struct StudyDetailRes {
     pub state: StudyState,
     pub tasks: Vec<StudyTaskSummaryDto>,
     pub meta: StudyListMeta,
+    /// 번역 메타 (Q1c A)
+    pub translation_meta: TranslationMeta,
+}
+
+// --- 2. Detail & Task Request ---
+
+/// 학습 문제 상세 조회 요청 (Query String) — 번역 언어 파라미터
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct StudyTaskDetailReq {
+    /// 번역 언어 (없으면 한국어 원본)
+    pub lang: Option<SupportedLanguage>,
+}
+
+/// 해설 조회 요청 (Query String) — 번역 언어 파라미터
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct TaskExplainReq {
+    /// 번역 언어 (없으면 한국어 원본)
+    pub lang: Option<SupportedLanguage>,
 }
 
 // --- 2. Detail & Task Response ---
@@ -136,6 +159,9 @@ pub struct StudyTaskDetailRes {
     pub seq: i32,
     pub created_at: DateTime<Utc>,
     pub payload: TaskPayload,
+    /// 번역 메타 (Q1c A) — 서비스 계층에서 주입. Repo `map_to_res` 는 기본값 설정.
+    #[serde(default)]
+    pub translation_meta: TranslationMeta,
 }
 
 /// 문제 유형별 페이로드
@@ -219,6 +245,9 @@ pub struct TaskExplainRes {
     pub title: Option<String>,
     pub explanation: Option<String>,
     pub resources: Vec<String>,
+    /// 번역 메타 (Q1c A)
+    #[serde(default)]
+    pub translation_meta: TranslationMeta,
 }
 
 // =========================================================================

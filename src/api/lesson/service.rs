@@ -1,10 +1,11 @@
 use sqlx::PgPool;
 use tracing::warn;
 
+use crate::api::admin::translation::dto::TranslationMeta;
 use crate::api::admin::translation::repo::TranslationRepo;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
-use crate::types::{ContentType, LessonAccess, LessonState};
+use crate::types::{ContentType, LessonAccess, LessonState, SupportedLanguage};
 
 use super::dto::{
     LessonDetailReq, LessonDetailRes, LessonItemsReq, LessonItemsRes, LessonListMeta, LessonListReq,
@@ -42,26 +43,44 @@ impl LessonService {
         let offset = (page - 1) * per_page;
         let mut items = LessonRepo::find_all(pool, per_page, offset).await?;
 
-        // 번역 주입: lang 파라미터가 있고 ko가 아니면 번역 적용
-        if let Some(lang) = req.lang {
-            let ids: Vec<i64> = items.iter().map(|l| l.id).collect();
-            let translations = TranslationRepo::find_translations_for_contents(
-                pool,
-                ContentType::Lesson,
-                &ids,
-                lang,
-            )
-            .await?;
+        // 번역 주입 + 메타 계산 (Q1c A)
+        let translation_meta = match req.lang {
+            None => TranslationMeta::not_requested(),
+            Some(SupportedLanguage::Ko) => TranslationMeta::ko_full(),
+            Some(user_lang) => {
+                let ids: Vec<i64> = items.iter().map(|l| l.id).collect();
+                let translations = TranslationRepo::find_translations_for_contents(
+                    pool,
+                    ContentType::Lesson,
+                    &ids,
+                    user_lang,
+                )
+                .await?;
 
-            for item in items.iter_mut() {
-                if let Some(t) = translations.get(&(item.id, "lesson_title".to_string())) {
-                    item.title = t.text.clone();
+                // Gemini 3차 리뷰 반영: requested 는 source 에 값이 있는 필드만 카운트.
+                // lesson_description 은 Option — None 이면 요청 대상 아님.
+                let mut translated = 0usize;
+                let mut fallback = 0usize;
+                let mut requested = 0usize;
+                for item in items.iter_mut() {
+                    requested += 1; // lesson_title 은 필수
+                    if let Some(t) = translations.get(&(item.id, "lesson_title".to_string())) {
+                        item.title = t.text.clone();
+                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    }
+                    if item.description.is_some() {
+                        requested += 1;
+                        if let Some(t) =
+                            translations.get(&(item.id, "lesson_description".to_string()))
+                        {
+                            item.description = Some(t.text.clone());
+                            t.count_to(user_lang, &mut translated, &mut fallback);
+                        }
+                    }
                 }
-                if let Some(t) = translations.get(&(item.id, "lesson_description".to_string())) {
-                    item.description = Some(t.text.clone());
-                }
+                TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
-        }
+        };
 
         Ok(LessonListRes {
             items,
@@ -71,6 +90,7 @@ impl LessonService {
                 current_page: page,
                 per_page,
             },
+            translation_meta,
         })
     }
 
@@ -104,26 +124,43 @@ impl LessonService {
         let offset = (page - 1) * per_page;
         let items = LessonRepo::find_items(pool, lesson_id, per_page, offset).await?;
 
-        // 번역 주입
+        // 번역 주입 + 메타 계산 (Q1c A)
         let mut title = lesson.title;
         let mut description = lesson.description;
 
-        if let Some(lang) = req.lang {
-            let translations = TranslationRepo::find_translations_for_contents(
-                pool,
-                ContentType::Lesson,
-                &[lesson.lesson_id],
-                lang,
-            )
-            .await?;
+        let translation_meta = match req.lang {
+            None => TranslationMeta::not_requested(),
+            Some(SupportedLanguage::Ko) => TranslationMeta::ko_full(),
+            Some(user_lang) => {
+                let translations = TranslationRepo::find_translations_for_contents(
+                    pool,
+                    ContentType::Lesson,
+                    &[lesson.lesson_id],
+                    user_lang,
+                )
+                .await?;
 
-            if let Some(t) = translations.get(&(lesson.lesson_id, "lesson_title".to_string())) {
-                title = t.text.clone();
+                let mut translated = 0usize;
+                let mut fallback = 0usize;
+                let mut requested = 1usize; // lesson_title 은 필수
+                if let Some(t) =
+                    translations.get(&(lesson.lesson_id, "lesson_title".to_string()))
+                {
+                    title = t.text.clone();
+                    t.count_to(user_lang, &mut translated, &mut fallback);
+                }
+                if description.is_some() {
+                    requested += 1;
+                    if let Some(t) = translations
+                        .get(&(lesson.lesson_id, "lesson_description".to_string()))
+                    {
+                        description = Some(t.text.clone());
+                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    }
+                }
+                TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
-            if let Some(t) = translations.get(&(lesson.lesson_id, "lesson_description".to_string())) {
-                description = Some(t.text.clone());
-            }
-        }
+        };
 
         Ok(LessonDetailRes {
             lesson_id: lesson.lesson_id,
@@ -138,6 +175,7 @@ impl LessonService {
                 current_page: page,
                 per_page,
             },
+            translation_meta,
         })
     }
 
@@ -273,3 +311,4 @@ impl LessonService {
         Ok(progress)
     }
 }
+

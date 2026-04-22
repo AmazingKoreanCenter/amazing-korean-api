@@ -7,7 +7,8 @@ use crate::error::AppResult;
 use crate::state::AppState;
 
 use super::dto::{
-    IdParam, VideoDetailRes, VideoListReq, VideoListRes, VideoProgressRes, VideoProgressUpdateReq,
+    IdParam, VideoDetailReq, VideoDetailRes, VideoListReq, VideoListRes, VideoProgressRes,
+    VideoProgressUpdateReq,
 };
 use super::service::VideoService;
 
@@ -49,7 +50,8 @@ pub async fn list_videos(
     get,
     path = "/videos/{id}",
     params(
-        ("id" = i64, Path, description = "Video ID")
+        ("id" = i64, Path, description = "Video ID"),
+        ("lang" = Option<String>, Query, description = "번역 언어 (없으면 한국어 원본)")
     ),
     responses(
         (status = 200, description = "Video Detail", body = VideoDetailRes),
@@ -60,8 +62,9 @@ pub async fn list_videos(
 pub async fn get_video_detail(
     State(state): State<AppState>,
     Path(IdParam { id }): Path<IdParam>,
+    Query(req): Query<VideoDetailReq>,
 ) -> AppResult<Json<VideoDetailRes>> {
-    let video = VideoService::get_video_detail(&state, id).await?;
+    let video = VideoService::get_video_detail(&state, id, req.lang).await?;
     Ok(Json(video))
 }
 

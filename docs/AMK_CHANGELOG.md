@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-21 (Q1a field_name 잠복 버그 fix)
+updated: 2026-04-22 (Q1c Gemini 2차 리뷰 반영 — count_field 중복 통합)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,87 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-22 (오전) — Q1c Gemini 2차 리뷰 반영: count_field 중복 → TranslatedField::count_to 메서드 통합**
+  - **배경**: PR #179 스코프 확장 후 사용자가 `/gemini review` 수동 트리거 → 2026-04-22 01:15Z Gemini 2차 리뷰 (MEDIUM 5건, 모두 동일 패턴). `count_field` 헬퍼 함수가 4개 Consumer service 파일에 중복 정의돼 있으니 `TranslatedField` 구조체의 메서드로 이동해 중복 제거 권장.
+  - **반영 내역** (커밋 `7ace98d`, 5 파일 / −82 +46 순 감소):
+    - [src/api/admin/translation/dto.rs](../src/api/admin/translation/dto.rs) — `TranslatedField` 에 `count_to(&self, user_lang, translated, fallback)` 메서드 추가
+    - [src/api/course/service.rs](../src/api/course/service.rs) — 로컬 `count_field` 제거, 호출 사이트를 `t.count_to(...)` 로 변경. 미사용 `TranslatedField` import 제거.
+    - [src/api/lesson/service.rs](../src/api/lesson/service.rs) — 동일
+    - [src/api/study/service.rs](../src/api/study/service.rs) — 동일
+    - [src/api/video/service.rs](../src/api/video/service.rs) — 동일. 단, `TranslatedField` 는 `apply_tag_translations` 함수 시그니처에 여전히 사용되므로 import 유지. `apply_tag_translations` 내부 호출도 `t.count_to(...)` 로 변경.
+  - **Gemini 리뷰 전수 반영**: MEDIUM 5건 / HIGH/CRITICAL 0건. 미처리 0건.
+  - **검증**:
+    - `cargo check` 17.25s 클린
+    - `cargo clippy --lib --bins -- -D warnings` 22.12s 클린
+  - **다음 단계**: PR #179 (4 커밋 스택) 사용자 머지 대기 → Gemini 3차 리뷰 가능성 관찰.
+
+- **2026-04-21 (심야) — Q1c: 응답 스키마 최종 정렬 (결정 3건 확정 + 구현 완료)**
+  - **배경**: PR #179 (Q1a Gemini fix + Q1b) 후속. 플랜 `translation-field-name-alignment.md §4` 의 Q1c 사용자 결정 3건을 확정하고 구현.
+  - **결정 A — 덮어쓰기 유지 + 루트 메타 2필드 추가** (하이브리드 방식):
+    - [src/api/admin/translation/dto.rs](../src/api/admin/translation/dto.rs) — `TranslationMeta { translation_lang: Option<SupportedLanguage>, translation_coverage: TranslationCoverage }` + `TranslationCoverage` enum (`NotRequested`/`Full`/`Partial`/`None`) 신규
+    - `TranslatedField.actual_lang` 신규 필드 — `find_translations_for_contents` 가 실제 반환 언어 추적 (fallback 여부 판단용)
+    - `TranslationMeta::from_counts` / `ko_full` / `not_requested` 헬퍼 + `Default` impl
+    - 10 Consumer 엔드포인트 응답 루트에 `translation_meta` 필드 주입:
+      - [src/api/course/service.rs](../src/api/course/service.rs) — `CourseListRes` + `CourseDetailRes` 신규 래퍼 (기존 `Vec<CourseListItem>` → wrapper 반환). 프론트 소비 0건 확인 후 shape 변경.
+      - [src/api/lesson/service.rs](../src/api/lesson/service.rs) — `LessonListRes`/`LessonDetailRes` 에 필드 추가
+      - [src/api/video/service.rs](../src/api/video/service.rs) — `VideoListRes`/`VideoDetailRes` 에 필드 추가 (`#[sqlx(skip)]` + `#[serde(default)]` 로 FromRow 호환)
+      - [src/api/study/service.rs](../src/api/study/service.rs) — `StudyListResp`/`StudyDetailRes`/`StudyTaskDetailRes`/`TaskExplainRes` 에 필드 추가
+    - 채택 근거: (1) 구현 비용 최소 (필드 double 없음), (2) fallback 감지 UX 가능, (3) 교육 서비스 원문 토글은 `?lang=ko` 재호출로 대체
+  - **결정 B — Video 테이블에 title/subtitle 물리 컬럼 추가**:
+    - 마이그레이션 `migrations/20260422_video_title_subtitle.sql` — `ALTER TABLE video ADD video_title VARCHAR(150) NOT NULL, ADD video_subtitle VARCHAR(250)`. `MAX(video_tag_title)`/`MAX(video_tag_subtitle)` 집계로 백필 후 DEFAULT 제거. 로컬 검증 16행 백필 완료.
+    - [src/api/video/repo.rs](../src/api/video/repo.rs) `list_videos`/`get_video_detail` SQL — `MAX(video_tag_title) as title` → `v.video_title as title` 로 교체. 검색 필터에도 `v.video_title`/`v.video_subtitle` 추가.
+    - [src/api/admin/translation/repo.rs](../src/api/admin/translation/repo.rs) `find_source_fields` Video — Q1b 의 `source_text=None` stub 제거, 실 컬럼 매핑.
+    - [src/api/admin/video/repo.rs](../src/api/admin/video/repo.rs) `admin_create_video`/`admin_update_video` — `video_title`/`video_subtitle` INSERT/UPDATE 추가. `VideoCreateReq`/`VideoUpdateReq` 확장 (backward-compat: 미제공 시 `video_tag_title`/`video_tag_subtitle` 폴백).
+    - 채택 근거: (1) 의미 명확화 (video_tag = 분류 ≠ video_title = 제목), (2) M05~M08 교재 시딩 본격화 전 정리 적기, (3) Q1b stub 부채 해소
+  - **결정 C — video_tag 번역 주입 (`VideoTagDetail.id` 노출)**:
+    - `VideoTagDetail` 구조체에 `id: i64` 필드 신규 ([src/api/video/dto.rs](../src/api/video/dto.rs))
+    - Repo `get_video_detail` SQL 의 `jsonb_build_object` 에 `'id', vt.video_tag_id` 포함
+    - Service `get_video_detail` 에서 tags[] 의 id 수집 → `content_type=VideoTag content_id IN (ids)` 로 번역 일괄 조회 → `video_tag_title`/`video_tag_subtitle` 오버라이드
+    - `GET /videos` (목록) 의 `tags: Vec<String>` (tag_key 만) 은 그대로 유지 — 목록에선 분류 키만 사용
+    - 채택 근거: (1) 단순성, (2) admin API 에 이미 노출된 ID 라 보안 영향 없음, (3) 프론트에서 tag 클릭 → 관련 영상 검색 등 확장 가능
+  - **Frontend admin UI** — Q1c 범위에 포함됐으나 backward-compat (video_title 미제공 시 video_tag_title 폴백) 로 기존 admin UI 동작 유지. 별도 필드 노출은 **후속 공사로 이연**.
+  - **문서 동기화**:
+    - `AMK_API_LEARNING.md §9-841` — Q1c 구현 완료 섹션 + TranslationMeta/TranslationCoverage 스펙 명시. Fallback 동작에 coverage 매핑 추가.
+    - `AMK_STATUS.md §8.2 Q1c` ✅ 완료 처리.
+    - `plans/translation-field-name-alignment.md §4 Q1c` — 결정 3건 락인.
+  - **검증**:
+    - 마이그레이션 로컬 적용 성공 (UPDATE 16행 백필)
+    - `cargo sqlx prepare` 재생성 성공
+    - `cargo check` 8.59s 클린
+    - `cargo clippy --lib --bins -- -D warnings` 13.65s 클린
+    - `frontend: npm run build` 10.33s 성공
+  - **회귀 리스크**:
+    - **Course 응답 shape 변경**: `GET /courses` → `Vec<CourseListItem>` 에서 `CourseListRes { items, translation_meta }` 로, `GET /courses/{id}` → `CourseListItem` 에서 `CourseDetailRes { course, translation_meta }` 로. 프론트/모바일/데스크탑 Consumer `/courses` 호출 0건 grep 확인 완료 → 실사용 영향 없음.
+    - 다른 엔드포인트는 기존 wrapper 에 `translation_meta` 필드 추가만 (비파괴적).
+    - admin 기존 `VideoCreateReq` 는 `video_title` Optional + 폴백으로 backward-compat 유지.
+  - **다음 단계**: Q2~Q9 선택 (영수증 Q2~Q4, admin UI Q5/Q6, Paddle Q7, K6 Q8, E-book RDS Q9).
+
+- **2026-04-21 (늦은 밤) — Q1b: Consumer `?lang=` 미구현분 구현 (videos/{id} + studies/tasks/{id} + /explain)**
+  - **배경**: [PR #178](https://github.com/AmazingKoreanCenter/amazing-korean-api/pull/178) (Q1a field_name 잠복 버그 fix) + [PR #179](https://github.com/AmazingKoreanCenter/amazing-korean-api/pull/179) (Gemini MEDIUM 1건 반영) 머지 후속. 플랜 `.claude/plans/translation-field-name-alignment.md §2.2` Q1b 스코프 이행.
+  - **3개 엔드포인트 `?lang=` 파라미터 추가 + 번역 주입**:
+    - [src/api/video/handler.rs](../src/api/video/handler.rs) `get_video_detail` — `Query<VideoDetailReq>` 수용
+    - [src/api/video/dto.rs](../src/api/video/dto.rs) — `VideoDetailReq { lang }` 신규, `VideoDetailRes` 에 `title: Option<String>`/`subtitle: Option<String>` 필드 추가
+    - [src/api/video/repo.rs](../src/api/video/repo.rs) `get_video_detail` SQL — `MAX(video_tag_title)`/`MAX(video_tag_subtitle)` 집계 추가 (`video` 테이블 자체엔 title/subtitle 컬럼 부재)
+    - [src/api/video/service.rs](../src/api/video/service.rs) `get_video_detail` — `lang: Option<SupportedLanguage>` 인자 추가, `content_type=Video` `field_name=video_title`/`video_subtitle` 오버라이드
+    - [src/api/study/handler.rs](../src/api/study/handler.rs) `get_study_task` + `get_task_explain` — `Query<StudyTaskDetailReq>`/`Query<TaskExplainReq>` 수용
+    - [src/api/study/dto.rs](../src/api/study/dto.rs) — `StudyTaskDetailReq { lang }`, `TaskExplainReq { lang }` 신규
+    - [src/api/study/service.rs](../src/api/study/service.rs) `get_study_task` — task kind 별 `ContentType::StudyTask*` 로 분기 + payload 필드 오버라이드 (choice 5필드 question/1~4, typing 1필드 question, voice 1필드 question, writing 3필드 prompt/answer/hint). 헬퍼 `content_type_for_task_kind` 추가.
+    - [src/api/study/service.rs](../src/api/study/service.rs) `get_task_explain` — `content_type=StudyTaskExplain` `field_name=explain_title`/`explain_text` 오버라이드
+  - **field_name 규약**: Q1a 에서 확정한 긴 이름 (`{table}_{column}`) 표준 준수. `explain_*` 는 예외 (study_explain 테이블이 `study_` prefix 이미 중첩).
+  - **video_tag 번역 주입 (옵셔널 — 이연)**: 플랜 §2 는 video list/detail 에 video_tag 번역 주입도 Q1b 스코프에 포함시켰으나, response 에 `video_tag_id` 노출 필요성 때문에 **Q1c (응답 스키마 최종 정렬) 로 이연**. 덮어쓰기 vs `_translated` 접미사 결정과 함께 일괄 설계.
+  - **문서 동기화**:
+    - `AMK_API_LEARNING.md §9-841` — "⬜ Q1b 미구현 부분" → "🟢 Q1b 구현 완료". `🟢 이미 구현된 부분` 표에 Q1b 3개 엔드포인트 행 추가.
+    - `AMK_API_LEARNING.md §5.4-2` (videos/{id}) — `?lang=` 파라미터 및 title/subtitle 신규 필드 명시.
+    - `AMK_API_LEARNING.md §5.5-3` (studies/tasks/{id}) — `?lang=` 파라미터 및 task kind 별 번역 필드 명시.
+    - `AMK_API_LEARNING.md §5.5-6` (studies/tasks/{id}/explain) — `?lang=` 파라미터 및 explain_title/explain_text 오버라이드 명시.
+    - `AMK_STATUS.md §8.2` Q1b 행을 ✅ 완료 처리.
+  - **검증**:
+    - `cargo check` 23.34s 클린
+    - `cargo clippy --lib --bins -- -D warnings` 22.99s 클린
+    - `sqlx prepare` 재생성 불필요 (`get_video_detail` 의 `query_as::<_, VideoDetailRes>` 는 매크로 아님. 다른 수정 파일은 SQL 변경 없음)
+  - **회귀 리스크**: 프론트·모바일·데스크탑 Consumer `?lang=` 호출 0건 (2026-04-21 확인) → 사용자 가시 변화 없음. 번역 데이터가 `content_translations` 에 없으면 원본 그대로 반환.
+  - **다음 단계**: Q1c (응답 스키마 최종 정렬) — 덮어쓰기 vs `_translated` 접미사 + `translation_lang`/`translation_coverage` 메타 + Video 테이블 title/subtitle 물리 컬럼 추가 여부 + video_tag 번역 주입 설계 사용자 최종 결정.
 
 - **2026-04-21 (저녁) — Q1a: field_name 잠복 버그 fix (Consumer `?lang=` 정합 + admin 매핑 보강)**
   - **배경**: PR #176 (Phase 0 문서 정합) 머지 완료 직후 진입. 플랜 `.claude/plans/translation-field-name-alignment.md §2.2` 를 SSoT 로 Q1a 코드 작업. 프로덕션 `content_translations` 실 데이터는 긴 이름(`lesson_title` 등)으로 저장돼 있으나 Consumer service 4곳이 짧은 이름(`"title"` 등)으로 조회 → `?lang=` 호출 시 번역이 절대 반환되지 않는 잠복 버그 해소.
