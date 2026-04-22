@@ -917,6 +917,16 @@
         "userId": "사용자 ID (선택)",
         "userIdPlaceholder": "비워두면 비회원 주문",
         "userIdHint": "특정 사용자 계정에 귀속시키려면 user_id 입력",
+        "userSearch": {
+          "placeholder": "이메일 또는 닉네임 검색...",
+          "hint": "이메일 (전체) 또는 닉네임 (부분 일치) 로 사용자를 찾아 선택. 비우면 비회원 주문.",
+          "empty": "검색 결과 없음",
+          "minChars": "2글자 이상 입력",
+          "clear": "선택 해제",
+          "noNickname": "(닉네임 없음)",
+          "toggleManual": "user_id 직접 입력",
+          "toggleSearch": "검색 모드로 전환"
+        },
         "enforceMinQty": "최소 10권 제약 적용",
         "orderer": "신청자 정보",
         "name": "이름",

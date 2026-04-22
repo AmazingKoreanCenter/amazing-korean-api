@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-22 (Q1c Gemini 2차 리뷰 반영 — count_field 중복 통합)
+updated: 2026-04-22 (Q5 사용자 검색 UI — admin 대리 주문 생성 자동완성)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,28 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-22 (오후) — Q5: 사용자 검색 UI — admin 대리 주문 생성 자동완성 (프론트 전용, 반나절)**
+  - **배경**: PR #174 (#75 관리자 대리 주문 생성) 후속. `admin_textbook_order_create.tsx` 의 `user_id` 텍스트 입력을 자동완성 콤보박스로 개선. 백엔드 `GET /admin/users?q=` 이미 지원 (이메일 blind index exact match / 닉네임 LIKE) → 재사용.
+  - **신규 컴포넌트**: [frontend/src/category/admin/components/user_search_combobox.tsx](../frontend/src/category/admin/components/user_search_combobox.tsx) `UserSearchCombobox`
+    - props: `value: AdminUserSummary | null`, `onChange: (user | null) => void`
+    - 300ms debounce → `useAdminUsers({ q, size: 10, page: 1 })` 자동 호출
+    - 드롭다운에 `nickname + email + ID` 표시, 선택 시 `onChange` 호출
+    - 선택 상태일 때는 카드 뷰 + X 버튼으로 해제
+    - 2글자 이상일 때만 검색 (`enabled: debounced.length >= 2 && open`), `staleTime: 60s`
+    - 외부 클릭 시 드롭다운 닫힘 (mousedown 이벤트)
+    - shadcn Command 미사용 (vendor 번들 최소화) — Input + absolute div 조합
+  - **admin_textbook_order_create.tsx 통합**:
+    - `selectedUser: AdminUserSummary | null` + `manualUserIdMode: boolean` state 신규
+    - 기본은 검색 모드 (UserSearchCombobox 렌더), 토글 버튼으로 수동 `user_id` 입력 폴백
+    - `handleSubmit` 에서 selectedUser 있으면 `user.id` 사용, 아니면 수동 모드일 때 기존 엄격 파싱(`/^\d+$/`) 유지
+  - **i18n** (ko + en 키 신규 — 나머지 18 locale 은 en 폴백):
+    - `admin.textbook.create.userSearch.placeholder`/`hint`/`empty`/`minChars`/`clear`/`noNickname`/`toggleManual`/`toggleSearch`
+  - **검증**:
+    - `frontend: npm run build` 9.09s 성공 (admin_textbook_order_create 청크 재빌드 확인)
+    - 기존 수동 파싱 로직은 폴백 경로로 보존 → 회귀 없음
+  - **외부 의존 없음**: 백엔드 코드 0줄 변경 (기존 엔드포인트 재사용).
+  - **다음 단계**: Q6 (`admin_textbook_log` Create 액션 조회 UI, 반나절, 백엔드 신규 API + 프론트) 착수 예정.
 
 - **2026-04-22 (오전) — Q1c Gemini 2차 리뷰 반영: count_field 중복 → TranslatedField::count_to 메서드 통합**
   - **배경**: PR #179 스코프 확장 후 사용자가 `/gemini review` 수동 트리거 → 2026-04-22 01:15Z Gemini 2차 리뷰 (MEDIUM 5건, 모두 동일 패턴). `count_field` 헬퍼 함수가 4개 Consumer service 파일에 중복 정의돼 있으니 `TranslatedField` 구조체의 메서드로 이동해 중복 제거 권장.

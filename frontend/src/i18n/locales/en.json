@@ -917,6 +917,16 @@
         "userId": "User ID (optional)",
         "userIdPlaceholder": "Leave empty for guest order",
         "userIdHint": "Enter user_id to attribute this order to a specific account",
+        "userSearch": {
+          "placeholder": "Search by email or nickname...",
+          "hint": "Find and select a user by email (exact match) or nickname (partial match). Leave empty for guest order.",
+          "empty": "No results",
+          "minChars": "Enter at least 2 characters",
+          "clear": "Clear selection",
+          "noNickname": "(no nickname)",
+          "toggleManual": "Enter user_id directly",
+          "toggleSearch": "Switch to search mode"
+        },
         "enforceMinQty": "Enforce minimum 10 copies",
         "orderer": "Orderer Information",
         "name": "Name",
