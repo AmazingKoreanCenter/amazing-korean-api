@@ -429,8 +429,9 @@ impl TranslationRepo {
             }
             ContentType::Video => {
                 // Q1c B: video 테이블의 title/subtitle 물리 컬럼 추가 이후 실 컬럼 매핑.
+                // Gemini 3차 리뷰 반영: video_idx 는 consumer 번역 로직 대상 아님 → 제외.
                 let row = sqlx::query_as::<_, VideoSourceRow>(
-                    r#"SELECT video_idx, video_title, video_subtitle FROM video WHERE video_id = $1"#,
+                    r#"SELECT video_title, video_subtitle FROM video WHERE video_id = $1"#,
                 )
                 .bind(content_id)
                 .fetch_optional(pool)
@@ -438,7 +439,6 @@ impl TranslationRepo {
 
                 if let Some(r) = row {
                     for (name, text) in [
-                        ("video_idx", Some(r.video_idx)),
                         ("video_title", Some(r.video_title)),
                         ("video_subtitle", r.video_subtitle),
                     ] {
@@ -806,7 +806,6 @@ struct TranslationRow {
 
 #[derive(Debug, sqlx::FromRow)]
 struct VideoSourceRow {
-    video_idx: String,
     video_title: String,
     video_subtitle: Option<String>,
 }

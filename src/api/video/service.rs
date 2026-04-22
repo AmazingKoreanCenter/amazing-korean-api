@@ -40,24 +40,30 @@ impl VideoService {
                 )
                 .await?;
 
+                // Gemini 3차 리뷰 반영: title/subtitle 모두 Option — source 에 있을 때만 카운트.
                 let mut translated = 0usize;
                 let mut fallback = 0usize;
+                let mut requested = 0usize;
                 for item in data.iter_mut() {
-                    if let Some(t) =
-                        translations.get(&(item.video_id, "video_title".to_string()))
-                    {
-                        item.title = Some(t.text.clone());
-                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    if item.title.is_some() {
+                        requested += 1;
+                        if let Some(t) =
+                            translations.get(&(item.video_id, "video_title".to_string()))
+                        {
+                            item.title = Some(t.text.clone());
+                            t.count_to(user_lang, &mut translated, &mut fallback);
+                        }
                     }
-                    if let Some(t) =
-                        translations.get(&(item.video_id, "video_subtitle".to_string()))
-                    {
-                        item.subtitle = Some(t.text.clone());
-                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    if item.subtitle.is_some() {
+                        requested += 1;
+                        if let Some(t) =
+                            translations.get(&(item.video_id, "video_subtitle".to_string()))
+                        {
+                            item.subtitle = Some(t.text.clone());
+                            t.count_to(user_lang, &mut translated, &mut fallback);
+                        }
                     }
                 }
-                // 요청 필드 = video 당 2 (title + subtitle) × 항목 수
-                let requested = data.len().saturating_mul(2);
                 TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
         };
@@ -95,10 +101,13 @@ impl VideoService {
             None => TranslationMeta::not_requested(),
             Some(SupportedLanguage::Ko) => TranslationMeta::ko_full(),
             Some(user_lang) => {
+                // Gemini 3차 리뷰 반영: video title/subtitle + tag title/subtitle 모두
+                // Option — source 에 있을 때만 카운트.
                 let mut translated = 0usize;
                 let mut fallback = 0usize;
+                let mut requested = 0usize;
 
-                // Video 레벨 번역 (content_type=video, 2 필드)
+                // Video 레벨 번역 (content_type=video)
                 let video_translations = TranslationRepo::find_translations_for_contents(
                     &st.db,
                     ContentType::Video,
@@ -107,22 +116,27 @@ impl VideoService {
                 )
                 .await?;
 
-                if let Some(t) =
-                    video_translations.get(&(video.video_id, "video_title".to_string()))
-                {
-                    video.title = Some(t.text.clone());
-                    t.count_to(user_lang, &mut translated, &mut fallback);
+                if video.title.is_some() {
+                    requested += 1;
+                    if let Some(t) =
+                        video_translations.get(&(video.video_id, "video_title".to_string()))
+                    {
+                        video.title = Some(t.text.clone());
+                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    }
                 }
-                if let Some(t) =
-                    video_translations.get(&(video.video_id, "video_subtitle".to_string()))
-                {
-                    video.subtitle = Some(t.text.clone());
-                    t.count_to(user_lang, &mut translated, &mut fallback);
+                if video.subtitle.is_some() {
+                    requested += 1;
+                    if let Some(t) =
+                        video_translations.get(&(video.video_id, "video_subtitle".to_string()))
+                    {
+                        video.subtitle = Some(t.text.clone());
+                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    }
                 }
 
                 // Video 태그 번역 (Q1c C) — 상세 응답 tags[] 에만 적용
                 let tag_ids: Vec<i64> = video.tags.iter().map(|t| t.id).collect();
-                let tag_count = tag_ids.len();
                 if !tag_ids.is_empty() {
                     let tag_translations = TranslationRepo::find_translations_for_contents(
                         &st.db,
@@ -138,11 +152,10 @@ impl VideoService {
                         user_lang,
                         &mut translated,
                         &mut fallback,
+                        &mut requested,
                     );
                 }
 
-                // 요청 필드 = video 2 (title + subtitle) + tag 당 2 (title + subtitle)
-                let requested = 2 + tag_count.saturating_mul(2);
                 TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
         };
@@ -229,22 +242,30 @@ impl VideoService {
     }
 }
 
-/// VideoTag 번역을 tags[] 에 주입 (Q1c C)
+/// VideoTag 번역을 tags[] 에 주입 (Q1c C).
+/// Gemini 3차 리뷰 반영: tag.title/subtitle 은 Option — source 에 있을 때만 카운트.
 fn apply_tag_translations(
     tags: &mut [VideoTagDetail],
     translations: &HashMap<(i64, String), TranslatedField>,
     user_lang: SupportedLanguage,
     translated: &mut usize,
     fallback: &mut usize,
+    requested: &mut usize,
 ) {
     for tag in tags.iter_mut() {
-        if let Some(t) = translations.get(&(tag.id, "video_tag_title".to_string())) {
-            tag.title = Some(t.text.clone());
-            t.count_to(user_lang, translated, fallback);
+        if tag.title.is_some() {
+            *requested += 1;
+            if let Some(t) = translations.get(&(tag.id, "video_tag_title".to_string())) {
+                tag.title = Some(t.text.clone());
+                t.count_to(user_lang, translated, fallback);
+            }
         }
-        if let Some(t) = translations.get(&(tag.id, "video_tag_subtitle".to_string())) {
-            tag.subtitle = Some(t.text.clone());
-            t.count_to(user_lang, translated, fallback);
+        if tag.subtitle.is_some() {
+            *requested += 1;
+            if let Some(t) = translations.get(&(tag.id, "video_tag_subtitle".to_string())) {
+                tag.subtitle = Some(t.text.clone());
+                t.count_to(user_lang, translated, fallback);
+            }
         }
     }
 }

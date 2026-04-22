@@ -97,20 +97,28 @@ impl StudyService {
                 )
                 .await?;
 
+                // Gemini 3차 리뷰 반영: study title/subtitle 모두 Option — source 에
+                // 값이 있는 필드만 requested 카운트.
                 let mut translated = 0usize;
                 let mut fallback = 0usize;
+                let mut requested = 0usize;
                 for item in list.iter_mut() {
                     let id = i64::from(item.study_id);
-                    if let Some(t) = translations.get(&(id, "study_title".to_string())) {
-                        item.title = Some(t.text.clone());
-                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    if item.title.is_some() {
+                        requested += 1;
+                        if let Some(t) = translations.get(&(id, "study_title".to_string())) {
+                            item.title = Some(t.text.clone());
+                            t.count_to(user_lang, &mut translated, &mut fallback);
+                        }
                     }
-                    if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
-                        item.subtitle = Some(t.text.clone());
-                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    if item.subtitle.is_some() {
+                        requested += 1;
+                        if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
+                            item.subtitle = Some(t.text.clone());
+                            t.count_to(user_lang, &mut translated, &mut fallback);
+                        }
                     }
                 }
-                let requested = list.len().saturating_mul(2);
                 TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
         };
@@ -191,15 +199,22 @@ impl StudyService {
                 let id = i64::from(study.study_id);
                 let mut translated = 0usize;
                 let mut fallback = 0usize;
-                if let Some(t) = translations.get(&(id, "study_title".to_string())) {
-                    title = Some(t.text.clone());
-                    t.count_to(user_lang, &mut translated, &mut fallback);
+                let mut requested = 0usize;
+                if title.is_some() {
+                    requested += 1;
+                    if let Some(t) = translations.get(&(id, "study_title".to_string())) {
+                        title = Some(t.text.clone());
+                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    }
                 }
-                if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
-                    subtitle = Some(t.text.clone());
-                    t.count_to(user_lang, &mut translated, &mut fallback);
+                if subtitle.is_some() {
+                    requested += 1;
+                    if let Some(t) = translations.get(&(id, "study_subtitle".to_string())) {
+                        subtitle = Some(t.text.clone());
+                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    }
                 }
-                TranslationMeta::from_counts(user_lang, 2, translated, fallback)
+                TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
         };
 
@@ -527,17 +542,25 @@ impl StudyService {
                 )
                 .await?;
 
+                // Gemini 3차 리뷰 반영: title / explanation 모두 Option — source 에 있을 때만 카운트.
                 let mut translated = 0usize;
                 let mut fallback = 0usize;
-                if let Some(t) = translations.get(&(content_id, "explain_title".to_string())) {
-                    response.title = Some(t.text.clone());
-                    t.count_to(user_lang, &mut translated, &mut fallback);
+                let mut requested = 0usize;
+                if response.title.is_some() {
+                    requested += 1;
+                    if let Some(t) = translations.get(&(content_id, "explain_title".to_string())) {
+                        response.title = Some(t.text.clone());
+                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    }
                 }
-                if let Some(t) = translations.get(&(content_id, "explain_text".to_string())) {
-                    response.explanation = Some(t.text.clone());
-                    t.count_to(user_lang, &mut translated, &mut fallback);
+                if response.explanation.is_some() {
+                    requested += 1;
+                    if let Some(t) = translations.get(&(content_id, "explain_text".to_string())) {
+                        response.explanation = Some(t.text.clone());
+                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    }
                 }
-                TranslationMeta::from_counts(user_lang, 2, translated, fallback)
+                TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
         };
 

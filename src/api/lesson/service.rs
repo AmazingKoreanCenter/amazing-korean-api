@@ -57,21 +57,27 @@ impl LessonService {
                 )
                 .await?;
 
+                // Gemini 3차 리뷰 반영: requested 는 source 에 값이 있는 필드만 카운트.
+                // lesson_description 은 Option — None 이면 요청 대상 아님.
                 let mut translated = 0usize;
                 let mut fallback = 0usize;
+                let mut requested = 0usize;
                 for item in items.iter_mut() {
+                    requested += 1; // lesson_title 은 필수
                     if let Some(t) = translations.get(&(item.id, "lesson_title".to_string())) {
                         item.title = t.text.clone();
                         t.count_to(user_lang, &mut translated, &mut fallback);
                     }
-                    if let Some(t) =
-                        translations.get(&(item.id, "lesson_description".to_string()))
-                    {
-                        item.description = Some(t.text.clone());
-                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    if item.description.is_some() {
+                        requested += 1;
+                        if let Some(t) =
+                            translations.get(&(item.id, "lesson_description".to_string()))
+                        {
+                            item.description = Some(t.text.clone());
+                            t.count_to(user_lang, &mut translated, &mut fallback);
+                        }
                     }
                 }
-                let requested = items.len().saturating_mul(2);
                 TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
         };
@@ -136,19 +142,23 @@ impl LessonService {
 
                 let mut translated = 0usize;
                 let mut fallback = 0usize;
+                let mut requested = 1usize; // lesson_title 은 필수
                 if let Some(t) =
                     translations.get(&(lesson.lesson_id, "lesson_title".to_string()))
                 {
                     title = t.text.clone();
                     t.count_to(user_lang, &mut translated, &mut fallback);
                 }
-                if let Some(t) =
-                    translations.get(&(lesson.lesson_id, "lesson_description".to_string()))
-                {
-                    description = Some(t.text.clone());
-                    t.count_to(user_lang, &mut translated, &mut fallback);
+                if description.is_some() {
+                    requested += 1;
+                    if let Some(t) = translations
+                        .get(&(lesson.lesson_id, "lesson_description".to_string()))
+                    {
+                        description = Some(t.text.clone());
+                        t.count_to(user_lang, &mut translated, &mut fallback);
+                    }
                 }
-                TranslationMeta::from_counts(user_lang, 2, translated, fallback)
+                TranslationMeta::from_counts(user_lang, requested, translated, fallback)
             }
         };
 
