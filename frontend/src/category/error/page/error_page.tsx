@@ -22,7 +22,12 @@ export function ErrorPage() {
         title={t("error.errorPageTitle")}
         subtitle={t("error.errorPageDescription").split("\n").map((line, i) => (
           <span key={i}>
-            {i > 0 && <br className="hidden sm:block" />}
+            {i > 0 && (
+              <>
+                {" "}
+                <br className="hidden sm:block" />
+              </>
+            )}
             {line}
           </span>
         ))}
