@@ -87,11 +87,25 @@ export function ReceiptSupplierBox({ ns, t }: SupplierBoxProps) {
 }
 
 // ============================================================================
-// 합계 3단 분리 박스 — 공급가액 / VAT / 합계 + "정히 영수함" 문구
+// 합계 3단 (또는 할인 포함 시 5단) 분리 박스
 // ============================================================================
+//
+// 기본: 공급가액 / VAT / 합계
+// 할인 있을 때 (2026-04-23 신규): 품목 합계 / 할인 / 공급가액(할인 후) / VAT / 합계
+//
+// 세법 정확성: 공급가액(과세표준) 은 할인 후 금액이어야 VAT 10% 계산이
+// 올바름. totalAmount 는 할인 후 최종 금액이므로 이걸 기준으로 분리.
+// grossAmount / discountAmount 는 할인 전 참고 표시용.
 
 interface TotalBreakdownProps {
+  /** 할인 후 최종 VAT 포함 금액. 공급가액/VAT 분리 기준. */
   totalAmount: number;
+  /** 할인 전 총액 (수량 × 단가, VAT 포함). 할인 있을 때만 표시. */
+  grossAmount?: number;
+  /** 할인 금액 (VAT 포함). 0 또는 undefined 면 할인 라인 미표시. */
+  discountAmount?: number;
+  /** 할인 사유 (선택, 괄호 주석으로 표시). */
+  discountReason?: string | null;
   currency: string;
   ns: "textbook.print" | "admin.textbook.print";
   t: (key: string) => string;
@@ -99,16 +113,45 @@ interface TotalBreakdownProps {
 
 export function ReceiptTotalBreakdown({
   totalAmount,
+  grossAmount,
+  discountAmount,
+  discountReason,
   currency,
   ns,
   t,
 }: TotalBreakdownProps) {
+  const hasDiscount = (discountAmount ?? 0) > 0;
+  // 공급가액·VAT 는 할인 후 기준 (세법 정확). 할인 반영된 totalAmount 에서 역산.
   const { supplyAmount, vatAmount } = calculateReceiptBreakdown(
     totalAmount,
     currency,
   );
   return (
     <div className="p-4 border-2 border-black rounded mb-6">
+      {hasDiscount && grossAmount !== undefined && (
+        <>
+          <div className="flex justify-between py-1">
+            <span>{t(`${ns}.subtotal`)}</span>
+            <span>
+              {formatReceiptAmount(grossAmount, currency)} {currency}
+            </span>
+          </div>
+          <div className="flex justify-between py-1 text-destructive">
+            <span>
+              - {t(`${ns}.discount`)}
+              {discountReason && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  ({discountReason})
+                </span>
+              )}
+            </span>
+            <span>
+              - {formatReceiptAmount(discountAmount ?? 0, currency)} {currency}
+            </span>
+          </div>
+          <div className="border-b my-1" />
+        </>
+      )}
       <div className="flex justify-between py-1">
         <span>{t(`${ns}.supplyAmount`)}</span>
         <span>

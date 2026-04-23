@@ -10,7 +10,7 @@ use crate::state::AppState;
 
 use super::dto::{
     AdminCreateOrderReq, AdminTextbookListReq, AdminTextbookListRes, AdminTextbookLogListRes,
-    AdminTextbookLogQuery, AdminUpdateStatusReq, AdminUpdateTrackingReq,
+    AdminTextbookLogQuery, AdminUpdateDiscountReq, AdminUpdateStatusReq, AdminUpdateTrackingReq,
 };
 use super::service::AdminTextbookService;
 
@@ -99,6 +99,36 @@ pub async fn update_status(
 ) -> AppResult<Json<OrderRes>> {
     let res =
         AdminTextbookService::update_status(&st, auth_user.sub, id, req.status).await?;
+    Ok(Json(res))
+}
+
+/// PATCH /admin/textbook/orders/:id/discount (2026-04-23 신규)
+///
+/// 관리자 주문 할인 편집. gross_amount 는 불변이며 discount_amount 와
+/// total_amount(= gross - discount) 만 갱신. 0 ≤ discount ≤ gross 검증.
+/// admin_textbook_log 에 Update 액션 기록.
+#[utoipa::path(
+    patch,
+    path = "/admin/textbook/orders/{id}/discount",
+    tag = "Admin Textbook",
+    security(("bearerAuth" = [])),
+    params(
+        ("id" = i64, Path, description = "주문 ID")
+    ),
+    request_body = AdminUpdateDiscountReq,
+    responses(
+        (status = 200, description = "할인 편집 완료", body = OrderRes),
+        (status = 400, description = "할인 금액 범위 오류"),
+        (status = 404, description = "주문 없음")
+    )
+)]
+pub async fn update_discount(
+    State(st): State<AppState>,
+    AuthUser(auth_user): AuthUser,
+    Path(id): Path<i64>,
+    AppJson(req): AppJson<AdminUpdateDiscountReq>,
+) -> AppResult<Json<OrderRes>> {
+    let res = AdminTextbookService::update_discount(&st, auth_user.sub, id, req).await?;
     Ok(Json(res))
 }
 

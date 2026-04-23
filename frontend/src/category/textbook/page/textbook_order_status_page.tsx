@@ -246,19 +246,63 @@ export function TextbookOrderStatusPage() {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t-2 font-bold">
-                        <td colSpan={2} className="px-3 py-2">
-                          {t("textbook.status.total")}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          {order.total_quantity}
-                        </td>
-                        <td />
-                        <td className="px-3 py-2 text-right">
-                          {order.total_amount.toLocaleString()}
-                          {t("textbook.order.currency")}
-                        </td>
-                      </tr>
+                      {order.discount_amount > 0 ? (
+                        <>
+                          <tr className="border-t">
+                            <td
+                              colSpan={2}
+                              className="px-3 py-2 text-muted-foreground"
+                            >
+                              {t("textbook.status.grossAmount")}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              {order.total_quantity}
+                            </td>
+                            <td />
+                            <td className="px-3 py-2 text-right">
+                              {order.gross_amount.toLocaleString()}
+                              {t("textbook.order.currency")}
+                            </td>
+                          </tr>
+                          <tr className="text-destructive">
+                            <td colSpan={4} className="px-3 py-2">
+                              - {t("textbook.status.discount")}
+                              {order.discount_reason && (
+                                <span className="text-xs text-muted-foreground ml-2">
+                                  ({order.discount_reason})
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              - {order.discount_amount.toLocaleString()}
+                              {t("textbook.order.currency")}
+                            </td>
+                          </tr>
+                          <tr className="border-t-2 font-bold">
+                            <td colSpan={4} className="px-3 py-2">
+                              {t("textbook.status.total")}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              {order.total_amount.toLocaleString()}
+                              {t("textbook.order.currency")}
+                            </td>
+                          </tr>
+                        </>
+                      ) : (
+                        <tr className="border-t-2 font-bold">
+                          <td colSpan={2} className="px-3 py-2">
+                            {t("textbook.status.total")}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            {order.total_quantity}
+                          </td>
+                          <td />
+                          <td className="px-3 py-2 text-right">
+                            {order.total_amount.toLocaleString()}
+                            {t("textbook.order.currency")}
+                          </td>
+                        </tr>
+                      )}
                     </tfoot>
                   </table>
                 </div>

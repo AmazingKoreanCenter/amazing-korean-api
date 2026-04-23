@@ -100,6 +100,23 @@ pub struct AdminUpdateStatusReq {
 }
 
 // =============================================================================
+// 할인 편집 — PATCH /admin/textbook/orders/{id}/discount
+// =============================================================================
+//
+// 관리자가 대리 주문 생성 후에도 할인 금액/사유를 수정할 수 있도록 별도
+// 엔드포인트. gross_amount 는 불변이며 discount_amount + total_amount 만 갱신.
+// service 에서 0 ≤ discount ≤ gross 검증 + admin_textbook_log 기록.
+
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct AdminUpdateDiscountReq {
+    /// 할인 금액 (VAT 포함, KRW). 0 이면 할인 해제. gross_amount 초과 금지.
+    pub discount_amount: i32,
+    /// 할인 사유 (선택, 관리자 메모). 빈 문자열 또는 null 허용.
+    #[validate(length(max = 500))]
+    pub discount_reason: Option<String>,
+}
+
+// =============================================================================
 // 배송 추적 정보 업데이트
 // =============================================================================
 
@@ -182,6 +199,15 @@ pub struct AdminCreateOrderReq {
     /// 주문 항목 (최소 1개)
     #[validate(length(min = 1))]
     pub items: Vec<CreateOrderItemReq>,
+
+    /// 할인 금액 (VAT 포함, KRW). 관리자 대리 주문 시에만 설정. 기본 0.
+    /// gross_amount(수량×단가) 초과 금지. service 에서 검증.
+    #[serde(default)]
+    pub discount_amount: i32,
+
+    /// 할인 사유 (선택, 관리자 메모). discount_amount > 0 일 때 권장.
+    #[validate(length(max = 500))]
+    pub discount_reason: Option<String>,
 
     /// 비고 (관리자 메모 가능)
     pub notes: Option<String>,

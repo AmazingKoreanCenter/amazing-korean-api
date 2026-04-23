@@ -184,6 +184,9 @@ export function TextbookOrderPrint() {
         {isReceipt ? (
           <ReceiptTotalBreakdown
             totalAmount={order.total_amount}
+            grossAmount={order.gross_amount}
+            discountAmount={order.discount_amount}
+            discountReason={order.discount_reason}
             currency={order.currency}
             ns="textbook.print"
             t={t}

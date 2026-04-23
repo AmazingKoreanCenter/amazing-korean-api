@@ -114,6 +114,10 @@ export const orderResSchema = z.object({
   tax_email: z.string().nullable(),
   total_quantity: z.number().int(),
   total_amount: z.number().int(),
+  // 2026-04-23: 관리자 할인 필드. 기존 주문(마이그레이션 백필)은 gross=total, discount=0.
+  gross_amount: z.number().int(),
+  discount_amount: z.number().int(),
+  discount_reason: z.string().nullable().optional(),
   currency: z.string(),
   notes: z.string().nullable(),
   tracking_number: z.string().nullable(),

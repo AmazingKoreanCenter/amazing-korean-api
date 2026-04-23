@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-23 (Q11 pt footer 판단 — 시나리오 B 채택, API 팀 코드 수정 없음, QA prompt 보강으로 흡수)
+updated: 2026-04-23 (#73 후속: 교재 주문 할인 기능 — gross/discount/total 3 필드 DB + 관리자 생성/편집 UI + 세법 정확 영수증 표기 + 수량 입력 버그 fix)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,82 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-23 (오후) — #73 후속: 교재 주문 할인 기능 + 수량 입력 버그 fix**
+
+  - **수량 입력 버그 fix** (`admin_textbook_order_create.tsx`, 독립 커밋 `cdd4c43`):
+    - 증상: admin 대리 주문 생성 페이지 품목 수량 input 에서 "1" 을 지울 수 없음 → "2" 로 덮어쓰기 불가
+    - 원인: controlled input 에서 `Number("") || 1 = 1` 로 빈 문자열이 즉시 1 로 복귀
+    - 해결: `OrderItem.quantity: number → number | ""` 타입 확장, onChange 에서 빈 값 "" 저장, onBlur 에서 1 fallback
+
+  - **할인 기능 — 결정 3건 (2026-04-23 사용자)**:
+    - 결정 1 (B): 세 필드 DB 저장 (gross_amount + discount_amount + discount_reason) — 영수증 표기 + 감사 추적성
+    - 결정 2 (B): 주문 상세 페이지에서도 편집 가능 — `PATCH /admin/textbook/orders/{id}/discount` 신규
+    - 결정 3 (A): 세법 정확 — 공급가액(과세표준) 은 **할인 후 금액** 기준, VAT 재계산
+
+  - **DB 마이그레이션** [migrations/20260423_textbook_order_discount.sql](../migrations/20260423_textbook_order_discount.sql):
+    - `ALTER TABLE textbook` + `gross_amount INT NOT NULL` + `discount_amount INT NOT NULL DEFAULT 0` + `discount_reason TEXT`
+    - 기존 주문 백필: `UPDATE textbook SET gross_amount = total_amount` (할인 없었으므로)
+    - CHECK 제약 3건: discount ≥ 0, discount ≤ gross, total = gross - discount (DB 레벨 데이터 무결성 가드)
+    - 관계: `total_amount = gross_amount - discount_amount`
+
+  - **Backend** ([src/api/textbook/repo.rs](../src/api/textbook/repo.rs), [src/api/textbook/dto.rs](../src/api/textbook/dto.rs), [src/api/admin/textbook/service.rs](../src/api/admin/textbook/service.rs)):
+    - `TextbookOrderRow` + `InsertOrderParams` + `OrderRes` 에 `gross_amount` / `discount_amount` / `discount_reason` 3 필드 추가
+    - 신규 repo 함수 `update_discount` — gross 불변, discount + total 만 UPDATE. DB CHECK 로 자동 검증.
+    - `AdminCreateOrderReq` 에 `discount_amount: i32 (default 0)` + `discount_reason: Option<String> (max 500)` 신규
+    - `AdminTextbookService::create_order` 에 검증 (0 ≤ discount ≤ gross) + 감사 로그 jsonb 확장 + 사유 trim 정규화
+    - 신규 `AdminTextbookService::update_discount` + `AdminUpdateDiscountReq` DTO + `update_discount` handler + router entry
+    - 사용자 `create_order` 는 `gross = total`, `discount = 0` 으로 기록 (일반 사용자 주문은 할인 없음)
+
+  - **Frontend 프론트 타입·API·hook** ([frontend/src/category/admin/textbook/types.ts](../frontend/src/category/admin/textbook/types.ts), [frontend/src/category/admin/admin_api.ts](../frontend/src/category/admin/admin_api.ts), [frontend/src/category/admin/textbook/hook/use_admin_textbook.ts](../frontend/src/category/admin/textbook/hook/use_admin_textbook.ts)):
+    - `AdminCreateOrderReq` 에 `discount_amount?` + `discount_reason?` 추가
+    - 신규 `AdminUpdateDiscountReq` interface
+    - `updateAdminTextbookOrderDiscount` API 함수 + `useAdminUpdateTextbookDiscount` mutation
+    - `OrderRes` zod 스키마에 `gross_amount` / `discount_amount` / `discount_reason` 필드 추가
+
+  - **Frontend UI — admin 생성 페이지** ([admin_textbook_order_create.tsx](../frontend/src/category/admin/textbook/page/admin_textbook_order_create.tsx)):
+    - 할인 금액 (type=number) + 할인 사유 (text, disabled 할인=0) 신규 Card
+    - 품목 합계 / 할인 / 최종 합계 3단 요약 표시
+    - 할인 > gross 시 빨간 경고 + submit 거부
+    - discount 입력은 수량과 동일한 `number | ""` 패턴 (빈 값 허용 + blur fallback)
+
+  - **Frontend UI — admin 상세 페이지** ([admin_textbook_order_detail.tsx](../frontend/src/category/admin/textbook/page/admin_textbook_order_detail.tsx)):
+    - 주문 항목 테이블 tfoot 을 "품목 합계 / 할인 / 최종 합계" 3행 구조로 재구성 (할인 0 이면 단일 행)
+    - "할인 편집" 버튼 + Dialog (discount_amount + discount_reason 수정, save mutation 호출)
+    - 감사 로그 기록 자동 (서비스 레이어가 `AdminAction::Update` 기록)
+
+  - **Frontend UI — 사용자 주문 조회 페이지** ([textbook_order_status_page.tsx](../frontend/src/category/textbook/page/textbook_order_status_page.tsx)):
+    - 할인 있는 주문은 "품목 합계 / 할인(사유 병기) / 합계" 3행 표시
+    - 할인 없는 주문은 기존 단일 Total 행 유지 (UX 일관성)
+
+  - **영수증·인쇄 페이지** ([receipt_parts.tsx](../frontend/src/category/textbook/receipt_parts.tsx), [textbook_order_print.tsx](../frontend/src/category/textbook/page/textbook_order_print.tsx), [admin_textbook_order_print.tsx](../frontend/src/category/admin/textbook/page/admin_textbook_order_print.tsx)):
+    - `ReceiptTotalBreakdown` 시그니처 확장 — `grossAmount?` + `discountAmount?` + `discountReason?` 선택적 props
+    - 할인 있을 때 표시 구조 (세법 정확):
+      ```
+      품목 합계:       gross
+      - 할인 (사유):   - discount
+      ─────────────────
+      공급가액:        (gross - discount) / 1.1
+      부가세 (10%):    (gross - discount) × 0.1 / 1.1
+      ─────────────────
+      영수 금액:       total = gross - discount
+      ```
+    - 공급가액은 **할인 후 기준** (과세표준). VAT 는 과세표준 × 10%. 세금계산서 발행 시에도 정확.
+
+  - **i18n** ([ko.json](../frontend/src/i18n/locales/ko.json), [en.json](../frontend/src/i18n/locales/en.json)):
+    - `admin.textbook.create.{discount, discountAmount, discountReason, discountReasonPlaceholder, discountHint, grossAmount, finalAmount}` 신규
+    - `admin.textbook.create.err.{discountNegative, discountExceedsGross}` 신규
+    - `admin.textbook.detail.{grossAmount, finalAmount, discountAmount, discountReason, editDiscount, editDiscountTitle, editDiscountDesc, saveDiscount, discountSaved, discountSaveFailed}` 신규 섹션
+    - `admin.textbook.print.{subtotal, discount}` + `textbook.print.{subtotal, discount}` + `textbook.status.{grossAmount, discount}` 신규
+    - ko + en 양쪽 추가. 나머지 20 locale 은 en fallback (Q4 영수증 번역 정책 동일).
+
+  - **검증**: `cargo check` + `cargo clippy --lib --bins -- -D warnings` 0 warnings + `npm run build` 8.93s 클린. sqlx offline cache 기존 유지 (신규 raw SQL 이지만 기존 패턴과 동일 구조).
+
+  - **프로덕션 배포 순서**:
+    1. PR 머지 → CI 자동 마이그레이션 실행 (`20260423_textbook_order_discount.sql`)
+    2. 기존 주문은 `gross_amount = total_amount`, `discount_amount = 0` 로 백필 (마이그레이션 내부)
+    3. 배포 완료 → 관리자가 새 주문 생성 시 할인 옵션 사용 가능
+    4. 기존 주문에 할인 소급 적용은 주문 상세 페이지 "할인 편집" 으로
 
 - **2026-04-23 — Q11 pt footer 판단: 시나리오 B (QA prompt 보강) 채택, API 팀 코드 수정 없음**
   - **배경**: 2026-04-22 overnight full run (`tests/qa-results/2026-04-22T06-39-53Z/`) 에서 PR #182 효과 검증 완료 — Gemma flag 32→1 (-97%), JWT 만료 70→2 (Q12 효과). 잔존 1건이 Q11 (pt 데스크톱 footer overlap). 맥미니가 "진짜 버그 여부 판단 요청" 으로 `docs/QA_결과.md` 재작성, API 팀에 5 시나리오 판단 위임.

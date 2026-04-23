@@ -91,8 +91,24 @@ export interface AdminCreateOrderReq {
   /** 주문 항목 */
   items: CreateOrderItemReq[];
 
+  /** 할인 금액 (VAT 포함, KRW). 기본 0. gross_amount 초과 금지. */
+  discount_amount?: number;
+  /** 할인 사유 (관리자 메모, 선택). */
+  discount_reason?: string;
+
   /** 비고 (관리자 메모 가능) */
   notes?: string;
+}
+
+// =============================================================================
+// 할인 편집 (PATCH /admin/textbook/orders/{id}/discount, 2026-04-23 신규)
+// =============================================================================
+
+export interface AdminUpdateDiscountReq {
+  /** 할인 금액 (VAT 포함, KRW). 0 이면 할인 해제. gross_amount 초과 금지. */
+  discount_amount: number;
+  /** 할인 사유 (선택). */
+  discount_reason?: string | null;
 }
 
 // =============================================================================

@@ -141,7 +141,11 @@ impl TextbookService {
                 tax_biz_item: req.tax_biz_item.as_deref(),
                 tax_email: req.tax_email.as_deref(),
                 total_quantity,
+                // 사용자 주문은 할인 미적용 — gross = total, discount = 0.
                 total_amount,
+                gross_amount: total_amount,
+                discount_amount: 0,
+                discount_reason: None,
                 notes: req.notes.as_deref(),
             },
         )
@@ -264,6 +268,9 @@ pub fn build_order_res_from(order: TextbookOrderRow, items: Vec<TextbookItemRow>
         tax_email: order.tax_email,
         total_quantity: order.total_quantity,
         total_amount: order.total_amount,
+        gross_amount: order.gross_amount,
+        discount_amount: order.discount_amount,
+        discount_reason: order.discount_reason,
         currency: order.currency,
         notes: order.notes,
         tracking_number: order.tracking_number,
