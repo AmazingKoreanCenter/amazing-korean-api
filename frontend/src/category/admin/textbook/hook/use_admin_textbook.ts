@@ -5,6 +5,7 @@ import {
   getAdminTextbookOrders,
   getAdminTextbookOrder,
   getAdminTextbookLogs,
+  updateAdminTextbookOrderDiscount,
   updateAdminTextbookOrderStatus,
   updateAdminTextbookOrderTracking,
   deleteAdminTextbookOrder,
@@ -13,6 +14,7 @@ import type {
   AdminCreateOrderReq,
   AdminTextbookListReq,
   AdminTextbookLogQuery,
+  AdminUpdateDiscountReq,
   AdminUpdateStatusReq,
   AdminUpdateTrackingReq,
 } from "../types";
@@ -87,6 +89,24 @@ export const useAdminUpdateTextbookTracking = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: AdminUpdateTrackingReq }) =>
       updateAdminTextbookOrderTracking(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({
+        queryKey: adminTextbookKeys.orders,
+      });
+      queryClient.invalidateQueries({
+        queryKey: adminTextbookKeys.orderDetail(id),
+      });
+    },
+  });
+};
+
+/** 관리자 주문 할인 편집 (2026-04-23). */
+export const useAdminUpdateTextbookDiscount = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: AdminUpdateDiscountReq }) =>
+      updateAdminTextbookOrderDiscount(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({
         queryKey: adminTextbookKeys.orders,

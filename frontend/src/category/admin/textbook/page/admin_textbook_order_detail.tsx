@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
+  Pencil,
   Printer,
   Trash2,
   Loader2,
@@ -35,10 +36,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { Label } from "@/components/ui/label";
+
 import {
   useAdminTextbookOrderDetail,
   useAdminUpdateTextbookStatus,
   useAdminUpdateTextbookTracking,
+  useAdminUpdateTextbookDiscount,
   useAdminDeleteTextbookOrder,
 } from "../hook/use_admin_textbook";
 import type { TextbookOrderStatus } from "@/category/textbook/types";
@@ -66,11 +70,17 @@ export function AdminTextbookOrderDetail() {
   const { data: order, isLoading } = useAdminTextbookOrderDetail(id);
   const updateMutation = useAdminUpdateTextbookStatus();
   const trackingMutation = useAdminUpdateTextbookTracking();
+  const discountMutation = useAdminUpdateTextbookDiscount();
   const deleteMutation = useAdminDeleteTextbookOrder();
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [trackingProvider, setTrackingProvider] = useState("");
+
+  // 할인 편집 Dialog state (2026-04-23 신규)
+  const [discountOpen, setDiscountOpen] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState<number | "">(0);
+  const [discountReason, setDiscountReason] = useState("");
 
   const handleStatusChange = (newStatus: string) => {
     if (!order) return;
@@ -82,6 +92,41 @@ export function AdminTextbookOrderDetail() {
         },
         onError: () => {
           toast.error(t("admin.textbook.statusUpdateFailed"));
+        },
+      },
+    );
+  };
+
+  const openDiscountEditor = () => {
+    if (!order) return;
+    setDiscountAmount(order.discount_amount);
+    setDiscountReason(order.discount_reason ?? "");
+    setDiscountOpen(true);
+  };
+
+  const handleDiscountSave = () => {
+    if (!order) return;
+    const d = Math.max(0, Math.floor(Number(discountAmount) || 0));
+    if (d > order.gross_amount) {
+      toast.error(t("admin.textbook.detail.err.discountExceedsGross"));
+      return;
+    }
+    discountMutation.mutate(
+      {
+        id,
+        data: {
+          discount_amount: d,
+          discount_reason:
+            d > 0 && discountReason.trim() ? discountReason.trim() : null,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(t("admin.textbook.detail.discountSaved"));
+          setDiscountOpen(false);
+        },
+        onError: () => {
+          toast.error(t("admin.textbook.detail.discountSaveFailed"));
         },
       },
     );
@@ -253,18 +298,55 @@ export function AdminTextbookOrderDetail() {
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t-2 font-bold">
-                <td colSpan={2} className="px-3 py-2">
-                  {t("admin.textbook.total")}
+              <tr className="border-t">
+                <td colSpan={2} className="px-3 py-2 text-muted-foreground">
+                  {t("admin.textbook.detail.grossAmount")}
                 </td>
                 <td className="px-3 py-2 text-right">{order.total_quantity}</td>
                 <td />
                 <td className="px-3 py-2 text-right">
-                  {order.total_amount.toLocaleString()}{order.currency}
+                  {order.gross_amount.toLocaleString()}
+                  {order.currency}
+                </td>
+              </tr>
+              {order.discount_amount > 0 && (
+                <tr className="text-destructive">
+                  <td colSpan={4} className="px-3 py-2">
+                    - {t("admin.textbook.detail.discountAmount")}
+                    {order.discount_reason && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({order.discount_reason})
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    - {order.discount_amount.toLocaleString()}
+                    {order.currency}
+                  </td>
+                </tr>
+              )}
+              <tr className="border-t-2 font-bold">
+                <td colSpan={4} className="px-3 py-2">
+                  {t("admin.textbook.detail.finalAmount")}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {order.total_amount.toLocaleString()}
+                  {order.currency}
                 </td>
               </tr>
             </tfoot>
           </table>
+          <div className="flex justify-end mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openDiscountEditor}
+              disabled={discountMutation.isPending}
+            >
+              <Pencil className="mr-1 h-4 w-4" />
+              {t("admin.textbook.detail.editDiscount")}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -423,6 +505,72 @@ export function AdminTextbookOrderDetail() {
           <TimeRow label={t("admin.textbook.canceledAt")} value={order.canceled_at} />
         </CardContent>
       </Card>
+
+      {/* 할인 편집 다이얼로그 (2026-04-23 신규) */}
+      <Dialog open={discountOpen} onOpenChange={setDiscountOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("admin.textbook.detail.editDiscountTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("admin.textbook.detail.editDiscountDesc", {
+                gross: order.gross_amount.toLocaleString(),
+                currency: order.currency,
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label htmlFor="editDiscountAmount">
+                {t("admin.textbook.detail.discountAmount")} ({order.currency})
+              </Label>
+              <Input
+                id="editDiscountAmount"
+                type="number"
+                min={0}
+                max={order.gross_amount}
+                value={discountAmount}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") {
+                    setDiscountAmount("");
+                  } else {
+                    setDiscountAmount(Math.max(0, Math.floor(Number(v) || 0)));
+                  }
+                }}
+                onBlur={() => {
+                  if (discountAmount === "") setDiscountAmount(0);
+                }}
+              />
+            </div>
+            <div>
+              <Label htmlFor="editDiscountReason">
+                {t("admin.textbook.detail.discountReason")}
+              </Label>
+              <Input
+                id="editDiscountReason"
+                value={discountReason}
+                onChange={(e) => setDiscountReason(e.target.value)}
+                placeholder={t("admin.textbook.detail.discountReasonPlaceholder")}
+                maxLength={500}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDiscountOpen(false)}>
+              {t("admin.textbook.cancel")}
+            </Button>
+            <Button
+              onClick={handleDiscountSave}
+              disabled={discountMutation.isPending}
+            >
+              {discountMutation.isPending && (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              )}
+              {t("admin.textbook.detail.saveDiscount")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 삭제 확인 다이얼로그 */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

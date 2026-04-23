@@ -35,6 +35,12 @@ pub struct TextbookOrderRow {
     pub tax_email: Option<String>,
     pub total_quantity: i32,
     pub total_amount: i32,
+    /// 할인 전 총액 (수량 × 단가, VAT 포함). 20260423 마이그레이션 신규.
+    pub gross_amount: i32,
+    /// 할인 금액 (VAT 포함). 0 이면 할인 미적용.
+    pub discount_amount: i32,
+    /// 할인 사유 (관리자 메모, 선택).
+    pub discount_reason: Option<String>,
     pub currency: String,
     pub notes: Option<String>,
     pub tracking_number: Option<String>,
@@ -86,7 +92,8 @@ const ORDER_COLUMNS: &str = r#"
     delivery_postal_code, delivery_address, delivery_detail,
     payment_method, depositor_name,
     tax_invoice, tax_biz_number, tax_company_name, tax_rep_name, tax_address, tax_biz_type, tax_biz_item, tax_email,
-    total_quantity, total_amount, currency, notes,
+    total_quantity, total_amount, gross_amount, discount_amount, discount_reason,
+    currency, notes,
     tracking_number, tracking_provider, is_deleted,
     confirmed_at, paid_at, shipped_at, delivered_at, canceled_at, deleted_at,
     created_at, updated_at
@@ -119,6 +126,12 @@ pub struct InsertOrderParams<'a> {
     pub tax_email: Option<&'a str>,
     pub total_quantity: i32,
     pub total_amount: i32,
+    /// 할인 전 총액 (수량 × 단가). 할인 없을 때는 total_amount 와 동일.
+    pub gross_amount: i32,
+    /// 할인 금액. 0 이면 할인 미적용. DB CHECK 로 0 ≤ discount ≤ gross.
+    pub discount_amount: i32,
+    /// 할인 사유 (선택, 관리자 대리 주문 생성 시).
+    pub discount_reason: Option<&'a str>,
     pub notes: Option<&'a str>,
 }
 
@@ -169,8 +182,8 @@ impl TextbookRepo {
                 delivery_postal_code, delivery_address, delivery_detail,
                 payment_method, depositor_name,
                 tax_invoice, tax_biz_number, tax_company_name, tax_rep_name, tax_address, tax_biz_type, tax_biz_item, tax_email,
-                total_quantity, total_amount, notes
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+                total_quantity, total_amount, gross_amount, discount_amount, discount_reason, notes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
             RETURNING order_id
             "#,
         )
@@ -196,11 +209,44 @@ impl TextbookRepo {
         .bind(params.tax_email)
         .bind(params.total_quantity)
         .bind(params.total_amount)
+        .bind(params.gross_amount)
+        .bind(params.discount_amount)
+        .bind(params.discount_reason)
         .bind(params.notes)
         .fetch_one(&mut **tx)
         .await?;
 
         Ok(order_id)
+    }
+
+    /// 주문 할인 업데이트 (관리자 편집).
+    ///
+    /// gross_amount 는 불변이므로 discount_amount + total_amount 만 갱신.
+    /// DB CHECK 제약으로 0 ≤ discount ≤ gross 및 total = gross - discount
+    /// 이 자동 검증됨 (service 레이어에서도 선검증).
+    pub async fn update_discount(
+        pool: &PgPool,
+        order_id: i64,
+        discount_amount: i32,
+        discount_reason: Option<&str>,
+    ) -> AppResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE textbook
+            SET discount_amount = $2,
+                discount_reason = $3,
+                total_amount = gross_amount - $2,
+                updated_at = NOW()
+            WHERE order_id = $1 AND is_deleted = false
+            "#,
+        )
+        .bind(order_id)
+        .bind(discount_amount)
+        .bind(discount_reason)
+        .execute(pool)
+        .await?;
+
+        Ok(())
     }
 
     /// 주문 항목 일괄 삽입

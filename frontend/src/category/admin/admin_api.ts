@@ -17,6 +17,7 @@ import type {
   AdminTextbookListRes,
   AdminTextbookLogListRes,
   AdminTextbookLogQuery,
+  AdminUpdateDiscountReq,
   AdminUpdateStatusReq,
   AdminUpdateTrackingReq,
 } from "./textbook/types";
@@ -769,6 +770,16 @@ export const updateAdminTextbookOrderStatus = (id: number, data: AdminUpdateStat
 
 export const updateAdminTextbookOrderTracking = (id: number, data: AdminUpdateTrackingReq) =>
   request<OrderRes>(`/admin/textbook/orders/${id}/tracking`, {
+    method: "PATCH",
+    data,
+  });
+
+/** 관리자 주문 할인 편집 (2026-04-23 신규). gross 불변, discount + total 만 갱신. */
+export const updateAdminTextbookOrderDiscount = (
+  id: number,
+  data: AdminUpdateDiscountReq,
+) =>
+  request<OrderRes>(`/admin/textbook/orders/${id}/discount`, {
     method: "PATCH",
     data,
   });

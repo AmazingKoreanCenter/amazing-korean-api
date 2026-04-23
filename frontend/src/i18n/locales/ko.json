@@ -944,6 +944,8 @@
         "supplier": "공급자",
         "supplyAmount": "공급가액",
         "vatAmount": "부가세 (10%)",
+        "subtotal": "품목 합계",
+        "discount": "할인",
         "issuedBy": "발행",
         "sealLine": "(인)"
       },
@@ -987,6 +989,13 @@
         "quantity": "수량",
         "totalQuantity": "총 수량",
         "totalAmount": "총 금액",
+        "grossAmount": "품목 합계",
+        "finalAmount": "최종 합계",
+        "discount": "할인 (관리자 임의)",
+        "discountAmount": "할인 금액",
+        "discountReason": "할인 사유",
+        "discountReasonPlaceholder": "예: 장기 고객 할인, 증정용, 견본 등",
+        "discountHint": "VAT 포함 금액. 품목 합계를 초과할 수 없습니다.",
         "taxInvoice": "세금계산서 발행",
         "bizNumber": "사업자등록번호",
         "companyName": "상호",
@@ -1007,7 +1016,25 @@
           "itemsRequired": "주문 품목의 언어를 선택해주세요.",
           "taxRequired": "세금계산서 필수 항목을 입력해주세요.",
           "generic": "주문 생성 중 오류가 발생했습니다.",
-          "userIdInvalid": "사용자 ID는 양의 정수여야 합니다."
+          "userIdInvalid": "사용자 ID는 양의 정수여야 합니다.",
+          "discountNegative": "할인 금액은 0 이상이어야 합니다.",
+          "discountExceedsGross": "할인 금액은 품목 합계를 초과할 수 없습니다."
+        }
+      },
+      "detail": {
+        "grossAmount": "품목 합계",
+        "finalAmount": "최종 합계",
+        "discountAmount": "할인",
+        "discountReason": "할인 사유",
+        "discountReasonPlaceholder": "예: 장기 고객 할인, 견본 등",
+        "editDiscount": "할인 편집",
+        "editDiscountTitle": "할인 편집",
+        "editDiscountDesc": "품목 합계 {{gross}} {{currency}} 이내로 할인 금액을 설정하세요. 0 입력 시 할인 해제.",
+        "saveDiscount": "저장",
+        "discountSaved": "할인 정보가 업데이트되었습니다.",
+        "discountSaveFailed": "할인 편집에 실패했습니다.",
+        "err": {
+          "discountExceedsGross": "할인 금액은 품목 합계를 초과할 수 없습니다."
         }
       }
     },
@@ -1145,6 +1172,8 @@
       "supplier": "공급자",
       "supplyAmount": "공급가액",
       "vatAmount": "부가세 (10%)",
+      "subtotal": "품목 합계",
+      "discount": "할인",
       "issuedBy": "발행",
       "sealLine": "(인)"
     },
@@ -1263,6 +1292,8 @@
       "colUnitPrice": "단가",
       "colSubtotal": "소계",
       "total": "합계",
+      "grossAmount": "품목 합계",
+      "discount": "할인",
       "ordererInfo": "신청자 정보",
       "deliveryInfo": "배송 정보",
       "notes": "비고"

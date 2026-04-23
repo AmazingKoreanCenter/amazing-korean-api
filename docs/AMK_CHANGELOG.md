@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-22 (Q10 프론트 3건 + Q12 JWT TTL 답변 완료 — QA run 2026-04-22 대응)
+updated: 2026-04-23 (#73 후속: 교재 주문 할인 기능 — gross/discount/total 3 필드 DB + 관리자 생성/편집 UI + 세법 정확 영수증 표기 + 수량 입력 버그 fix)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -11,7 +11,131 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
-- **2026-04-22 (심야 — 다음 세션) — Q10 프론트 3건 fix + Q12 JWT TTL QA 답변**
+- **2026-04-23 (오후) — #73 후속: 교재 주문 할인 기능 + 수량 입력 버그 fix**
+
+  - **수량 입력 버그 fix** (`admin_textbook_order_create.tsx`, 독립 커밋 `cdd4c43`):
+    - 증상: admin 대리 주문 생성 페이지 품목 수량 input 에서 "1" 을 지울 수 없음 → "2" 로 덮어쓰기 불가
+    - 원인: controlled input 에서 `Number("") || 1 = 1` 로 빈 문자열이 즉시 1 로 복귀
+    - 해결: `OrderItem.quantity: number → number | ""` 타입 확장, onChange 에서 빈 값 "" 저장, onBlur 에서 1 fallback
+
+  - **할인 기능 — 결정 3건 (2026-04-23 사용자)**:
+    - 결정 1 (B): 세 필드 DB 저장 (gross_amount + discount_amount + discount_reason) — 영수증 표기 + 감사 추적성
+    - 결정 2 (B): 주문 상세 페이지에서도 편집 가능 — `PATCH /admin/textbook/orders/{id}/discount` 신규
+    - 결정 3 (A): 세법 정확 — 공급가액(과세표준) 은 **할인 후 금액** 기준, VAT 재계산
+
+  - **DB 마이그레이션** [migrations/20260423_textbook_order_discount.sql](../migrations/20260423_textbook_order_discount.sql):
+    - `ALTER TABLE textbook` + `gross_amount INT NOT NULL` + `discount_amount INT NOT NULL DEFAULT 0` + `discount_reason TEXT`
+    - 기존 주문 백필: `UPDATE textbook SET gross_amount = total_amount` (할인 없었으므로)
+    - CHECK 제약 3건: discount ≥ 0, discount ≤ gross, total = gross - discount (DB 레벨 데이터 무결성 가드)
+    - 관계: `total_amount = gross_amount - discount_amount`
+
+  - **Backend** ([src/api/textbook/repo.rs](../src/api/textbook/repo.rs), [src/api/textbook/dto.rs](../src/api/textbook/dto.rs), [src/api/admin/textbook/service.rs](../src/api/admin/textbook/service.rs)):
+    - `TextbookOrderRow` + `InsertOrderParams` + `OrderRes` 에 `gross_amount` / `discount_amount` / `discount_reason` 3 필드 추가
+    - 신규 repo 함수 `update_discount` — gross 불변, discount + total 만 UPDATE. DB CHECK 로 자동 검증.
+    - `AdminCreateOrderReq` 에 `discount_amount: i32 (default 0)` + `discount_reason: Option<String> (max 500)` 신규
+    - `AdminTextbookService::create_order` 에 검증 (0 ≤ discount ≤ gross) + 감사 로그 jsonb 확장 + 사유 trim 정규화
+    - 신규 `AdminTextbookService::update_discount` + `AdminUpdateDiscountReq` DTO + `update_discount` handler + router entry
+    - 사용자 `create_order` 는 `gross = total`, `discount = 0` 으로 기록 (일반 사용자 주문은 할인 없음)
+
+  - **Frontend 프론트 타입·API·hook** ([frontend/src/category/admin/textbook/types.ts](../frontend/src/category/admin/textbook/types.ts), [frontend/src/category/admin/admin_api.ts](../frontend/src/category/admin/admin_api.ts), [frontend/src/category/admin/textbook/hook/use_admin_textbook.ts](../frontend/src/category/admin/textbook/hook/use_admin_textbook.ts)):
+    - `AdminCreateOrderReq` 에 `discount_amount?` + `discount_reason?` 추가
+    - 신규 `AdminUpdateDiscountReq` interface
+    - `updateAdminTextbookOrderDiscount` API 함수 + `useAdminUpdateTextbookDiscount` mutation
+    - `OrderRes` zod 스키마에 `gross_amount` / `discount_amount` / `discount_reason` 필드 추가
+
+  - **Frontend UI — admin 생성 페이지** ([admin_textbook_order_create.tsx](../frontend/src/category/admin/textbook/page/admin_textbook_order_create.tsx)):
+    - 할인 금액 (type=number) + 할인 사유 (text, disabled 할인=0) 신규 Card
+    - 품목 합계 / 할인 / 최종 합계 3단 요약 표시
+    - 할인 > gross 시 빨간 경고 + submit 거부
+    - discount 입력은 수량과 동일한 `number | ""` 패턴 (빈 값 허용 + blur fallback)
+
+  - **Frontend UI — admin 상세 페이지** ([admin_textbook_order_detail.tsx](../frontend/src/category/admin/textbook/page/admin_textbook_order_detail.tsx)):
+    - 주문 항목 테이블 tfoot 을 "품목 합계 / 할인 / 최종 합계" 3행 구조로 재구성 (할인 0 이면 단일 행)
+    - "할인 편집" 버튼 + Dialog (discount_amount + discount_reason 수정, save mutation 호출)
+    - 감사 로그 기록 자동 (서비스 레이어가 `AdminAction::Update` 기록)
+
+  - **Frontend UI — 사용자 주문 조회 페이지** ([textbook_order_status_page.tsx](../frontend/src/category/textbook/page/textbook_order_status_page.tsx)):
+    - 할인 있는 주문은 "품목 합계 / 할인(사유 병기) / 합계" 3행 표시
+    - 할인 없는 주문은 기존 단일 Total 행 유지 (UX 일관성)
+
+  - **영수증·인쇄 페이지** ([receipt_parts.tsx](../frontend/src/category/textbook/receipt_parts.tsx), [textbook_order_print.tsx](../frontend/src/category/textbook/page/textbook_order_print.tsx), [admin_textbook_order_print.tsx](../frontend/src/category/admin/textbook/page/admin_textbook_order_print.tsx)):
+    - `ReceiptTotalBreakdown` 시그니처 확장 — `grossAmount?` + `discountAmount?` + `discountReason?` 선택적 props
+    - 할인 있을 때 표시 구조 (세법 정확):
+      ```
+      품목 합계:       gross
+      - 할인 (사유):   - discount
+      ─────────────────
+      공급가액:        (gross - discount) / 1.1
+      부가세 (10%):    (gross - discount) × 0.1 / 1.1
+      ─────────────────
+      영수 금액:       total = gross - discount
+      ```
+    - 공급가액은 **할인 후 기준** (과세표준). VAT 는 과세표준 × 10%. 세금계산서 발행 시에도 정확.
+
+  - **i18n** ([ko.json](../frontend/src/i18n/locales/ko.json), [en.json](../frontend/src/i18n/locales/en.json)):
+    - `admin.textbook.create.{discount, discountAmount, discountReason, discountReasonPlaceholder, discountHint, grossAmount, finalAmount}` 신규
+    - `admin.textbook.create.err.{discountNegative, discountExceedsGross}` 신규
+    - `admin.textbook.detail.{grossAmount, finalAmount, discountAmount, discountReason, editDiscount, editDiscountTitle, editDiscountDesc, saveDiscount, discountSaved, discountSaveFailed}` 신규 섹션
+    - `admin.textbook.print.{subtotal, discount}` + `textbook.print.{subtotal, discount}` + `textbook.status.{grossAmount, discount}` 신규
+    - ko + en 양쪽 추가. 나머지 20 locale 은 en fallback (Q4 영수증 번역 정책 동일).
+
+  - **검증**: `cargo check` + `cargo clippy --lib --bins -- -D warnings` 0 warnings + `npm run build` 8.93s 클린. sqlx offline cache 기존 유지 (신규 raw SQL 이지만 기존 패턴과 동일 구조).
+
+  - **프로덕션 배포 순서**:
+    1. PR 머지 → CI 자동 마이그레이션 실행 (`20260423_textbook_order_discount.sql`)
+    2. 기존 주문은 `gross_amount = total_amount`, `discount_amount = 0` 로 백필 (마이그레이션 내부)
+    3. 배포 완료 → 관리자가 새 주문 생성 시 할인 옵션 사용 가능
+    4. 기존 주문에 할인 소급 적용은 주문 상세 페이지 "할인 편집" 으로
+
+- **2026-04-23 — Q11 pt footer 판단: 시나리오 B (QA prompt 보강) 채택, API 팀 코드 수정 없음**
+  - **배경**: 2026-04-22 overnight full run (`tests/qa-results/2026-04-22T06-39-53Z/`) 에서 PR #182 효과 검증 완료 — Gemma flag 32→1 (-97%), JWT 만료 70→2 (Q12 효과). 잔존 1건이 Q11 (pt 데스크톱 footer overlap). 맥미니가 "진짜 버그 여부 판단 요청" 으로 `docs/QA_결과.md` 재작성, API 팀에 5 시나리오 판단 위임.
+  - **판단 — 시나리오 B 채택** (footer 수정 안 함, QA prompt 보강으로 흡수):
+    1. **실 버그 증거 부재** — 1440px 스크린샷에 overlap 시각적으로 확인 안 되고, 잠재 문제 구간 (768-1023px) 은 QA 뷰포트 매트릭스 밖이라 측정된 적 없음. 존재·확인 모두 안 된 버그.
+    2. **Gemma reason hallucination 실증** — reason 절반이 `"You are a web UI quality reviewer..."` 프롬프트 첫 문장을 페이지 텍스트로 착각. 구조적 FP 신호.
+    3. **전역 footer 수정 리스크 > 가치** — A-a (`lg:flex-row`) 는 22 locale × 전 페이지 레이아웃 변경. A-b (`flex-wrap`) 는 `justify-between` 과의 브라우저별 차이. A-c (pt 문구 축약) 는 법적·브랜드 검토 선행 필요.
+    4. **Gemma FP 누적 데이터 부족** (MVP 1회) → prompt 개선은 정성적이지만 즉시 착수 가능한 저리스크 개선.
+  - **QA 쪽 권장 조치**:
+    - **우선**: `ollama_check/prompts/text_overflow.md` 에 가드 문구 추가 ("footer copyright+legal 조밀 배치는 정상, 명확히 가려지거나 잘린 경우만 flag").
+    - **보조**: `check_runner.py` path+check 단위 whitelist 지원 추가 (prompt 효과 부족 시 도입).
+    - **tablet viewport (768-1023px) 추가 권장** — B 선택과 별개 트랙. footer 외 다른 회귀 잠복 가능 구간의 구조적 공백 해소.
+  - **"양치기 소년" 리스크 대응**: Prompt 보강 후 2-3 full run 관찰. 다른 영역 (subtitle/carousel/text overlap) 실 회귀 발생 시 Gemma 감지력 유지되는지 검증. 감지력 저하 시 prompt 재조정 or A-a 재고.
+  - **변경 파일**: docs 3건 (`docs/QA_결과.md §6` 답변 섹션 신규 + `docs/AMK_STATUS.md §8.2` Q11 ✅ 답변 완료 처리 + 이 CHANGELOG 엔트리).
+  - **커밋 스코프**: PR #183 결합 (단일 브랜치 정책). PR #183 은 `#67 Phase 2~5 + Gemini fix + Q11 판단 답변` 의 3 스코프 누적.
+  - **사용자 액션**: B 채택 판단 맥미니 쪽에 이미 전달 완료 (2026-04-23 사용자 확인).
+
+- **2026-04-23 — #67 E-book session_id 필수화 Phase 2~5 전환 완료 (D+7 관측 0건 통과)**
+  - **D+7 관측 결과**: `docker logs amk-api --since 168h 2>&1 | grep EBOOK_SESSION_AUDIT | wc -l` = **0** (2026-04-23 사용자 실측). Phase 1 로깅 배포(2026-04-16) 이후 7일간 구버전 클라이언트 / 어뷰즈 / SPA 캐시 모두 부재 확인. D+8(2026-04-24) 예정이었으나 조건 충족으로 하루 앞당김.
+  - **배경 — 관측 모드 선택 근거**: INC-001(2026-04-15 프로덕션 2h33m 다운) 경험으로 "fail-closed 게이트 추가는 코드 분석만 신뢰 말고 프로덕션 로그로 선확인" 방침 확립. 트래픽 표본이 작아 24~48h 불충분 판단으로 5~7일 관측. D+7 0건으로 방침 성공 실증.
+  - **Phase 2 — Backend 전환** (`amazing-korean-api`):
+    - [src/api/ebook/service.rs](../src/api/ebook/service.rs) `verify_session(st, user_id, session_id: &str)` — `Option<&str>` 제거. 진입부 `is_none()` 분기 + `tracing::warn!("EBOOK_SESSION_AUDIT: ...")` 블록 제거. 내부 Option 언래핑 제거 — 저장된 Redis JSON 의 `session_id` ↔ 요청 헤더 `session_id` **엄격 비교** (항상 수행). 불일치 → `Forbidden("Viewer session invalid")`.
+    - [src/api/ebook/handler.rs](../src/api/ebook/handler.rs) `get_page_image` + `get_page_tile` 2곳 — `x-ebook-session` 헤더 파싱 `.map(|s| s.to_string())` → `.ok_or_else(|| AppError::Forbidden("Missing session header".into()))?` 즉시 거부. `session_id.as_deref()` 제거 → 직접 `&str` 전달.
+  - **Phase 3 — Web frontend 전환** (`amazing-korean-api/frontend`):
+    - [frontend/src/category/ebook/ebook_api.ts](../frontend/src/category/ebook/ebook_api.ts) `fetchPageImage` + `fetchPageTile` — `sessionId?: string` → `sessionId: string`. 삼항 `...(sessionId ? { "X-Ebook-Session": sessionId } : {})` → 직접 `"X-Ebook-Session": sessionId`. HMAC 가드 `hmacSecret && sessionId` → `hmacSecret` 만 (sessionId 는 이제 required).
+    - [frontend/src/category/ebook/hook/use_page_image.ts](../frontend/src/category/ebook/hook/use_page_image.ts) `usePageImage` + `usePageTiles` — default value `sessionId = ""` 로 전환. meta 미로드 시 `enabled: !!meta && ...` 로 fetch 차단 → fetchPage 가 빈 sessionId 로 호출될 일 없음. TypeScript 는 `string | undefined` 를 default 파라미터로 수용.
+    - [frontend/src/category/ebook/page/ebook_viewer_page.tsx](../frontend/src/category/ebook/page/ebook_viewer_page.tsx) — 변경 없음. 기존 `const sessionId = meta?.session_id` + `!!meta` enabled 가드로 동작 정확성 유지.
+  - **Phase 4 — Desktop 전환** (`amazing-korean-desktop`, 별도 PR 진행 중): 웹과 동일 3 파일 (`ebook_api.ts` + `use_page_image.ts` + `ebook_viewer_page.tsx`).
+  - **Phase 5 — Mobile**: `lib/api/ebook_api.dart` 에 `required String sessionId` + 헤더 항상 전송 이미 준수 (2026-04-07 구현 시점). **작업 없음**.
+  - **검증**: `cargo check` 14.66s + `cargo clippy --lib --bins -- -D warnings` 0 warnings + `npm run build` 9.77s 클린.
+  - **배포 후 모니터링**: `docker logs amk-api --since 24h | grep "Missing session header"` — 정상 트래픽에서는 0 or 극소 (의도된 거부만). 24h 내 403 급증 시 롤백.
+  - **롤백 plan** (1 분): Backend revert PR (handler 2곳 + service.rs 원복). 프론트는 sessionId 전송 상태이므로 backend Option 복귀 후 무해. 트리거: 24h 내 `"Missing session header"` 403 > 예상값 10배 or 사용자 이슈.
+  - **변경 파일**: 백 2 (service.rs + handler.rs) + 웹 2 (ebook_api.ts + use_page_image.ts) + docs 3 (AMK_STATUS.md §8.1 #67 + AMK_CHANGELOG.md 엔트리 + AMK_API_EBOOK.md 변경 없음 — 이미 "필수 헤더" 로 기재됨).
+  - **플랜 SSoT**: `~/.claude/plans/ebook-session-required-phase25.md` (아카이브).
+
+- **2026-04-23 — PR #182 Gemini 리뷰 MEDIUM 2건 즉시 반영**
+  - **배경**: PR #182 (Q10 + Q12) 머지 직후 (2026-04-22T05:59Z) Gemini 가 `docs/QA_결과.md` 의 로컬 경로 상대링크 2곳 지적. `feedback_work_rules.md` "PR 머지 후 Gemini 리뷰 즉시 반영" 원칙에 따라 머지 후 13시간 내 처리 (2026-04-23 세션 시작 시점).
+  - **L28 — 저장소 내부 링크가 로컬 WSL 경로 포함**:
+    - Before: `[...](../../../../dev/amazing-korean-api/frontend/...)`
+    - After: `[...](../frontend/...)` — `docs/` 에서 저장소 루트 기준 상대 경로.
+    - 이 링크는 QA 팀이 원본 요청 시 작성한 것. GitHub 에서 404 났을 것.
+  - **L230~L232 — 별도 저장소 `amazing-korean-ai` 참조를 상대링크로 작성**:
+    - Before: `[...](../../../scripts/qa/run_qa.sh)`, `[...](./ARCHITECTURE.md)`, `[...](../AMK_AI_QA.md)`
+    - After: 링크 제거, 경로만 backtick 으로 표시 + "별도 저장소 `amazing-korean-ai` 기준" 주석 + GitHub 메인 링크.
+    - `amazing-korean-ai/scripts/qa/` 는 Mac Mini 로컬 전용이라 GitHub 에 없을 가능성 → 링크 제거가 가장 안전.
+  - **전수조사**: `grep -nE "\.\./\.\./\.\./"` 로 `docs/QA_결과.md` + `amazing-korean-ai/docs/AMK_AI_QA_HANDOFF_2026-04-22.md` 동시 스캔 — 추가 위반 0건 확인.
+  - **변경**: 1 파일 (`docs/QA_결과.md`) + CHANGELOG.
+  - **검증 불필요**: docs 단독 변경, 빌드/테스트 영향 없음.
+
+- **2026-04-22 (심야) — Q10 프론트 3건 fix + Q12 JWT TTL QA 답변**
   - **배경**: 2026-04-22 저녁에 수신한 QA Mac Mini 자동 런 결과 (`2026-04-22T01-35-53Z`) 의 Q10 (프론트 수정 3건 묶음) + Q12 (JWT TTL QA 전용 연장 답변) 를 이번 세션에서 처리. Q11 (pt footer 오버랩) 은 footer breakpoint 변경이 전역 디자인 영향이라 별도 PR 로 남김.
   - **Q10.1/.2 — subtitle `<br className="hidden sm:block" />` 공백 누락 fix (전수 6곳)**:
     - QA 리포트가 지적한 파일: `ebook_catalog_page.tsx:97-102`, `textbook_catalog_page.tsx:97`. 원인: `i > 0 && <br className="hidden sm:block" />` 에서 `sm` 미만 (모바일) 은 `<br>` 이 `display:none` 이라 단어 사이 공백이 사라짐 (`"languages,available"` 처럼 붙음).

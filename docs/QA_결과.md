@@ -1,232 +1,195 @@
-# QA 자동화 — API 팀 협조 요청 (2026-04-22)
+# Q11 pt footer — API 팀 follow-up (2026-04-23)
 
-> **발신**: `amazing-korean-ai/scripts/qa` (Mac Mini, HYMN)
+> **발신**: `amazing-korean-ai/scripts/qa` (Mac Mini QA)
 > **수신**: `amazing-korean-api` 팀
-> **근거 run**: `tests/qa-results/2026-04-22T01-35-53Z/` (22 lang × 전 라우트 × Cat A+B+C, full 런, 2026-04-22 KST 10:35 ~ 14:00)
-> **범위**: Playwright 1838 tests + Gemma 4 26b 3444 calls + Fuzz 1200 requests
+> **맥락**: 2026-04-22 handoff §2.3 에서 "별도 PR" 로 큐에 남긴 Q11 (pt footer 오버랩) 의 **후속 판단 요청**
+> **근거 run**: `tests/qa-results/2026-04-22T06-39-53Z/` (full 22 lang × 전 라우트 × A+B+C)
+> **이전 문서**: `docs/qa/api-team-sync-2026-04-22.md`, `docs/AMK_AI_QA_HANDOFF_2026-04-22.md`
 
 ---
 
-## 1. 요약
+## 0. 한 줄 요약
 
-- **Playwright** 87 fails 로 떨어졌지만 실제 프로덕트 이슈는 **4건**. 나머지는 QA 하네스 버그(12) + QA 인프라 한계(70 + 1 OpenAPI drift).
-- **Gemma Tier 2** 가 자주 놓치는 시각적 버그 **3종** 포착 — 2026-04-21 QA 도입 이후 처음 자동 탐지된 실 회귀.
-- **Fuzz** 60 mutation endpoints × 20 attempts = 1200 requests → **unhandled 5xx 0건**. 백엔드 입력 검증 레이어는 건강함.
+Q11 은 **진짜 버그인지 Gemma false positive 인지 불분명**한 상태. API 팀 판단이 필요합니다 — "고친다 / 안 고친다 / QA 쪽 prompt 로 흡수한다" 중 방향 확정 부탁.
 
 ---
 
-## 2. 프론트엔드 수정 요청 (3건)
+## 1. 전체 검증 상황 (2026-04-22 full run 기준)
 
-### 2.1 🔴 `/book/ebook` 카탈로그 모바일 — "22 languages,available" 공백 누락
+2026-04-22 handoff 에서 API 팀이 PR #182 로 수정한 3건 (2.1/2.2/2.4) 은 **전부 효과 확인**:
 
-**증상**: 모바일 뷰포트에서 hero subtitle 이 `"...22 languages,available to read online instantly."` 로 쉼표·단어가 붙어 보임. 데스크톱은 정상.
+| 지표 | PR #182 전 | PR #182 후 overnight run | 변화 |
+|---|---:|---:|---|
+| Gemma 총 flag | 32 | **1** | -97% |
+| Playwright fail | 87 (reporter 버그 포함) | 19 | 실제는 어제 기준 critical_path 12 (QA 쪽 fix 완료) + flaky 7 |
+| Fuzz unhandled 5xx | 0 | 0 | ✅ |
+| JWT 만료로 인한 bridge fail | 70 | 2 | Q12 (JWT_ACCESS_TTL_MIN=360) 효과 |
 
-**근거**:
-- 자동 탐지: Gemma `color_contrast` + `text_overflow` 프롬프트, **14 언어 (de/en/es/fr/id/ja/kk/pt/...) × 2 체크 = 28 flag**.
-- 재현: `tests/qa-results/2026-04-22T01-35-53Z/screenshots/{lang}/book-ebook_mobile.png`.
+**남은 Gemma flag 1건 = 이 Q11**. 다른 모든 지표는 목표 달성.
 
-**원인**: [`frontend/src/category/ebook/page/ebook_catalog_page.tsx:97-102`](../../../../dev/amazing-korean-api/frontend/src/category/ebook/page/ebook_catalog_page.tsx#L97-L102)
+---
+
+## 2. Q11 증거 상세
+
+### 2.1 Gemma 응답 원문 — 부분 hallucination 포함
+
+`tests/qa-results/2026-04-22T06-39-53Z/ai_checks/pt/root_desktop_text_overflow.json`:
+
+```json
+{
+  "flagged": true,
+  "confidence": 0.95,
+  "reason": "Text is overlapping/rendered behind another element at the bottom:
+    '© 2016 Amazing Korean. Todos os direitos reservados.
+     Termos de Uso Política de Privacidade'
+    is overlapping with 'You are a web UI quality reviewer...'",
+  "region": "bottom",
+  "model": "gemma4:26b"
+}
+```
+
+🚨 **중요**: reason 끝의 `"You are a web UI quality reviewer..."` 는 Gemma 에게 전달한 **프롬프트 첫 문장** (`ollama_check/prompts/text_overflow.md:1`). Gemma 가 자기 지시문을 "페이지 텍스트" 로 착각 — 해당 overlap 관계는 팩트상 존재 불가.
+
+즉 reason 의 **절반은 hallucination**. 남은 주장은 "pt 페이지 bottom 영역의 copyright/legal 텍스트가 overlap 되어 보인다" 뿐이고, 이것만 검증 대상.
+
+### 2.2 스크린샷 관찰
+
+`tests/qa-results/2026-04-22T06-39-53Z/screenshots/pt/root_desktop.png` — 1440×desktop.
+
+- 페이지 맨 아래 두 개의 bar:
+  - 상단 bar: 회사정보 (HYMN Co. | CEO 등)
+  - 하단 bar: `© 2026 Amazing Korean. Todos os direitos reservados.` (좌) + `Termos de Uso` + `Política de Privacidade` (우)
+- 1440px 기준 좌·우 사이 **충분한 gap** 이 보여, **시각적으로 overlap 은 확인되지 않음**.
+- 다른 locale (en/ja/ko 등) 의 같은 페이지 screenshot 과 비교해도 pt 에서만 특별히 크램프된 양상 없음.
+
+### 2.3 관련 프론트 코드
+
+`frontend/src/components/layout/footer.tsx:169-187` (Bottom Bar):
 
 ```tsx
-subtitle={t("ebook.catalog.subtitle").split("\n").map((line, i) => (
-  <span key={i}>
-    {i > 0 && <br className="hidden sm:block" />}
-    {line}
-  </span>
-))}
+<div className="flex flex-col md:flex-row justify-between items-center gap-4">
+  <p className="text-footer-foreground/50 text-sm">
+    {t("footer.copyright", { year: currentYear })}
+  </p>
+  <div className="flex items-center gap-6">
+    <Link to="/terms">{t("footer.terms")}</Link>
+    <Link to="/privacy">{t("footer.privacy")}</Link>
+  </div>
+</div>
 ```
 
-- `en.json:1171` 의 `"Student and teacher E-books in 22 languages,\navailable to read online instantly."` 를 `\n` 으로 split.
-- 각 조각을 `<span>` 으로 감싸고, **2번째 span 앞에만 `<br>` 을 삽입하는데 `hidden sm:block`** 이라 모바일에서는 `<br>` 이 렌더링되지 않음.
-- 결과: 모바일에서는 `"languages,"` 와 `"available"` span 이 공백 없이 인접 → `"languages,available"` 로 보임.
+- `md` (≥ 768px) 이상: 가로 배치, `justify-between` + `gap-4`
+- `md` 미만: 세로 stack
+- QA 는 1440 (desktop) + 375 (mobile) 캡처. 둘 다 "문제 없는 구간"
+- **잠재적으로 문제 있을 구간**: **768–1023px (`md` 와 `lg` 사이)** — pt 카피라이트 문구가 길어서 링크와 거리가 좁아질 수 있음. 하지만 우리 viewport 매트릭스엔 이 구간이 없음.
 
-**수정 제안** (택 1):
-- (a) `<br>` 대신 `<> <br className="hidden sm:block" /></>` — 모바일에서는 공백, 데스크톱에서는 br 우선 (가장 minimal).
-- (b) source string 에 `\n` 대신 ` \n` 처럼 공백 포함.
-- (c) split 제거하고 CSS `white-space: pre-line` 으로 대체.
+즉 handoff 의 fix 후보 (a) `md:flex-row → lg:flex-row` 는 이 **768–1023px 구간을 세로 stack 으로 밀어 안전영역 확보** 하는 의도.
 
 ---
 
-### 2.2 🔴 `/book/textbook` 카탈로그 모바일 — "journeywith" 공백 누락
+## 3. 판단 방향 — 3 시나리오
 
-**증상**: 모바일에서 `"... Korean learning journeywith student and teacher editions..."` 로 단어가 붙어 보임.
+### 시나리오 A — 고친다 (handoff §2.3 후보 중 선택)
 
-**근거**:
-- Gemma `text_overflow` 프롬프트, **3 언어 (km/my/th) × 1 check = 3 flag**. 다른 언어에서는 단어 길이 차이로 같은 자리에서 자연 줄바꿈이 일어나 감지되지 않음.
-- 재현: `tests/qa-results/2026-04-22T01-35-53Z/screenshots/{km,my,th}/book-textbook_mobile.png`.
-
-**원인**: `en.json:939` — `"description": "Start your Korean learning journey\nwith student and teacher editions in 22 languages."` + textbook_catalog_page.tsx 의 동일 split 로직 추정. 파일 위치는 confirmation 필요 (2.1 과 동일 패턴).
-
-**수정 제안**: 2.1 과 동일.
-
----
-
-### 2.3 🟡 `/` 루트 pt 로케일 데스크톱 — footer 텍스트 겹침
-
-**증상**: 포르투갈어 데스크톱 뷰에서 copyright `"© 2016 Amazing Korean. Todos os direitos reservados."` 와 `"Termos de Uso"` / `"Política de Privacidade"` 링크가 시각적으로 오버랩.
-
-**근거**:
-- Gemma `text_overflow`, **1 flag** (pt only).
-- 재현: `tests/qa-results/2026-04-22T01-35-53Z/screenshots/pt/root_desktop.png`.
-
-**원인 추정**: footer 컴포넌트가 `flex`/`gap` 기반인데 pt 카피라이트 문구가 길어서 gap 부족, 링크 영역과 충돌. 타 언어는 문구가 더 짧아 회피.
-
-**수정 제안**: footer 컴포넌트에서 carbon-copy 링크 묶음에 `flex-wrap` + `min-gap` 또는 link 를 copyright 아래 줄로 개행.
-
----
-
-### 2.4 🟡 `/book` 캐러셀 dot 인디케이터 — aria-label 누락
-
-**증상**: Playwright `button_coverage` 스펙이 `/book` 에서 empty-label 버튼 탐지 (en/ja × mobile+desktop = 4 건).
-
-**근거**:
-```html
-<button type="button" class="w-2 h-2 rounded-full transition-colors bg-primary"></button>
-```
-- 텍스트 없음, `aria-label` 없음, `href` 없음 → 접근성상 dead-button.
-- 재현: `tests/qa-results/2026-04-22T01-35-53Z/button_coverage/{en,ja}/book.json`.
-
-**수정 제안**: 캐러셀 dot 에 `aria-label={t('common.goToSlide', { n })}` 추가.
-
-**QA 쪽 선택**: 고정 전까지 dead-button spec 에서 이 패턴을 whitelist 로 제외 (decision 2-1 참조).
-
----
-
-## 3. 백엔드 협조 요청 (2건)
-
-### 3.1 JWT 토큰 TTL — QA 자동화의 user/admin 라우트 커버리지 차단
-
-**현상**: 22 lang full run 은 Playwright Cat A/B 72 분 + Gemma 110 분 + 나머지 = **2시간 30분 이상 소요**. stage 3 에서 발급한 `QA_USER_TOKEN` / `QA_ADMIN_TOKEN` 이 런 후반에 만료되어, `design_capture` / `design_geometry` 의 user·admin 라우트가 **70건 실패** (`page.reload: net::ERR_ABORTED; maybe frame was detached` 후 `navigated to "http://localhost:5173/login"` 확인).
-
-**근거**:
-- 3 lang (13분) verify run = 0 브릿지 실패.
-- 22 lang (150분) full run = **70 브릿지 실패**.
-- 만료 외 다른 원인 후보 (zustand-persist race 등) 검토했으나 stage 3 ~ 실패 시점의 시간차가 결정적.
-
-**요청 사항** (택 1 알려주시면 QA 에서 따라갑니다):
-
-- **(A)** QA 전용 `.env` 에서 JWT TTL 을 **6시간** 이상으로 설정 허용.
-  - 구체적으로는 `JWT_ACCESS_TTL_SEC` (또는 해당 키) 값을 `21600`(6h) 로. QA `.env` 는 `amazing-korean-api` 의 `.env.qa` 처럼 별도 파일로 두거나 `run_qa.sh` 가 일시적으로 주입.
-  - 프로덕션 `.env` 에는 영향 없음.
-- **(B)** TTL 은 프로덕션과 동일하게 두고, QA 가 주기적으로 `POST /auth/refresh` 호출해 storageState 를 갱신.
-  - 이 경우 `refresh_token` 쿠키가 storageState `origins[].cookies` 에 포함되도록 백엔드 login 응답 구조 (쿠키 vs 바디) 를 알려주시면 QA 에서 합성 로직 확장.
-
-현재 JWT TTL 이 얼마인지만 한 번 알려주셔도 QA 쪽에서 대응 가능합니다.
-
----
-
-### 3.2 OpenAPI drift — `/api-docs/openapi.json` 에 1328 cell drift
-
-**현상**: `authz_matrix.spec.ts` 가 143 엔드포인트 × 3 roles = 429 cell 을 체크. 현재 드리프트 **1328건**.
-
-**근거**: `tests/qa-results/2026-04-22T01-35-53Z/authz_matrix.json` 에 드리프트 상세 JSON.
-
-**원인**: `amazing-korean-ai/scripts/qa/fixtures/api_endpoints.overrides.ts` 는 2026-04-19 시점 엔드포인트 기준. 이후 API 팀이 신규 엔드포인트 (admin bulk / studies tasks / translations bulk 등) 추가 — overrides 미갱신.
-
-**요청 사항**:
-- 신규 엔드포인트들의 **기대 응답 (anon/user/admin 각 역할)** 을 알려주시거나, API 팀이 `api_endpoints.overrides.ts` 를 주기적으로 동기화하는 프로세스 합의.
-- QA 쪽 임시 조치: drift 를 fail 이 아니라 warn 으로 격하 (spec 변경). Security 위반 (ex. anon 이 admin 엔드포인트 200) 만 fail.
-
----
-
-## 4. QA 쪽 자체 수정 (알림)
-
-API 팀 개입 없이 QA 하네스에서 고쳐야 할 이슈. **동 문서와 별개로 진행 완료 후 통보 예정**.
-
-| 항목 | 증상 | 조치 |
+| # | fix | 영향도 |
 |---|---|---|
-| `critical_path/03_signup` selector | 이메일 Collapsible 트리거 대신 헤더 DropdownMenu 매칭 (4 fails) | 01_login 에서 했던 `:not([aria-haspopup])` 필터 전파 |
-| `critical_path/04_ebook_pre_purchase` + `05_textbook_pre_order` selector | `[class*="aspect-[3/4]"]` 의 CSS bracket 파싱 실패로 element not found (8 fails). **프론트는 정상** | `button.bg-card.rounded-2xl` (CoverCard 루트) 로 교체 |
-| Playwright reporter artifact | `test.skip(title, body)` 를 "failed" 로 카운팅 (438 건 허수) | 커밋 b49437d 에서 수정 완료 |
-| storageState 합성 로직 | JWT 재발급 누락 (위 3.1) | API 팀 응답 받는 대로 구현 |
+| (a) | `md:flex-row` → `lg:flex-row` | 768–1023px 구간에서 footer bottom bar 가 세로 stack. md 뷰포트 (tablet) 데스크톱-like 경험이 약간 축소. 22 locale 전부 영향 |
+| (b) | `flex-wrap gap-x-8 gap-y-3` 추가 | wrap 전략. `justify-between` 과의 상호작용 — pt 처럼 긴 텍스트는 자연 줄바꿈, 짧은 텍스트는 가로 유지. 브라우저별 wrap 처리 차이 가능 |
+| (c) | pt 카피라이트 문구를 축약 | 법적 요건 / 브랜드 정책 검토 필요. 다른 long-copyright locale (fr/es?) 도 점검 필요 |
+
+- QA 후속: `./run_qa.sh --skip-bringup --category A --lang pt` 로 pt 단독 ~3 분 재검증. 선택적으로 22 lang full run (2.5h).
+- **고른 fix 에 따라 QA 매트릭스 viewport 추가 여부** 결정 필요:
+  - (a) 채택 시 **tablet viewport (약 900px) 추가 권장** — 안 그러면 이번 fix 의 대상 구간이 QA 커버리지 밖이 됨.
+  - (b)/(c) 는 1440 단독으로 검증 가능.
+
+### 시나리오 B — 안 고친다 (QA 쪽 prompt 로 흡수)
+
+- 이유: "스크린샷상 overlap 이 확인 안 되고 Gemma reason 절반이 hallucination. 실 사용자 영향 미미. 전역 footer 건드릴 리스크 대비 가치 낮음."
+- QA 쪽 조치:
+  1. `ollama_check/prompts/text_overflow.md` 보강 — "footer copyright + legal links 는 정상적인 조밀 배치일 수 있음. 명확히 가려지거나 잘린 경우만 flag" 류 guard 문구.
+  2. 또는 `check_runner.py` 에 path+check 단위 whitelist (예: `pt/root_desktop/text_overflow` 또는 region="bottom" 조합) 지원 추가.
+- **리스크**: 이후 실제 footer 회귀가 나도 Gemma 가 반응을 못 할 확률 ↑. "boy who cried wolf" 효과.
+
+### 시나리오 C — 당분간 보류
+
+- 현 상태 유지. 매 full run 에 pt 1 flag 재현. 무시.
+- 장기적으로는 A 나 B 로 수렴해야 하지만, 이번 스프린트는 우선순위 낮음.
 
 ---
 
-## 5. 확인 요청 항목 — 체크박스로 답 주시면 됩니다
+## 4. 판단에 필요한 맥락 (QA 쪽 참고정보)
 
-- [x] **2.1 ebook subtitle** 수정 예정? → **예, 이번 세션 (2026-04-22 밤)** 에 처리 예정
-- [x] **2.2 textbook subtitle** 수정 예정? → **예, 이번 세션** 에 처리 예정 (2.1 과 같은 PR)
-- [x] **2.3 pt footer 오버랩** 수정 예정? → **우선순위 낮음**. Q10 (2.1/2.2/2.4) 완료 후 여유 시.
-- [x] **2.4 캐러셀 dot aria-label** 수정 예정? → **예, 이번 세션** 에 처리 예정 (2.1 과 같은 PR)
-- [x] **3.1 JWT TTL** → **옵션 (A) 권장**. 현재 기본값 `JWT_ACCESS_TTL_MIN=15` (분). 상세는 §6 참조.
-- [x] **3.2 OpenAPI drift** → **(B) QA drift tolerance 권장**. API 팀이 overrides.ts 수작업 동기화 불가. Security 위반(anon→admin 200)만 fail 로 격하 부탁. overrides 공동 관리는 엔드포인트 추가 속도를 고려하면 현실적으로 불가.
-
-답 주시는 대로 QA 쪽 action item (섹션 4) 동시 진행하고, 다음 full run (24-48h 안) 에 재검증하겠습니다.
+- **Gemma 신뢰도 운영 실적**: overnight run 에서 Gemma 3515건 중 이 1건만 flag (flag rate 0.03%). 다른 flag 가 전부 PR #182 로 사라진 상태라, 남은 1건의 시그널 가치 비중이 상대적으로 큼.
+- **Gemma false positive 누적 데이터**: 아직 충분치 않음 (MVP run 1회). prompt 보강으로 FP 억제는 정성적 개선이지, 수치적 근거는 없음.
+- **viewport 매트릭스 공백**: 768–1023px 범위가 현재 QA 캡처에 없음. Handoff 에서 이 구간을 "Phase 2 tablet viewport" 로 남겨둔 상태. 시나리오 A-(a) 를 선택하시면 QA 쪽에서 tablet viewport 추가 작업이 동시에 붙습니다.
 
 ---
 
-## 6. API 팀 답변 (2026-04-22 밤)
+## 5. 체크박스 응답 요청
 
-### 6.1 JWT TTL — 옵션 A 권장 (QA env 연장)
+- [x] **시나리오 선택**: **(B) QA prompt 보강 + 조건부 whitelist** 채택
+- [ ] ~~(A 선택 시) fix PR 머지 예정일~~ — 해당 없음 (B 선택)
+- [ ] ~~(A-a 선택 시) QA 쪽 tablet viewport 추가~~ — 해당 없음, 다만 B 선택 후에도 tablet viewport 추가는 **권장** (§6.3 참조)
+- [x] **(B) prompt 보강 / whitelist 선호 방식**: **prompt 보강 우선**, whitelist 는 보조. 상세 §6.2.
 
-**현재 값**:
-- `JWT_ACCESS_TTL_MIN` = **15분** (default, env override 지원)
-- `REFRESH_TTL_DAYS` = 30일 (Learner), 7일 (Admin), 1일 (HYMN)
-- env 변수 이름은 QA 요청 문서의 `JWT_ACCESS_TTL_SEC` 가 아니라 `JWT_ACCESS_TTL_MIN` (분 단위). `src/config.rs:126`.
+답 주시는 대로 QA 쪽 action item 진행하고 완료 통보드리겠습니다.
 
-**QA 권장 조치**:
-```bash
-# amazing-korean-ai 의 .env.qa 또는 run_qa.sh 에서 주입
-JWT_ACCESS_TTL_MIN=360   # 6시간 — 22 lang full run (≈2h30m) 커버
-```
+---
 
-- 프로덕션 `.env` (`AWS EC2`) 에는 영향 없음. QA 전용 `.env.qa` 또는 `run_qa.sh` 가 일시 주입.
-- API 코드 변경 불필요 — 현재 이미 env override 지원.
+## 6. API 팀 답변 (2026-04-23)
 
-**옵션 B (refresh 플로우) 참고 정보** (필요 시):
-- **웹**: refresh_token 은 `ak_refresh` **HttpOnly 쿠키** (SameSite=Lax, Secure in prod). Playwright `storageState().origins[].cookies[]` 에 자동 저장됨. QA 가 페이지 탐색 중 401 수신 → `POST /auth/refresh` 한 번 치면 새 쿠키 세팅 + 신규 `access_token` 바디 반환.
-  - 쿠키 이름 env: `REFRESH_COOKIE_NAME=ak_refresh` (default)
-  - refresh 엔드포인트: `POST /auth/refresh` (쿠키 기반, body 없음)
-- **모바일**: refresh_token 을 **JSON body** 로 반환 (`MobileLoginRes.refresh_token`). 경로가 다르므로 웹 QA 에서는 사용 안 함.
-- 옵션 A 가 단순하므로 우선 권장. 옵션 B 로 가면 QA 하네스가 401 감지 → refresh 재시도 레이어를 추가해야 함 (약간 복잡).
+### 6.1 판단 — 시나리오 B 채택
 
-### 6.2 OpenAPI drift — QA drift tolerance 권장
+**결론**: footer 코드 **수정 안 함**. QA prompt 보강으로 흡수.
 
-- API 팀이 `api_endpoints.overrides.ts` 를 수작업 동기화하는 건 엔드포인트 추가 속도 (Q1a/b/c + Q5 + Q6 만 이번 주 10+ 신규) 를 고려할 때 현실적이지 않음.
-- QA 쪽에서 **Security 위반 (anon→admin 200) 만 fail 로 격하** 부탁. 나머지 drift 는 warn.
-- 중장기: OpenAPI spec 기반 다이프 자동화 검토 여지 있음 (공통 schema 추출). 이번 스프린트 범위 외.
+**근거**:
+1. **실 버그 증거 부재** — 1440px 스크린샷에 overlap 시각적으로 확인되지 않고, 잠재 문제 구간 (768-1023px) 은 QA 뷰포트 매트릭스 밖이라 측정된 적이 없음. 존재·확인 모두 안 된 버그를 위해 전역 footer (22 locale × 모든 페이지) 를 건드리는 건 과잉.
+2. **Gemma reason hallucination 실증** — 이 1건의 reason 절반이 `"You are a web UI quality reviewer..."` 프롬프트 첫 문장을 페이지 텍스트로 착각한 것. 구조적 FP 신호로 볼 수 있음. prompt 레벨 가이드가 적절.
+3. **전역 footer 수정 리스크 > 가치** — A-a (`lg:flex-row`) 는 22 locale × 전 페이지 레이아웃 변경. A-b (`flex-wrap`) 는 `justify-between` 과의 상호작용이 브라우저별 차이 유발 가능. A-c (pt 문구 축약) 는 법적·브랜드 검토 선행 필요.
+4. **Gemma FP 누적 데이터 부족** (MVP 1회) → prompt 개선은 정성적이지만 즉시 착수 가능한 저리스크 개선.
 
-### 6.3 처리 상태
+### 6.2 QA 쪽 권장 조치 (B 구현 방향)
 
-| 체크박스 | 상태 | 커밋/PR |
+**우선 — prompt 보강** (권장):
+- `ollama_check/prompts/text_overflow.md` 에 가드 문구 추가:
+  > "Footer copyright + legal links 가 조밀하게 배치된 경우는 정상적인 디자인 의도일 수 있습니다. 텍스트가 **명확히 가려지거나 잘린** 경우 (예: 한 요소가 다른 요소를 물리적으로 덮음, 글자가 컨테이너 밖으로 벗어남) 만 flag 하십시오. 단순히 요소들이 가깝게 있거나 줄바꿈된 것은 flag 하지 마십시오."
+- footer 외 다른 영역에 대한 Gemma 감지력에는 영향 최소화 목표.
+
+**보조 — whitelist** (필요 시):
+- `check_runner.py` 에 path+check 단위 whitelist 지원 추가.
+- 포맷 예: `{"path": "*/root_desktop", "check": "text_overflow", "region": "bottom"}` 매칭 시 경고로 격하.
+- 초기에는 prompt 만 적용하고, 2-3 full run 동안 효과 관찰 후 필요 시 whitelist 도입.
+
+### 6.3 Tablet viewport (768-1023px) 추가 권장
+
+B 채택하더라도 **tablet viewport 추가는 별도로 권장**합니다:
+- 768-1023 구간은 Gemma 감지 커버리지의 **구조적 공백**. footer 외에도 회귀 잠복 가능한 범위.
+- A-a 선택 시에만 필요한 작업이 아니라, 전반적인 QA 품질 향상 목적으로 독립 진행 가치.
+- B 와 별개 트랙으로 QA 쪽 착수 판단 부탁드립니다.
+
+### 6.4 "양치기 소년" 리스크 대응 (Gemma 감지력 저하 관찰 plan)
+
+Prompt 보강 후 2-3 full run 동안 다음을 관찰하여 효과/부작용 검증:
+
+| 관찰 항목 | 기대 | 대응 |
 |---|---|---|
-| 2.1 ebook subtitle | 진행 중 | 이 PR |
-| 2.2 textbook subtitle | 진행 중 | 이 PR |
-| 2.4 캐러셀 aria-label | 진행 중 | 이 PR |
-| 2.3 pt footer | 큐 (우선도 낮음) | 별도 |
-| 3.1 JWT TTL | 답변 완료 (본 문서) | 코드 변경 없음 |
-| 3.2 OpenAPI drift | 답변 완료 (본 문서) | 코드 변경 없음 |
+| pt footer flag 소멸 | ✅ 기대 | 성공 |
+| 다른 영역 (subtitle / carousel / text overlap) 의 실 회귀 발생 시 Gemma 가 여전히 flag 하는가 | 변함없이 감지 | 만약 감지력 떨어졌다면 prompt 재조정 or A-a 재고 |
+| 신규 footer 회귀 (실제 CSS 버그) 발생 시 Gemma 가 감지하는가 | 감지 기대 (guard 문구가 "가려지거나 잘린 경우만" 이라 실 회귀는 통과) | 감지 실패 시 prompt 재조정 |
+
+### 6.5 후속 확인
+
+- QA 쪽에서 prompt 보강 + 다음 full run 결과 공유 부탁드립니다.
+- 다음 run 에서 pt footer flag 가 소멸하고 다른 회귀 감지가 유지되면 B 성공으로 종결.
+- 맥미니 → API 핸드오프 채널은 기존 방식 유지 (`docs/QA_결과.md` 갱신 또는 신규 follow-up 문서).
 
 ---
 
-## 부록 — 지표 세부
+---
 
-### 최종 숫자
+## 부록 — 지금까지 정리된 Q11 결정 히스토리
 
-| 항목 | 값 |
-|---|---:|
-| Playwright total | 1838 |
-| Playwright passed | 1748 |
-| Playwright failed | 87 (실제 프로덕트 이슈 4 / QA 하네스 12 / JWT 만료 70 / OpenAPI drift 1) |
-| Playwright skipped | 3 |
-| Gemma total calls | 3444 |
-| Gemma flagged | 32 (실질 이슈 3종 × 여러 언어) |
-| Gemma false positive rate | <1% (flag 중 실제 false 관측치 0) |
-| Fuzz attempts | 1200 |
-| Fuzz **unhandled 5xx** | **0** ✓ |
-| Fuzz HTTP 401/422/400 응답 분포 | 1032 / 104 / 44 |
-| 총 런 시간 | 약 2시간 27분 |
-
-### Run 경로
-
-- `tests/qa-results/2026-04-22T01-35-53Z/summary.md` — 집계
-- `tests/qa-results/2026-04-22T01-35-53Z/triage.md` — 이슈 리스트
-- `tests/qa-results/2026-04-22T01-35-53Z/playwright-html/index.html` — 인터랙티브 리포트
-- `tests/qa-results/2026-04-22T01-35-53Z/ai_checks/{lang}/*.json` — Gemma 응답 전수
-- `tests/qa-results/2026-04-22T01-35-53Z/fuzz/_summary.json` — Fuzz 집계
-
-### 본 QA 시스템 소스
-
-- 오케스트레이터: [`amazing-korean-ai/scripts/qa/run_qa.sh`](../../../scripts/qa/run_qa.sh)
-- 아키텍처: [`amazing-korean-ai/docs/qa/ARCHITECTURE.md`](./ARCHITECTURE.md)
-- 전략: [`amazing-korean-ai/docs/AMK_AI_QA.md`](../AMK_AI_QA.md)
+- **2026-04-22 handoff 생성 시점**: "footer breakpoint 또는 wrap 전략 변경은 전 언어 디자인 영향 → 별도 PR 검토" + "Gemma flag 유지돼도 무방" (API 팀 §2.3).
+- **2026-04-22 PR #182**: 2.1 (ebook subtitle), 2.2 (textbook subtitle), 2.4 (캐러셀 aria-label) 만 포함. 2.3 (Q11) 제외.
+- **2026-04-22 overnight full run**: Q11 만 잔존. 다른 flag 전부 해소.
+- **2026-04-23 (본 문서)**: Gemma reason 의 hallucination 특성 확인 후 "진짜 버그 여부" 가 애매해져 판단 요청.

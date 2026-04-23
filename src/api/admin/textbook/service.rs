@@ -11,7 +11,7 @@ use crate::types::{AdminAction, TextbookLanguage, TextbookOrderStatus, TextbookT
 
 use super::dto::{
     AdminCreateOrderReq, AdminTextbookListRes, AdminTextbookLogItem, AdminTextbookLogListRes,
-    AdminTextbookLogMeta, AdminTextbookLogQuery, AdminTextbookMeta,
+    AdminTextbookLogMeta, AdminTextbookLogQuery, AdminTextbookMeta, AdminUpdateDiscountReq,
 };
 
 pub struct AdminTextbookService;
@@ -215,9 +215,34 @@ impl AdminTextbookService {
         }
 
         // -----------------------------------------------------------------
-        // 2. 트랜잭션 — order INSERT + items INSERT
+        // 2. 금액 계산 + 할인 검증
         // -----------------------------------------------------------------
-        let total_amount: i32 = req.items.iter().map(|i| i.quantity * UNIT_PRICE).sum();
+        // gross_amount: 수량 × 단가 (할인 전). total_amount: 할인 차감 후.
+        let gross_amount: i32 = req.items.iter().map(|i| i.quantity * UNIT_PRICE).sum();
+        let discount_amount = req.discount_amount;
+        if discount_amount < 0 {
+            return Err(AppError::BadRequest(
+                "discount_amount must be non-negative".into(),
+            ));
+        }
+        if discount_amount > gross_amount {
+            return Err(AppError::BadRequest(format!(
+                "discount_amount ({}) cannot exceed gross_amount ({})",
+                discount_amount, gross_amount
+            )));
+        }
+        let total_amount = gross_amount - discount_amount;
+
+        // 할인 사유: 빈 문자열 trim 후 None 으로 정규화 (UI 빈 입력 허용).
+        let discount_reason_normalized = req
+            .discount_reason
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+
+        // -----------------------------------------------------------------
+        // 3. 트랜잭션 — order INSERT + items INSERT
+        // -----------------------------------------------------------------
 
         let mut tx = st.db.begin().await?;
 
@@ -248,6 +273,9 @@ impl AdminTextbookService {
                 tax_email: req.tax_email.as_deref(),
                 total_quantity,
                 total_amount,
+                gross_amount,
+                discount_amount,
+                discount_reason: discount_reason_normalized,
                 notes: req.notes.as_deref(),
             },
         )
@@ -262,7 +290,7 @@ impl AdminTextbookService {
         TextbookRepo::insert_items(&mut tx, order_id, &items).await?;
 
         // -----------------------------------------------------------------
-        // 3. 초기 상태가 pending 이 아니면 동일 트랜잭션 내에서 상태 + 타임스탬프
+        // 4. 초기 상태가 pending 이 아니면 동일 트랜잭션 내에서 상태 + 타임스탬프
         //    업데이트 (paid_at / confirmed_at). insert 와 원자적으로 처리되어
         //    초기 상태 세팅 실패 시 주문 전체가 롤백됨 — 고아 Pending 상태 방지.
         // -----------------------------------------------------------------
@@ -273,12 +301,15 @@ impl AdminTextbookService {
         tx.commit().await?;
 
         // -----------------------------------------------------------------
-        // 4. 관리자 감사 로그 — AdminAction::Create
+        // 5. 관리자 감사 로그 — AdminAction::Create
         // -----------------------------------------------------------------
         let after = serde_json::json!({
             "order_code": order_code,
             "orderer_name": req.orderer_name,
             "total_quantity": total_quantity,
+            "gross_amount": gross_amount,
+            "discount_amount": discount_amount,
+            "discount_reason": discount_reason_normalized,
             "total_amount": total_amount,
             "initial_status": format!("{:?}", initial_status),
             "user_id": req.user_id,
@@ -298,6 +329,8 @@ impl AdminTextbookService {
             order_id = order_id,
             order_code = %order_code,
             total_quantity = total_quantity,
+            gross_amount = gross_amount,
+            discount_amount = discount_amount,
             total_amount = total_amount,
             initial_status = ?initial_status,
             "Textbook order created by admin on behalf"
@@ -324,6 +357,78 @@ impl AdminTextbookService {
                 );
             }
         }
+
+        TextbookService::get_order_by_id(st, order_id).await
+    }
+
+    /// 주문 할인 편집 (관리자, 2026-04-23 신규)
+    ///
+    /// 생성 후에도 할인 금액/사유를 수정 가능. gross_amount 는 불변이며
+    /// discount_amount + total_amount(= gross - discount) 만 갱신.
+    /// admin_textbook_log 에 Update 액션 기록.
+    pub async fn update_discount(
+        st: &AppState,
+        admin_user_id: i64,
+        order_id: i64,
+        req: AdminUpdateDiscountReq,
+    ) -> AppResult<OrderRes> {
+        let order = TextbookRepo::find_by_id(&st.db, order_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        // 검증: 0 ≤ discount ≤ gross. DB CHECK 와 중복이나 에러 메시지 명확화 목적.
+        if req.discount_amount < 0 {
+            return Err(AppError::BadRequest(
+                "discount_amount must be non-negative".into(),
+            ));
+        }
+        if req.discount_amount > order.gross_amount {
+            return Err(AppError::BadRequest(format!(
+                "discount_amount ({}) cannot exceed gross_amount ({})",
+                req.discount_amount, order.gross_amount
+            )));
+        }
+
+        let reason_normalized = req
+            .discount_reason
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+
+        let before = serde_json::json!({
+            "discount_amount": order.discount_amount,
+            "discount_reason": order.discount_reason,
+            "total_amount": order.total_amount,
+        });
+
+        TextbookRepo::update_discount(&st.db, order_id, req.discount_amount, reason_normalized)
+            .await?;
+
+        let new_total = order.gross_amount - req.discount_amount;
+        let after = serde_json::json!({
+            "discount_amount": req.discount_amount,
+            "discount_reason": reason_normalized,
+            "total_amount": new_total,
+        });
+
+        TextbookRepo::insert_admin_log(
+            &st.db,
+            admin_user_id,
+            order_id,
+            AdminAction::Update,
+            Some(before),
+            Some(after),
+        )
+        .await?;
+
+        tracing::info!(
+            admin_user_id = admin_user_id,
+            order_id = order_id,
+            order_code = %order.order_code,
+            discount_amount = req.discount_amount,
+            new_total_amount = new_total,
+            "Textbook order discount updated"
+        );
 
         TextbookService::get_order_by_id(st, order_id).await
     }

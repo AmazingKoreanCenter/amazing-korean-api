@@ -38,7 +38,9 @@ const UNIT_PRICE = 25_000;
 type OrderItem = {
   language: TextbookLanguage | "";
   textbook_type: TextbookType;
-  quantity: number;
+  // controlled number input 에서 사용자가 전량 삭제 후 재입력할 수 있도록
+  // 중간 상태로 "" 허용. onBlur/submit 에서 1 fallback.
+  quantity: number | "";
 };
 
 export function AdminTextbookOrderCreate() {
@@ -86,6 +88,11 @@ export function AdminTextbookOrderCreate() {
     { language: "", textbook_type: "student", quantity: 1 },
   ]);
 
+  // ---- 할인 (2026-04-23 신규) ----
+  // discountAmount 는 number | "" 로 수량과 동일한 패턴. onBlur 에서 "" → 0 fallback.
+  const [discountAmount, setDiscountAmount] = useState<number | "">(0);
+  const [discountReason, setDiscountReason] = useState("");
+
   const addItem = () =>
     setItems((prev) => [
       ...prev,
@@ -98,8 +105,16 @@ export function AdminTextbookOrderCreate() {
       prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)),
     );
 
-  const totalQuantity = items.reduce((sum, it) => sum + (it.quantity || 0), 0);
-  const totalAmount = totalQuantity * UNIT_PRICE;
+  const totalQuantity = items.reduce(
+    (sum, it) => sum + (Number(it.quantity) || 0),
+    0,
+  );
+  // grossAmount: 할인 전 총액 (수량 × 단가, VAT 포함)
+  const grossAmount = totalQuantity * UNIT_PRICE;
+  const discountNum = Math.max(0, Math.floor(Number(discountAmount) || 0));
+  // UI 표시용 최종 금액. 할인이 gross 초과 시 0 으로 clamp 표시 (실제 submit 은 검증으로 거부).
+  const discountApplied = Math.min(discountNum, grossAmount);
+  const finalAmount = grossAmount - discountApplied;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +130,15 @@ export function AdminTextbookOrderCreate() {
     }
     if (items.length === 0 || items.some((it) => !it.language)) {
       toast.error(t("admin.textbook.create.err.itemsRequired"));
+      return;
+    }
+    // 할인 검증: 0 ≤ discount ≤ gross. 서버에서도 검증하지만 UX 개선 위해 선확인.
+    if (discountNum < 0) {
+      toast.error(t("admin.textbook.create.err.discountNegative"));
+      return;
+    }
+    if (discountNum > grossAmount) {
+      toast.error(t("admin.textbook.create.err.discountExceedsGross"));
       return;
     }
     if (taxInvoice) {
@@ -178,9 +202,14 @@ export function AdminTextbookOrderCreate() {
         language: it.language as TextbookLanguage,
         textbook_type: it.textbook_type,
         // quantity 는 백엔드 i32. 브라우저가 소수점 입력을 허용하는
-        // 경우가 있으므로 정수 보장.
-        quantity: Math.max(1, Math.floor(it.quantity)),
+        // 경우가 있으므로 정수 보장. "" (편집 중 빈 상태) 는 1 fallback.
+        quantity: Math.max(1, Math.floor(Number(it.quantity) || 1)),
       })),
+      discount_amount: discountNum > 0 ? discountNum : undefined,
+      discount_reason:
+        discountNum > 0 && discountReason.trim()
+          ? discountReason.trim()
+          : undefined,
       notes: notes.trim() || undefined,
     };
 
@@ -502,11 +531,23 @@ export function AdminTextbookOrderCreate() {
                     type="number"
                     min={1}
                     value={item.quantity}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      // 빈 문자열도 잠시 허용해야 사용자가 "1" 을 지우고
+                      // 다른 숫자를 입력할 수 있음. 숫자 입력 시에만 정수 보정.
                       updateItem(idx, {
-                        quantity: Math.max(1, Number(e.target.value) || 1),
-                      })
-                    }
+                        quantity:
+                          v === ""
+                            ? ""
+                            : Math.max(1, Math.floor(Number(v) || 1)),
+                      });
+                    }}
+                    onBlur={() => {
+                      // 포커스 이탈 시 빈 값은 1 로 복귀.
+                      if (item.quantity === "") {
+                        updateItem(idx, { quantity: 1 });
+                      }
+                    }}
                   />
                 </div>
                 <Button
@@ -526,9 +567,88 @@ export function AdminTextbookOrderCreate() {
                 <strong>{totalQuantity}</strong>
               </span>
               <span>
-                {t("admin.textbook.create.totalAmount")}:{" "}
-                <strong>{totalAmount.toLocaleString()} KRW</strong>
+                {t("admin.textbook.create.grossAmount")}:{" "}
+                <strong>{grossAmount.toLocaleString()} KRW</strong>
               </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 할인 (관리자 임의 입력) — 2026-04-23 신규 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {t("admin.textbook.create.discount")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="discountAmount">
+                  {t("admin.textbook.create.discountAmount")} (KRW)
+                </Label>
+                <Input
+                  id="discountAmount"
+                  type="number"
+                  min={0}
+                  max={grossAmount}
+                  value={discountAmount}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") {
+                      setDiscountAmount("");
+                    } else {
+                      setDiscountAmount(
+                        Math.max(0, Math.floor(Number(v) || 0)),
+                      );
+                    }
+                  }}
+                  onBlur={() => {
+                    if (discountAmount === "") setDiscountAmount(0);
+                  }}
+                  placeholder="0"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("admin.textbook.create.discountHint")}
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="discountReason">
+                  {t("admin.textbook.create.discountReason")}
+                </Label>
+                <Input
+                  id="discountReason"
+                  value={discountReason}
+                  onChange={(e) => setDiscountReason(e.target.value)}
+                  placeholder={t(
+                    "admin.textbook.create.discountReasonPlaceholder",
+                  )}
+                  maxLength={500}
+                  disabled={discountNum === 0}
+                />
+              </div>
+            </div>
+            {/* 요약: 품목 합계 / 할인 / 최종 합계 */}
+            <div className="pt-3 border-t text-sm space-y-1">
+              <div className="flex justify-between">
+                <span>{t("admin.textbook.create.grossAmount")}</span>
+                <span>{grossAmount.toLocaleString()} KRW</span>
+              </div>
+              {discountNum > 0 && (
+                <div className="flex justify-between text-destructive">
+                  <span>- {t("admin.textbook.create.discountAmount")}</span>
+                  <span>- {discountApplied.toLocaleString()} KRW</span>
+                </div>
+              )}
+              <div className="flex justify-between pt-1 border-t font-semibold">
+                <span>{t("admin.textbook.create.finalAmount")}</span>
+                <span>{finalAmount.toLocaleString()} KRW</span>
+              </div>
+              {discountNum > grossAmount && (
+                <p className="text-xs text-destructive mt-1">
+                  {t("admin.textbook.create.err.discountExceedsGross")}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

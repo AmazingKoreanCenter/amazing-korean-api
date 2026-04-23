@@ -944,6 +944,8 @@
         "supplier": "Supplier",
         "supplyAmount": "Supply Amount",
         "vatAmount": "VAT (10%)",
+        "subtotal": "Subtotal",
+        "discount": "Discount",
         "issuedBy": "Issued by",
         "sealLine": "(Seal)"
       },
@@ -987,6 +989,13 @@
         "quantity": "Quantity",
         "totalQuantity": "Total Quantity",
         "totalAmount": "Total Amount",
+        "grossAmount": "Subtotal",
+        "finalAmount": "Final Amount",
+        "discount": "Discount (admin)",
+        "discountAmount": "Discount Amount",
+        "discountReason": "Discount Reason",
+        "discountReasonPlaceholder": "e.g., long-term customer, sample, promotional",
+        "discountHint": "VAT-inclusive amount. Must not exceed subtotal.",
         "taxInvoice": "Issue Tax Invoice",
         "bizNumber": "Business Registration No.",
         "companyName": "Company Name",
@@ -1007,7 +1016,25 @@
           "itemsRequired": "Please select language for each order item.",
           "taxRequired": "Please fill in required tax invoice fields.",
           "generic": "An error occurred while creating the order.",
-          "userIdInvalid": "User ID must be a positive integer."
+          "userIdInvalid": "User ID must be a positive integer.",
+          "discountNegative": "Discount amount must be non-negative.",
+          "discountExceedsGross": "Discount amount cannot exceed subtotal."
+        }
+      },
+      "detail": {
+        "grossAmount": "Subtotal",
+        "finalAmount": "Final Amount",
+        "discountAmount": "Discount",
+        "discountReason": "Discount Reason",
+        "discountReasonPlaceholder": "e.g., long-term customer, sample",
+        "editDiscount": "Edit Discount",
+        "editDiscountTitle": "Edit Discount",
+        "editDiscountDesc": "Set discount within subtotal {{gross}} {{currency}}. Enter 0 to remove discount.",
+        "saveDiscount": "Save",
+        "discountSaved": "Discount updated.",
+        "discountSaveFailed": "Failed to update discount.",
+        "err": {
+          "discountExceedsGross": "Discount amount cannot exceed subtotal."
         }
       }
     },
@@ -1145,6 +1172,8 @@
       "supplier": "Supplier",
       "supplyAmount": "Supply Amount",
       "vatAmount": "VAT (10%)",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
       "issuedBy": "Issued by",
       "sealLine": "(Seal)"
     },
@@ -1263,6 +1292,8 @@
       "colUnitPrice": "Unit Price",
       "colSubtotal": "Subtotal",
       "total": "Total",
+      "grossAmount": "Subtotal",
+      "discount": "Discount",
       "ordererInfo": "Orderer Info",
       "deliveryInfo": "Delivery Info",
       "notes": "Notes"

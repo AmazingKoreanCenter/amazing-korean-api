@@ -152,7 +152,15 @@ pub struct OrderRes {
     pub tax_email: Option<String>,
     /// 금액
     pub total_quantity: i32,
+    /// 할인 후 최종 금액 (VAT 포함). gross_amount - discount_amount.
     pub total_amount: i32,
+    /// 할인 전 총액 (수량 × 단가, VAT 포함). 영수증 "품목 합계" 표시용.
+    pub gross_amount: i32,
+    /// 할인 금액 (VAT 포함). 0 이면 할인 미적용.
+    pub discount_amount: i32,
+    /// 할인 사유 (관리자 메모, 선택).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discount_reason: Option<String>,
     pub currency: String,
     /// 비고
     pub notes: Option<String>,
