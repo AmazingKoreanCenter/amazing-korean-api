@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-23 (#67 E-book session_id 필수화 Phase 2~5 전환 완료 — D+7 관측 0건 통과, D+8 예정 대비 1일 앞당김)
+updated: 2026-04-23 (Q11 pt footer 판단 — 시나리오 B 채택, API 팀 코드 수정 없음, QA prompt 보강으로 흡수)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,22 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-23 — Q11 pt footer 판단: 시나리오 B (QA prompt 보강) 채택, API 팀 코드 수정 없음**
+  - **배경**: 2026-04-22 overnight full run (`tests/qa-results/2026-04-22T06-39-53Z/`) 에서 PR #182 효과 검증 완료 — Gemma flag 32→1 (-97%), JWT 만료 70→2 (Q12 효과). 잔존 1건이 Q11 (pt 데스크톱 footer overlap). 맥미니가 "진짜 버그 여부 판단 요청" 으로 `docs/QA_결과.md` 재작성, API 팀에 5 시나리오 판단 위임.
+  - **판단 — 시나리오 B 채택** (footer 수정 안 함, QA prompt 보강으로 흡수):
+    1. **실 버그 증거 부재** — 1440px 스크린샷에 overlap 시각적으로 확인 안 되고, 잠재 문제 구간 (768-1023px) 은 QA 뷰포트 매트릭스 밖이라 측정된 적 없음. 존재·확인 모두 안 된 버그.
+    2. **Gemma reason hallucination 실증** — reason 절반이 `"You are a web UI quality reviewer..."` 프롬프트 첫 문장을 페이지 텍스트로 착각. 구조적 FP 신호.
+    3. **전역 footer 수정 리스크 > 가치** — A-a (`lg:flex-row`) 는 22 locale × 전 페이지 레이아웃 변경. A-b (`flex-wrap`) 는 `justify-between` 과의 브라우저별 차이. A-c (pt 문구 축약) 는 법적·브랜드 검토 선행 필요.
+    4. **Gemma FP 누적 데이터 부족** (MVP 1회) → prompt 개선은 정성적이지만 즉시 착수 가능한 저리스크 개선.
+  - **QA 쪽 권장 조치**:
+    - **우선**: `ollama_check/prompts/text_overflow.md` 에 가드 문구 추가 ("footer copyright+legal 조밀 배치는 정상, 명확히 가려지거나 잘린 경우만 flag").
+    - **보조**: `check_runner.py` path+check 단위 whitelist 지원 추가 (prompt 효과 부족 시 도입).
+    - **tablet viewport (768-1023px) 추가 권장** — B 선택과 별개 트랙. footer 외 다른 회귀 잠복 가능 구간의 구조적 공백 해소.
+  - **"양치기 소년" 리스크 대응**: Prompt 보강 후 2-3 full run 관찰. 다른 영역 (subtitle/carousel/text overlap) 실 회귀 발생 시 Gemma 감지력 유지되는지 검증. 감지력 저하 시 prompt 재조정 or A-a 재고.
+  - **변경 파일**: docs 3건 (`docs/QA_결과.md §6` 답변 섹션 신규 + `docs/AMK_STATUS.md §8.2` Q11 ✅ 답변 완료 처리 + 이 CHANGELOG 엔트리).
+  - **커밋 스코프**: PR #183 결합 (단일 브랜치 정책). PR #183 은 `#67 Phase 2~5 + Gemini fix + Q11 판단 답변` 의 3 스코프 누적.
+  - **사용자 액션**: B 채택 판단 맥미니 쪽에 이미 전달 완료 (2026-04-23 사용자 확인).
 
 - **2026-04-23 — #67 E-book session_id 필수화 Phase 2~5 전환 완료 (D+7 관측 0건 통과)**
   - **D+7 관측 결과**: `docker logs amk-api --since 168h 2>&1 | grep EBOOK_SESSION_AUDIT | wc -l` = **0** (2026-04-23 사용자 실측). Phase 1 로깅 배포(2026-04-16) 이후 7일간 구버전 클라이언트 / 어뷰즈 / SPA 캐시 모두 부재 확인. D+8(2026-04-24) 예정이었으나 조건 충족으로 하루 앞당김.
