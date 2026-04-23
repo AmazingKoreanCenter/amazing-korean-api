@@ -72,16 +72,28 @@ interface SupplierBoxProps {
 
 export function ReceiptSupplierBox({ ns, t }: SupplierBoxProps) {
   return (
-    <div className="mb-6 p-4 border rounded">
-      <h3 className="font-bold mb-2">{t(`${ns}.supplier`)}</h3>
-      <p>{TEXTBOOK_SUPPLIER.companyName}</p>
-      <p>
-        {t(`${ns}.bizNumber`)}: {TEXTBOOK_SUPPLIER.bizNumber}
-      </p>
-      <p>
-        {t(`${ns}.repName`)}: {TEXTBOOK_SUPPLIER.repName}
-      </p>
-      <p>{TEXTBOOK_SUPPLIER.address}</p>
+    <div className="p-4 border-2 border-black/80 rounded bg-muted/20 print:bg-transparent h-full">
+      <h3 className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground print:text-gray-600 mb-2 font-semibold">
+        {t(`${ns}.supplier`)}
+      </h3>
+      <p className="font-semibold text-base">{TEXTBOOK_SUPPLIER.companyName}</p>
+      <div className="mt-2 space-y-0.5 text-xs">
+        <p>
+          <span className="text-muted-foreground print:text-gray-600">
+            {t(`${ns}.bizNumber`)}:
+          </span>{" "}
+          <span className="font-mono">{TEXTBOOK_SUPPLIER.bizNumber}</span>
+        </p>
+        <p>
+          <span className="text-muted-foreground print:text-gray-600">
+            {t(`${ns}.repName`)}:
+          </span>{" "}
+          {TEXTBOOK_SUPPLIER.repName}
+        </p>
+        <p className="text-muted-foreground print:text-gray-600 leading-snug mt-1">
+          {TEXTBOOK_SUPPLIER.address}
+        </p>
+      </div>
     </div>
   );
 }
@@ -127,50 +139,60 @@ export function ReceiptTotalBreakdown({
     currency,
   );
   return (
-    <div className="p-4 border-2 border-black rounded mb-6">
+    <div className="border-2 border-black rounded overflow-hidden mb-6">
       {hasDiscount && grossAmount !== undefined && (
         <>
-          <div className="flex justify-between py-1">
-            <span>{t(`${ns}.subtotal`)}</span>
-            <span>
+          <div className="flex justify-between px-4 py-2 text-sm">
+            <span className="text-muted-foreground print:text-gray-700">
+              {t(`${ns}.subtotal`)}
+            </span>
+            <span className="font-mono">
               {formatReceiptAmount(grossAmount, currency)} {currency}
             </span>
           </div>
-          <div className="flex justify-between py-1 text-destructive">
-            <span>
-              - {t(`${ns}.discount`)}
+          <div className="flex justify-between px-4 py-2 text-sm text-destructive print:text-red-700">
+            <span className="flex-1">
+              − {t(`${ns}.discount`)}
               {discountReason && (
-                <span className="text-xs text-muted-foreground ml-2">
+                <span className="text-xs text-muted-foreground print:text-gray-600 ml-2 font-normal">
                   ({discountReason})
                 </span>
               )}
             </span>
-            <span>
-              - {formatReceiptAmount(discountAmount ?? 0, currency)} {currency}
+            <span className="font-mono">
+              − {formatReceiptAmount(discountAmount ?? 0, currency)} {currency}
             </span>
           </div>
-          <div className="border-b my-1" />
+          <div className="border-t" />
         </>
       )}
-      <div className="flex justify-between py-1">
-        <span>{t(`${ns}.supplyAmount`)}</span>
-        <span>
+      <div className="flex justify-between px-4 py-2 text-sm">
+        <span className="text-muted-foreground print:text-gray-700">
+          {t(`${ns}.supplyAmount`)}
+        </span>
+        <span className="font-mono">
           {formatReceiptAmount(supplyAmount, currency)} {currency}
         </span>
       </div>
-      <div className="flex justify-between py-1 border-b">
-        <span>{t(`${ns}.vatAmount`)}</span>
-        <span>
+      <div className="flex justify-between px-4 py-2 text-sm border-b">
+        <span className="text-muted-foreground print:text-gray-700">
+          {t(`${ns}.vatAmount`)}
+        </span>
+        <span className="font-mono">
           {formatReceiptAmount(vatAmount, currency)} {currency}
         </span>
       </div>
-      <div className="flex justify-between py-2 font-bold text-lg">
-        <span>{t(`${ns}.receiptTotal`)}</span>
-        <span className="text-xl">
+      <div className="flex justify-between items-center px-4 py-3 bg-black text-white print:bg-gray-900">
+        <span className="text-sm tracking-wider uppercase">
+          {t(`${ns}.receiptTotal`)}
+        </span>
+        <span className="text-2xl font-bold font-mono">
           {formatReceiptAmount(totalAmount, currency)} {currency}
         </span>
       </div>
-      <p className="text-center mt-2 text-sm">{t(`${ns}.receiptNotice`)}</p>
+      <p className="text-center py-2 text-sm bg-muted/30 print:bg-gray-50 border-t">
+        {t(`${ns}.receiptNotice`)}
+      </p>
     </div>
   );
 }
@@ -186,14 +208,20 @@ interface SignatureProps {
 
 export function ReceiptSignature({ ns, t }: SignatureProps) {
   return (
-    <div className="mt-8 mb-6 flex justify-end">
+    <div className="mt-10 mb-6 flex justify-end">
       <div className="text-right">
-        <p className="text-sm mb-2">{t(`${ns}.issuedBy`)}</p>
-        <p className="font-bold">{TEXTBOOK_SUPPLIER.companyName}</p>
-        <p className="text-sm">
-          {t(`${ns}.repName`)}: {TEXTBOOK_SUPPLIER.repName}
+        <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground print:text-gray-600 mb-2">
+          {t(`${ns}.issuedBy`)}
         </p>
-        <div className="mt-6 w-40 border-t pt-1 text-xs text-center text-muted-foreground print:text-gray-600">
+        <p className="font-bold text-base">{TEXTBOOK_SUPPLIER.companyName}</p>
+        <p className="text-xs mt-1">
+          <span className="text-muted-foreground print:text-gray-600">
+            {t(`${ns}.repName`)}:
+          </span>{" "}
+          {TEXTBOOK_SUPPLIER.repName}
+        </p>
+        {/* 인감 자리 박스 */}
+        <div className="mt-4 ml-auto w-24 h-24 border-2 border-dashed border-muted-foreground print:border-gray-400 rounded flex items-center justify-center text-[10px] text-muted-foreground print:text-gray-500">
           {t(`${ns}.sealLine`)}
         </div>
       </div>

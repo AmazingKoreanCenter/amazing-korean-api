@@ -50,6 +50,7 @@ pub struct CreateOrderReq {
     /// 신청자 정보
     #[validate(length(min = 1, max = 100))]
     pub orderer_name: String,
+    /// 이메일은 DB NULL 허용이나 사용자 일반 주문은 확인 메일 발송 때문에 필수로 유지.
     #[validate(email, length(max = 255))]
     pub orderer_email: String,
     #[validate(length(min = 1, max = 30))]
@@ -129,7 +130,8 @@ pub struct OrderRes {
     pub status: TextbookOrderStatus,
     /// 신청자 정보
     pub orderer_name: String,
-    pub orderer_email: String,
+    /// 관리자 대리 주문은 이메일 미수집 가능 (2026-04-23 nullable 전환).
+    pub orderer_email: Option<String>,
     pub orderer_phone: String,
     /// 기관 정보
     pub org_name: Option<String>,

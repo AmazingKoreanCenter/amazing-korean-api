@@ -66,6 +66,9 @@ export function AdminTextbookOrderCreate() {
     "pending" | "confirmed" | "paid"
   >("paid");
   const [enforceMinQuantity, setEnforceMinQuantity] = useState(false);
+  // 2026-04-23: 주문 모드 명시적 선택 — "guest" (비회원) / "member" (회원 귀속).
+  // 비회원은 user_id 미전송, 회원은 검색 콤보박스 또는 수동 user_id 입력.
+  const [orderMode, setOrderMode] = useState<"guest" | "member">("guest");
   // Q5: 검색 콤보박스로 user 선택. 수동 입력 토글 시 직접 user_id 입력.
   const [selectedUser, setSelectedUser] = useState<AdminUserSummary | null>(
     null,
@@ -119,9 +122,14 @@ export function AdminTextbookOrderCreate() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 기본 유효성
-    if (!ordererName.trim() || !ordererEmail.trim() || !ordererPhone.trim()) {
+    // 기본 유효성 — 2026-04-23: 이메일은 optional, 이름·전화만 필수
+    if (!ordererName.trim() || !ordererPhone.trim()) {
       toast.error(t("admin.textbook.create.err.ordererRequired"));
+      return;
+    }
+    // 이메일이 입력됐다면 대략적 형식 검증 (백엔드가 validator crate 로 재검증)
+    if (ordererEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ordererEmail.trim())) {
+      toast.error(t("admin.textbook.create.err.emailInvalid"));
       return;
     }
     if (!deliveryAddress.trim()) {
@@ -153,17 +161,23 @@ export function AdminTextbookOrderCreate() {
       }
     }
 
-    // user_id 결정 — Q5 검색 선택이 우선. 수동 입력 모드면 userId text 파싱.
+    // user_id 결정 — 2026-04-23: orderMode 기반.
+    // guest 모드: user_id 전송 안 함.
+    // member 모드: 검색 선택 우선, 없으면 수동 입력 파싱. 둘 다 없으면 검증 실패.
     let parsedUserId: number | undefined = undefined;
-    if (selectedUser) {
-      parsedUserId = selectedUser.id;
-    } else if (manualUserIdMode) {
-      // 수동 입력 엄격 파싱: 양의 정수 문자열만 허용.
-      // Number() 는 "1.5", "1e3" 등을 허용해 백엔드 i64 deserialize 실패를
-      // 유발하고, NaN 을 JSON.stringify 가 null 로 변환하면 의도한 귀속이
-      // silently 소실됨.
-      const userIdInput = userId.trim();
-      if (userIdInput) {
+    if (orderMode === "member") {
+      if (selectedUser) {
+        parsedUserId = selectedUser.id;
+      } else if (manualUserIdMode) {
+        // 수동 입력 엄격 파싱: 양의 정수 문자열만 허용.
+        // Number() 는 "1.5", "1e3" 등을 허용해 백엔드 i64 deserialize 실패를
+        // 유발하고, NaN 을 JSON.stringify 가 null 로 변환하면 의도한 귀속이
+        // silently 소실됨.
+        const userIdInput = userId.trim();
+        if (!userIdInput) {
+          toast.error(t("admin.textbook.create.err.memberRequired"));
+          return;
+        }
         if (!/^\d+$/.test(userIdInput)) {
           toast.error(t("admin.textbook.create.err.userIdInvalid"));
           return;
@@ -173,6 +187,9 @@ export function AdminTextbookOrderCreate() {
           toast.error(t("admin.textbook.create.err.userIdInvalid"));
           return;
         }
+      } else {
+        toast.error(t("admin.textbook.create.err.memberRequired"));
+        return;
       }
     }
 
@@ -181,7 +198,7 @@ export function AdminTextbookOrderCreate() {
       initial_status: initialStatus,
       enforce_min_quantity: enforceMinQuantity,
       orderer_name: ordererName,
-      orderer_email: ordererEmail,
+      orderer_email: ordererEmail.trim() || undefined,
       orderer_phone: ordererPhone,
       org_name: orgName.trim() || undefined,
       org_type: orgType.trim() || undefined,
@@ -255,87 +272,140 @@ export function AdminTextbookOrderCreate() {
               {t("admin.textbook.create.adminOptions")}
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="space-y-4">
+            {/* 주문 모드 세그먼트: 비회원 / 회원 (2026-04-23 신규) */}
             <div>
-              <Label htmlFor="initialStatus">
-                {t("admin.textbook.create.initialStatus")}
-              </Label>
-              <Select
-                value={initialStatus}
-                onValueChange={(v) =>
-                  setInitialStatus(v as "pending" | "confirmed" | "paid")
-                }
+              <Label>{t("admin.textbook.create.orderMode")}</Label>
+              <div
+                className="mt-1 inline-flex rounded-md border p-1 bg-muted"
+                role="radiogroup"
+                aria-label={t("admin.textbook.create.orderMode")}
               >
-                <SelectTrigger id="initialStatus" className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">
-                    {t("admin.textbook.status.pending")}
-                  </SelectItem>
-                  <SelectItem value="confirmed">
-                    {t("admin.textbook.status.confirmed")}
-                  </SelectItem>
-                  <SelectItem value="paid">
-                    {t("admin.textbook.status.paid")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("admin.textbook.create.initialStatusHint")}
-              </p>
-            </div>
-            <div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="userId">
-                  {t("admin.textbook.create.userId")}
-                </Label>
                 <button
                   type="button"
-                  className="text-xs text-primary hover:underline"
+                  role="radio"
+                  aria-checked={orderMode === "guest"}
                   onClick={() => {
-                    setManualUserIdMode((prev) => !prev);
+                    setOrderMode("guest");
                     setSelectedUser(null);
                     setUserId("");
+                    setManualUserIdMode(false);
                   }}
+                  className={`px-4 py-1.5 text-sm rounded ${
+                    orderMode === "guest"
+                      ? "bg-background shadow font-medium"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  {manualUserIdMode
-                    ? t("admin.textbook.create.userSearch.toggleSearch")
-                    : t("admin.textbook.create.userSearch.toggleManual")}
+                  {t("admin.textbook.create.guestOrder")}
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={orderMode === "member"}
+                  onClick={() => setOrderMode("member")}
+                  className={`px-4 py-1.5 text-sm rounded ${
+                    orderMode === "member"
+                      ? "bg-background shadow font-medium"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t("admin.textbook.create.memberOrder")}
                 </button>
               </div>
-              <div className="mt-1">
-                {manualUserIdMode ? (
-                  <Input
-                    id="userId"
-                    type="number"
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
-                    placeholder={t("admin.textbook.create.userIdPlaceholder")}
-                  />
-                ) : (
-                  <UserSearchCombobox
-                    value={selectedUser}
-                    onChange={setSelectedUser}
-                  />
-                )}
-              </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {manualUserIdMode
-                  ? t("admin.textbook.create.userIdHint")
-                  : t("admin.textbook.create.userSearch.hint")}
+                {orderMode === "guest"
+                  ? t("admin.textbook.create.guestOrderHint")
+                  : t("admin.textbook.create.memberOrderHint")}
               </p>
             </div>
-            <div className="flex items-end">
-              <label className="flex items-center gap-2 pb-1">
-                <Checkbox
-                  checked={enforceMinQuantity}
-                  onCheckedChange={(v) => setEnforceMinQuantity(v === true)}
-                />
-                <span className="text-sm">
-                  {t("admin.textbook.create.enforceMinQty")}
-                </span>
-              </label>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="initialStatus">
+                  {t("admin.textbook.create.initialStatus")}
+                </Label>
+                <Select
+                  value={initialStatus}
+                  onValueChange={(v) =>
+                    setInitialStatus(v as "pending" | "confirmed" | "paid")
+                  }
+                >
+                  <SelectTrigger id="initialStatus" className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">
+                      {t("admin.textbook.status.pending")}
+                    </SelectItem>
+                    <SelectItem value="confirmed">
+                      {t("admin.textbook.status.confirmed")}
+                    </SelectItem>
+                    <SelectItem value="paid">
+                      {t("admin.textbook.status.paid")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("admin.textbook.create.initialStatusHint")}
+                </p>
+              </div>
+
+              {orderMode === "member" && (
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="userId">
+                      {t("admin.textbook.create.userId")} *
+                    </Label>
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline"
+                      onClick={() => {
+                        setManualUserIdMode((prev) => !prev);
+                        setSelectedUser(null);
+                        setUserId("");
+                      }}
+                    >
+                      {manualUserIdMode
+                        ? t("admin.textbook.create.userSearch.toggleSearch")
+                        : t("admin.textbook.create.userSearch.toggleManual")}
+                    </button>
+                  </div>
+                  <div className="mt-1">
+                    {manualUserIdMode ? (
+                      <Input
+                        id="userId"
+                        type="number"
+                        value={userId}
+                        onChange={(e) => setUserId(e.target.value)}
+                        placeholder={t("admin.textbook.create.userIdPlaceholder")}
+                      />
+                    ) : (
+                      <UserSearchCombobox
+                        value={selectedUser}
+                        onChange={setSelectedUser}
+                      />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {manualUserIdMode
+                      ? t("admin.textbook.create.userIdHint")
+                      : t("admin.textbook.create.userSearch.hint")}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-end">
+                <label className="flex items-center gap-2 pb-1">
+                  <Checkbox
+                    checked={enforceMinQuantity}
+                    onCheckedChange={(v) => setEnforceMinQuantity(v === true)}
+                  />
+                  <span className="text-sm">
+                    {t("admin.textbook.create.enforceMinQty")}
+                  </span>
+                </label>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -361,15 +431,17 @@ export function AdminTextbookOrderCreate() {
             </div>
             <div>
               <Label htmlFor="ordererEmail">
-                {t("admin.textbook.create.email")} *
+                {t("admin.textbook.create.email")}
               </Label>
               <Input
                 id="ordererEmail"
                 type="email"
                 value={ordererEmail}
                 onChange={(e) => setOrdererEmail(e.target.value)}
-                required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                {t("admin.textbook.create.emailOptional")}
+              </p>
             </div>
             <div>
               <Label htmlFor="ordererPhone">

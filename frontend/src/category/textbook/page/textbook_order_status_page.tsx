@@ -316,7 +316,7 @@ export function TextbookOrderStatusPage() {
                     <p>
                       {order.orderer_name} / {order.orderer_phone}
                     </p>
-                    <p>{order.orderer_email}</p>
+                    {order.orderer_email && <p>{order.orderer_email}</p>}
                     {order.org_name && (
                       <p>
                         {order.org_name}

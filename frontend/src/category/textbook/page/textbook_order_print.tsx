@@ -72,113 +72,162 @@ export function TextbookOrderPrint() {
       </div>
 
       {/* 인쇄 콘텐츠 */}
-      <div className="max-w-[800px] mx-auto p-8 print:p-0 print:max-w-full text-sm">
-        {/* 헤더 */}
-        <div className="text-center mb-8 border-b-2 border-black pb-4">
-          <h1 className="text-2xl font-bold">{docTitle}</h1>
-          <p className="text-muted-foreground mt-1 print:text-black">
-            {t("textbook.print.companyName")}
-          </p>
-        </div>
-
-        {/* 문서 정보 */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <p>
-              <strong>{t("textbook.print.docNumber")}:</strong>{" "}
-              {order.order_code}
-            </p>
-            <p>
-              <strong>
-                {isReceipt
-                  ? t("textbook.print.paidDate")
-                  : t("textbook.print.date")}
-                :
-              </strong>{" "}
-              {docDate}
-            </p>
+      <div className="max-w-[800px] mx-auto p-8 print:p-8 print:max-w-full text-sm bg-white text-black">
+        {/* 헤더 — 영수증은 정식 문서 느낌으로 강화 */}
+        {isReceipt ? (
+          <div className="mb-8">
+            <div className="flex justify-between items-end border-b-[3px] border-black pb-4">
+              <div>
+                <p className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground print:text-gray-600 mb-1">
+                  RECEIPT · 영수증
+                </p>
+                <h1 className="text-4xl font-bold tracking-tight">
+                  {docTitle}
+                </h1>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground print:text-gray-600">
+                  No.
+                </p>
+                <p className="font-mono text-base font-semibold">
+                  {order.order_code}
+                </p>
+                <p className="text-xs mt-2">
+                  <span className="text-muted-foreground print:text-gray-600">
+                    {t("textbook.print.paidDate")}:
+                  </span>{" "}
+                  {docDate}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="text-right">
-            <p>
-              <strong>{t("textbook.print.status")}:</strong>{" "}
-              {t(`textbook.status.label.${order.status}`)}
-            </p>
+        ) : (
+          <>
+            <div className="text-center mb-8 border-b-2 border-black pb-4">
+              <h1 className="text-2xl font-bold">{docTitle}</h1>
+              <p className="text-muted-foreground mt-1 print:text-black">
+                {t("textbook.print.companyName")}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <p>
+                  <strong>{t("textbook.print.docNumber")}:</strong>{" "}
+                  {order.order_code}
+                </p>
+                <p>
+                  <strong>{t("textbook.print.date")}:</strong> {docDate}
+                </p>
+              </div>
+              <div className="text-right">
+                <p>
+                  <strong>{t("textbook.print.status")}:</strong>{" "}
+                  {t(`textbook.status.label.${order.status}`)}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 공급자 / 수신자 — 영수증은 2컬럼, 그 외는 수신자만 */}
+        {isReceipt ? (
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <ReceiptSupplierBox ns="textbook.print" t={t} />
+            <div className="p-4 border-2 border-black/80 rounded h-full">
+              <h3 className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground print:text-gray-600 mb-2 font-semibold">
+                {t("textbook.print.recipient")}
+              </h3>
+              <p className="font-semibold text-base">{order.orderer_name}</p>
+              {order.org_name && (
+                <p className="text-xs text-muted-foreground print:text-gray-600">
+                  {order.org_name}
+                </p>
+              )}
+              <div className="mt-2 space-y-0.5 text-xs">
+                {order.orderer_email && <p>{order.orderer_email}</p>}
+                <p>{order.orderer_phone}</p>
+                <p className="text-muted-foreground print:text-gray-600 leading-snug mt-1">
+                  {order.delivery_address}
+                  {order.delivery_detail ? ` ${order.delivery_detail}` : ""}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* 공급자 정보 (영수증 전용) */}
-        {isReceipt && <ReceiptSupplierBox ns="textbook.print" t={t} />}
-
-        {/* 수신자 정보 */}
-        <div className="mb-6 p-4 border rounded">
-          <h3 className="font-bold mb-2">
-            {t("textbook.print.recipient")}
-          </h3>
-          <p>{order.orderer_name}</p>
-          {order.org_name && <p>{order.org_name}</p>}
-          <p>{order.orderer_email}</p>
-          <p>{order.orderer_phone}</p>
-          <p>{order.delivery_address}</p>
-          {order.delivery_detail && <p>{order.delivery_detail}</p>}
-        </div>
+        ) : (
+          <div className="mb-6 p-4 border rounded">
+            <h3 className="font-bold mb-2">
+              {t("textbook.print.recipient")}
+            </h3>
+            <p>{order.orderer_name}</p>
+            {order.org_name && <p>{order.org_name}</p>}
+            {order.orderer_email && <p>{order.orderer_email}</p>}
+            <p>{order.orderer_phone}</p>
+            <p>{order.delivery_address}</p>
+            {order.delivery_detail && <p>{order.delivery_detail}</p>}
+          </div>
+        )}
 
         {/* 항목 테이블 */}
-        <table className="w-full border-collapse mb-6">
-          <thead>
-            <tr className="border-b-2 border-black">
-              <th className="text-left py-2 px-2">#</th>
-              <th className="text-left py-2 px-2">
-                {t("textbook.print.colItem")}
-              </th>
-              <th className="text-left py-2 px-2">
-                {t("textbook.print.colType")}
-              </th>
-              <th className="text-right py-2 px-2">
-                {t("textbook.print.colQty")}
-              </th>
-              <th className="text-right py-2 px-2">
-                {t("textbook.print.colPrice")}
-              </th>
-              <th className="text-right py-2 px-2">
-                {t("textbook.print.colSubtotal")}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {order.items.map((item, i) => (
-              <tr key={i} className="border-b">
-                <td className="py-2 px-2">{i + 1}</td>
-                <td className="py-2 px-2">
-                  {t("textbook.print.textbookPrefix")} {item.language_name}
-                </td>
-                <td className="py-2 px-2">
-                  {item.textbook_type === "student"
-                    ? t("textbook.order.typeStudent")
-                    : t("textbook.order.typeTeacher")}
-                </td>
-                <td className="py-2 px-2 text-right">{item.quantity}</td>
-                <td className="py-2 px-2 text-right">
-                  {item.unit_price.toLocaleString()}
-                </td>
-                <td className="py-2 px-2 text-right">
-                  {item.subtotal.toLocaleString()}
-                </td>
+        <div className={isReceipt ? "border rounded overflow-hidden mb-6" : "mb-6"}>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className={isReceipt ? "bg-muted/40 print:bg-gray-100 border-b-2 border-black" : "border-b-2 border-black"}>
+                <th className={`text-left ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>#</th>
+                <th className={`text-left ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
+                  {t("textbook.print.colItem")}
+                </th>
+                <th className={`text-left ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
+                  {t("textbook.print.colType")}
+                </th>
+                <th className={`text-right ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
+                  {t("textbook.print.colQty")}
+                </th>
+                <th className={`text-right ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
+                  {t("textbook.print.colPrice")}
+                </th>
+                <th className={`text-right ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
+                  {t("textbook.print.colSubtotal")}
+                </th>
               </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-t-2 border-black font-bold">
-              <td colSpan={3} className="py-2 px-2">
-                {t("textbook.print.total")}
-              </td>
-              <td className="py-2 px-2 text-right">{order.total_quantity}</td>
-              <td />
-              <td className="py-2 px-2 text-right">
-                {order.total_amount.toLocaleString()} {order.currency}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+            </thead>
+            <tbody>
+              {order.items.map((item, i) => (
+                <tr key={i} className={isReceipt ? "border-b last:border-b-0" : "border-b"}>
+                  <td className={`text-muted-foreground print:text-gray-700 ${isReceipt ? "py-3 px-3" : "py-2 px-2"}`}>{i + 1}</td>
+                  <td className={isReceipt ? "py-3 px-3" : "py-2 px-2"}>
+                    {t("textbook.print.textbookPrefix")} {item.language_name}
+                  </td>
+                  <td className={isReceipt ? "py-3 px-3" : "py-2 px-2"}>
+                    {item.textbook_type === "student"
+                      ? t("textbook.order.typeStudent")
+                      : t("textbook.order.typeTeacher")}
+                  </td>
+                  <td className={`text-right font-mono ${isReceipt ? "py-3 px-3" : "py-2 px-2"}`}>{item.quantity}</td>
+                  <td className={`text-right font-mono ${isReceipt ? "py-3 px-3" : "py-2 px-2"}`}>
+                    {item.unit_price.toLocaleString()}
+                  </td>
+                  <td className={`text-right font-mono ${isReceipt ? "py-3 px-3 font-medium" : "py-2 px-2"}`}>
+                    {item.subtotal.toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {!isReceipt && (
+              <tfoot>
+                <tr className="border-t-2 border-black font-bold">
+                  <td colSpan={3} className="py-2 px-2">
+                    {t("textbook.print.total")}
+                  </td>
+                  <td className="py-2 px-2 text-right">{order.total_quantity}</td>
+                  <td />
+                  <td className="py-2 px-2 text-right">
+                    {order.total_amount.toLocaleString()} {order.currency}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
 
         {/* 합계 박스 */}
         {isReceipt ? (

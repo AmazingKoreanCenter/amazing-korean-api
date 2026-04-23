@@ -16,7 +16,8 @@ pub struct TextbookOrderRow {
     pub order_code: String,
     pub status: TextbookOrderStatus,
     pub orderer_name: String,
-    pub orderer_email: String,
+    // 2026-04-23: 관리자 대리 주문 UX 개선으로 nullable 전환 (오프라인·전화 주문 대응)
+    pub orderer_email: Option<String>,
     pub orderer_phone: String,
     pub org_name: Option<String>,
     pub org_type: Option<String>,
@@ -107,7 +108,7 @@ pub struct InsertOrderParams<'a> {
     pub order_code: &'a str,
     pub user_id: Option<i64>,
     pub orderer_name: &'a str,
-    pub orderer_email: &'a str,
+    pub orderer_email: Option<&'a str>,
     pub orderer_phone: &'a str,
     pub org_name: Option<&'a str>,
     pub org_type: Option<&'a str>,
@@ -452,7 +453,9 @@ impl TextbookRepo {
         }
     }
 
-    /// 주문 상태 업데이트 (Pool 기반, 상태 전환 API 용)
+    /// 주문 상태 업데이트 (Pool 기반, 상태 전환 API 용).
+    /// 2026-04-23: 상태 전환 자유화 + timestamp set-if-null (`COALESCE`). 역행 전환
+    /// 시에도 기존 첫 전환 시점 보존. 최근 변경 시각은 `updated_at` 으로 추적.
     pub async fn update_status(
         pool: &PgPool,
         order_id: i64,
@@ -462,8 +465,8 @@ impl TextbookRepo {
 
         if let Some(col) = Self::status_timestamp_col(new_status) {
             let query = format!(
-                "UPDATE textbook SET status = $1, {} = $3, updated_at = NOW() WHERE order_id = $2 AND is_deleted = false",
-                col
+                "UPDATE textbook SET status = $1, {col} = COALESCE({col}, $3), updated_at = NOW() WHERE order_id = $2 AND is_deleted = false",
+                col = col
             );
             sqlx::query(&query)
                 .bind(new_status)
@@ -484,9 +487,9 @@ impl TextbookRepo {
         Ok(())
     }
 
-    /// 주문 상태 업데이트 (트랜잭션 내 사용 — 원자성 필요 시)
+    /// 주문 상태 업데이트 (트랜잭션 내 사용 — 원자성 필요 시).
     /// 관리자 대리 주문 생성 시 insert + 초기 상태 세팅이 원자적으로
-    /// 이루어지도록 동일 트랜잭션 내에서 호출.
+    /// 이루어지도록 동일 트랜잭션 내에서 호출. timestamp 는 COALESCE set-if-null.
     pub async fn update_status_in_tx(
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         order_id: i64,
@@ -496,8 +499,8 @@ impl TextbookRepo {
 
         if let Some(col) = Self::status_timestamp_col(new_status) {
             let query = format!(
-                "UPDATE textbook SET status = $1, {} = $3, updated_at = NOW() WHERE order_id = $2 AND is_deleted = false",
-                col
+                "UPDATE textbook SET status = $1, {col} = COALESCE({col}, $3), updated_at = NOW() WHERE order_id = $2 AND is_deleted = false",
+                col = col
             );
             sqlx::query(&query)
                 .bind(new_status)
