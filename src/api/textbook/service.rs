@@ -124,7 +124,9 @@ impl TextbookService {
                 user_id: Some(user_id),
                 orderer_name: &req.orderer_name,
                 // 사용자 주문은 UI validate 로 이메일 필수. 저장 시 Some(...) 로 래핑.
-                orderer_email: Some(&req.orderer_email),
+                // Gemini HIGH (PR #184): `&String` → `Option<&str>` deref coercion 은 작동하지만
+                // 명시적 `.as_str()` 이 더 안전. Option 내부 coercion 은 컨텍스트 의존적.
+                orderer_email: Some(req.orderer_email.as_str()),
                 orderer_phone: &req.orderer_phone,
                 org_name: req.org_name.as_deref(),
                 org_type: req.org_type.as_deref(),
