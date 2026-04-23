@@ -25,7 +25,7 @@
 - 자동 탐지: Gemma `color_contrast` + `text_overflow` 프롬프트, **14 언어 (de/en/es/fr/id/ja/kk/pt/...) × 2 체크 = 28 flag**.
 - 재현: `tests/qa-results/2026-04-22T01-35-53Z/screenshots/{lang}/book-ebook_mobile.png`.
 
-**원인**: [`frontend/src/category/ebook/page/ebook_catalog_page.tsx:97-102`](../../../../dev/amazing-korean-api/frontend/src/category/ebook/page/ebook_catalog_page.tsx#L97-L102)
+**원인**: [`frontend/src/category/ebook/page/ebook_catalog_page.tsx:97-102`](../frontend/src/category/ebook/page/ebook_catalog_page.tsx#L97-L102)
 
 ```tsx
 subtitle={t("ebook.catalog.subtitle").split("\n").map((line, i) => (
@@ -227,6 +227,8 @@ JWT_ACCESS_TTL_MIN=360   # 6시간 — 22 lang full run (≈2h30m) 커버
 
 ### 본 QA 시스템 소스
 
-- 오케스트레이터: [`amazing-korean-ai/scripts/qa/run_qa.sh`](../../../scripts/qa/run_qa.sh)
-- 아키텍처: [`amazing-korean-ai/docs/qa/ARCHITECTURE.md`](./ARCHITECTURE.md)
-- 전략: [`amazing-korean-ai/docs/AMK_AI_QA.md`](../AMK_AI_QA.md)
+> 별도 저장소 [`amazing-korean-ai`](https://github.com/AmazingKoreanCenter/amazing-korean-ai) 기준 경로.
+
+- 오케스트레이터: `scripts/qa/run_qa.sh` (Mac Mini 로컬)
+- 아키텍처: `docs/qa/ARCHITECTURE.md`
+- 전략: `docs/AMK_AI_QA.md`

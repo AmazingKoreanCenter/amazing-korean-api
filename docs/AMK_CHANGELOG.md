@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-22 (Q10 프론트 3건 + Q12 JWT TTL 답변 완료 — QA run 2026-04-22 대응)
+updated: 2026-04-23 (PR #182 Gemini 리뷰 MEDIUM 2건 즉시 반영 — QA_결과.md 로컬 경로 상대링크 fix)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -11,7 +11,21 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
-- **2026-04-22 (심야 — 다음 세션) — Q10 프론트 3건 fix + Q12 JWT TTL QA 답변**
+- **2026-04-23 — PR #182 Gemini 리뷰 MEDIUM 2건 즉시 반영**
+  - **배경**: PR #182 (Q10 + Q12) 머지 직후 (2026-04-22T05:59Z) Gemini 가 `docs/QA_결과.md` 의 로컬 경로 상대링크 2곳 지적. `feedback_work_rules.md` "PR 머지 후 Gemini 리뷰 즉시 반영" 원칙에 따라 머지 후 13시간 내 처리 (2026-04-23 세션 시작 시점).
+  - **L28 — 저장소 내부 링크가 로컬 WSL 경로 포함**:
+    - Before: `[...](../../../../dev/amazing-korean-api/frontend/...)`
+    - After: `[...](../frontend/...)` — `docs/` 에서 저장소 루트 기준 상대 경로.
+    - 이 링크는 QA 팀이 원본 요청 시 작성한 것. GitHub 에서 404 났을 것.
+  - **L230~L232 — 별도 저장소 `amazing-korean-ai` 참조를 상대링크로 작성**:
+    - Before: `[...](../../../scripts/qa/run_qa.sh)`, `[...](./ARCHITECTURE.md)`, `[...](../AMK_AI_QA.md)`
+    - After: 링크 제거, 경로만 backtick 으로 표시 + "별도 저장소 `amazing-korean-ai` 기준" 주석 + GitHub 메인 링크.
+    - `amazing-korean-ai/scripts/qa/` 는 Mac Mini 로컬 전용이라 GitHub 에 없을 가능성 → 링크 제거가 가장 안전.
+  - **전수조사**: `grep -nE "\.\./\.\./\.\./"` 로 `docs/QA_결과.md` + `amazing-korean-ai/docs/AMK_AI_QA_HANDOFF_2026-04-22.md` 동시 스캔 — 추가 위반 0건 확인.
+  - **변경**: 1 파일 (`docs/QA_결과.md`) + CHANGELOG.
+  - **검증 불필요**: docs 단독 변경, 빌드/테스트 영향 없음.
+
+- **2026-04-22 (심야) — Q10 프론트 3건 fix + Q12 JWT TTL QA 답변**
   - **배경**: 2026-04-22 저녁에 수신한 QA Mac Mini 자동 런 결과 (`2026-04-22T01-35-53Z`) 의 Q10 (프론트 수정 3건 묶음) + Q12 (JWT TTL QA 전용 연장 답변) 를 이번 세션에서 처리. Q11 (pt footer 오버랩) 은 footer breakpoint 변경이 전역 디자인 영향이라 별도 PR 로 남김.
   - **Q10.1/.2 — subtitle `<br className="hidden sm:block" />` 공백 누락 fix (전수 6곳)**:
     - QA 리포트가 지적한 파일: `ebook_catalog_page.tsx:97-102`, `textbook_catalog_page.tsx:97`. 원인: `i > 0 && <br className="hidden sm:block" />` 에서 `sm` 미만 (모바일) 은 `<br>` 이 `display:none` 이라 단어 사이 공백이 사라짐 (`"languages,available"` 처럼 붙음).
