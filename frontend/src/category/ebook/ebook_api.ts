@@ -73,11 +73,11 @@ export const getViewerMeta = (code: string) =>
 export const fetchPageImage = async (
   code: string,
   page: number,
-  sessionId?: string,
+  sessionId: string,
   hmacSecret?: string
 ): Promise<ArrayBuffer> => {
   let hmacHeaders: Record<string, string> = {};
-  if (hmacSecret && sessionId) {
+  if (hmacSecret) {
     const path = `${code}/${page}`;
     const { signature, timestamp } = await computeHmacSignature(hmacSecret, sessionId, path);
     hmacHeaders = {
@@ -89,7 +89,7 @@ export const fetchPageImage = async (
     responseType: "arraybuffer",
     headers: {
       "X-Ebook-Viewer": "1",
-      ...(sessionId ? { "X-Ebook-Session": sessionId } : {}),
+      "X-Ebook-Session": sessionId,
       ...hmacHeaders,
     },
   });
@@ -111,11 +111,11 @@ export const fetchPageTile = async (
   page: number,
   row: number,
   col: number,
-  sessionId?: string,
+  sessionId: string,
   hmacSecret?: string
 ): Promise<ArrayBuffer> => {
   let hmacHeaders: Record<string, string> = {};
-  if (hmacSecret && sessionId) {
+  if (hmacSecret) {
     const path = `${code}/${page}/${row}/${col}`;
     const { signature, timestamp } = await computeHmacSignature(hmacSecret, sessionId, path);
     hmacHeaders = {
@@ -129,7 +129,7 @@ export const fetchPageTile = async (
       responseType: "arraybuffer",
       headers: {
         "X-Ebook-Viewer": "1",
-        ...(sessionId ? { "X-Ebook-Session": sessionId } : {}),
+        "X-Ebook-Session": sessionId,
         ...hmacHeaders,
       },
     }

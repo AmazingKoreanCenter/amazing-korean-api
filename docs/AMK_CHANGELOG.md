@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-23 (PR #182 Gemini 리뷰 MEDIUM 2건 즉시 반영 — QA_결과.md 로컬 경로 상대링크 fix)
+updated: 2026-04-23 (#67 E-book session_id 필수화 Phase 2~5 전환 완료 — D+7 관측 0건 통과, D+8 예정 대비 1일 앞당김)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,24 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-23 — #67 E-book session_id 필수화 Phase 2~5 전환 완료 (D+7 관측 0건 통과)**
+  - **D+7 관측 결과**: `docker logs amk-api --since 168h 2>&1 | grep EBOOK_SESSION_AUDIT | wc -l` = **0** (2026-04-23 사용자 실측). Phase 1 로깅 배포(2026-04-16) 이후 7일간 구버전 클라이언트 / 어뷰즈 / SPA 캐시 모두 부재 확인. D+8(2026-04-24) 예정이었으나 조건 충족으로 하루 앞당김.
+  - **배경 — 관측 모드 선택 근거**: INC-001(2026-04-15 프로덕션 2h33m 다운) 경험으로 "fail-closed 게이트 추가는 코드 분석만 신뢰 말고 프로덕션 로그로 선확인" 방침 확립. 트래픽 표본이 작아 24~48h 불충분 판단으로 5~7일 관측. D+7 0건으로 방침 성공 실증.
+  - **Phase 2 — Backend 전환** (`amazing-korean-api`):
+    - [src/api/ebook/service.rs](../src/api/ebook/service.rs) `verify_session(st, user_id, session_id: &str)` — `Option<&str>` 제거. 진입부 `is_none()` 분기 + `tracing::warn!("EBOOK_SESSION_AUDIT: ...")` 블록 제거. 내부 Option 언래핑 제거 — 저장된 Redis JSON 의 `session_id` ↔ 요청 헤더 `session_id` **엄격 비교** (항상 수행). 불일치 → `Forbidden("Viewer session invalid")`.
+    - [src/api/ebook/handler.rs](../src/api/ebook/handler.rs) `get_page_image` + `get_page_tile` 2곳 — `x-ebook-session` 헤더 파싱 `.map(|s| s.to_string())` → `.ok_or_else(|| AppError::Forbidden("Missing session header".into()))?` 즉시 거부. `session_id.as_deref()` 제거 → 직접 `&str` 전달.
+  - **Phase 3 — Web frontend 전환** (`amazing-korean-api/frontend`):
+    - [frontend/src/category/ebook/ebook_api.ts](../frontend/src/category/ebook/ebook_api.ts) `fetchPageImage` + `fetchPageTile` — `sessionId?: string` → `sessionId: string`. 삼항 `...(sessionId ? { "X-Ebook-Session": sessionId } : {})` → 직접 `"X-Ebook-Session": sessionId`. HMAC 가드 `hmacSecret && sessionId` → `hmacSecret` 만 (sessionId 는 이제 required).
+    - [frontend/src/category/ebook/hook/use_page_image.ts](../frontend/src/category/ebook/hook/use_page_image.ts) `usePageImage` + `usePageTiles` — default value `sessionId = ""` 로 전환. meta 미로드 시 `enabled: !!meta && ...` 로 fetch 차단 → fetchPage 가 빈 sessionId 로 호출될 일 없음. TypeScript 는 `string | undefined` 를 default 파라미터로 수용.
+    - [frontend/src/category/ebook/page/ebook_viewer_page.tsx](../frontend/src/category/ebook/page/ebook_viewer_page.tsx) — 변경 없음. 기존 `const sessionId = meta?.session_id` + `!!meta` enabled 가드로 동작 정확성 유지.
+  - **Phase 4 — Desktop 전환** (`amazing-korean-desktop`, 별도 PR 진행 중): 웹과 동일 3 파일 (`ebook_api.ts` + `use_page_image.ts` + `ebook_viewer_page.tsx`).
+  - **Phase 5 — Mobile**: `lib/api/ebook_api.dart` 에 `required String sessionId` + 헤더 항상 전송 이미 준수 (2026-04-07 구현 시점). **작업 없음**.
+  - **검증**: `cargo check` 14.66s + `cargo clippy --lib --bins -- -D warnings` 0 warnings + `npm run build` 9.77s 클린.
+  - **배포 후 모니터링**: `docker logs amk-api --since 24h | grep "Missing session header"` — 정상 트래픽에서는 0 or 극소 (의도된 거부만). 24h 내 403 급증 시 롤백.
+  - **롤백 plan** (1 분): Backend revert PR (handler 2곳 + service.rs 원복). 프론트는 sessionId 전송 상태이므로 backend Option 복귀 후 무해. 트리거: 24h 내 `"Missing session header"` 403 > 예상값 10배 or 사용자 이슈.
+  - **변경 파일**: 백 2 (service.rs + handler.rs) + 웹 2 (ebook_api.ts + use_page_image.ts) + docs 3 (AMK_STATUS.md §8.1 #67 + AMK_CHANGELOG.md 엔트리 + AMK_API_EBOOK.md 변경 없음 — 이미 "필수 헤더" 로 기재됨).
+  - **플랜 SSoT**: `~/.claude/plans/ebook-session-required-phase25.md` (아카이브).
 
 - **2026-04-23 — PR #182 Gemini 리뷰 MEDIUM 2건 즉시 반영**
   - **배경**: PR #182 (Q10 + Q12) 머지 직후 (2026-04-22T05:59Z) Gemini 가 `docs/QA_결과.md` 의 로컬 경로 상대링크 2곳 지적. `feedback_work_rules.md` "PR 머지 후 Gemini 리뷰 즉시 반영" 원칙에 따라 머지 후 13시간 내 처리 (2026-04-23 세션 시작 시점).

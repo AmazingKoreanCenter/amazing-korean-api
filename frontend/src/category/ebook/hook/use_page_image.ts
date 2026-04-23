@@ -14,7 +14,7 @@ export const usePageImage = (
   totalPages: number,
   enabled = true,
   viewMode: "single" | "spread" = "single",
-  sessionId?: string,
+  sessionId = "",
   hmacSecret?: string,
 ) => {
   const queryClient = useQueryClient();
@@ -63,7 +63,7 @@ export const usePageTiles = (
   gridRows: number,
   gridCols: number,
   enabled = true,
-  sessionId?: string,
+  sessionId = "",
   hmacSecret?: string,
 ) => {
   const queryClient = useQueryClient();

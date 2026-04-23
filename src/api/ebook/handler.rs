@@ -156,12 +156,12 @@ pub async fn get_page_image(
         return Err(AppError::Forbidden("Direct access not allowed".into()));
     }
 
-    // 뷰어 세션 검증 (Redis 장애 시 fail closed, session_id 비교)
+    // 뷰어 세션 검증 (Redis 장애 시 fail closed, session_id 필수)
     let session_id = headers
         .get("x-ebook-session")
         .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
-    EbookService::verify_session(&st, claims.sub, session_id.as_deref()).await?;
+        .ok_or_else(|| AppError::Forbidden("Missing session header".into()))?;
+    EbookService::verify_session(&st, claims.sub, session_id).await?;
 
     // HMAC 서명 검증 (요청 무결성 + 리플레이 방지)
     let signature = headers
@@ -245,12 +245,12 @@ pub async fn get_page_tile(
         return Err(AppError::Forbidden("Direct access not allowed".into()));
     }
 
-    // 뷰어 세션 검증 (Redis 장애 시 fail closed, session_id 비교)
+    // 뷰어 세션 검증 (Redis 장애 시 fail closed, session_id 필수)
     let session_id = headers
         .get("x-ebook-session")
         .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
-    EbookService::verify_session(&st, claims.sub, session_id.as_deref()).await?;
+        .ok_or_else(|| AppError::Forbidden("Missing session header".into()))?;
+    EbookService::verify_session(&st, claims.sub, session_id).await?;
 
     // HMAC 서명 검증 (요청 무결성 + 리플레이 방지)
     let signature = headers
