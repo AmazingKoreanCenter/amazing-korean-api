@@ -10,6 +10,7 @@ import {
   ReceiptSupplierBox,
   ReceiptTotalBreakdown,
 } from "@/category/textbook/receipt_parts";
+import { TEXTBOOK_SUPPLIER } from "@/category/textbook/supplier_info";
 
 export function AdminTextbookOrderPrint() {
   const { t } = useTranslation();
@@ -69,7 +70,9 @@ export function AdminTextbookOrderPrint() {
 
       {/* Print content */}
       <div className="max-w-[800px] mx-auto p-8 print:p-8 print:max-w-full text-sm bg-white text-black">
-        {/* Header — 영수증은 정식 문서 느낌으로 강화 */}
+        {/* Header — 영수증은 모던 디지털 스타일 (Stripe-like).
+            회사 브랜드를 주인공으로 배치, 문서 타입은 작은 라벨로 표시.
+            docTitle ("영수증") 큰 제목은 제거 — RECEIPT 라벨과 중복. */}
         {isReceipt ? (
           <div className="mb-8">
             <div className="flex justify-between items-end border-b-[3px] border-black pb-4">
@@ -77,8 +80,8 @@ export function AdminTextbookOrderPrint() {
                 <p className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground print:text-gray-600 mb-1">
                   RECEIPT · 영수증
                 </p>
-                <h1 className="text-4xl font-bold tracking-tight">
-                  {docTitle}
+                <h1 className="text-2xl font-bold tracking-tight">
+                  {TEXTBOOK_SUPPLIER.companyName}
                 </h1>
               </div>
               <div className="text-right">
