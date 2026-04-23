@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-23 (#73 추가 UX 개선 — 비회원/회원 세그먼트 + 이메일 optional + 상태 자유 전환 + 인쇄 레이아웃 격리 + 영수증 디자인 강화)
+updated: 2026-04-23 (INC-003 hotfix — 마이그레이션 버전 충돌 20260423 → 20260424 파일명 변경, 프로덕션 약 8분 다운 후 복구)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,43 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **🚨 2026-04-23 (저녁) — INC-003 hotfix: 마이그레이션 파일명 prefix 충돌, 프로덕션 약 8분 다운**
+
+  **사상**: PR #184 (`377ea31`) 배포 직후 `amk-api` crash loop. 약 8분 다운 (06:01~06:09 UTC). hotfix 커밋 `16691a1` 배포 후 복구. `/health` 200 OK 확인.
+
+  **에러 로그** (crash loop):
+  ```
+  Error: migration 20260423 was previously applied but has been modified
+  ```
+
+  **원인**:
+  - PR #183 에서 `migrations/20260423_textbook_order_discount.sql` 생성 → 프로덕션 적용 완료
+  - PR #184 에서 `migrations/20260423_textbook_orderer_email_optional.sql` 생성 (같은 `20260423` prefix)
+  - sqlx migrator 는 파일명 prefix 를 version 번호로 사용
+  - 프로덕션 `_sqlx_migrations` 테이블에 `20260423` 버전이 이미 등록된 상태에서, 디스크에 같은 버전 파일이 추가 → 체크섬 불일치 → `amk-api` 부팅 시 마이그레이션 단계에서 crash loop
+  - 로컬 환경에서는 `cargo check` 와 `sqlx offline cache` 만 검증했는데, 실제 DB 의 `_sqlx_migrations` 테이블과의 충돌은 프로덕션에서만 감지 가능
+
+  **조치** (`16691a1`):
+  - 파일명 변경: `20260423_textbook_orderer_email_optional.sql` → `20260424_textbook_orderer_email_optional.sql`
+  - 파일 내부 주석에 "날짜 2026-04-23, 파일명 20260424 로 설정 (버전 충돌 회피)" 명시
+  - `git mv` 로 rename 감지 + commit + push → KKRYOUN push 가 배포 트리거라 자동 재배포
+
+  **재발 방지 (memory 확장)**:
+  - `feedback_migration_safety.md` §"2026-04-23 INC-003 추가 교훈" 4 항목 추가:
+    - (13) 하루에 2개 이상 마이그레이션 필요 시 두 번째부터 다음 날짜 사용 (동일 YYYYMMDD prefix 금지)
+    - (14) 마이그레이션 작성 전 `ls migrations/ | tail -5` 로 같은 날짜 prefix 파일 확인 체크리스트화
+    - (15) INC-003 은 기존 교훈 §21 의 연장선. 동일 세션 2개 생성 시나리오 명시적으로 추가
+    - (16) 하나의 PR 머지 후 생기는 새 PR 이 같은 날짜 마이그레이션 추가하는 시나리오가 특히 위험 (프로덕션 DB 상태 의존성)
+
+  **AI 책임**: 마이그레이션 파일 생성 시 `feedback_migration_safety.md` §"sqlx 마이그레이션 파일 네이밍" 이미 있던 "같은 날짜 충돌 시 다음 날짜 사용" 규칙을 놓침. 동일 세션 내 2개 생성 시나리오를 구체적으로 인지하지 못하고 기계적으로 파일명을 붙였음. 재발 방지 위해 체크리스트 메모리에 추가.
+
+  **INC 대비 비교**:
+  | INC | 날짜 | 다운 시간 | 원인 | 복구 |
+  |---|---|---:|---|---|
+  | INC-001 | 2026-04-15 | 2h33m | deploy.yml + Secrets 불일치 (`panic!` 게이트) | `.env.prod` placeholder → 영구 수정 |
+  | INC-002 | 2026-04-18 | ~30m | `study_task_explain` 로컬/프로덕션 테이블명 불일치 + nginx race | 테이블명 3곳 수정 + nginx reload 재시도 |
+  | INC-003 | 2026-04-23 | ~8m | 마이그레이션 파일명 버전 충돌 | 파일명 `20260423` → `20260424` |
 
 - **2026-04-23 (저녁) — #73 추가 UX 개선 5건 (사용자 프로덕션 테스트 피드백 반영)**
 
