@@ -60,9 +60,9 @@ export interface AdminCreateOrderReq {
   /** 최소 수량(10권) 제약 강제 여부 (기본 false). */
   enforce_min_quantity?: boolean;
 
-  /** 신청자 정보 */
+  /** 신청자 정보. 2026-04-23: 이메일은 optional (오프라인·전화 주문 대응). */
   orderer_name: string;
-  orderer_email: string;
+  orderer_email?: string;
   orderer_phone: string;
 
   /** 기관 정보 (선택) */

@@ -123,7 +123,8 @@ impl TextbookService {
                 order_code: &order_code,
                 user_id: Some(user_id),
                 orderer_name: &req.orderer_name,
-                orderer_email: &req.orderer_email,
+                // 사용자 주문은 UI validate 로 이메일 필수. 저장 시 Some(...) 로 래핑.
+                orderer_email: Some(&req.orderer_email),
                 orderer_phone: &req.orderer_phone,
                 org_name: req.org_name.as_deref(),
                 org_type: req.org_type.as_deref(),

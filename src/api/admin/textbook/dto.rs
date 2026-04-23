@@ -154,8 +154,9 @@ pub struct AdminCreateOrderReq {
     /// 신청자 정보
     #[validate(length(min = 1, max = 100))]
     pub orderer_name: String,
+    /// 2026-04-23: 오프라인·전화 주문 대응으로 optional 로 완화. 입력 시 email 형식 검증.
     #[validate(email, length(max = 255))]
-    pub orderer_email: String,
+    pub orderer_email: Option<String>,
     #[validate(length(min = 1, max = 30))]
     pub orderer_phone: String,
 

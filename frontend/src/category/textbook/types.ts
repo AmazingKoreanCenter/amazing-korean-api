@@ -95,7 +95,8 @@ export const orderResSchema = z.object({
   order_code: z.string(),
   status: textbookOrderStatusSchema,
   orderer_name: z.string(),
-  orderer_email: z.string(),
+  // 2026-04-23: 관리자 대리 주문은 이메일 optional (오프라인 주문 대응).
+  orderer_email: z.string().nullable(),
   orderer_phone: z.string(),
   org_name: z.string().nullable(),
   org_type: z.string().nullable(),

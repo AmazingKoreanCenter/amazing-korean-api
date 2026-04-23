@@ -254,7 +254,7 @@ impl AdminTextbookService {
                 order_code: &order_code,
                 user_id: req.user_id,
                 orderer_name: &req.orderer_name,
-                orderer_email: &req.orderer_email,
+                orderer_email: req.orderer_email.as_deref(),
                 orderer_phone: &req.orderer_phone,
                 org_name: req.org_name.as_deref(),
                 org_type: req.org_type.as_deref(),
@@ -337,9 +337,12 @@ impl AdminTextbookService {
         );
 
         // -----------------------------------------------------------------
-        // 5. 주문 접수 확인 이메일 (fire-and-forget, 실패해도 주문 유지)
+        // 5. 주문 접수 확인 이메일 (fire-and-forget, 실패해도 주문 유지).
+        //    이메일이 없으면 발송 스킵 (관리자 대리 주문은 이메일 optional).
         // -----------------------------------------------------------------
-        if let Some(ref email_sender) = st.email {
+        if let (Some(email_sender), Some(recipient_email)) =
+            (st.email.as_ref(), req.orderer_email.as_deref())
+        {
             let template = EmailTemplate::TextbookOrderConfirmation {
                 order_code: order_code.clone(),
                 orderer_name: req.orderer_name.clone(),
@@ -347,11 +350,11 @@ impl AdminTextbookService {
                 total_amount,
             };
             if let Err(e) =
-                send_templated(email_sender.as_ref(), &req.orderer_email, template).await
+                send_templated(email_sender.as_ref(), recipient_email, template).await
             {
                 tracing::warn!(
                     order_code = %order_code,
-                    email = %req.orderer_email,
+                    email = %recipient_email,
                     error = %e,
                     "Failed to send order confirmation email (admin-created, order still created)"
                 );
@@ -486,8 +489,12 @@ impl AdminTextbookService {
             "Textbook order status updated"
         );
 
-        // 상태 변경 이메일 알림 (fire-and-forget)
-        if let Some(ref email_sender) = st.email {
+        // 상태 변경 이메일 알림 (fire-and-forget).
+        // 이메일이 없으면 스킵 (관리자 대리 주문 일부는 이메일 없음).
+        if let (Some(email_sender), Some(recipient_email)) = (
+            st.email.as_ref(),
+            order.orderer_email.as_deref(),
+        ) {
             let status_label = status_display_label(&new_status);
             let template = EmailTemplate::TextbookOrderStatusUpdate {
                 order_code: order.order_code.clone(),
@@ -497,7 +504,7 @@ impl AdminTextbookService {
                 tracking_number: order.tracking_number.clone(),
                 tracking_provider: order.tracking_provider.clone(),
             };
-            if let Err(e) = send_templated(email_sender.as_ref(), &order.orderer_email, template).await {
+            if let Err(e) = send_templated(email_sender.as_ref(), recipient_email, template).await {
                 tracing::warn!(
                     order_code = %order.order_code,
                     error = %e,
@@ -609,25 +616,15 @@ fn status_display_label(status: &TextbookOrderStatus) -> &'static str {
     }
 }
 
-/// 유효한 상태 전환인지 검증
-/// pending → confirmed → paid → printing → shipped → delivered (정방향)
-/// 모든 상태에서 canceled 전환 가능 (delivered, canceled 제외)
+/// 관리자 상태 전환 검증 (2026-04-23 완화).
+///
+/// 관리자가 실수로 잘못된 상태로 전환했거나 사후에 정정해야 할 경우를 위해
+/// 모든 상태 쌍 간 전환을 허용. 동일 상태 재설정만 무의미하므로 금지.
+/// timestamp 는 `update_status_in_tx` / `update_status` 에서 `COALESCE` 로
+/// set-if-null 적용되어 기존 첫 전환 시점이 보존됨.
 fn is_valid_status_transition(
     current: &TextbookOrderStatus,
     next: &TextbookOrderStatus,
 ) -> bool {
-    use TextbookOrderStatus::*;
-    matches!(
-        (current, next),
-        (Pending, Confirmed)
-            | (Pending, Canceled)
-            | (Confirmed, Paid)
-            | (Confirmed, Canceled)
-            | (Paid, Printing)
-            | (Paid, Canceled)
-            | (Printing, Shipped)
-            | (Printing, Canceled)
-            | (Shipped, Delivered)
-            | (Shipped, Canceled)
-    )
+    current != next
 }

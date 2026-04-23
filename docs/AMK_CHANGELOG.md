@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-23 (#73 후속: 교재 주문 할인 기능 — gross/discount/total 3 필드 DB + 관리자 생성/편집 UI + 세법 정확 영수증 표기 + 수량 입력 버그 fix)
+updated: 2026-04-23 (#73 추가 UX 개선 — 비회원/회원 세그먼트 + 이메일 optional + 상태 자유 전환 + 인쇄 레이아웃 격리 + 영수증 디자인 강화)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,84 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-23 (저녁) — #73 추가 UX 개선 5건 (사용자 프로덕션 테스트 피드백 반영)**
+
+  사용자가 PR #183 머지 후 프로덕션 환경에서 관리자 대리 주문 생성/조회/인쇄 플로우 실사용 중 발견한 이슈 5건 일괄 처리.
+
+  ### 1. 비회원/회원 주문 모드 명시적 구분
+
+  - **기존 문제**: "user_id 직접 입력 / 검색 콤보박스 / 비워두면 비회원" 3 모드가 단일 UI 에 혼재 → 의도 불명확
+  - **해결**: 주문 생성 페이지 상단에 **세그먼트 컨트롤** 신규 (`guest` / `member`)
+    - `guest` 선택 시: user_id 관련 UI 전체 숨김, payload 에서 user_id 미전송
+    - `member` 선택 시: 검색 콤보박스 or 수동 user_id 입력 토글 표시. member 모드인데 사용자 미선택 시 submit 검증 실패
+  - **i18n**: `admin.textbook.create.{orderMode, guestOrder, memberOrder, guestOrderHint, memberOrderHint}` + `err.memberRequired` 신규
+
+  ### 2. 이메일 필수 해제 (DB + Backend + Frontend)
+
+  - **기존 문제**: 오프라인·전화 주문 대리 입력 시 이메일 수집이 어려운 경우가 있음. 필수 요구가 현실에 맞지 않음
+  - **DB**: [migrations/20260423_textbook_orderer_email_optional.sql](../migrations/20260423_textbook_orderer_email_optional.sql) — `ALTER TABLE textbook ALTER COLUMN orderer_email DROP NOT NULL`
+  - **Backend**:
+    - `TextbookOrderRow.orderer_email: Option<String>`
+    - `InsertOrderParams.orderer_email: Option<&str>`
+    - `OrderRes.orderer_email: Option<String>`
+    - `AdminCreateOrderReq.orderer_email: Option<String>` (사용자 `CreateOrderReq` 는 여전히 `String` 필수 유지 — UI validate 와 확인 메일 필요)
+    - 이메일 발송 로직을 `if let (Some(email_sender), Some(recipient_email))` 패턴으로 감싸 이메일 없을 때 발송 스킵
+  - **Frontend**:
+    - Zod 스키마 `orderer_email: z.string().nullable()`
+    - admin create 페이지: `required` 속성 제거 + "선택 입력" 힌트 + 이메일 입력됐을 때만 형식 검증 (`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+    - admin detail 페이지: `order.orderer_email ?? "-"`
+    - 사용자 주문 조회: `{order.orderer_email && <p>...</p>}`
+    - 인쇄 페이지 (영수증/견적서/주문확인서): 동일 가드
+  - **i18n**: `admin.textbook.create.emailOptional` 힌트 + `err.emailInvalid` 신규
+
+  ### 3. 주문 상태 자유 전환 (state machine 완화)
+
+  - **기존 문제**: `is_valid_status_transition` 이 엄격한 forward-only 상태 머신 (pending → confirmed → paid → printing → shipped → delivered, 역방향 불가). 관리자가 실수로 잘못된 상태로 바꿨을 때 되돌릴 방법 없음
+  - **해결**:
+    - [src/api/admin/textbook/service.rs](../src/api/admin/textbook/service.rs) `is_valid_status_transition`: 동일 상태 재설정만 금지하고 나머지 모든 쌍 허용 (`current != next`)
+    - [src/api/textbook/repo.rs](../src/api/textbook/repo.rs) `update_status` / `update_status_in_tx`: timestamp 갱신을 `SET col = $3` → `SET col = COALESCE(col, $3)` 로 변경. 역행 전환 시에도 기존 첫 전환 시점 보존. 최근 변경 시각은 `updated_at` 으로 추적
+    - admin detail 페이지 `getValidNextStatuses`: `ALL_STATUSES.filter(s => s !== current)` 로 전체 노출
+
+  ### 4. 인쇄/PDF 시 admin 레이아웃 격리 (`@media print`)
+
+  - **기존 문제**: 관리자 인쇄 페이지 (`/admin/textbook/orders/:id/print?type=receipt`) 가 `AdminLayout` 안에서 렌더링되어 **sidebar + header 가 PDF 에 함께 출력됨**
+  - **해결**: [admin_layout.tsx](../frontend/src/category/admin/page/admin_layout.tsx) 에 Tailwind `print:hidden` / `print:block` / `print:p-0` 등 추가
+    - `<aside>` 에 `print:hidden` (sidebar 숨김)
+    - `<header>` 에 `print:hidden` (top bar 숨김)
+    - `<main>` 에 `print:p-0 print:overflow-visible` (패딩·스크롤 제거)
+    - 루트 `<div>` 에 `print:block print:bg-white` (flex → block 으로 전환, 배경 흰색)
+  - 루트 가드가 CSS 레이어에서 작동하므로 AdminLayout 내 모든 인쇄 페이지 (현재 textbook + 향후 추가분) 에 자동 적용
+
+  ### 5. 영수증 디자인 강화
+
+  기존 영수증 (`isReceipt` 분기) 이 단순 border + text 구성이라 정식 문서 느낌이 부족한 피드백 반영. 견적서/주문확인서는 기존 유지 (피드백 범위 밖).
+
+  - **헤더 강화**: 양쪽 정렬 (좌: `RECEIPT · 영수증` 태그 + 큰 제목 / 우: `No. ORDER_CODE` + 영수일). 하단 3px border.
+  - **공급자 + 수신자 2컬럼 그리드**: `ReceiptSupplierBox` + 신규 수신자 박스를 나란히 배치. 동일 스타일 (2px border, 작은 uppercase 라벨, 본문 정렬).
+  - **품목 테이블 개선**: 영수증일 때만 헤더 배경색 (`bg-muted/40`) + 셀 패딩 증가 (`py-3 px-3`) + uppercase 헤더 + 숫자 `font-mono`.
+  - **ReceiptTotalBreakdown 리디자인**:
+    - 외곽 `border-2 border-black rounded overflow-hidden`
+    - 중간 라인들은 `text-muted-foreground` 라벨 + `font-mono` 값
+    - 최종 "영수 금액" 은 **검정 배경 + 흰 텍스트 + `text-2xl font-bold`** 로 강조
+    - 할인 라인은 `text-destructive` 색 + 사유 괄호 병기
+    - "정히 영수함" 은 회색 배경으로 분리
+  - **ReceiptSignature 개선**: "(인)" 텍스트를 24×24 dashed border 박스로 교체 (실제 인감 사이즈 참조)
+  - 공급자/수신자 박스 둘 다 `h-full` 로 높이 일치
+
+  ### 검증
+
+  - `cargo check` 13.04s + `cargo clippy --lib --bins -- -D warnings` 0 warnings (clippy needless_borrow 1건 수정)
+  - `npm run build` 8.45s 성공
+  - 마이그레이션은 CI 자동 실행 대상
+
+  ### 변경 파일
+
+  - **Migrations**: 1 (`20260423_textbook_orderer_email_optional.sql`)
+  - **Backend**: 5 (`repo.rs`, `textbook/dto.rs`, `textbook/service.rs`, `admin/textbook/dto.rs`, `admin/textbook/service.rs`)
+  - **Frontend**: 8 (`admin_layout`, `admin_textbook_order_create`, `admin_textbook_order_detail`, `admin_textbook_order_print`, `textbook/types`, `textbook/page/textbook_order_print`, `textbook/page/textbook_order_status_page`, `textbook/receipt_parts`, `admin/textbook/types`)
+  - **i18n**: 2 (ko + en)
+  - **Docs**: 1 (CHANGELOG)
 
 - **2026-04-23 (오후) — #73 후속: 교재 주문 할인 기능 + 수량 입력 버그 fix**
 

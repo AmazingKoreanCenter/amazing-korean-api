@@ -47,18 +47,19 @@ import {
 } from "../hook/use_admin_textbook";
 import type { TextbookOrderStatus } from "@/category/textbook/types";
 
-/** 현재 상태에서 전환 가능한 다음 상태 목록 반환 */
+/** 전체 상태 목록 — 관리자 자유 전환 (2026-04-23). 현재 상태 제외. */
+const ALL_STATUSES: TextbookOrderStatus[] = [
+  "pending",
+  "confirmed",
+  "paid",
+  "printing",
+  "shipped",
+  "delivered",
+  "canceled",
+];
+
 function getValidNextStatuses(current: TextbookOrderStatus): TextbookOrderStatus[] {
-  const transitions: Record<TextbookOrderStatus, TextbookOrderStatus[]> = {
-    pending: ["confirmed", "canceled"],
-    confirmed: ["paid", "canceled"],
-    paid: ["printing", "canceled"],
-    printing: ["shipped", "canceled"],
-    shipped: ["delivered", "canceled"],
-    delivered: [],
-    canceled: [],
-  };
-  return transitions[current] ?? [];
+  return ALL_STATUSES.filter((s) => s !== current);
 }
 
 export function AdminTextbookOrderDetail() {
@@ -358,7 +359,10 @@ export function AdminTextbookOrderDetail() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <Row label={t("admin.textbook.name")} value={order.orderer_name} />
-            <Row label={t("admin.textbook.email")} value={order.orderer_email} />
+            <Row
+              label={t("admin.textbook.email")}
+              value={order.orderer_email ?? "-"}
+            />
             <Row label={t("admin.textbook.phone")} value={order.orderer_phone} />
             {order.org_name && (
               <Row label={t("admin.textbook.org")} value={`${order.org_name}${order.org_type ? ` (${order.org_type})` : ""}`} />

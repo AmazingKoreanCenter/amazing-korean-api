@@ -27,9 +27,9 @@ export function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen flex bg-muted">
-      {/* Sidebar */}
-      <aside className="w-64 bg-card border-r border-border flex flex-col">
+    <div className="min-h-screen flex bg-muted print:block print:bg-white print:min-h-0">
+      {/* Sidebar — 인쇄/PDF 저장 시 숨김 */}
+      <aside className="w-64 bg-card border-r border-border flex flex-col print:hidden">
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-border">
           <Link to="/admin" className="text-xl font-bold text-foreground">
@@ -72,9 +72,9 @@ export function AdminLayout() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
+      <div className="flex-1 flex flex-col print:block">
+        {/* Header — 인쇄/PDF 저장 시 숨김 */}
+        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 print:hidden">
           <h1 className="text-lg font-semibold text-foreground">
             Amazing Korean Admin
           </h1>
@@ -84,8 +84,8 @@ export function AdminLayout() {
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-6 overflow-auto">
+        {/* Page Content — 인쇄 시 패딩 제거, 전체 폭 사용 */}
+        <main className="flex-1 p-6 overflow-auto print:p-0 print:overflow-visible">
           <Outlet />
         </main>
       </div>
