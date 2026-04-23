@@ -10,8 +10,16 @@
 
 import { TEXTBOOK_SUPPLIER } from "./supplier_info";
 
-/** 부가세율 (현행 한국 국세 기준 10%). 정책 변경 시 이 값만 갱신. */
-export const TEXTBOOK_VAT_RATE = 0.1;
+/**
+ * 부가세율. 2026-04-23 면세 전환: 놀라운 한국어 교재는 ISBN 등록 도서이며
+ * 부가가치세법 제26조 제1항 제8호 "도서" 면세 대상. 출판업·도서 판매업
+ * 사업자등록 완료 상태. 주문 접수 = ISBN 발급 전제이므로 모든 주문을
+ * 전량 면세 처리. 영수증은 "면세 공급가액" + "합계" 2단 구성, VAT 라인 제거.
+ *
+ * 향후 별도 용역/옵션 (배송비·할증 등) 이 과세 대상으로 분리되면
+ * 품목별 과세/면세 구분 필요. 현재는 교재 판매 단일 품목 구조.
+ */
+export const TEXTBOOK_VAT_RATE = 0;
 
 /** 통화별 소수점 자리수. ISO 4217 표준 기준 (KRW/JPY 정수, 대부분 2자리). */
 const CURRENCY_DECIMALS: Record<string, number> = {
@@ -34,8 +42,8 @@ function getCurrencyDecimals(currency: string): number {
 
 /**
  * 부가세 포함 총액에서 공급가액·VAT 분리.
- * 통화별 소수점 자리수에 맞춰 반올림. 반올림 오차는 공급가액 쪽에서 흡수되어
- * supply + vat === total 등식이 통화 자리수 기준으로 정확히 성립함.
+ * 면세 (TEXTBOOK_VAT_RATE = 0) 에서는 supply = total, vat = 0.
+ * 과세 복귀 시 기존 역산 로직 그대로 작동.
  */
 export function calculateReceiptBreakdown(
   totalAmount: number,
@@ -49,6 +57,9 @@ export function calculateReceiptBreakdown(
     Math.round((totalAmount - supplyAmount) * factor) / factor;
   return { supplyAmount, vatAmount };
 }
+
+/** 면세 모드 여부 — VAT 라인 숨김 + "면세 공급가액" 레이블 사용 판정에 사용. */
+export const IS_TAX_EXEMPT = TEXTBOOK_VAT_RATE === 0;
 
 /** 금액을 통화 자리수에 맞춰 로캘 포맷 */
 export function formatReceiptAmount(amount: number, currency: string): string {
@@ -133,11 +144,14 @@ export function ReceiptTotalBreakdown({
   t,
 }: TotalBreakdownProps) {
   const hasDiscount = (discountAmount ?? 0) > 0;
-  // 공급가액·VAT 는 할인 후 기준 (세법 정확). 할인 반영된 totalAmount 에서 역산.
+  // 면세 모드: supply = total, vat = 0. 과세 복귀 시 역산.
   const { supplyAmount, vatAmount } = calculateReceiptBreakdown(
     totalAmount,
     currency,
   );
+  const supplyLabelKey = IS_TAX_EXEMPT
+    ? `${ns}.supplyAmountExempt`
+    : `${ns}.supplyAmount`;
   return (
     <div className="border-2 border-black rounded overflow-hidden mb-6">
       {hasDiscount && grossAmount !== undefined && (
@@ -166,22 +180,25 @@ export function ReceiptTotalBreakdown({
           <div className="border-t" />
         </>
       )}
-      <div className="flex justify-between px-4 py-2 text-sm">
+      <div className="flex justify-between px-4 py-2 text-sm border-b">
         <span className="text-muted-foreground print:text-gray-700">
-          {t(`${ns}.supplyAmount`)}
+          {t(supplyLabelKey)}
         </span>
         <span className="font-mono">
           {formatReceiptAmount(supplyAmount, currency)} {currency}
         </span>
       </div>
-      <div className="flex justify-between px-4 py-2 text-sm border-b">
-        <span className="text-muted-foreground print:text-gray-700">
-          {t(`${ns}.vatAmount`)}
-        </span>
-        <span className="font-mono">
-          {formatReceiptAmount(vatAmount, currency)} {currency}
-        </span>
-      </div>
+      {/* VAT 라인은 면세 전환으로 숨김 (vatAmount > 0 일 때만 렌더). 과세 복귀 시 자동 노출. */}
+      {vatAmount > 0 && (
+        <div className="flex justify-between px-4 py-2 text-sm border-b">
+          <span className="text-muted-foreground print:text-gray-700">
+            {t(`${ns}.vatAmount`)}
+          </span>
+          <span className="font-mono">
+            {formatReceiptAmount(vatAmount, currency)} {currency}
+          </span>
+        </div>
+      )}
       <div className="flex justify-between items-center px-4 py-3 bg-black text-white print:bg-gray-900">
         <span className="text-sm tracking-wider uppercase">
           {t(`${ns}.receiptTotal`)}
