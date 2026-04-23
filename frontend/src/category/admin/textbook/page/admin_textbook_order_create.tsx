@@ -38,7 +38,9 @@ const UNIT_PRICE = 25_000;
 type OrderItem = {
   language: TextbookLanguage | "";
   textbook_type: TextbookType;
-  quantity: number;
+  // controlled number input 에서 사용자가 전량 삭제 후 재입력할 수 있도록
+  // 중간 상태로 "" 허용. onBlur/submit 에서 1 fallback.
+  quantity: number | "";
 };
 
 export function AdminTextbookOrderCreate() {
@@ -98,7 +100,10 @@ export function AdminTextbookOrderCreate() {
       prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)),
     );
 
-  const totalQuantity = items.reduce((sum, it) => sum + (it.quantity || 0), 0);
+  const totalQuantity = items.reduce(
+    (sum, it) => sum + (Number(it.quantity) || 0),
+    0,
+  );
   const totalAmount = totalQuantity * UNIT_PRICE;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -178,8 +183,8 @@ export function AdminTextbookOrderCreate() {
         language: it.language as TextbookLanguage,
         textbook_type: it.textbook_type,
         // quantity 는 백엔드 i32. 브라우저가 소수점 입력을 허용하는
-        // 경우가 있으므로 정수 보장.
-        quantity: Math.max(1, Math.floor(it.quantity)),
+        // 경우가 있으므로 정수 보장. "" (편집 중 빈 상태) 는 1 fallback.
+        quantity: Math.max(1, Math.floor(Number(it.quantity) || 1)),
       })),
       notes: notes.trim() || undefined,
     };
@@ -502,11 +507,23 @@ export function AdminTextbookOrderCreate() {
                     type="number"
                     min={1}
                     value={item.quantity}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      // 빈 문자열도 잠시 허용해야 사용자가 "1" 을 지우고
+                      // 다른 숫자를 입력할 수 있음. 숫자 입력 시에만 정수 보정.
                       updateItem(idx, {
-                        quantity: Math.max(1, Number(e.target.value) || 1),
-                      })
-                    }
+                        quantity:
+                          v === ""
+                            ? ""
+                            : Math.max(1, Math.floor(Number(v) || 1)),
+                      });
+                    }}
+                    onBlur={() => {
+                      // 포커스 이탈 시 빈 값은 1 로 복귀.
+                      if (item.quantity === "") {
+                        updateItem(idx, { quantity: 1 });
+                      }
+                    }}
                   />
                 </div>
                 <Button
