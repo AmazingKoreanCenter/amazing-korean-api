@@ -584,7 +584,7 @@ CREATE TABLE content_translations (
   content_type content_type_enum NOT NULL,                                  -- 콘텐츠 타입 : 번역 대상 테이블 종류 (course, lesson, video, video_tag, study, study_task_choice, study_task_typing, study_task_voice, study_task_explain, study_task_writing)
   content_id BIGINT NOT NULL,                                               -- 콘텐츠 id : 번역 대상 레코드의 PK
   field_name VARCHAR(100) NOT NULL,                                         -- 필드명 : 번역 대상 컬럼명. **규약: `{table}_{column}` 긴 이름 (예: lesson_title, study_subtitle, study_task_choice_question, study_task_choice_1, explain_title, explain_text)**. 단일 테이블 내 컬럼 충돌 방지 목적. 2026-04-21 정합 확정 (plans/translation-field-name-alignment.md)
-  lang supported_language_enum NOT NULL,                                    -- 번역 언어 : 22개 지원 언어 중 하나
+  lang supported_language_enum NOT NULL,                                    -- 번역 언어 : 37개 지원 언어 중 하나 (2026-04-21 +13, 2026-04-28 +es_es/pt_pt)
   translated_text TEXT NOT NULL,                                            -- 번역 텍스트 : 해당 언어로 번역된 콘텐츠
   status translation_status_enum NOT NULL DEFAULT 'draft',                  -- 번역 상태 : draft(AI 초안), reviewed(검수 완료), approved(승인됨)
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),                            -- 번역 생성 시간 : 번역 등록 시간

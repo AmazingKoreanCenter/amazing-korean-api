@@ -1331,7 +1331,7 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
   - `content_type_enum`: `'course'`, `'lesson'`, `'video'`, `'video_tag'`, `'study'`, `'study_task_choice'`, `'study_task_typing'`, `'study_task_voice'`, `'study_task_explain'`, `'study_task_writing'`
     - `'video'` = 비디오 제목/부제 번역, `'video_tag'` = 비디오 태그 번역, `'study_task_explain'` = 학습 해설 번역
   - `translation_status_enum`: `'draft'`, `'reviewed'`, `'approved'`
-  - `supported_language_enum`: `'ko'`, `'en'`, `'zh-CN'`, `'zh-TW'`, `'ja'`, `'vi'`, `'id'`, `'th'`, `'my'`, `'km'`, `'mn'`, `'ru'`, `'uz'`, `'kk'`, `'tg'`, `'ne'`, `'si'`, `'hi'`, `'es'`, `'pt'`, `'fr'`, `'de'`, `'tl'`, `'tr'`, `'bn'`, `'ar'`, `'ur'`, `'fa'`, `'lo'`, `'ky'`, `'it'`, `'sw'`, `'uk'`, `'am'`, `'pl'` (35개, `ko`는 원본 언어. 2026-04-18 sentences.json 커버리지에 맞춰 13개 추가. 아랍어 포함 — RTL 대응은 UI 과제로 남음)
+  - `supported_language_enum`: `'ko'`, `'en'`, `'zh-CN'`, `'zh-TW'`, `'ja'`, `'vi'`, `'id'`, `'th'`, `'my'`, `'km'`, `'mn'`, `'ru'`, `'uz'`, `'kk'`, `'tg'`, `'ne'`, `'si'`, `'hi'`, `'es'`, `'es-ES'`, `'pt'`, `'pt-PT'`, `'fr'`, `'de'`, `'tl'`, `'tr'`, `'bn'`, `'ar'`, `'ur'`, `'fa'`, `'lo'`, `'ky'`, `'it'`, `'sw'`, `'uk'`, `'am'`, `'pl'` (37개, `ko`는 원본 언어. 2026-04-18 sentences.json 커버리지에 맞춰 13개 추가, 2026-04-28 `es-ES` / `pt-PT` 유럽 variant 추가 — 2026-04-21 "pt_pt → pt 병합" 정책 번복. 아랍어 포함 — RTL 대응은 UI 과제로 남음)
 
 ### 4.9 결제 도메인 (PAYMENT)
 

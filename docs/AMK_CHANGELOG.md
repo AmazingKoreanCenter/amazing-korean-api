@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-27 (Q13 supported_language es_es/pt_pt 확장 + UI locale 22→35 plan 수립 — 4 Phase 단계 spec)
+updated: 2026-04-28 (Q13 Phase 1 완료 — DB enum +es_es/pt_pt, types.rs +EsEs/PtPt, 문서 4개 정정)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,26 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-28 — Q13 Phase 1 완료 (supported_language_enum es_es/pt_pt 확장)**
+
+  **배경**: 2026-04-27 plan SSoT (`~/.claude/plans/supported-language-es-pt-variants-expansion.md`) §1 의 Phase 1 단일 세션 실행. 2026-04-21 "pt_pt → pt 병합" 정책 번복.
+
+  **변경 사항**:
+  - **신규 마이그레이션** `migrations/20260428_add_es_pt_variants.sql` — `ALTER TYPE supported_language_enum ADD VALUE IF NOT EXISTS 'es_es' / 'pt_pt'`. enum 값 35 → 37.
+  - **기존 마이그레이션 20260421 주석에 [2026-04-28 번복] 노트 추가** — 정책 변경 이력 추적 가능.
+  - **`src/types.rs` `SupportedLanguage` enum** +`EsEs`/`PtPt` variant. sqlx rename `es_es` / `pt_pt`, serde rename `es-ES` / `pt-PT` (BCP 47 hyphen, zh-CN/zh-TW 와 동일 패턴). doc 주석 35→37.
+  - **문서 정정 4건**:
+    - `AMK_SCHEMA_PATCHED.md` L587 `content_translations.lang` 주석 "22개" → "37개 (2026-04-21 +13, 2026-04-28 +es_es/pt_pt)".
+    - `AMK_API_MASTER.md` §4.8 (L1334) supported_language_enum 목록 35 → 37 + `'es-ES'` / `'pt-PT'` 추가 + 정책 번복 노트.
+    - `AMK_API_LEARNING.md` L605 "지원 언어 21개" → "36개 (`ko` 원본 제외)" + 그룹 재구성 (동남아 +tl/lo, 중앙북아 +ky, 남아시아 +bn/ur, 유럽 +es-ES/pt-PT/it/pl/uk/tr, 중동/아프리카 신규 그룹 ar/fa/sw/am).
+    - `AMK_API_LEARNING.md` L919 "비디오 100개 × 21 언어 × 3 필드 = 6,300+" → "× 36 언어 × 3 필드 = 10,800+".
+
+  **검증**: `cargo check` 17.26s ✅, `cargo clippy --lib --bins -- -D warnings` 18.12s 0 warnings ✅. (DB 적용은 배포 시 sqlx 자동.)
+
+  **잔여**: Phase 2 (frontend UI locale 15 신규, 별도 세션 3 PR 분할), Phase 3 (메타 표시), Phase 4 (books `gen_seed_sql.py` skip 로직 제거 — books 측 handoff). Phase 1 머지 + 프로덕션 배포 완료 후 Phase 2/3/4 활성화.
+
+  **TextbookLanguage enum 21 (교재 출간 언어) 확장은 본 plan 범위 외** — 별도 결정 (출판 의도·ISBN 분리 발급 검토 필요).
 
 - **2026-04-27 — Q13 supported_language 확장 plan 수립 (es_es/pt_pt + UI locale 22→35)**
 
