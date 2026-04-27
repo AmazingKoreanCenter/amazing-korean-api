@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-23 (INC-003 hotfix — 마이그레이션 버전 충돌 20260423 → 20260424 파일명 변경, 프로덕션 약 8분 다운 후 복구)
+updated: 2026-04-27 (Q13 supported_language es_es/pt_pt 확장 + UI locale 22→35 plan 수립 — 4 Phase 단계 spec)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,26 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-27 — Q13 supported_language 확장 plan 수립 (es_es/pt_pt + UI locale 22→35)**
+
+  **배경**: books `sentences.json` 500 문장 전수조사 결과 **35 언어** 번역 보유 (am, ar, bn, de, es, **es_es**, fa, fr, hi, id, it, ja, kk, km, ky, lo, mn, my, ne, pl, pt, **pt_pt**, ru, si, sw, tg, th, tl, tr, uk, ur, uz, vi, zh_cn, zh_tw). 그러나 api 측은:
+  - DB `supported_language_enum`: 33 (es_es, pt_pt 의도적 제외)
+  - frontend UI locale: 22 (DB 보다 13 부족)
+
+  **2026-04-21 정책 번복**: "pt_pt → pt 병합" 결정을 사용자가 번복 (2026-04-27). 근거: "스페인어/포르투갈어 유럽 variant 는 엄연히 구분되는 언어적 표현". books 35 언어 전체를 DB enum 으로 수용 + frontend UI 도 35 확장.
+
+  **4 Phase plan 수립** (`~/.claude/plans/supported-language-es-pt-variants-expansion.md`, SSoT):
+  - **Phase 1** — DB enum 확장 (`migrations/20260428_add_es_pt_variants.sql` ALTER TYPE ADD VALUE 'es_es'/'pt_pt') + `src/types.rs` `SupportedLanguage` 에 `EsEs`/`PtPt` variant 추가 (sqlx 'es_es', serde 'es-ES') + 코드/문서 문구 정정. 1-2시간, 단일 세션.
+  - **Phase 2** — frontend UI locale 15 신규 (am, ar, bn, fa, it, ky, lo, pl, sw, tl, tr, uk, ur + es-ES, pt-PT). 약 22,500 키 자동 번역 필요. 5 locale × 3 PR 분할 권장. 8-16시간, 별도 세션.
+  - **Phase 3** — about/faq/카탈로그 페이지에 "본 콘텐츠는 35 언어로 번역" 메타 표시. Phase 2 와 병행 가능.
+  - **Phase 4** — books `gen_seed_sql.py` 의 "es_es/pt_pt skip" 로직 제거. handoff 프롬프트 plan 내 포함. books 측 처리.
+
+  **신규 마이그레이션 prefix**: `20260428_` (INC-003 교훈 — books seed_output `20260427_` 와도 충돌 없음 확인).
+
+  **`TextbookLanguage` enum 21 (교재 출간 언어) 확장 여부는 별개 결정** (출판 의도·ISBN 분리 발급 등 별도 검토 필요).
+
+  **AMK_STATUS.md §8.2** Q13 신규 행 추가, plan 파일 SSoT 포인터 명시.
 
 - **🚨 2026-04-23 (저녁) — INC-003 hotfix: 마이그레이션 파일명 prefix 충돌, 프로덕션 약 8분 다운**
 
