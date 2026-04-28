@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-28 (Q13 Phase 2 인프라 확정 — amazing-korean-ai Wave 1 파이프라인 SSoT 채택, plan 정정 + api 측 reference 메모리)
+updated: 2026-04-28 (🚨 INC-004 — 이미 적용된 마이그 20260421 주석 수정으로 sqlx checksum 실패, 약 8분 다운, hotfix 복구)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,32 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **🚨 2026-04-28 — INC-004 hotfix: 이미 적용된 마이그레이션 20260421 주석 수정으로 sqlx checksum 실패, 프로덕션 약 8분 다운**
+
+  **타임라인** (UTC):
+  - 02:42 — KKRYOUN push (커밋 `4fcc068`, Q13 한눈 요약 박스) → deploy.yml 자동 트리거 (deploy.yml `on.push.branches: [main, KKRYOUN]`)
+  - 02:43~02:47 — 빌드 + SSH 배포. `amk-api` 컨테이너 startup 시 sqlx 마이그레이션 무결성 체크 실패 → panic → crash loop. nginx 502 (api upstream 연결 불가). Health check 5회 모두 502.
+  - 02:50 — hotfix 커밋 `a5cd2ea` push (20260421 파일 원본 복원)
+  - 02:55+ — 재배포 완료, `/health` 200 OK, uptime 28s
+
+  **원인**: Phase 1 작업 (커밋 `731d4d1`, 2026-04-28 오전) 중 정책 번복 이력을 추적하기 위해 `migrations/20260421_expand_supported_languages.sql` 의 주석에 `[2026-04-28 번복]` 4줄 노트를 추가. 사실은 sqlx 가 마이그레이션 파일 **전체 hash 를 checksum** 으로 사용하므로 주석/공백/EOL 변경도 checksum 변경. 프로덕션 `_sqlx_migrations` 테이블에 저장된 기존 checksum 과 startup 시 비교 → mismatch → `migration 20260421 was previously applied but has been modified` panic.
+
+  **복구**: `migrations/20260421_expand_supported_languages.sql` 을 `070af73` (Q13 plan 수립 시점, 머지된 baseline) 으로 원본 복원. 정책 번복 노트는 신규 마이그 `20260428_add_es_pt_variants.sql` 주석에 이미 명시되어 있어 정보 손실 없음.
+
+  **교훈** (`feedback_migration_safety.md` §17~19 추가):
+  17. **이미 적용된 마이그레이션은 SQL/주석/공백/EOL 모두 변경 절대 금지**. §3 항 "파일명 변경 금지" 의 확장. sqlx checksum 은 파일 전체 hash. 정책 번복·이력 추적은 신규 마이그 주석 또는 CHANGELOG/메모리에서.
+  18. **`deploy.yml` 트리거 = `main` + `KKRYOUN` 양쪽 push**. KKRYOUN push 만으로 자동 프로덕션 배포 트리거. PR 머지 전 검증 단계 없음. 단일 브랜치 워크플로 (`feedback_git_branching`) 와 결합 시 "PR 작성 시점 = 배포 시점" 동치. 마이그 변경 시 이 차이 인지 필수.
+  19. **INC-002 (study_task_explain) / INC-003 (날짜 충돌) / INC-004 (적용된 마이그 내용 수정) 3종 모두 sqlx checksum 체크에서 startup panic**. 공통: "마이그레이션은 한 번 적용되면 read-only artifact" 로 취급.
+
+  **관련 문서/메모리 정정**:
+  - `AMK_STATUS.md §8.2 Q13` 인라인 — "기존 마이그 20260421 주석에 정책 번복 노트" → "🚨 INC-004 발생 후 hotfix 로 되돌림" 정정
+  - `feedback_migration_safety.md` §17~19 추가
+  - `project_status.md` / `project_q13_briefing.md` 메모리 INC-004 인지
+
+  **PR #188 영향**: 본 PR 의 다른 변경 (Phase 1 enum + Phase 2 인프라 + Q13 briefing) 은 정상. 머지/배포 가능. KKRYOUN 에 hotfix 커밋 `a5cd2ea` 포함된 상태.
+
+- **2026-04-28 (오후) — Q13 Phase 2 인프라 확정 (amazing-korean-ai Wave 1 파이프라인 SSoT 채택)**
 
 - **2026-04-28 (오후) — Q13 Phase 2 인프라 확정 (amazing-korean-ai Wave 1 파이프라인 SSoT 채택)**
 
@@ -36,7 +62,7 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
   **변경 사항**:
   - **신규 마이그레이션** `migrations/20260428_add_es_pt_variants.sql` — `ALTER TYPE supported_language_enum ADD VALUE IF NOT EXISTS 'es_es' / 'pt_pt'`. enum 값 35 → 37.
-  - **기존 마이그레이션 20260421 주석에 [2026-04-28 번복] 노트 추가** — 정책 변경 이력 추적 가능.
+  - ~~기존 마이그레이션 20260421 주석에 [2026-04-28 번복] 노트 추가~~ → **🚨 INC-004 발생, 동일 날짜 hotfix `a5cd2ea` 로 되돌림**. 이미 적용된 마이그레이션은 sqlx checksum 불일치로 crash loop. 정책 번복 노트는 신규 마이그 20260428 주석에 이미 명시되어 있어 정보 손실 없음.
   - **`src/types.rs` `SupportedLanguage` enum** +`EsEs`/`PtPt` variant. sqlx rename `es_es` / `pt_pt`, serde rename `es-ES` / `pt-PT` (BCP 47 hyphen, zh-CN/zh-TW 와 동일 패턴). doc 주석 35→37.
   - **문서 정정 4건**:
     - `AMK_SCHEMA_PATCHED.md` L587 `content_translations.lang` 주석 "22개" → "37개 (2026-04-21 +13, 2026-04-28 +es_es/pt_pt)".
