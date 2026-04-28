@@ -128,6 +128,18 @@
 > 외부 의존 없이 이 리포 내에서 단독 진행 가능한 작업. 우선순위순 정렬.
 > M05~M08 시딩 본체 작업은 `amazing-korean-books` `scripts/textbook/gen_seed_sql.js` 선행 필요해 이 목록에서 제외.
 
+> **📌 Q13 — 쉬운 설명** (2026-04-28)
+>
+> **무엇**: 사이트 메뉴/버튼 번역을 22 → 36 언어로 확장. 학습 콘텐츠는 35 언어 번역 보유하나 UI(메뉴/버튼/에러 메시지) 는 22 언어만 — 그 갭 해소.
+>
+> **4단계**:
+> 1. **DB 정리** ✅ (커밋 `731d4d1`) — `es-ES`(유럽 스페인어), `pt-PT`(유럽 포르투갈어) 언어 코드 추가. 2026-04-21 "유럽 변형은 일반 es/pt 로 합쳐도 돼" 결정 번복.
+> 2. **UI 번역 15 언어 추가** — **맥미니가 함**. 메뉴·버튼 1,384개를 15 언어로 번역. 맥미니 `amazing-korean-ai` 리포에 검증된 자동 번역 시스템 (Wave 1) 보유 (이전 20 언어 4,330개 번역 실적). 13 lang 즉시 가능, es-ES/pt-PT 는 DB 정리 머지/배포 후.
+> 3. **메타 표시** (1-2시간) — about/faq 페이지에 "본 콘텐츠는 36 언어로 번역됨" 표시.
+> 4. **books 작업** — `amazing-korean-books` 리포 `gen_seed_sql.py` 의 es_es/pt_pt skip 로직 제거.
+>
+> **헷갈리지 말 것**: `content_translations` (DB) = **학습 콘텐츠** 번역 (강의/문제/해설). `i18n/locales/*.json` (frontend) = **UI 텍스트** 번역. 본 Q13 은 후자. 둘은 별개 도메인.
+
 | # | 우선 | 작업 | 공수 | 근거 |
 |:-:|:----:|------|:----:|------|
 | ~~Q1a~~ | ✅ 완료 | ~~field_name 잠복 버그 fix~~ — Consumer service 4곳 (course/lesson/study/video) 짧은 이름 → 긴 이름 치환 + admin `find_content_records`/`find_source_fields` 에 Course·StudyTaskWriting 매핑 추가. Video 에 `video_title`/`video_subtitle` 필드 노출(source_text=None). 마이그레이션 불필요. **2026-04-21 완료** (KKRYOUN 브랜치, cargo check + clippy 클린). | 0.5일 | 2026-04-21 정합 조사. #76 동종 패턴. 실 `lesson_title='approved'` 1건 정상 반환 복원 |
@@ -144,6 +156,7 @@
 | ~~Q10~~ | ✅ 완료 | ~~QA run 2026-04-22 프론트 수정 3건 묶음~~ — 2.1 ebook subtitle 공백 + 2.2 textbook subtitle 공백 + 2.4 `/book` 캐러셀 dot `aria-label`. `<br className="hidden sm:block" />` 패턴 **전수 6곳** (ebook/textbook 카탈로그 + coming_soon + error 3종) 모두 `<>{" "}<br.../></>` 로 교체 (모바일 공백 보존). 캐러셀 dot 은 전수 **3곳** (book_hub + ebook_detail_modal + textbook_detail_modal) 에 `aria-label={t("common.goToSlide", { n })}` + `aria-current` 추가. i18n 키 `common.goToSlide` 신규 (ko/en). **2026-04-22 완료** (`npm run build` 9.74s 성공). | 30분 | `docs/QA_결과.md` 2.1/2.2/2.4 |
 | ~~Q11~~ | ✅ 답변 완료 (코드 수정 없음) | ~~QA 2.3 pt 데스크톱 footer 텍스트 오버랩~~ — **시나리오 B (QA prompt 보강) 채택** (2026-04-23). 근거: Gemma reason 절반이 hallucination (프롬프트 첫 문장을 페이지 텍스트로 오인) + 1440px 스크린샷상 overlap 시각적 미확인 + 잠재 문제 구간 (768-1023px) 은 QA 뷰포트 매트릭스 밖. 실 버그 증거 없음. 전역 footer 수정 리스크 > 가치 판단. API 팀 코드 변경 없음. QA 쪽에서 `text_overflow.md` prompt 에 "footer copyright+legal 조밀 배치는 정상, 명확히 가려지거나 잘린 경우만 flag" 가드 문구 추가. 후속 2-3 full run 관찰 후 효과 검증. | 15분 (답변) | `docs/QA_결과.md §6` (API 팀 답변 2026-04-23) |
 | ~~Q12~~ | ✅ 완료 | ~~QA 3.1 JWT TTL QA 전용 연장 설정 답변~~ — 현재 `JWT_ACCESS_TTL_MIN=15` (분, env override 지원). **옵션 A 권장**: QA `.env.qa` 에서 `JWT_ACCESS_TTL_MIN=360` (6h) 주입. 프로덕션 무영향, API 코드 변경 불필요. 옵션 B (refresh 플로우) 참고정보 함께 문서화 (웹은 `ak_refresh` HttpOnly 쿠키, 모바일은 JSON body). **답변은 `docs/QA_결과.md §6.1`** 에 문서화. | 15분 | `docs/QA_결과.md` §6.1 |
+| Q13 | **중간** | **`supported_language_enum` 확장 + UI locale 보강 (es_es / pt_pt + 13 누락)** — 2026-04-21 "pt_pt → pt 병합 정책" 번복 (사용자 결정 2026-04-27). books `sentences.json` 35 언어 전부 DB enum 으로 수용 + frontend UI locale 22 → 35 확장. ✅ **Phase 1 완료 (2026-04-28, 커밋 `731d4d1`)** — `migrations/20260428_add_es_pt_variants.sql` (ALTER TYPE +es_es/pt_pt), `src/types.rs` `SupportedLanguage` enum +EsEs/PtPt (sqlx 'es_es'/'pt_pt', serde 'es-ES'/'pt-PT'), 문서 4개 정정. **🚨 INC-004 발생 후 hotfix `a5cd2ea` 로 20260421 주석 수정 되돌림** — 이미 적용된 마이그레이션은 sqlx checksum 불일치로 crash. 정책 번복 노트는 신규 마이그 20260428 주석 + CHANGELOG 에서 충분. cargo check + clippy --lib --bins -D warnings 클린. ✅ **Phase 2 인프라 확정 (2026-04-28)** — amazing-korean-ai 측 Wave 1 인프라 SSoT 채택 (Mac Mini Ollama gemma4:26b + 검증 4종 E1/M01/Q-prefix/orthography + 외부 LLM 합의). plan §2 정정 (옵션 A/B 폐기, gemma 단일 채널), api 측 reference 메모리 + AMK_API_LEARNING cross-link. ai 측 핸드오프 본문 = `amazing-korean-ai/docs/AMK_AI_TRANSLATION_HANDOFF.md`. 작업 분기: 그룹 1 (13 lang gemma 자동) + 그룹 2 (es-ES/pt-PT 수동 inline diff). → **Phase 2 실행** (ai 측 세션, api 측은 ai PR 머지 후 `SUPPORTED_LANGUAGES` 확장 + RTL/폰트 후속) → **Phase 3** (메타 표시, 1-2시간) → **Phase 4** (books `gen_seed_sql.py` 의 es_es/pt_pt skip 제거, books 측 handoff). **TextbookLanguage enum 21 확장 여부는 별도 결정**. | Phase 1+2 인프라 완료, 실행은 ai 세션 위임 | **plan SSoT**: `~/.claude/plans/supported-language-es-pt-variants-expansion.md` |
 
 **QA 에 QA 쪽 조치로 회송** (이 리포 작업 아님, 외부 협조):
 - **QA 3.2 OpenAPI drift 1328 cell** → QA 가 warn 격하 (Security 위반만 fail). `reference_qa_automation.md` 기록.

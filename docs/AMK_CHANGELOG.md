@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-23 (INC-003 hotfix — 마이그레이션 버전 충돌 20260423 → 20260424 파일명 변경, 프로덕션 약 8분 다운 후 복구)
+updated: 2026-04-28 (🚨 INC-004 — 이미 적용된 마이그 20260421 주석 수정으로 sqlx checksum 실패, 약 8분 다운, hotfix 복구)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,91 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **🚨 2026-04-28 — INC-004 hotfix: 이미 적용된 마이그레이션 20260421 주석 수정으로 sqlx checksum 실패, 프로덕션 약 8분 다운**
+
+  **타임라인** (UTC):
+  - 02:42 — KKRYOUN push (커밋 `4fcc068`, Q13 한눈 요약 박스) → deploy.yml 자동 트리거 (deploy.yml `on.push.branches: [main, KKRYOUN]`)
+  - 02:43~02:47 — 빌드 + SSH 배포. `amk-api` 컨테이너 startup 시 sqlx 마이그레이션 무결성 체크 실패 → panic → crash loop. nginx 502 (api upstream 연결 불가). Health check 5회 모두 502.
+  - 02:50 — hotfix 커밋 `a5cd2ea` push (20260421 파일 원본 복원)
+  - 02:55+ — 재배포 완료, `/health` 200 OK, uptime 28s
+
+  **원인**: Phase 1 작업 (커밋 `731d4d1`, 2026-04-28 오전) 중 정책 번복 이력을 추적하기 위해 `migrations/20260421_expand_supported_languages.sql` 의 주석에 `[2026-04-28 번복]` 4줄 노트를 추가. 사실은 sqlx 가 마이그레이션 파일 **전체 hash 를 checksum** 으로 사용하므로 주석/공백/EOL 변경도 checksum 변경. 프로덕션 `_sqlx_migrations` 테이블에 저장된 기존 checksum 과 startup 시 비교 → mismatch → `migration 20260421 was previously applied but has been modified` panic.
+
+  **복구**: `migrations/20260421_expand_supported_languages.sql` 을 `070af73` (Q13 plan 수립 시점, 머지된 baseline) 으로 원본 복원. 정책 번복 노트는 신규 마이그 `20260428_add_es_pt_variants.sql` 주석에 이미 명시되어 있어 정보 손실 없음.
+
+  **교훈** (`feedback_migration_safety.md` §17~19 추가):
+  17. **이미 적용된 마이그레이션은 SQL/주석/공백/EOL 모두 변경 절대 금지**. §3 항 "파일명 변경 금지" 의 확장. sqlx checksum 은 파일 전체 hash. 정책 번복·이력 추적은 신규 마이그 주석 또는 CHANGELOG/메모리에서.
+  18. **`deploy.yml` 트리거 = `main` + `KKRYOUN` 양쪽 push**. KKRYOUN push 만으로 자동 프로덕션 배포 트리거. PR 머지 전 검증 단계 없음. 단일 브랜치 워크플로 (`feedback_git_branching`) 와 결합 시 "PR 작성 시점 = 배포 시점" 동치. 마이그 변경 시 이 차이 인지 필수.
+  19. **INC-002 (study_task_explain) / INC-003 (날짜 충돌) / INC-004 (적용된 마이그 내용 수정) 3종 모두 sqlx checksum 체크에서 startup panic**. 공통: "마이그레이션은 한 번 적용되면 read-only artifact" 로 취급.
+
+  **관련 문서/메모리 정정**:
+  - `AMK_STATUS.md §8.2 Q13` 인라인 — "기존 마이그 20260421 주석에 정책 번복 노트" → "🚨 INC-004 발생 후 hotfix 로 되돌림" 정정
+  - `feedback_migration_safety.md` §17~19 추가
+  - `project_status.md` / `project_q13_briefing.md` 메모리 INC-004 인지
+
+  **PR #188 영향**: 본 PR 의 다른 변경 (Phase 1 enum + Phase 2 인프라 + Q13 briefing) 은 정상. 머지/배포 가능. KKRYOUN 에 hotfix 커밋 `a5cd2ea` 포함된 상태.
+
+- **2026-04-28 (오후) — Q13 Phase 2 인프라 확정 (amazing-korean-ai Wave 1 파이프라인 SSoT 채택)**
+
+- **2026-04-28 (오후) — Q13 Phase 2 인프라 확정 (amazing-korean-ai Wave 1 파이프라인 SSoT 채택)**
+
+  **배경**: Phase 2 (frontend UI locale 15 신규) 실행 직전 amazing-korean-ai (Mac Mini) 측에서 Wave 1 번역 인프라 브리핑 회신. 4,330 translations × 20 lang 실전 운영 결과. 본 plan §2.3 의 옵션 A/B/C 비교는 인프라 미반영. 단일 옵션 = ai 측 gemma 파이프라인.
+
+  **주요 변경**:
+  - **plan SSoT 정정** (`~/.claude/plans/supported-language-es-pt-variants-expansion.md` §2): 작업 그룹 분기 (13 lang gemma 자동 / es-ES·pt-PT 수동 inline diff), 옵션 A/B 폐기, 검증 4종 명시 (E1/M01/Q-prefix/orthography), api 측 후속 책임 분리, 사전 준비 ai 측 위임 (orthography validator + Unicode block + 도메인 용어집), 시점 분기 (그룹 1 즉시 / 그룹 2 Phase 1 머지 후).
+  - **api 측 reference 메모리 신규** (`reference_translation_pipeline.md`): SSoT 위치, 핵심 규약 7항, api 책임, known issues 5종, 절대 금지 3항.
+  - **`AMK_API_LEARNING.md §9` 번역 인프라 정책 정정**: "Claude Code 직접 번역" → "frontend UI locale 은 amazing-korean-ai Wave 1 파이프라인 SSoT, 자체 도구 금지" cross-link.
+  - **STATUS Q13 갱신**: Phase 2 인프라 확정 인라인 추가, 실행은 ai 세션 위임.
+
+  **검증된 인프라 핵심**:
+  - Ollama `gemma4:26b` 고정 (변경 금지 — known issues 가 모델 의존)
+  - batch-size 5 + retry (1/3/9s × 3, wrapper batch 10→5 fallback)
+  - 검증 4종 모두 CRITICAL=0 머지 조건
+  - 외부 LLM 합의 (Codex CLI + Gemini CLI 2-LLM): legal/RTL 전수, UI 샘플링
+  - `merge_to_api_i18n.js` → api `frontend/src/i18n/locales/{lang}.json`
+
+  **잔여**: Phase 2 실행은 amazing-korean-ai 세션에서 진행 (api 측 의존성 = supported_language_enum 추가 — 그룹 1 13 lang 은 2026-04-21 마이그로 충족, 그룹 2 es_es/pt_pt 는 Phase 1 머지/배포 완료 후). api 측 후속 PR = ai PR 머지 후 `frontend/src/i18n/index.ts` `SUPPORTED_LANGUAGES` 확장 + RTL (`<html dir="rtl">`) + 폰트 매핑.
+
+- **2026-04-28 — Q13 Phase 1 완료 (supported_language_enum es_es/pt_pt 확장)**
+
+  **배경**: 2026-04-27 plan SSoT (`~/.claude/plans/supported-language-es-pt-variants-expansion.md`) §1 의 Phase 1 단일 세션 실행. 2026-04-21 "pt_pt → pt 병합" 정책 번복.
+
+  **변경 사항**:
+  - **신규 마이그레이션** `migrations/20260428_add_es_pt_variants.sql` — `ALTER TYPE supported_language_enum ADD VALUE IF NOT EXISTS 'es_es' / 'pt_pt'`. enum 값 35 → 37.
+  - ~~기존 마이그레이션 20260421 주석에 [2026-04-28 번복] 노트 추가~~ → **🚨 INC-004 발생, 동일 날짜 hotfix `a5cd2ea` 로 되돌림**. 이미 적용된 마이그레이션은 sqlx checksum 불일치로 crash loop. 정책 번복 노트는 신규 마이그 20260428 주석에 이미 명시되어 있어 정보 손실 없음.
+  - **`src/types.rs` `SupportedLanguage` enum** +`EsEs`/`PtPt` variant. sqlx rename `es_es` / `pt_pt`, serde rename `es-ES` / `pt-PT` (BCP 47 hyphen, zh-CN/zh-TW 와 동일 패턴). doc 주석 35→37.
+  - **문서 정정 4건**:
+    - `AMK_SCHEMA_PATCHED.md` L587 `content_translations.lang` 주석 "22개" → "37개 (2026-04-21 +13, 2026-04-28 +es_es/pt_pt)".
+    - `AMK_API_MASTER.md` §4.8 (L1334) supported_language_enum 목록 35 → 37 + `'es-ES'` / `'pt-PT'` 추가 + 정책 번복 노트.
+    - `AMK_API_LEARNING.md` L605 "지원 언어 21개" → "36개 (`ko` 원본 제외)" + 그룹 재구성 (동남아 +tl/lo, 중앙북아 +ky, 남아시아 +bn/ur, 유럽 +es-ES/pt-PT/it/pl/uk/tr, 중동/아프리카 신규 그룹 ar/fa/sw/am).
+    - `AMK_API_LEARNING.md` L919 "비디오 100개 × 21 언어 × 3 필드 = 6,300+" → "× 36 언어 × 3 필드 = 10,800+".
+
+  **검증**: `cargo check` 17.26s ✅, `cargo clippy --lib --bins -- -D warnings` 18.12s 0 warnings ✅. (DB 적용은 배포 시 sqlx 자동.)
+
+  **잔여**: Phase 2 (frontend UI locale 15 신규, 별도 세션 3 PR 분할), Phase 3 (메타 표시), Phase 4 (books `gen_seed_sql.py` skip 로직 제거 — books 측 handoff). Phase 1 머지 + 프로덕션 배포 완료 후 Phase 2/3/4 활성화.
+
+  **TextbookLanguage enum 21 (교재 출간 언어) 확장은 본 plan 범위 외** — 별도 결정 (출판 의도·ISBN 분리 발급 검토 필요).
+
+- **2026-04-27 — Q13 supported_language 확장 plan 수립 (es_es/pt_pt + UI locale 22→35)**
+
+  **배경**: books `sentences.json` 500 문장 전수조사 결과 **35 언어** 번역 보유 (am, ar, bn, de, es, **es_es**, fa, fr, hi, id, it, ja, kk, km, ky, lo, mn, my, ne, pl, pt, **pt_pt**, ru, si, sw, tg, th, tl, tr, uk, ur, uz, vi, zh_cn, zh_tw). 그러나 api 측은:
+  - DB `supported_language_enum`: 33 (es_es, pt_pt 의도적 제외)
+  - frontend UI locale: 22 (DB 보다 13 부족)
+
+  **2026-04-21 정책 번복**: "pt_pt → pt 병합" 결정을 사용자가 번복 (2026-04-27). 근거: "스페인어/포르투갈어 유럽 variant 는 엄연히 구분되는 언어적 표현". books 35 언어 전체를 DB enum 으로 수용 + frontend UI 도 35 확장.
+
+  **4 Phase plan 수립** (`~/.claude/plans/supported-language-es-pt-variants-expansion.md`, SSoT):
+  - **Phase 1** — DB enum 확장 (`migrations/20260428_add_es_pt_variants.sql` ALTER TYPE ADD VALUE 'es_es'/'pt_pt') + `src/types.rs` `SupportedLanguage` 에 `EsEs`/`PtPt` variant 추가 (sqlx 'es_es', serde 'es-ES') + 코드/문서 문구 정정. 1-2시간, 단일 세션.
+  - **Phase 2** — frontend UI locale 15 신규 (am, ar, bn, fa, it, ky, lo, pl, sw, tl, tr, uk, ur + es-ES, pt-PT). 약 22,500 키 자동 번역 필요. 5 locale × 3 PR 분할 권장. 8-16시간, 별도 세션.
+  - **Phase 3** — about/faq/카탈로그 페이지에 "본 콘텐츠는 35 언어로 번역" 메타 표시. Phase 2 와 병행 가능.
+  - **Phase 4** — books `gen_seed_sql.py` 의 "es_es/pt_pt skip" 로직 제거. handoff 프롬프트 plan 내 포함. books 측 처리.
+
+  **신규 마이그레이션 prefix**: `20260428_` (INC-003 교훈 — books seed_output `20260427_` 와도 충돌 없음 확인).
+
+  **`TextbookLanguage` enum 21 (교재 출간 언어) 확장 여부는 별개 결정** (출판 의도·ISBN 분리 발급 등 별도 검토 필요).
+
+  **AMK_STATUS.md §8.2** Q13 신규 행 추가, plan 파일 SSoT 포인터 명시.
 
 - **🚨 2026-04-23 (저녁) — INC-003 hotfix: 마이그레이션 파일명 prefix 충돌, 프로덕션 약 8분 다운**
 

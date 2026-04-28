@@ -223,8 +223,9 @@ pub enum TranslationStatus {
     Approved,
 }
 
-/// 번역 지원 언어 — 35개 (ko, en 포함)
+/// 번역 지원 언어 — 37개 (ko, en 포함)
 /// content_translations 테이블 전용 (user 테이블과 독립적으로 확장 가능)
+/// 2026-04-28: es_es / pt_pt 지역 variant 추가 (2026-04-21 "pt_pt → pt 병합" 정책 번복).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
 #[sqlx(type_name = "supported_language_enum", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
@@ -245,7 +246,13 @@ pub enum SupportedLanguage {
     Mn,
     Ru,
     Es,
+    #[sqlx(rename = "es_es")]
+    #[serde(rename = "es-ES")]
+    EsEs,
     Pt,
+    #[sqlx(rename = "pt_pt")]
+    #[serde(rename = "pt-PT")]
+    PtPt,
     Fr,
     De,
     Hi,

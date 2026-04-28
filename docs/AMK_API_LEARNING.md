@@ -600,17 +600,20 @@
 - **Fallback 순서**: 사용자 언어(`?lang=`) → `en` → `ko` (한국어 원본)
 - **공개 조건**: `status = 'approved'` 인 번역만 콘텐츠 API에서 제공
 - **기존 콘텐츠 API 확장**: 레슨, 코스, 학습, 비디오 등 기존 API에 `?lang=` 쿼리 파라미터 추가
-- **번역 방식**: Claude Code에서 직접 번역 수행 (관리자 검수 → 승인)
+- **번역 인프라**: `content_translations` 의 콘텐츠 번역은 amazing-korean-books seed SQL 로 일괄 생성 후 관리자 검수. **frontend UI locale (`frontend/src/i18n/locales/{lang}.json`) 번역**은 `amazing-korean-ai` 리포의 Mac Mini Wave 1 파이프라인이 SSoT — Ollama `gemma4:26b` + 검증 4종 (E1/M01/Q-prefix/orthography) + 외부 LLM 합의. 자체 도구로 번역 금지. 상세: `amazing-korean-ai/docs/AMK_AI_TRANSLATION_HANDOFF.md`
 
-**지원 언어 (21개, 아랍어 RTL 별도)**
+**지원 언어 (36개, `ko` 원본 제외, 아랍어 RTL 별도)**
 
 | 그룹 | 언어 코드 |
 |------|-----------|
 | 핵심 5개 (Phase 2) | `en`, `ja`, `zh-CN`, `zh-TW`, `vi` |
-| 동남아시아 | `id`, `th`, `my`, `km` |
-| 중앙/북아시아 | `mn`, `ru`, `uz`, `kk`, `tg` |
-| 남아시아 | `ne`, `si`, `hi` |
-| 유럽/기타 | `es`, `pt`, `fr`, `de` |
+| 동남아시아 | `id`, `th`, `my`, `km`, `tl`, `lo` |
+| 중앙/북아시아 | `mn`, `ru`, `uz`, `kk`, `tg`, `ky` |
+| 남아시아 | `ne`, `si`, `hi`, `bn`, `ur` |
+| 유럽 | `es`, `es-ES`, `pt`, `pt-PT`, `fr`, `de`, `it`, `pl`, `uk`, `tr` |
+| 중동/아프리카 | `ar`, `fa`, `sw`, `am` |
+
+> 2026-04-21 (+13: `tl`/`tr`/`bn`/`ar`/`ur`/`fa`/`lo`/`ky`/`it`/`sw`/`uk`/`am`/`pl`), 2026-04-28 (+`es-ES`/`pt-PT` 유럽 variant — "pt_pt → pt 병합" 정책 번복).
 
 **번역 상태 전이**
 
@@ -916,7 +919,7 @@ draft → reviewed → approved
 
 1. **번역 품질** — AI 번역 70-80% 정확도, 네이티브 검수 필수 (특히 문법 설명 텍스트)
 2. **RTL 테스트** — 아랍어 추가 시 전체 UI 양방향 테스트 필요 (현재 LTR 전용)
-3. **콘텐츠 규모** — 비디오 100개 × 21 언어 × 3 필드 = 6,300+ 레코드 관리
+3. **콘텐츠 규모** — 비디오 100개 × 36 언어 × 3 필드 = 10,800+ 레코드 관리
 4. **번역 입력 경로** (2026-04-21) — Google Translate API 해지 후 **서버 사이드 번역 스크립트** (amazing-korean-books 또는 amazing-korean-ai) 를 통한 bulk 생성으로 전환 예정. admin 웹 UI 는 검수(draft → reviewed → approved) 전용.
 
 </details>
