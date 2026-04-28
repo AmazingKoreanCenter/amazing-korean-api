@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-28 (Q13 Phase 1 완료 — DB enum +es_es/pt_pt, types.rs +EsEs/PtPt, 문서 4개 정정)
+updated: 2026-04-28 (Q13 Phase 2 인프라 확정 — amazing-korean-ai Wave 1 파이프라인 SSoT 채택, plan 정정 + api 측 reference 메모리)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,25 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-28 (오후) — Q13 Phase 2 인프라 확정 (amazing-korean-ai Wave 1 파이프라인 SSoT 채택)**
+
+  **배경**: Phase 2 (frontend UI locale 15 신규) 실행 직전 amazing-korean-ai (Mac Mini) 측에서 Wave 1 번역 인프라 브리핑 회신. 4,330 translations × 20 lang 실전 운영 결과. 본 plan §2.3 의 옵션 A/B/C 비교는 인프라 미반영. 단일 옵션 = ai 측 gemma 파이프라인.
+
+  **주요 변경**:
+  - **plan SSoT 정정** (`~/.claude/plans/supported-language-es-pt-variants-expansion.md` §2): 작업 그룹 분기 (13 lang gemma 자동 / es-ES·pt-PT 수동 inline diff), 옵션 A/B 폐기, 검증 4종 명시 (E1/M01/Q-prefix/orthography), api 측 후속 책임 분리, 사전 준비 ai 측 위임 (orthography validator + Unicode block + 도메인 용어집), 시점 분기 (그룹 1 즉시 / 그룹 2 Phase 1 머지 후).
+  - **api 측 reference 메모리 신규** (`reference_translation_pipeline.md`): SSoT 위치, 핵심 규약 7항, api 책임, known issues 5종, 절대 금지 3항.
+  - **`AMK_API_LEARNING.md §9` 번역 인프라 정책 정정**: "Claude Code 직접 번역" → "frontend UI locale 은 amazing-korean-ai Wave 1 파이프라인 SSoT, 자체 도구 금지" cross-link.
+  - **STATUS Q13 갱신**: Phase 2 인프라 확정 인라인 추가, 실행은 ai 세션 위임.
+
+  **검증된 인프라 핵심**:
+  - Ollama `gemma4:26b` 고정 (변경 금지 — known issues 가 모델 의존)
+  - batch-size 5 + retry (1/3/9s × 3, wrapper batch 10→5 fallback)
+  - 검증 4종 모두 CRITICAL=0 머지 조건
+  - 외부 LLM 합의 (Codex CLI + Gemini CLI 2-LLM): legal/RTL 전수, UI 샘플링
+  - `merge_to_api_i18n.js` → api `frontend/src/i18n/locales/{lang}.json`
+
+  **잔여**: Phase 2 실행은 amazing-korean-ai 세션에서 진행 (api 측 의존성 = supported_language_enum 추가 — 그룹 1 13 lang 은 2026-04-21 마이그로 충족, 그룹 2 es_es/pt_pt 는 Phase 1 머지/배포 완료 후). api 측 후속 PR = ai PR 머지 후 `frontend/src/i18n/index.ts` `SUPPORTED_LANGUAGES` 확장 + RTL (`<html dir="rtl">`) + 폰트 매핑.
 
 - **2026-04-28 — Q13 Phase 1 완료 (supported_language_enum es_es/pt_pt 확장)**
 

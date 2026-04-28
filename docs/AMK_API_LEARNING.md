@@ -600,7 +600,7 @@
 - **Fallback 순서**: 사용자 언어(`?lang=`) → `en` → `ko` (한국어 원본)
 - **공개 조건**: `status = 'approved'` 인 번역만 콘텐츠 API에서 제공
 - **기존 콘텐츠 API 확장**: 레슨, 코스, 학습, 비디오 등 기존 API에 `?lang=` 쿼리 파라미터 추가
-- **번역 방식**: Claude Code에서 직접 번역 수행 (관리자 검수 → 승인)
+- **번역 인프라**: `content_translations` 의 콘텐츠 번역은 amazing-korean-books seed SQL 로 일괄 생성 후 관리자 검수. **frontend UI locale (`frontend/src/i18n/locales/{lang}.json`) 번역**은 `amazing-korean-ai` 리포의 Mac Mini Wave 1 파이프라인이 SSoT — Ollama `gemma4:26b` + 검증 4종 (E1/M01/Q-prefix/orthography) + 외부 LLM 합의. 자체 도구로 번역 금지. 상세: `amazing-korean-ai/docs/AMK_AI_TRANSLATION_HANDOFF.md`
 
 **지원 언어 (36개, `ko` 원본 제외, 아랍어 RTL 별도)**
 
