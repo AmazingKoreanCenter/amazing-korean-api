@@ -128,6 +128,18 @@
 > 외부 의존 없이 이 리포 내에서 단독 진행 가능한 작업. 우선순위순 정렬.
 > M05~M08 시딩 본체 작업은 `amazing-korean-books` `scripts/textbook/gen_seed_sql.js` 선행 필요해 이 목록에서 제외.
 
+> **📌 Q13 — 쉬운 설명** (2026-04-28)
+>
+> **무엇**: 사이트 메뉴/버튼 번역을 22 → 36 언어로 확장. 학습 콘텐츠는 35 언어 번역 보유하나 UI(메뉴/버튼/에러 메시지) 는 22 언어만 — 그 갭 해소.
+>
+> **4단계**:
+> 1. **DB 정리** ✅ (커밋 `731d4d1`) — `es-ES`(유럽 스페인어), `pt-PT`(유럽 포르투갈어) 언어 코드 추가. 2026-04-21 "유럽 변형은 일반 es/pt 로 합쳐도 돼" 결정 번복.
+> 2. **UI 번역 15 언어 추가** — **맥미니가 함**. 메뉴·버튼 1,384개를 15 언어로 번역. 맥미니 `amazing-korean-ai` 리포에 검증된 자동 번역 시스템 (Wave 1) 보유 (이전 20 언어 4,330개 번역 실적). 13 lang 즉시 가능, es-ES/pt-PT 는 DB 정리 머지/배포 후.
+> 3. **메타 표시** (1-2시간) — about/faq 페이지에 "본 콘텐츠는 36 언어로 번역됨" 표시.
+> 4. **books 작업** — `amazing-korean-books` 리포 `gen_seed_sql.py` 의 es_es/pt_pt skip 로직 제거.
+>
+> **헷갈리지 말 것**: `content_translations` (DB) = **학습 콘텐츠** 번역 (강의/문제/해설). `i18n/locales/*.json` (frontend) = **UI 텍스트** 번역. 본 Q13 은 후자. 둘은 별개 도메인.
+
 | # | 우선 | 작업 | 공수 | 근거 |
 |:-:|:----:|------|:----:|------|
 | ~~Q1a~~ | ✅ 완료 | ~~field_name 잠복 버그 fix~~ — Consumer service 4곳 (course/lesson/study/video) 짧은 이름 → 긴 이름 치환 + admin `find_content_records`/`find_source_fields` 에 Course·StudyTaskWriting 매핑 추가. Video 에 `video_title`/`video_subtitle` 필드 노출(source_text=None). 마이그레이션 불필요. **2026-04-21 완료** (KKRYOUN 브랜치, cargo check + clippy 클린). | 0.5일 | 2026-04-21 정합 조사. #76 동종 패턴. 실 `lesson_title='approved'` 1건 정상 반환 복원 |
