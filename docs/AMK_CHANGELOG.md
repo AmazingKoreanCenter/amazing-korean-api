@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-30 (Q13 Phase 2 세션 단위 실행 계획 수립 — INC-001~004 학습 적용, S1~S7 자가 점검 + hotfix 패턴 명시)
+updated: 2026-04-30 (Q13 Phase 2 S1+S2 = PR #190 푸시 + deploy success — frontend Tailwind logical 707곳 + 의도적 LTR 보호 67곳)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,34 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-04-30 (밤) — Q13 Phase 2 PR-A 푸시 완료 (S1+S2 / PR #190 / deploy success)**
+
+  세션 단위 실행 계획 §2.9.4 (S1) + §2.9.5 (S2) 그대로 실행. 자가 점검 8/8 양 세션 모두 통과. INC 0 건.
+
+  **PR #190**: https://github.com/AmazingKoreanCenter/amazing-korean-api/pull/190 (OPEN, MERGEABLE, 4 커밋, ~130 파일 / +647 -647)
+
+  **S1 — Tailwind logical sed (`6d33267`, PR-A 1/4)**: frontend `src/` `.tsx`/`.ts` 안 directional class 12쌍 `perl -i -pe` word-boundary lookahead 일괄 치환 = 707곳 / 96 파일 / +580 -580.
+  - `text-left`→`text-start` 168 / `text-right`→`text-end` 94 / `mr-N`→`me-N` 176 / `ml-N`→`ms-N` 67 / `pl/pr`→`ps/pe` 29 / `left/right-N`→`start/end-N` 49 / `rounded-l/r`→`rounded-s/e` 115 / `border-l/r`→`border-s/e` 9
+  - `rounded-lg` (size) 와 `border-rose-500` (color) 등 false-positive 는 perl `\b...(?=(\b|-))` lookahead 로 정확히 거름 (잔여 grep 카운트는 `\b` 만 매칭하는 grep 한계로 표시).
+
+  **S2 — 의도적 LTR 영역 보호 (3 커밋 분할, plan 옵션 C 채택)**:
+  - **input type LTR (`5efaaa5`, PR-A 2/4)**: `type="(email|url|tel|number|password)"` 의 input 45곳 / 20 파일 자동 sed (lookahead `(?![^>]*\bdir=)` 로 중복 회피). W3C i18n 표준 — 이메일/URL/전화/숫자/비밀번호 값 자체는 RTL 환경에서도 LTR 표시 유지.
+  - **`<pre>`/`<code>` LTR (`897d49b`, PR-A 3/4)**: admin 페이지 코드/JSON 표시 12곳 / 9 파일 자동 sed.
+  - **WritingTask + receipt 가격 (`5dd74db`, PR-A 4/4)**: 한글 자판 페이지 3개 main 컨테이너 (writing_practice 분기 2 + level_select + stats = 4곳) 수동 + 영수증 (`receipt_parts.tsx`) gross/discount/supply/vat/total + 사업자번호 6 span 수동.
+
+  **plan §2.9.5 갱신** (S2 진입 시 사전 조사 결과 반영):
+  - 옵션 C 채택 명시 (자동 sed + 수동 분할)
+  - S2 안 4 커밋 분할 — 리뷰 부담 완화
+  - 가격 보호 범위 좁힘: 사전 조사로 `toLocaleString()` 호출 30+ 곳 분포 발견 → PR-A 안에서는 영수증 핵심만 처리. 나머지는 PR-C (RTL 시각 회귀) 단계에서 helper component (`<Price>`) 도입 검토 또는 별도 패치로 미룸.
+
+  **검증 게이트**: `npm run build` 8.67s 클린 / `npx tsc --noEmit` 0 error / input dir="ltr" 동반 grep 45/45 / pre/code dir="ltr" 동반 grep 12/12. LTR 환경 (현재 ko/en) 시각 회귀: Tailwind logical 은 dir 속성 의존 → LTR 환경 = 변경 없음 보장.
+
+  **배포**: deploy.yml run `25144272236` (headSha `5dd74db`) — build-and-push 24s + deploy 40s 모두 SUCCESS, `/health` 200. INC 0 건. (PR #189 머지 후 deploy run `25143559147` 도 사전 점검 게이트로 통과 확인.)
+
+  **다음**: PR #190 사용자 머지 → 다음 세션 진입. **S3 (PR-B-pre 인프라)** = font_loader 6 lang 신규 (ar/fa/ur/bn/am/lo) + RTL 그룹 분류 + dir toggle 헬퍼 (SUPPORTED_LANGUAGES 활성은 PR-B / S5 까지 ai 측 RTL 번역 PR 대기). **S4 (PR-D 데스크탑)** = `amazing-korean-desktop` 동일 logical 마이그.
 
 ---
 
