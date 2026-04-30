@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-30 (PR #188 Gemini MEDIUM 2건 즉시 반영 — supported_language_enum 표기 일관화 DB snake_case)
+updated: 2026-04-30 (Q13 Phase 2 후속 사전 조사 완료 — RTL 707곳 + 폰트 6 + 데스크탑 동일 + 모바일 무영향, PR-A/B/C/D 4분할 2.5-3.5일)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,49 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-04-30 (오후) — Q13 Phase 2 api 측 후속 작업 사전 조사 완료**
+
+  ai 측 (amazing-korean-ai Mac Mini) 의 13 lang 번역 PR 도착 시점에 api 측에서 즉시 진행할 후속 작업 분량·우선순위 실측 + 외부 벤치마크.
+
+  **실측 데이터 (frontend `src/` grep)**:
+  - directional Tailwind class 사용 **약 707곳**: text-left 168 / text-right 94 / mr- 176 / ml- 67 / pl- 23 / pr- 6 / left- 33 / right- 16 / rounded-l 114 / border-l/r 9 / rounded-r 1
+  - logical alternatives 사용 현재 2건 (`start-*` 만) — 처음부터 LTR-only 코드베이스
+  - Tailwind 3.4.17 — logical properties 지원 ✅
+
+  **폰트 fallback 신규 매핑 6 lang**:
+  - ar (Noto Sans Arabic), fa (Noto Sans Arabic), ur (**Noto Nastaliq Urdu** 고유 서체), bn (Noto Sans Bengali), am (Noto Sans Ethiopic), lo (Noto Sans Lao)
+  - 추가 불필요 7 lang (Pretendard 커버): ky / tr / it / pl / uk / sw / tl
+
+  **자매 서비스 영향**:
+  - 데스크탑 (`amazing-korean-desktop` Tauri+React) = api 와 동일 i18n 구조 (22 locale, `src/i18n/locales/`) → **PR-D 동일 patch**
+  - 모바일 (`amazing-korean-mobile` Flutter) = i18n 미구현 (l10n/intl 없음) → Phase 2 영향 없음
+
+  **외부 벤치마크 (Korean 학습 + RTL)**:
+  - Duolingo: RTL 후발 도입, Korean 학습 효과 비판
+  - TTMIK: 영어 위주, RTL 정보 없음
+  - 일반론: 한국어 학습 + 본격 RTL 지원 거의 없음 → **차별화 가치** (아랍/페르시아/우르두권 시장)
+
+  **작업 PR 4분할** (총 2.5-3.5일):
+  - **PR-A** logical 마이그 (707곳 sed + LTR 보호) — 1일, 번역 무관
+  - **PR-B** RTL 인프라 (groups.ts + dir toggle + font_loader 6 신규) + `SUPPORTED_LANGUAGES` 13 추가 — 반나절, ai PR 머지 후
+  - **PR-C** RTL 시각 검증 + 깨진 곳 패치 — 반나절~1일, 실제 번역 텍스트 필수
+  - **PR-D** 데스크탑 동일 작업 (별도 리포) — 반나절~1일
+
+  **의도적 LTR 유지 영역** (RTL 토글 시 `dir="ltr"` 보호): 이메일/URL/전화/숫자/가격/코드 블록/한국어 자판 연습/캐러셀 화살표.
+
+  **미리 진행 vs 대기 결정**: 사용자 동의 — **대기**. 이유: (1) RTL 검증은 실제 번역 텍스트 필수 (2) ai 측 PR 분할/lang set 미확정 (3) INC-004 학습.
+
+  **저장**:
+  - plan SSoT `~/.claude/plans/supported-language-es-pt-variants-expansion.md` §2.4 ~ §2.4.6 상세화
+  - 메모리 `project_phase2_followup_research.md` 신규 + `MEMORY.md` 인덱스
+  - `AMK_STATUS.md §8.2 Q13` 인라인 갱신
+
+  **Tailwind logical properties 참조**: Tailwind 3.3 blog (`ms-`/`me-`/`text-start`/`rounded-s` 등 자동 LTR/RTL 처리, `ltr:`/`rtl:` variant 불필요).
+
+---
+
+- **2026-04-30 — PR #188 Gemini 리뷰 MEDIUM 2건 즉시 반영 (supported_language_enum 표기 일관화)**
 
 - **2026-04-30 — PR #188 Gemini 리뷰 MEDIUM 2건 즉시 반영 (supported_language_enum 표기 일관화)**
 
