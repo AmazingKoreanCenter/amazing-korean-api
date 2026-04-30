@@ -93,7 +93,7 @@ export function ReceiptSupplierBox({ ns, t }: SupplierBoxProps) {
           <span className="text-muted-foreground print:text-gray-600">
             {t(`${ns}.bizNumber`)}:
           </span>{" "}
-          <span className="font-mono">{TEXTBOOK_SUPPLIER.bizNumber}</span>
+          <span dir="ltr" className="font-mono">{TEXTBOOK_SUPPLIER.bizNumber}</span>
         </p>
         <p>
           <span className="text-muted-foreground print:text-gray-600">
@@ -160,7 +160,7 @@ export function ReceiptTotalBreakdown({
             <span className="text-muted-foreground print:text-gray-700">
               {t(`${ns}.subtotal`)}
             </span>
-            <span className="font-mono">
+            <span dir="ltr" className="font-mono">
               {formatReceiptAmount(grossAmount, currency)} {currency}
             </span>
           </div>
@@ -173,7 +173,7 @@ export function ReceiptTotalBreakdown({
                 </span>
               )}
             </span>
-            <span className="font-mono">
+            <span dir="ltr" className="font-mono">
               − {formatReceiptAmount(discountAmount ?? 0, currency)} {currency}
             </span>
           </div>
@@ -184,7 +184,7 @@ export function ReceiptTotalBreakdown({
         <span className="text-muted-foreground print:text-gray-700">
           {t(supplyLabelKey)}
         </span>
-        <span className="font-mono">
+        <span dir="ltr" className="font-mono">
           {formatReceiptAmount(supplyAmount, currency)} {currency}
         </span>
       </div>
@@ -194,7 +194,7 @@ export function ReceiptTotalBreakdown({
           <span className="text-muted-foreground print:text-gray-700">
             {t(`${ns}.vatAmount`)}
           </span>
-          <span className="font-mono">
+          <span dir="ltr" className="font-mono">
             {formatReceiptAmount(vatAmount, currency)} {currency}
           </span>
         </div>
@@ -203,7 +203,7 @@ export function ReceiptTotalBreakdown({
         <span className="text-sm tracking-wider uppercase">
           {t(`${ns}.receiptTotal`)}
         </span>
-        <span className="text-2xl font-bold font-mono">
+        <span dir="ltr" className="text-2xl font-bold font-mono">
           {formatReceiptAmount(totalAmount, currency)} {currency}
         </span>
       </div>

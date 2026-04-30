@@ -45,7 +45,7 @@ export function WritingPracticePage() {
   // 유형 미지정 → 유형 선택 화면
   if (!practiceType) {
     return (
-      <div className="min-h-screen bg-muted/30">
+      <div dir="ltr" className="min-h-screen bg-muted/30">
         <div className="mx-auto w-full max-w-screen-md space-y-6 px-4 py-10">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/studies/writing">
@@ -177,7 +177,7 @@ function FreePracticeRunner({ level, practiceType }: FreePracticeRunnerProps) {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div dir="ltr" className="min-h-screen bg-muted/30">
       <div className="mx-auto w-full max-w-screen-md space-y-6 px-4 py-10">
         <Button variant="ghost" size="sm" asChild>
           <Link to={`/studies/writing/${level}`}>
