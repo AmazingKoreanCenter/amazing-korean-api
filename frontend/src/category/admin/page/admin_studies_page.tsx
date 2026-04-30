@@ -375,7 +375,7 @@ export function AdminStudiesPage() {
                   </td>
                   <td className="px-4 py-3">{study.study_id}</td>
                   <td className="px-4 py-3">
-                    <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                    <code dir="ltr" className="text-xs bg-muted px-1 py-0.5 rounded">
                       {study.study_idx}
                     </code>
                   </td>

@@ -184,7 +184,7 @@ export function AdminLessonBulkCreate() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
+          <pre dir="ltr" className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
 {`lesson_idx,lesson_title,lesson_subtitle,lesson_description,lesson_state,lesson_access
 LESSON-001,Introduction to Korean,Welcome to the course,This lesson covers basics,ready,public
 LESSON-002,Korean Alphabet,Learning Hangul,The Korean writing system,open,paid`}
@@ -251,7 +251,7 @@ LESSON-002,Korean Alphabet,Learning Hangul,The Korean writing system,open,paid`}
                     <tr key={lesson.rowNumber} className="border-b">
                       <td className="p-4">{lesson.rowNumber}</td>
                       <td className="p-4">
-                        <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                        <code dir="ltr" className="text-xs bg-muted px-1 py-0.5 rounded">
                           {lesson.lesson_idx || "-"}
                         </code>
                       </td>
@@ -334,7 +334,7 @@ LESSON-002,Korean Alphabet,Learning Hangul,The Korean writing system,open,paid`}
                     <tr key={idx} className="border-b">
                       <td className="p-4">{item.lesson_id ?? "-"}</td>
                       <td className="p-4">
-                        <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                        <code dir="ltr" className="text-xs bg-muted px-1 py-0.5 rounded">
                           {item.lesson_idx}
                         </code>
                       </td>

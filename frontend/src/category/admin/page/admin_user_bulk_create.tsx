@@ -148,7 +148,7 @@ export function AdminUserBulkCreate() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
+          <pre dir="ltr" className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
 {`email,password,name,nickname,role,language,country,birthday,gender
 user1@example.com,********,User One,user1,learner,ko,KR,1990-01-15,male
 user2@example.com,********,User Two,user2,manager,en,US,1985-06-20,female`}

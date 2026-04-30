@@ -351,7 +351,7 @@ function LogDiff({ log }: { log: AdminTextbookLogItem }) {
           <div className="text-xs text-muted-foreground">
             {t("admin.textbook.logs.diff.before")}
           </div>
-          <pre className="bg-muted/50 p-2 rounded overflow-auto max-h-48">
+          <pre dir="ltr" className="bg-muted/50 p-2 rounded overflow-auto max-h-48">
             {JSON.stringify(before, null, 2)}
           </pre>
         </div>
@@ -359,7 +359,7 @@ function LogDiff({ log }: { log: AdminTextbookLogItem }) {
           <div className="text-xs text-muted-foreground">
             {t("admin.textbook.logs.diff.after")}
           </div>
-          <pre className="bg-muted/50 p-2 rounded overflow-auto max-h-48">
+          <pre dir="ltr" className="bg-muted/50 p-2 rounded overflow-auto max-h-48">
             {JSON.stringify(after, null, 2)}
           </pre>
         </div>

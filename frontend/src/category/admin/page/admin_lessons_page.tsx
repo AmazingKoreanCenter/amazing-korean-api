@@ -63,7 +63,7 @@ const columns: DataTableColumn<AdminLessonRes>[] = [
     sortField: "lesson_idx",
     skeletonWidth: "w-24",
     render: (l) => (
-      <code className="text-xs bg-muted px-1 py-0.5 rounded">{l.lesson_idx}</code>
+      <code dir="ltr" className="text-xs bg-muted px-1 py-0.5 rounded">{l.lesson_idx}</code>
     ),
   },
   {

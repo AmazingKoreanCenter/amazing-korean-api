@@ -172,7 +172,7 @@ export function AdminStudyBulkCreate() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
+          <pre dir="ltr" className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
 {`study_idx,study_program,study_state,study_access,study_title,study_subtitle,study_description
 TBC-001,tbc,ready,public,Lesson 1 Introduction,Welcome to lesson 1,This is description
 TBC-002,basic_word,open,paid,Lesson 2 Basics,Basic concepts,Another description`}

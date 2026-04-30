@@ -1066,7 +1066,7 @@ export function AdminStudyCreate() {
                       <FileText className="h-4 w-4" />
                       <span className="font-medium text-sm">CSV Format</span>
                     </div>
-                    <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+                    <pre dir="ltr" className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
 {`study_task_kind,question,answer,image_url,audio_url,choice_1,choice_2,choice_3,choice_4,choice_correct,writing_level,writing_practice_type,writing_hint,writing_keyboard_visible
 choice,What is 1+1?,2,,https://audio.com/q1.mp3,1,2,3,4,2,,,,
 typing,Type the answer,Hello,,,,,,,,,,,

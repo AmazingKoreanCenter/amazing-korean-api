@@ -169,7 +169,7 @@ export function AdminVideoBulkCreate() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
+          <pre dir="ltr" className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
 {`video_idx,video_state,video_access,video_tag_title,video_tag_subtitle,video_tag_key,video_url_vimeo
 V001,ready,public,Lesson 1 Introduction,Welcome to lesson 1,lesson-01,https://vimeo.com/123456789
 V002,open,private,Lesson 2 Basics,Basic concepts,lesson-02,https://vimeo.com/987654321`}

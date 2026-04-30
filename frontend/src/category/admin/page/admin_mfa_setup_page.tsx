@@ -158,7 +158,7 @@ export function AdminMfaSetupPage() {
                   </button>
                   {showManualKey && (
                     <div className="mt-2 p-3 bg-muted rounded-lg">
-                      <code className="text-xs break-all select-all">
+                      <code dir="ltr" className="text-xs break-all select-all">
                         {setupData.secret}
                       </code>
                     </div>
