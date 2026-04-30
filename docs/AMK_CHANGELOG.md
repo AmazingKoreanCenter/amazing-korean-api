@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-30 (Q13 Phase 2 후속 사전 조사 완료 — RTL 707곳 + 폰트 6 + 데스크탑 동일 + 모바일 무영향, PR-A/B/C/D 4분할 2.5-3.5일)
+updated: 2026-04-30 (Q13 Phase 2 세션 단위 실행 계획 수립 — INC-001~004 학습 적용, S1~S7 자가 점검 + hotfix 패턴 명시)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,27 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-04-30 (저녁) — Q13 Phase 2 세션 단위 실행 계획 수립**
+
+  사용자 제안: 민감한 작업 (RTL 707곳 마이그, INC-004 직후 신중 모드) 을 세션 단위로 분할하여 이슈 발생 시 처리 가능하게. 각 세션 = 작업 범위 + 검증 게이트 + 롤백 plan 명시.
+
+  **plan §2.9 SSoT 신설** — 미래 claude 세션이 plan 만 보고 실행 가능하도록 self-contained 작성:
+  - **§2.9.1 자가 점검 체크리스트** (모든 세션 진입 전 필수): 사전 조건 / KKRYOUN sync / clean working dir / 이미 적용된 마이그 변경 시도 금지 (INC-004) / KKRYOUN push 자동 배포 인지 / 변경 한도 명시
+  - **§2.9.2 이슈 발생 시 hotfix 패턴** (INC-004 절차 재사용): 영향 파악 → baseline 복원 → 단일 hotfix 커밋 → 자동 재배포 모니터링 → 사후 기록
+  - **§2.9.3 세션 정의 표** (S1~S7, 사전조건/시간/PR 매핑)
+  - **§2.9.4 S1** — frontend 자동 sed 12쌍 (~707곳). perl word-boundary 매핑 명령 포함. 1-2h.
+  - **§2.9.5 S2** — 의도적 LTR 영역 보호 (input email/url/tel/number, 가격, 코드 블록) + 검증 + PR-A 푸시. 2-3h.
+  - **§2.9.6 S3** — PR-B-pre 인프라 dormant (font_loader 6 신규 / RTL 그룹 신설 / dir toggle 핸들러). SUPPORTED_LANGUAGES 제외. 2-3h.
+  - **§2.9.7 S4** — 데스크탑 (`amazing-korean-desktop`) 동일 logical 마이그. 3-4h.
+  - **§2.9.8 S5~S7** — ai 측 결과 도착 후 상세화 (SUPPORTED_LANGUAGES 활성 / RTL 시각 검증 / 데스크탑 활성).
+  - **§2.9.9 세션 간 컨텍스트 인계** — `project_status.md` breadcrumb 갱신 + 검증 결과 + 발견 위험 기록.
+
+  **저장 (git 외)**: plan SSoT `~/.claude/plans/supported-language-es-pt-variants-expansion.md` §2.9 + 메모리 `project_phase2_followup_research.md` 세션 단위 포인터 추가.
+
+  **다음**: S1 진입 — PR #189 머지/배포 후 시작. 사전 조건 §2.9.1 자가 점검 통과 후.
 
 ---
 
