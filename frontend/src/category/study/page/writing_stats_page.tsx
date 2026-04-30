@@ -233,17 +233,17 @@ function DailyTrendCard({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b">
-              <tr className="text-left">
+              <tr className="text-start">
                 <th className="py-2 font-medium text-muted-foreground">
                   {t("study.writing.stats.trendDay")}
                 </th>
-                <th className="py-2 text-right font-medium text-muted-foreground">
+                <th className="py-2 text-end font-medium text-muted-foreground">
                   {t("study.writing.stats.trendSessions")}
                 </th>
-                <th className="py-2 text-right font-medium text-muted-foreground">
+                <th className="py-2 text-end font-medium text-muted-foreground">
                   {t("study.writing.stats.trendAccuracy")}
                 </th>
-                <th className="py-2 text-right font-medium text-muted-foreground">
+                <th className="py-2 text-end font-medium text-muted-foreground">
                   {t("study.writing.stats.trendCpm")}
                 </th>
               </tr>
@@ -252,11 +252,11 @@ function DailyTrendCard({
               {sorted.map((row) => (
                 <tr key={row.day} className="border-b last:border-0">
                   <td className="py-2">{row.day}</td>
-                  <td className="py-2 text-right font-medium">
+                  <td className="py-2 text-end font-medium">
                     {formatNumber(row.sessions)}
                   </td>
-                  <td className="py-2 text-right">{formatPercent(row.avg_accuracy)}</td>
-                  <td className="py-2 text-right">{formatCpm(row.avg_cpm)}</td>
+                  <td className="py-2 text-end">{formatPercent(row.avg_accuracy)}</td>
+                  <td className="py-2 text-end">{formatCpm(row.avg_cpm)}</td>
                 </tr>
               ))}
             </tbody>
@@ -371,9 +371,9 @@ export function WritingStatsPage() {
       <div className="mx-auto w-full max-w-screen-lg space-y-6 px-4 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2">
+            <Button variant="ghost" size="sm" asChild className="mb-2 -ms-2">
               <Link to="/studies/writing">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <ArrowLeft className="me-2 h-4 w-4" />
                 {t("study.writing.backToLevels")}
               </Link>
             </Button>

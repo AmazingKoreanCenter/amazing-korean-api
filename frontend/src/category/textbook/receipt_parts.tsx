@@ -168,7 +168,7 @@ export function ReceiptTotalBreakdown({
             <span className="flex-1">
               − {t(`${ns}.discount`)}
               {discountReason && (
-                <span className="text-xs text-muted-foreground print:text-gray-600 ml-2 font-normal">
+                <span className="text-xs text-muted-foreground print:text-gray-600 ms-2 font-normal">
                   ({discountReason})
                 </span>
               )}
@@ -226,7 +226,7 @@ interface SignatureProps {
 export function ReceiptSignature({ ns, t }: SignatureProps) {
   return (
     <div className="mt-10 mb-6 flex justify-end">
-      <div className="text-right">
+      <div className="text-end">
         <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground print:text-gray-600 mb-2">
           {t(`${ns}.issuedBy`)}
         </p>
@@ -238,7 +238,7 @@ export function ReceiptSignature({ ns, t }: SignatureProps) {
           {TEXTBOOK_SUPPLIER.repName}
         </p>
         {/* 인감 자리 박스 */}
-        <div className="mt-4 ml-auto w-24 h-24 border-2 border-dashed border-muted-foreground print:border-gray-400 rounded flex items-center justify-center text-[10px] text-muted-foreground print:text-gray-500">
+        <div className="mt-4 ms-auto w-24 h-24 border-2 border-dashed border-muted-foreground print:border-gray-400 rounded flex items-center justify-center text-[10px] text-muted-foreground print:text-gray-500">
           {t(`${ns}.sealLine`)}
         </div>
       </div>

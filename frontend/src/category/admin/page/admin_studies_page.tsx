@@ -138,9 +138,9 @@ export function AdminStudiesPage() {
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return null;
     return sortOrder === "asc" ? (
-      <ChevronUp className="ml-1 h-4 w-4 inline" />
+      <ChevronUp className="ms-1 h-4 w-4 inline" />
     ) : (
-      <ChevronDown className="ml-1 h-4 w-4 inline" />
+      <ChevronDown className="ms-1 h-4 w-4 inline" />
     );
   };
 
@@ -198,7 +198,7 @@ export function AdminStudiesPage() {
         <div className="flex gap-2">
           <Button variant="outline" asChild>
             <Link to="/admin/studies/stats">
-              <BarChart3 className="mr-2 h-4 w-4" />
+              <BarChart3 className="me-2 h-4 w-4" />
               Stats
             </Link>
           </Button>
@@ -209,7 +209,7 @@ export function AdminStudiesPage() {
           </Button>
           <Button asChild>
             <Link to="/admin/studies/new">
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="me-2 h-4 w-4" />
               Add Study
             </Link>
           </Button>
@@ -221,12 +221,12 @@ export function AdminStudiesPage() {
         <div className="flex items-center justify-between gap-4">
           <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search by idx, title..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9 border-foreground/20"
+                className="ps-9 border-foreground/20"
               />
             </div>
             <Button type="submit" variant="secondary">
@@ -239,7 +239,7 @@ export function AdminStudiesPage() {
               variant="outline"
               onClick={() => setBulkEditOpen(true)}
             >
-              <BookOpen className="mr-2 h-4 w-4" />
+              <BookOpen className="me-2 h-4 w-4" />
               Edit {selectedIds.size} Selected
             </Button>
           )}
@@ -251,69 +251,69 @@ export function AdminStudiesPage() {
         <table className="w-full text-sm">
           <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground w-10">
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground w-10">
                 <Checkbox
                   checked={allSelected}
                   onCheckedChange={handleSelectAll}
                 />
               </th>
               <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+                className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_id")}
               >
                 ID
                 <SortIcon field="study_id" />
               </th>
               <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+                className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_idx")}
               >
                 IDX
                 <SortIcon field="study_idx" />
               </th>
               <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+                className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_title")}
               >
                 Title
                 <SortIcon field="study_title" />
               </th>
               <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+                className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_subtitle")}
               >
                 Subtitle
                 <SortIcon field="study_subtitle" />
               </th>
               <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+                className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_program")}
               >
                 Program
                 <SortIcon field="study_program" />
               </th>
               <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+                className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_state")}
               >
                 State
                 <SortIcon field="study_state" />
               </th>
               <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+                className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("study_access")}
               >
                 Access
                 <SortIcon field="study_access" />
               </th>
               <th
-                className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+                className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                 onClick={() => handleSort("created_at")}
               >
                 Created At
                 <SortIcon field="created_at" />
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">Actions</th>
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>

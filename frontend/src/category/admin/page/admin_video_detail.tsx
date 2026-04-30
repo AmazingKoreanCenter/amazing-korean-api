@@ -126,7 +126,7 @@ export function AdminVideoDetail() {
     return (
       <div className="space-y-4">
         <Button variant="ghost" onClick={() => navigate("/admin/videos")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back to Videos
         </Button>
         <p className="text-destructive">Video not found</p>
@@ -138,7 +138,7 @@ export function AdminVideoDetail() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/videos")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Edit Video #{video.id}</h1>
@@ -364,7 +364,7 @@ export function AdminVideoDetail() {
             {/* Submit */}
             <div className="flex justify-end pt-4">
               <Button type="submit" disabled={isButtonDisabled}>
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="me-2 h-4 w-4" />
                 {updateMutation.isPending
                   ? "Saving..."
                   : cooldown > 0

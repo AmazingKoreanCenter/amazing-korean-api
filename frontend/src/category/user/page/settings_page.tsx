@@ -230,7 +230,7 @@ export function SettingsPage() {
                       <SelectContent className="max-h-60">
                         {SUPPORTED_LANGUAGES.map((lang) => (
                           <SelectItem key={lang.code} value={lang.code}>
-                            <span className="emoji-flag mr-2">{lang.flag}</span>
+                            <span className="emoji-flag me-2">{lang.flag}</span>
                             {lang.nativeName} ({lang.name})
                           </SelectItem>
                         ))}

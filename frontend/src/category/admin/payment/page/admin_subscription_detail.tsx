@@ -93,7 +93,7 @@ export function AdminSubscriptionDetail() {
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" asChild>
           <Link to="/admin/payment/subscriptions">
-            <ArrowLeft className="mr-1 h-4 w-4" />
+            <ArrowLeft className="me-1 h-4 w-4" />
             {t("admin.payment.back")}
           </Link>
         </Button>
@@ -189,7 +189,7 @@ export function AdminSubscriptionDetail() {
                   onClick={() => setCancelDialogOpen(true)}
                   disabled={isBusy}
                 >
-                  <XCircle className="mr-1 h-4 w-4" />
+                  <XCircle className="me-1 h-4 w-4" />
                   {t("admin.payment.cancel")}
                 </Button>
               </CardContent>
@@ -212,12 +212,12 @@ export function AdminSubscriptionDetail() {
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/50">
                   <tr>
-                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colId")}</th>
-                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colStatus")}</th>
-                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colAmount")}</th>
-                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colTax")}</th>
-                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colCurrency")}</th>
-                    <th className="h-10 px-4 text-left font-medium">{t("admin.payment.colDate")}</th>
+                    <th className="h-10 px-4 text-start font-medium">{t("admin.payment.colId")}</th>
+                    <th className="h-10 px-4 text-start font-medium">{t("admin.payment.colStatus")}</th>
+                    <th className="h-10 px-4 text-start font-medium">{t("admin.payment.colAmount")}</th>
+                    <th className="h-10 px-4 text-start font-medium">{t("admin.payment.colTax")}</th>
+                    <th className="h-10 px-4 text-start font-medium">{t("admin.payment.colCurrency")}</th>
+                    <th className="h-10 px-4 text-start font-medium">{t("admin.payment.colDate")}</th>
                   </tr>
                 </thead>
                 <tbody>

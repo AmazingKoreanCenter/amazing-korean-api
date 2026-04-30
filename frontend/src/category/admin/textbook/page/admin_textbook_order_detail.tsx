@@ -189,7 +189,7 @@ export function AdminTextbookOrderDetail() {
               to={`/admin/textbook/orders/${id}/print?type=quote`}
               target="_blank"
             >
-              <Printer className="mr-1 h-4 w-4" />
+              <Printer className="me-1 h-4 w-4" />
               {t("admin.textbook.printQuote")}
             </Link>
           </Button>
@@ -198,7 +198,7 @@ export function AdminTextbookOrderDetail() {
               to={`/admin/textbook/orders/${id}/print?type=confirmation`}
               target="_blank"
             >
-              <Printer className="mr-1 h-4 w-4" />
+              <Printer className="me-1 h-4 w-4" />
               {t("admin.textbook.printConfirmation")}
             </Link>
           </Button>
@@ -208,7 +208,7 @@ export function AdminTextbookOrderDetail() {
                 to={`/admin/textbook/orders/${id}/print?type=receipt`}
                 target="_blank"
               >
-                <Printer className="mr-1 h-4 w-4" />
+                <Printer className="me-1 h-4 w-4" />
                 {t("admin.textbook.printReceipt")}
               </Link>
             </Button>
@@ -218,7 +218,7 @@ export function AdminTextbookOrderDetail() {
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
-            <Trash2 className="mr-1 h-4 w-4" />
+            <Trash2 className="me-1 h-4 w-4" />
             {t("admin.textbook.delete")}
           </Button>
         </div>
@@ -270,11 +270,11 @@ export function AdminTextbookOrderDetail() {
           <table className="w-full text-sm">
             <thead className="border-b bg-secondary">
               <tr>
-                <th className="px-3 py-2 text-left">{t("admin.textbook.colLanguage")}</th>
-                <th className="px-3 py-2 text-left">{t("admin.textbook.colType")}</th>
-                <th className="px-3 py-2 text-right">{t("admin.textbook.colQty")}</th>
-                <th className="px-3 py-2 text-right">{t("admin.textbook.colUnitPrice")}</th>
-                <th className="px-3 py-2 text-right">{t("admin.textbook.colSubtotal")}</th>
+                <th className="px-3 py-2 text-start">{t("admin.textbook.colLanguage")}</th>
+                <th className="px-3 py-2 text-start">{t("admin.textbook.colType")}</th>
+                <th className="px-3 py-2 text-end">{t("admin.textbook.colQty")}</th>
+                <th className="px-3 py-2 text-end">{t("admin.textbook.colUnitPrice")}</th>
+                <th className="px-3 py-2 text-end">{t("admin.textbook.colSubtotal")}</th>
               </tr>
             </thead>
             <tbody>
@@ -288,11 +288,11 @@ export function AdminTextbookOrderDetail() {
                         : t("admin.textbook.typeTeacher")}
                     </Badge>
                   </td>
-                  <td className="px-3 py-2 text-right">{item.quantity}</td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 text-end">{item.quantity}</td>
+                  <td className="px-3 py-2 text-end">
                     {item.unit_price.toLocaleString()}
                   </td>
-                  <td className="px-3 py-2 text-right font-medium">
+                  <td className="px-3 py-2 text-end font-medium">
                     {item.subtotal.toLocaleString()}
                   </td>
                 </tr>
@@ -303,9 +303,9 @@ export function AdminTextbookOrderDetail() {
                 <td colSpan={2} className="px-3 py-2 text-muted-foreground">
                   {t("admin.textbook.detail.grossAmount")}
                 </td>
-                <td className="px-3 py-2 text-right">{order.total_quantity}</td>
+                <td className="px-3 py-2 text-end">{order.total_quantity}</td>
                 <td />
-                <td className="px-3 py-2 text-right">
+                <td className="px-3 py-2 text-end">
                   {order.gross_amount.toLocaleString()}
                   {order.currency}
                 </td>
@@ -315,12 +315,12 @@ export function AdminTextbookOrderDetail() {
                   <td colSpan={4} className="px-3 py-2">
                     - {t("admin.textbook.detail.discountAmount")}
                     {order.discount_reason && (
-                      <span className="text-xs text-muted-foreground ml-2">
+                      <span className="text-xs text-muted-foreground ms-2">
                         ({order.discount_reason})
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 text-end">
                     - {order.discount_amount.toLocaleString()}
                     {order.currency}
                   </td>
@@ -330,7 +330,7 @@ export function AdminTextbookOrderDetail() {
                 <td colSpan={4} className="px-3 py-2">
                   {t("admin.textbook.detail.finalAmount")}
                 </td>
-                <td className="px-3 py-2 text-right">
+                <td className="px-3 py-2 text-end">
                   {order.total_amount.toLocaleString()}
                   {order.currency}
                 </td>
@@ -344,7 +344,7 @@ export function AdminTextbookOrderDetail() {
               onClick={openDiscountEditor}
               disabled={discountMutation.isPending}
             >
-              <Pencil className="mr-1 h-4 w-4" />
+              <Pencil className="me-1 h-4 w-4" />
               {t("admin.textbook.detail.editDiscount")}
             </Button>
           </div>
@@ -473,7 +473,7 @@ export function AdminTextbookOrderDetail() {
               }}
             >
               {trackingMutation.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                <Loader2 className="h-4 w-4 animate-spin me-1" />
               )}
               {t("admin.textbook.updateTracking")}
             </Button>
@@ -568,7 +568,7 @@ export function AdminTextbookOrderDetail() {
               disabled={discountMutation.isPending}
             >
               {discountMutation.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                <Loader2 className="h-4 w-4 animate-spin me-1" />
               )}
               {t("admin.textbook.detail.saveDiscount")}
             </Button>
@@ -595,7 +595,7 @@ export function AdminTextbookOrderDetail() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                <Loader2 className="h-4 w-4 animate-spin me-1" />
               )}
               {t("admin.textbook.confirmDelete")}
             </Button>

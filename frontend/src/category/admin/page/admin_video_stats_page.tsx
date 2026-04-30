@@ -119,7 +119,7 @@ function TopVideosTable({
             <p className="font-medium truncate">{item.title || item.video_idx}</p>
             <p className="text-sm text-muted-foreground">{item.video_idx}</p>
           </div>
-          <div className="text-right">
+          <div className="text-end">
             <p className="font-medium">
               {formatNumber(sortBy === "completes" ? item.completes : item.views)}
             </p>
@@ -175,10 +175,10 @@ function DailyStatsTable({
       <table className="w-full text-sm">
         <thead className="border-b bg-muted/50">
           <tr>
-            <th className="h-10 px-4 text-left font-medium">Date</th>
-            <th className="h-10 px-4 text-right font-medium">Views</th>
-            <th className="h-10 px-4 text-right font-medium">Completes</th>
-            <th className="h-10 px-4 text-right font-medium">Rate</th>
+            <th className="h-10 px-4 text-start font-medium">Date</th>
+            <th className="h-10 px-4 text-end font-medium">Views</th>
+            <th className="h-10 px-4 text-end font-medium">Completes</th>
+            <th className="h-10 px-4 text-end font-medium">Rate</th>
           </tr>
         </thead>
         <tbody>
@@ -187,9 +187,9 @@ function DailyStatsTable({
             return (
               <tr key={item.date} className="border-b hover:bg-muted/50">
                 <td className="p-4">{item.date}</td>
-                <td className="p-4 text-right">{formatNumber(item.views)}</td>
-                <td className="p-4 text-right">{formatNumber(item.completes)}</td>
-                <td className="p-4 text-right">{rate}%</td>
+                <td className="p-4 text-end">{formatNumber(item.views)}</td>
+                <td className="p-4 text-end">{formatNumber(item.completes)}</td>
+                <td className="p-4 text-end">{rate}%</td>
               </tr>
             );
           })}
@@ -237,7 +237,7 @@ export function AdminVideoStatsPage() {
         </div>
         <Button variant="outline" asChild>
           <Link to="/admin/videos">
-            <Video className="mr-2 h-4 w-4" />
+            <Video className="me-2 h-4 w-4" />
             Back to Videos
           </Link>
         </Button>

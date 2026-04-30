@@ -167,23 +167,23 @@ function DailySignupsTable({
       <table className="w-full text-sm">
         <thead className="border-b bg-muted/50">
           <tr>
-            <th className="h-10 px-4 text-left font-medium">Date</th>
-            <th className="h-10 px-4 text-right font-medium">Signups</th>
-            <th className="h-10 px-4 text-right font-medium">HYMN</th>
-            <th className="h-10 px-4 text-right font-medium">Admin</th>
-            <th className="h-10 px-4 text-right font-medium">Manager</th>
-            <th className="h-10 px-4 text-right font-medium">Learner</th>
+            <th className="h-10 px-4 text-start font-medium">Date</th>
+            <th className="h-10 px-4 text-end font-medium">Signups</th>
+            <th className="h-10 px-4 text-end font-medium">HYMN</th>
+            <th className="h-10 px-4 text-end font-medium">Admin</th>
+            <th className="h-10 px-4 text-end font-medium">Manager</th>
+            <th className="h-10 px-4 text-end font-medium">Learner</th>
           </tr>
         </thead>
         <tbody>
           {sorted.map((item) => (
             <tr key={item.date} className="border-b hover:bg-muted/50">
               <td className="p-4">{item.date}</td>
-              <td className="p-4 text-right font-medium">{formatNumber(item.signups)}</td>
-              <td className="p-4 text-right">{formatNumber(item.by_role.hymn)}</td>
-              <td className="p-4 text-right">{formatNumber(item.by_role.admin)}</td>
-              <td className="p-4 text-right">{formatNumber(item.by_role.manager)}</td>
-              <td className="p-4 text-right">{formatNumber(item.by_role.learner)}</td>
+              <td className="p-4 text-end font-medium">{formatNumber(item.signups)}</td>
+              <td className="p-4 text-end">{formatNumber(item.by_role.hymn)}</td>
+              <td className="p-4 text-end">{formatNumber(item.by_role.admin)}</td>
+              <td className="p-4 text-end">{formatNumber(item.by_role.manager)}</td>
+              <td className="p-4 text-end">{formatNumber(item.by_role.learner)}</td>
             </tr>
           ))}
         </tbody>
@@ -226,7 +226,7 @@ export function AdminUserStatsPage() {
         </div>
         <Button variant="outline" asChild>
           <Link to="/admin/users">
-            <Users className="mr-2 h-4 w-4" />
+            <Users className="me-2 h-4 w-4" />
             Back to Users
           </Link>
         </Button>

@@ -166,7 +166,7 @@ export function AdminLessonBulkCreate() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/lessons")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Bulk Create Lessons</h1>
@@ -229,7 +229,7 @@ LESSON-002,Korean Alphabet,Learning Hangul,The Korean writing system,open,paid`}
             <CardDescription>
               <span className="text-status-success">{validCount} valid</span>
               {invalidCount > 0 && (
-                <span className="text-destructive ml-2">{invalidCount} invalid</span>
+                <span className="text-destructive ms-2">{invalidCount} invalid</span>
               )}
             </CardDescription>
           </CardHeader>
@@ -238,12 +238,12 @@ LESSON-002,Korean Alphabet,Learning Hangul,The Korean writing system,open,paid`}
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/50 sticky top-0">
                   <tr>
-                    <th className="h-10 px-4 text-left font-medium">Row</th>
-                    <th className="h-10 px-4 text-left font-medium">IDX</th>
-                    <th className="h-10 px-4 text-left font-medium">Title</th>
-                    <th className="h-10 px-4 text-left font-medium">State</th>
-                    <th className="h-10 px-4 text-left font-medium">Access</th>
-                    <th className="h-10 px-4 text-left font-medium">Status</th>
+                    <th className="h-10 px-4 text-start font-medium">Row</th>
+                    <th className="h-10 px-4 text-start font-medium">IDX</th>
+                    <th className="h-10 px-4 text-start font-medium">Title</th>
+                    <th className="h-10 px-4 text-start font-medium">State</th>
+                    <th className="h-10 px-4 text-start font-medium">Access</th>
+                    <th className="h-10 px-4 text-start font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -323,10 +323,10 @@ LESSON-002,Korean Alphabet,Learning Hangul,The Korean writing system,open,paid`}
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/50 sticky top-0">
                   <tr>
-                    <th className="h-10 px-4 text-left font-medium">ID</th>
-                    <th className="h-10 px-4 text-left font-medium">IDX</th>
-                    <th className="h-10 px-4 text-left font-medium">Status</th>
-                    <th className="h-10 px-4 text-left font-medium">Error</th>
+                    <th className="h-10 px-4 text-start font-medium">ID</th>
+                    <th className="h-10 px-4 text-start font-medium">IDX</th>
+                    <th className="h-10 px-4 text-start font-medium">Status</th>
+                    <th className="h-10 px-4 text-start font-medium">Error</th>
                   </tr>
                 </thead>
                 <tbody>

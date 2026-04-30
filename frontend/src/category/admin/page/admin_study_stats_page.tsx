@@ -232,7 +232,7 @@ function TopStudiesTable({
               {item.study_idx} - {item.task_count} tasks
             </p>
           </div>
-          <div className="text-right">
+          <div className="text-end">
             <p className="font-medium">{getDisplayValue(item)}</p>
             <p className="text-xs text-muted-foreground">{getDisplayLabel()}</p>
           </div>
@@ -285,11 +285,11 @@ function DailyStatsTable({
       <table className="w-full text-sm">
         <thead className="border-b bg-muted/50">
           <tr>
-            <th className="h-10 px-4 text-left font-medium">Date</th>
-            <th className="h-10 px-4 text-right font-medium">Attempts</th>
-            <th className="h-10 px-4 text-right font-medium">Solves</th>
-            <th className="h-10 px-4 text-right font-medium">Users</th>
-            <th className="h-10 px-4 text-right font-medium">Rate</th>
+            <th className="h-10 px-4 text-start font-medium">Date</th>
+            <th className="h-10 px-4 text-end font-medium">Attempts</th>
+            <th className="h-10 px-4 text-end font-medium">Solves</th>
+            <th className="h-10 px-4 text-end font-medium">Users</th>
+            <th className="h-10 px-4 text-end font-medium">Rate</th>
           </tr>
         </thead>
         <tbody>
@@ -299,10 +299,10 @@ function DailyStatsTable({
             return (
               <tr key={item.date} className="border-b hover:bg-muted/50">
                 <td className="p-4">{item.date}</td>
-                <td className="p-4 text-right">{formatNumber(item.attempts)}</td>
-                <td className="p-4 text-right">{formatNumber(item.solves)}</td>
-                <td className="p-4 text-right">{formatNumber(item.active_users)}</td>
-                <td className="p-4 text-right">{rate}%</td>
+                <td className="p-4 text-end">{formatNumber(item.attempts)}</td>
+                <td className="p-4 text-end">{formatNumber(item.solves)}</td>
+                <td className="p-4 text-end">{formatNumber(item.active_users)}</td>
+                <td className="p-4 text-end">{rate}%</td>
               </tr>
             );
           })}
@@ -370,7 +370,7 @@ export function AdminStudyStatsPage() {
         </div>
         <Button variant="outline" asChild>
           <Link to="/admin/studies">
-            <BookOpen className="mr-2 h-4 w-4" />
+            <BookOpen className="me-2 h-4 w-4" />
             Back to Studies
           </Link>
         </Button>

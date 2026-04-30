@@ -55,7 +55,7 @@ export function AdminLessonCreate() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/lessons")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Create New Lesson</h1>
@@ -169,7 +169,7 @@ export function AdminLessonCreate() {
                 Cancel
               </Button>
               <Button type="submit" disabled={createMutation.isPending}>
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="me-2 h-4 w-4" />
                 {createMutation.isPending ? "Creating..." : "Create Lesson"}
               </Button>
             </div>

@@ -59,7 +59,7 @@ export function EbookDetailModal({
       >
         <DialogHeader>
           <div className="flex items-center justify-between gap-3">
-            <DialogTitle className="text-left">
+            <DialogTitle className="text-start">
               {t("ebook.catalog.bookTitle", { language: langName })}
             </DialogTitle>
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-status-warning bg-status-warning/5 border border-status-warning/20 rounded-md px-3 py-1.5 flex-shrink-0">
@@ -85,20 +85,20 @@ export function EbookDetailModal({
             <button
               type="button"
               onClick={goPrev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+              className="absolute start-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
             <button
               type="button"
               onClick={goNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+              className="absolute end-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
 
             {/* Indicator dots */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 rounded-full px-3 py-1.5">
+            <div className="absolute bottom-3 start-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 rounded-full px-3 py-1.5">
               {Array.from({ length: SLIDE_COUNT }).map((_, i) => (
                 <button
                   key={i}

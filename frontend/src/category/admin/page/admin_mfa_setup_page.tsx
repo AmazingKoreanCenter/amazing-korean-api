@@ -121,7 +121,7 @@ export function AdminMfaSetupPage() {
                 >
                   {setupMutation.isPending ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <Loader2 className="h-4 w-4 animate-spin me-2" />
                       {t("common.loading")}
                     </>
                   ) : (
@@ -222,7 +222,7 @@ export function AdminMfaSetupPage() {
               >
                 {verifyMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-4 w-4 animate-spin me-2" />
                     {t("auth.verifying")}
                   </>
                 ) : (
@@ -280,12 +280,12 @@ export function AdminMfaSetupPage() {
             >
               {copied ? (
                 <>
-                  <Check className="h-4 w-4 mr-2" />
+                  <Check className="h-4 w-4 me-2" />
                   {t("common.confirm")}
                 </>
               ) : (
                 <>
-                  <Copy className="h-4 w-4 mr-2" />
+                  <Copy className="h-4 w-4 me-2" />
                   {t("mfa.setupCopyAll")}
                 </>
               )}
@@ -295,7 +295,7 @@ export function AdminMfaSetupPage() {
               className="flex-1"
               onClick={handleDownloadBackupCodes}
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-4 w-4 me-2" />
               {t("mfa.setupDownload")}
             </Button>
           </div>

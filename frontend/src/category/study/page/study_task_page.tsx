@@ -77,11 +77,11 @@ function ChoiceTask({ payload, selectedChoice, onSelect, disabled }: ChoiceTaskP
           <Button
             key={index}
             variant={selectedChoice === index + 1 ? "default" : "outline"}
-            className="w-full justify-start text-left h-auto py-3 px-4"
+            className="w-full justify-start text-start h-auto py-3 px-4"
             onClick={() => onSelect(index + 1)}
             disabled={disabled}
           >
-            <span className="mr-3 font-bold">{index + 1}.</span>
+            <span className="me-3 font-bold">{index + 1}.</span>
             {choice}
           </Button>
         ))}

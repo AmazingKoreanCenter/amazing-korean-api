@@ -64,7 +64,7 @@ export function TextbookOrderPrint() {
       {/* 인쇄 버튼 + 안내 (인쇄 시 숨김) */}
       <div className="print:hidden p-4 text-center border-b space-y-2">
         <Button onClick={() => window.print()}>
-          <Printer className="h-4 w-4 mr-2" />
+          <Printer className="h-4 w-4 me-2" />
           {t("textbook.print.printButton")}
         </Button>
         <p className="text-xs text-muted-foreground">
@@ -88,7 +88,7 @@ export function TextbookOrderPrint() {
                   {TEXTBOOK_SUPPLIER.companyName}
                 </h1>
               </div>
-              <div className="text-right">
+              <div className="text-end">
                 <p className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground print:text-gray-600">
                   No.
                 </p>
@@ -122,7 +122,7 @@ export function TextbookOrderPrint() {
                   <strong>{t("textbook.print.date")}:</strong> {docDate}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-end">
                 <p>
                   <strong>{t("textbook.print.status")}:</strong>{" "}
                   {t(`textbook.status.label.${order.status}`)}
@@ -175,20 +175,20 @@ export function TextbookOrderPrint() {
           <table className="w-full border-collapse">
             <thead>
               <tr className={isReceipt ? "bg-muted/40 print:bg-gray-100 border-b-2 border-black" : "border-b-2 border-black"}>
-                <th className={`text-left ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>#</th>
-                <th className={`text-left ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
+                <th className={`text-start ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>#</th>
+                <th className={`text-start ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
                   {t("textbook.print.colItem")}
                 </th>
-                <th className={`text-left ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
+                <th className={`text-start ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
                   {t("textbook.print.colType")}
                 </th>
-                <th className={`text-right ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
+                <th className={`text-end ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
                   {t("textbook.print.colQty")}
                 </th>
-                <th className={`text-right ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
+                <th className={`text-end ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
                   {t("textbook.print.colPrice")}
                 </th>
-                <th className={`text-right ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
+                <th className={`text-end ${isReceipt ? "py-3 px-3 text-[11px] uppercase tracking-wider font-semibold" : "py-2 px-2"}`}>
                   {t("textbook.print.colSubtotal")}
                 </th>
               </tr>
@@ -205,11 +205,11 @@ export function TextbookOrderPrint() {
                       ? t("textbook.order.typeStudent")
                       : t("textbook.order.typeTeacher")}
                   </td>
-                  <td className={`text-right font-mono ${isReceipt ? "py-3 px-3" : "py-2 px-2"}`}>{item.quantity}</td>
-                  <td className={`text-right font-mono ${isReceipt ? "py-3 px-3" : "py-2 px-2"}`}>
+                  <td className={`text-end font-mono ${isReceipt ? "py-3 px-3" : "py-2 px-2"}`}>{item.quantity}</td>
+                  <td className={`text-end font-mono ${isReceipt ? "py-3 px-3" : "py-2 px-2"}`}>
                     {item.unit_price.toLocaleString()}
                   </td>
-                  <td className={`text-right font-mono ${isReceipt ? "py-3 px-3 font-medium" : "py-2 px-2"}`}>
+                  <td className={`text-end font-mono ${isReceipt ? "py-3 px-3 font-medium" : "py-2 px-2"}`}>
                     {item.subtotal.toLocaleString()}
                   </td>
                 </tr>
@@ -221,9 +221,9 @@ export function TextbookOrderPrint() {
                   <td colSpan={3} className="py-2 px-2">
                     {t("textbook.print.total")}
                   </td>
-                  <td className="py-2 px-2 text-right">{order.total_quantity}</td>
+                  <td className="py-2 px-2 text-end">{order.total_quantity}</td>
                   <td />
-                  <td className="py-2 px-2 text-right">
+                  <td className="py-2 px-2 text-end">
                     {order.total_amount.toLocaleString()} {order.currency}
                   </td>
                 </tr>

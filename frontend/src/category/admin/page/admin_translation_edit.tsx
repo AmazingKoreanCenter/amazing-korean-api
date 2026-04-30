@@ -281,7 +281,7 @@ function TranslationCreateWizard() {
                 {contentRecords.data?.items.map((rec) => (
                   <button
                     key={rec.id}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                    className={`w-full text-start px-3 py-2 rounded-md text-sm transition-colors ${
                       selectedRecordId === rec.id
                         ? "bg-primary/5 border border-primary/20"
                         : "hover:bg-muted border border-transparent"
@@ -289,9 +289,9 @@ function TranslationCreateWizard() {
                     onClick={() => handleRecordSelect(rec.id)}
                   >
                     <span className="font-mono text-xs text-muted-foreground">#{rec.id}</span>
-                    <span className="ml-2 font-medium">{rec.label}</span>
+                    <span className="ms-2 font-medium">{rec.label}</span>
                     {rec.detail && (
-                      <span className="ml-2 text-muted-foreground">{rec.detail}</span>
+                      <span className="ms-2 text-muted-foreground">{rec.detail}</span>
                     )}
                   </button>
                 ))}
@@ -435,7 +435,7 @@ function TranslationCreateWizard() {
                   disabled={createTranslation.isPending}
                   onClick={handleManualSave}
                 >
-                  {createTranslation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {createTranslation.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
                   Save Translations
                 </Button>
             </div>
@@ -562,7 +562,7 @@ function TranslationEditForm({ id }: { id: number }) {
 
           <div className="flex gap-3">
             <Button type="submit" disabled={updateMutation.isPending}>
-              {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {updateMutation.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
               Update Translation
             </Button>
             <Button type="button" variant="outline" onClick={() => navigate("/admin/translations")}>
@@ -586,7 +586,7 @@ export function AdminTranslationEdit() {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <Button variant="ghost" size="sm" onClick={() => navigate("/admin/translations")}>
-          <ArrowLeft className="w-4 h-4 mr-1" />
+          <ArrowLeft className="w-4 h-4 me-1" />
           Back
         </Button>
         <h2 className="text-2xl font-bold text-foreground">

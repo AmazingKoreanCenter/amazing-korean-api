@@ -58,8 +58,8 @@ export function HeroSection({
     >
       {/* Decorative blobs */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary/10 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -end-40 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -start-40 w-80 h-80 bg-secondary/10 rounded-full blur-3xl" />
       </div>
 
       <div

@@ -38,7 +38,7 @@ export function WritingLevelSelectPage() {
           </div>
           <Button variant="outline" asChild>
             <Link to="/studies/writing/stats">
-              <BarChart3 className="mr-2 h-4 w-4" />
+              <BarChart3 className="me-2 h-4 w-4" />
               {t("study.writing.viewStats")}
             </Link>
           </Button>
@@ -62,7 +62,7 @@ export function WritingLevelSelectPage() {
                 <Button asChild className="w-full">
                   <Link to={`/studies/writing/${level}`}>
                     {t("study.writing.startLevel")}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="ms-2 h-4 w-4" />
                   </Link>
                 </Button>
               </CardContent>

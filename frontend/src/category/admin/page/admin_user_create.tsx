@@ -59,7 +59,7 @@ export function AdminUserCreate() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/users")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Create New User</h1>
@@ -217,7 +217,7 @@ export function AdminUserCreate() {
                 Cancel
               </Button>
               <Button type="submit" disabled={createMutation.isPending}>
-                <UserPlus className="mr-2 h-4 w-4" />
+                <UserPlus className="me-2 h-4 w-4" />
                 {createMutation.isPending ? "Creating..." : "Create User"}
               </Button>
             </div>

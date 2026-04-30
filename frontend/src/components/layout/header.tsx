@@ -128,9 +128,9 @@ export function Header() {
                     <DropdownMenuSeparator />
                   )}
                   <DropdownMenuItem onClick={() => handleLanguageChange(lang.code)}>
-                    <span className="emoji-flag mr-2">{lang.flag}</span>
+                    <span className="emoji-flag me-2">{lang.flag}</span>
                     {lang.nativeName}
-                    {lang.code === i18n.language && <Check className="ml-auto h-4 w-4" />}
+                    {lang.code === i18n.language && <Check className="ms-auto h-4 w-4" />}
                   </DropdownMenuItem>
                 </Fragment>
               ))}
@@ -232,9 +232,9 @@ export function Header() {
                     <DropdownMenuSeparator />
                   )}
                   <DropdownMenuItem onClick={() => handleLanguageChange(lang.code)}>
-                    <span className="emoji-flag mr-2">{lang.flag}</span>
+                    <span className="emoji-flag me-2">{lang.flag}</span>
                     {lang.nativeName}
-                    {lang.code === i18n.language && <Check className="ml-auto h-4 w-4" />}
+                    {lang.code === i18n.language && <Check className="ms-auto h-4 w-4" />}
                   </DropdownMenuItem>
                 </Fragment>
               ))}

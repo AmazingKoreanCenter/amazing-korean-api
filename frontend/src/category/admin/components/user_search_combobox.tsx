@@ -116,7 +116,7 @@ export function UserSearchCombobox({
   return (
     <div className="relative" ref={containerRef}>
       <div className="relative">
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute start-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           value={keyword}
           onChange={(e) => {
@@ -127,11 +127,11 @@ export function UserSearchCombobox({
           placeholder={
             placeholder ?? t("admin.textbook.create.userSearch.placeholder")
           }
-          className="pl-8 pr-8"
+          className="ps-8 pe-8"
           disabled={disabled}
         />
         {isFetching && (
-          <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+          <Loader2 className="absolute end-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
         )}
       </div>
 
@@ -148,7 +148,7 @@ export function UserSearchCombobox({
                 <li key={user.id}>
                   <button
                     type="button"
-                    className="w-full text-left px-3 py-2 hover:bg-accent focus:bg-accent focus:outline-none"
+                    className="w-full text-start px-3 py-2 hover:bg-accent focus:bg-accent focus:outline-none"
                     onClick={() => handleSelect(user)}
                   >
                     <div className="text-sm font-medium truncate">

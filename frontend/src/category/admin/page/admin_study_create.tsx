@@ -445,13 +445,13 @@ export function AdminStudyCreate() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/studies")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Create New Study</h1>
         {createdStudy && (
-          <Badge variant="outline" className="ml-2">
-            <CheckCircle className="mr-1 h-3 w-3 text-status-success" />
+          <Badge variant="outline" className="ms-2">
+            <CheckCircle className="me-1 h-3 w-3 text-status-success" />
             Study #{createdStudy.study_id} Created
           </Badge>
         )}
@@ -601,7 +601,7 @@ export function AdminStudyCreate() {
             {!createdStudy && (
               <div className="flex justify-end pt-4">
                 <Button type="submit" disabled={createStudyMutation.isPending}>
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="me-2 h-4 w-4" />
                   {createStudyMutation.isPending ? "Creating..." : "Create Study"}
                 </Button>
               </div>
@@ -618,7 +618,7 @@ export function AdminStudyCreate() {
               <ListPlus className="h-5 w-5" />
               Add Tasks
               {taskCount > 0 && (
-                <Badge variant="secondary" className="ml-2">
+                <Badge variant="secondary" className="ms-2">
                   {taskCount} task{taskCount > 1 ? "s" : ""} added
                 </Badge>
               )}
@@ -850,7 +850,7 @@ export function AdminStudyCreate() {
 
                     <div className="flex justify-end">
                       <Button type="submit" disabled={createTaskMutation.isPending}>
-                        <Plus className="mr-2 h-4 w-4" />
+                        <Plus className="me-2 h-4 w-4" />
                         {createTaskMutation.isPending ? "Adding..." : "Add Task"}
                       </Button>
                     </div>
@@ -1043,11 +1043,11 @@ export function AdminStudyCreate() {
 
                     <div className="flex justify-between">
                       <Button type="button" variant="outline" onClick={addBulkTaskRow}>
-                        <Plus className="mr-2 h-4 w-4" />
+                        <Plus className="me-2 h-4 w-4" />
                         Add Row
                       </Button>
                       <Button type="submit" disabled={createTasksBulkMutation.isPending}>
-                        <ListPlus className="mr-2 h-4 w-4" />
+                        <ListPlus className="me-2 h-4 w-4" />
                         {createTasksBulkMutation.isPending
                           ? "Adding..."
                           : `Add ${fields.length} Task${fields.length > 1 ? "s" : ""}`}
@@ -1110,11 +1110,11 @@ writing,안녕하세요를 따라 입력,안녕하세요,,,,,,,,beginner,word,�
                         <table className="w-full text-sm">
                           <thead className="border-b bg-muted/50 sticky top-0">
                             <tr>
-                              <th className="h-9 px-3 text-left font-medium">Seq</th>
-                              <th className="h-9 px-3 text-left font-medium">Kind</th>
-                              <th className="h-9 px-3 text-left font-medium">Question</th>
-                              <th className="h-9 px-3 text-left font-medium">Answer</th>
-                              <th className="h-9 px-3 text-left font-medium">Status</th>
+                              <th className="h-9 px-3 text-start font-medium">Seq</th>
+                              <th className="h-9 px-3 text-start font-medium">Kind</th>
+                              <th className="h-9 px-3 text-start font-medium">Question</th>
+                              <th className="h-9 px-3 text-start font-medium">Answer</th>
+                              <th className="h-9 px-3 text-start font-medium">Status</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1166,7 +1166,7 @@ writing,안녕하세요를 따라 입력,안녕하세요,,,,,,,,beginner,word,�
                           onClick={onCSVTasksSubmit}
                           disabled={validCSVCount === 0 || createTasksBulkMutation.isPending}
                         >
-                          <Upload className="mr-2 h-4 w-4" />
+                          <Upload className="me-2 h-4 w-4" />
                           {createTasksBulkMutation.isPending
                             ? "Adding..."
                             : `Add ${validCSVCount} Task${validCSVCount > 1 ? "s" : ""}`}

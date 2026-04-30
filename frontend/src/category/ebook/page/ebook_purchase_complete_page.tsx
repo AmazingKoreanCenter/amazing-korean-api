@@ -135,7 +135,7 @@ export function EbookPurchaseCompletePage() {
             {/* 버튼 */}
             <div className="flex flex-col gap-2">
               <Button onClick={() => navigate("/book/ebook/my")}>
-                <BookOpen className="h-4 w-4 mr-2" />
+                <BookOpen className="h-4 w-4 me-2" />
                 {t("ebook.purchaseComplete.goToMyEbooks")}
               </Button>
               <Button variant="outline" asChild>

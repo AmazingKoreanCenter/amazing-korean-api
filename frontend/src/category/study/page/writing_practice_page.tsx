@@ -49,7 +49,7 @@ export function WritingPracticePage() {
         <div className="mx-auto w-full max-w-screen-md space-y-6 px-4 py-10">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/studies/writing">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="me-2 h-4 w-4" />
               {t("study.writing.backToLevels")}
             </Link>
           </Button>
@@ -67,7 +67,7 @@ export function WritingPracticePage() {
             {availableTypes.map((type) => (
               <Button key={type} variant="outline" className="h-auto justify-start p-4" asChild>
                 <Link to={`/studies/writing/${validLevel}/${type}`}>
-                  <div className="text-left">
+                  <div className="text-start">
                     <div className="font-semibold">
                       {t(`study.writing.practiceType.${type}`)}
                     </div>
@@ -181,7 +181,7 @@ function FreePracticeRunner({ level, practiceType }: FreePracticeRunnerProps) {
       <div className="mx-auto w-full max-w-screen-md space-y-6 px-4 py-10">
         <Button variant="ghost" size="sm" asChild>
           <Link to={`/studies/writing/${level}`}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="me-2 h-4 w-4" />
             {t("study.writing.backToTypes")}
           </Link>
         </Button>
@@ -272,7 +272,7 @@ function FreePracticeRunner({ level, practiceType }: FreePracticeRunnerProps) {
                 }
               >
                 {finishMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
                 )}
                 {t("study.writing.finishItem")}
               </Button>

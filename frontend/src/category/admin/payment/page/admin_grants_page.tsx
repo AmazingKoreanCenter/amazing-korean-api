@@ -102,14 +102,14 @@ export function AdminGrantsPage() {
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/admin/payment/subscriptions">
-              <ArrowLeft className="mr-1 h-4 w-4" />
+              <ArrowLeft className="me-1 h-4 w-4" />
               {t("admin.payment.subscriptions")}
             </Link>
           </Button>
           <h1 className="text-2xl font-bold">{t("admin.payment.manualGrants")}</h1>
         </div>
         <Button onClick={() => setGrantDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="me-2 h-4 w-4" />
           {t("admin.payment.grantCourses")}
         </Button>
       </div>
@@ -123,11 +123,11 @@ export function AdminGrantsPage() {
         <table className="w-full text-sm">
           <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colUserId")}</th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colEmail")}</th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colCourses")}</th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colExpires")}</th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colActions")}</th>
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colUserId")}</th>
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colEmail")}</th>
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colCourses")}</th>
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colExpires")}</th>
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -179,7 +179,7 @@ export function AdminGrantsPage() {
                         setRevokeDialogOpen(true);
                       }}
                     >
-                      <Trash2 className="mr-1 h-3 w-3" />
+                      <Trash2 className="me-1 h-3 w-3" />
                       {t("admin.payment.revoke")}
                     </Button>
                   </td>

@@ -786,7 +786,7 @@ export function EbookViewerPage() {
         {tocOpen && (
           <>
             <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setTocOpen(false)} />
-            <div className="fixed left-0 top-0 z-50 h-full w-72 bg-background border-r shadow-lg overflow-y-auto">
+            <div className="fixed start-0 top-0 z-50 h-full w-72 bg-background border-e shadow-lg overflow-y-auto">
               <div className="flex items-center justify-between px-4 py-3 border-b">
                 <h2 className="text-lg font-semibold">{t("ebook.viewer.toc")}</h2>
                 <Button variant="ghost" size="icon" onClick={() => setTocOpen(false)}>
@@ -800,7 +800,7 @@ export function EbookViewerPage() {
                   return (
                     <button
                       key={i}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      className={`w-full text-start px-3 py-2 rounded-md text-sm transition-colors ${
                         isActive ? "bg-accent text-accent-foreground" : "hover:bg-muted"
                       }`}
                       onClick={() => {
@@ -808,7 +808,7 @@ export function EbookViewerPage() {
                         setTocOpen(false);
                       }}
                     >
-                      <span className="text-muted-foreground mr-2 tabular-nums">p.{entry.page}</span>
+                      <span className="text-muted-foreground me-2 tabular-nums">p.{entry.page}</span>
                       <span className="flex flex-col leading-snug">
                         <span>{entry.title_ko}</span>
                         <span className="text-xs text-muted-foreground">{entry.title}</span>

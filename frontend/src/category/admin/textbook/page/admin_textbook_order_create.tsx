@@ -536,7 +536,7 @@ export function AdminTextbookOrderCreate() {
               {t("admin.textbook.create.items")}
             </CardTitle>
             <Button type="button" variant="outline" size="sm" onClick={addItem}>
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="h-4 w-4 me-1" />
               {t("admin.textbook.create.addItem")}
             </Button>
           </CardHeader>

@@ -270,7 +270,7 @@ export function LessonDetailPage() {
                   )}
                   {progressPercent >= 100 && (
                     <Badge variant="success" className="bg-status-success/10 text-status-success border-0 px-4 py-2 text-sm shrink-0">
-                      <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                      <CheckCircle2 className="h-4 w-4 me-1.5" />
                       {t("lesson.lessonCompleted")}
                     </Badge>
                   )}
@@ -289,7 +289,7 @@ export function LessonDetailPage() {
             <h2 className="text-xl font-semibold">
               {t("lesson.learningItems")}
             </h2>
-            <Badge variant="secondary" className="ml-2 rounded-full">
+            <Badge variant="secondary" className="ms-2 rounded-full">
               {t("lesson.itemCount", { count: data.items.length })}
             </Badge>
           </div>
@@ -319,7 +319,7 @@ export function LessonDetailPage() {
           <div className="mt-10 pt-6 border-t">
             <Button variant="outline" asChild className="rounded-full">
               <Link to="/lessons">
-                <ArrowLeft className="h-4 w-4 mr-2" />
+                <ArrowLeft className="h-4 w-4 me-2" />
                 {t("common.backToList")}
               </Link>
             </Button>

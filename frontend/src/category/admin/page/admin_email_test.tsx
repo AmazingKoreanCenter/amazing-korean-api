@@ -133,7 +133,7 @@ export function AdminEmailTest() {
                 className="w-full"
                 disabled={sendMutation.isPending}
               >
-                <Send className="mr-2 h-4 w-4" />
+                <Send className="me-2 h-4 w-4" />
                 {sendMutation.isPending ? "발송 중..." : "테스트 이메일 발송"}
               </Button>
             </form>

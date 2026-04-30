@@ -53,7 +53,7 @@ export function HangulKeyboard({
       <div className={cn("flex justify-center", className)}>
         {canToggle && (
           <Button variant="outline" size="sm" onClick={onToggle}>
-            <Keyboard className="mr-2" />
+            <Keyboard className="me-2" />
             {t("study.writing.showKeyboard")}
           </Button>
         )}
@@ -67,7 +67,7 @@ export function HangulKeyboard({
         {canToggle && (
           <div className="flex justify-end">
             <Button variant="ghost" size="sm" onClick={onToggle}>
-              {visible ? <EyeOff className="mr-2" /> : <Eye className="mr-2" />}
+              {visible ? <EyeOff className="me-2" /> : <Eye className="me-2" />}
               {visible ? t("study.writing.hideKeyboard") : t("study.writing.showKeyboard")}
             </Button>
           </div>

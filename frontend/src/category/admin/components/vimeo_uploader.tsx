@@ -164,7 +164,7 @@ export function VimeoUploader({
         </div>
         <div className="flex items-center gap-3">
           <Progress value={progress} className="flex-1" />
-          <span className="text-sm font-medium w-12 text-right">
+          <span className="text-sm font-medium w-12 text-end">
             {Math.round(progress)}%
           </span>
         </div>

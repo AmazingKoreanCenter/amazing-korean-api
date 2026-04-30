@@ -162,29 +162,29 @@ export function AdminUsersPage() {
         <div className="flex gap-2">
           <Button variant="outline" asChild>
             <Link to="/admin/users/stats">
-              <BarChart3 className="mr-2 h-4 w-4" />
+              <BarChart3 className="me-2 h-4 w-4" />
               User Stats
             </Link>
           </Button>
           <Button variant="outline" asChild>
             <Link to="/admin/logins/stats">
-              <LogIn className="mr-2 h-4 w-4" />
+              <LogIn className="me-2 h-4 w-4" />
               Login Stats
             </Link>
           </Button>
           <Button variant="outline" asChild>
             <Link to="/admin/users/bulk-create">
-              <Upload className="mr-2 h-4 w-4" />
+              <Upload className="me-2 h-4 w-4" />
               Bulk Create
             </Link>
           </Button>
           <Button variant="outline" onClick={() => setInviteOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
+            <UserPlus className="me-2 h-4 w-4" />
             Invite Admin
           </Button>
           <Button asChild>
             <Link to="/admin/users/new">
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="me-2 h-4 w-4" />
               Add User
             </Link>
           </Button>
@@ -210,7 +210,7 @@ export function AdminUsersPage() {
         onSelectOne={table.handleSelectOne}
         bulkActionSlot={
           <Button variant="outline" onClick={() => setBulkEditOpen(true)}>
-            <Users className="mr-2 h-4 w-4" />
+            <Users className="me-2 h-4 w-4" />
             Edit {table.selectedIds.size} Selected
           </Button>
         }
@@ -336,7 +336,7 @@ export function AdminUsersPage() {
                 <Button type="submit" disabled={inviteMutation.isPending}>
                   {inviteMutation.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
                       발송 중...
                     </>
                   ) : (

@@ -41,7 +41,7 @@ export function HangulKeyboardKey({
     >
       <span className="text-base font-semibold leading-none sm:text-lg">{cap.base}</span>
       {cap.shift && (
-        <span className="absolute right-1 top-1 text-[9px] leading-none text-muted-foreground sm:text-[10px]">
+        <span className="absolute end-1 top-1 text-[9px] leading-none text-muted-foreground sm:text-[10px]">
           {cap.shift}
         </span>
       )}

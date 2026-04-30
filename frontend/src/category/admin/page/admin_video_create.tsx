@@ -113,7 +113,7 @@ export function AdminVideoCreate() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/videos")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Create New Video</h1>
@@ -162,9 +162,9 @@ export function AdminVideoCreate() {
                     disabled={previewMutation.isPending}
                   >
                     {previewMutation.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <Download className="mr-2 h-4 w-4" />
+                      <Download className="me-2 h-4 w-4" />
                     )}
                     불러오기
                   </Button>
@@ -412,7 +412,7 @@ export function AdminVideoCreate() {
                 Cancel
               </Button>
               <Button type="submit" disabled={createMutation.isPending}>
-                <Video className="mr-2 h-4 w-4" />
+                <Video className="me-2 h-4 w-4" />
                 {createMutation.isPending ? "Creating..." : "Create Video"}
               </Button>
             </div>

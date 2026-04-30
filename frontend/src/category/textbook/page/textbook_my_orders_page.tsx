@@ -112,14 +112,14 @@ export function TextbookMyOrdersPage() {
                           {new Date(order.created_at).toLocaleDateString(i18n.language)}
                         </p>
                       </div>
-                      <div className="text-right flex-shrink-0">
+                      <div className="text-end flex-shrink-0">
                         <p className="font-semibold">
                           ₩{order.total_amount.toLocaleString()}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {order.total_quantity}{t("textbook.order.unit")}
                         </p>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground ml-auto mt-1" />
+                        <ArrowRight className="h-4 w-4 text-muted-foreground ms-auto mt-1" />
                       </div>
                     </div>
                   </CardContent>
