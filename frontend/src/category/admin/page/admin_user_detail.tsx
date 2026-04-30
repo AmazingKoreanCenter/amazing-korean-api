@@ -178,7 +178,7 @@ export function AdminUserDetail() {
               {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...form.register("email")} />
+                <Input id="email" type="email" dir="ltr" {...form.register("email")} />
                 {form.formState.errors.email && (
                   <p className="text-sm text-destructive">
                     {form.formState.errors.email.message}
@@ -208,7 +208,7 @@ export function AdminUserDetail() {
                 <Label htmlFor="password">New Password (optional)</Label>
                 <Input
                   id="password"
-                  type="password"
+                  type="password" dir="ltr"
                   placeholder="Leave blank to keep current"
                   {...form.register("password")}
                 />

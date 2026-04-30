@@ -529,7 +529,7 @@ export function AdminTextbookOrderDetail() {
               </Label>
               <Input
                 id="editDiscountAmount"
-                type="number"
+                type="number" dir="ltr"
                 min={0}
                 max={order.gross_amount}
                 value={discountAmount}

@@ -290,7 +290,7 @@ export function AdminUsersPage() {
                     <FormLabel>이메일</FormLabel>
                     <FormControl>
                       <Input
-                        type="email"
+                        type="email" dir="ltr"
                         placeholder="admin@example.com"
                         {...field}
                       />

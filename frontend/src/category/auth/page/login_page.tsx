@@ -375,7 +375,7 @@ export function LoginPage() {
                         <FormLabel>{t("auth.emailLabel")}</FormLabel>
                         <FormControl>
                           <Input
-                            type="email"
+                            type="email" dir="ltr"
                             placeholder={t("auth.emailPlaceholder")}
                             autoComplete="email"
                             {...field}
@@ -395,7 +395,7 @@ export function LoginPage() {
                         <FormLabel>{t("auth.passwordLabel")}</FormLabel>
                         <FormControl>
                           <Input
-                            type="password"
+                            type="password" dir="ltr"
                             placeholder={t("auth.passwordPlaceholder")}
                             autoComplete="current-password"
                             {...field}

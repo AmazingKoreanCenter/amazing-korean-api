@@ -243,7 +243,7 @@ export function AdminGrantsPage() {
             <div className="space-y-2">
               <Label>{t("admin.payment.grantUserId")}</Label>
               <Input
-                type="number"
+                type="number" dir="ltr"
                 placeholder={t("admin.payment.grantUserIdPlaceholder")}
                 value={grantUserId}
                 onChange={(e) => setGrantUserId(e.target.value)}

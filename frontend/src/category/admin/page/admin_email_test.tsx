@@ -89,7 +89,7 @@ export function AdminEmailTest() {
                 <Label htmlFor="to">수신자 이메일 *</Label>
                 <Input
                   id="to"
-                  type="email"
+                  type="email" dir="ltr"
                   placeholder="test@example.com"
                   {...form.register("to")}
                 />

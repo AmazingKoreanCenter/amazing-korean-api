@@ -158,7 +158,7 @@ export function AdminTextbookLogsPage() {
               {t("admin.textbook.logs.filter.orderId")}
             </label>
             <Input
-              type="number"
+              type="number" dir="ltr"
               className="mt-1"
               value={orderIdInput}
               onChange={(e) => setOrderIdInput(e.target.value)}
@@ -170,7 +170,7 @@ export function AdminTextbookLogsPage() {
               {t("admin.textbook.logs.filter.adminUserId")}
             </label>
             <Input
-              type="number"
+              type="number" dir="ltr"
               className="mt-1"
               value={adminUserIdInput}
               onChange={(e) => setAdminUserIdInput(e.target.value)}

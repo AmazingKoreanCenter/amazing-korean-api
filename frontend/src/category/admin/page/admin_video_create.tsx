@@ -150,7 +150,7 @@ export function AdminVideoCreate() {
                 <div className="flex gap-2">
                   <Input
                     id="video_url_vimeo"
-                    type="url"
+                    type="url" dir="ltr"
                     placeholder="https://vimeo.com/123456789"
                     className="flex-1"
                     {...form.register("video_url_vimeo")}

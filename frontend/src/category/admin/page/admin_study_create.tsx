@@ -669,7 +669,7 @@ export function AdminStudyCreate() {
                         <Label htmlFor="study_task_seq">Sequence</Label>
                         <Input
                           id="study_task_seq"
-                          type="number"
+                          type="number" dir="ltr"
                           value={taskCount + 1}
                           disabled
                           className="bg-muted"
@@ -818,7 +818,7 @@ export function AdminStudyCreate() {
                           <Label htmlFor="choice_correct" className="text-xs">Correct Choice (1-4)</Label>
                           <Input
                             id="choice_correct"
-                            type="number"
+                            type="number" dir="ltr"
                             min={1}
                             max={4}
                             className="w-24"
@@ -908,7 +908,7 @@ export function AdminStudyCreate() {
                           <div className="space-y-2">
                             <Label className="text-xs">Seq</Label>
                             <Input
-                              type="number"
+                              type="number" dir="ltr"
                               value={taskCount + index + 1}
                               disabled
                               className="bg-muted"
@@ -966,7 +966,7 @@ export function AdminStudyCreate() {
                               {...bulkTaskForm.register(`items.${index}.choice_4`)}
                             />
                             <Input
-                              type="number"
+                              type="number" dir="ltr"
                               min={1}
                               max={4}
                               placeholder="Correct (1-4)"

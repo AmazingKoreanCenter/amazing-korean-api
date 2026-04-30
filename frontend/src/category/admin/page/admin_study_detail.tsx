@@ -886,7 +886,7 @@ export function AdminStudyDetail() {
             <div className="space-y-2">
               <Label>User ID</Label>
               <Input
-                type="number"
+                type="number" dir="ltr"
                 min={1}
                 value={bulkUpdateStatusFormData.user_id || ""}
                 onChange={(e) =>
@@ -899,7 +899,7 @@ export function AdminStudyDetail() {
             <div className="space-y-2">
               <Label>Try Count</Label>
               <Input
-                type="number"
+                type="number" dir="ltr"
                 min={0}
                 value={bulkUpdateStatusFormData.study_task_status_try_count}
                 onChange={(e) =>
@@ -1511,7 +1511,7 @@ function TaskStatusTab({ taskId }: { taskId: number }) {
             <div className="space-y-2">
               <Label>Try Count</Label>
               <Input
-                type="number"
+                type="number" dir="ltr"
                 min={0}
                 value={formData.study_task_status_try_count}
                 onChange={(e) =>

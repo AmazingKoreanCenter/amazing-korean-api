@@ -581,7 +581,7 @@ export function TextbookOrderPage() {
                             </FormLabel>
                             <FormControl>
                               <Input
-                                type="number"
+                                type="number" dir="ltr"
                                 min={1}
                                 {...f}
                                 onChange={(e) =>
@@ -708,7 +708,7 @@ export function TextbookOrderPage() {
                         </FormLabel>
                         <FormControl>
                           <Input
-                            type="tel"
+                            type="tel" dir="ltr"
                             placeholder="010-1234-5678"
                             {...field}
                           />
@@ -727,7 +727,7 @@ export function TextbookOrderPage() {
                         </FormLabel>
                         <FormControl>
                           <Input
-                            type="email"
+                            type="email" dir="ltr"
                             placeholder="example@email.com"
                             {...field}
                           />
@@ -999,7 +999,7 @@ export function TextbookOrderPage() {
                             </FormLabel>
                             <FormControl>
                               <Input
-                                type="email"
+                                type="email" dir="ltr"
                                 placeholder="tax@company.com"
                                 {...field}
                               />

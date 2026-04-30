@@ -82,7 +82,7 @@ export function AdminUserCreate() {
                 <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
-                  type="email"
+                  type="email" dir="ltr"
                   placeholder="user@example.com"
                   {...form.register("email")}
                 />
@@ -128,7 +128,7 @@ export function AdminUserCreate() {
                 <Label htmlFor="password">Password *</Label>
                 <Input
                   id="password"
-                  type="password"
+                  type="password" dir="ltr"
                   placeholder="Minimum 8 characters"
                   {...form.register("password")}
                 />

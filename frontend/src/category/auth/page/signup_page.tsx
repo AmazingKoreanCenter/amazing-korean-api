@@ -252,7 +252,7 @@ export function SignupPage() {
                         <FormLabel>{t("auth.emailLabel")}</FormLabel>
                         <FormControl>
                           <Input
-                            type="email"
+                            type="email" dir="ltr"
                             placeholder={t("auth.emailPlaceholder")}
                             autoComplete="email"
                             {...field}
@@ -272,7 +272,7 @@ export function SignupPage() {
                         <FormLabel>{t("auth.passwordLabel")}</FormLabel>
                         <FormControl>
                           <Input
-                            type="password"
+                            type="password" dir="ltr"
                             placeholder={t("auth.passwordMinPlaceholder")}
                             autoComplete="new-password"
                             {...field}
@@ -292,7 +292,7 @@ export function SignupPage() {
                         <FormLabel>{t("auth.confirmPasswordLabel")}</FormLabel>
                         <FormControl>
                           <Input
-                            type="password"
+                            type="password" dir="ltr"
                             placeholder={t("auth.confirmPasswordPlaceholder")}
                             autoComplete="new-password"
                             {...field}

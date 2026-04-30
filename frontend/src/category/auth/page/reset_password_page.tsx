@@ -113,7 +113,7 @@ export function ResetPasswordPage() {
                     <FormLabel>{t("auth.newPasswordLabel")}</FormLabel>
                     <FormControl>
                       <Input
-                        type="password"
+                        type="password" dir="ltr"
                         placeholder={t("auth.newPasswordPlaceholder")}
                         autoComplete="new-password"
                         {...field}
@@ -131,7 +131,7 @@ export function ResetPasswordPage() {
                     <FormLabel>{t("auth.resetConfirmPasswordLabel")}</FormLabel>
                     <FormControl>
                       <Input
-                        type="password"
+                        type="password" dir="ltr"
                         placeholder={t("auth.resetConfirmPasswordPlaceholder")}
                         autoComplete="new-password"
                         {...field}

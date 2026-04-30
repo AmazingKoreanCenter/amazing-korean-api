@@ -1205,7 +1205,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                 <Label htmlFor="item-seq">Sequence</Label>
                 <Input
                   id="item-seq"
-                  type="number"
+                  type="number" dir="ltr"
                   min={1}
                   value={itemSeq}
                   onChange={(e) => setItemSeq(e.target.value)}
@@ -1460,7 +1460,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                 <div className="space-y-2">
                   <Label>Starting Sequence</Label>
                   <Input
-                    type="number"
+                    type="number" dir="ltr"
                     min={1}
                     value={multiStartSeq}
                     onChange={(e) => setMultiStartSeq(e.target.value)}
@@ -1739,7 +1739,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                 <Label htmlFor="edit-seq">Sequence</Label>
                 <Input
                   id="edit-seq"
-                  type="number"
+                  type="number" dir="ltr"
                   min={1}
                   value={editSeq}
                   onChange={(e) => setEditSeq(e.target.value)}
@@ -2618,7 +2618,7 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
               <Label htmlFor="edit-percent">Progress Percent (0-100)</Label>
               <Input
                 id="edit-percent"
-                type="number"
+                type="number" dir="ltr"
                 min={0}
                 max={100}
                 value={editPercent}
@@ -2630,7 +2630,7 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
               <Label htmlFor="edit-seq">Last Item Seq (1-{maxItemSeq})</Label>
               <Input
                 id="edit-seq"
-                type="number"
+                type="number" dir="ltr"
                 min={1}
                 max={maxItemSeq}
                 value={editLastSeq}
@@ -2670,7 +2670,7 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
               <Label htmlFor="bulk-percent">Progress Percent (0-100)</Label>
               <Input
                 id="bulk-percent"
-                type="number"
+                type="number" dir="ltr"
                 min={0}
                 max={100}
                 value={bulkPercent}
@@ -2682,7 +2682,7 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
               <Label htmlFor="bulk-seq">Last Item Seq (1-{maxItemSeq})</Label>
               <Input
                 id="bulk-seq"
-                type="number"
+                type="number" dir="ltr"
                 min={1}
                 max={maxItemSeq}
                 value={bulkLastSeq}
