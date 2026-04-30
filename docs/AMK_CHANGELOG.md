@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-28 (🚨 INC-004 — 이미 적용된 마이그 20260421 주석 수정으로 sqlx checksum 실패, 약 8분 다운, hotfix 복구)
+updated: 2026-04-30 (PR #188 Gemini MEDIUM 2건 즉시 반영 — supported_language_enum 표기 일관화 DB snake_case)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,17 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-04-30 — PR #188 Gemini 리뷰 MEDIUM 2건 즉시 반영 (supported_language_enum 표기 일관화)**
+
+  PR #188 머지 (2026-04-28 03:06 UTC) 후 Gemini 리뷰 MEDIUM 2건. `feedback_work_rules` "머지 후 Gemini 리뷰 즉시 반영" 원칙 적용.
+
+  - **MEDIUM #1** — `docs/AMK_API_MASTER.md §4.8 (L1334)`: DB enum 정의 섹션이므로 BCP 47 hyphen 표기 (`zh-CN`/`zh-TW`/`es-ES`/`pt-PT`) 가 부적절. 실제 DB 저장값 = snake_case (`zh_cn`/`zh_tw`/`es_es`/`pt_pt`) 로 정정. **API 응답·요청 시 BCP 47 (serde rename)** 은 별도 명시 추가.
+  - **MEDIUM #2** — `docs/AMK_SCHEMA_PATCHED.md L34`: `CREATE TYPE supported_language_enum` 정의가 22 lang 만 포함 (snapshot 시점 그대로). L587 주석 ("37개 지원 언어") 와 일관성 깨짐. L34 도 37 lang 모두 포함하도록 갱신 (2026-04-21 +13 + 2026-04-28 +es_es/pt_pt).
+
+  변경: docs 2건 (코드/마이그 영향 없음).
 
 ---
 

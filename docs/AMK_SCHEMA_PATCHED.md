@@ -31,7 +31,7 @@ CREATE TYPE content_type_enum AS ENUM ('course', 'lesson', 'video', 'video_tag',
 -- 'video' = 비디오 제목/부제 번역, 'video_tag' = 비디오 태그 번역 (향후 사용)
 -- 마이그레이션: 20260210_i18n_add_video_content_type.sql
 CREATE TYPE translation_status_enum AS ENUM ('draft', 'reviewed', 'approved');
-CREATE TYPE supported_language_enum AS ENUM ('ko', 'en', 'ja', 'zh_cn', 'zh_tw', 'vi', 'th', 'id', 'my', 'mn', 'ru', 'es', 'pt', 'fr', 'de', 'hi', 'ne', 'si', 'km', 'uz', 'kk', 'tg');
+CREATE TYPE supported_language_enum AS ENUM ('ko', 'en', 'ja', 'zh_cn', 'zh_tw', 'vi', 'th', 'id', 'my', 'mn', 'ru', 'es', 'es_es', 'pt', 'pt_pt', 'fr', 'de', 'hi', 'ne', 'si', 'km', 'uz', 'kk', 'tg', 'tl', 'tr', 'bn', 'ar', 'ur', 'fa', 'lo', 'ky', 'it', 'sw', 'uk', 'am', 'pl');  -- 37개 (2026-04-21 +13: tl/tr/bn/ar/ur/fa/lo/ky/it/sw/uk/am/pl, 2026-04-28 +es_es/pt_pt 유럽 variant)
 
 -- 2. Tables
 
