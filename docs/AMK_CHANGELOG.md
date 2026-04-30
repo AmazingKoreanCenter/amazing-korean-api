@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-28 (🚨 INC-004 — 이미 적용된 마이그 20260421 주석 수정으로 sqlx checksum 실패, 약 8분 다운, hotfix 복구)
+updated: 2026-04-30 (Q13 Phase 2 세션 단위 실행 계획 수립 — INC-001~004 학습 적용, S1~S7 자가 점검 + hotfix 패턴 명시)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,81 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-04-30 (저녁) — Q13 Phase 2 세션 단위 실행 계획 수립**
+
+  사용자 제안: 민감한 작업 (RTL 707곳 마이그, INC-004 직후 신중 모드) 을 세션 단위로 분할하여 이슈 발생 시 처리 가능하게. 각 세션 = 작업 범위 + 검증 게이트 + 롤백 plan 명시.
+
+  **plan §2.9 SSoT 신설** — 미래 claude 세션이 plan 만 보고 실행 가능하도록 self-contained 작성:
+  - **§2.9.1 자가 점검 체크리스트** (모든 세션 진입 전 필수): 사전 조건 / KKRYOUN sync / clean working dir / 이미 적용된 마이그 변경 시도 금지 (INC-004) / KKRYOUN push 자동 배포 인지 / 변경 한도 명시
+  - **§2.9.2 이슈 발생 시 hotfix 패턴** (INC-004 절차 재사용): 영향 파악 → baseline 복원 → 단일 hotfix 커밋 → 자동 재배포 모니터링 → 사후 기록
+  - **§2.9.3 세션 정의 표** (S1~S7, 사전조건/시간/PR 매핑)
+  - **§2.9.4 S1** — frontend 자동 sed 12쌍 (~707곳). perl word-boundary 매핑 명령 포함. 1-2h.
+  - **§2.9.5 S2** — 의도적 LTR 영역 보호 (input email/url/tel/number, 가격, 코드 블록) + 검증 + PR-A 푸시. 2-3h.
+  - **§2.9.6 S3** — PR-B-pre 인프라 dormant (font_loader 6 신규 / RTL 그룹 신설 / dir toggle 핸들러). SUPPORTED_LANGUAGES 제외. 2-3h.
+  - **§2.9.7 S4** — 데스크탑 (`amazing-korean-desktop`) 동일 logical 마이그. 3-4h.
+  - **§2.9.8 S5~S7** — ai 측 결과 도착 후 상세화 (SUPPORTED_LANGUAGES 활성 / RTL 시각 검증 / 데스크탑 활성).
+  - **§2.9.9 세션 간 컨텍스트 인계** — `project_status.md` breadcrumb 갱신 + 검증 결과 + 발견 위험 기록.
+
+  **저장 (git 외)**: plan SSoT `~/.claude/plans/supported-language-es-pt-variants-expansion.md` §2.9 + 메모리 `project_phase2_followup_research.md` 세션 단위 포인터 추가.
+
+  **다음**: S1 진입 — PR #189 머지/배포 후 시작. 사전 조건 §2.9.1 자가 점검 통과 후.
+
+---
+
+- **2026-04-30 (오후) — Q13 Phase 2 api 측 후속 작업 사전 조사 완료**
+
+  ai 측 (amazing-korean-ai Mac Mini) 의 13 lang 번역 PR 도착 시점에 api 측에서 즉시 진행할 후속 작업 분량·우선순위 실측 + 외부 벤치마크.
+
+  **실측 데이터 (frontend `src/` grep)**:
+  - directional Tailwind class 사용 **약 707곳**: text-left 168 / text-right 94 / mr- 176 / ml- 67 / pl- 23 / pr- 6 / left- 33 / right- 16 / rounded-l 114 / border-l/r 9 / rounded-r 1
+  - logical alternatives 사용 현재 2건 (`start-*` 만) — 처음부터 LTR-only 코드베이스
+  - Tailwind 3.4.17 — logical properties 지원 ✅
+
+  **폰트 fallback 신규 매핑 6 lang**:
+  - ar (Noto Sans Arabic), fa (Noto Sans Arabic), ur (**Noto Nastaliq Urdu** 고유 서체), bn (Noto Sans Bengali), am (Noto Sans Ethiopic), lo (Noto Sans Lao)
+  - 추가 불필요 7 lang (Pretendard 커버): ky / tr / it / pl / uk / sw / tl
+
+  **자매 서비스 영향**:
+  - 데스크탑 (`amazing-korean-desktop` Tauri+React) = api 와 동일 i18n 구조 (22 locale, `src/i18n/locales/`) → **PR-D 동일 patch**
+  - 모바일 (`amazing-korean-mobile` Flutter) = i18n 미구현 (l10n/intl 없음) → Phase 2 영향 없음
+
+  **외부 벤치마크 (Korean 학습 + RTL)**:
+  - Duolingo: RTL 후발 도입, Korean 학습 효과 비판
+  - TTMIK: 영어 위주, RTL 정보 없음
+  - 일반론: 한국어 학습 + 본격 RTL 지원 거의 없음 → **차별화 가치** (아랍/페르시아/우르두권 시장)
+
+  **작업 PR 4분할** (총 2.5-3.5일):
+  - **PR-A** logical 마이그 (707곳 sed + LTR 보호) — 1일, 번역 무관
+  - **PR-B** RTL 인프라 (groups.ts + dir toggle + font_loader 6 신규) + `SUPPORTED_LANGUAGES` 13 추가 — 반나절, ai PR 머지 후
+  - **PR-C** RTL 시각 검증 + 깨진 곳 패치 — 반나절~1일, 실제 번역 텍스트 필수
+  - **PR-D** 데스크탑 동일 작업 (별도 리포) — 반나절~1일
+
+  **의도적 LTR 유지 영역** (RTL 토글 시 `dir="ltr"` 보호): 이메일/URL/전화/숫자/가격/코드 블록/한국어 자판 연습/캐러셀 화살표.
+
+  **미리 진행 vs 대기 결정**: 사용자 동의 — **대기**. 이유: (1) RTL 검증은 실제 번역 텍스트 필수 (2) ai 측 PR 분할/lang set 미확정 (3) INC-004 학습.
+
+  **저장**:
+  - plan SSoT `~/.claude/plans/supported-language-es-pt-variants-expansion.md` §2.4 ~ §2.4.6 상세화
+  - 메모리 `project_phase2_followup_research.md` 신규 + `MEMORY.md` 인덱스
+  - `AMK_STATUS.md §8.2 Q13` 인라인 갱신
+
+  **Tailwind logical properties 참조**: Tailwind 3.3 blog (`ms-`/`me-`/`text-start`/`rounded-s` 등 자동 LTR/RTL 처리, `ltr:`/`rtl:` variant 불필요).
+
+---
+
+- **2026-04-30 — PR #188 Gemini 리뷰 MEDIUM 2건 즉시 반영 (supported_language_enum 표기 일관화)**
+
+- **2026-04-30 — PR #188 Gemini 리뷰 MEDIUM 2건 즉시 반영 (supported_language_enum 표기 일관화)**
+
+  PR #188 머지 (2026-04-28 03:06 UTC) 후 Gemini 리뷰 MEDIUM 2건. `feedback_work_rules` "머지 후 Gemini 리뷰 즉시 반영" 원칙 적용.
+
+  - **MEDIUM #1** — `docs/AMK_API_MASTER.md §4.8 (L1334)`: DB enum 정의 섹션이므로 BCP 47 hyphen 표기 (`zh-CN`/`zh-TW`/`es-ES`/`pt-PT`) 가 부적절. 실제 DB 저장값 = snake_case (`zh_cn`/`zh_tw`/`es_es`/`pt_pt`) 로 정정. **API 응답·요청 시 BCP 47 (serde rename)** 은 별도 명시 추가.
+  - **MEDIUM #2** — `docs/AMK_SCHEMA_PATCHED.md L34`: `CREATE TYPE supported_language_enum` 정의가 22 lang 만 포함 (snapshot 시점 그대로). L587 주석 ("37개 지원 언어") 와 일관성 깨짐. L34 도 37 lang 모두 포함하도록 갱신 (2026-04-21 +13 + 2026-04-28 +es_es/pt_pt).
+
+  변경: docs 2건 (코드/마이그 영향 없음).
 
 ---
 
