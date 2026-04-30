@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-30 (Q13 Phase 2 S3 = PR-B-pre 인프라 진입 — font_loader 6 lang + RTL Set + dir 토글, SUPPORTED_LANGUAGES dormant)
+updated: 2026-04-30 (Q13 Phase 2 S4 = PR-D 데스크탑 마이그 — amazing-korean-desktop 동기화 93 파일)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,38 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-04-30 (밤, S4) — Q13 Phase 2 PR-D 데스크탑 마이그 (amazing-korean-desktop 동기화)**
+
+  S3 (PR #191) 머지 직후 동일 세션 내 S4 진입. plan §2.9.7 그대로 실행. INC 0 건. `amazing-korean-desktop` 리포는 별도 (no remote, main 직접 커밋, 코드 복사 정책).
+
+  **desktop 커밋**: `e63e20e` — `feat(i18n): Phase 2 logical properties 마이그 + LTR 보호 + RTL 인프라 (PR-D)`. 93 파일 / +624 -587. api PR-A + PR-B-pre 와 동일 패턴 (S1 sed + S2 LTR 보호 + S3 RTL 인프라) 한 묶음.
+
+  **Desktop 분포 vs api**:
+  | 항목 | api | desktop | 비고 |
+  |---|---:|---:|---|
+  | S1 directional total | 707 | 664 | 코드 복사 시점 차이 |
+  | S2 input | 45 (20 파일) | 37 (~17 파일) | desktop = email 10/url 2/tel 1/number 16/password 8 |
+  | S2 pre/code | 12 (9 파일) | 10 | |
+  | S2 WritingTask | 4 main | 0 | desktop 미포함 |
+  | S2 receipt | 6 span | 0 | desktop 미포함 |
+  | S3 RTL 인프라 | 3 파일 / +37 | 3 파일 / +37 | 동일 |
+
+  **WritingTask / receipt desktop 미포함 이유**: desktop 은 React 코드 복사 시점이 receipt_parts.tsx 와 study/writing/ 추가 이전. 그 결과 S2 수동 작업 0 (자동 sed 만으로 끝).
+
+  **검증**:
+  - `npm run build`: 8.20s 클린 (Tauri 메인 번들 1,631 kB, baseline 1,630 kB 와 거의 동일)
+  - `npx tsc --noEmit`: 0 error
+  - LTR 환경 회귀 없음 (Tailwind logical = dir 의존, RTL 분기 dormant)
+
+  **다음**:
+  - S5 (api): `SUPPORTED_LANGUAGES` 13 신규 entry 추가 (RTL 활성). ai 측 첫 RTL 번역 PR 머지 후.
+  - S6 (PR-C): RTL 시각 검증 + 미보호 가격 표시 (toLocaleString 30+ 곳) helper component 도입 검토.
+  - S7 (desktop): SUPPORTED_LANGUAGES 동일 추가. ai 측 데스크탑 RTL 번역 PR 후.
+
+  **plan SSoT**: `~/.claude/plans/supported-language-es-pt-variants-expansion.md` §2.9.7.
 
 ---
 
