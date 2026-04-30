@@ -3,6 +3,7 @@
  *
  * - ko/en/Latin/Cyrillic 계열: Pretendard가 커버 (CDN으로 이미 로드)
  * - CJK (ja, zh-CN, zh-TW): Noto Sans JP/SC/TC
+ * - RTL (ar, fa, ur): Noto Sans Arabic / Nastaliq Urdu
  * - 특수 스크립트: 각 Noto Sans 변형
  */
 
@@ -52,9 +53,36 @@ const FONT_MAP: Record<string, FontConfig> = {
     href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;700&display=swap",
     id: "font-si",
   },
+  // RTL 3종 (PR-B-pre dormant — SUPPORTED_LANGUAGES 활성은 PR-B / S5)
+  ar: {
+    href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;700&display=swap",
+    id: "font-ar",
+  },
+  fa: {
+    href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;700&display=swap",
+    id: "font-fa",
+  },
+  ur: {
+    href: "https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;500;700&display=swap",
+    id: "font-ur",
+  },
+  // 기타 신규 3종 (PR-B-pre dormant)
+  bn: {
+    href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;700&display=swap",
+    id: "font-bn",
+  },
+  am: {
+    href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Ethiopic:wght@400;500;700&display=swap",
+    id: "font-am",
+  },
+  lo: {
+    href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;700&display=swap",
+    id: "font-lo",
+  },
 };
 
 // ko, en, vi, id, ru, uz, kk, tg, es, pt, fr, de → Pretendard 커버 (별도 로딩 불필요)
+// ky, tr, it, pl, uk, sw, tl → Pretendard 커버 (PR-B / S5 활성 시)
 
 /** 언어에 필요한 폰트를 동적으로 로드 (이미 로드된 폰트는 skip) */
 export function loadFontForLanguage(lang: string): void {

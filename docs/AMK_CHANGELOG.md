@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-30 (Q13 Phase 2 S1+S2 = PR #190 푸시 + deploy success — frontend Tailwind logical 707곳 + 의도적 LTR 보호 67곳)
+updated: 2026-04-30 (Q13 Phase 2 S3 = PR-B-pre 인프라 진입 — font_loader 6 lang + RTL Set + dir 토글, SUPPORTED_LANGUAGES dormant)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,44 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-04-30 (밤, S3) — Q13 Phase 2 PR-B-pre 인프라 코드 추가 (RTL dormant)**
+
+  PR #190 머지 직후 동일 세션 내 S3 진입. plan §2.9.6 그대로 실행. 자가 점검 8/8 통과. INC 0 건.
+
+  **변경 (3 파일 / +37)**:
+  - **`frontend/src/utils/font_loader.ts`** — `FONT_MAP` 에 6 lang entry 추가:
+    - RTL 3종: `ar`/`fa` = Noto Sans Arabic, `ur` = Noto Nastaliq Urdu (Urdu 전용 명조체)
+    - 기타 3종: `bn` = Noto Sans Bengali, `am` = Noto Sans Ethiopic, `lo` = Noto Sans Lao
+    - `loadFontForLanguage` 는 lang 키 lookup 이라 매핑만 추가하면 자동 동작 (단 `SUPPORTED_LANGUAGES` 미포함 = 호출 안 됨 = dormant)
+  - **`frontend/src/utils/language_groups.ts`** — `RTL = new Set(["ar", "fa", "ur"])` + `isRTL` 헬퍼 + `LANG_CLASSES` 에 `"lang-rtl"` 추가
+  - **`frontend/src/i18n/index.ts`** — `applyLangClasses` 에 `if (isRTL(lang)) root.add("lang-rtl")` + `document.documentElement.dir = isRTL(lang) ? "rtl" : "ltr"` 추가. `isRTL` import.
+
+  **dormant 의도**: `SUPPORTED_LANGUAGES` 배열 변경 안 함 → 드롭다운에 ar/fa/ur 노출 안 됨 → 사용자가 선택 불가 → 인프라만 준비, 활성화는 PR-B / S5 에서 ai 측 RTL 번역 PR 도착 후. 미리 SUPPORTED_LANGUAGES 추가하면 빈 locale 호출 → en fallback (UX 깨짐) 위험.
+
+  **검증 게이트**:
+  - `npm run build`: 9.57s 클린 ✅
+  - `npx tsc --noEmit`: 0 error ✅
+  - 기존 22 lang 회귀 영향 없음 (RTL 분기는 dormant 라 호출 안 됨)
+
+  **다음**: S4 (PR-D 데스크탑 동일 logical 마이그) 진입 가능 또는 다음 세션 위임. S5 (SUPPORTED_LANGUAGES 13 신규 활성) 는 ai 측 첫 RTL 번역 PR 머지 후.
+
+  **plan SSoT**: `~/.claude/plans/supported-language-es-pt-variants-expansion.md` §2.9.6.
+
+---
+
+- **2026-04-30 (밤) — Q13 Phase 2 PR-A 머지 완료 (S1+S2 / PR #190 / deploy success × 3)**
+
+  PR #190 (5 커밋) 사용자 머지 완료 (`ddf89a9`, 2026-04-30 03:17:50 UTC). 머지 후 자동 deploy run `25145538635` SUCCESS. `/health` 200. INC 0 건. KKRYOUN ff sync 완료.
+
+  본 세션 누적 deploy 3건 모두 SUCCESS:
+  - run `25144272236` (5dd74db, S1+S2 4 커밋 푸시)
+  - run `25144553659` (934cce7, docs 5/5 푸시)
+  - run `25145538635` (ddf89a9, PR #190 머지 커밋)
+
+  **다음**: S3 (PR-B-pre 인프라) 또는 S4 (데스크탑) 진입 가능 — 사용자 선택.
 
 ---
 

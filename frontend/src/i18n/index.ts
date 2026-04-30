@@ -6,6 +6,7 @@ import {
   isCJK,
   isTallScript,
   needsRelaxedTracking,
+  isRTL,
   LANG_CLASSES,
 } from "@/utils/language_groups";
 
@@ -97,6 +98,10 @@ function applyLangClasses(lang: string): void {
   if (isCJK(lang)) root.add("lang-cjk");
   if (isTallScript(lang)) root.add("lang-tall-script");
   if (needsRelaxedTracking(lang)) root.add("lang-relaxed-tracking");
+  if (isRTL(lang)) root.add("lang-rtl");
+  // RTL 활성 시 dir="rtl", 그 외 dir="ltr". SUPPORTED_LANGUAGES 에 RTL 미포함
+  // (PR-B / S5 활성) 이라 현재는 항상 ltr 분기, 인프라 dormant 상태.
+  document.documentElement.dir = isRTL(lang) ? "rtl" : "ltr";
 }
 
 // 초기 로드 시 현재 언어에 맞는 클래스 설정
