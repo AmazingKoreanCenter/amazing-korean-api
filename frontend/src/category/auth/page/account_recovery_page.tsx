@@ -115,7 +115,7 @@ function FindIdTab({ onSwitchTab }: { onSwitchTab: () => void }) {
           >
             {findIdMutation.isPending ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 animate-spin me-2" />
                 {t("auth.requesting")}
               </>
             ) : (
@@ -320,11 +320,11 @@ function FindPasswordTab() {
                   <FormLabel>{t("auth.emailLabel")}</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Mail className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        type="email"
+                        type="email" dir="ltr"
                         placeholder={t("auth.emailPlaceholder")}
-                        className="pl-10"
+                        className="ps-10"
                         autoComplete="email"
                         {...field}
                       />
@@ -337,7 +337,7 @@ function FindPasswordTab() {
             <Button type="submit" className="w-full" disabled={isSending}>
               {isSending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
                   {t("auth.findPasswordSending")}
                 </>
               ) : (
@@ -361,11 +361,11 @@ function FindPasswordTab() {
                   <FormLabel>{t("auth.verificationCodeLabel")}</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <KeyRound className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         type="text"
                         placeholder={t("auth.verificationCodePlaceholder")}
-                        className="pl-10 text-center tracking-widest"
+                        className="ps-10 text-center tracking-widest"
                         maxLength={6}
                         autoComplete="one-time-code"
                         {...field}
@@ -379,7 +379,7 @@ function FindPasswordTab() {
             <Button type="submit" className="w-full" disabled={isVerifying}>
               {isVerifying ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
                   {t("auth.verifying")}
                 </>
               ) : (

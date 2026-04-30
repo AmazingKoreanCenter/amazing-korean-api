@@ -154,7 +154,7 @@ export function AdminStudyBulkCreate() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/studies")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Bulk Create Studies</h1>
@@ -172,7 +172,7 @@ export function AdminStudyBulkCreate() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
+          <pre dir="ltr" className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
 {`study_idx,study_program,study_state,study_access,study_title,study_subtitle,study_description
 TBC-001,tbc,ready,public,Lesson 1 Introduction,Welcome to lesson 1,This is description
 TBC-002,basic_word,open,paid,Lesson 2 Basics,Basic concepts,Another description`}
@@ -216,7 +216,7 @@ TBC-002,basic_word,open,paid,Lesson 2 Basics,Basic concepts,Another description`
             <CardDescription>
               <span className="text-status-success">{validCount} valid</span>
               {invalidCount > 0 && (
-                <span className="text-destructive ml-2">{invalidCount} invalid</span>
+                <span className="text-destructive ms-2">{invalidCount} invalid</span>
               )}
             </CardDescription>
           </CardHeader>
@@ -225,13 +225,13 @@ TBC-002,basic_word,open,paid,Lesson 2 Basics,Basic concepts,Another description`
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/50 sticky top-0">
                   <tr>
-                    <th className="h-10 px-4 text-left font-medium">Row</th>
-                    <th className="h-10 px-4 text-left font-medium">IDX</th>
-                    <th className="h-10 px-4 text-left font-medium">Program</th>
-                    <th className="h-10 px-4 text-left font-medium">State</th>
-                    <th className="h-10 px-4 text-left font-medium">Access</th>
-                    <th className="h-10 px-4 text-left font-medium">Title</th>
-                    <th className="h-10 px-4 text-left font-medium">Status</th>
+                    <th className="h-10 px-4 text-start font-medium">Row</th>
+                    <th className="h-10 px-4 text-start font-medium">IDX</th>
+                    <th className="h-10 px-4 text-start font-medium">Program</th>
+                    <th className="h-10 px-4 text-start font-medium">State</th>
+                    <th className="h-10 px-4 text-start font-medium">Access</th>
+                    <th className="h-10 px-4 text-start font-medium">Title</th>
+                    <th className="h-10 px-4 text-start font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -304,10 +304,10 @@ TBC-002,basic_word,open,paid,Lesson 2 Basics,Basic concepts,Another description`
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/50 sticky top-0">
                   <tr>
-                    <th className="h-10 px-4 text-left font-medium">ID</th>
-                    <th className="h-10 px-4 text-left font-medium">IDX</th>
-                    <th className="h-10 px-4 text-left font-medium">Status</th>
-                    <th className="h-10 px-4 text-left font-medium">Error</th>
+                    <th className="h-10 px-4 text-start font-medium">ID</th>
+                    <th className="h-10 px-4 text-start font-medium">IDX</th>
+                    <th className="h-10 px-4 text-start font-medium">Status</th>
+                    <th className="h-10 px-4 text-start font-medium">Error</th>
                   </tr>
                 </thead>
                 <tbody>

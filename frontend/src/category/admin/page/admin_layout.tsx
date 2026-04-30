@@ -29,7 +29,7 @@ export function AdminLayout() {
   return (
     <div className="min-h-screen flex bg-muted print:block print:bg-white print:min-h-0">
       {/* Sidebar — 인쇄/PDF 저장 시 숨김 */}
-      <aside className="w-64 bg-card border-r border-border flex flex-col print:hidden">
+      <aside className="w-64 bg-card border-e border-border flex flex-col print:hidden">
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-border">
           <Link to="/admin" className="text-xl font-bold text-foreground">

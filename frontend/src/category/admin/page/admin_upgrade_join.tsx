@@ -235,7 +235,7 @@ export function AdminUpgradeJoin() {
                     <FormLabel>비밀번호</FormLabel>
                     <FormControl>
                       <Input
-                        type="password"
+                        type="password" dir="ltr"
                         placeholder="8자 이상, 영문+숫자 포함"
                         autoComplete="new-password"
                         {...field}
@@ -389,7 +389,7 @@ export function AdminUpgradeJoin() {
               >
                 {acceptMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-4 w-4 animate-spin me-2" />
                     계정 생성 중...
                   </>
                 ) : (

@@ -376,7 +376,7 @@ export function TextbookOrderPage() {
                       )
                     }
                   >
-                    <FileText className="h-4 w-4 mr-1" />
+                    <FileText className="h-4 w-4 me-1" />
                     {t("textbook.print.quoteTitle")}
                   </Button>
                 </div>
@@ -581,7 +581,7 @@ export function TextbookOrderPage() {
                             </FormLabel>
                             <FormControl>
                               <Input
-                                type="number"
+                                type="number" dir="ltr"
                                 min={1}
                                 {...f}
                                 onChange={(e) =>
@@ -630,7 +630,7 @@ export function TextbookOrderPage() {
                       })
                     }
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-4 w-4 me-1" />
                     {t("textbook.order.addItem")}
                   </Button>
 
@@ -647,12 +647,12 @@ export function TextbookOrderPage() {
                         {t("textbook.order.unit")}
                       </span>
                       {totalQuantity < MIN_TOTAL_QUANTITY && (
-                        <span className="text-sm text-destructive ml-2">
+                        <span className="text-sm text-destructive ms-2">
                           ({t("textbook.order.minQuantityHint", { min: MIN_TOTAL_QUANTITY })})
                         </span>
                       )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                       <span className="text-sm text-muted-foreground">
                         {t("textbook.order.totalAmount")}:{" "}
                       </span>
@@ -708,7 +708,7 @@ export function TextbookOrderPage() {
                         </FormLabel>
                         <FormControl>
                           <Input
-                            type="tel"
+                            type="tel" dir="ltr"
                             placeholder="010-1234-5678"
                             {...field}
                           />
@@ -727,7 +727,7 @@ export function TextbookOrderPage() {
                         </FormLabel>
                         <FormControl>
                           <Input
-                            type="email"
+                            type="email" dir="ltr"
                             placeholder="example@email.com"
                             {...field}
                           />
@@ -744,7 +744,7 @@ export function TextbookOrderPage() {
                 <CardHeader>
                   <CardTitle>
                     {t("textbook.order.sectionOrg")}
-                    <span className="text-sm font-normal text-muted-foreground ml-2">
+                    <span className="text-sm font-normal text-muted-foreground ms-2">
                       ({t("textbook.order.optional")})
                     </span>
                   </CardTitle>
@@ -999,7 +999,7 @@ export function TextbookOrderPage() {
                             </FormLabel>
                             <FormControl>
                               <Input
-                                type="email"
+                                type="email" dir="ltr"
                                 placeholder="tax@company.com"
                                 {...field}
                               />
@@ -1072,7 +1072,7 @@ export function TextbookOrderPage() {
                 <CardHeader>
                   <CardTitle>
                     {t("textbook.order.sectionNotes")}
-                    <span className="text-sm font-normal text-muted-foreground ml-2">
+                    <span className="text-sm font-normal text-muted-foreground ms-2">
                       ({t("textbook.order.optional")})
                     </span>
                   </CardTitle>
@@ -1111,7 +1111,7 @@ export function TextbookOrderPage() {
               >
                 {createMutation.isPending ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    <Loader2 className="h-5 w-5 animate-spin me-2" />
                     {t("textbook.order.submitting")}
                   </>
                 ) : (
@@ -1138,7 +1138,7 @@ export function TextbookOrderPage() {
 
           <div
             ref={termsScrollRef}
-            className="flex-1 overflow-y-auto pr-2 space-y-6 text-sm leading-relaxed"
+            className="flex-1 overflow-y-auto pe-2 space-y-6 text-sm leading-relaxed"
           >
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <div key={n}>
@@ -1189,7 +1189,7 @@ export function TextbookOrderPage() {
               >
                 {createMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-4 w-4 animate-spin me-2" />
                     {t("textbook.order.submitting")}
                   </>
                 ) : (

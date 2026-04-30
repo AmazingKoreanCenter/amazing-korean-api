@@ -176,11 +176,11 @@ export function RequestResetPasswordPage() {
                       <FormLabel>{t("auth.emailLabel")}</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Mail className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
-                            type="email"
+                            type="email" dir="ltr"
                             placeholder={t("auth.emailPlaceholder")}
-                            className="pl-10"
+                            className="ps-10"
                             autoComplete="email"
                             {...field}
                           />
@@ -198,7 +198,7 @@ export function RequestResetPasswordPage() {
                 >
                   {isSending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
                       {t("auth.sending")}
                     </>
                   ) : (
@@ -232,11 +232,11 @@ export function RequestResetPasswordPage() {
                       <FormLabel>{t("auth.verificationCodeLabel")}</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <KeyRound className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             type="text"
                             placeholder={t("auth.verificationCodePlaceholder")}
-                            className="pl-10 text-center tracking-widest"
+                            className="ps-10 text-center tracking-widest"
                             maxLength={6}
                             autoComplete="one-time-code"
                             {...field}
@@ -255,7 +255,7 @@ export function RequestResetPasswordPage() {
                 >
                   {isVerifying ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
                       {t("auth.verifying")}
                     </>
                   ) : (

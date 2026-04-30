@@ -89,14 +89,14 @@ export function BookHubPage() {
               <button
                 type="button"
                 onClick={goPrev}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+                className="absolute start-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <button
                 type="button"
                 onClick={goNext}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
+                className="absolute end-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-background/80 border shadow-sm flex items-center justify-center hover:bg-background transition-colors"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -122,7 +122,7 @@ export function BookHubPage() {
           {/* Right: Title + Description + Buttons (fixed positions) */}
           <div className="flex flex-col justify-between md:h-[420px] md:py-1">
             {/* Title (top) */}
-            <h3 className="text-lg md:text-xl font-bold text-center md:text-left">
+            <h3 className="text-lg md:text-xl font-bold text-center md:text-start">
               {t(`bookHub.slideTitle${slideIndex}`)}
             </h3>
 
@@ -169,16 +169,16 @@ export function BookHubPage() {
             <div className="flex gap-3">
               <Button asChild size="default" className="rounded-full flex-1">
                 <Link to="/book/textbook">
-                  <BookOpen className="mr-2 h-5 w-5" />
+                  <BookOpen className="me-2 h-5 w-5" />
                   {t("bookHub.ctaTextbook")}
-                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                  <ArrowRight className="ms-1.5 h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild size="default" variant="outline" className="rounded-full flex-1">
                 <Link to="/book/ebook">
-                  <Tablet className="mr-2 h-5 w-5" />
+                  <Tablet className="me-2 h-5 w-5" />
                   {t("bookHub.ctaEbook")}
-                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                  <ArrowRight className="ms-1.5 h-4 w-4" />
                 </Link>
               </Button>
             </div>

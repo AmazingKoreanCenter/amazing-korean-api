@@ -22,7 +22,7 @@ export function WritingLevelSelectPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div dir="ltr" className="min-h-screen bg-muted/30">
       <div className="mx-auto w-full max-w-screen-lg space-y-8 px-4 py-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -38,7 +38,7 @@ export function WritingLevelSelectPage() {
           </div>
           <Button variant="outline" asChild>
             <Link to="/studies/writing/stats">
-              <BarChart3 className="mr-2 h-4 w-4" />
+              <BarChart3 className="me-2 h-4 w-4" />
               {t("study.writing.viewStats")}
             </Link>
           </Button>
@@ -62,7 +62,7 @@ export function WritingLevelSelectPage() {
                 <Button asChild className="w-full">
                   <Link to={`/studies/writing/${level}`}>
                     {t("study.writing.startLevel")}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="ms-2 h-4 w-4" />
                   </Link>
                 </Button>
               </CardContent>

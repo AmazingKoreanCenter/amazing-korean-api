@@ -149,7 +149,7 @@ export function AdminEbookPurchaseDetail() {
           size="sm"
           onClick={() => setDeleteOpen(true)}
         >
-          <Trash2 className="mr-1 h-4 w-4" />
+          <Trash2 className="me-1 h-4 w-4" />
           {t("admin.ebook.delete")}
         </Button>
       </div>
@@ -263,7 +263,7 @@ export function AdminEbookPurchaseDetail() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                <Loader2 className="h-4 w-4 animate-spin me-1" />
               )}
               {t("admin.ebook.confirmDelete")}
             </Button>

@@ -263,7 +263,7 @@ export function MyPage() {
             {!isEditing && (
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleEdit}>
-                  <Pencil className="h-4 w-4 mr-2" />
+                  <Pencil className="h-4 w-4 me-2" />
                   {t("common.edit")}
                 </Button>
                 <Button
@@ -271,7 +271,7 @@ export function MyPage() {
                   size="sm"
                   onClick={() => navigate("/user/settings")}
                 >
-                  <Settings className="h-4 w-4 mr-2" />
+                  <Settings className="h-4 w-4 me-2" />
                   {t("user.settingsButton")}
                 </Button>
               </div>
@@ -326,7 +326,7 @@ export function MyPage() {
               onClick={() => navigate("/book/textbook/my")}
               className="flex-shrink-0"
             >
-              <Receipt className="h-4 w-4 mr-2" />
+              <Receipt className="h-4 w-4 me-2" />
               {t("user.purchaseHistory")}
             </Button>
           </div>
@@ -448,7 +448,7 @@ export function MyPage() {
                   >
                     {updateUserMutation.isPending ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <Loader2 className="h-4 w-4 animate-spin me-2" />
                         {t("common.saving")}
                       </>
                     ) : (
@@ -563,7 +563,7 @@ export function MyPage() {
                     className="w-full"
                     onClick={() => navigate("/request-reset-password")}
                   >
-                    <KeyRound className="h-4 w-4 mr-2" />
+                    <KeyRound className="h-4 w-4 me-2" />
                     {t("user.resetPassword")}
                   </Button>
                 </>

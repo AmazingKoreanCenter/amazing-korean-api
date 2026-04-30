@@ -82,12 +82,12 @@ export function AdminEbookPurchasesPage() {
         <div className="flex items-center gap-4">
           <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={t("admin.ebook.searchPlaceholder")}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9 border-foreground/20"
+                className="ps-9 border-foreground/20"
               />
             </div>
             <Button type="submit" variant="secondary">
@@ -120,28 +120,28 @@ export function AdminEbookPurchasesPage() {
         <table className="w-full text-sm">
           <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">
                 {t("admin.ebook.purchaseCode")}
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">
                 {t("admin.ebook.userId")}
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">
                 {t("admin.ebook.language")}
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">
                 {t("admin.ebook.edition")}
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">
                 {t("admin.ebook.status")}
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">
                 {t("admin.ebook.payment")}
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">
                 {t("admin.ebook.date")}
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">
                 {t("admin.textbook.colActions")}
               </th>
             </tr>
@@ -192,7 +192,7 @@ export function AdminEbookPurchasesPage() {
                   <td className="px-4 py-3">
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/ebook/purchases/${item.purchase_id}`}>
-                        <Eye className="mr-1 h-3 w-3" />
+                        <Eye className="me-1 h-3 w-3" />
                         {t("admin.textbook.detail")}
                       </Link>
                     </Button>

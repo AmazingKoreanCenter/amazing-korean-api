@@ -158,7 +158,7 @@ export function AdminTextbookLogsPage() {
               {t("admin.textbook.logs.filter.orderId")}
             </label>
             <Input
-              type="number"
+              type="number" dir="ltr"
               className="mt-1"
               value={orderIdInput}
               onChange={(e) => setOrderIdInput(e.target.value)}
@@ -170,7 +170,7 @@ export function AdminTextbookLogsPage() {
               {t("admin.textbook.logs.filter.adminUserId")}
             </label>
             <Input
-              type="number"
+              type="number" dir="ltr"
               className="mt-1"
               value={adminUserIdInput}
               onChange={(e) => setAdminUserIdInput(e.target.value)}
@@ -214,19 +214,19 @@ export function AdminTextbookLogsPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-xs text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-2 text-left">
+                  <th className="px-4 py-2 text-start">
                     {t("admin.textbook.logs.table.createdAt")}
                   </th>
-                  <th className="px-4 py-2 text-left">
+                  <th className="px-4 py-2 text-start">
                     {t("admin.textbook.logs.table.action")}
                   </th>
-                  <th className="px-4 py-2 text-left">
+                  <th className="px-4 py-2 text-start">
                     {t("admin.textbook.logs.table.admin")}
                   </th>
-                  <th className="px-4 py-2 text-left">
+                  <th className="px-4 py-2 text-start">
                     {t("admin.textbook.logs.table.order")}
                   </th>
-                  <th className="px-4 py-2 text-left">
+                  <th className="px-4 py-2 text-start">
                     {t("admin.textbook.logs.table.diff")}
                   </th>
                 </tr>
@@ -351,7 +351,7 @@ function LogDiff({ log }: { log: AdminTextbookLogItem }) {
           <div className="text-xs text-muted-foreground">
             {t("admin.textbook.logs.diff.before")}
           </div>
-          <pre className="bg-muted/50 p-2 rounded overflow-auto max-h-48">
+          <pre dir="ltr" className="bg-muted/50 p-2 rounded overflow-auto max-h-48">
             {JSON.stringify(before, null, 2)}
           </pre>
         </div>
@@ -359,7 +359,7 @@ function LogDiff({ log }: { log: AdminTextbookLogItem }) {
           <div className="text-xs text-muted-foreground">
             {t("admin.textbook.logs.diff.after")}
           </div>
-          <pre className="bg-muted/50 p-2 rounded overflow-auto max-h-48">
+          <pre dir="ltr" className="bg-muted/50 p-2 rounded overflow-auto max-h-48">
             {JSON.stringify(after, null, 2)}
           </pre>
         </div>

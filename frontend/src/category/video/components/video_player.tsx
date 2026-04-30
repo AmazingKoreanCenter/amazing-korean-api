@@ -63,7 +63,7 @@ export function VideoPlayer({ url, onEnded, onPause }: VideoPlayerProps) {
         <iframe
           ref={iframeRef}
           src={`https://player.vimeo.com/video/${videoId}?badge=0&autopause=0&player_id=0&app_id=58479`}
-          className="absolute top-0 left-0 w-full h-full"
+          className="absolute top-0 start-0 w-full h-full"
           allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
           title="vimeo-player"
         />

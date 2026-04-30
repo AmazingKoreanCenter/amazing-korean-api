@@ -80,7 +80,7 @@ export function AdminTranslationDashboard() {
         </div>
         <Button variant="outline" asChild>
           <Link to="/admin/translations">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4 me-2" />
             Translation List
           </Link>
         </Button>
@@ -127,7 +127,7 @@ export function AdminTranslationDashboard() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b bg-muted">
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground sticky left-0 bg-muted z-10 min-w-[140px]">
+                  <th className="text-start px-3 py-2 font-medium text-muted-foreground sticky start-0 bg-muted z-10 min-w-[140px]">
                     Content Type
                   </th>
                   {TARGET_LANGS.map((lang, i) => {
@@ -135,7 +135,7 @@ export function AdminTranslationDashboard() {
                     const tierBorder = TIER_BREAK_INDICES.some(
                       (bi) => i + 1 === bi,
                     )
-                      ? "border-l-2 border-l-border"
+                      ? "border-s-2 border-s-border"
                       : "";
                     return (
                       <th
@@ -155,7 +155,7 @@ export function AdminTranslationDashboard() {
               <tbody>
                 {matrix.contentTypes.map((ct) => (
                   <tr key={ct} className="group border-b hover:bg-muted/50">
-                    <td className="px-3 py-2 font-medium text-foreground sticky left-0 bg-card group-hover:bg-muted/50 z-10">
+                    <td className="px-3 py-2 font-medium text-foreground sticky start-0 bg-card group-hover:bg-muted/50 z-10">
                       {CONTENT_TYPE_LABELS[ct] ?? ct}
                     </td>
                     {TARGET_LANGS.map((lang, i) => {
@@ -175,7 +175,7 @@ export function AdminTranslationDashboard() {
                       const tierBorder = TIER_BREAK_INDICES.some(
                         (bi) => i + 1 === bi,
                       )
-                        ? "border-l-2 border-l-border"
+                        ? "border-s-2 border-s-border"
                         : "";
 
                       return (

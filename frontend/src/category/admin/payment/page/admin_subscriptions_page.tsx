@@ -85,9 +85,9 @@ export function AdminSubscriptionsPage() {
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return null;
     return sortOrder === "asc" ? (
-      <ChevronUp className="ml-1 h-4 w-4 inline" />
+      <ChevronUp className="ms-1 h-4 w-4 inline" />
     ) : (
-      <ChevronDown className="ml-1 h-4 w-4 inline" />
+      <ChevronDown className="ms-1 h-4 w-4 inline" />
     );
   };
 
@@ -98,13 +98,13 @@ export function AdminSubscriptionsPage() {
         <div className="flex gap-2">
           <Button variant="outline" asChild>
             <Link to="/admin/payment/transactions">
-              <Receipt className="mr-2 h-4 w-4" />
+              <Receipt className="me-2 h-4 w-4" />
               {t("admin.payment.transactions")}
             </Link>
           </Button>
           <Button variant="outline" asChild>
             <Link to="/admin/payment/grants">
-              <Gift className="mr-2 h-4 w-4" />
+              <Gift className="me-2 h-4 w-4" />
               {t("admin.payment.manualGrants")}
             </Link>
           </Button>
@@ -116,12 +116,12 @@ export function AdminSubscriptionsPage() {
         <div className="flex items-center gap-4">
           <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={t("admin.payment.searchByEmailOrNickname")}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9 border-foreground/20"
+                className="ps-9 border-foreground/20"
               />
             </div>
             <Button type="submit" variant="secondary">{t("admin.payment.search")}</Button>
@@ -151,29 +151,29 @@ export function AdminSubscriptionsPage() {
         <table className="w-full text-sm">
           <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("id")}>
                 {t("admin.payment.colId")}<SortIcon field="id" />
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colEmail")}</th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colEmail")}</th>
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("status")}>
                 {t("admin.payment.colStatus")}<SortIcon field="status" />
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("billing_interval")}>
                 {t("admin.payment.colInterval")}<SortIcon field="billing_interval" />
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("price")}>
                 {t("admin.payment.colPrice")}<SortIcon field="price" />
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colPeriodEnd")}</th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colPeriodEnd")}</th>
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("created_at")}>
                 {t("admin.payment.colCreated")}<SortIcon field="created_at" />
               </th>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground">{t("admin.payment.colActions")}</th>
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -218,7 +218,7 @@ export function AdminSubscriptionsPage() {
                   <td className="px-4 py-3">
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/payment/subscriptions/${sub.subscription_id}`}>
-                        <CreditCard className="mr-1 h-3 w-3" />
+                        <CreditCard className="me-1 h-3 w-3" />
                         {t("admin.payment.detail")}
                       </Link>
                     </Button>

@@ -101,7 +101,7 @@ export function ComingSoonPage() {
 
         {/* Notify hint */}
         <p className="text-center text-sm text-muted-foreground mt-10">
-          <Sparkles className="inline h-4 w-4 mr-1 text-accent" />
+          <Sparkles className="inline h-4 w-4 me-1 text-accent" />
           {t("comingSoon.notifyHint")}
         </p>
       </SectionContainer>
@@ -120,7 +120,7 @@ export function ComingSoonPage() {
             >
               <Link to="/book/ebook">
                 {t("comingSoon.exploreEbook")}
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ms-2 h-5 w-5" />
               </Link>
             </Button>
             <Button

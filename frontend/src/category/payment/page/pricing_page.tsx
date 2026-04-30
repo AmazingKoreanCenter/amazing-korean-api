@@ -197,9 +197,9 @@ export function PricingPage() {
                   }`}
                 >
                   {isPopular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <div className="absolute -top-3 start-1/2 -translate-x-1/2">
                       <Badge className="gradient-primary text-white px-4 py-1 text-xs font-medium shadow-md">
-                        <Crown className="h-3 w-3 mr-1" />
+                        <Crown className="h-3 w-3 me-1" />
                         {t("payment.popular")}
                       </Badge>
                     </div>
@@ -212,7 +212,7 @@ export function PricingPage() {
                     <div className="mt-4">
                       <span className="text-2xl sm:text-4xl font-bold">{plan.price_display}</span>
                       {plan.months > 1 && (
-                        <span className="text-sm text-muted-foreground ml-1">
+                        <span className="text-sm text-muted-foreground ms-1">
                           / {plan.months}{t("payment.months")}
                         </span>
                       )}
@@ -283,12 +283,12 @@ export function PricingPage() {
             <div className="flex justify-center mt-10">
               <div className="flex items-center gap-2 max-w-sm w-full">
                 <div className="relative flex-1">
-                  <Tag className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Tag className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder={t("payment.promoCodePlaceholder")}
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value)}
-                    className="pl-9"
+                    className="ps-9"
                   />
                 </div>
                 {promoCode && (

@@ -365,7 +365,7 @@ export function AdminStudyDetail() {
     return (
       <div className="space-y-4">
         <Button variant="ghost" onClick={() => navigate("/admin/studies")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back to Studies
         </Button>
         <p className="text-destructive">Study not found</p>
@@ -377,7 +377,7 @@ export function AdminStudyDetail() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/studies")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Edit Study #{study.study_id}</h1>
@@ -548,7 +548,7 @@ export function AdminStudyDetail() {
             {/* Submit */}
             <div className="flex justify-end pt-4">
               <Button type="submit" disabled={isButtonDisabled}>
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="me-2 h-4 w-4" />
                 {updateMutation.isPending
                   ? "Saving..."
                   : cooldown > 0
@@ -587,28 +587,28 @@ export function AdminStudyDetail() {
                     <DropdownMenuTrigger asChild>
                       <Button size="sm">
                         Bulk Actions ({selectedTaskIds.size})
-                        <ChevronDown className="h-4 w-4 ml-1" />
+                        <ChevronDown className="h-4 w-4 ms-1" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Bulk Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={openBulkEditDialog}>
-                        <Pencil className="h-4 w-4 mr-2" />
+                        <Pencil className="h-4 w-4 me-2" />
                         Edit Tasks
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={openBulkAddExplainsDialog}>
-                        <Plus className="h-4 w-4 mr-2" />
+                        <Plus className="h-4 w-4 me-2" />
                         Add Explains
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={openBulkUpdateExplainsDialog}>
-                        <Globe className="h-4 w-4 mr-2" />
+                        <Globe className="h-4 w-4 me-2" />
                         Update Explains
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={openBulkUpdateStatusDialog}>
-                        <Users className="h-4 w-4 mr-2" />
+                        <Users className="h-4 w-4 me-2" />
                         Update Status
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -687,7 +687,7 @@ export function AdminStudyDetail() {
             >
               {bulkUpdateTasksMutation.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Updating...
                 </>
               ) : (
@@ -772,7 +772,7 @@ export function AdminStudyDetail() {
             >
               {bulkCreateExplainsMutation.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Creating...
                 </>
               ) : (
@@ -861,7 +861,7 @@ export function AdminStudyDetail() {
             >
               {bulkUpdateExplainsMutation.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Updating...
                 </>
               ) : (
@@ -886,7 +886,7 @@ export function AdminStudyDetail() {
             <div className="space-y-2">
               <Label>User ID</Label>
               <Input
-                type="number"
+                type="number" dir="ltr"
                 min={1}
                 value={bulkUpdateStatusFormData.user_id || ""}
                 onChange={(e) =>
@@ -899,7 +899,7 @@ export function AdminStudyDetail() {
             <div className="space-y-2">
               <Label>Try Count</Label>
               <Input
-                type="number"
+                type="number" dir="ltr"
                 min={0}
                 value={bulkUpdateStatusFormData.study_task_status_try_count}
                 onChange={(e) =>
@@ -930,7 +930,7 @@ export function AdminStudyDetail() {
             >
               {bulkUpdateStatusMutation.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Updating...
                 </>
               ) : (
@@ -984,7 +984,7 @@ function TaskExpandableRow({
         <button
           type="button"
           onClick={onToggle}
-          className="flex-1 flex items-center gap-4 text-left"
+          className="flex-1 flex items-center gap-4 text-start"
         >
           <span className="text-muted-foreground">
             {isExpanded ? (
@@ -1019,14 +1019,14 @@ function TaskExpandableRow({
                 value="explains"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
               >
-                <Globe className="h-4 w-4 mr-1" />
+                <Globe className="h-4 w-4 me-1" />
                 Explains
               </TabsTrigger>
               <TabsTrigger
                 value="status"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
               >
-                <Users className="h-4 w-4 mr-1" />
+                <Users className="h-4 w-4 me-1" />
                 Status
               </TabsTrigger>
             </TabsList>
@@ -1169,7 +1169,7 @@ function TaskDetailsContent({
                   <span className="font-medium">{num}.</span>{" "}
                   {(taskDetail[choiceKey] as string) || "-"}
                   {isCorrect && (
-                    <Badge variant="default" className="ml-2 text-xs">
+                    <Badge variant="default" className="ms-2 text-xs">
                       Correct
                     </Badge>
                   )}
@@ -1270,7 +1270,7 @@ function TaskExplainsTab({ taskId }: { taskId: number }) {
           {explains?.list.length || 0} explain(s) found
         </p>
         <Button size="sm" variant="outline" onClick={openCreateDialog}>
-          <Plus className="h-4 w-4 mr-1" />
+          <Plus className="h-4 w-4 me-1" />
           Add Explain
         </Button>
       </div>
@@ -1381,7 +1381,7 @@ function TaskExplainsTab({ taskId }: { taskId: number }) {
             <Button onClick={handleSubmit} disabled={isPending}>
               {isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Saving...
                 </>
               ) : (
@@ -1459,11 +1459,11 @@ function TaskStatusTab({ taskId }: { taskId: number }) {
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50">
               <tr>
-                <th className="h-10 px-4 text-left font-medium">User ID</th>
-                <th className="h-10 px-4 text-left font-medium">Try Count</th>
-                <th className="h-10 px-4 text-left font-medium">Solved</th>
-                <th className="h-10 px-4 text-left font-medium">Last Attempt</th>
-                <th className="h-10 px-4 text-right font-medium">Action</th>
+                <th className="h-10 px-4 text-start font-medium">User ID</th>
+                <th className="h-10 px-4 text-start font-medium">Try Count</th>
+                <th className="h-10 px-4 text-start font-medium">Solved</th>
+                <th className="h-10 px-4 text-start font-medium">Last Attempt</th>
+                <th className="h-10 px-4 text-end font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -1481,7 +1481,7 @@ function TaskStatusTab({ taskId }: { taskId: number }) {
                       ? new Date(status.study_task_status_last_attempt_at).toLocaleString()
                       : "-"}
                   </td>
-                  <td className="p-4 text-right">
+                  <td className="p-4 text-end">
                     <Button
                       size="sm"
                       variant="ghost"
@@ -1511,7 +1511,7 @@ function TaskStatusTab({ taskId }: { taskId: number }) {
             <div className="space-y-2">
               <Label>Try Count</Label>
               <Input
-                type="number"
+                type="number" dir="ltr"
                 min={0}
                 value={formData.study_task_status_try_count}
                 onChange={(e) =>
@@ -1541,7 +1541,7 @@ function TaskStatusTab({ taskId }: { taskId: number }) {
             <Button onClick={handleSubmit} disabled={updateMutation.isPending}>
               {updateMutation.isPending ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
                   Saving...
                 </>
               ) : (

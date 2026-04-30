@@ -125,12 +125,12 @@ export function EbookCatalogPage() {
             <div className="flex items-center gap-2">
               {/* Search bar */}
               <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={t("ebook.catalog.searchPlaceholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-10"
+                  className="ps-9 h-10"
                 />
               </div>
 

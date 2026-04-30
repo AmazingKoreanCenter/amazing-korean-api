@@ -30,7 +30,7 @@ export function SelectedBookDetail({ item, type, onDetailOpen }: SelectedBookDet
       {/* Details */}
       <div className="flex-1 flex flex-col justify-between gap-3 md:gap-0 md:py-1">
         {/* 1. Title */}
-        <h3 className="text-lg md:text-xl font-bold text-center md:text-left">{t("textbook.catalog.bookTitle", { language: langName })}</h3>
+        <h3 className="text-lg md:text-xl font-bold text-center md:text-start">{t("textbook.catalog.bookTitle", { language: langName })}</h3>
 
         {/* 2. Status badge */}
         <div className="h-8 flex items-center justify-center md:justify-start">
@@ -48,7 +48,7 @@ export function SelectedBookDetail({ item, type, onDetailOpen }: SelectedBookDet
         </div>
 
         {/* 3. Description */}
-        <div className="text-sm text-muted-foreground leading-relaxed space-y-4 text-center md:text-left">
+        <div className="text-sm text-muted-foreground leading-relaxed space-y-4 text-center md:text-start">
           {t(type === "student" ? "textbook.catalog.bookDescriptionStudent" : "textbook.catalog.bookDescriptionTeacher", { language: langName }).split("\n").map((line, i) => (
             <p key={i}>{line}</p>
           ))}
@@ -75,7 +75,7 @@ export function SelectedBookDetail({ item, type, onDetailOpen }: SelectedBookDet
           <Button asChild size="default" className="rounded-full flex-1">
             <Link to={`/book/textbook/order?lang=${item.language}&type=${type}`}>
               {t("textbook.catalog.orderButton")}
-              <ArrowRight className="ml-1.5 h-4 w-4" />
+              <ArrowRight className="ms-1.5 h-4 w-4" />
             </Link>
           </Button>
         </div>

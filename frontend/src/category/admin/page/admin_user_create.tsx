@@ -59,7 +59,7 @@ export function AdminUserCreate() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/users")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Create New User</h1>
@@ -82,7 +82,7 @@ export function AdminUserCreate() {
                 <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
-                  type="email"
+                  type="email" dir="ltr"
                   placeholder="user@example.com"
                   {...form.register("email")}
                 />
@@ -128,7 +128,7 @@ export function AdminUserCreate() {
                 <Label htmlFor="password">Password *</Label>
                 <Input
                   id="password"
-                  type="password"
+                  type="password" dir="ltr"
                   placeholder="Minimum 8 characters"
                   {...form.register("password")}
                 />
@@ -217,7 +217,7 @@ export function AdminUserCreate() {
                 Cancel
               </Button>
               <Button type="submit" disabled={createMutation.isPending}>
-                <UserPlus className="mr-2 h-4 w-4" />
+                <UserPlus className="me-2 h-4 w-4" />
                 {createMutation.isPending ? "Creating..." : "Create User"}
               </Button>
             </div>

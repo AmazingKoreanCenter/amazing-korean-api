@@ -165,9 +165,9 @@ export function DataTable<T>({
   const SortIcon = ({ field }: { field: string }) => {
     if (sortField !== field) return null;
     return sortOrder === "asc" ? (
-      <ChevronUp className="ml-1 h-4 w-4 inline" />
+      <ChevronUp className="ms-1 h-4 w-4 inline" />
     ) : (
-      <ChevronDown className="ml-1 h-4 w-4 inline" />
+      <ChevronDown className="ms-1 h-4 w-4 inline" />
     );
   };
 
@@ -178,12 +178,12 @@ export function DataTable<T>({
         <div className="flex items-center justify-between gap-4">
           <form onSubmit={onSearch} className="flex gap-2 max-w-md">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={searchPlaceholder}
                 value={searchInput}
                 onChange={(e) => onSearchInputChange(e.target.value)}
-                className="pl-9 border-foreground/20"
+                className="ps-9 border-foreground/20"
               />
             </div>
             <Button type="submit" variant="secondary">
@@ -200,7 +200,7 @@ export function DataTable<T>({
         <table className="w-full text-sm">
           <thead className="border-b-2 bg-secondary">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-secondary-foreground w-10">
+              <th className="px-4 py-3 text-start font-semibold text-secondary-foreground w-10">
                 <Checkbox
                   checked={allSelected}
                   onCheckedChange={handleSelectAllChange}
@@ -210,7 +210,7 @@ export function DataTable<T>({
                 col.sortField ? (
                   <th
                     key={col.key}
-                    className="px-4 py-3 text-left font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
+                    className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                     onClick={() => onSort(col.sortField!)}
                   >
                     {col.header}
@@ -219,7 +219,7 @@ export function DataTable<T>({
                 ) : (
                   <th
                     key={col.key}
-                    className="px-4 py-3 text-left font-semibold text-secondary-foreground"
+                    className="px-4 py-3 text-start font-semibold text-secondary-foreground"
                   >
                     {col.header}
                   </th>

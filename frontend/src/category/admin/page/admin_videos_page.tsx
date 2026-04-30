@@ -82,8 +82,8 @@ const columns: DataTableColumn<AdminVideoSummary>[] = [
     skeletonWidth: "w-14",
     render: (v) => (
       <Badge variant={getAccessBadgeVariant(v.video_access)}>
-        {v.video_access === "public" && <Eye className="mr-1 h-3 w-3" />}
-        {v.video_access === "private" && <EyeOff className="mr-1 h-3 w-3" />}
+        {v.video_access === "public" && <Eye className="me-1 h-3 w-3" />}
+        {v.video_access === "private" && <EyeOff className="me-1 h-3 w-3" />}
         {v.video_access}
       </Badge>
     ),
@@ -165,19 +165,19 @@ export function AdminVideosPage() {
         <div className="flex gap-2">
           <Button variant="outline" asChild>
             <Link to="/admin/videos/stats">
-              <BarChart3 className="mr-2 h-4 w-4" />
+              <BarChart3 className="me-2 h-4 w-4" />
               Stats
             </Link>
           </Button>
           <Button variant="outline" asChild>
             <Link to="/admin/videos/bulk-create">
-              <Upload className="mr-2 h-4 w-4" />
+              <Upload className="me-2 h-4 w-4" />
               Bulk Create
             </Link>
           </Button>
           <Button asChild>
             <Link to="/admin/videos/new">
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="me-2 h-4 w-4" />
               Add Video
             </Link>
           </Button>
@@ -203,7 +203,7 @@ export function AdminVideosPage() {
         onSelectOne={table.handleSelectOne}
         bulkActionSlot={
           <Button variant="outline" onClick={() => setBulkEditOpen(true)}>
-            <Video className="mr-2 h-4 w-4" />
+            <Video className="me-2 h-4 w-4" />
             Edit {table.selectedIds.size} Selected
           </Button>
         }

@@ -29,21 +29,21 @@ export function LessonListPage() {
         return null;
       case "paid":
         return (
-          <Badge variant="warning" className="absolute top-3 right-3 border-0 gap-1">
+          <Badge variant="warning" className="absolute top-3 end-3 border-0 gap-1">
             <Crown className="h-3 w-3" />
             {t("lesson.accessPaid")}
           </Badge>
         );
       case "private":
         return (
-          <Badge className="absolute top-3 right-3 bg-muted-foreground hover:bg-muted-foreground text-white border-0 gap-1">
+          <Badge className="absolute top-3 end-3 bg-muted-foreground hover:bg-muted-foreground text-white border-0 gap-1">
             <Lock className="h-3 w-3" />
             {t("lesson.accessPrivate")}
           </Badge>
         );
       case "promote":
         return (
-          <Badge variant="success" className="absolute top-3 right-3 border-0">
+          <Badge variant="success" className="absolute top-3 end-3 border-0">
             {t("lesson.accessPromote")}
           </Badge>
         );

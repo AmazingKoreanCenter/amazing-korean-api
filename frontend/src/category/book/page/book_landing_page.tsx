@@ -110,20 +110,20 @@ function BookInfoView({ book, isLoggedIn }: { book: BookInfo; isLoggedIn: boolea
             className="w-full gradient-primary text-white shadow-lg hover:shadow-xl rounded-full h-14 text-base"
           >
             <Link to={isLoggedIn ? "/" : "/signup"}>
-              <GraduationCap className="mr-2 h-5 w-5" />
+              <GraduationCap className="me-2 h-5 w-5" />
               {t("book.ctaPrimary")}
             </Link>
           </Button>
           <div className="grid grid-cols-2 gap-3">
             <Button asChild variant="outline" className="rounded-full h-12 text-sm border-2">
               <Link to="/book/ebook">
-                <BookOpen className="mr-2 h-4 w-4" />
+                <BookOpen className="me-2 h-4 w-4" />
                 {t("book.buyEbook")}
               </Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full h-12 text-sm border-2">
               <Link to="/book/textbook">
-                <ShoppingCart className="mr-2 h-4 w-4" />
+                <ShoppingCart className="me-2 h-4 w-4" />
                 {t("book.orderTextbook")}
               </Link>
             </Button>
@@ -177,7 +177,7 @@ function BookInfoView({ book, isLoggedIn }: { book: BookInfo; isLoggedIn: boolea
             className="w-full gradient-primary text-white shadow-lg rounded-full h-14 text-base"
           >
             <Link to={isLoggedIn ? "/" : "/signup"}>
-              <GraduationCap className="mr-2 h-5 w-5" />
+              <GraduationCap className="me-2 h-5 w-5" />
               {t("book.ctaPrimary")}
             </Link>
           </Button>

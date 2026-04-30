@@ -130,7 +130,7 @@ export function AdminUserBulkCreate() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/users")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Bulk Create Users</h1>
@@ -148,7 +148,7 @@ export function AdminUserBulkCreate() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
+          <pre dir="ltr" className="bg-muted p-4 rounded-md text-sm overflow-x-auto">
 {`email,password,name,nickname,role,language,country,birthday,gender
 user1@example.com,********,User One,user1,learner,ko,KR,1990-01-15,male
 user2@example.com,********,User Two,user2,manager,en,US,1985-06-20,female`}
@@ -190,7 +190,7 @@ user2@example.com,********,User Two,user2,manager,en,US,1985-06-20,female`}
             <CardDescription>
               <span className="text-status-success">{validCount} valid</span>
               {invalidCount > 0 && (
-                <span className="text-destructive ml-2">{invalidCount} invalid</span>
+                <span className="text-destructive ms-2">{invalidCount} invalid</span>
               )}
             </CardDescription>
           </CardHeader>
@@ -199,16 +199,16 @@ user2@example.com,********,User Two,user2,manager,en,US,1985-06-20,female`}
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/50 sticky top-0">
                   <tr>
-                    <th className="h-10 px-4 text-left font-medium">Row</th>
-                    <th className="h-10 px-4 text-left font-medium">Email</th>
-                    <th className="h-10 px-4 text-left font-medium">Name</th>
-                    <th className="h-10 px-4 text-left font-medium">Nickname</th>
-                    <th className="h-10 px-4 text-left font-medium">Role</th>
-                    <th className="h-10 px-4 text-left font-medium">Language</th>
-                    <th className="h-10 px-4 text-left font-medium">Country</th>
-                    <th className="h-10 px-4 text-left font-medium">Birthday</th>
-                    <th className="h-10 px-4 text-left font-medium">Gender</th>
-                    <th className="h-10 px-4 text-left font-medium">Status</th>
+                    <th className="h-10 px-4 text-start font-medium">Row</th>
+                    <th className="h-10 px-4 text-start font-medium">Email</th>
+                    <th className="h-10 px-4 text-start font-medium">Name</th>
+                    <th className="h-10 px-4 text-start font-medium">Nickname</th>
+                    <th className="h-10 px-4 text-start font-medium">Role</th>
+                    <th className="h-10 px-4 text-start font-medium">Language</th>
+                    <th className="h-10 px-4 text-start font-medium">Country</th>
+                    <th className="h-10 px-4 text-start font-medium">Birthday</th>
+                    <th className="h-10 px-4 text-start font-medium">Gender</th>
+                    <th className="h-10 px-4 text-start font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -276,9 +276,9 @@ user2@example.com,********,User Two,user2,manager,en,US,1985-06-20,female`}
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/50 sticky top-0">
                   <tr>
-                    <th className="h-10 px-4 text-left font-medium">Email</th>
-                    <th className="h-10 px-4 text-left font-medium">Status</th>
-                    <th className="h-10 px-4 text-left font-medium">Message</th>
+                    <th className="h-10 px-4 text-start font-medium">Email</th>
+                    <th className="h-10 px-4 text-start font-medium">Status</th>
+                    <th className="h-10 px-4 text-start font-medium">Message</th>
                   </tr>
                 </thead>
                 <tbody>

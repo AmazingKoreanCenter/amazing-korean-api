@@ -63,7 +63,7 @@ const columns: DataTableColumn<AdminLessonRes>[] = [
     sortField: "lesson_idx",
     skeletonWidth: "w-24",
     render: (l) => (
-      <code className="text-xs bg-muted px-1 py-0.5 rounded">{l.lesson_idx}</code>
+      <code dir="ltr" className="text-xs bg-muted px-1 py-0.5 rounded">{l.lesson_idx}</code>
     ),
   },
   {
@@ -177,7 +177,7 @@ export function AdminLessonsPage() {
           </Button>
           <Button asChild>
             <Link to="/admin/lessons/new">
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="me-2 h-4 w-4" />
               Add Lesson
             </Link>
           </Button>
@@ -203,7 +203,7 @@ export function AdminLessonsPage() {
         onSelectOne={table.handleSelectOne}
         bulkActionSlot={
           <Button variant="outline" onClick={() => setBulkEditOpen(true)}>
-            <BookOpen className="mr-2 h-4 w-4" />
+            <BookOpen className="me-2 h-4 w-4" />
             Edit {table.selectedIds.size} Selected
           </Button>
         }

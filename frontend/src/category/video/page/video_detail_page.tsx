@@ -321,7 +321,7 @@ export function VideoDetailPage() {
                           }
                         >
                           {t("video.nextItem")}
-                          <ArrowRight className="ml-2 h-4 w-4" />
+                          <ArrowRight className="ms-2 h-4 w-4" />
                         </Link>
                       </Button>
                       <Button variant="outline" asChild className="rounded-full">

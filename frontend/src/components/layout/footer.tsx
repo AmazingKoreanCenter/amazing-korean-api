@@ -60,7 +60,7 @@ export function Footer() {
                     onClick={() => setSelectedCert(cert)}
                     className="justify-start text-footer-foreground/70 hover:text-footer-foreground hover:bg-footer-foreground/10 px-3 h-9"
                   >
-                    <FileCheck className="h-4 w-4 mr-2" />
+                    <FileCheck className="h-4 w-4 me-2" />
                     {t(cert.titleKey)}
                   </Button>
                 ))}
@@ -157,7 +157,7 @@ export function Footer() {
       {/* Business Info Bar */}
       <div className="border-t border-footer-foreground/10">
         <div className="max-w-container-default mx-auto px-6 lg:px-8 py-5">
-          <p className="text-footer-foreground/50 text-xs leading-relaxed text-center md:text-left">
+          <p className="text-footer-foreground/50 text-xs leading-relaxed text-center md:text-start">
             {t("footer.businessInfo")}
           </p>
         </div>

@@ -171,13 +171,13 @@ export function AdminTranslationsPage() {
         <div className="flex gap-2">
           <Button variant="outline" asChild>
             <Link to="/admin/translations/dashboard">
-              <BarChart3 className="w-4 h-4 mr-2" />
+              <BarChart3 className="w-4 h-4 me-2" />
               Dashboard
             </Link>
           </Button>
           <Button asChild>
             <Link to="/admin/translations/new">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 me-2" />
               New Translation
             </Link>
           </Button>
@@ -278,14 +278,14 @@ export function AdminTranslationsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b-2 bg-secondary">
-                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">ID</th>
-                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Type</th>
-                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Content ID</th>
-                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Field</th>
-                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Lang</th>
-                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Text</th>
-                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Status</th>
-                <th className="text-left px-4 py-3 font-semibold text-secondary-foreground">Actions</th>
+                <th className="text-start px-4 py-3 font-semibold text-secondary-foreground">ID</th>
+                <th className="text-start px-4 py-3 font-semibold text-secondary-foreground">Type</th>
+                <th className="text-start px-4 py-3 font-semibold text-secondary-foreground">Content ID</th>
+                <th className="text-start px-4 py-3 font-semibold text-secondary-foreground">Field</th>
+                <th className="text-start px-4 py-3 font-semibold text-secondary-foreground">Lang</th>
+                <th className="text-start px-4 py-3 font-semibold text-secondary-foreground">Text</th>
+                <th className="text-start px-4 py-3 font-semibold text-secondary-foreground">Status</th>
+                <th className="text-start px-4 py-3 font-semibold text-secondary-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>

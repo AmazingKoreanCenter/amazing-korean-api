@@ -29,7 +29,7 @@ export function EbookSelectedDetail({ item, edition, onDetailOpen }: EbookSelect
       {/* Details */}
       <div className="flex-1 flex flex-col justify-between gap-3 md:gap-0 md:py-1">
         {/* 1. Title */}
-        <h3 className="text-lg md:text-xl font-bold text-center md:text-left">
+        <h3 className="text-lg md:text-xl font-bold text-center md:text-start">
           {t("ebook.catalog.bookTitle", { language: langName })}
         </h3>
 
@@ -42,7 +42,7 @@ export function EbookSelectedDetail({ item, edition, onDetailOpen }: EbookSelect
         </div>
 
         {/* 3. Description */}
-        <div className="text-sm text-muted-foreground leading-relaxed space-y-4 text-center md:text-left">
+        <div className="text-sm text-muted-foreground leading-relaxed space-y-4 text-center md:text-start">
           {t("ebook.catalog.bookDescription", { language: langName }).split("\n").map((line, i) => (
             <p key={i}>{line}</p>
           ))}

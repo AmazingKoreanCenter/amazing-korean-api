@@ -36,7 +36,7 @@ export function LegalPage({ pageKey, sections }: LegalPageProps) {
         </p>
 
         {/* Intro */}
-        <p className="text-muted-foreground leading-relaxed mb-10 border-l-4 border-primary/30 pl-4">
+        <p className="text-muted-foreground leading-relaxed mb-10 border-s-4 border-primary/30 ps-4">
           {t(`legal.${pageKey}.intro`)}
         </p>
 

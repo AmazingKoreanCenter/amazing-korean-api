@@ -147,7 +147,7 @@ export function AdminUserDetail() {
     return (
       <div className="space-y-4">
         <Button variant="ghost" onClick={() => navigate("/admin/users")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back to Users
         </Button>
         <p className="text-destructive">User not found</p>
@@ -159,7 +159,7 @@ export function AdminUserDetail() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/users")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Edit User #{user.id}</h1>
@@ -178,7 +178,7 @@ export function AdminUserDetail() {
               {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...form.register("email")} />
+                <Input id="email" type="email" dir="ltr" {...form.register("email")} />
                 {form.formState.errors.email && (
                   <p className="text-sm text-destructive">
                     {form.formState.errors.email.message}
@@ -208,7 +208,7 @@ export function AdminUserDetail() {
                 <Label htmlFor="password">New Password (optional)</Label>
                 <Input
                   id="password"
-                  type="password"
+                  type="password" dir="ltr"
                   placeholder="Leave blank to keep current"
                   {...form.register("password")}
                 />
@@ -318,7 +318,7 @@ export function AdminUserDetail() {
             {/* Submit */}
             <div className="flex justify-end pt-4">
               <Button type="submit" disabled={isButtonDisabled}>
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="me-2 h-4 w-4" />
                 {updateMutation.isPending
                   ? "Saving..."
                   : cooldown > 0
@@ -341,7 +341,7 @@ export function AdminUserDetail() {
               <TabsTrigger value="admin-logs">
                 Admin Changes
                 {adminLogs?.meta.total_count ? (
-                  <Badge variant="secondary" className="ml-2">
+                  <Badge variant="secondary" className="ms-2">
                     {adminLogs.meta.total_count}
                   </Badge>
                 ) : null}
@@ -349,7 +349,7 @@ export function AdminUserDetail() {
               <TabsTrigger value="user-logs">
                 User Changes
                 {userLogs?.meta.total_count ? (
-                  <Badge variant="secondary" className="ml-2">
+                  <Badge variant="secondary" className="ms-2">
                     {userLogs.meta.total_count}
                   </Badge>
                 ) : null}
@@ -374,10 +374,10 @@ export function AdminUserDetail() {
                     <table className="w-full text-sm">
                       <thead className="border-b bg-muted/50">
                         <tr>
-                          <th className="h-10 px-4 text-left font-medium">Date</th>
-                          <th className="h-10 px-4 text-left font-medium">Admin</th>
-                          <th className="h-10 px-4 text-left font-medium">Action</th>
-                          <th className="h-10 px-4 text-left font-medium">Changes</th>
+                          <th className="h-10 px-4 text-start font-medium">Date</th>
+                          <th className="h-10 px-4 text-start font-medium">Admin</th>
+                          <th className="h-10 px-4 text-start font-medium">Action</th>
+                          <th className="h-10 px-4 text-start font-medium">Changes</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -451,10 +451,10 @@ export function AdminUserDetail() {
                     <table className="w-full text-sm">
                       <thead className="border-b bg-muted/50">
                         <tr>
-                          <th className="h-10 px-4 text-left font-medium">Date</th>
-                          <th className="h-10 px-4 text-left font-medium">Action</th>
-                          <th className="h-10 px-4 text-left font-medium">Status</th>
-                          <th className="h-10 px-4 text-left font-medium">Changes</th>
+                          <th className="h-10 px-4 text-start font-medium">Date</th>
+                          <th className="h-10 px-4 text-start font-medium">Action</th>
+                          <th className="h-10 px-4 text-start font-medium">Status</th>
+                          <th className="h-10 px-4 text-start font-medium">Changes</th>
                         </tr>
                       </thead>
                       <tbody>

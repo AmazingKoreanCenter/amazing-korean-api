@@ -140,9 +140,9 @@ function DeviceStats({
               <DeviceIcon device={item.device} />
               <span className="font-medium capitalize">{item.device}</span>
             </div>
-            <div className="text-right">
+            <div className="text-end">
               <span className="font-medium">{formatNumber(item.count)}</span>
-              <span className="text-muted-foreground ml-2">
+              <span className="text-muted-foreground ms-2">
                 ({item.percentage.toFixed(1)}%)
               </span>
             </div>
@@ -199,11 +199,11 @@ function DailyLoginTable({
       <table className="w-full text-sm">
         <thead className="border-b bg-muted/50">
           <tr>
-            <th className="h-10 px-4 text-left font-medium">Date</th>
-            <th className="h-10 px-4 text-right font-medium">Success</th>
-            <th className="h-10 px-4 text-right font-medium">Failed</th>
-            <th className="h-10 px-4 text-right font-medium">Unique Users</th>
-            <th className="h-10 px-4 text-right font-medium">Success Rate</th>
+            <th className="h-10 px-4 text-start font-medium">Date</th>
+            <th className="h-10 px-4 text-end font-medium">Success</th>
+            <th className="h-10 px-4 text-end font-medium">Failed</th>
+            <th className="h-10 px-4 text-end font-medium">Unique Users</th>
+            <th className="h-10 px-4 text-end font-medium">Success Rate</th>
           </tr>
         </thead>
         <tbody>
@@ -213,14 +213,14 @@ function DailyLoginTable({
             return (
               <tr key={item.date} className="border-b hover:bg-muted/50">
                 <td className="p-4">{item.date}</td>
-                <td className="p-4 text-right text-status-success font-medium">
+                <td className="p-4 text-end text-status-success font-medium">
                   {formatNumber(item.success)}
                 </td>
-                <td className="p-4 text-right text-destructive">
+                <td className="p-4 text-end text-destructive">
                   {formatNumber(item.fail)}
                 </td>
-                <td className="p-4 text-right">{formatNumber(item.unique_users)}</td>
-                <td className="p-4 text-right">{successRate}%</td>
+                <td className="p-4 text-end">{formatNumber(item.unique_users)}</td>
+                <td className="p-4 text-end">{successRate}%</td>
               </tr>
             );
           })}
@@ -265,7 +265,7 @@ export function AdminLoginStatsPage() {
         </div>
         <Button variant="outline" asChild>
           <Link to="/admin/users">
-            <Users className="mr-2 h-4 w-4" />
+            <Users className="me-2 h-4 w-4" />
             Back to Users
           </Link>
         </Button>

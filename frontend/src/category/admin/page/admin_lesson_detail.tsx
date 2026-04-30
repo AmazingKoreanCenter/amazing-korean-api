@@ -164,7 +164,7 @@ export function AdminLessonDetail() {
     return (
       <div className="space-y-4">
         <Button variant="ghost" onClick={() => navigate("/admin/lessons")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back to Lessons
         </Button>
         <p className="text-destructive">Lesson not found</p>
@@ -176,7 +176,7 @@ export function AdminLessonDetail() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={() => navigate("/admin/lessons")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="me-2 h-4 w-4" />
           Back
         </Button>
         <h1 className="text-2xl font-bold">Edit Lesson #{lesson.lesson_id}</h1>
@@ -186,11 +186,11 @@ export function AdminLessonDetail() {
         <TabsList>
           <TabsTrigger value="info">Info</TabsTrigger>
           <TabsTrigger value="items">
-            <ListOrdered className="h-4 w-4 mr-1" />
+            <ListOrdered className="h-4 w-4 me-1" />
             Items
           </TabsTrigger>
           <TabsTrigger value="progress">
-            <Users className="h-4 w-4 mr-1" />
+            <Users className="h-4 w-4 me-1" />
             Progress
           </TabsTrigger>
         </TabsList>
@@ -325,7 +325,7 @@ export function AdminLessonDetail() {
                 {/* Submit */}
                 <div className="flex justify-end pt-4">
                   <Button type="submit" disabled={isButtonDisabled}>
-                    <Save className="mr-2 h-4 w-4" />
+                    <Save className="me-2 h-4 w-4" />
                     {updateMutation.isPending
                       ? "Saving..."
                       : cooldown > 0
@@ -1129,7 +1129,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
         <div className="flex items-center gap-2">
           {/* Selection controls */}
           {data.items.length > 0 && (
-            <div className="flex items-center gap-2 mr-2">
+            <div className="flex items-center gap-2 me-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -1144,7 +1144,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                     size="sm"
                     onClick={() => setBulkEditDialogOpen(true)}
                   >
-                    <Pencil className="h-4 w-4 mr-1" />
+                    <Pencil className="h-4 w-4 me-1" />
                     Edit {selectedItems.size}
                   </Button>
                   <Button
@@ -1152,7 +1152,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                     size="sm"
                     onClick={() => setBulkDeleteDialogOpen(true)}
                   >
-                    <Trash2 className="h-4 w-4 mr-1" />
+                    <Trash2 className="h-4 w-4 me-1" />
                     Delete {selectedItems.size}
                   </Button>
                 </>
@@ -1162,9 +1162,9 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm">
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus className="h-4 w-4 me-1" />
                 Add Item
-                <ChevronDown className="h-4 w-4 ml-1" />
+                <ChevronDown className="h-4 w-4 ms-1" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -1174,7 +1174,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   setDialogOpen(true);
                 }}
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 me-2" />
                 Add Single Item
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -1183,7 +1183,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   setMultiDialogOpen(true);
                 }}
               >
-                <ListOrdered className="h-4 w-4 mr-2" />
+                <ListOrdered className="h-4 w-4 me-2" />
                 Add Multiple Items
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1205,7 +1205,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                 <Label htmlFor="item-seq">Sequence</Label>
                 <Input
                   id="item-seq"
-                  type="number"
+                  type="number" dir="ltr"
                   min={1}
                   value={itemSeq}
                   onChange={(e) => setItemSeq(e.target.value)}
@@ -1239,7 +1239,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   <Label>Select Video</Label>
                   <div className="relative">
                     <div className="flex items-center border rounded-md">
-                      <Search className="h-4 w-4 ml-2 text-muted-foreground" />
+                      <Search className="h-4 w-4 ms-2 text-muted-foreground" />
                       <Input
                         className="border-0 focus-visible:ring-0"
                         placeholder="Search videos by title..."
@@ -1289,7 +1289,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="ml-auto h-6 px-2"
+                        className="ms-auto h-6 px-2"
                         onClick={() => setSelectedVideo(null)}
                       >
                         Clear
@@ -1303,7 +1303,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   {/* Step 1: Search and select study */}
                   <div className="relative">
                     <div className="flex items-center border rounded-md">
-                      <Search className="h-4 w-4 ml-2 text-muted-foreground" />
+                      <Search className="h-4 w-4 ms-2 text-muted-foreground" />
                       <Input
                         className="border-0 focus-visible:ring-0"
                         placeholder="Search studies by title..."
@@ -1356,7 +1356,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="ml-2 h-5 px-1 text-xs"
+                          className="ms-2 h-5 px-1 text-xs"
                           onClick={() => {
                             setSelectedStudyId(null);
                             setSelectedTask(null);
@@ -1460,7 +1460,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                 <div className="space-y-2">
                   <Label>Starting Sequence</Label>
                   <Input
-                    type="number"
+                    type="number" dir="ltr"
                     min={1}
                     value={multiStartSeq}
                     onChange={(e) => setMultiStartSeq(e.target.value)}
@@ -1497,7 +1497,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   <Label>Search & Select Videos</Label>
                   <div className="relative">
                     <div className="flex items-center border rounded-md">
-                      <Search className="h-4 w-4 ml-2 text-muted-foreground" />
+                      <Search className="h-4 w-4 ms-2 text-muted-foreground" />
                       <Input
                         className="border-0 focus-visible:ring-0"
                         placeholder="Search videos..."
@@ -1549,7 +1549,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                         {selectedVideos.map((video, idx) => (
                           <div key={video.id} className="flex items-center justify-between p-1.5 bg-muted rounded text-sm">
                             <span>
-                              <span className="font-mono text-xs text-muted-foreground mr-2">
+                              <span className="font-mono text-xs text-muted-foreground me-2">
                                 Seq {parseInt(multiStartSeq || "1") + idx}:
                               </span>
                               {video.title}
@@ -1577,7 +1577,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   <Label>Search Study & Select Tasks</Label>
                   <div className="relative">
                     <div className="flex items-center border rounded-md">
-                      <Search className="h-4 w-4 ml-2 text-muted-foreground" />
+                      <Search className="h-4 w-4 ms-2 text-muted-foreground" />
                       <Input
                         className="border-0 focus-visible:ring-0"
                         placeholder="Search studies..."
@@ -1686,7 +1686,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                           <Badge key={task.id} variant="secondary" className="text-xs">
                             Seq {parseInt(multiStartSeq || "1") + idx}: Task #{task.seq} ({task.kind})
                             <button
-                              className="ml-1 hover:text-destructive"
+                              className="ms-1 hover:text-destructive"
                               onClick={() => toggleTaskSelection(task)}
                             >
                               <X className="h-3 w-3" />
@@ -1739,7 +1739,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                 <Label htmlFor="edit-seq">Sequence</Label>
                 <Input
                   id="edit-seq"
-                  type="number"
+                  type="number" dir="ltr"
                   min={1}
                   value={editSeq}
                   onChange={(e) => setEditSeq(e.target.value)}
@@ -1777,7 +1777,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   <Label>Select Video</Label>
                   <div className="relative">
                     <div className="flex items-center border rounded-md">
-                      <Search className="h-4 w-4 ml-2 text-muted-foreground" />
+                      <Search className="h-4 w-4 ms-2 text-muted-foreground" />
                       <Input
                         className="border-0 focus-visible:ring-0"
                         placeholder="Search videos..."
@@ -1825,7 +1825,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="ml-auto h-6 px-2"
+                        className="ms-auto h-6 px-2"
                         onClick={() => setEditSelectedVideo(null)}
                       >
                         Clear
@@ -1841,7 +1841,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   <Label>Select Study Task</Label>
                   <div className="relative">
                     <div className="flex items-center border rounded-md">
-                      <Search className="h-4 w-4 ml-2 text-muted-foreground" />
+                      <Search className="h-4 w-4 ms-2 text-muted-foreground" />
                       <Input
                         className="border-0 focus-visible:ring-0"
                         placeholder="Search studies..."
@@ -1891,7 +1891,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="ml-2 h-5 px-1 text-xs"
+                          className="ms-2 h-5 px-1 text-xs"
                           onClick={() => {
                             setEditSelectedStudyId(null);
                             setEditSelectedTask(null);
@@ -2091,7 +2091,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   <Label>Select Video</Label>
                   <div className="relative">
                     <div className="flex items-center border rounded-md">
-                      <Search className="h-4 w-4 ml-2 text-muted-foreground" />
+                      <Search className="h-4 w-4 ms-2 text-muted-foreground" />
                       <Input
                         className="border-0 focus-visible:ring-0"
                         placeholder="Search videos..."
@@ -2139,7 +2139,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="ml-auto h-6 px-2"
+                        className="ms-auto h-6 px-2"
                         onClick={() => setBulkEditSelectedVideo(null)}
                       >
                         Clear
@@ -2155,7 +2155,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                   <Label>Select Study Task</Label>
                   <div className="relative">
                     <div className="flex items-center border rounded-md">
-                      <Search className="h-4 w-4 ml-2 text-muted-foreground" />
+                      <Search className="h-4 w-4 ms-2 text-muted-foreground" />
                       <Input
                         className="border-0 focus-visible:ring-0"
                         placeholder="Search studies..."
@@ -2205,7 +2205,7 @@ function LessonItemsTab({ lessonId }: { lessonId: number }) {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="ml-2 h-5 px-1 text-xs"
+                          className="ms-2 h-5 px-1 text-xs"
                           onClick={() => {
                             setBulkEditSelectedStudyId(null);
                             setBulkEditSelectedTask(null);
@@ -2519,7 +2519,7 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
               size="sm"
               onClick={() => setBulkDialogOpen(true)}
             >
-              <Pencil className="h-4 w-4 mr-2" />
+              <Pencil className="h-4 w-4 me-2" />
               Bulk Edit ({selectedItems.size})
             </Button>
           )}
@@ -2535,7 +2535,7 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
             <table className="w-full text-sm">
               <thead className="border-b bg-muted/50">
                 <tr>
-                  <th className="h-10 px-4 text-left font-medium w-10">
+                  <th className="h-10 px-4 text-start font-medium w-10">
                     <Checkbox
                       checked={allSelected}
                       ref={(el) => {
@@ -2544,11 +2544,11 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
                       onCheckedChange={handleSelectAll}
                     />
                   </th>
-                  <th className="h-10 px-4 text-left font-medium">User ID</th>
-                  <th className="h-10 px-4 text-left font-medium">Progress</th>
-                  <th className="h-10 px-4 text-left font-medium">Last Item</th>
-                  <th className="h-10 px-4 text-left font-medium">Last Progress At</th>
-                  <th className="h-10 px-4 text-left font-medium w-20">Actions</th>
+                  <th className="h-10 px-4 text-start font-medium">User ID</th>
+                  <th className="h-10 px-4 text-start font-medium">Progress</th>
+                  <th className="h-10 px-4 text-start font-medium">Last Item</th>
+                  <th className="h-10 px-4 text-start font-medium">Last Progress At</th>
+                  <th className="h-10 px-4 text-start font-medium w-20">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -2577,7 +2577,7 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
                         "-"
                       )}
                       {progress.current_item && (
-                        <span className="ml-2 text-xs text-muted-foreground">
+                        <span className="ms-2 text-xs text-muted-foreground">
                           ({progress.current_item.lesson_item_kind})
                         </span>
                       )}
@@ -2618,7 +2618,7 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
               <Label htmlFor="edit-percent">Progress Percent (0-100)</Label>
               <Input
                 id="edit-percent"
-                type="number"
+                type="number" dir="ltr"
                 min={0}
                 max={100}
                 value={editPercent}
@@ -2630,7 +2630,7 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
               <Label htmlFor="edit-seq">Last Item Seq (1-{maxItemSeq})</Label>
               <Input
                 id="edit-seq"
-                type="number"
+                type="number" dir="ltr"
                 min={1}
                 max={maxItemSeq}
                 value={editLastSeq}
@@ -2670,7 +2670,7 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
               <Label htmlFor="bulk-percent">Progress Percent (0-100)</Label>
               <Input
                 id="bulk-percent"
-                type="number"
+                type="number" dir="ltr"
                 min={0}
                 max={100}
                 value={bulkPercent}
@@ -2682,7 +2682,7 @@ function LessonProgressTab({ lessonId }: { lessonId: number }) {
               <Label htmlFor="bulk-seq">Last Item Seq (1-{maxItemSeq})</Label>
               <Input
                 id="bulk-seq"
-                type="number"
+                type="number" dir="ltr"
                 min={1}
                 max={maxItemSeq}
                 value={bulkLastSeq}

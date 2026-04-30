@@ -375,7 +375,7 @@ export function AdminTextbookOrderCreate() {
                     {manualUserIdMode ? (
                       <Input
                         id="userId"
-                        type="number"
+                        type="number" dir="ltr"
                         value={userId}
                         onChange={(e) => setUserId(e.target.value)}
                         placeholder={t("admin.textbook.create.userIdPlaceholder")}
@@ -435,7 +435,7 @@ export function AdminTextbookOrderCreate() {
               </Label>
               <Input
                 id="ordererEmail"
-                type="email"
+                type="email" dir="ltr"
                 value={ordererEmail}
                 onChange={(e) => setOrdererEmail(e.target.value)}
               />
@@ -536,7 +536,7 @@ export function AdminTextbookOrderCreate() {
               {t("admin.textbook.create.items")}
             </CardTitle>
             <Button type="button" variant="outline" size="sm" onClick={addItem}>
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="h-4 w-4 me-1" />
               {t("admin.textbook.create.addItem")}
             </Button>
           </CardHeader>
@@ -600,7 +600,7 @@ export function AdminTextbookOrderCreate() {
                 <div>
                   <Label>{t("admin.textbook.create.quantity")} *</Label>
                   <Input
-                    type="number"
+                    type="number" dir="ltr"
                     min={1}
                     value={item.quantity}
                     onChange={(e) => {
@@ -661,7 +661,7 @@ export function AdminTextbookOrderCreate() {
                 </Label>
                 <Input
                   id="discountAmount"
-                  type="number"
+                  type="number" dir="ltr"
                   min={0}
                   max={grossAmount}
                   value={discountAmount}
@@ -765,7 +765,7 @@ export function AdminTextbookOrderCreate() {
               <div>
                 <Label>{t("admin.textbook.create.taxEmail")} *</Label>
                 <Input
-                  type="email"
+                  type="email" dir="ltr"
                   value={taxEmail}
                   onChange={(e) => setTaxEmail(e.target.value)}
                 />

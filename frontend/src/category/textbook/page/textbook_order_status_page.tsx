@@ -103,7 +103,7 @@ export function TextbookOrderStatusPage() {
               className="font-mono"
             />
             <Button type="submit" disabled={!inputCode.trim()}>
-              <Search className="h-4 w-4 mr-1" />
+              <Search className="h-4 w-4 me-1" />
               {t("textbook.status.search")}
             </Button>
           </form>
@@ -207,19 +207,19 @@ export function TextbookOrderStatusPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b bg-secondary">
                       <tr>
-                        <th className="px-3 py-2 text-left">
+                        <th className="px-3 py-2 text-start">
                           {t("textbook.status.colLanguage")}
                         </th>
-                        <th className="px-3 py-2 text-left">
+                        <th className="px-3 py-2 text-start">
                           {t("textbook.status.colType")}
                         </th>
-                        <th className="px-3 py-2 text-right">
+                        <th className="px-3 py-2 text-end">
                           {t("textbook.status.colQuantity")}
                         </th>
-                        <th className="px-3 py-2 text-right">
+                        <th className="px-3 py-2 text-end">
                           {t("textbook.status.colUnitPrice")}
                         </th>
-                        <th className="px-3 py-2 text-right">
+                        <th className="px-3 py-2 text-end">
                           {t("textbook.status.colSubtotal")}
                         </th>
                       </tr>
@@ -233,13 +233,13 @@ export function TextbookOrderStatusPage() {
                               {t(`textbook.order.type${item.textbook_type === "student" ? "Student" : "Teacher"}`)}
                             </Badge>
                           </td>
-                          <td className="px-3 py-2 text-right">
+                          <td className="px-3 py-2 text-end">
                             {item.quantity}
                           </td>
-                          <td className="px-3 py-2 text-right">
+                          <td className="px-3 py-2 text-end">
                             {item.unit_price.toLocaleString()}
                           </td>
-                          <td className="px-3 py-2 text-right font-medium">
+                          <td className="px-3 py-2 text-end font-medium">
                             {item.subtotal.toLocaleString()}
                           </td>
                         </tr>
@@ -255,11 +255,11 @@ export function TextbookOrderStatusPage() {
                             >
                               {t("textbook.status.grossAmount")}
                             </td>
-                            <td className="px-3 py-2 text-right">
+                            <td className="px-3 py-2 text-end">
                               {order.total_quantity}
                             </td>
                             <td />
-                            <td className="px-3 py-2 text-right">
+                            <td className="px-3 py-2 text-end">
                               {order.gross_amount.toLocaleString()}
                               {t("textbook.order.currency")}
                             </td>
@@ -268,12 +268,12 @@ export function TextbookOrderStatusPage() {
                             <td colSpan={4} className="px-3 py-2">
                               - {t("textbook.status.discount")}
                               {order.discount_reason && (
-                                <span className="text-xs text-muted-foreground ml-2">
+                                <span className="text-xs text-muted-foreground ms-2">
                                   ({order.discount_reason})
                                 </span>
                               )}
                             </td>
-                            <td className="px-3 py-2 text-right">
+                            <td className="px-3 py-2 text-end">
                               - {order.discount_amount.toLocaleString()}
                               {t("textbook.order.currency")}
                             </td>
@@ -282,7 +282,7 @@ export function TextbookOrderStatusPage() {
                             <td colSpan={4} className="px-3 py-2">
                               {t("textbook.status.total")}
                             </td>
-                            <td className="px-3 py-2 text-right">
+                            <td className="px-3 py-2 text-end">
                               {order.total_amount.toLocaleString()}
                               {t("textbook.order.currency")}
                             </td>
@@ -293,11 +293,11 @@ export function TextbookOrderStatusPage() {
                           <td colSpan={2} className="px-3 py-2">
                             {t("textbook.status.total")}
                           </td>
-                          <td className="px-3 py-2 text-right">
+                          <td className="px-3 py-2 text-end">
                             {order.total_quantity}
                           </td>
                           <td />
-                          <td className="px-3 py-2 text-right">
+                          <td className="px-3 py-2 text-end">
                             {order.total_amount.toLocaleString()}
                             {t("textbook.order.currency")}
                           </td>
@@ -357,7 +357,7 @@ export function TextbookOrderStatusPage() {
                       )
                     }
                   >
-                    <FileText className="h-4 w-4 mr-1" />
+                    <FileText className="h-4 w-4 me-1" />
                     {t("textbook.print.quoteTitle")}
                   </Button>
                   <Button
@@ -370,7 +370,7 @@ export function TextbookOrderStatusPage() {
                       )
                     }
                   >
-                    <ClipboardCheck className="h-4 w-4 mr-1" />
+                    <ClipboardCheck className="h-4 w-4 me-1" />
                     {t("textbook.print.confirmationTitle")}
                   </Button>
                   {order.paid_at && (
@@ -384,7 +384,7 @@ export function TextbookOrderStatusPage() {
                         )
                       }
                     >
-                      <FileText className="h-4 w-4 mr-1" />
+                      <FileText className="h-4 w-4 me-1" />
                       {t("textbook.print.receiptTitle")}
                     </Button>
                   )}
