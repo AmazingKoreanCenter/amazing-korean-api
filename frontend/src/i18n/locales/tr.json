@@ -382,11 +382,11 @@
     "expiresAt": "Bitiş tarihi",
     "promoCodePlaceholder": "Promosyon kodu giriniz",
     "promoCodeClear": "Temizle",
-    "cancelConfirmTitle": "Cancel your subscription?",
-    "cancelConfirmMessage": "If you cancel immediately, your access will be revoked right away. If you cancel at the end of the period, you can continue using the service until your current billing period ends.",
-    "cancelAtPeriodEnd": "Cancel at Period End",
-    "cancelImmediate": "Cancel Immediately",
-    "cancelScheduled": "Cancellation scheduled at period end"
+    "cancelConfirmTitle": "Aboneliğinizi iptal etmek mi istiyorsunuz?",
+    "cancelConfirmMessage": "Hemen iptal ederseniz erişiminiz derhal sonlandırılacaktır. Dönem sonunda iptal ederseniz, mevcut fatura döneminizin sonuna kadar hizmeti kullanmaya devam edebilirsiniz.",
+    "cancelAtPeriodEnd": "Dönem Sonunda İptal Et",
+    "cancelImmediate": "Hemen İptal Et",
+    "cancelScheduled": "Dönem sonunda iptal edilecek"
   },
   "home": {
     "heroBadge": "Amazing Korean Dil Platformu",
@@ -448,11 +448,11 @@
       "refundPolicy": "İade Politikasını Görüntüle",
       "viewGrid": "Izgara Görünümü",
       "bookDescription": "Korece öğrenmek için temel bir ders kitabı.\nKorece - İngilizce - {{language}} dillerinde hazırlanan bu kitap,\nbasit düzeyde Korece yetkinliği kazanmak\nve TOPIK ile EPS-TOPIK sınavlarına hazırlanmak için ilk adımdır.",
-      "viewCarousel": "Carousel View",
-      "searchPlaceholder": "Search language...",
-      "noResults": "No results found.",
-      "bookTitle": "Amazing Korean Basics - {{language}}",
-      "pricePerUnit": "15,000 KRW"
+      "viewCarousel": "Atlıkarınca Görünümü",
+      "searchPlaceholder": "Dil ara...",
+      "noResults": "Sonuç bulunamadı.",
+      "bookTitle": "Amazing Korean Temelleri - {{language}}",
+      "pricePerUnit": "15.000 KRW"
     },
     "detail": {
       "viewDetail": "Detayları Görüntüle",
@@ -507,9 +507,9 @@
       "cover": "Kapak",
       "toc": "İçindekiler",
       "sample": "{{n}} Örnek",
-      "pages": " pages",
-      "purchaseButton": "Purchase",
-      "imageNotAvailable": "Image coming soon"
+      "pages": " sayfa",
+      "purchaseButton": "Satın Al",
+      "imageNotAvailable": "Görsel yakında"
     },
     "my": {
       "browseCatalog": "E-kitaplara Göz Atın",
@@ -518,8 +518,8 @@
       "cancelOrder": "Siparişi İptal Et",
       "processing": "Ödeme işleniyor...",
       "loadError": "Satın alımlar yüklenemedi.",
-      "title": "My E-books",
-      "empty": "No purchased E-books."
+      "title": "E-kitaplarım",
+      "empty": "Satın alınan e-kitap bulunmuyor."
     },
     "viewer": {
       "toc": "İçindekiler",
@@ -1049,11 +1049,11 @@
       "ordererInfo": "Sipariş Veren Bilgisi",
       "deliveryInfo": "Teslimat Bilgisi",
       "notes": "Notlar",
-      "subtitle": "Enter your order code to check the order status.",
+      "subtitle": "Sipariş durumunu kontrol etmek için sipariş kodunuzu giriniz.",
       "placeholder": "TB-260226-0001",
-      "search": "Search",
-      "notFound": "Order not found",
-      "notFoundDesc": "Please check your order code and try again."
+      "search": "Ara",
+      "notFound": "Sipariş bulunamadı",
+      "notFoundDesc": "Lütfen sipariş kodunuzu kontrol edin ve tekrar deneyin."
     },
     "terms": {
       "title": "Textbook Order Terms & Conditions",

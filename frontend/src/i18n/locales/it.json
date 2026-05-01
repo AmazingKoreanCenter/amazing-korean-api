@@ -660,11 +660,11 @@
     }
   },
   "comingSoon": {
-    "badge": "Coming Soon",
-    "title": "We're Preparing Something Great",
-    "description": "We're crafting quality content\nfor a better Korean learning experience.",
-    "videoTitle": "Video Learning",
-    "videoDescription": "Learn natural Korean rhythm and intonation\nthrough diverse native speaker videos.",
+    "badge": "Prossimamente",
+    "title": "Stiamo preparando qualcosa di grande",
+    "description": "Stiamo creando contenuti di alta qualità\nper offrirLe un'esperienza di apprendimento del coreano migliore.",
+    "videoTitle": "Apprendimento tramite video",
+    "videoDescription": "Impari il ritmo e l'intonazione naturale del coreano\nattraverso diversi video di madrelingua.",
     "studyTitle": "Esercitazione sui pattern",
     "studyDescription": "Esercitarsi con diverse espressioni partendo da una singola frase\nattraverso quiz a scelta multipla e quiz scritti.",
     "lessonTitle": "Programma delle lezioni",
