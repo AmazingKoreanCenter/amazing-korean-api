@@ -1290,11 +1290,11 @@
   },
   "ebook": {
     "catalog": {
-      "badge": "E-book",
-      "title": "Amazing Korean E-book",
-      "subtitle": "Student and teacher E-books in 22 languages,\navailable to read online instantly.",
-      "teacherEdition": "Teacher",
-      "studentEdition": "Student",
+      "badge": "کتاب الکترونیک",
+      "title": "کتاب الکترونیک Amazing Korean",
+      "subtitle": "کتاب‌های الکترونیک دانش‌آموز و معلم به ۲۲ زبان،\nبا قابلیت مطالعه آنلاین و فوری.",
+      "teacherEdition": "معلم",
+      "studentEdition": "دانش‌آموز",
       "selectLanguage": "لطفاً یک زبان را انتخاب کنید.",
       "comingSoon": "به‌زودی",
       "loadError": "خطا در بارگذاری کاتالوگ.",
