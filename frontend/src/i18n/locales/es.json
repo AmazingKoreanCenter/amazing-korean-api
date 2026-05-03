@@ -625,7 +625,7 @@
       "searchPlaceholder": "Buscar idioma...",
       "noResults": "No se encontraron resultados.",
       "isbnPending": "~1 semana adicional para el registro del ISBN e impresión",
-      "bookTitle": "Amazing Korean Básico - {{language}}",
+      "bookTitle": "Amazing Korean Basic - {{language}}",
       "editionInfo": "{{edition}} · Pedido mínimo: 10 copias",
       "bookDescriptionStudent": "Un libro de texto fundamental para aprender coreano.\nRedactado en coreano, inglés y {{language}},\nes el primer paso para alcanzar un nivel básico de coreano\ny para la preparación del TOPIK y el EPS-TOPIK.",
       "bookDescriptionTeacher": "Un libro de texto fundamental para la enseñanza del coreano.\nRedactado en coreano, inglés y {{language}},\nes el primer paso para la enseñanza del coreano básico\ny para la preparación del TOPIK y el EPS-TOPIK."

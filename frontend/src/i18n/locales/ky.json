@@ -1068,7 +1068,7 @@
       "viewCarousel": "Карусель көрүнүшү",
       "searchPlaceholder": "Тилди издөө...",
       "noResults": "Эч нерсе табылган жок.",
-      "bookTitle": "Amazing Korean Башталгыч - {{language}}",
+      "bookTitle": "Amazing Korean Basic - {{language}}",
       "editionInfo": "{{edition}} · Минималдуу заказ саны: 10 нуска",
       "bookDescriptionStudent": "Корей тилин үйрөнүү үчүн негизги окуу куралы.\nКорей - англис - {{language}} тилдеринде түзүлгөн,\nбул корей тилинин негизги деңгээлин өздөштүрүү,\nжана TOPIK жана EPS-TOPIKке даярдануу үчүн биринчи кадам.",
       "bookDescriptionTeacher": "Корей тилин окутуу үчүн негизги окуу куралы.\nКорей - англис - {{language}} тилдеринде түзүлгөн,\nбул корей тилинин негизги деңгээлин окутуу\nжана TOPIK менен EPS-TOPIKке даярдануу үчүн биринчи кадам."

@@ -625,7 +625,7 @@
       "searchPlaceholder": "搜索语言...",
       "noResults": "未找到结果。",
       "isbnPending": "ISBN 注册与印刷需额外约 1 周时间",
-      "bookTitle": "Amazing Korean 基础 - {{language}}",
+      "bookTitle": "Amazing Korean Basic - {{language}}",
       "editionInfo": "{{edition}} · 最少起订量 10 本",
       "bookDescriptionStudent": "韩语学习的基础教材。\n采用韩语 - 英语 - {{language}} 编写，\n是掌握韩语基础并\n备考 TOPIK 和 EPS-TOPIK 的第一步。",
       "bookDescriptionTeacher": "韩语教学的基础教材。\n采用韩语 - 英语 - {{language}} 编写，\n是开展韩语基础教学并\n备考 TOPIK 和 EPS-TOPIK 的第一步。"
