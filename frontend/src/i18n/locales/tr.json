@@ -1046,7 +1046,7 @@
       "colUnitPrice": "Birim Fiyat",
       "colSubtotal": "Ara Toplam",
       "total": "Toplam",
-      "ordererInfo": "Sipariş Veren Bilgisi",
+      "ordererInfo": "Sipariş Veren Bilgileri",
       "deliveryInfo": "Teslimat Bilgisi",
       "notes": "Notlar",
       "subtitle": "Sipariş durumunu kontrol etmek için sipariş kodunuzu giriniz.",
