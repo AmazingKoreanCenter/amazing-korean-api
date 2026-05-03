@@ -370,7 +370,7 @@
     "featureAllVideos": "Tüm video içerik kütüphanesi",
     "featureStudyMaterials": "Sınırsız çalışma materyalleri",
     "featureTrial": "{{days}} günlük ücretsiz deneme",
-    "featureSave": "{{percent}} tasarruf edin",
+    "featureSave": "%{{percent}} tasarruf edin",
     "checkoutSuccess": "Ödeme tamamlandı! Kurs erişiminiz etkinleştirildi.",
     "loginRequired": "Abone olmak için lütfen giriş yapın.",
     "alreadySubscribed": "Zaten aktif bir aboneliğiniz bulunuyor.",
