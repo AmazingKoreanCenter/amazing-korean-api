@@ -46,7 +46,7 @@
     "certificationCheck": "تصدیق شدہ اسناد",
     "certOnlineMarketing": "آن لائن سیلز بزنس رجسٹریشن سرٹیفکیٹ",
     "certAmazingKoreanCenter": "Amazing Korean سینٹر کی تصدیق",
-    "quickLinks": "اہم لنکس",
+    "quickLinks": "فوری لنکس",
     "serviceIntro": "ہمارے بارے میں",
     "videoLearning": "ویڈیو لرننگ",
     "structuredLearning": "منظم طریقے سے سیکھنا",
@@ -373,7 +373,7 @@
     "programTopikRead": "TOPIK ریڈنگ",
     "programTopikListen": "TOPIK سننے کی مہارت",
     "programTopikWrite": "TOPIK رائٹنگ",
-    "programTbc": "تصدق ہونا باقی ہے",
+    "programTbc": "تصدیق ہونا باقی ہے",
     "totalProblems": "کل {{count}} سوالات",
     "emptyTitle": "کوئی سوالات رجسٹرڈ نہیں ہیں",
     "emptyDescription": "منتخب کردہ پروگرام کے لیے ابھی تک کوئی سوالات دستیاب نہیں ہیں۔",
@@ -1315,8 +1315,8 @@
       "description": "کورین زبان سیکھنے کے لیے ایک بنیادی ڈیجیٹل درسی کتاب۔ یہ کورین، انگریزی اور {{language}} میں دستیاب ہے، جسے آپ فوری طور پر آن لائن پڑھ سکتے ہیں۔",
       "pages": " صفحات",
       "imageNotAvailable": "تصویر دستیاب نہیں ہے",
-      "teacherComingSoon": "ای بک · ٹیچر · جلد دستیاب ہوگی",
-      "studentComingSoon": "ای بک · اسٹوڈنٹ · جلد دستیاب ہوگی"
+      "teacherComingSoon": "ای بک · استاد · جلد دستیاب ہوگی",
+      "studentComingSoon": "ای بک · طالب علم · جلد دستیاب ہوگی"
     },
     "purchase": {
       "title": "خریداری کی تفصیلات",

@@ -429,7 +429,7 @@
       "mistakesLabel": "Errori",
       "landingBadge": "Pratica di digitazione Hangul",
       "landingTitle": "Esercitazione sulla tastiera Hangul",
-      "landingDescription": "Esercitarsi nella digitazione in coreano attraverso tre livelli di difficoltà. Si progredisce dai jamo alle sillabe, fino a parole, frasi e paragrafi.",
+      "landingDescription": "Esercitati nella digitazione in coreano attraverso tre livelli di difficoltà. Progredisci dai jamo alle sillabe, fino a parole, frasi e paragrafi.",
       "viewStats": "Visualizzi le statistiche",
       "startLevel": "Inizi l'esercitazione",
       "selectPracticeType": "Scelga un tipo di esercitazione.",
@@ -1151,7 +1151,7 @@
     "order": {
       "sectionItems": "Selezionare i libri di testo",
       "language": "Lingua",
-      "languagePlaceholder": "Seleziona una lingua",
+      "languagePlaceholder": "Selezioni una lingua",
       "textbookType": "Tipo",
       "typeStudent": "Studente",
       "typeTeacher": "Insegnante",
