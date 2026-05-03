@@ -827,7 +827,7 @@
     "mfaVerifyButton": "Doğrula",
     "mfaBackToLogin": "Giriş Ekranına Dön",
     "mfaInvalidCode": "Geçersiz kimlik doğrulama kodu",
-    "mfaBackupPlaceholder": "8 haneli yedek kod",
+    "mfaBackupPlaceholder": "8 karakterli yedek kod",
     "mfaUseBackupCode": "Yedek kodu kullan",
     "mfaUseAuthApp": "Kimlik doğrulama uygulamasını kullan"
   },

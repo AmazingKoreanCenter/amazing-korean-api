@@ -66,7 +66,7 @@
     "loginWelcome": "Karibu Amazing Korean",
     "loginWithEmail": "Ingia kwa Barua Pepe",
     "loginWithGoogle": "Endelea na Google",
-    "loginWithGoogleLoading": "Ukiingia kwa Google...",
+    "loginWithGoogleLoading": "Inaingia kwa Google...",
     "loginWithGoogleAlert": "Ingia kwa kutumia Google",
     "loginWithApple": "Endelea na Apple (Inakuja hivi karibuni)",
     "loginButton": "Ingia",
@@ -568,7 +568,7 @@
     "loginRequired": "Tafadhali ingia ili uweze kujiunga.",
     "alreadySubscribed": "Tayari unayo usajili unaofanya kazi.",
     "serviceUnavailable": "Huduma ya malipo kwa sasa haipatikani. Tafadhali jaribu tena baadaye.",
-    "bottomNote": "Bei zote ziko katika USD. Usajili unajisajili upya kiotomatiki na unaweza kusitishwa wakati wowote.",
+    "bottomNote": "Bei zote ziko katika USD. Usajili husasishwa kiotomatiki na unaweza kughairiwa wakati wowote.",
     "cancelSubscription": "Ghairi Usajili",
     "cancelConfirmTitle": "Je, ungependa kughairi usajili wako?",
     "cancelConfirmMessage": "Ukighairi mara moja, ufikiaji wako utafutwa mara moja. Ukighairi mwishoni mwa kipindi, utaweza kuendelea kutumia huduma hadi kipindi chako cha sasa cha malipo kitakapomalizika.",
@@ -576,7 +576,7 @@
     "cancelImmediate": "Ghairi mara moja",
     "cancelScheduled": "Ughairi umepangwa mwishoni mwa kipindi",
     "cancelSuccess": "Usajili wako umefutwa.",
-    "cancelFailed": "Imeshindwa kufuta usajili. Tafadhali jaribu tena.",
+    "cancelFailed": "Imeshindwa kughairi usajili. Tafadhali jaribu tena.",
     "expiresAt": "Inakwisha",
     "promoCodePlaceholder": "Weka msimbo wa promo",
     "promoCodeClear": "Futa"
@@ -1101,7 +1101,7 @@
       }
     },
     "print": {
-      "quoteTitle": "Nukuu",
+      "quoteTitle": "Makadirio ya Bei",
       "confirmationTitle": "Uthibitisho wa Agizo",
       "companyName": "HYMN Co., Ltd.",
       "docNumber": "Nambari ya Hati",
