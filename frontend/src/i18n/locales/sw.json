@@ -575,7 +575,7 @@
     "cancelAtPeriodEnd": "Ghairi mwishoni mwa kipindi",
     "cancelImmediate": "Ghairi mara moja",
     "cancelScheduled": "Ughairi umepangwa mwishoni mwa kipindi",
-    "cancelSuccess": "Usajili wako umefutwa.",
+    "cancelSuccess": "Usajili wako umeghairiwa.",
     "cancelFailed": "Imeshindwa kughairi usajili. Tafadhali jaribu tena.",
     "expiresAt": "Inakwisha",
     "promoCodePlaceholder": "Weka msimbo wa promo",

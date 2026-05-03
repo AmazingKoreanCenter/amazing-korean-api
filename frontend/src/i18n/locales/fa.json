@@ -24,12 +24,12 @@
     "brandName": "Amazing Korean",
     "toggleTheme": "تغییر تم",
     "themeLight": "روشن",
-    "themeDark": "تاریک",
+    "themeDark": "تیره",
     "themeSystem": "سیستم",
     "goToSlide": "به اسلاید {{n}} بروید"
   },
   "nav": {
-    "about": "درباره ما",
+    "about": "درباره",
     "videos": "ویدیوها",
     "studies": "مطالعات",
     "lessons": "درس‌ها",
@@ -528,7 +528,7 @@
     "emptyTitle": "هیچ ویدیویی ثبت نشده است.",
     "notFoundTitle": "ویدیو پیدا نشد",
     "notFoundDescription": "این ویدیو وجود ندارد یا حذف شده است.",
-    "completionTitle": "ویدیو به پایان رسید!",
+    "completionTitle": "ویدیو تکمیل شد!",
     "completionDescription": "عالی بود! به یادگیری خود ادامه دهید.",
     "allItemsCompleted": "تمام موارد در «{{title}}» تکمیل شده‌اند!",
     "nextItem": "مورد بعدی",
