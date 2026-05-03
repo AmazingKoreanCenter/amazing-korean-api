@@ -767,7 +767,32 @@ docker system df
 
 # Docker 이미지별 용량
 docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+
+# E-book 페이지 이미지 디렉터리 (RDS 이전 전까지 EC2 local fs)
+du -sh "${EBOOK_PAGE_IMAGES_DIR:-docs/textbook/page-images}"
+ls "${EBOOK_PAGE_IMAGES_DIR:-docs/textbook/page-images}/student" 2>/dev/null | wc -l   # 언어 디렉터리 수
 ```
+
+##### E-book 페이지 이미지 모니터링 (2026-05-03 정책)
+
+`${EBOOK_PAGE_IMAGES_DIR}` 은 books 측 빌드 결과 (`dist/ebook_pages/`) 가 EC2 로 동기화되는 디렉터리. RDS 이전 전까지 EC2 local fs 정책 (`AMK_API_EBOOK.md` "페이지 이미지 저장 위치 정책" 참조).
+
+| 항목 | 임계값 | 액션 |
+|------|--------|------|
+| EC2 디스크 여유 (전체) | < 30% | 즉시 점검. Docker prune + 로그 정리 우선 |
+| `${EBOOK_PAGE_IMAGES_DIR}` 크기 | > 2GB | 콘텐츠 추가 추세 점검. 2GB 도달 시 RDS 이전 + S3 전환 우선순위 상향 결정 |
+| 36 lang × 2 edition manifest 카운트 | < 72 | books 동기화 누락 점검 |
+| `manifest.json` 무결성 | json parse 실패 | books 빌드 재실행 + 동기화 재시도 |
+
+**현재 baseline** (2026-05-03 books 빌드 기준):
+- 8,928 페이지 / 693MB / 36 lang × 2 edition = 72 manifest
+- 단일 페이지 평균 ~78KB (1587×2245px WebP quality 85)
+
+**RDS 이전 시점 전환 트리거** (`AMK_STATUS §8.2 검증된 리스크` Q9):
+- ebook 도메인 9곳 `fs::read` → S3 SDK 호출 전환
+- `${EBOOK_PAGE_IMAGES_DIR}` 데이터 → S3 bucket 1회 `aws s3 sync`
+- 환경변수 `EBOOK_PAGE_IMAGES_DIR` → `EBOOK_PAGE_IMAGES_S3_BUCKET` (가칭) 전환
+- CloudFront signed URL 보안 강화 검토
 
 ##### 디스크 정리
 
