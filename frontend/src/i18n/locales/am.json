@@ -204,7 +204,7 @@
     "toastEmailNotVerified": "የኢሜይል ማረጋገጫ ያስፈልጋል።",
     "toastVerificationCodeSent": "የማረጋገጫ ኮዱ ወደ ኢሜይልዎ ተልኳል።",
     "toastTooManyVerifyAttempts": "የማረጋገጫ ሙከራዎች በጣም በዝተዋል። እባክዎ ቆይተው እንደገና ይሞክሩ።",
-    "toastTooManyResendRequests": "የመልገስ ጥያቄዎች በጣም በዝተዋል። እባክዎ ቆይተው እንደገና ይሞክሩ።",
+    "toastTooManyResendRequests": "እንደገና የመላክ ጥያቄዎች በጣም በዝተዋል። እባክዎ ቆይተው እንደገና ይሞክሩ።",
     "oauthPasswordWarning": "በሶሻል አካውንት (Google፣ ወዘተ) የተፈጠሩ አካውንቶች የይለፍ ቃል የላቸውም። እባክዎ በዚያው ሶሻል አካውንት በመጠቀም ይግቡ።",
     "remainingAttempts": "ቀሪ ሙከራዎች፡ {{count}}",
     "noAttemptsRemaining": "የመላኪያ ገደቡ ላይ ደርሰዋል። እባክዎ ቆይተው እንደገና ይሞክሩ።",
