@@ -63,7 +63,8 @@ const FONT_MAP: Record<string, FontConfig> = {
     id: "font-fa",
   },
   ur: {
-    href: "https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;500;700&display=swap",
+    // Nastaliq Urdu = Google Fonts 400/700 만 지원 (500 미지원, PR #191 Gemini MEDIUM)
+    href: "https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap",
     id: "font-ur",
   },
   // 기타 신규 3종 (PR-B-pre dormant)

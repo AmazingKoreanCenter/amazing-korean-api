@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-04-30 (Q13 Phase 2 S4 = PR-D 데스크탑 마이그 — amazing-korean-desktop 동기화 93 파일)
+updated: 2026-05-03 (Q13 Phase 2 hotfix — Nastaliq weight 500 미지원 정정 + PR #193 폐기 후 새 PR 작성)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,40 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-05-03 — Q13 Phase 2 hotfix (PR #193 → 새 PR): Nastaliq Urdu weight 500 미지원 정정**
+
+  **배경**: 2026-04-30 작성한 PR #193 (font_loader Nastaliq fix + Gemini docs 일관성 + S6 도록 등록 9건) 이 머지되지 않은 채 그 사이 PR #194~#198 (5건) 이 별도 브랜치로 main 에 머지됨. PR #193 의 docs 가 그 흐름을 모르는 stale 상태가 되어 옵션 'B — 버리고 새로 작성' 채택 (사용자 결정 2026-05-03). PR #193 close + KKRYOUN reset --hard origin/main + 본 PR 작성.
+
+  **그 사이 머지된 PR 요약** (origin/main 기준):
+  | # | 제목 | 머지 |
+  |:-:|------|:----:|
+  | #194 | Phase 2 — 13 신규 lang 번역 + Wave 1 stale cleanup + common.goToSlide | 2026-05-01 |
+  | #195 | Phase 2 recovery — gemma 실패 65 keys 재번역 (6 lang) | 2026-05-01 |
+  | #196 | Phase 2 Option C Phase A — cross-lang 5건 사용자 결정 패치 | 2026-05-03 |
+  | #197 | Phase 2 Option C Phase B — major/high 52건 합의 패치 | 2026-05-03 |
+  | #198 | Phase 2 Option C Phase C — minor 2-LLM exact match 22건 자동 패치 | 2026-05-03 |
+
+  > 위 PR 들은 ai 측 Wave 1 번역 결과 도착 + 검증 패치 흐름. 상세 변경 이력은 각 PR 본문 + ai 리포 핸드오프 문서 (`amazing-korean-ai/docs/AMK_AI_TRANSLATION_HANDOFF.md`) 참조. 본 api 측 책임은 머지 후 `SUPPORTED_LANGUAGES` 활성 (S5) — **아직 미실행**, RTL 여전히 dormant.
+
+  **본 PR 코드 변경** (1 파일 / +2 -1):
+  - `frontend/src/utils/font_loader.ts` — `ur` (Nastaliq Urdu) 폰트 weight `wght@400;500;700` → `wght@400;700` 정정. Google Fonts 의 Noto Nastaliq Urdu 는 400/700 만 지원 (500 누락된 요청은 잘못된 API 호출). 주석 추가. dormant 상태 (SUPPORTED_LANGUAGES 미포함) 라 즉시 영향 없으나 S5 활성 시점에 발현 위험 차단.
+
+  **본 PR docs 변경**:
+  - `docs/AMK_CHANGELOG.md` — 본 엔트리.
+  - `docs/AMK_STATUS.md` Q13 행 — PR #194~#198 진행 + 본 hotfix 반영.
+  - 메모리 — `project_status.md` 갱신, 날짜 2026-05-03 으로.
+
+  **PR #193 잔여 가치 처리**:
+  - **font_loader 1줄** → 본 PR 에 보존
+  - **Gemini docs 일관성 3건 (단위 곳/라인 명시)** → 이미 PR #192 docs sync 머지본에 적용 완료 (불필요)
+  - **plan §2.9.10 (S6 도록 등록 9건)** → plan 파일 그대로 보존 (별도 변경 불필요, S6 시점에 처리)
+
+  **검증**: `npm run build` 11.19s 클린 / `npx tsc --noEmit` 0 error.
+
+  **운영 노트**: 사용자 재확인 (2026-05-03) — **KKRYOUN 단일 브랜치 정책 유지**. PR #194~#198 이 `i18n/phase2-*` feature 브랜치로 머지된 건 정책 외 흐름 (ai 측 결과 반영 작업의 일부, 별도 세션). 본 PR 부터는 KKRYOUN 정상 운영 복귀. `feedback_git_branching` 메모리 그대로 유지.
 
 ---
 
