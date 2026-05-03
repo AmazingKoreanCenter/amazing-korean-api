@@ -164,6 +164,7 @@
 **큐 외 대기** (이 리포 작업이지만 일정 대기):
 - ~~**#67 D+7 관측 로그 체크**~~ — 2026-04-23 ✅ **완료** (0건 확인)
 - ~~**#67 Phase 2~5 일괄 전환**~~ — 2026-04-23 ✅ **완료** (D+8 예정 대비 1일 앞당김. 데스크탑은 별도 PR 진행 중)
+- **Q14 — e-book 페이지 이미지 EC2 업로드** (2026-05-03 결정, 사용자 트리거 대기): books-api-bridge plan §3 Stage 2 #3-B. books 측 `dist/ebook_pages/` (8,928 페이지 / 693MB / 36 lang × 2 edition) → EC2 `${EBOOK_PAGE_IMAGES_DIR}` 동기화. 정책 = RDS 이전 전까지 EC2 local fs (RDS 이전 시 S3 + Q9 ebook fs::read 9곳 전환과 함께 통합 전환). 의존: 사용자 → EC2 디스크 여유 확인 (`df -h`) + books 측 동기화 스크립트 작성 (rsync 또는 `aws s3 sync`). 시간 추정: 인프라 결정 + 스크립트 반나절 + 업로드 30분. 정책 본문: [`AMK_API_EBOOK.md` "페이지 이미지 저장 위치 정책"](./AMK_API_EBOOK.md). 운영 모니터링: [`AMK_DEPLOY_OPS.md §6`](./AMK_DEPLOY_OPS.md) + 본 문서 §8.4 #8.
 
 #### 검증된 리스크 (2026-03-31 코드베이스 팩트체크 완료)
 
@@ -322,6 +323,7 @@
 | 5 | 모바일 프레임워크 동향 | 기술 | Flutter / Tauri / Kotlin Multiplatform 변화, flutter_rust_bridge 업데이트, 크로스플랫폼 보안 사례 | 분기 1회 | [`AMK_APP_ROADMAP.md`](./AMK_APP_ROADMAP.md) |
 | 6 | 인프라/보안 동향 | 기술 | AWS 신규 서비스, 컨테이너 오케스트레이션, 인증 표준 (Passkey 등), OWASP 업데이트 | 분기 1회 | [`AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md) |
 | 7 | 규제/법률 동향 | 사업 | 교육 앱 개인정보보호 (COPPA, GDPR-K), DMA/DSA 후속 조치, 각국 앱스토어 규제 | 분기 1회 | — |
+| 8 | EC2 디스크 여유 + e-book 페이지 이미지 크기 | 인프라 | `${EBOOK_PAGE_IMAGES_DIR}` 점유량 (baseline 693MB, 임계값 2GB), 전체 디스크 여유 (< 30% 시 점검). 2026-05-03 정책 = RDS 이전 전까지 EC2 local fs | 주 1회 | [`AMK_DEPLOY_OPS.md §6`](./AMK_DEPLOY_OPS.md) |
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 

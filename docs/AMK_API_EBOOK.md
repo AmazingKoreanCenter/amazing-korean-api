@@ -422,6 +422,26 @@ node scripts/textbook/generate_page_images.js all all       # 전체
 - 출력: `docs/textbook/page-images/{edition}/{lang}/page-001.webp ~ page-NNN.webp`
 - 매니페스트: `docs/textbook/page-images/{edition}/{lang}/manifest.json`
 
+**페이지 이미지 저장 위치 정책 (2026-05-03 결정)**:
+
+| 시점 | `${EBOOK_PAGE_IMAGES_DIR}` 위치 | 트리거 |
+|------|------|------|
+| **현재 ~ RDS 이전 전** | EC2 local fs (`docs/textbook/page-images` 기본값) | 본 정책 |
+| **RDS 이전 시점 (Q9 동시 처리)** | AWS S3 + CloudFront signed URL | RDS/ElastiCache 이전 시 (`AMK_STATUS §8.2 #6`) |
+
+**현재 EC2 정책 채택 근거**:
+- e-book 출시 비즈니스 가치 즉시 실현 (RDS 이전 ~1.5개월+ 대기 회피)
+- WebP 한 번 업로드 후 catalog 응답에서 manifest.json 부재 자동 `available=false` 로직 활용 (api 코드 변경 0)
+- RDS 이전 시 어차피 ebook 도메인 9곳 `fs::read` 모두 S3 전환 (Q9 = `AMK_STATUS §8.2 검증된 리스크` CRITICAL). WebP 디렉터리 추가 = 동일 작업 1줄 확장. 마이그 비용 작음 (`aws s3 sync` 1회).
+- 업로드 자동화 스크립트는 destination 만 바꿔서 재사용 가능.
+
+**EC2 정책 운영 리스크 + 완화**:
+- **디스크 압박**: 693MB (현재 books 빌드 결과) + 향후 콘텐츠 추가. 업로드 전 `df -h` 여유 확인 필수. 모니터링 항목으로 등재 (`AMK_STATUS §8.4 상시 모니터링`)
+- **단일 장애점 (백업 부재)**: EC2 단일 디스크 = 콘텐츠 유실 위험. 일일 S3 cold storage 백업 스크립트 별도 트랙
+- **업로드 자동화 부재**: books 측 빌드 후 books → EC2 동기화 = 수동 `rsync` 또는 cron 자동화 (books 세션 작업 범위)
+
+**`books-api-bridge` plan §3 Stage 2 #3-B** 가 본 정책 실행 단계. books 측 `dist/ebook_pages/` → EC2 `${EBOOK_PAGE_IMAGES_DIR}` 동기화 스크립트 작성 + 사용자 트리거 시 진행.
+
 **프론트엔드 페이지**:
 - `/ebook` — e-book 카탈로그 (언어/에디션 선택, 가격, 결제방식 선택(계좌이체/Paddle 카드), 샘플 미리보기, 환불정책 링크 — 로그인 필수)
 - `/ebook/purchase-complete` — 구매 완료 안내 (구매코드, 요약, 입금안내/Paddle 완료 분기)

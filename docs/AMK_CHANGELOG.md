@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-03 (PR #201 묶음 — Nastaliq fix + stale key cleanup + TextbookLanguage 14 추가 + 번역 갭 진단)
+updated: 2026-05-03 (e-book 페이지 이미지 저장 위치 정책 결정 — RDS 이전 전까지 EC2 local fs)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,49 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-05-03 (저녁) — 결정: e-book 페이지 이미지 저장 위치 정책 (학습 콘텐츠 인프라)**
+
+  books-api-bridge plan §3 Stage 2 #3-B (WebP 인프라 업로드) 진입 전 인프라 결정. 코드 변경 없음, docs + memory 만 갱신.
+
+  **결정**: 옵션 A 채택 — **RDS 이전 전까지 EC2 local fs 정책 유지** (사용자 결정 2026-05-03).
+
+  **검토한 옵션**:
+  - **A. 지금 EC2 dir 업로드** — 즉시 동작, rsync 30분, api 코드 변경 0, books-api-bridge §3 Stage 2 즉시 진행 가능. 단점: RDS 이전 시 한 번 더 옮겨야 함, EC2 디스크 693MB 점유, 업로드 자동화 스크립트 EC2 전용
+  - **B. RDS 이전 + Q9 (S3 전환) 완료 후 업로드** — 한 번에 끝, S3 + CDN 통합. 단점: 약 1.5개월+ 대기 (모바일 ~23일 + 데스크탑 7.5일 + RDS 이전 5일 + Q9 3-5일), e-book 출시 지연
+
+  **A 채택 근거**:
+  1. 1인 CEO 환경에서 1.5개월+ 대기 비용 > 한 번 더 옮기는 비용
+  2. e-book 36 lang catalog 활성으로 즉각적 사용자 가치 + 피드백 루프 시작
+  3. 마이그 비용 작음 = `aws s3 sync` 1회 (693MB / 5분 미만)
+  4. Q9 (E-book 로컬 fs 의존 해소) 가 이미 CRITICAL 리스크 등록 — ebook 도메인 9곳 fs::read 전환은 어차피 필수. WebP 디렉터리 추가 = 같은 작업의 1줄 확장
+  5. 업로드 자동화 스크립트는 destination 만 바꿔서 재사용 가능 (지금 작성 = 미래 자산)
+  6. 검증된 패턴 — ebook 도메인 EC2 local fs 읽기로 이미 동작 (`docs/textbook/page-images` 기본값)
+
+  **운영 리스크 + 완화**:
+  - 디스크 압박 (693MB + 향후 콘텐츠) → `AMK_STATUS §8.4 #8` 주 1회 모니터링 등재
+  - 단일 장애점 (백업 부재) → 일일 S3 cold storage 백업 스크립트 별도 트랙 검토
+  - 업로드 자동화 부재 → books 측 빌드 후 books → EC2 동기화 (`rsync` 또는 cron) 스크립트는 books 세션 작업 범위
+
+  **RDS 이전 시점 전환 트리거** (`AMK_STATUS §8.2 검증된 리스크` Q9):
+  - ebook 도메인 9곳 `fs::read` → S3 SDK 호출 전환
+  - `${EBOOK_PAGE_IMAGES_DIR}` 데이터 → S3 bucket 1회 `aws s3 sync`
+  - 환경변수 `EBOOK_PAGE_IMAGES_DIR` → `EBOOK_PAGE_IMAGES_S3_BUCKET` (가칭) 전환
+  - CloudFront signed URL 보안 강화 검토
+
+  **문서 갱신**:
+  - `docs/AMK_API_EBOOK.md` "페이지 이미지 저장 위치 정책" 섹션 신규 (정책 본문 SSoT)
+  - `docs/AMK_DEPLOY_OPS.md §6` E-book 페이지 이미지 모니터링 가이드 + RDS 이전 트리거
+  - `docs/AMK_STATUS.md §8.4 #8` 주 1회 모니터링 항목 등재 / §8.2 큐에 Q14 추가 (사용자 트리거 대기)
+  - 본 CHANGELOG 엔트리
+
+  **메모리 갱신** (api 세션):
+  - `project_decisions.md` 2026-05-03 결정 추가
+  - `project_ebook_webp_upload.md` 신규 (시점/조건/리스크 context)
+
+  **다음 단계 (사용자 트리거 시)**: Q14 진입. EC2 디스크 여유 확인 → books 세션에서 동기화 스크립트 작성 → 업로드 → catalog endpoint 36 lang `available=true` 자동 활성 검증.
 
 ---
 
