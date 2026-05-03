@@ -501,7 +501,7 @@ frontend/src/category/admin/ebook/page/
 - TOC 사이드바: state 기반 패널 (프로젝트 shadcn에 Sheet 없음)
 - 이미지 로딩: Axios `responseType: 'blob'` → `URL.createObjectURL()`
 - 프리페치: 현재 페이지 기준 ±3 페이지 `queryClient.prefetchQuery()`
-- `TextbookLanguage` enum 재활용 (20개 언어) + Filipino(TL) 추가 필요
+- `TextbookLanguage` enum 재활용 (35개 언어, 2026-05-03 14 신규 추가). catalog endpoint 응답은 `${EBOOK_PAGE_IMAGES_DIR}/{edition}/{lang}/manifest.json` 부재 시 자동 `available=false` (Stage 2 인프라 업로드 후 활성)
 - 중복 구매 방지: pending/completed 모두 차단 (각각 다른 에러 메시지)
 - `useMyPurchases` 훅: `enabled: isLoggedIn` 가드
 - 관리자 페이지 전체 i18n 적용 (하드코딩 없음)

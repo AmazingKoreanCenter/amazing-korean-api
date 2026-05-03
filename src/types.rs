@@ -509,7 +509,12 @@ impl fmt::Display for BillingInterval {
 // 7. Textbook Order Enums
 // -----------------------------------------------------------------------------
 
-/// 교재 언어 (한국어/영어 제외 20개 언어)
+/// 교재 언어 (한국어/영어 제외 35개 언어)
+///
+/// 2026-05-03 (migration `20260503_textbook_language_expand.sql`): books-api-bridge
+/// plan §3 Stage 1 #1 — 21 → 35 확장. 신규 14: am, ar, bn, es_es, fa, it, ky, lo,
+/// pl, pt_pt, sw, tr, uk, ur. supported_language_enum 과 동일 표기 체계
+/// (snake_case in DB, BCP 47 in API serde).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type, ToSchema)]
 #[sqlx(type_name = "textbook_language_enum", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -528,21 +533,39 @@ pub enum TextbookLanguage {
     Mn,
     Ru,
     Es,
+    #[sqlx(rename = "es_es")]
+    #[serde(rename = "es-ES")]
+    EsEs,
     Pt,
+    #[sqlx(rename = "pt_pt")]
+    #[serde(rename = "pt-PT")]
+    PtPt,
     Fr,
     De,
+    It,
+    Pl,
+    Uk,
+    Tr,
     Hi,
     Ne,
     Si,
+    Bn,
     Km,
+    Lo,
     Uz,
     Kk,
+    Ky,
     Tg,
     Tl,
+    Ar,
+    Fa,
+    Ur,
+    Sw,
+    Am,
 }
 
 impl TextbookLanguage {
-    /// 구매코드용 대문자 언어 코드 (e.g., "VI", "ZH_CN")
+    /// 구매코드용 대문자 언어 코드 (e.g., "VI", "ZH_CN", "ES_ES")
     pub fn to_purchase_code(&self) -> &'static str {
         match self {
             Self::Ja => "JA",
@@ -555,17 +578,31 @@ impl TextbookLanguage {
             Self::Mn => "MN",
             Self::Ru => "RU",
             Self::Es => "ES",
+            Self::EsEs => "ES_ES",
             Self::Pt => "PT",
+            Self::PtPt => "PT_PT",
             Self::Fr => "FR",
             Self::De => "DE",
+            Self::It => "IT",
+            Self::Pl => "PL",
+            Self::Uk => "UK",
+            Self::Tr => "TR",
             Self::Hi => "HI",
             Self::Ne => "NE",
             Self::Si => "SI",
+            Self::Bn => "BN",
             Self::Km => "KM",
+            Self::Lo => "LO",
             Self::Uz => "UZ",
             Self::Kk => "KK",
+            Self::Ky => "KY",
             Self::Tg => "TG",
             Self::Tl => "TL",
+            Self::Ar => "AR",
+            Self::Fa => "FA",
+            Self::Ur => "UR",
+            Self::Sw => "SW",
+            Self::Am => "AM",
         }
     }
 }
@@ -583,17 +620,31 @@ impl fmt::Display for TextbookLanguage {
             Self::Mn => write!(f, "mn"),
             Self::Ru => write!(f, "ru"),
             Self::Es => write!(f, "es"),
+            Self::EsEs => write!(f, "es_es"),
             Self::Pt => write!(f, "pt"),
+            Self::PtPt => write!(f, "pt_pt"),
             Self::Fr => write!(f, "fr"),
             Self::De => write!(f, "de"),
+            Self::It => write!(f, "it"),
+            Self::Pl => write!(f, "pl"),
+            Self::Uk => write!(f, "uk"),
+            Self::Tr => write!(f, "tr"),
             Self::Hi => write!(f, "hi"),
             Self::Ne => write!(f, "ne"),
             Self::Si => write!(f, "si"),
+            Self::Bn => write!(f, "bn"),
             Self::Km => write!(f, "km"),
+            Self::Lo => write!(f, "lo"),
             Self::Uz => write!(f, "uz"),
             Self::Kk => write!(f, "kk"),
+            Self::Ky => write!(f, "ky"),
             Self::Tg => write!(f, "tg"),
             Self::Tl => write!(f, "tl"),
+            Self::Ar => write!(f, "ar"),
+            Self::Fa => write!(f, "fa"),
+            Self::Ur => write!(f, "ur"),
+            Self::Sw => write!(f, "sw"),
+            Self::Am => write!(f, "am"),
         }
     }
 }

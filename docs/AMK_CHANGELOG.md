@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-03 (Q13 Phase 2 hotfix — Nastaliq weight 500 미지원 정정 + PR #193 폐기 후 새 PR 작성)
+updated: 2026-05-03 (PR #201 묶음 — Nastaliq fix + stale key cleanup + TextbookLanguage 14 추가 + 번역 갭 진단)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -11,7 +11,60 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
-- **2026-05-03 — Q13 Phase 2 hotfix (PR #193 → 새 PR): Nastaliq Urdu weight 500 미지원 정정**
+- **2026-05-03 (오후) — PR #201 묶음 ②: Mac Mini 와 안 부딪치는 작업 4건**
+
+  PR #201 의 font_loader hotfix (오전 작업) 위에 사용자 지시 "Mac Mini 와 안 부딪치는 일 즉시 진행" 으로 4건 추가.
+
+  ## (1) Stale i18n leaf key 제거 (13 lang)
+
+  `admin.textbook.detail` = `"Detail"` (단순 string) 이 13 신규 lang (am/ar/bn/fa/it/ky/lo/pl/sw/tl/tr/uk/ur) 에 stale 하게 남아 있었음. en.json 은 동일 키가 dict (12 sub-key: grossAmount/finalAmount/discountAmount/...) 구조인데 leaf string 이 dict 구조를 막아 i18next dict 접근 (예: `t('admin.textbook.detail.grossAmount')`) 시 fallback 못 함. 13 파일에서 leaf 제거 → en.json fallback 정상화.
+
+  변경: 13 파일 / -13 라인 (+ 트레일링 newline 정상화 13건).
+
+  ## (2) books-api-bridge §3 Stage 1 #1 — TextbookLanguage enum 14 추가
+
+  Plan SSoT (`~/.claude/plans/books-api-bridge.md`) §3 Stage 1 #1 진행. textbook + ebook 도메인 공유 enum 21 → 35 확장.
+
+  **migration**: `migrations/20260503_textbook_language_expand.sql` — 14 ALTER TYPE ADD VALUE IF NOT EXISTS (am, ar, bn, es_es, fa, it, ky, lo, pl, pt_pt, sw, tr, uk, ur). `supported_language_enum` 동일 표기 체계 (snake_case in DB, BCP 47 'es-ES'/'pt-PT' in serde).
+
+  **코드**:
+  - `src/types.rs` `TextbookLanguage` enum 14 신규 variant (es_es/pt_pt 는 EsEs/PtPt + sqlx/serde rename)
+  - `to_purchase_code()` + `Display` impl 14 신규 매핑
+  - `src/api/textbook/service.rs`: `language_display_name()` (한국어 표시명) + `catalog_languages()` 5-tuple 14 추가. 신규 14 = `available=false, isbn_ready=false` (출판본 미준비, catalog 노출은 OK 주문은 차단)
+  - `src/api/ebook/service.rs`: `to_code()` (DB enum → 디렉터리 경로) + `catalog_languages()` 3-tuple 14 추가. ebook catalog 응답은 `${EBOOK_PAGE_IMAGES_DIR}/{edition}/{lang}/manifest.json` 부재 시 자동 `available=false` (Stage 2 인프라 업로드 후 활성)
+
+  **검증**: `cargo check` 18.34s 클린 / `cargo clippy --lib --bins -D warnings` 19.09s 클린 / sqlx prepare 캐시 영향 없음 (enum 값 추가는 query analysis 외).
+
+  **마이그레이션 안전성** (`feedback_migration_safety` 적용): enum ADD 만, 기존 값 변경 X — 이미 발행된 textbook_orders 행 안전. 파일명 `20260503` (마지막 마이그 `20260428` 다음 날짜, 정수 버전 충돌 없음). 본 마이그 적용 후 로컬 DB 반영 필요: `cd /home/kkryo/dev/amazing-korean-api && sqlx migrate run` (또는 docker compose 재시작 시 자동 적용).
+
+  ## (3) books-api-bridge plan 갱신 (진단 정정 + 신규 발견)
+
+  Plan §1 진단표 2026-04-30 → 2026-05-03 변동 컬럼 추가:
+  - #1 갭 ✅ 본 PR 로 진행
+  - #2 갭 (locale 파일) 13/15 진행 (es-ES/pt-PT 잔여)
+  - #3 갭 ✅ books 측 2026-05-01 완료 (8,928 페이지 / 693MB)
+  - #2-1 신규 (`SUPPORTED_LANGUAGES` 활성 분리)
+  - **#2-2 신규 발견**: 22 base lang × **518 keys 누락** (62.6% 완성도). Q1~Q12 시기 추가된 admin/study/textbook 키 미반영. Mac Mini Wave 1 Phase 1c (가칭) 트랙 큐잉.
+
+  ## (4) docs 동기화
+
+  - `docs/AMK_API_TEXTBOOK.md` 헤더 + Phase 12 라벨: 20언어 → 35언어 (신규 14 = `available=false`)
+  - `docs/AMK_API_EBOOK.md` L504: TextbookLanguage 재활용 20개 → 35개
+  - `docs/AMK_STATUS.md` Q13 행 후속 작업 segment 추가 (본 PR 묶음 (a)/(b)/(c))
+  - 본 CHANGELOG 엔트리
+
+  **다음 진입 후보** (Mac Mini 와 충돌 없는 작업 잔여):
+  - es-ES / pt-PT locale 파일 manual inline diff (api 세션 단독, 작은 작업)
+  - SUPPORTED_LANGUAGES 13 신규 활성 (Q13 S5, ai 측 PR #199 머지 후)
+
+  **Mac Mini 큐 항목** (사용자 → 맥미니 세션 핸드오프):
+  - 22 base lang × 518 keys 신규 번역 (Wave 1 Phase 1c 가칭)
+  - 13 신규 lang × 37 textbook discount keys (PR #185 era)
+  - ai repo Mac-Mini 브랜치 PR push 정체 11일 — 작업 결과 ai repo 에 commit 누락 (Wave 1 SSoT 깨짐, 보완 필요)
+
+---
+
+- **2026-05-03 (오전) — Q13 Phase 2 hotfix (PR #193 → 새 PR): Nastaliq Urdu weight 500 미지원 정정**
 
   **배경**: 2026-04-30 작성한 PR #193 (font_loader Nastaliq fix + Gemini docs 일관성 + S6 도록 등록 9건) 이 머지되지 않은 채 그 사이 PR #194~#198 (5건) 이 별도 브랜치로 main 에 머지됨. PR #193 의 docs 가 그 흐름을 모르는 stale 상태가 되어 옵션 'B — 버리고 새로 작성' 채택 (사용자 결정 2026-05-03). PR #193 close + KKRYOUN reset --hard origin/main + 본 PR 작성.
 

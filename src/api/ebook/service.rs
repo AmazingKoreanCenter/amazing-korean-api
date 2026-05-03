@@ -822,14 +822,28 @@ impl LanguageCode for TextbookLanguage {
             TextbookLanguage::Si => "si",
             TextbookLanguage::Km => "km",
             TextbookLanguage::Es => "es",
+            TextbookLanguage::EsEs => "es_es",
             TextbookLanguage::Pt => "pt",
+            TextbookLanguage::PtPt => "pt_pt",
             TextbookLanguage::Fr => "fr",
             TextbookLanguage::De => "de",
+            TextbookLanguage::It => "it",
+            TextbookLanguage::Pl => "pl",
+            TextbookLanguage::Uk => "uk",
+            TextbookLanguage::Tr => "tr",
             TextbookLanguage::Id => "id",
+            TextbookLanguage::Bn => "bn",
+            TextbookLanguage::Lo => "lo",
             TextbookLanguage::Uz => "uz",
             TextbookLanguage::Kk => "kk",
+            TextbookLanguage::Ky => "ky",
             TextbookLanguage::Tg => "tg",
             TextbookLanguage::Tl => "tl",
+            TextbookLanguage::Ar => "ar",
+            TextbookLanguage::Fa => "fa",
+            TextbookLanguage::Ur => "ur",
+            TextbookLanguage::Sw => "sw",
+            TextbookLanguage::Am => "am",
         }
     }
 }
@@ -869,6 +883,7 @@ fn to_korean_title(en_title: &str) -> String {
 }
 
 fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str)> {
+    // 신규 14 (2026-05-03, books-api-bridge §3 #1): manifest.json 부재 시 catalog 응답에서 available=false 자동 처리
     vec![
         (TextbookLanguage::Vi, "베트남어", "Vietnamese"),
         (TextbookLanguage::Ru, "러시아어", "Russian"),
@@ -883,14 +898,28 @@ fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str)> {
         (TextbookLanguage::Si, "싱할라어", "Sinhala"),
         (TextbookLanguage::Km, "크메르어", "Khmer"),
         (TextbookLanguage::Es, "스페인어", "Spanish"),
+        (TextbookLanguage::EsEs, "스페인어(스페인)", "Spanish (Spain)"),
         (TextbookLanguage::Pt, "포르투갈어", "Portuguese"),
+        (TextbookLanguage::PtPt, "포르투갈어(포르투갈)", "Portuguese (Portugal)"),
         (TextbookLanguage::Fr, "프랑스어", "French"),
         (TextbookLanguage::De, "독일어", "German"),
+        (TextbookLanguage::It, "이탈리아어", "Italian"),
+        (TextbookLanguage::Pl, "폴란드어", "Polish"),
+        (TextbookLanguage::Uk, "우크라이나어", "Ukrainian"),
+        (TextbookLanguage::Tr, "터키어", "Turkish"),
         (TextbookLanguage::Id, "인도네시아어", "Indonesian"),
+        (TextbookLanguage::Bn, "벵골어", "Bengali"),
+        (TextbookLanguage::Lo, "라오어", "Lao"),
         (TextbookLanguage::Uz, "우즈베크어", "Uzbek"),
         (TextbookLanguage::Kk, "카자흐어", "Kazakh"),
+        (TextbookLanguage::Ky, "키르기스어", "Kyrgyz"),
         (TextbookLanguage::Tg, "타지크어", "Tajik"),
         (TextbookLanguage::Tl, "필리핀어", "Filipino"),
+        (TextbookLanguage::Ar, "아랍어", "Arabic"),
+        (TextbookLanguage::Fa, "페르시아어", "Persian"),
+        (TextbookLanguage::Ur, "우르두어", "Urdu"),
+        (TextbookLanguage::Sw, "스와힐리어", "Swahili"),
+        (TextbookLanguage::Am, "암하라어", "Amharic"),
     ]
 }
 

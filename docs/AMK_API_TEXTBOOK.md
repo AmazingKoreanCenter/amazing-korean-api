@@ -1,6 +1,6 @@
 # AMK_API_TEXTBOOK — 교재 주문 API 스펙
 
-> 비회원 교재 주문 시스템 (계좌이체, 20언어 × 2종).
+> 비회원/회원 교재 주문 시스템 (계좌이체, 35언어 × 2종, 신규 14언어는 출판본 미준비로 `available=false`).
 > 공통 규칙(인증, 에러, 페이징): [AMK_API_MASTER.md §3](./AMK_API_MASTER.md)
 > DB 스키마: [AMK_SCHEMA_PATCHED.md](./AMK_SCHEMA_PATCHED.md)
 > 코드 패턴: [AMK_CODE_PATTERNS.md](./AMK_CODE_PATTERNS.md)
@@ -9,8 +9,8 @@
 
 ### 5.12 Phase 12 — 교재 주문 (Textbook Ordering)
 
-> 비회원 교재 주문 시스템. 계좌이체 기반, 20개 언어 × 2종(학생용/교사용), ₩25,000/권, 최소 10권.
-> 마이그레이션: `migrations/20260226_textbook.sql`, `migrations/20260303_textbook_improvements.sql`
+> 교재 주문 시스템. 계좌이체 기반, 35개 언어 × 2종(학생용/교사용), ₩25,000/권, 최소 10권. 신규 14언어 (am/ar/bn/es_es/fa/it/ky/lo/pl/pt_pt/sw/tr/uk/ur, 2026-05-03 추가) 는 출판본 미준비로 `catalog.available=false` (주문 불가, 향후 활성화).
+> 마이그레이션: `migrations/20260226_textbook.sql`, `migrations/20260303_textbook_improvements.sql`, `migrations/20260310_add_tl_language.sql`, `migrations/20260503_textbook_language_expand.sql`
 
 <details>
 <summary>📋 Textbook 엔드포인트 상세 (클릭)</summary>

@@ -830,7 +830,6 @@
       "colStatus": "Status",
       "colDate": "Date",
       "colActions": "Actions",
-      "detail": "Detail",
       "failedLoad": "Failed to load data",
       "noOrders": "No orders found",
       "showing": "{{count}} of {{total}}",
