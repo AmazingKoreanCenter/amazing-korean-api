@@ -206,7 +206,6 @@
     "toastTooManyVerifyAttempts": "ມີການພະຍາຍາມຢືນຢັນຫຼາຍເກີນໄປ. ກະລຸນາລອງໃໝ່ອີກຄັ້ງໃນພາຍຫຼັງ.",
     "toastTooManyResendRequests": "ມີການຮ້ອງຂໍສົ່ງຄືນຫຼາຍເກີນໄປ. ກະລຸນາລອງໃໝ່ອີກຄັ້ງໃນພາຍຫຼັງ.",
     "oauthPasswordWarning": "ບັນຊີທີ່ສ້າງຜ່ານການເຂົ້າສູ່ລະບົບດ້ວຍໂຊຊຽວ (Google, ແລະ ອື່ນໆ) ແມ່ນບໍ່ມີລະຫັດຜ່ານ. ກະລຸນາເຂົ້າສູ່ລະບົບໂດຍໃຊ້ບໍລິການໂຊຊຽວດັ່ງກ່າວ.",
-    "remainingAttempts": "ຈຳນວນຄັ້ງທີ່ເຫຼືອ: {{count}}",
     "noAttemptsRemaining": "ທ່ານໄດ້ຮອດຂີດຈຳກັດການສົ່ງແລ້ວ. ກະລຸນາລອງໃໝ່ອີກຄັ້ງໃນພາຍຫຼັງ.",
     "mfaTitle": "ການຢືນຢັນຕົວຕົນແບບສອງຊັ້ນ",
     "mfaDescription": "ກະລຸນາປ້ອນລະຫັດຈາກແອັບ Google Authenticator ຂອງທ່ານ",
@@ -219,7 +218,8 @@
     "mfaInvalidCode": "ລະຫັດຢືນຢັນບໍ່ຖືກຕ້ອງ",
     "mfaBackupPlaceholder": "ລະຫັດສຳຮອງ 8 ຕົວອັກສອນ",
     "mfaUseBackupCode": "ນຳໃຊ້ລະຫັດສຳຮອງ",
-    "mfaUseAuthApp": "ນຳໃຊ້ແອັບຢືນຢັນຕົວຕົນ"
+    "mfaUseAuthApp": "ນຳໃຊ້ແອັບຢືນຢັນຕົວຕົນ",
+    "remainingAttempts_other": "ຈຳນວນຄັ້ງທີ່ເຫຼືອ: {{count}}"
   },
   "mfa": {
     "title": "ການຢືນຢັນຕົວຕົນແບບສອງຊັ້ນ",
@@ -374,7 +374,6 @@
     "programTopikListen": "ການຟັງ TOPIK",
     "programTopikWrite": "ການຂຽນ TOPIK",
     "programTbc": "ລໍຖ້າການຢືນຢັນ",
-    "totalProblems": "ທັງໝົດ {{count}} ຂໍ້",
     "emptyTitle": "ບໍ່ມີບົດຝຶກຫັດທີ່ລົງທະບຽນໄວ້",
     "emptyDescription": "ຍັງບໍ່ມີບົດຝຶກຫັດສຳລັບຫຼັກສູດທີ່ທ່ານເລືອກໃນເວລານີ້.",
     "emptyDetailDescription": "ຍັງບໍ່ມີບົດຝຶກຫັດທີ່ລົງທະບຽນໄວ້ສຳລັບການຮຽນນີ້.",
@@ -398,7 +397,6 @@
     "viewExplanation": "ເບິ່ງຄຳອະທິບາຍ",
     "references": "ເອກະສານອ້າງອີງ",
     "solvedBadge": "ແກ້ໄຂແລ້ວ",
-    "tryCount": "{{count}} ຄັ້ງ",
     "submitButton": "ສົ່ງ",
     "submitting": "ກຳລັງສົ່ງ...",
     "retryButton": "ລອງໃໝ່",
@@ -468,13 +466,11 @@
       "stats": {
         "pageTitle": "ສະຖິຕິການຝຶກພິມ",
         "pageDescription": "ກວດສອບຄວາມຖືກຕ້ອງ, ຄວາມໄວ, ແລະ ຕົວອັກສອນທີ່ທ່ານພິມຜິດຫຼາຍທີ່ສຸດ ຈາກປະຫວັດການພິມ Hangul ຂອງທ່ານ.",
-        "lastDays": "{{count}} ວັນທີ່ຜ່ານມາ",
         "totalSessions": "ຈຳນວນຄັ້ງທັງໝົດ",
         "avgAccuracy": "ຄວາມຖືກຕ້ອງສະເລ່ຍ",
         "avgCpm": "CPM ສະເລ່ຍ",
         "cpmUnit": "ຕົວອັກສອນຕໍ່ນາທີ",
         "levelTitle": "ຕາມລະດັບ",
-        "sessionCount": "{{count}} ຄັ້ງ",
         "accuracyLabel": "ຄວາມຖືກຕ້ອງ",
         "cpmLabel": "CPM",
         "noLevelData": "ຍັງບໍ່ມີຂໍ້ມູນລະດັບ.",
@@ -486,19 +482,22 @@
         "noTrendData": "ຍັງບໍ່ມີຂໍ້ມູນແນວໂນ້ມ.",
         "weakTitle": "10 ອັກສອນທີ່ທ່ານຜິດຫຼາຍທີ່ສຸດ",
         "weakSubtitle": "ລຽງຕາມຈຳນວນຄັ້ງທີ່ທ່ານພິມຜິດ. ຄວນເນັ້ນໃສ່ອັກສອນເຫຼົ່ານີ້ໃນການຮຽນຄັ້ງຕໍ່ໄປ.",
-        "missCount": "{{count}} ຄັ້ງ",
         "noWeakData": "ຍັງບໍ່ມີຂໍ້ມູນອັກສອນທີ່ທ່ານຜິດຫຼາຍ. ເກັ່ງຫຼາຍ!",
         "emptyTitle": "ຍັງບໍ່ມີການບັນທຶກການຮຽນ",
         "emptyDescription": "ເລີ່ມຝຶກຝົນເພື່ອສ້າງສະຖິຕິທຳອິດຂອງທ່ານ.",
-        "emptyAction": "ເລີ່ມຝຶກຝົນ"
+        "emptyAction": "ເລີ່ມຝຶກຝົນ",
+        "lastDays_other": "{{count}} ວັນທີ່ຜ່ານມາ",
+        "sessionCount_other": "{{count}} ຄັ້ງ",
+        "missCount_other": "{{count}} ຄັ້ງ"
       }
-    }
+    },
+    "totalProblems_other": "ທັງໝົດ {{count}} ຂໍ້",
+    "tryCount_other": "{{count}} ຄັ້ງ"
   },
   "lesson": {
     "heroBadge": "ຫຼັກສູດແບບເປັນຂັ້ນຕອນ",
     "listTitle": "ລາຍການບົດຮຽນ",
     "listDescription": "ຮຽນພາສາເກົາຫຼີແບບເປັນຂັ້ນຕອນ ຜ່ານບົດຮຽນທີ່ຈັດວາງຢ່າງເປັນລະບົບ. ພວກເຮົາໄດ້ຈັດກຽມບົດຮຽນແບບຄົບວົງຈອນ ທີ່ມີທັງວິດີໂອ, ແບບຝຶກຫັດ ແລະ ວຽກບ້ານ.",
-    "totalLessons": "ທັງໝົດ {{count}} ບົດ",
     "emptyTitle": "ບໍ່ມີບົດຮຽນທີ່ລົງທະບຽນໄວ້",
     "emptyDescription": "ບົດຮຽນໃໝ່ຈະຖືກເພີ່ມເຂົ້າໃນໄວໆນີ້.",
     "accessPaid": "ແບບເສຍຄ່າທຳນຽມ",
@@ -512,19 +511,19 @@
     "completeLesson": "ສຳເລັດບົດຮຽນ",
     "lessonCompleted": "ຮຽນຈົບແລ້ວ",
     "learningItems": "ເນື້ອໃນການຮຽນ",
-    "itemCount": "{{count}} ລາຍການ",
     "emptyItemsTitle": "ບໍ່ມີເນື້ອໃນການຮຽນທີ່ລົງທະບຽນໄວ້",
     "emptyItemsDescription": "ຍັງບໍ່ມີການລົງທະບຽນເນື້ອໃນການຮຽນສຳລັບບົດຮຽນນີ້.",
     "notFoundTitle": "ບໍ່ພົບບົດຮຽນ",
     "notFoundDescription": "ບົດຮຽນນີ້ບໍ່ມີຢູ່ ຫຼື ໄດ້ຖືກລຶບອອກໄປແລ້ວ.",
     "videoId": "ວິດີໂອ #{{id}}",
-    "taskId": "ບົດຝຶກຫັດ #{{id}}"
+    "taskId": "ບົດຝຶກຫັດ #{{id}}",
+    "totalLessons_other": "ທັງໝົດ {{count}} ບົດ",
+    "itemCount_other": "{{count}} ລາຍການ"
   },
   "video": {
     "heroBadge": "ຮຽນພາສາເກົາຫຼີຜ່ານວິດີໂອ",
     "listTitle": "ການຮຽນຜ່ານວິດີໂອ",
     "listDescription": "ຮຽນຮູ້ແບບເປັນທຳມະຊາດຜ່ານວິດີໂອພາສາເກົາຫຼີໃນຫົວຂໍ້ຕ່າງໆ. ເບິ່ງ ແລະ ຟັງການອອກສຽງ ແລະ ການນຳໃຊ້ປະໂຫຍກຂອງເຈົ້າຂອງພາສາ ເພື່ອພັດທະນາທັກສະຂອງທ່ານ.",
-    "totalVideos": "ວິດີໂອທັງໝົດ {{count}} ຄລິບ",
     "emptyTitle": "ບໍ່ມີວິດີໂອທີ່ລົງທະບຽນໄວ້.",
     "notFoundTitle": "ບໍ່ພົບວິດີໂອ",
     "notFoundDescription": "ວິດີໂອນີ້ບໍ່ມີຢູ່ ຫຼື ຖືກລຶບອອກໄປແລ້ວ.",
@@ -533,7 +532,8 @@
     "allItemsCompleted": "ທຸກໆລາຍການໃນ \"{{title}}\" ແມ່ນສຳເລັດແລ້ວ!",
     "nextItem": "ລາຍການຕໍ່ໄປ",
     "backToLesson": "ກັບຄືນສູ່ບົດຮຽນ",
-    "backToLessonShort": "ສູ່ບົດຮຽນ"
+    "backToLessonShort": "ສູ່ບົດຮຽນ",
+    "totalVideos_other": "ວິດີໂອທັງໝົດ {{count}} ຄລິບ"
   },
   "payment": {
     "title": "ເລືອກແຜນການຂອງທ່ານ",
@@ -1508,8 +1508,8 @@
     "slideTags3": "ກາລະ, ຄຳຊ່ວຍ, ຄຳຖາມ",
     "slideTags4": "500 ປະໂຫຍກ, ຕາມຄວາມຖີ່, ຕາມຄວາມຍາກ",
     "slideTags5": "ຕົວເລກ, ການປະຕິເສດ, ແບບເປັນທາງການ, ພາສາປາກ ແລະ ແບບຂຽນ",
-    "specPages": "{{count}} ໜ້າ",
-    "specLanguages": "{{count}} ພາສາ",
-    "specPrice": "25,000 KRW"
+    "specPrice": "25,000 KRW",
+    "specPages_other": "{{count}} ໜ້າ",
+    "specLanguages_other": "{{count}} ພາສາ"
   }
 }

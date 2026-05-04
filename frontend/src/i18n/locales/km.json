@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "ការផ្ទៀងផ្ទាត់ច្រើនពេក។ សូមព្យាយាមម្តងទៀតនៅពេលក្រោយ។",
     "toastTooManyResendRequests": "ការស្នើសុំផ្ញើម្តងទៀតច្រើនពេក។ សូមព្យាយាមម្តងទៀតនៅពេលក្រោយ។",
     "oauthPasswordWarning": "គណនីដែលបង្កើតតាមការចូលគណនីសង្គម (Google ។ល។) មិនមានពាក្យសម្ងាត់ទេ។ សូមចូលគណនីតាមសេវាសង្គម។",
-    "remainingAttempts": "ការព្យាយាមនៅសល់: {{count}}",
     "noAttemptsRemaining": "អ្នកបានឈានដល់ដែនកំណត់ការផ្ញើ។ សូមព្យាយាមម្តងទៀតនៅពេលក្រោយ។",
     "mfaTitle": "ការផ្ទៀងផ្ទាត់ពីរជំហាន",
     "mfaDescription": "បញ្ចូលលេខកូដពីកម្មវិធី Google Authenticator របស់អ្នក",
@@ -219,7 +218,8 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "កូដបម្រុង ៨ តួអក្សរ",
     "mfaUseBackupCode": "ប្រើកូដបម្រុង",
-    "mfaUseAuthApp": "ប្រើកម្មវិធីផ្ទៀងផ្ទាត់"
+    "mfaUseAuthApp": "ប្រើកម្មវិធីផ្ទៀងផ្ទាត់",
+    "remainingAttempts_other": "ការព្យាយាមនៅសល់: {{count}}"
   },
   "user": {
     "myPageTitle": "ទំព័ររបស់ខ្ញុំ",
@@ -346,7 +346,6 @@
     "programTopikListen": "TOPIK ការស្តាប់",
     "programTopikWrite": "TOPIK ការសរសេរ",
     "programTbc": "TBC",
-    "totalProblems": "សរុប {{count}} កិច្ចការ",
     "emptyTitle": "គ្មានកិច្ចការត្រូវបានចុះឈ្មោះ",
     "emptyDescription": "មិនទាន់មានកិច្ចការសិក្សាសម្រាប់កម្មវិធីដែលបានជ្រើសរើសនៅឡើយទេ។",
     "emptyDetailDescription": "មិនទាន់មានកិច្ចការត្រូវបានចុះឈ្មោះសម្រាប់ការសិក្សានេះនៅឡើយទេ។",
@@ -369,7 +368,6 @@
     "viewExplanation": "មើលការពន្យល់",
     "references": "ឯកសារយោង",
     "solvedBadge": "បានដោះស្រាយ",
-    "tryCount": "{{count}} ការព្យាយាម",
     "submitButton": "ដាក់ស្នើ",
     "submitting": "កំពុងដាក់ស្នើ...",
     "retryButton": "ព្យាយាមម្តងទៀត",
@@ -383,13 +381,14 @@
     "toLesson": "ទៅមេរៀន",
     "nextItemVideo": "ធាតុបន្ទាប់ (វីដេអូ)",
     "nextItemTask": "ធាតុបន្ទាប់ (កិច្ចការ)",
-    "completeLesson": "បញ្ចប់មេរៀន"
+    "completeLesson": "បញ្ចប់មេរៀន",
+    "totalProblems_other": "សរុប {{count}} កិច្ចការ",
+    "tryCount_other": "{{count}} ការព្យាយាម"
   },
   "lesson": {
     "heroBadge": "កម្មវិធីសិក្សាជាជំហានៗ",
     "listTitle": "បញ្ជីមេរៀន",
     "listDescription": "រៀនភាសាកូរ៉េមួយជំហានម្តងៗតាមរយៈមេរៀនដែលបានរៀបចំជាប្រព័ន្ធ។ យើងផ្តល់មេរៀនរួមបញ្ចូលជាមួយវីដេអូ កិច្ចការ និងការងារ។",
-    "totalLessons": "សរុប {{count}} មេរៀន",
     "emptyTitle": "គ្មានមេរៀនត្រូវបានចុះឈ្មោះ",
     "emptyDescription": "មេរៀនថ្មីនឹងត្រូវបានបន្ថែមក្នុងពេលឆាប់ៗនេះ។",
     "accessPaid": "បង់ប្រាក់",
@@ -403,19 +402,19 @@
     "completeLesson": "បញ្ចប់មេរៀន",
     "lessonCompleted": "មេរៀនបានបញ្ចប់",
     "learningItems": "ធាតុសិក្សា",
-    "itemCount": "{{count}} ធាតុ",
     "emptyItemsTitle": "គ្មានធាតុសិក្សាត្រូវបានចុះឈ្មោះ",
     "emptyItemsDescription": "មិនទាន់មានធាតុសិក្សាត្រូវបានចុះឈ្មោះសម្រាប់មេរៀននេះនៅឡើយទេ។",
     "notFoundTitle": "រកមិនឃើញមេរៀន",
     "notFoundDescription": "មេរៀននេះមិនមាន ឬត្រូវបានលុប។",
     "videoId": "វីដេអូ #{{id}}",
-    "taskId": "កិច្ចការ #{{id}}"
+    "taskId": "កិច្ចការ #{{id}}",
+    "totalLessons_other": "សរុប {{count}} មេរៀន",
+    "itemCount_other": "{{count}} ធាតុ"
   },
   "video": {
     "heroBadge": "រៀនភាសាកូរ៉េតាមរយៈវីដេអូ",
     "listTitle": "សិក្សាតាមវីដេអូ",
     "listDescription": "រៀនដោយធម្មជាតិតាមរយៈវីដេអូភាសាកូរ៉េលើប្រធានបទផ្សេងៗ។ មើលនិងស្តាប់ការបញ្ចេញសំឡេងនិងកន្សោមជនជាតិកូរ៉េដើម្បីកែលម្អជំនាញរបស់អ្នក។",
-    "totalVideos": "សរុប {{count}} វីដេអូ",
     "emptyTitle": "គ្មានវីដេអូត្រូវបានចុះឈ្មោះ។",
     "notFoundTitle": "រកមិនឃើញវីដេអូ",
     "notFoundDescription": "វីដេអូនេះមិនមាន ឬត្រូវបានលុប។",
@@ -424,7 +423,8 @@
     "allItemsCompleted": "ធាតុទាំងអស់ក្នុង \"{{title}}\" ត្រូវបានបញ្ចប់!",
     "nextItem": "ធាតុបន្ទាប់",
     "backToLesson": "ត្រឡប់ទៅមេរៀន",
-    "backToLessonShort": "ទៅមេរៀន"
+    "backToLessonShort": "ទៅមេរៀន",
+    "totalVideos_other": "សរុប {{count}} វីដេអូ"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +922,11 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_other": "{{count}} Pages",
+    "specLanguages_other": "{{count}} Languages"
   },
   "mfa": {
     "title": "ការផ្ទៀងផ្ទាត់ពីរជំហាន",

@@ -206,7 +206,6 @@
     "toastTooManyVerifyAttempts": "Too many verification attempts. Please try again later.",
     "toastTooManyResendRequests": "Too many resend requests. Please try again later.",
     "oauthPasswordWarning": "Accounts created via social login (Google, etc.) do not have a password. Please log in using the social service.",
-    "remainingAttempts": "Remaining attempts: {{count}}",
     "noAttemptsRemaining": "You've reached the send limit. Please try again later.",
     "mfaTitle": "Two-Factor Authentication",
     "mfaDescription": "Enter the code from your Google Authenticator app",
@@ -219,7 +218,9 @@
     "mfaInvalidCode": "Invalid authentication code",
     "mfaBackupPlaceholder": "8-character backup code",
     "mfaUseBackupCode": "Use backup code",
-    "mfaUseAuthApp": "Use authenticator app"
+    "mfaUseAuthApp": "Use authenticator app",
+    "remainingAttempts_other": "Remaining attempts: {{count}}",
+    "remainingAttempts_one": "Remaining attempt: {{count}}"
   },
   "mfa": {
     "title": "Two-Factor Authentication",
@@ -374,7 +375,6 @@
     "programTopikListen": "TOPIK Listening",
     "programTopikWrite": "TOPIK Writing",
     "programTbc": "TBC",
-    "totalProblems": "Total {{count}} problems",
     "emptyTitle": "No problems registered",
     "emptyDescription": "There are no study problems for the selected program yet.",
     "emptyDetailDescription": "No problems have been registered for this study yet.",
@@ -398,7 +398,6 @@
     "viewExplanation": "View Explanation",
     "references": "References",
     "solvedBadge": "Solved",
-    "tryCount": "{{count}} attempts",
     "submitButton": "Submit",
     "submitting": "Submitting...",
     "retryButton": "Try Again",
@@ -468,13 +467,11 @@
       "stats": {
         "pageTitle": "Typing Practice Stats",
         "pageDescription": "Review accuracy, speed, and your weakest characters from your Hangul typing history.",
-        "lastDays": "Last {{count}} days",
         "totalSessions": "Total Sessions",
         "avgAccuracy": "Avg Accuracy",
         "avgCpm": "Avg CPM",
         "cpmUnit": "Characters per minute",
         "levelTitle": "By Level",
-        "sessionCount": "{{count}} sessions",
         "accuracyLabel": "Accuracy",
         "cpmLabel": "CPM",
         "noLevelData": "No level data yet.",
@@ -486,19 +483,27 @@
         "noTrendData": "No trend data yet.",
         "weakTitle": "Top 10 Weak Characters",
         "weakSubtitle": "Ordered by how often each character was mistyped. Focus on these in your next session.",
-        "missCount": "{{count}}×",
         "noWeakData": "No weak-character data yet. Great job!",
         "emptyTitle": "No sessions recorded yet",
         "emptyDescription": "Start practicing to build up your first statistics.",
-        "emptyAction": "Start practicing"
+        "emptyAction": "Start practicing",
+        "lastDays_other": "Last {{count}} days",
+        "lastDays_one": "Last {{count}} day",
+        "sessionCount_other": "{{count}} sessions",
+        "sessionCount_one": "{{count}} session",
+        "missCount_other": "{{count}}×",
+        "missCount_one": "{{count}}×"
       }
-    }
+    },
+    "totalProblems_other": "Total {{count}} problems",
+    "totalProblems_one": "Total {{count}} problem",
+    "tryCount_other": "{{count}} attempts",
+    "tryCount_one": "{{count}} attempt"
   },
   "lesson": {
     "heroBadge": "Step-by-Step Curriculum",
     "listTitle": "Lesson List",
     "listDescription": "Learn Korean step by step through systematically organized lessons. We provide integrated lessons with videos, problems, and assignments.",
-    "totalLessons": "Total {{count}} lessons",
     "emptyTitle": "No lessons registered",
     "emptyDescription": "New lessons will be added soon.",
     "accessPaid": "Paid",
@@ -512,19 +517,21 @@
     "completeLesson": "Complete Lesson",
     "lessonCompleted": "Lesson Completed",
     "learningItems": "Learning Items",
-    "itemCount": "{{count}} items",
     "emptyItemsTitle": "No learning items registered",
     "emptyItemsDescription": "No learning items have been registered for this lesson yet.",
     "notFoundTitle": "Lesson not found",
     "notFoundDescription": "This lesson does not exist or has been deleted.",
     "videoId": "Video #{{id}}",
-    "taskId": "Problem #{{id}}"
+    "taskId": "Problem #{{id}}",
+    "totalLessons_other": "Total {{count}} lessons",
+    "totalLessons_one": "Total {{count}} lesson",
+    "itemCount_other": "{{count}} items",
+    "itemCount_one": "{{count}} item"
   },
   "video": {
     "heroBadge": "Learn Korean through Videos",
     "listTitle": "Video Learning",
     "listDescription": "Learn naturally through Korean videos on various topics. Watch and listen to native pronunciation and expressions to improve your skills.",
-    "totalVideos": "Total {{count}} videos",
     "emptyTitle": "No videos registered.",
     "notFoundTitle": "Video not found",
     "notFoundDescription": "This video does not exist or has been deleted.",
@@ -533,7 +540,9 @@
     "allItemsCompleted": "All items in \"{{title}}\" have been completed!",
     "nextItem": "Next Item",
     "backToLesson": "Back to Lesson",
-    "backToLessonShort": "To Lesson"
+    "backToLessonShort": "To Lesson",
+    "totalVideos_other": "Total {{count}} videos",
+    "totalVideos_one": "Total {{count}} video"
   },
   "payment": {
     "title": "Choose Your Plan",
@@ -830,7 +839,22 @@
       "colStatus": "Status",
       "colDate": "Date",
       "colActions": "Actions",
-      "detail": "Detail",
+      "detail": {
+        "grossAmount": "Subtotal",
+        "finalAmount": "Final Amount",
+        "discountAmount": "Discount",
+        "discountReason": "Discount Reason",
+        "discountReasonPlaceholder": "e.g., long-term customer, sample",
+        "editDiscount": "Edit Discount",
+        "editDiscountTitle": "Edit Discount",
+        "editDiscountDesc": "Set discount within subtotal {{gross}} {{currency}}. Enter 0 to remove discount.",
+        "saveDiscount": "Save",
+        "discountSaved": "Discount updated.",
+        "discountSaveFailed": "Failed to update discount.",
+        "err": {
+          "discountExceedsGross": "Discount amount cannot exceed subtotal."
+        }
+      },
       "failedLoad": "Failed to load data",
       "noOrders": "No orders found",
       "showing": "{{count}} of {{total}}",
@@ -1027,22 +1051,6 @@
           "generic": "An error occurred while creating the order.",
           "userIdInvalid": "User ID must be a positive integer.",
           "discountNegative": "Discount amount must be non-negative.",
-          "discountExceedsGross": "Discount amount cannot exceed subtotal."
-        }
-      },
-      "detail": {
-        "grossAmount": "Subtotal",
-        "finalAmount": "Final Amount",
-        "discountAmount": "Discount",
-        "discountReason": "Discount Reason",
-        "discountReasonPlaceholder": "e.g., long-term customer, sample",
-        "editDiscount": "Edit Discount",
-        "editDiscountTitle": "Edit Discount",
-        "editDiscountDesc": "Set discount within subtotal {{gross}} {{currency}}. Enter 0 to remove discount.",
-        "saveDiscount": "Save",
-        "discountSaved": "Discount updated.",
-        "discountSaveFailed": "Failed to update discount.",
-        "err": {
           "discountExceedsGross": "Discount amount cannot exceed subtotal."
         }
       }
@@ -1550,8 +1558,10 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
-    "specPrice": "25,000 KRW"
+    "specPrice": "25,000 KRW",
+    "specPages_other": "{{count}} Pages",
+    "specPages_one": "{{count}} Page",
+    "specLanguages_other": "{{count}} Languages",
+    "specLanguages_one": "{{count}} Language"
   }
 }

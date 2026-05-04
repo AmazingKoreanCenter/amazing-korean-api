@@ -206,7 +206,6 @@
     "toastTooManyVerifyAttempts": "인증 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요.",
     "toastTooManyResendRequests": "재발송 요청 횟수를 초과했습니다. 잠시 후 다시 시도해주세요.",
     "oauthPasswordWarning": "소셜 로그인(Google 등)으로 가입한 계정은 비밀번호가 없습니다. 해당 소셜 서비스로 로그인해주세요.",
-    "remainingAttempts": "남은 발송 횟수: {{count}}회",
     "noAttemptsRemaining": "발송 한도에 도달했습니다. 잠시 후 다시 시도해주세요.",
     "mfaTitle": "2단계 인증",
     "mfaDescription": "Google Authenticator 앱에서 표시된 코드를 입력하세요",
@@ -219,7 +218,8 @@
     "mfaInvalidCode": "올바르지 않은 인증 코드입니다",
     "mfaBackupPlaceholder": "8자리 백업 코드",
     "mfaUseBackupCode": "백업 코드 사용",
-    "mfaUseAuthApp": "인증 앱 코드 사용"
+    "mfaUseAuthApp": "인증 앱 코드 사용",
+    "remainingAttempts_other": "남은 발송 횟수: {{count}}회"
   },
   "mfa": {
     "title": "2단계 인증",
@@ -374,7 +374,6 @@
     "programTopikListen": "TOPIK 듣기",
     "programTopikWrite": "TOPIK 쓰기",
     "programTbc": "TBC",
-    "totalProblems": "총 {{count}}개 문제",
     "emptyTitle": "등록된 문제가 없습니다",
     "emptyDescription": "선택한 프로그램에 해당하는 학습 문제가 아직 없습니다.",
     "emptyDetailDescription": "이 학습에는 아직 문제가 등록되지 않았습니다.",
@@ -398,7 +397,6 @@
     "viewExplanation": "해설 보기",
     "references": "참고 자료",
     "solvedBadge": "풀이 완료",
-    "tryCount": "{{count}}회 시도",
     "submitButton": "제출하기",
     "submitting": "제출 중...",
     "retryButton": "다시 풀기",
@@ -468,13 +466,11 @@
       "stats": {
         "pageTitle": "자판 연습 통계",
         "pageDescription": "한글 자판 연습 기록을 바탕으로 정확도와 속도, 취약 글자를 확인하세요.",
-        "lastDays": "최근 {{count}}일",
         "totalSessions": "총 세션",
         "avgAccuracy": "평균 정확도",
         "avgCpm": "평균 타수",
         "cpmUnit": "분당 글자 수 (CPM)",
         "levelTitle": "레벨별 성과",
-        "sessionCount": "세션 {{count}}회",
         "accuracyLabel": "정확도",
         "cpmLabel": "CPM",
         "noLevelData": "아직 레벨별 데이터가 없습니다.",
@@ -486,19 +482,22 @@
         "noTrendData": "아직 추이 데이터가 없습니다.",
         "weakTitle": "취약 글자 Top 10",
         "weakSubtitle": "가장 자주 틀린 글자 순으로 표시됩니다. 이 글자들을 집중 연습해보세요.",
-        "missCount": "{{count}}회",
         "noWeakData": "취약 글자 데이터가 없습니다. 잘하고 있어요!",
         "emptyTitle": "아직 기록된 세션이 없습니다",
         "emptyDescription": "연습을 시작해서 첫 통계를 만들어보세요.",
-        "emptyAction": "연습 시작하기"
+        "emptyAction": "연습 시작하기",
+        "lastDays_other": "최근 {{count}}일",
+        "sessionCount_other": "세션 {{count}}회",
+        "missCount_other": "{{count}}회"
       }
-    }
+    },
+    "totalProblems_other": "총 {{count}}개 문제",
+    "tryCount_other": "{{count}}회 시도"
   },
   "lesson": {
     "heroBadge": "단계별 커리큘럼",
     "listTitle": "수업 목록",
     "listDescription": "체계적으로 구성된 수업을 통해 한국어를 단계별로 학습하세요. 영상, 문제, 과제가 통합된 수업을 제공합니다.",
-    "totalLessons": "총 {{count}}개 수업",
     "emptyTitle": "등록된 수업이 없습니다",
     "emptyDescription": "새로운 수업이 곧 추가될 예정입니다.",
     "accessPaid": "유료",
@@ -512,19 +511,19 @@
     "completeLesson": "수업 완료하기",
     "lessonCompleted": "수업 완료",
     "learningItems": "학습 항목",
-    "itemCount": "{{count}}개",
     "emptyItemsTitle": "등록된 학습 항목이 없습니다",
     "emptyItemsDescription": "이 수업에는 아직 학습 항목이 등록되지 않았습니다.",
     "notFoundTitle": "수업을 찾을 수 없습니다",
     "notFoundDescription": "존재하지 않거나 삭제된 수업입니다.",
     "videoId": "영상 #{{id}}",
-    "taskId": "문제 #{{id}}"
+    "taskId": "문제 #{{id}}",
+    "totalLessons_other": "총 {{count}}개 수업",
+    "itemCount_other": "{{count}}개"
   },
   "video": {
     "heroBadge": "영상으로 배우는 한국어",
     "listTitle": "영상 학습",
     "listDescription": "다양한 주제의 한국어 영상으로 자연스럽게 학습하세요. 원어민의 발음과 표현을 직접 보고 들으며 실력을 향상시킬 수 있습니다.",
-    "totalVideos": "총 {{count}}개 영상",
     "emptyTitle": "등록된 영상이 없습니다.",
     "notFoundTitle": "영상을 찾을 수 없습니다",
     "notFoundDescription": "존재하지 않거나 삭제된 영상입니다.",
@@ -533,7 +532,8 @@
     "allItemsCompleted": "\"{{title}}\"의 모든 항목을 완료했습니다!",
     "nextItem": "다음 항목으로",
     "backToLesson": "수업으로 돌아가기",
-    "backToLessonShort": "수업으로"
+    "backToLessonShort": "수업으로",
+    "totalVideos_other": "총 {{count}}개 영상"
   },
   "payment": {
     "title": "요금제 선택",
@@ -830,7 +830,22 @@
       "colStatus": "상태",
       "colDate": "주문일",
       "colActions": "관리",
-      "detail": "상세",
+      "detail": {
+        "grossAmount": "품목 합계",
+        "finalAmount": "최종 합계",
+        "discountAmount": "할인",
+        "discountReason": "할인 사유",
+        "discountReasonPlaceholder": "예: 장기 고객 할인, 견본 등",
+        "editDiscount": "할인 편집",
+        "editDiscountTitle": "할인 편집",
+        "editDiscountDesc": "품목 합계 {{gross}} {{currency}} 이내로 할인 금액을 설정하세요. 0 입력 시 할인 해제.",
+        "saveDiscount": "저장",
+        "discountSaved": "할인 정보가 업데이트되었습니다.",
+        "discountSaveFailed": "할인 편집에 실패했습니다.",
+        "err": {
+          "discountExceedsGross": "할인 금액은 품목 합계를 초과할 수 없습니다."
+        }
+      },
       "failedLoad": "데이터를 불러오지 못했습니다",
       "noOrders": "주문이 없습니다",
       "showing": "{{count}}건 / 총 {{total}}건",
@@ -1027,22 +1042,6 @@
           "generic": "주문 생성 중 오류가 발생했습니다.",
           "userIdInvalid": "사용자 ID는 양의 정수여야 합니다.",
           "discountNegative": "할인 금액은 0 이상이어야 합니다.",
-          "discountExceedsGross": "할인 금액은 품목 합계를 초과할 수 없습니다."
-        }
-      },
-      "detail": {
-        "grossAmount": "품목 합계",
-        "finalAmount": "최종 합계",
-        "discountAmount": "할인",
-        "discountReason": "할인 사유",
-        "discountReasonPlaceholder": "예: 장기 고객 할인, 견본 등",
-        "editDiscount": "할인 편집",
-        "editDiscountTitle": "할인 편집",
-        "editDiscountDesc": "품목 합계 {{gross}} {{currency}} 이내로 할인 금액을 설정하세요. 0 입력 시 할인 해제.",
-        "saveDiscount": "저장",
-        "discountSaved": "할인 정보가 업데이트되었습니다.",
-        "discountSaveFailed": "할인 편집에 실패했습니다.",
-        "err": {
           "discountExceedsGross": "할인 금액은 품목 합계를 초과할 수 없습니다."
         }
       }
@@ -1550,8 +1549,8 @@
     "slideTags3": "시제,조사,의문사",
     "slideTags4": "500문장,사용 빈도,난이도별 구성",
     "slideTags5": "숫자,부정법,격식체 & 구어체 & 문어체",
-    "specPages": "{{count}} 페이지",
-    "specLanguages": "{{count}}개 언어",
-    "specPrice": "25,000 KRW"
+    "specPrice": "25,000 KRW",
+    "specPages_other": "{{count}} 페이지",
+    "specLanguages_other": "{{count}}개 언어"
   }
 }

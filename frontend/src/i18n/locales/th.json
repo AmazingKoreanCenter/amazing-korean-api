@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "พยายามยืนยันมากเกินไป กรุณาลองใหม่อีกครั้งในภายหลัง",
     "toastTooManyResendRequests": "ส่งคำขอซ้ำมากเกินไป กรุณาลองใหม่อีกครั้งในภายหลัง",
     "oauthPasswordWarning": "บัญชีที่สร้างผ่านการเข้าสู่ระบบโซเชียล (Google เป็นต้น) ไม่มีรหัสผ่าน กรุณาเข้าสู่ระบบผ่านบริการโซเชียล",
-    "remainingAttempts": "จำนวนครั้งที่เหลือ: {{count}}",
     "noAttemptsRemaining": "คุณถึงขีดจำกัดการส่งแล้ว กรุณาลองใหม่อีกครั้งในภายหลัง",
     "mfaTitle": "การยืนยันตัวตนสองขั้นตอน",
     "mfaDescription": "ป้อนรหัสจากแอป Google Authenticator ของคุณ",
@@ -219,7 +218,8 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "รหัสสำรอง 8 ตัวอักษร",
     "mfaUseBackupCode": "ใช้รหัสสำรอง",
-    "mfaUseAuthApp": "ใช้แอปยืนยันตัวตน"
+    "mfaUseAuthApp": "ใช้แอปยืนยันตัวตน",
+    "remainingAttempts_other": "จำนวนครั้งที่เหลือ: {{count}}"
   },
   "user": {
     "myPageTitle": "หน้าของฉัน",
@@ -346,7 +346,6 @@
     "programTopikListen": "TOPIK การฟัง",
     "programTopikWrite": "TOPIK การเขียน",
     "programTbc": "TBC",
-    "totalProblems": "ทั้งหมด {{count}} ข้อ",
     "emptyTitle": "ยังไม่มีแบบฝึกหัด",
     "emptyDescription": "ยังไม่มีแบบฝึกหัดสำหรับโปรแกรมที่เลือก",
     "emptyDetailDescription": "ยังไม่มีแบบฝึกหัดที่ลงทะเบียนสำหรับการศึกษานี้",
@@ -369,7 +368,6 @@
     "viewExplanation": "ดูคำอธิบาย",
     "references": "เอกสารอ้างอิง",
     "solvedBadge": "ทำแล้ว",
-    "tryCount": "{{count}} ครั้ง",
     "submitButton": "ส่งคำตอบ",
     "submitting": "กำลังส่ง...",
     "retryButton": "ลองอีกครั้ง",
@@ -383,13 +381,14 @@
     "toLesson": "ไปยังบทเรียน",
     "nextItemVideo": "รายการถัดไป (วิดีโอ)",
     "nextItemTask": "รายการถัดไป (แบบฝึกหัด)",
-    "completeLesson": "เรียนบทเรียนจบ"
+    "completeLesson": "เรียนบทเรียนจบ",
+    "totalProblems_other": "ทั้งหมด {{count}} ข้อ",
+    "tryCount_other": "{{count}} ครั้ง"
   },
   "lesson": {
     "heroBadge": "หลักสูตรเป็นขั้นตอน",
     "listTitle": "รายการบทเรียน",
     "listDescription": "เรียนภาษาเกาหลีทีละขั้นตอนผ่านบทเรียนที่จัดเรียงอย่างเป็นระบบ เรามีบทเรียนแบบบูรณาการที่รวมวิดีโอ แบบฝึกหัด และงานมอบหมาย",
-    "totalLessons": "ทั้งหมด {{count}} บทเรียน",
     "emptyTitle": "ยังไม่มีบทเรียน",
     "emptyDescription": "บทเรียนใหม่จะถูกเพิ่มเร็วๆ นี้",
     "accessPaid": "เสียค่าใช้จ่าย",
@@ -403,19 +402,19 @@
     "completeLesson": "เรียนบทเรียนจบ",
     "lessonCompleted": "บทเรียนเสร็จสิ้น",
     "learningItems": "รายการเรียนรู้",
-    "itemCount": "{{count}} รายการ",
     "emptyItemsTitle": "ยังไม่มีรายการเรียนรู้",
     "emptyItemsDescription": "ยังไม่มีรายการเรียนรู้ที่ลงทะเบียนสำหรับบทเรียนนี้",
     "notFoundTitle": "ไม่พบบทเรียน",
     "notFoundDescription": "บทเรียนนี้ไม่มีอยู่หรือถูกลบแล้ว",
     "videoId": "วิดีโอ #{{id}}",
-    "taskId": "แบบฝึกหัด #{{id}}"
+    "taskId": "แบบฝึกหัด #{{id}}",
+    "totalLessons_other": "ทั้งหมด {{count}} บทเรียน",
+    "itemCount_other": "{{count}} รายการ"
   },
   "video": {
     "heroBadge": "เรียนภาษาเกาหลีผ่านวิดีโอ",
     "listTitle": "เรียนผ่านวิดีโอ",
     "listDescription": "เรียนรู้อย่างเป็นธรรมชาติผ่านวิดีโอภาษาเกาหลีในหัวข้อต่างๆ ดูและฟังการออกเสียงและสำนวนจากเจ้าของภาษาเพื่อพัฒนาทักษะของคุณ",
-    "totalVideos": "ทั้งหมด {{count}} วิดีโอ",
     "emptyTitle": "ยังไม่มีวิดีโอ",
     "notFoundTitle": "ไม่พบวิดีโอ",
     "notFoundDescription": "วิดีโอนี้ไม่มีอยู่หรือถูกลบแล้ว",
@@ -424,7 +423,8 @@
     "allItemsCompleted": "รายการทั้งหมดใน \"{{title}}\" เสร็จสิ้นแล้ว!",
     "nextItem": "รายการถัดไป",
     "backToLesson": "กลับไปยังบทเรียน",
-    "backToLessonShort": "ไปบทเรียน"
+    "backToLessonShort": "ไปบทเรียน",
+    "totalVideos_other": "ทั้งหมด {{count}} วิดีโอ"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +922,11 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_other": "{{count}} Pages",
+    "specLanguages_other": "{{count}} Languages"
   },
   "mfa": {
     "title": "การยืนยันตัวตนแบบสองขั้นตอน",

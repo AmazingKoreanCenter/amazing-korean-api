@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "အတည်ပြုမှု ကြိုးစားမှု များလွန်းပါသည်။ နောက်မှ ထပ်ကြိုးစားပါ။",
     "toastTooManyResendRequests": "ပြန်ပို့မှု တောင်းဆိုချက် များလွန်းပါသည်။ နောက်မှ ထပ်ကြိုးစားပါ။",
     "oauthPasswordWarning": "လူမှုကွန်ရက် (Google စသည်) ဖြင့် ဖွင့်ထားသော အကောင့်များတွင် စကားဝှက် မရှိပါ။ လူမှုကွန်ရက် ဝန်ဆောင်မှုဖြင့် ဝင်ရောက်ပါ။",
-    "remainingAttempts": "ကျန်ရှိသော ကြိုးစားမှု: {{count}} ကြိမ်",
     "noAttemptsRemaining": "ပို့မှု ကန့်သတ်ချက် ပြည့်သွားပါပြီ။ နောက်မှ ထပ်ကြိုးစားပါ။",
     "mfaTitle": "နှစ်ဆင့်အတည်ပြုခြင်း",
     "mfaDescription": "သင့် Google Authenticator အက်ပ်မှ ကုဒ်ကို ထည့်သွင်းပါ",
@@ -219,7 +218,8 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "စာလုံး ၈ လုံးပါသော backup code",
     "mfaUseBackupCode": "Backup code ကို အသုံးပြုရန်",
-    "mfaUseAuthApp": "Authenticator app ကို အသုံးပြုရန်"
+    "mfaUseAuthApp": "Authenticator app ကို အသုံးပြုရန်",
+    "remainingAttempts_other": "ကျန်ရှိသော ကြိုးစားမှု: {{count}} ကြိမ်"
   },
   "user": {
     "myPageTitle": "ကျွန်ုပ်စာမျက်နှာ",
@@ -346,7 +346,6 @@
     "programTopikListen": "TOPIK အနားထောင်",
     "programTopikWrite": "TOPIK အရေး",
     "programTbc": "TBC",
-    "totalProblems": "စုစုပေါင်း ပုစ္ဆာ {{count}} ခု",
     "emptyTitle": "ပုစ္ဆာ မှတ်ပုံတင်ထားခြင်း မရှိပါ",
     "emptyDescription": "ရွေးချယ်ထားသော ပရိုဂရမ်အတွက် လေ့ကျင့်ခန်း ပုစ္ဆာများ မရှိသေးပါ။",
     "emptyDetailDescription": "ဤလေ့လာမှုအတွက် ပုစ္ဆာများ မှတ်ပုံတင်ထားခြင်း မရှိသေးပါ။",
@@ -369,7 +368,6 @@
     "viewExplanation": "ရှင်းလင်းချက် ကြည့်ရန်",
     "references": "ကိုးကားချက်များ",
     "solvedBadge": "ဖြေပြီး",
-    "tryCount": "{{count}} ကြိမ် ကြိုးစားမှု",
     "submitButton": "တင်သွင်းမည်",
     "submitting": "တင်သွင်းနေသည်...",
     "retryButton": "ထပ်စမ်းမည်",
@@ -383,13 +381,14 @@
     "toLesson": "သင်ခန်းစာသို့",
     "nextItemVideo": "နောက်အပိုင်း (ဗီဒီယို)",
     "nextItemTask": "နောက်အပိုင်း (ပုစ္ဆာ)",
-    "completeLesson": "သင်ခန်းစာ ပြီးဆုံးရန်"
+    "completeLesson": "သင်ခန်းစာ ပြီးဆုံးရန်",
+    "totalProblems_other": "စုစုပေါင်း ပုစ္ဆာ {{count}} ခု",
+    "tryCount_other": "{{count}} ကြိမ် ကြိုးစားမှု"
   },
   "lesson": {
     "heroBadge": "အဆင့်ဆင့် သင်ရိုးညွှန်းတမ်း",
     "listTitle": "သင်ခန်းစာ စာရင်း",
     "listDescription": "စနစ်တကျ ဖွဲ့စည်းထားသော သင်ခန်းစာများဖြင့် ကိုရီးယားဘာသာကို အဆင့်ဆင့် သင်ယူပါ။ ဗီဒီယို၊ ပုစ္ဆာနှင့် တာဝန်များ ပေါင်းစပ်ထားသော သင်ခန်းစာများ ပေးအပ်ပါသည်။",
-    "totalLessons": "စုစုပေါင်း သင်ခန်းစာ {{count}} ခု",
     "emptyTitle": "သင်ခန်းစာ မှတ်ပုံတင်ထားခြင်း မရှိပါ",
     "emptyDescription": "သင်ခန်းစာ အသစ်များ မကြာမီ ထည့်သွင်းပါမည်။",
     "accessPaid": "အခကြေးငွေ",
@@ -403,19 +402,19 @@
     "completeLesson": "သင်ခန်းစာ ပြီးဆုံးရန်",
     "lessonCompleted": "သင်ခန်းစာ ပြီးဆုံးပြီ",
     "learningItems": "သင်ယူရေး အပိုင်းများ",
-    "itemCount": "{{count}} အပိုင်း",
     "emptyItemsTitle": "သင်ယူရေး အပိုင်းများ မှတ်ပုံတင်ထားခြင်း မရှိပါ",
     "emptyItemsDescription": "ဤသင်ခန်းစာအတွက် သင်ယူရေး အပိုင်းများ မှတ်ပုံတင်ထားခြင်း မရှိသေးပါ။",
     "notFoundTitle": "သင်ခန်းစာ မတွေ့ပါ",
     "notFoundDescription": "ဤသင်ခန်းစာ မရှိပါ သို့မဟုတ် ဖျက်ပြီးပါပြီ။",
     "videoId": "ဗီဒီယို #{{id}}",
-    "taskId": "ပုစ္ဆာ #{{id}}"
+    "taskId": "ပုစ္ဆာ #{{id}}",
+    "totalLessons_other": "စုစုပေါင်း သင်ခန်းစာ {{count}} ခု",
+    "itemCount_other": "{{count}} အပိုင်း"
   },
   "video": {
     "heroBadge": "ဗီဒီယိုဖြင့် ကိုရီးယားဘာသာ သင်ယူပါ",
     "listTitle": "ဗီဒီယို သင်ယူရေး",
     "listDescription": "အကြောင်းအရာ မျိုးစုံပါဝင်သော ကိုရီးယား ဗီဒီယိုများဖြင့် သဘာဝကျစွာ သင်ယူပါ။ မိခင်ဘာသာ အသံထွက်နှင့် အသုံးအနှုန်းများကို ကြည့်ရှု နားထောင်ပြီး သင့်ကျွမ်းကျင်မှုကို တိုးတက်စေပါ။",
-    "totalVideos": "စုစုပေါင်း ဗီဒီယို {{count}} ခု",
     "emptyTitle": "ဗီဒီယို မှတ်ပုံတင်ထားခြင်း မရှိပါ။",
     "notFoundTitle": "ဗီဒီယို မတွေ့ပါ",
     "notFoundDescription": "ဤဗီဒီယို မရှိပါ သို့မဟုတ် ဖျက်ပြီးပါပြီ။",
@@ -424,7 +423,8 @@
     "allItemsCompleted": "\"{{title}}\" ရှိ အပိုင်းအားလုံး ပြီးဆုံးပါပြီ!",
     "nextItem": "နောက်အပိုင်း",
     "backToLesson": "သင်ခန်းစာသို့ ပြန်သွားမည်",
-    "backToLessonShort": "သင်ခန်းစာသို့"
+    "backToLessonShort": "သင်ခန်းစာသို့",
+    "totalVideos_other": "စုစုပေါင်း ဗီဒီယို {{count}} ခု"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +922,11 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_other": "{{count}} Pages",
+    "specLanguages_other": "{{count}} Languages"
   },
   "mfa": {
     "title": "အဆင့်နှစ်ဆင့်ဖြင့် အတည်ပြုခြင်း",

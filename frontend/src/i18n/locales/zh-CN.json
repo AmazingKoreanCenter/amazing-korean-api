@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "验证尝试次数过多，请稍后再试。",
     "toastTooManyResendRequests": "重新发送次数过多，请稍后再试。",
     "oauthPasswordWarning": "通过社交登录（Google等）注册的账号没有密码，请使用对应的社交服务登录。",
-    "remainingAttempts": "剩余发送次数：{{count}}次",
     "noAttemptsRemaining": "已达到发送上限，请稍后再试。",
     "mfaTitle": "两步验证",
     "mfaDescription": "请输入 Google Authenticator 应用中的验证码",
@@ -219,7 +218,8 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "8位备份码",
     "mfaUseBackupCode": "使用备份码",
-    "mfaUseAuthApp": "使用身份验证器"
+    "mfaUseAuthApp": "使用身份验证器",
+    "remainingAttempts_other": "剩余发送次数：{{count}}次"
   },
   "user": {
     "myPageTitle": "我的页面",
@@ -346,7 +346,6 @@
     "programTopikListen": "TOPIK听力",
     "programTopikWrite": "TOPIK写作",
     "programTbc": "TBC",
-    "totalProblems": "共 {{count}} 道题",
     "emptyTitle": "暂无题目",
     "emptyDescription": "所选项目暂无学习题目。",
     "emptyDetailDescription": "此学习暂无题目。",
@@ -369,7 +368,6 @@
     "viewExplanation": "查看解析",
     "references": "参考资料",
     "solvedBadge": "已完成",
-    "tryCount": "尝试 {{count}} 次",
     "submitButton": "提交",
     "submitting": "提交中...",
     "retryButton": "重新作答",
@@ -383,13 +381,14 @@
     "toLesson": "前往课程",
     "nextItemVideo": "下一项（视频）",
     "nextItemTask": "下一项（题目）",
-    "completeLesson": "完成课程"
+    "completeLesson": "完成课程",
+    "totalProblems_other": "共 {{count}} 道题",
+    "tryCount_other": "尝试 {{count}} 次"
   },
   "lesson": {
     "heroBadge": "阶梯式课程",
     "listTitle": "课程列表",
     "listDescription": "通过系统化的课程阶梯式学习韩语。提供集视频、题目和作业于一体的综合课程。",
-    "totalLessons": "共 {{count}} 节课",
     "emptyTitle": "暂无课程",
     "emptyDescription": "新课程即将上线。",
     "accessPaid": "付费",
@@ -403,19 +402,19 @@
     "completeLesson": "完成课程",
     "lessonCompleted": "课程已完成",
     "learningItems": "学习项目",
-    "itemCount": "{{count}}项",
     "emptyItemsTitle": "暂无学习项目",
     "emptyItemsDescription": "此课程暂无学习项目。",
     "notFoundTitle": "未找到课程",
     "notFoundDescription": "该课程不存在或已被删除。",
     "videoId": "视频 #{{id}}",
-    "taskId": "题目 #{{id}}"
+    "taskId": "题目 #{{id}}",
+    "totalLessons_other": "共 {{count}} 节课",
+    "itemCount_other": "{{count}}项"
   },
   "video": {
     "heroBadge": "通过视频学韩语",
     "listTitle": "视频学习",
     "listDescription": "通过各种主题的韩语视频自然地学习。观看和聆听母语发音和表达，提升您的韩语水平。",
-    "totalVideos": "共 {{count}} 个视频",
     "emptyTitle": "暂无视频。",
     "notFoundTitle": "未找到视频",
     "notFoundDescription": "该视频不存在或已被删除。",
@@ -424,7 +423,8 @@
     "allItemsCompleted": "\"{{title}}\"的所有项目已完成！",
     "nextItem": "下一项",
     "backToLesson": "返回课程",
-    "backToLessonShort": "返回课程"
+    "backToLessonShort": "返回课程",
+    "totalVideos_other": "共 {{count}} 个视频"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +922,11 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_other": "{{count}} Pages",
+    "specLanguages_other": "{{count}} Languages"
   },
   "mfa": {
     "title": "双重身份验证",
