@@ -5,8 +5,7 @@ use utoipa::ToSchema;
 
 use crate::api::admin::translation::dto::TranslationMeta;
 use crate::types::{
-    StudyProgram, StudyState, StudyTaskKind, SupportedLanguage, WritingLevel,
-    WritingPracticeType,
+    StudyProgram, StudyState, StudyTaskKind, SupportedLanguage, WritingLevel, WritingPracticeType,
 };
 
 // =========================================================================
@@ -47,10 +46,19 @@ impl StudyListSort {
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SubmitAnswerReq {
-    Choice { pick: i32 },
-    Typing { text: String },
-    Voice { text: String },
-    Writing { text: String, session_id: Option<i64> },
+    Choice {
+        pick: i32,
+    },
+    Typing {
+        text: String,
+    },
+    Voice {
+        text: String,
+    },
+    Writing {
+        text: String,
+        session_id: Option<i64>,
+    },
 }
 
 // =========================================================================

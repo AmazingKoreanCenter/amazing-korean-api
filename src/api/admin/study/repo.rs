@@ -1,5 +1,3 @@
-use serde_json::Value;
-use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 use crate::api::admin::study::dto::{
     AdminStudyDetailRes, AdminStudyRes, AdminStudyTaskDetailRes, AdminStudyTaskRes,
     AdminTaskExplainRes, AdminTaskStatusRes, StudyTaskCreateReq, StudyTaskUpdateReq,
@@ -7,6 +5,8 @@ use crate::api::admin::study::dto::{
 };
 use crate::error::AppResult;
 use crate::types::{StudyAccess, StudyProgram, StudyState, UserSetLanguage};
+use serde_json::Value;
+use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 
 /// 동적 필터링 적용 헬퍼 함수
 /// 라이프타임 'a를 추가하여 builder와 바인딩 데이터(search)의 수명을 일치시킵니다.
@@ -116,13 +116,15 @@ pub async fn admin_list_studies(
     // 1. Total Count Query
     // -------------------------------------------------------------------------
     let mut count_builder = QueryBuilder::new("SELECT count(*) FROM study");
-    apply_filters(&mut count_builder, search.as_ref(), query.study_state, query.study_access, query.study_program);
+    apply_filters(
+        &mut count_builder,
+        search.as_ref(),
+        query.study_state,
+        query.study_access,
+        query.study_program,
+    );
 
-    let total_count: i64 = count_builder
-        .build()
-        .fetch_one(pool)
-        .await?
-        .try_get(0)?;
+    let total_count: i64 = count_builder.build().fetch_one(pool).await?.try_get(0)?;
 
     // -------------------------------------------------------------------------
     // 2. Data Select Query
@@ -140,10 +142,16 @@ pub async fn admin_list_studies(
             study_created_at,
             study_updated_at
         FROM study
-        "#
+        "#,
     );
 
-    apply_filters(&mut builder, search.as_ref(), query.study_state, query.study_access, query.study_program);
+    apply_filters(
+        &mut builder,
+        search.as_ref(),
+        query.study_state,
+        query.study_access,
+        query.study_program,
+    );
 
     // 정렬 (Sorting)
     builder.push(" ORDER BY ");
@@ -159,7 +167,11 @@ pub async fn admin_list_studies(
         _ => "study_created_at", // 기본값
     };
     builder.push(sort_col);
-    builder.push(if query.order == "asc" { " ASC" } else { " DESC" });
+    builder.push(if query.order == "asc" {
+        " ASC"
+    } else {
+        " DESC"
+    });
 
     // 페이지네이션 (Pagination)
     builder.push(" LIMIT ");
@@ -181,9 +193,8 @@ pub async fn admin_list_study_tasks(
     page: u64,
     size: u64,
 ) -> AppResult<(i64, Vec<AdminStudyTaskRes>)> {
-    let mut count_builder = QueryBuilder::new(
-        "SELECT COUNT(*) FROM study_task st WHERE st.study_id = ",
-    );
+    let mut count_builder =
+        QueryBuilder::new("SELECT COUNT(*) FROM study_task st WHERE st.study_id = ");
     count_builder.push_bind(study_id);
 
     let total_count = count_builder
@@ -276,10 +287,7 @@ pub async fn admin_list_task_status(
     let mut count_builder = QueryBuilder::new("SELECT COUNT(*) FROM study_task_status");
     apply_task_status_filters(&mut count_builder, task_id, user_id);
 
-    let total_count: i64 = count_builder
-        .build_query_scalar()
-        .fetch_one(pool)
-        .await?;
+    let total_count: i64 = count_builder.build_query_scalar().fetch_one(pool).await?;
 
     let mut list_builder = QueryBuilder::new(
         r#"
@@ -979,49 +987,65 @@ pub async fn admin_update_study_task(
             let mut has_any = false;
 
             if let Some(ref question) = req.question {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_choice_question = ");
                 qb.push_bind(question);
                 has_any = true;
             }
             if let Some(ref choice) = req.choice_1 {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_choice_1 = ");
                 qb.push_bind(choice);
                 has_any = true;
             }
             if let Some(ref choice) = req.choice_2 {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_choice_2 = ");
                 qb.push_bind(choice);
                 has_any = true;
             }
             if let Some(ref choice) = req.choice_3 {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_choice_3 = ");
                 qb.push_bind(choice);
                 has_any = true;
             }
             if let Some(ref choice) = req.choice_4 {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_choice_4 = ");
                 qb.push_bind(choice);
                 has_any = true;
             }
             if let Some(correct) = req.choice_correct {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_choice_answer = ");
                 qb.push_bind(correct);
                 has_any = true;
             }
             if let Some(ref image) = req.image_url {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_choice_image_url = ");
                 qb.push_bind(image);
                 has_any = true;
             }
             if let Some(ref audio) = req.audio_url {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_choice_audio_url = ");
                 qb.push_bind(audio);
                 has_any = true;
@@ -1038,19 +1062,25 @@ pub async fn admin_update_study_task(
             let mut has_any = false;
 
             if let Some(ref question) = req.question {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_typing_question = ");
                 qb.push_bind(question);
                 has_any = true;
             }
             if let Some(ref answer) = req.answer {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_typing_answer = ");
                 qb.push_bind(answer);
                 has_any = true;
             }
             if let Some(ref image) = req.image_url {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_typing_image_url = ");
                 qb.push_bind(image);
                 has_any = true;
@@ -1067,25 +1097,33 @@ pub async fn admin_update_study_task(
             let mut has_any = false;
 
             if let Some(ref question) = req.question {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_voice_question = ");
                 qb.push_bind(question);
                 has_any = true;
             }
             if let Some(ref answer) = req.answer {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_voice_answer = ");
                 qb.push_bind(answer);
                 has_any = true;
             }
             if let Some(ref image) = req.image_url {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_voice_image_url = ");
                 qb.push_bind(image);
                 has_any = true;
             }
             if let Some(ref audio) = req.audio_url {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_voice_audio_url = ");
                 qb.push_bind(audio);
                 has_any = true;
@@ -1102,49 +1140,65 @@ pub async fn admin_update_study_task(
             let mut has_any = false;
 
             if let Some(ref prompt) = req.question {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_writing_prompt = ");
                 qb.push_bind(prompt);
                 has_any = true;
             }
             if let Some(ref answer) = req.answer {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_writing_answer = ");
                 qb.push_bind(answer);
                 has_any = true;
             }
             if let Some(ref hint) = req.writing_hint {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_writing_hint = ");
                 qb.push_bind(hint);
                 has_any = true;
             }
             if let Some(keyboard_visible) = req.writing_keyboard_visible {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_writing_keyboard_visible = ");
                 qb.push_bind(keyboard_visible);
                 has_any = true;
             }
             if let Some(ref level) = req.writing_level {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_writing_level = ");
                 qb.push_bind(level);
                 has_any = true;
             }
             if let Some(ref practice_type) = req.writing_practice_type {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_writing_practice_type = ");
                 qb.push_bind(practice_type);
                 has_any = true;
             }
             if let Some(ref image) = req.image_url {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_writing_image_url = ");
                 qb.push_bind(image);
                 has_any = true;
             }
             if let Some(ref audio) = req.audio_url {
-                if has_any { qb.push(", "); }
+                if has_any {
+                    qb.push(", ");
+                }
                 qb.push("study_task_writing_audio_url = ");
                 qb.push_bind(audio);
                 has_any = true;

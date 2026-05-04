@@ -2,9 +2,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
 
-use crate::types::{
-    TextbookLanguage, TextbookOrderStatus, TextbookPaymentMethod, TextbookType,
-};
+use crate::types::{TextbookLanguage, TextbookOrderStatus, TextbookPaymentMethod, TextbookType};
 
 // =============================================================================
 // GET /textbook/catalog — 교재 카탈로그

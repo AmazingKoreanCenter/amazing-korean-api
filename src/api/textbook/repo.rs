@@ -156,12 +156,11 @@ impl TextbookRepo {
             .execute(&mut **tx)
             .await?;
 
-        let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM textbook WHERE order_code LIKE $1 || '%'",
-        )
-        .bind(&prefix)
-        .fetch_one(&mut **tx)
-        .await?;
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM textbook WHERE order_code LIKE $1 || '%'")
+                .bind(&prefix)
+                .fetch_one(&mut **tx)
+                .await?;
 
         Ok(format!("TB-{}-{:04}", today, count + 1))
     }
@@ -295,10 +294,7 @@ impl TextbookRepo {
     }
 
     /// 주문 ID로 주문 조회
-    pub async fn find_by_id(
-        pool: &PgPool,
-        order_id: i64,
-    ) -> AppResult<Option<TextbookOrderRow>> {
+    pub async fn find_by_id(pool: &PgPool, order_id: i64) -> AppResult<Option<TextbookOrderRow>> {
         let sql = format!(
             "SELECT {} FROM textbook WHERE order_id = $1 AND is_deleted = false",
             ORDER_COLUMNS,
@@ -357,10 +353,7 @@ impl TextbookRepo {
     }
 
     /// 사용자의 주문 목록 조회 (내 주문)
-    pub async fn find_by_user_id(
-        pool: &PgPool,
-        user_id: i64,
-    ) -> AppResult<Vec<TextbookOrderRow>> {
+    pub async fn find_by_user_id(pool: &PgPool, user_id: i64) -> AppResult<Vec<TextbookOrderRow>> {
         let sql = format!(
             "SELECT {} FROM textbook WHERE user_id = $1 AND is_deleted = false ORDER BY created_at DESC",
             ORDER_COLUMNS,
@@ -422,7 +415,10 @@ impl TextbookRepo {
         // 데이터 조회
         let data_sql = format!(
             "SELECT {} FROM textbook WHERE {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
-            ORDER_COLUMNS, where_clause, bind_idx, bind_idx + 1,
+            ORDER_COLUMNS,
+            where_clause,
+            bind_idx,
+            bind_idx + 1,
         );
         let mut data_query = sqlx::query_as::<_, TextbookOrderRow>(&data_sql);
         if let Some(s) = status {

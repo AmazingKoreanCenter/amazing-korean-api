@@ -14,10 +14,7 @@ pub fn extract_client_ip(headers: &HeaderMap) -> String {
     };
 
     // 1. x-forwarded-for
-    if let Some(v) = headers
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-    {
+    if let Some(v) = headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()) {
         if let Some(first) = v.split(',').next() {
             if let Some(ip) = try_parse_ip(first) {
                 return ip;

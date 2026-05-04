@@ -7,15 +7,15 @@ use axum::{
 use std::net::IpAddr;
 
 use crate::api::admin::study::dto::{
-    AdminStudyDetailRes, AdminStudyListRes, AdminStudyRes, StudyBulkCreateReq, StudyBulkCreateRes,
-    StudyBulkUpdateReq, StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskBulkCreateReq,
+    AdminStudyDetailRes, AdminStudyListRes, AdminStudyRes, AdminStudyTaskDetailRes,
+    AdminStudyTaskListRes, AdminTaskExplainListRes, AdminTaskExplainRes, AdminTaskStatusListRes,
+    AdminTaskStatusRes, StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkUpdateReq,
+    StudyBulkUpdateRes, StudyCreateReq, StudyListReq, StudyTaskBulkCreateReq,
     StudyTaskBulkCreateRes, StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes, StudyTaskCreateReq,
-    StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq, AdminStudyTaskListRes,
-    AdminStudyTaskDetailRes, TaskExplainBulkCreateReq, TaskExplainBulkCreateRes,
-    TaskExplainBulkUpdateReq, TaskExplainBulkUpdateRes, TaskExplainCreateReq, TaskExplainListReq,
-    TaskExplainUpdateReq, TaskStatusBulkUpdateReq, TaskStatusBulkUpdateRes, TaskStatusListReq,
-    TaskStatusUpdateReq, AdminTaskStatusListRes, AdminTaskStatusRes, AdminTaskExplainListRes,
-    AdminTaskExplainRes,
+    StudyTaskListReq, StudyTaskUpdateReq, StudyUpdateReq, TaskExplainBulkCreateReq,
+    TaskExplainBulkCreateRes, TaskExplainBulkUpdateReq, TaskExplainBulkUpdateRes,
+    TaskExplainCreateReq, TaskExplainListReq, TaskExplainUpdateReq, TaskStatusBulkUpdateReq,
+    TaskStatusBulkUpdateRes, TaskStatusListReq, TaskStatusUpdateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
@@ -108,14 +108,8 @@ pub async fn admin_get_study(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_get_study(
-        &st,
-        auth_user.sub,
-        study_id,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res = super::service::admin_get_study(&st, auth_user.sub, study_id, ip_address, user_agent)
+        .await?;
 
     Ok(Json(res))
 }
@@ -144,14 +138,8 @@ pub async fn admin_create_study(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_create_study(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res =
+        super::service::admin_create_study(&st, auth_user.sub, req, ip_address, user_agent).await?;
 
     Ok((StatusCode::CREATED, Json(res)))
 }
@@ -181,14 +169,9 @@ pub async fn admin_bulk_create_studies(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let (all_success, res) = super::service::admin_bulk_create_studies(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let (all_success, res) =
+        super::service::admin_bulk_create_studies(&st, auth_user.sub, req, ip_address, user_agent)
+            .await?;
 
     let status = if all_success {
         StatusCode::CREATED
@@ -266,14 +249,9 @@ pub async fn admin_bulk_update_studies(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let (all_success, res) = super::service::admin_bulk_update_studies(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let (all_success, res) =
+        super::service::admin_bulk_update_studies(&st, auth_user.sub, req, ip_address, user_agent)
+            .await?;
 
     let status = if all_success {
         StatusCode::OK
@@ -311,14 +289,9 @@ pub async fn admin_list_study_tasks(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_list_study_tasks(
-        &st,
-        auth_user.sub,
-        params,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res =
+        super::service::admin_list_study_tasks(&st, auth_user.sub, params, ip_address, user_agent)
+            .await?;
 
     Ok(Json(res))
 }
@@ -348,14 +321,9 @@ pub async fn admin_get_study_task(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_get_study_task(
-        &st,
-        auth_user.sub,
-        task_id,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res =
+        super::service::admin_get_study_task(&st, auth_user.sub, task_id, ip_address, user_agent)
+            .await?;
 
     Ok(Json(res))
 }
@@ -427,14 +395,9 @@ pub async fn admin_list_task_status(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_list_task_status(
-        &st,
-        auth_user.sub,
-        params,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res =
+        super::service::admin_list_task_status(&st, auth_user.sub, params, ip_address, user_agent)
+            .await?;
 
     Ok(Json(res))
 }
@@ -719,14 +682,9 @@ pub async fn admin_create_study_task(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_create_study_task(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res =
+        super::service::admin_create_study_task(&st, auth_user.sub, req, ip_address, user_agent)
+            .await?;
 
     Ok((StatusCode::CREATED, Json(res)))
 }

@@ -1,6 +1,4 @@
-use super::dto::{
-    DailyStatsRes, StatsQuery, StudyStatsSummaryRes, TopStudiesQuery, TopStudiesRes,
-};
+use super::dto::{DailyStatsRes, StatsQuery, StudyStatsSummaryRes, TopStudiesQuery, TopStudiesRes};
 use crate::api::auth::extractor::AuthUser;
 use crate::error::AppError;
 use crate::AppState;

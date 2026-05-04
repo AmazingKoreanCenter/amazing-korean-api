@@ -79,14 +79,14 @@ fn apply_footer_watermark(
 
     // 폰트 메트릭으로 실제 텍스트 폭 계산
     let scaled_font = font.as_scaled(scale);
-    let text_width: f32 = text.chars().fold(0.0, |acc, c| {
-        acc + scaled_font.h_advance(font.glyph_id(c))
-    });
+    let text_width: f32 = text
+        .chars()
+        .fold(0.0, |acc, c| acc + scaled_font.h_advance(font.glyph_id(c)));
     let text_width_px = text_width.ceil() as u32;
 
     // 풋터 영역 좌표 (구분선 y=height-122~height-119, 4px 두께 → 그 아래부터 클리어)
     let separator_bottom = height.saturating_sub(118); // 구분선 바로 아래
-    let footer_bottom = height.saturating_sub(76);     // 풋터 텍스트 영역 하단
+    let footer_bottom = height.saturating_sub(76); // 풋터 텍스트 영역 하단
     let center_x = width / 2;
     let padding = 10u32; // 텍스트 좌우 여백
     let clear_x_start = center_x.saturating_sub(text_width_px / 2 + padding);
@@ -115,9 +115,9 @@ fn apply_microdot_watermark(img: &mut RgbaImage, user_id: i64) {
 
     // 4개 모서리 시작 좌표 (가장자리에서 15-20px 안쪽)
     let corners: [(u32, u32); 4] = [
-        (18, 18),                                   // 좌상
-        (width.saturating_sub(85), 18),              // 우상
-        (18, height.saturating_sub(25)),              // 좌하
+        (18, 18),                                              // 좌상
+        (width.saturating_sub(85), 18),                        // 우상
+        (18, height.saturating_sub(25)),                       // 좌하
         (width.saturating_sub(85), height.saturating_sub(25)), // 우하
     ];
 

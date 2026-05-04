@@ -53,12 +53,15 @@ pub fn create_token(
         .format(&Rfc3339)
         .map_err(|e| AppError::Internal(format!("Failed to format date: {}", e)))?;
 
-    Ok((AccessTokenRes {
-        access_token: token,
-        token_type: "Bearer".to_string(),
-        expires_in: ttl_minutes * 60,
-        expires_at: expires_at_str,
-    }, jti))
+    Ok((
+        AccessTokenRes {
+            access_token: token,
+            token_type: "Bearer".to_string(),
+            expires_in: ttl_minutes * 60,
+            expires_at: expires_at_str,
+        },
+        jti,
+    ))
 }
 
 pub fn decode_token(token: &str, secret: &str) -> Result<Claims, jsonwebtoken::errors::Error> {

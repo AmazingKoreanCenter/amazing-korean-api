@@ -31,9 +31,9 @@ pub struct VideoListReq {
     pub per_page: u64,
 
     // 검색 및 필터
-    pub q: Option<String>,          // 검색어
-    pub tag: Option<String>,        // 태그 필터
-    pub state: Option<String>,      // 상태 필터 (published, etc)
+    pub q: Option<String>,     // 검색어
+    pub tag: Option<String>,   // 태그 필터
+    pub state: Option<String>, // 상태 필터 (published, etc)
 
     // 정렬 (latest, views, etc.)
     pub sort: Option<String>,
@@ -42,8 +42,12 @@ pub struct VideoListReq {
     pub lang: Option<SupportedLanguage>,
 }
 
-fn default_page() -> u64 { 1 }
-fn default_per_page() -> u64 { 20 }
+fn default_page() -> u64 {
+    1
+}
+fn default_per_page() -> u64 {
+    20
+}
 
 /// 비디오 ID 파라미터 (Path Variable 등)
 #[derive(Debug, Deserialize)]
@@ -90,20 +94,20 @@ pub struct VideoProgressUpdateReq {
 pub struct VideoListItem {
     pub video_id: i64,
     pub video_idx: String, // 비즈니스 식별 코드 (예: VID-001)
-    
+
     pub title: Option<String>,
     pub subtitle: Option<String>,
     pub duration_seconds: Option<i32>,
     pub language: Option<String>,
     pub thumbnail_url: Option<String>,
-    
+
     pub state: String,
     pub access: String,
-    
+
     // 목록에서는 단순 문자열 태그 배열
-    #[serde(default)] 
-    pub tags: Vec<String>, 
-    
+    #[serde(default)]
+    pub tags: Vec<String>,
+
     pub has_captions: bool,
     pub created_at: DateTime<Utc>,
 }

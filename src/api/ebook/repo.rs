@@ -87,7 +87,10 @@ pub async fn generate_purchase_code(
     .await?;
 
     let max_seq: i32 = row.get("max_seq");
-    let code = format!("{lang_code}-{ed_code}-{today}-{pay_code}-{:04}", max_seq + 1);
+    let code = format!(
+        "{lang_code}-{ed_code}-{today}-{pay_code}-{:04}",
+        max_seq + 1
+    );
 
     Ok(code)
 }
@@ -252,7 +255,8 @@ pub async fn update_status(
     };
 
     let sql = if timestamp_col.is_empty() {
-        "UPDATE ebook_purchase SET status = $1, updated_at = NOW() WHERE purchase_id = $2".to_string()
+        "UPDATE ebook_purchase SET status = $1, updated_at = NOW() WHERE purchase_id = $2"
+            .to_string()
     } else {
         format!(
             "UPDATE ebook_purchase SET status = $1, {timestamp_col} = NOW(), updated_at = NOW()
@@ -320,7 +324,7 @@ pub async fn cancel_pending_purchase(
     let result = sqlx::query(
         "UPDATE ebook_purchase
          SET is_deleted = true, deleted_at = NOW(), updated_at = NOW()
-         WHERE purchase_code = $1 AND user_id = $2 AND status = 'pending' AND is_deleted = false"
+         WHERE purchase_code = $1 AND user_id = $2 AND status = 'pending' AND is_deleted = false",
     )
     .bind(purchase_code)
     .bind(user_id)
@@ -378,7 +382,9 @@ pub async fn list_purchases(
     if search.is_some() {
         where_clauses.push(format!("purchase_code ILIKE ${bind_idx}"));
         #[allow(unused_assignments)]
-        { bind_idx += 1; }
+        {
+            bind_idx += 1;
+        }
     }
 
     let where_sql = where_clauses.join(" AND ");
@@ -463,12 +469,10 @@ pub async fn soft_delete_purchase(db: &PgPool, purchase_id: i64) -> AppResult<()
 
 /// 사용자 암호화된 이메일 조회 (이메일 알림용)
 pub async fn find_user_encrypted_email(db: &PgPool, user_id: i64) -> AppResult<Option<String>> {
-    let row = sqlx::query_scalar::<_, String>(
-        "SELECT user_email FROM users WHERE user_id = $1"
-    )
-    .bind(user_id)
-    .fetch_optional(db)
-    .await?;
+    let row = sqlx::query_scalar::<_, String>("SELECT user_email FROM users WHERE user_id = $1")
+        .bind(user_id)
+        .fetch_optional(db)
+        .await?;
 
     Ok(row)
 }
@@ -506,7 +510,7 @@ pub async fn find_access_log_by_watermark_id(
          FROM ebook_access_log l
          JOIN ebook_purchase p ON p.purchase_id = l.purchase_id
          WHERE l.watermark_id = $1
-         LIMIT 1"
+         LIMIT 1",
     )
     .bind(watermark_id)
     .fetch_optional(db)

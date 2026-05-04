@@ -28,7 +28,8 @@ pub async fn signup_tx(
     email_idx: &str,
     name_idx: &str,
 ) -> AppResult<ProfileRes> {
-    let res = sqlx::query_as::<_, ProfileRes>(r#"
+    let res = sqlx::query_as::<_, ProfileRes>(
+        r#"
         INSERT INTO users (
             user_email, user_password, user_name,
             user_nickname, user_language, user_country,
@@ -57,7 +58,8 @@ pub async fn signup_tx(
             user_created_at as created_at,
             (user_password IS NOT NULL) as has_password,
             user_mfa_enabled as mfa_enabled
-    "#)
+    "#,
+    )
     .bind(email)
     .bind(password_hash)
     .bind(name)
@@ -78,12 +80,10 @@ pub async fn signup_tx(
 
 /// Blind index로 이메일 중복 확인용 (ID + 인증 상태 조회)
 pub async fn find_user_id_by_email_idx(pool: &PgPool, email_idx: &str) -> AppResult<Option<i64>> {
-    let row = sqlx::query_scalar::<_, i64>(
-        "SELECT user_id FROM users WHERE user_email_idx = $1"
-    )
-    .bind(email_idx)
-    .fetch_optional(pool)
-    .await?;
+    let row = sqlx::query_scalar::<_, i64>("SELECT user_id FROM users WHERE user_email_idx = $1")
+        .bind(email_idx)
+        .fetch_optional(pool)
+        .await?;
     Ok(row)
 }
 
@@ -93,7 +93,7 @@ pub async fn find_user_id_and_check_email_by_email_idx(
     email_idx: &str,
 ) -> AppResult<Option<(i64, bool)>> {
     let row = sqlx::query_as::<_, (i64, bool)>(
-        "SELECT user_id, user_check_email FROM users WHERE user_email_idx = $1"
+        "SELECT user_id, user_check_email FROM users WHERE user_email_idx = $1",
     )
     .bind(email_idx)
     .fetch_optional(pool)
@@ -116,7 +116,8 @@ pub async fn overwrite_unverified_user(
     gender: UserGender,
     name_idx: &str,
 ) -> AppResult<()> {
-    sqlx::query(r#"
+    sqlx::query(
+        r#"
         UPDATE users SET
             user_email = $2,
             user_password = $3,
@@ -128,7 +129,8 @@ pub async fn overwrite_unverified_user(
             user_gender = $9::user_gender_enum,
             user_name_idx = $10
         WHERE user_id = $1 AND user_check_email = false
-    "#)
+    "#,
+    )
     .bind(user_id)
     .bind(email_enc)
     .bind(password_hash)
@@ -145,8 +147,12 @@ pub async fn overwrite_unverified_user(
 }
 
 /// Blind index로 이메일로 사용자 전체 정보 조회
-pub async fn find_user_by_email_idx(pool: &PgPool, email_idx: &str) -> AppResult<Option<ProfileRes>> {
-    let row = sqlx::query_as::<_, ProfileRes>(r#"
+pub async fn find_user_by_email_idx(
+    pool: &PgPool,
+    email_idx: &str,
+) -> AppResult<Option<ProfileRes>> {
+    let row = sqlx::query_as::<_, ProfileRes>(
+        r#"
         SELECT
             user_id as id,
             user_email as email,
@@ -163,7 +169,8 @@ pub async fn find_user_by_email_idx(pool: &PgPool, email_idx: &str) -> AppResult
             user_mfa_enabled as mfa_enabled
         FROM users
         WHERE user_email_idx = $1
-    "#)
+    "#,
+    )
     .bind(email_idx)
     .fetch_optional(pool)
     .await?;
@@ -172,7 +179,8 @@ pub async fn find_user_by_email_idx(pool: &PgPool, email_idx: &str) -> AppResult
 
 /// 닉네임으로 사용자 조회
 pub async fn find_user_by_nickname(pool: &PgPool, nickname: &str) -> AppResult<Option<ProfileRes>> {
-    let row = sqlx::query_as::<_, ProfileRes>(r#"
+    let row = sqlx::query_as::<_, ProfileRes>(
+        r#"
         SELECT
             user_id as id,
             user_email as email,
@@ -189,7 +197,8 @@ pub async fn find_user_by_nickname(pool: &PgPool, nickname: &str) -> AppResult<O
             user_mfa_enabled as mfa_enabled
         FROM users
         WHERE user_nickname = $1
-    "#)
+    "#,
+    )
     .bind(nickname)
     .fetch_optional(pool)
     .await?;
@@ -199,7 +208,8 @@ pub async fn find_user_by_nickname(pool: &PgPool, nickname: &str) -> AppResult<O
 
 /// 사용자 정보 공통 조회 쿼리
 pub async fn find_user(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileRes>> {
-    let row = sqlx::query_as::<_, ProfileRes>(r#"
+    let row = sqlx::query_as::<_, ProfileRes>(
+        r#"
         SELECT
             user_id as id,
             user_email as email,
@@ -216,7 +226,8 @@ pub async fn find_user(pool: &PgPool, user_id: i64) -> AppResult<Option<ProfileR
             user_mfa_enabled as mfa_enabled
         FROM users
         WHERE user_id = $1
-    "#)
+    "#,
+    )
     .bind(user_id)
     .fetch_optional(pool)
     .await?;
@@ -241,7 +252,8 @@ pub async fn update_profile_tx(
     req: &ProfileUpdateReq,
     birthday_encrypted: Option<&str>,
 ) -> AppResult<Option<ProfileRes>> {
-    let res = sqlx::query_as::<_, ProfileRes>(r#"
+    let res = sqlx::query_as::<_, ProfileRes>(
+        r#"
         UPDATE users
         SET
             user_nickname = COALESCE($2, user_nickname),
@@ -264,7 +276,8 @@ pub async fn update_profile_tx(
             user_created_at as created_at,
             (user_password IS NOT NULL) as has_password,
             user_mfa_enabled as mfa_enabled
-    "#)
+    "#,
+    )
     .bind(user_id)
     .bind(req.nickname.as_ref())
     .bind(req.language.as_ref())
@@ -282,7 +295,8 @@ pub async fn update_profile_tx(
 // =========================================================================
 
 pub async fn find_users_setting(pool: &PgPool, user_id: i64) -> AppResult<Option<SettingsRes>> {
-    let row = sqlx::query_as::<_, SettingsRes>(r#"
+    let row = sqlx::query_as::<_, SettingsRes>(
+        r#"
         SELECT
             user_set_language::TEXT as user_set_language,
             COALESCE(user_set_timezone, 'UTC') as user_set_timezone,
@@ -291,7 +305,8 @@ pub async fn find_users_setting(pool: &PgPool, user_id: i64) -> AppResult<Option
             user_set_updated_at as updated_at
         FROM users_setting
         WHERE user_id = $1
-    "#)
+    "#,
+    )
     .bind(user_id)
     .fetch_optional(pool)
     .await?;
@@ -391,7 +406,8 @@ pub async fn insert_user_log_after_tx(
     action: &str,
     success: bool,
 ) -> AppResult<()> {
-    let row = sqlx::query_as::<_, UserLogSource>(r#"
+    let row = sqlx::query_as::<_, UserLogSource>(
+        r#"
         SELECT
             user_auth::text as user_auth,
             user_state,
@@ -407,23 +423,28 @@ pub async fn insert_user_log_after_tx(
             user_quit_at
         FROM users
         WHERE user_id = $1
-    "#)
+    "#,
+    )
     .bind(user_id)
     .fetch_optional(&mut **tx)
     .await?;
 
-    let Some(u) = row else { return Ok(()); };
+    let Some(u) = row else {
+        return Ok(());
+    };
 
     // Decrypt and mask
     let email_plain = crypto.decrypt(&u.user_email, "users.user_email")?;
     let masked_email = mask_email(&email_plain);
 
     let decrypted_birthday = crypto.decrypt(&u.user_birthday, "users.user_birthday")?;
-    let birthday_masked: Option<String> = NaiveDate::parse_from_str(&decrypted_birthday, "%Y-%m-%d")
-        .ok()
-        .map(|d| format!("{}-**-**", d.year()));
+    let birthday_masked: Option<String> =
+        NaiveDate::parse_from_str(&decrypted_birthday, "%Y-%m-%d")
+            .ok()
+            .map(|d| format!("{}-**-**", d.year()));
 
-    sqlx::query(r#"
+    sqlx::query(
+        r#"
         INSERT INTO public.users_log (
             updated_by_user_id, user_action_log, user_action_success, user_id,
             user_auth_log, user_state_log, user_email_log, user_password_log,
@@ -438,7 +459,8 @@ pub async fn insert_user_log_after_tx(
             $12::user_gender_enum, $13, $14,
             $15, $16, now()
         )
-    "#)
+    "#,
+    )
     .bind(actor_user_id)
     .bind(action)
     .bind(success)

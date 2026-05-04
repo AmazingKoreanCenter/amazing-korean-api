@@ -44,7 +44,9 @@ pub async fn fetch_daily_stats(
     let items = rows
         .into_iter()
         .map(|r| DailyStatItem {
-            date: r.try_get::<chrono::NaiveDate, _>("stat_date").unwrap_or_default(),
+            date: r
+                .try_get::<chrono::NaiveDate, _>("stat_date")
+                .unwrap_or_default(),
             views: r.try_get::<i64, _>("views").unwrap_or(0),
             completes: r.try_get::<i64, _>("completes").unwrap_or(0),
         })
@@ -178,7 +180,9 @@ pub async fn fetch_aggregate_daily_stats(
     let items = rows
         .into_iter()
         .map(|r| DailyStatItem {
-            date: r.try_get::<chrono::NaiveDate, _>("stat_date").unwrap_or_default(),
+            date: r
+                .try_get::<chrono::NaiveDate, _>("stat_date")
+                .unwrap_or_default(),
             views: r.try_get::<i64, _>("views").unwrap_or(0),
             completes: r.try_get::<i64, _>("completes").unwrap_or(0),
         })

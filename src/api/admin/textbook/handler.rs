@@ -37,14 +37,8 @@ pub async fn list_orders(
     let page = req.page.unwrap_or(1).max(1);
     let per_page = req.size.unwrap_or(20).clamp(1, 100);
 
-    let res = AdminTextbookService::list_orders(
-        &st,
-        req.status,
-        req.q.as_deref(),
-        page,
-        per_page,
-    )
-    .await?;
+    let res = AdminTextbookService::list_orders(&st, req.status, req.q.as_deref(), page, per_page)
+        .await?;
 
     Ok(Json(res))
 }
@@ -97,8 +91,7 @@ pub async fn update_status(
     Path(id): Path<i64>,
     AppJson(req): AppJson<AdminUpdateStatusReq>,
 ) -> AppResult<Json<OrderRes>> {
-    let res =
-        AdminTextbookService::update_status(&st, auth_user.sub, id, req.status).await?;
+    let res = AdminTextbookService::update_status(&st, auth_user.sub, id, req.status).await?;
     Ok(Json(res))
 }
 

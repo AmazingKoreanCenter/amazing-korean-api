@@ -13,9 +13,8 @@ use crate::state::AppState;
 use crate::types::{EbookEdition, EbookPaymentMethod, EbookPurchaseStatus, TextbookLanguage};
 
 use super::dto::{
-    CreateIapPurchaseReq, CreatePurchaseReq, EbookCatalogItem, EbookCatalogRes,
-    EbookEditionInfo, HeartbeatRes, IapPlatform, MyPurchasesRes, PurchaseRes,
-    TocEntry, ViewerMetaRes,
+    CreateIapPurchaseReq, CreatePurchaseReq, EbookCatalogItem, EbookCatalogRes, EbookEditionInfo,
+    HeartbeatRes, IapPlatform, MyPurchasesRes, PurchaseRes, TocEntry, ViewerMetaRes,
 };
 use super::repo;
 use super::watermark;
@@ -61,20 +60,24 @@ impl EbookService {
 
                 let (total_pages, available) = if manifest_path.exists() {
                     match tokio::fs::read_to_string(&manifest_path).await {
-                        Ok(content) => {
-                            match serde_json::from_str::<serde_json::Value>(&content) {
-                                Ok(manifest) => {
-                                    let pages = manifest["total_pages"].as_i64().unwrap_or(0) as i32;
-                                    (pages, pages > 0)
-                                }
-                                Err(e) => {
-                                    tracing::error!("Invalid manifest JSON at {}: {e}", manifest_path.display());
-                                    (0, false)
-                                }
+                        Ok(content) => match serde_json::from_str::<serde_json::Value>(&content) {
+                            Ok(manifest) => {
+                                let pages = manifest["total_pages"].as_i64().unwrap_or(0) as i32;
+                                (pages, pages > 0)
                             }
-                        }
+                            Err(e) => {
+                                tracing::error!(
+                                    "Invalid manifest JSON at {}: {e}",
+                                    manifest_path.display()
+                                );
+                                (0, false)
+                            }
+                        },
                         Err(e) => {
-                            tracing::warn!("Failed to read manifest at {}: {e}", manifest_path.display());
+                            tracing::warn!(
+                                "Failed to read manifest at {}: {e}",
+                                manifest_path.display()
+                            );
                             (0, false)
                         }
                     }
@@ -102,16 +105,15 @@ impl EbookService {
             });
         }
 
-        let (paddle_ebook_price_id, client_token, sandbox) =
-            if let Some(ref payment) = st.payment {
-                (
-                    st.cfg.paddle_ebook_price.clone(),
-                    Some(payment.client_token().to_string()),
-                    payment.is_sandbox(),
-                )
-            } else {
-                (None, None, false)
-            };
+        let (paddle_ebook_price_id, client_token, sandbox) = if let Some(ref payment) = st.payment {
+            (
+                st.cfg.paddle_ebook_price.clone(),
+                Some(payment.client_token().to_string()),
+                payment.is_sandbox(),
+            )
+        } else {
+            (None, None, false)
+        };
 
         Ok(EbookCatalogRes {
             items,
@@ -144,14 +146,18 @@ impl EbookService {
             EbookPaymentMethod::Paddle => (EBOOK_PRICE_USD_CENTS, "USD"),
             EbookPaymentMethod::BankTransfer => (EBOOK_PRICE_KRW, "KRW"),
             EbookPaymentMethod::AppleIap | EbookPaymentMethod::GoogleIap => {
-                return Err(AppError::BadRequest("IAP 결제는 /ebook/purchase/iap 엔드포인트를 사용하세요".into()));
+                return Err(AppError::BadRequest(
+                    "IAP 결제는 /ebook/purchase/iap 엔드포인트를 사용하세요".into(),
+                ));
             }
         };
 
         // 트랜잭션으로 주문코드 생성 + INSERT
         let mut tx = st.db.begin().await?;
 
-        let code = repo::generate_purchase_code(&mut tx, req.language, req.edition, req.payment_method).await?;
+        let code =
+            repo::generate_purchase_code(&mut tx, req.language, req.edition, req.payment_method)
+                .await?;
 
         let row = repo::insert_purchase(
             &mut tx,
@@ -172,7 +178,9 @@ impl EbookService {
         // 구매 접수 확인 이메일 발송 (fire-and-forget)
         if let Some(ref email_sender) = st.email {
             let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-            if let Ok(Some(encrypted_email)) = repo::find_user_encrypted_email(&st.db, user_id).await {
+            if let Ok(Some(encrypted_email)) =
+                repo::find_user_encrypted_email(&st.db, user_id).await
+            {
                 if let Ok(user_email) = crypto.decrypt(&encrypted_email, "users.user_email") {
                     let lang_name = language_name_ko(req.language);
                     let edition_label = edition_label_ko(req.edition);
@@ -183,7 +191,9 @@ impl EbookService {
                         price: row.price.to_string(),
                         currency: row.currency.clone(),
                     };
-                    if let Err(e) = send_templated(email_sender.as_ref(), &user_email, template).await {
+                    if let Err(e) =
+                        send_templated(email_sender.as_ref(), &user_email, template).await
+                    {
                         tracing::warn!(
                             purchase_code = %row.purchase_code,
                             error = %e,
@@ -215,7 +225,8 @@ impl EbookService {
         req: CreateIapPurchaseReq,
     ) -> AppResult<PurchaseRes> {
         // 중복 구매 검사
-        let existing = repo::find_existing_purchase(&st.db, user_id, req.language, req.edition).await?;
+        let existing =
+            repo::find_existing_purchase(&st.db, user_id, req.language, req.edition).await?;
         if let Some(row) = &existing {
             let msg = if row.status == EbookPurchaseStatus::Completed {
                 "이미 해당 교재를 구매하셨습니다."
@@ -229,13 +240,19 @@ impl EbookService {
         if let Some(ref rc_client) = st.revenuecat {
             let subscriber = rc_client.get_subscriber(&user_id.to_string()).await?;
             // transaction_id가 non_subscriptions 또는 entitlements에 존재하는지 확인
-            let has_valid_purchase = subscriber.non_subscriptions.values()
+            let has_valid_purchase = subscriber
+                .non_subscriptions
+                .values()
                 .any(|purchases| purchases.iter().any(|p| p.id == req.transaction_id))
-                || subscriber.entitlements.values()
+                || subscriber
+                    .entitlements
+                    .values()
                     .any(|e| e.is_active && e.product_identifier == req.product_id);
 
             if !has_valid_purchase {
-                return Err(AppError::BadRequest("IAP 영수증 검증 실패: 유효한 구매를 찾을 수 없습니다".into()));
+                return Err(AppError::BadRequest(
+                    "IAP 영수증 검증 실패: 유효한 구매를 찾을 수 없습니다".into(),
+                ));
             }
         }
 
@@ -254,7 +271,8 @@ impl EbookService {
 
         // 트랜잭션으로 주문코드 생성 + INSERT (status=completed)
         let mut tx = st.db.begin().await?;
-        let code = repo::generate_purchase_code(&mut tx, req.language, req.edition, payment_method).await?;
+        let code = repo::generate_purchase_code(&mut tx, req.language, req.edition, payment_method)
+            .await?;
         let row = repo::insert_iap_purchase(
             &mut tx,
             &repo::InsertIapPurchaseParams {
@@ -269,13 +287,16 @@ impl EbookService {
                 iap_transaction_id: &req.transaction_id,
                 iap_product_id: &req.product_id,
             },
-        ).await?;
+        )
+        .await?;
         tx.commit().await?;
 
         // 이메일 (fire-and-forget)
         if let Some(ref email_sender) = st.email {
             let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-            if let Ok(Some(encrypted_email)) = repo::find_user_encrypted_email(&st.db, user_id).await {
+            if let Ok(Some(encrypted_email)) =
+                repo::find_user_encrypted_email(&st.db, user_id).await
+            {
                 if let Ok(user_email) = crypto.decrypt(&encrypted_email, "users.user_email") {
                     let lang_name = language_name_ko(req.language);
                     let edition_label = edition_label_ko(req.edition);
@@ -286,7 +307,9 @@ impl EbookService {
                         price: row.price.to_string(),
                         currency: row.currency.clone(),
                     };
-                    if let Err(e) = send_templated(email_sender.as_ref(), &user_email, template).await {
+                    if let Err(e) =
+                        send_templated(email_sender.as_ref(), &user_email, template).await
+                    {
                         tracing::warn!(
                             purchase_code = %row.purchase_code,
                             error = %e,
@@ -363,9 +386,7 @@ impl EbookService {
 
         // completed 상태만 뷰어 접근 허용
         if row.status != EbookPurchaseStatus::Completed {
-            return Err(AppError::Forbidden(
-                "결제가 완료되지 않았습니다.".into(),
-            ));
+            return Err(AppError::Forbidden("결제가 완료되지 않았습니다.".into()));
         }
 
         let edition_dir = match row.edition {
@@ -406,7 +427,10 @@ impl EbookService {
 
         let tile_mode = st.cfg.ebook_tile_enabled;
         let (grid_rows, grid_cols) = if tile_mode {
-            (Some(st.cfg.ebook_tile_grid_rows), Some(st.cfg.ebook_tile_grid_cols))
+            (
+                Some(st.cfg.ebook_tile_grid_rows),
+                Some(st.cfg.ebook_tile_grid_cols),
+            )
         } else {
             (None, None)
         };
@@ -482,7 +506,9 @@ impl EbookService {
                 let parsed: serde_json::Value = serde_json::from_str(&data)
                     .map_err(|_| AppError::Internal("ebook session data corrupted".into()))?;
 
-                let stored_sid = parsed.get("session_id").and_then(|v| v.as_str())
+                let stored_sid = parsed
+                    .get("session_id")
+                    .and_then(|v| v.as_str())
                     .ok_or_else(|| AppError::Internal("ebook session missing session_id".into()))?;
 
                 if stored_sid != session_id {
@@ -602,9 +628,7 @@ impl EbookService {
 
         // 2. completed 상태만 허용
         if row.status != EbookPurchaseStatus::Completed {
-            return Err(AppError::Forbidden(
-                "결제가 완료되지 않았습니다.".into(),
-            ));
+            return Err(AppError::Forbidden("결제가 완료되지 않았습니다.".into()));
         }
 
         // 3. 페이지 번호 유효성 검증
@@ -638,8 +662,13 @@ impl EbookService {
                 .join(edition_dir)
                 .join(lang_code)
                 .join(format!("page-{:03}.webp.enc", page_num));
-            let encrypted = tokio::fs::read(&enc_path).await.map_err(|_| AppError::NotFound)?;
-            let key = st.cfg.ebook_image_key.as_ref()
+            let encrypted = tokio::fs::read(&enc_path)
+                .await
+                .map_err(|_| AppError::NotFound)?;
+            let key = st
+                .cfg
+                .ebook_image_key
+                .as_ref()
                 .unwrap_or_else(|| st.cfg.encryption_ring.current_key());
             crate::crypto::cipher::decrypt_bytes(key, &encrypted, "ebook.page_image")?
         } else {
@@ -647,13 +676,20 @@ impl EbookService {
                 .join(edition_dir)
                 .join(lang_code)
                 .join(format!("page-{:03}.webp", page_num));
-            tokio::fs::read(&image_path).await.map_err(|_| AppError::NotFound)?
+            tokio::fs::read(&image_path)
+                .await
+                .map_err(|_| AppError::NotFound)?
         };
 
         // 5. 워터마크 적용 (4중 비가시적 보안: 풋터+마이크로도트+LSB+접근로그)
         let watermark_id = uuid::Uuid::new_v4().to_string();
-        let watermarked =
-            watermark::apply_watermark(&image_bytes, purchase_code, &watermark_id, user_id, page_num)?;
+        let watermarked = watermark::apply_watermark(
+            &image_bytes,
+            purchase_code,
+            &watermark_id,
+            user_id,
+            page_num,
+        )?;
 
         // 6. 감사 로그 (비동기, 실패해도 이미지 반환)
         let db = st.db.clone();
@@ -679,10 +715,7 @@ impl EbookService {
     // ─────────────────────── Page Tile ───────────────────────
 
     /// 타일 분할 이미지 반환 (3×3 그리드 → 9개 타일)
-    pub async fn get_page_tile(
-        st: &AppState,
-        req: &TileRequest<'_>,
-    ) -> AppResult<Vec<u8>> {
+    pub async fn get_page_tile(st: &AppState, req: &TileRequest<'_>) -> AppResult<Vec<u8>> {
         let user_id = req.user_id;
         let purchase_code = req.purchase_code;
         let page_num = req.page_num;
@@ -708,9 +741,7 @@ impl EbookService {
         }
 
         if row.status != EbookPurchaseStatus::Completed {
-            return Err(AppError::Forbidden(
-                "결제가 완료되지 않았습니다.".into(),
-            ));
+            return Err(AppError::Forbidden("결제가 완료되지 않았습니다.".into()));
         }
 
         if page_num < 1 {
@@ -743,8 +774,13 @@ impl EbookService {
                 .join(edition_dir)
                 .join(lang_code)
                 .join(format!("page-{:03}.webp.enc", page_num));
-            let encrypted = tokio::fs::read(&enc_path).await.map_err(|_| AppError::NotFound)?;
-            let key = st.cfg.ebook_image_key.as_ref()
+            let encrypted = tokio::fs::read(&enc_path)
+                .await
+                .map_err(|_| AppError::NotFound)?;
+            let key = st
+                .cfg
+                .ebook_image_key
+                .as_ref()
                 .unwrap_or_else(|| st.cfg.encryption_ring.current_key());
             crate::crypto::cipher::decrypt_bytes(key, &encrypted, "ebook.page_image")?
         } else {
@@ -752,13 +788,20 @@ impl EbookService {
                 .join(edition_dir)
                 .join(lang_code)
                 .join(format!("page-{:03}.webp", page_num));
-            tokio::fs::read(&image_path).await.map_err(|_| AppError::NotFound)?
+            tokio::fs::read(&image_path)
+                .await
+                .map_err(|_| AppError::NotFound)?
         };
 
         // 3. 워터마크 적용 (전체 이미지에 먼저 적용 후 분할)
         let watermark_id = uuid::Uuid::new_v4().to_string();
-        let watermarked =
-            watermark::apply_watermark(&image_bytes, purchase_code, &watermark_id, user_id, page_num)?;
+        let watermarked = watermark::apply_watermark(
+            &image_bytes,
+            purchase_code,
+            &watermark_id,
+            user_id,
+            page_num,
+        )?;
 
         // 4. 워터마크된 이미지 → 타일 추출
         let img = image::load_from_memory(&watermarked)
@@ -768,8 +811,16 @@ impl EbookService {
         let tile_h = h / grid_rows;
         let x = tile_col * tile_w;
         let y = tile_row * tile_h;
-        let actual_w = if tile_col == grid_cols - 1 { w - x } else { tile_w };
-        let actual_h = if tile_row == grid_rows - 1 { h - y } else { tile_h };
+        let actual_w = if tile_col == grid_cols - 1 {
+            w - x
+        } else {
+            tile_w
+        };
+        let actual_h = if tile_row == grid_rows - 1 {
+            h - y
+        } else {
+            tile_h
+        };
         let tile = img.crop_imm(x, y, actual_w, actual_h);
 
         // 5. WebP 인코딩 (quality 90+)
@@ -890,17 +941,33 @@ fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str)> {
         (TextbookLanguage::Mn, "몽골어", "Mongolian"),
         (TextbookLanguage::My, "미얀마어", "Burmese"),
         (TextbookLanguage::Ja, "일본어", "Japanese"),
-        (TextbookLanguage::ZhCn, "중국어(간체)", "Chinese (Simplified)"),
-        (TextbookLanguage::ZhTw, "중국어(번체)", "Chinese (Traditional)"),
+        (
+            TextbookLanguage::ZhCn,
+            "중국어(간체)",
+            "Chinese (Simplified)",
+        ),
+        (
+            TextbookLanguage::ZhTw,
+            "중국어(번체)",
+            "Chinese (Traditional)",
+        ),
         (TextbookLanguage::Th, "태국어", "Thai"),
         (TextbookLanguage::Hi, "힌디어", "Hindi"),
         (TextbookLanguage::Ne, "네팔어", "Nepali"),
         (TextbookLanguage::Si, "싱할라어", "Sinhala"),
         (TextbookLanguage::Km, "크메르어", "Khmer"),
         (TextbookLanguage::Es, "스페인어", "Spanish"),
-        (TextbookLanguage::EsEs, "스페인어(스페인)", "Spanish (Spain)"),
+        (
+            TextbookLanguage::EsEs,
+            "스페인어(스페인)",
+            "Spanish (Spain)",
+        ),
         (TextbookLanguage::Pt, "포르투갈어", "Portuguese"),
-        (TextbookLanguage::PtPt, "포르투갈어(포르투갈)", "Portuguese (Portugal)"),
+        (
+            TextbookLanguage::PtPt,
+            "포르투갈어(포르투갈)",
+            "Portuguese (Portugal)",
+        ),
         (TextbookLanguage::Fr, "프랑스어", "French"),
         (TextbookLanguage::De, "독일어", "German"),
         (TextbookLanguage::It, "이탈리아어", "Italian"),

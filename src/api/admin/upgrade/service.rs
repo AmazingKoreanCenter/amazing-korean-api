@@ -41,7 +41,6 @@ impl UpgradeService {
         password.len() >= 8 && has_letter && has_digit
     }
 
-
     /// 초대 코드 생성
     fn generate_invite_code() -> String {
         format!("ak_upgrade_{}", Uuid::new_v4())
@@ -146,7 +145,9 @@ impl UpgradeService {
             st.cfg.frontend_url, invite_code
         );
 
-        let email_sender = st.email.as_ref()
+        let email_sender = st
+            .email
+            .as_ref()
             .ok_or_else(|| AppError::ServiceUnavailable("Email service not configured".into()))?;
         crate::external::email::send_templated(
             email_sender.as_ref(),
@@ -210,7 +211,10 @@ impl UpgradeService {
     // 7-70: 관리자 계정 생성 (POST /admin/upgrade/accept)
     // =========================================================================
 
-    pub async fn accept_invite(st: &AppState, req: UpgradeAcceptReq) -> AppResult<UpgradeAcceptRes> {
+    pub async fn accept_invite(
+        st: &AppState,
+        req: UpgradeAcceptReq,
+    ) -> AppResult<UpgradeAcceptRes> {
         // [Step 1] Input Validation
         req.validate()
             .map_err(|e| AppError::BadRequest(format!("UPGRADE_400_INVALID_INPUT: {}", e)))?;

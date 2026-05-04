@@ -3,9 +3,7 @@ use crate::external::email::{send_templated, EmailTemplate};
 use crate::state::AppState;
 use crate::types::{TextbookLanguage, TextbookType};
 
-use super::dto::{
-    CatalogItem, CatalogRes, CreateOrderReq, OrderItemRes, OrderRes,
-};
+use super::dto::{CatalogItem, CatalogRes, CreateOrderReq, OrderItemRes, OrderRes};
 use super::repo::{TextbookItemRow, TextbookOrderRow, TextbookRepo};
 
 pub(crate) const UNIT_PRICE: i32 = 25_000; // KRW
@@ -19,16 +17,18 @@ impl TextbookService {
         let languages = catalog_languages();
         let items: Vec<CatalogItem> = languages
             .into_iter()
-            .map(|(lang, name_ko, name_en, available, isbn_ready)| CatalogItem {
-                language: lang,
-                language_name_ko: name_ko.to_string(),
-                language_name_en: name_en.to_string(),
-                available_types: vec![TextbookType::Student, TextbookType::Teacher],
-                unit_price: UNIT_PRICE,
-                currency: "KRW".to_string(),
-                available,
-                isbn_ready,
-            })
+            .map(
+                |(lang, name_ko, name_en, available, isbn_ready)| CatalogItem {
+                    language: lang,
+                    language_name_ko: name_ko.to_string(),
+                    language_name_en: name_en.to_string(),
+                    available_types: vec![TextbookType::Student, TextbookType::Teacher],
+                    unit_price: UNIT_PRICE,
+                    currency: "KRW".to_string(),
+                    available,
+                    isbn_ready,
+                },
+            )
             .collect();
 
         Ok(CatalogRes {
@@ -39,7 +39,11 @@ impl TextbookService {
     }
 
     /// 주문 생성 (로그인 필수)
-    pub async fn create_order(st: &AppState, user_id: i64, req: CreateOrderReq) -> AppResult<OrderRes> {
+    pub async fn create_order(
+        st: &AppState,
+        user_id: i64,
+        req: CreateOrderReq,
+    ) -> AppResult<OrderRes> {
         // 항목 수량 검증 (각 항목 1권 이상)
         if req.items.iter().any(|i| i.quantity < 1) {
             return Err(AppError::BadRequest(
@@ -178,7 +182,9 @@ impl TextbookService {
                 total_quantity,
                 total_amount,
             };
-            if let Err(e) = send_templated(email_sender.as_ref(), &req.orderer_email, template).await {
+            if let Err(e) =
+                send_templated(email_sender.as_ref(), &req.orderer_email, template).await
+            {
                 tracing::warn!(
                     order_code = %order_code,
                     email = %req.orderer_email,
@@ -345,26 +351,69 @@ fn language_display_name(lang: &TextbookLanguage) -> String {
 /// 교재 카탈로그 언어 목록 (language, 한국어명, 영어명, 사용가능여부, isbn_ready)
 /// ISBN 발급 완료 9개: ja, zh_cn, vi, th, ne, ru, km, tl, id
 /// 신규 14 (2026-05-03, books-api-bridge §3 #1): 모두 available=false (출판본 미준비)
-pub(crate) fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str, bool, bool)> {
+pub(crate) fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str, bool, bool)>
+{
     vec![
         (TextbookLanguage::Ja, "일본어", "Japanese", true, true),
-        (TextbookLanguage::ZhCn, "중국어(간체)", "Chinese (Simplified)", true, true),
-        (TextbookLanguage::ZhTw, "중국어(번체)", "Chinese (Traditional)", true, false),
+        (
+            TextbookLanguage::ZhCn,
+            "중국어(간체)",
+            "Chinese (Simplified)",
+            true,
+            true,
+        ),
+        (
+            TextbookLanguage::ZhTw,
+            "중국어(번체)",
+            "Chinese (Traditional)",
+            true,
+            false,
+        ),
         (TextbookLanguage::Vi, "베트남어", "Vietnamese", true, true),
         (TextbookLanguage::Th, "태국어", "Thai", true, true),
-        (TextbookLanguage::Id, "인도네시아어", "Indonesian", true, true),
+        (
+            TextbookLanguage::Id,
+            "인도네시아어",
+            "Indonesian",
+            true,
+            true,
+        ),
         (TextbookLanguage::My, "미얀마어", "Myanmar", true, false),
         (TextbookLanguage::Mn, "몽골어", "Mongolian", true, false),
         (TextbookLanguage::Ru, "러시아어", "Russian", true, true),
         (TextbookLanguage::Es, "스페인어", "Spanish", true, false),
-        (TextbookLanguage::EsEs, "스페인어(스페인)", "Spanish (Spain)", false, false),
-        (TextbookLanguage::Pt, "포르투갈어", "Portuguese", true, false),
-        (TextbookLanguage::PtPt, "포르투갈어(포르투갈)", "Portuguese (Portugal)", false, false),
+        (
+            TextbookLanguage::EsEs,
+            "스페인어(스페인)",
+            "Spanish (Spain)",
+            false,
+            false,
+        ),
+        (
+            TextbookLanguage::Pt,
+            "포르투갈어",
+            "Portuguese",
+            true,
+            false,
+        ),
+        (
+            TextbookLanguage::PtPt,
+            "포르투갈어(포르투갈)",
+            "Portuguese (Portugal)",
+            false,
+            false,
+        ),
         (TextbookLanguage::Fr, "프랑스어", "French", true, false),
         (TextbookLanguage::De, "독일어", "German", true, false),
         (TextbookLanguage::It, "이탈리아어", "Italian", false, false),
         (TextbookLanguage::Pl, "폴란드어", "Polish", false, false),
-        (TextbookLanguage::Uk, "우크라이나어", "Ukrainian", false, false),
+        (
+            TextbookLanguage::Uk,
+            "우크라이나어",
+            "Ukrainian",
+            false,
+            false,
+        ),
         (TextbookLanguage::Tr, "터키어", "Turkish", false, false),
         (TextbookLanguage::Hi, "힌디어", "Hindi", true, false),
         (TextbookLanguage::Ne, "네팔어", "Nepali", true, true),

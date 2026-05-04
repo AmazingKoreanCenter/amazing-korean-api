@@ -1,9 +1,7 @@
 use sqlx::PgPool;
 
 use crate::error::AppResult;
-use crate::types::{
-    BillingInterval, PaymentProvider, SubscriptionStatus, TransactionStatus,
-};
+use crate::types::{BillingInterval, PaymentProvider, SubscriptionStatus, TransactionStatus};
 
 // =============================================================================
 // Subscription Row

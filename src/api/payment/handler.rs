@@ -155,7 +155,9 @@ pub async fn handle_revenuecat_webhook(
     let expected_token = match &st.cfg.revenuecat_webhook_auth_token {
         Some(t) => t.clone(),
         None => {
-            tracing::error!("RevenueCat webhook auth token not configured (REVENUECAT_WEBHOOK_AUTH_TOKEN)");
+            tracing::error!(
+                "RevenueCat webhook auth token not configured (REVENUECAT_WEBHOOK_AUTH_TOKEN)"
+            );
             return StatusCode::OK; // 재시도 방지
         }
     };

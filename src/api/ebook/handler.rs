@@ -10,7 +10,10 @@ use crate::api::util::extract_client_ip;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
-use super::dto::{CreateIapPurchaseReq, CreatePurchaseReq, EbookCatalogRes, HeartbeatReq, HeartbeatRes, MyPurchasesRes, ViewerMetaRes};
+use super::dto::{
+    CreateIapPurchaseReq, CreatePurchaseReq, EbookCatalogRes, HeartbeatReq, HeartbeatRes,
+    MyPurchasesRes, ViewerMetaRes,
+};
 use super::service::EbookService;
 
 /// GET /ebook/catalog

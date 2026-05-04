@@ -79,10 +79,8 @@ pub async fn admin_role_guard(
                 role = ?claims.role,
                 "Admin access denied: Learner role not allowed"
             );
-            AppError::Forbidden(
-                "Access denied: Insufficient permissions for admin access".into(),
-            )
-            .into_response()
+            AppError::Forbidden("Access denied: Insufficient permissions for admin access".into())
+                .into_response()
         }
     }
 }

@@ -7,16 +7,16 @@ use crate::AppState;
 
 use super::dto::{
     AdminStudyDetailRes, AdminStudyListRes, AdminStudyRes, AdminStudyTaskDetailRes,
-    AdminStudyTaskListRes, AdminTaskExplainListRes, AdminTaskExplainRes, StudyBulkCreateReq,
-    StudyBulkCreateRes, StudyBulkResult, StudyBulkUpdateReq, StudyBulkUpdateRes,
-    StudyBulkUpdateResult, StudyCreateReq, StudyListReq, StudyTaskBulkCreateReq,
-    StudyTaskBulkCreateRes, StudyTaskBulkResult, StudyTaskBulkUpdateReq, StudyTaskBulkUpdateRes,
-    StudyTaskBulkUpdateResult, StudyTaskCreateReq, StudyTaskListReq, StudyTaskUpdateReq,
-    StudyUpdateReq, TaskExplainBulkCreateReq, TaskExplainBulkCreateRes, TaskExplainBulkResult,
-    TaskExplainBulkUpdateReq, TaskExplainBulkUpdateRes, TaskExplainBulkUpdateResult,
-    TaskExplainCreateReq, TaskExplainListReq, TaskExplainUpdateReq, TaskStatusBulkUpdateReq,
-    TaskStatusBulkUpdateRes, TaskStatusBulkUpdateResult, TaskStatusListReq, TaskStatusUpdateReq,
-    AdminTaskStatusListRes, AdminTaskStatusRes,
+    AdminStudyTaskListRes, AdminTaskExplainListRes, AdminTaskExplainRes, AdminTaskStatusListRes,
+    AdminTaskStatusRes, StudyBulkCreateReq, StudyBulkCreateRes, StudyBulkResult,
+    StudyBulkUpdateReq, StudyBulkUpdateRes, StudyBulkUpdateResult, StudyCreateReq, StudyListReq,
+    StudyTaskBulkCreateReq, StudyTaskBulkCreateRes, StudyTaskBulkResult, StudyTaskBulkUpdateReq,
+    StudyTaskBulkUpdateRes, StudyTaskBulkUpdateResult, StudyTaskCreateReq, StudyTaskListReq,
+    StudyTaskUpdateReq, StudyUpdateReq, TaskExplainBulkCreateReq, TaskExplainBulkCreateRes,
+    TaskExplainBulkResult, TaskExplainBulkUpdateReq, TaskExplainBulkUpdateRes,
+    TaskExplainBulkUpdateResult, TaskExplainCreateReq, TaskExplainListReq, TaskExplainUpdateReq,
+    TaskStatusBulkUpdateReq, TaskStatusBulkUpdateRes, TaskStatusBulkUpdateResult,
+    TaskStatusListReq, TaskStatusUpdateReq,
 };
 use super::repo;
 
@@ -60,7 +60,6 @@ pub async fn admin_list_studies(
     let order = req.order.as_deref().unwrap_or("desc");
     let q = req.q.clone();
 
-    
     // 3. Audit Log
     let details = serde_json::json!({
         "q": q.as_deref(),
@@ -118,7 +117,6 @@ pub async fn admin_get_study(
     // 1. RBAC
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    
     // 3. Audit Log
     let details = serde_json::json!({
         "study_id": study_id
@@ -247,7 +245,6 @@ pub async fn admin_bulk_create_studies(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "total": req.items.len()
     });
@@ -489,7 +486,6 @@ pub async fn admin_list_study_tasks(
         return Err(AppError::Unprocessable("size exceeds 100".into()));
     }
 
-    
     let details = serde_json::json!({
         "study_id": req.study_id
     });
@@ -506,8 +502,7 @@ pub async fn admin_list_study_tasks(
     )
     .await?;
 
-    let (total, list) =
-        repo::admin_list_study_tasks(&st.db, req.study_id, page, size).await?;
+    let (total, list) = repo::admin_list_study_tasks(&st.db, req.study_id, page, size).await?;
 
     let total_pages = if total == 0 {
         0
@@ -533,7 +528,6 @@ pub async fn admin_get_study_task(
 ) -> AppResult<AdminStudyTaskDetailRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    
     let details = serde_json::json!({
         "task_id": task_id
     });
@@ -583,7 +577,6 @@ pub async fn admin_list_task_explains(
         return Err(AppError::Unprocessable("size exceeds 100".into()));
     }
 
-    
     let details = serde_json::json!({
         "page": page,
         "size": size
@@ -601,8 +594,7 @@ pub async fn admin_list_task_explains(
     )
     .await?;
 
-    let (total, list) =
-        repo::admin_list_task_explains(&st.db, req.task_id, page, size).await?;
+    let (total, list) = repo::admin_list_task_explains(&st.db, req.task_id, page, size).await?;
 
     let total_pages = if total == 0 {
         0
@@ -645,7 +637,6 @@ pub async fn admin_list_task_status(
         return Err(AppError::Unprocessable("size exceeds 100".into()));
     }
 
-    
     let details = serde_json::json!({
         "task_id": req.task_id,
         "user_id": req.user_id
@@ -715,8 +706,8 @@ pub async fn admin_update_task_status(
         return Err(AppError::BadRequest("no fields to update".into()));
     }
 
-    let task_id_i32 = i32::try_from(task_id)
-        .map_err(|_| AppError::BadRequest("task_id out of range".into()))?;
+    let task_id_i32 =
+        i32::try_from(task_id).map_err(|_| AppError::BadRequest("task_id out of range".into()))?;
 
     let before = repo::find_task_status(&st.db, task_id_i32, req.user_id)
         .await?
@@ -783,8 +774,8 @@ pub async fn admin_create_task_explain(
         .await?
         .ok_or(AppError::NotFound)?;
 
-    let task_id_i32 = i32::try_from(task_id)
-        .map_err(|_| AppError::BadRequest("task_id out of range".into()))?;
+    let task_id_i32 =
+        i32::try_from(task_id).map_err(|_| AppError::BadRequest("task_id out of range".into()))?;
 
     if repo::exists_task_explain(&st.db, task_id_i32, req.explain_lang).await? {
         return Err(AppError::Conflict("task explain already exists".into()));
@@ -852,8 +843,8 @@ pub async fn admin_update_task_explain(
         return Err(AppError::BadRequest("no fields to update".into()));
     }
 
-    let task_id_i32 = i32::try_from(task_id)
-        .map_err(|_| AppError::BadRequest("task_id out of range".into()))?;
+    let task_id_i32 =
+        i32::try_from(task_id).map_err(|_| AppError::BadRequest("task_id out of range".into()))?;
 
     let before = repo::find_task_explain(&st.db, task_id_i32, req.explain_lang)
         .await?
@@ -903,7 +894,6 @@ pub async fn admin_bulk_create_task_explains(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1032,7 +1022,6 @@ pub async fn admin_bulk_update_task_explains(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1168,7 +1157,6 @@ pub async fn admin_bulk_update_task_status(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1211,7 +1199,8 @@ pub async fn admin_bulk_update_task_status(
 
             let task = repo::find_study_task_by_id_tx(&mut tx, task_id as i64).await?;
 
-            let update_req: TaskStatusUpdateReq = item.into(); repo::update_task_status(&mut tx, task_id, &update_req).await?;
+            let update_req: TaskStatusUpdateReq = item.into();
+            repo::update_task_status(&mut tx, task_id, &update_req).await?;
 
             let after = repo::find_task_status_tx(&mut tx, task_id, user_id).await?;
 
@@ -1296,7 +1285,8 @@ pub async fn admin_create_study_task(
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
         ip_address,
         user_agent.as_deref(),
-    ).await?;
+    )
+    .await?;
 
     if let Err(e) = req.validate() {
         return Err(AppError::BadRequest(e.to_string()));
@@ -1321,9 +1311,9 @@ pub async fn admin_create_study_task(
                     "choice requires question and 4 choices".into(),
                 ));
             }
-            let correct = req.choice_correct.ok_or_else(|| {
-                AppError::BadRequest("choice_correct is required".into())
-            })?;
+            let correct = req
+                .choice_correct
+                .ok_or_else(|| AppError::BadRequest("choice_correct is required".into()))?;
             if !(1..=4).contains(&correct) {
                 return Err(AppError::BadRequest(
                     "choice_correct must be between 1 and 4".into(),
@@ -1426,7 +1416,6 @@ pub async fn admin_bulk_create_study_tasks(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "total": req.items.len()
     });
@@ -1481,9 +1470,9 @@ pub async fn admin_bulk_create_study_tasks(
                             "choice requires question and 4 choices".into(),
                         ));
                     }
-                    let correct = item.choice_correct.ok_or_else(|| {
-                        AppError::BadRequest("choice_correct is required".into())
-                    })?;
+                    let correct = item
+                        .choice_correct
+                        .ok_or_else(|| AppError::BadRequest("choice_correct is required".into()))?;
                     if !(1..=4).contains(&correct) {
                         return Err(AppError::BadRequest(
                             "choice_correct must be between 1 and 4".into(),
@@ -1627,7 +1616,6 @@ pub async fn admin_bulk_update_study_tasks(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1786,7 +1774,8 @@ pub async fn admin_update_study_task(
         &serde_json::to_value(&req).unwrap_or(serde_json::Value::Null),
         ip_address,
         user_agent.as_deref(),
-    ).await?;
+    )
+    .await?;
 
     if let Err(e) = req.validate() {
         return Err(AppError::BadRequest(e.to_string()));
@@ -1860,7 +1849,6 @@ pub async fn admin_bulk_update_studies(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "total": req.items.len()
     });
@@ -1928,8 +1916,8 @@ pub async fn admin_bulk_update_studies(
 
             let mut tx = st.db.begin().await?;
 
-            let updated = repo::admin_update_study(&mut tx, item_id, actor_user_id, &update_req)
-                .await?;
+            let updated =
+                repo::admin_update_study(&mut tx, item_id, actor_user_id, &update_req).await?;
 
             let before_val = serde_json::to_value(&before).unwrap_or_default();
             let after_val = serde_json::to_value(&update_req).unwrap_or_default();

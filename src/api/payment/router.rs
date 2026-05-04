@@ -1,4 +1,7 @@
-use axum::{routing::{get, post}, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 
 use crate::state::AppState;
 
@@ -10,5 +13,8 @@ pub fn payment_router() -> Router<AppState> {
         .route("/subscription", get(handler::get_subscription))
         .route("/subscription/cancel", post(handler::cancel_subscription))
         .route("/webhook", post(handler::handle_webhook))
-        .route("/webhook/revenuecat", post(handler::handle_revenuecat_webhook))
+        .route(
+            "/webhook/revenuecat",
+            post(handler::handle_revenuecat_webhook),
+        )
 }

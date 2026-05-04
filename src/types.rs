@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sqlx::Type;
-use utoipa::ToSchema;
 use std::fmt;
+use utoipa::ToSchema;
 
 // -----------------------------------------------------------------------------
 // 1. User Related Enums

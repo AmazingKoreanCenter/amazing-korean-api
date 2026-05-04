@@ -646,6 +646,15 @@ GitHub repo → **Settings** → **Secrets and variables** → **Actions**에서
 | `POSTGRES_PASSWORD` | DB 비밀번호 | |
 | `JWT_SECRET` | JWT 시크릿 키 | |
 
+##### Workflow 파일 구성 (2026-05-04 후)
+
+| 파일 | 책임 | 트리거 | 비고 |
+|------|------|--------|------|
+| `.github/workflows/deploy.yml` | EC2 배포 (Docker build + push + SCP + SSH + health check) | `push: [main]` + `workflow_dispatch` | 머지 후 production 배포만. KKRYOUN 제거 (INC-005) |
+| `.github/workflows/pr-check.yml` | 머지 전 검증 (backend cargo check + clippy / frontend build + lint) | `push: [KKRYOUN]` + `workflow_dispatch` | 배포 책임 없음. 검증 fail 시 PR status 에 빨간 X |
+
+**책임 분리 원칙**: 배포와 검증을 별도 워크플로로 분리. INC-005 학습 = 한 워크플로에 다중 책임 (배포 + 검증) 두면 트리거 충돌 + race condition 위험.
+
 ##### Workflow 파일 (.github/workflows/deploy.yml)
 
 > **Branch trigger 정책 (2026-05-04, INC-005 후)**: `branches: [main]` 단일. KKRYOUN push deploy 는 INC-005 근본 원인 (KKRYOUN deploy 의 migration 적용 + 다른 PR main 머지 시 sqlx 'previously applied but missing' panic) 으로 영구 제거. PR 머지 시점 (main push) 에만 deploy. 긴급 hotfix 는 `workflow_dispatch` 수동 실행. 상세: `AMK_CHANGELOG.md` 2026-05-04 INC-005 엔트리.
@@ -825,7 +834,19 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 ## 7. 품질 보증 (QA) & 스모크 체크
 
-- **정적 분석 (CI Gate)**
+- **CI Gate — `pr-check.yml` 자동 실행 (KKRYOUN push 시점, 2026-05-04 도입)**
+
+  | Job | 명령 | 목적 |
+  |-----|------|------|
+  | backend | `cargo check --locked --workspace` | 컴파일 + Cargo.lock 정합성 (`SQLX_OFFLINE=true`, `.sqlx/` 캐시 사용) |
+  | backend | `cargo clippy --lib --bins --locked -- -D warnings` | lint + warning fail-closed |
+  | frontend | `npm run build` (= `tsc -b && vite build`) | 타입 체크 + 빌드 성공 |
+  | frontend | `npm run lint` | ESLint |
+  | frontend | `npm run lint:ui` | 하드코딩 색상 검사 (Tailwind 토큰화 정책) |
+
+  실패 시 PR 페이지에 빨간 X. 머지 전 차단 트리거 (현재 branch protection 미적용이라 강제는 아님 — 사용자 본인 판단).
+
+- **정적 분석 (CI Gate, frontend 만 — 별도 PR 검사 도입 전 기존 권장)**
   - `npm run lint`: ESLint (코드 스타일 및 잠재적 버그 검사)
   - `npm run typecheck`: TypeScript 타입 정합성 검사 (필수)
 

@@ -1,13 +1,9 @@
-use crate::extract::AppJson;
 use super::{
     dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes},
     service::UserService,
 };
-use crate::{
-    api::auth::extractor::AuthUser,
-    error::AppResult,
-    state::AppState,
-};
+use crate::extract::AppJson;
+use crate::{api::auth::extractor::AuthUser, error::AppResult, state::AppState};
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -155,4 +151,3 @@ pub async fn update_settings(
 }
 
 use crate::api::util::extract_client_ip;
-

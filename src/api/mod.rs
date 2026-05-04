@@ -31,10 +31,10 @@ use self::admin::role_guard::admin_role_guard;
 use self::admin::router::admin_router;
 use self::auth::router::auth_router;
 use self::course::router::course_router;
+use self::ebook::router::ebook_router;
 use self::lesson::router::router as lesson_router;
 use self::payment::router::payment_router;
 use self::study::router::router as study_router;
-use self::ebook::router::ebook_router;
 use self::textbook::router::textbook_router;
 use self::user::router::user_router;
 use self::video::router::router as video_router;
@@ -49,8 +49,14 @@ pub fn app_router(state: AppState) -> axum::Router {
         .nest(
             "/admin",
             admin_router()
-                .layer(middleware::from_fn_with_state(state.clone(), admin_role_guard))
-                .layer(middleware::from_fn_with_state(state.clone(), admin_ip_guard)),
+                .layer(middleware::from_fn_with_state(
+                    state.clone(),
+                    admin_role_guard,
+                ))
+                .layer(middleware::from_fn_with_state(
+                    state.clone(),
+                    admin_ip_guard,
+                )),
         )
         .nest("/lessons", lesson_router())
         .nest("/videos", video_router())
@@ -120,10 +126,10 @@ async fn robots_txt() -> impl IntoResponse {
         "AdsBot-Google",
         "Bingbot",
         "DuckDuckBot",
-        "Yeti",      // Naver
+        "Yeti", // Naver
         "NaverBot",
-        "Daum",      // Kakao
-        "*",         // 폴백
+        "Daum", // Kakao
+        "*",    // 폴백
     ];
     let body = CRAWLERS
         .iter()

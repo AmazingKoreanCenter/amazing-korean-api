@@ -74,7 +74,10 @@ impl AdminPaymentService {
         let size = req.size.unwrap_or(20).clamp(1, 100);
 
         let sort = req.sort.as_deref().unwrap_or("created_at");
-        if !matches!(sort, "id" | "created_at" | "status" | "billing_interval" | "price") {
+        if !matches!(
+            sort,
+            "id" | "created_at" | "status" | "billing_interval" | "price"
+        ) {
             return Err(AppError::Unprocessable("invalid sort".into()));
         }
 
@@ -216,12 +219,9 @@ impl AdminPaymentService {
     ) -> AppResult<AdminSubDetailRes> {
         Self::check_admin_rbac(&st.db, actor_user_id).await?;
 
-        let payment = st
-            .payment
-            .as_ref()
-            .ok_or_else(|| {
-                AppError::ServiceUnavailable("Payment provider not configured".into())
-            })?;
+        let payment = st.payment.as_ref().ok_or_else(|| {
+            AppError::ServiceUnavailable("Payment provider not configured".into())
+        })?;
 
         let sub = AdminPaymentRepo::get_subscription(&st.db, subscription_id)
             .await?
@@ -375,13 +375,12 @@ impl AdminPaymentService {
             .await?
             .ok_or_else(|| AppError::BadRequest("User not found".into()))?;
 
-        let courses_granted =
-            crate::api::payment::repo::PaymentRepo::grant_all_courses(
-                &st.db,
-                req.user_id,
-                req.expire_at,
-            )
-            .await?;
+        let courses_granted = crate::api::payment::repo::PaymentRepo::grant_all_courses(
+            &st.db,
+            req.user_id,
+            req.expire_at,
+        )
+        .await?;
 
         tracing::info!(
             admin_id = actor_user_id,

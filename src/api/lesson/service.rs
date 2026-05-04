@@ -8,8 +8,8 @@ use crate::state::AppState;
 use crate::types::{ContentType, LessonAccess, LessonState, SupportedLanguage};
 
 use super::dto::{
-    LessonDetailReq, LessonDetailRes, LessonItemsReq, LessonItemsRes, LessonListMeta, LessonListReq,
-    LessonListRes, LessonProgressRes, LessonProgressUpdateReq,
+    LessonDetailReq, LessonDetailRes, LessonItemsReq, LessonItemsRes, LessonListMeta,
+    LessonListReq, LessonListRes, LessonProgressRes, LessonProgressUpdateReq,
 };
 use super::repo::LessonRepo;
 
@@ -22,7 +22,9 @@ impl LessonService {
         let sort = req.sort.as_deref().unwrap_or("lesson_idx");
 
         if page <= 0 || per_page <= 0 {
-            return Err(AppError::BadRequest("page/per_page must be positive".into()));
+            return Err(AppError::BadRequest(
+                "page/per_page must be positive".into(),
+            ));
         }
 
         if per_page > 50 {
@@ -107,7 +109,9 @@ impl LessonService {
         let per_page = req.per_page.unwrap_or(20);
 
         if page <= 0 || per_page <= 0 {
-            return Err(AppError::BadRequest("page/per_page must be positive".into()));
+            return Err(AppError::BadRequest(
+                "page/per_page must be positive".into(),
+            ));
         }
 
         if per_page > 50 {
@@ -143,16 +147,14 @@ impl LessonService {
                 let mut translated = 0usize;
                 let mut fallback = 0usize;
                 let mut requested = 1usize; // lesson_title 은 필수
-                if let Some(t) =
-                    translations.get(&(lesson.lesson_id, "lesson_title".to_string()))
-                {
+                if let Some(t) = translations.get(&(lesson.lesson_id, "lesson_title".to_string())) {
                     title = t.text.clone();
                     t.count_to(user_lang, &mut translated, &mut fallback);
                 }
                 if description.is_some() {
                     requested += 1;
-                    if let Some(t) = translations
-                        .get(&(lesson.lesson_id, "lesson_description".to_string()))
+                    if let Some(t) =
+                        translations.get(&(lesson.lesson_id, "lesson_description".to_string()))
                     {
                         description = Some(t.text.clone());
                         t.count_to(user_lang, &mut translated, &mut fallback);
@@ -234,7 +236,9 @@ impl LessonService {
         let per_page = req.per_page.unwrap_or(20);
 
         if page <= 0 || per_page <= 0 {
-            return Err(AppError::BadRequest("page/per_page must be positive".into()));
+            return Err(AppError::BadRequest(
+                "page/per_page must be positive".into(),
+            ));
         }
 
         if per_page > 50 {
@@ -306,9 +310,10 @@ impl LessonService {
             }
         }
 
-        let progress = LessonRepo::upsert_progress(pool, lesson_id, user_id, req.percent, req.last_seq).await?;
+        let progress =
+            LessonRepo::upsert_progress(pool, lesson_id, user_id, req.percent, req.last_seq)
+                .await?;
 
         Ok(progress)
     }
 }
-

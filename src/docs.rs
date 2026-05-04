@@ -89,9 +89,9 @@ impl Modify for SecurityAddon {
 
         // admin - videos
         crate::api::admin::video::handler::admin_list_videos,
-        crate::api::admin::video::handler::admin_create_video,   
+        crate::api::admin::video::handler::admin_create_video,
         crate::api::admin::video::handler::admin_bulk_create_videos,
-        crate::api::admin::video::handler::admin_update_video,     
+        crate::api::admin::video::handler::admin_update_video,
         crate::api::admin::video::handler::admin_bulk_update_videos,
         crate::api::admin::video::handler::admin_update_video_tags,
         crate::api::admin::video::handler::admin_bulk_update_video_tags,

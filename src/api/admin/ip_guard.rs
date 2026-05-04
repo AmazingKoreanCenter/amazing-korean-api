@@ -66,7 +66,6 @@ pub async fn admin_ip_guard(
             ip = %ip,
             "Admin access denied: IP not in allowlist"
         );
-        AppError::Forbidden("Access denied: IP not allowed for admin access".into())
-            .into_response()
+        AppError::Forbidden("Access denied: IP not allowed for admin access".into()).into_response()
     }
 }

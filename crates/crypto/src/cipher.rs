@@ -1,6 +1,6 @@
 use aes_gcm::{
     aead::{Aead, KeyInit, OsRng},
-    Aes256Gcm, AeadCore, Nonce,
+    AeadCore, Aes256Gcm, Nonce,
 };
 use base64::engine::{general_purpose::STANDARD, Engine};
 
@@ -50,7 +50,9 @@ pub fn decrypt(key: &[u8; 32], encrypted: &str, aad: &str) -> CryptoResult<Strin
         .map_err(|e| CryptoError::InvalidFormat(format!("Base64 decode failed: {e}")))?;
 
     if combined.len() < 12 + 16 {
-        return Err(CryptoError::InvalidFormat("Encrypted data too short".into()));
+        return Err(CryptoError::InvalidFormat(
+            "Encrypted data too short".into(),
+        ));
     }
 
     let (nonce_bytes, ciphertext) = combined.split_at(12);
@@ -91,21 +93,25 @@ fn strip_enc_prefix(encrypted: &str) -> CryptoResult<&str> {
 
 /// `enc:v{digits}:{base64}` 형식의 암호문을 파싱하여 (버전, base64 부분)을 반환.
 fn parse_enc_parts(encrypted: &str) -> CryptoResult<(u8, &str)> {
-    let rest = encrypted
-        .strip_prefix("enc:v")
-        .ok_or_else(|| CryptoError::InvalidFormat("Not an encrypted value (missing 'enc:v' prefix)".into()))?;
+    let rest = encrypted.strip_prefix("enc:v").ok_or_else(|| {
+        CryptoError::InvalidFormat("Not an encrypted value (missing 'enc:v' prefix)".into())
+    })?;
 
-    let colon_pos = rest
-        .find(':')
-        .ok_or_else(|| CryptoError::InvalidFormat("Corrupted encrypted value (missing ':' after version)".into()))?;
+    let colon_pos = rest.find(':').ok_or_else(|| {
+        CryptoError::InvalidFormat("Corrupted encrypted value (missing ':' after version)".into())
+    })?;
 
     let version_str = &rest[..colon_pos];
     if version_str.is_empty() {
-        return Err(CryptoError::InvalidFormat("Corrupted encrypted value (empty version number)".into()));
+        return Err(CryptoError::InvalidFormat(
+            "Corrupted encrypted value (empty version number)".into(),
+        ));
     }
 
     let version = version_str.parse::<u8>().map_err(|e| {
-        CryptoError::InvalidFormat(format!("Corrupted encrypted value (invalid version '{version_str}'): {e}"))
+        CryptoError::InvalidFormat(format!(
+            "Corrupted encrypted value (invalid version '{version_str}'): {e}"
+        ))
     })?;
 
     Ok((version, &rest[colon_pos + 1..]))
@@ -157,7 +163,9 @@ pub fn encrypt_bytes(key: &[u8; 32], plaintext: &[u8], aad: &str) -> CryptoResul
 /// 입력 포맷: raw bytes `nonce_12bytes || ciphertext || tag_16bytes`
 pub fn decrypt_bytes(key: &[u8; 32], encrypted: &[u8], aad: &str) -> CryptoResult<Vec<u8>> {
     if encrypted.len() < 12 + 16 {
-        return Err(CryptoError::InvalidFormat("Encrypted bytes too short".into()));
+        return Err(CryptoError::InvalidFormat(
+            "Encrypted bytes too short".into(),
+        ));
     }
 
     let (nonce_bytes, ciphertext) = encrypted.split_at(12);
@@ -326,8 +334,8 @@ mod tests {
     #[test]
     fn test_has_enc_prefix_corrupted() {
         // 느슨 검사: "enc:v"로 시작하면 true (손상된 데이터 포함)
-        assert!(has_enc_prefix("enc:v1"));         // ':' 누락
-        assert!(has_enc_prefix("enc:vabc:data"));  // 숫자 아님
+        assert!(has_enc_prefix("enc:v1")); // ':' 누락
+        assert!(has_enc_prefix("enc:vabc:data")); // 숫자 아님
         assert!(has_enc_prefix("enc:v1:corrupted_base64"));
     }
 

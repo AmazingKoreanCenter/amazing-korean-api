@@ -7,13 +7,13 @@ use base64::engine::{general_purpose::URL_SAFE_NO_PAD, Engine};
 use rand::Rng;
 use redis::AsyncCommands;
 use sha2::{Digest, Sha256};
-use time::OffsetDateTime;
 use std::sync::OnceLock;
+use time::OffsetDateTime;
+use tracing::{info, warn};
 use uuid::Uuid;
 use validator::Validate;
-use tracing::{info, warn};
 
-use totp_rs::{Algorithm, TOTP, Secret};
+use totp_rs::{Algorithm, Secret, TOTP};
 
 use crate::crypto::CryptoService;
 use crate::external::email::EmailTemplate;
@@ -37,10 +37,7 @@ pub struct LoginSuccess {
 
 pub enum LoginOutcome {
     Success(Box<LoginSuccess>),
-    MfaChallenge {
-        mfa_token: String,
-        user_id: i64,
-    },
+    MfaChallenge { mfa_token: String, user_id: i64 },
 }
 
 /// Provider 무관 OAuth 사용자 정보 (Google/Apple 공통)
@@ -76,10 +73,7 @@ pub struct OAuthLoginSuccess {
 
 pub enum OAuthLoginOutcome {
     Success(Box<OAuthLoginSuccess>),
-    MfaChallenge {
-        mfa_token: String,
-        user_id: i64,
-    },
+    MfaChallenge { mfa_token: String, user_id: i64 },
 }
 
 pub struct AuthService;
@@ -114,10 +108,10 @@ impl AuthService {
         let random_uuid = Uuid::new_v4().to_string();
         // 포맷: session_id:random_uuid
         let payload = format!("{session_id}:{random_uuid}");
-        
+
         let refresh_token = URL_SAFE_NO_PAD.encode(payload.as_bytes());
         let refresh_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(payload.as_bytes()));
-        
+
         (refresh_token, refresh_hash)
     }
 
@@ -137,19 +131,23 @@ impl AuthService {
 
         // 입력받은 토큰의 해시 계산 (DB 비교용)
         let incoming_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(&decoded));
-        
+
         let decoded_str = String::from_utf8(decoded)
             .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
-        
+
         let mut parts = decoded_str.splitn(2, ':');
-        let session_id = parts.next().filter(|s| !s.is_empty())
+        let session_id = parts
+            .next()
+            .filter(|s| !s.is_empty())
             .ok_or_else(|| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
-        let random_part = parts.next().filter(|s| !s.is_empty())
+        let random_part = parts
+            .next()
+            .filter(|s| !s.is_empty())
             .ok_or_else(|| AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
 
         // UUID 형식 검증
         if Uuid::parse_str(session_id).is_err() || Uuid::parse_str(random_part).is_err() {
-             return Err(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()));
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()));
         }
 
         Ok((session_id.to_string(), incoming_hash))
@@ -176,7 +174,9 @@ impl AuthService {
         let session_key = format!("ak:user_sessions:{}", user_id);
 
         // 1. 유령 세션 정리 — SET 에는 있지만 Redis ak:session 이 이미 만료된 세션 제거.
-        let session_ids: Vec<String> = redis_conn.smembers(&session_key).await
+        let session_ids: Vec<String> = redis_conn
+            .smembers(&session_key)
+            .await
             .map_err(|e| AppError::Internal(format!("redis smembers failed: {e}")))?;
 
         // 1a. ak:session 이 사라진 세션만 추림 (1차 유령 후보) — Redis 파이프라인으로 N 왕복 제거.
@@ -187,18 +187,21 @@ impl AuthService {
             for sid in &session_ids {
                 pipe.exists(format!("ak:session:{}", sid));
             }
-            let exists_results: Vec<bool> = pipe.query_async(redis_conn).await
-                .map_err(|e| AppError::Internal(format!("redis pipeline exists(ak:session) failed: {e}")))?;
-            session_ids.into_iter().zip(exists_results.into_iter())
+            let exists_results: Vec<bool> = pipe.query_async(redis_conn).await.map_err(|e| {
+                AppError::Internal(format!("redis pipeline exists(ak:session) failed: {e}"))
+            })?;
+            session_ids
+                .into_iter()
+                .zip(exists_results)
                 .filter(|(_, exists)| !*exists)
                 .map(|(sid, _)| sid)
                 .collect()
         };
 
         // 1b. 후보에 대해 refresh_hash 를 **한 번의 DB 쿼리** 로 배치 조회 (N+1 제거).
-        let refresh_hashes = AuthRepo::find_login_refresh_hashes_by_session_ids(
-            &st.db, &session_expired_candidates,
-        ).await?;
+        let refresh_hashes =
+            AuthRepo::find_login_refresh_hashes_by_session_ids(&st.db, &session_expired_candidates)
+                .await?;
 
         // 1c. ak:refresh 까지 사라진 세션만 실제 유령으로 확정 — 파이프라인으로 배치.
         // refresh_hashes 에 없는 sid 는 DB 레코드 자체가 없어 보존 근거 없음 → 즉시 유령 처리.
@@ -218,8 +221,10 @@ impl AuthService {
                 for (_, hash) in &check_sids {
                     pipe.exists(format!("ak:refresh:{}", hash));
                 }
-                let exists_results: Vec<bool> = pipe.query_async(redis_conn).await
-                    .map_err(|e| AppError::Internal(format!("redis pipeline exists(ak:refresh) failed: {e}")))?;
+                let exists_results: Vec<bool> =
+                    pipe.query_async(redis_conn).await.map_err(|e| {
+                        AppError::Internal(format!("redis pipeline exists(ak:refresh) failed: {e}"))
+                    })?;
                 for ((sid, _), &has_refresh) in check_sids.into_iter().zip(exists_results.iter()) {
                     if !has_refresh {
                         ghosts.push(sid);
@@ -231,15 +236,23 @@ impl AuthService {
 
         // 1d. 배치 cleanup — Redis SREM + DB UPDATE 모두 한 번의 호출.
         if !ghost_ids.is_empty() {
-            let _: () = redis_conn.srem(&session_key, &ghost_ids).await
+            let _: () = redis_conn
+                .srem(&session_key, &ghost_ids)
+                .await
                 .map_err(|e| AppError::Internal(format!("redis srem(batch) failed: {e}")))?;
             AuthRepo::update_login_states_by_sessions(
-                &st.db, &ghost_ids, "expired", Some("session_expired"),
-            ).await?;
+                &st.db,
+                &ghost_ids,
+                "expired",
+                Some("session_expired"),
+            )
+            .await?;
         }
 
         // 2. 정리 후 현재 활성 세션 수 확인
-        let active_count: i64 = redis_conn.scard(&session_key).await
+        let active_count: i64 = redis_conn
+            .scard(&session_key)
+            .await
             .map_err(|e| AppError::Internal(format!("redis scard failed: {e}")))?;
         if active_count < max_sessions {
             return Ok(()); // 여유 있음
@@ -274,18 +287,32 @@ impl AuthService {
 
             // Redis cleanup — 각 세션별 3개 키 (refresh/session/user_sessions set 멤버).
             // 배치 처리로 네트워크 왕복 3N → 2 회(DEL one-shot + SREM one-shot).
-            let keys_to_del: Vec<String> = oldest_sessions.iter()
-                .flat_map(|(sid, hash)| [format!("ak:refresh:{}", hash), format!("ak:session:{}", sid)])
+            let keys_to_del: Vec<String> = oldest_sessions
+                .iter()
+                .flat_map(|(sid, hash)| {
+                    [
+                        format!("ak:refresh:{}", hash),
+                        format!("ak:session:{}", sid),
+                    ]
+                })
                 .collect();
-            let _: () = redis_conn.del(&keys_to_del).await
+            let _: () = redis_conn
+                .del(&keys_to_del)
+                .await
                 .map_err(|e| AppError::Internal(format!("redis del(batch) failed: {e}")))?;
-            let _: () = redis_conn.srem(&session_key, &evict_sids).await
+            let _: () = redis_conn
+                .srem(&session_key, &evict_sids)
+                .await
                 .map_err(|e| AppError::Internal(format!("redis srem(batch) failed: {e}")))?;
 
             // DB 상태 업데이트 — 배치 UPDATE 한 번.
             AuthRepo::update_login_states_by_sessions(
-                &st.db, &evict_sids, "revoked", Some("session_limit_evicted"),
-            ).await?;
+                &st.db,
+                &evict_sids,
+                "revoked",
+                Some("session_limit_evicted"),
+            )
+            .await?;
 
             info!(
                 user_id = user_id,
@@ -319,19 +346,30 @@ impl AuthService {
         // [Step 1] Input Validation
         let email = req.email.trim().to_lowercase();
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
+            return Err(AppError::BadRequest(format!(
+                "AUTH_400_INVALID_INPUT: {}",
+                e
+            )));
         }
 
         // [Step 2] Rate Limiting (blind index 사용 — Redis에 평문 이메일 저장 방지)
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let idx = crypto.blind_index(&email)?;
         let rl_key = format!("rl:login:{}:{}", idx, login_ip);
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
+        let _: () = redis_conn
+            .expire(&rl_key, st.cfg.rate_limit_login_window_sec)
+            .await?;
         if attempts > st.cfg.rate_limit_login_max {
-            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
+            return Err(AppError::TooManyRequests(
+                "AUTH_429_TOO_MANY_ATTEMPTS".into(),
+            ));
         }
 
         // [Step 3] User Verification (Timing Attack Protected)
@@ -341,7 +379,8 @@ impl AuthService {
         if let Some(ref user) = user_info {
             if user.user_password.is_none() {
                 // OAuth 연결 정보 조회
-                let providers = AuthRepo::find_oauth_providers_by_user_id(&st.db, user.user_id).await?;
+                let providers =
+                    AuthRepo::find_oauth_providers_by_user_id(&st.db, user.user_id).await?;
                 let provider_list = if providers.is_empty() {
                     "social".to_string()
                 } else {
@@ -371,14 +410,27 @@ impl AuthService {
                 let fail_session = Uuid::new_v4().to_string();
                 let mut tx = st.db.begin().await?;
                 if let Err(e) = AuthRepo::insert_login_log_tx(
-                    &mut tx, user.user_id, "login", false,
-                    &fail_session, "", &login_ip_log_enc_fail,
-                    Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(),
-                    parsed_ua.os.as_deref(), user_agent.as_deref(),
-                    None, None, None,
-                    None, None, Some("invalid_credentials"),
+                    &mut tx,
+                    user.user_id,
+                    "login",
+                    false,
+                    &fail_session,
+                    "",
+                    &login_ip_log_enc_fail,
+                    Some(parsed_ua.device.as_str()),
+                    parsed_ua.browser.as_deref(),
+                    parsed_ua.os.as_deref(),
+                    user_agent.as_deref(),
                     None,
-                ).await {
+                    None,
+                    None,
+                    None,
+                    None,
+                    Some("invalid_credentials"),
+                    None,
+                )
+                .await
+                {
                     warn!(error = %e, "Failed to insert login failure log");
                 }
                 if let Err(e) = tx.commit().await {
@@ -396,14 +448,27 @@ impl AuthService {
             let fail_session = Uuid::new_v4().to_string();
             let mut tx = st.db.begin().await?;
             if let Err(e) = AuthRepo::insert_login_log_tx(
-                &mut tx, user_info.user_id, "login", false,
-                &fail_session, "", &login_ip_log_enc_fail,
-                Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(),
-                parsed_ua.os.as_deref(), user_agent.as_deref(),
-                None, None, None,
-                None, None, Some("account_disabled"),
+                &mut tx,
+                user_info.user_id,
+                "login",
+                false,
+                &fail_session,
+                "",
+                &login_ip_log_enc_fail,
+                Some(parsed_ua.device.as_str()),
+                parsed_ua.browser.as_deref(),
+                parsed_ua.os.as_deref(),
+                user_agent.as_deref(),
                 None,
-            ).await {
+                None,
+                None,
+                None,
+                None,
+                Some("account_disabled"),
+                None,
+            )
+            .await
+            {
                 warn!(error = %e, "Failed to insert login failure log");
             }
             if let Err(e) = tx.commit().await {
@@ -418,21 +483,35 @@ impl AuthService {
             let fail_session = Uuid::new_v4().to_string();
             let mut tx = st.db.begin().await?;
             if let Err(e) = AuthRepo::insert_login_log_tx(
-                &mut tx, user_info.user_id, "login", false,
-                &fail_session, "", &login_ip_log_enc_fail,
-                Some(parsed_ua.device.as_str()), parsed_ua.browser.as_deref(),
-                parsed_ua.os.as_deref(), user_agent.as_deref(),
-                None, None, None,
-                None, None, Some("email_not_verified"),
+                &mut tx,
+                user_info.user_id,
+                "login",
+                false,
+                &fail_session,
+                "",
+                &login_ip_log_enc_fail,
+                Some(parsed_ua.device.as_str()),
+                parsed_ua.browser.as_deref(),
+                parsed_ua.os.as_deref(),
+                user_agent.as_deref(),
                 None,
-            ).await {
+                None,
+                None,
+                None,
+                None,
+                Some("email_not_verified"),
+                None,
+            )
+            .await
+            {
                 warn!(error = %e, "Failed to insert login failure log");
             }
             if let Err(e) = tx.commit().await {
                 warn!(error = %e, "Failed to commit login failure log transaction");
             }
             // 프론트엔드에서 재발송 버튼을 위해 email 포함
-            let decrypted_email = crypto.decrypt(&user_info.user_email, "users.user_email")
+            let decrypted_email = crypto
+                .decrypt(&user_info.user_email, "users.user_email")
                 .unwrap_or_else(|_| email.clone());
             return Err(AppError::Forbidden(format!(
                 "AUTH_403_EMAIL_NOT_VERIFIED:{}",
@@ -454,11 +533,14 @@ impl AuthService {
                 "login_method": "email"
             });
             let mfa_key = format!("ak:mfa_pending:{}", mfa_token);
-            let _: () = redis_conn.set_ex(
-                &mfa_key,
-                pending_data.to_string(),
-                st.cfg.mfa_token_ttl_sec as u64,
-            ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+            let _: () = redis_conn
+                .set_ex(
+                    &mfa_key,
+                    pending_data.to_string(),
+                    st.cfg.mfa_token_ttl_sec as u64,
+                )
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
 
             // Rate limit 초기화 (MFA 챌린지까지 도달했으므로 성공적 인증)
             let _: () = redis_conn.del(&rl_key).await.unwrap_or(());
@@ -470,11 +552,13 @@ impl AuthService {
         }
 
         // [Step 3-D] 동시 세션 수 제한 검증 (MFA 미사용 시에만 — MFA 사용 시 create_oauth_session에서 체크)
-        Self::enforce_session_limit(st, &mut redis_conn, user_info.user_id, user_info.user_auth).await?;
+        Self::enforce_session_limit(st, &mut redis_conn, user_info.user_id, user_info.user_auth)
+            .await?;
 
         // [Step 4] Token & Session Generation
         let session_id = Uuid::new_v4().to_string();
-        let (refresh_token_value, refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
+        let (refresh_token_value, refresh_hash) =
+            Self::generate_refresh_token_and_hash(&session_id);
         // 역할별 세션 TTL 적용 (HYMN: 1일, Admin/Manager: 7일, Learner: 30일)
         let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user_info.user_auth) * 24 * 3600;
 
@@ -489,7 +573,9 @@ impl AuthService {
 
         // Access token SHA-256 hash (audit log용)
         let access_hash: String = Sha256::digest(access_token_res.access_token.as_bytes())
-            .iter().map(|b| format!("{:02x}", b)).collect();
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect();
 
         // [Step 5] IP Geolocation (best-effort, non-blocking)
         let geo = st.ipgeo.lookup(&login_ip).await;
@@ -514,7 +600,8 @@ impl AuthService {
             geo.country_code.as_deref(),
             geo.asn,
             geo.org.as_deref(),
-        ).await?;
+        )
+        .await?;
 
         AuthRepo::insert_login_log_tx(
             &mut tx,
@@ -535,33 +622,45 @@ impl AuthService {
             Some(&jti),
             Some("none"),
             Some(refresh_ttl_secs),
-        ).await?;
+        )
+        .await?;
 
         tx.commit().await?;
 
         // [Step 7] Redis Caching (After DB Commit)
         // 1. Session ID -> User ID
-        let _: () = redis_conn.set_ex(
-            format!("ak:session:{}", session_id),
-            user_info.user_id,
-            st.cfg.jwt_access_ttl_min as u64 * 60,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .set_ex(
+                format!("ak:session:{}", session_id),
+                user_info.user_id,
+                st.cfg.jwt_access_ttl_min as u64 * 60,
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // 2. Refresh Hash -> Session ID
-        let _: () = redis_conn.set_ex(
-            format!("ak:refresh:{}", refresh_hash),
-            &session_id,
-            refresh_ttl_secs as u64,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .set_ex(
+                format!("ak:refresh:{}", refresh_hash),
+                &session_id,
+                refresh_ttl_secs as u64,
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // 3. User Sessions Set (for bulk logout)
-        let _: () = redis_conn.sadd(
-            format!("ak:user_sessions:{}", user_info.user_id),
-            &session_id,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .sadd(
+                format!("ak:user_sessions:{}", user_info.user_id),
+                &session_id,
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
-        let mut refresh_cookie =
-        Cookie::new(st.cfg.refresh_cookie_name.clone(), refresh_token_value.clone());
+        let mut refresh_cookie = Cookie::new(
+            st.cfg.refresh_cookie_name.clone(),
+            refresh_token_value.clone(),
+        );
         refresh_cookie.set_path("/");
         refresh_cookie.set_http_only(true);
         refresh_cookie.set_secure(st.cfg.refresh_cookie_secure);
@@ -600,17 +699,25 @@ impl AuthService {
     ) -> AppResult<(LoginRes, String, i64)> {
         let (session_id, incoming_hash) = Self::parse_refresh_token(old_refresh_token)?;
 
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // [Step 1] DB Lock & Lookup
         let mut tx = st.db.begin().await?;
-        let login_record = match AuthRepo::find_login_by_session_id_for_update_tx(&mut tx, &session_id).await? {
-            Some(record) => record,
-            None => return Err(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into())),
-        };
+        let login_record =
+            match AuthRepo::find_login_by_session_id_for_update_tx(&mut tx, &session_id).await? {
+                Some(record) => record,
+                None => return Err(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into())),
+            };
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let record_ip_plain = crypto.decrypt(login_record.login_ip.as_deref().unwrap_or(""), "login.login_ip")?;
+        let record_ip_plain = crypto.decrypt(
+            login_record.login_ip.as_deref().unwrap_or(""),
+            "login.login_ip",
+        )?;
         let login_ip_log_enc = crypto.encrypt(&record_ip_plain, "login_log.login_ip_log")?;
 
         // [Step 2] Reuse Detection (Security Critical)
@@ -618,7 +725,13 @@ impl AuthService {
             warn!("Refresh token reuse detected! Session: {}", session_id);
 
             // 2-1. Mark session compromised
-            AuthRepo::update_login_state_by_session_tx(&mut tx, &session_id, "compromised", Some("security_concern")).await?;
+            AuthRepo::update_login_state_by_session_tx(
+                &mut tx,
+                &session_id,
+                "compromised",
+                Some("security_concern"),
+            )
+            .await?;
             AuthRepo::insert_login_log_tx(
                 &mut tx,
                 login_record.user_id,
@@ -631,17 +744,30 @@ impl AuthService {
                 login_record.login_browser.as_deref(),
                 login_record.login_os.as_deref(),
                 user_agent.as_deref(),
-                None, None, None,
-                None, None,
+                None,
+                None,
+                None,
+                None,
+                None,
                 Some("token_reuse"),
                 None,
-            ).await?;
+            )
+            .await?;
             tx.commit().await?;
 
             // 2-2. Invalidate Redis keys immediately
-            let _ = redis_conn.del::<_, ()>(format!("ak:refresh:{}", login_record.refresh_hash)).await;
-            let _ = redis_conn.del::<_, ()>(format!("ak:session:{}", session_id)).await;
-            let _ = redis_conn.srem::<_, _, ()>(format!("ak:user_sessions:{}", login_record.user_id), &session_id).await;
+            let _ = redis_conn
+                .del::<_, ()>(format!("ak:refresh:{}", login_record.refresh_hash))
+                .await;
+            let _ = redis_conn
+                .del::<_, ()>(format!("ak:session:{}", session_id))
+                .await;
+            let _ = redis_conn
+                .srem::<_, _, ()>(
+                    format!("ak:user_sessions:{}", login_record.user_id),
+                    &session_id,
+                )
+                .await;
 
             return Err(AppError::Conflict("AUTH_409_REUSE_DETECTED".into()));
         }
@@ -658,7 +784,8 @@ impl AuthService {
         let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;
 
         // [Step 5] Rotate Token & Issue new Access Token
-        let (new_refresh_token_value, new_refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
+        let (new_refresh_token_value, new_refresh_hash) =
+            Self::generate_refresh_token_and_hash(&session_id);
         let (access_token_res, jti) = jwt::create_token(
             login_record.user_id,
             &session_id,
@@ -667,9 +794,17 @@ impl AuthService {
             &st.cfg.jwt_secret,
         )?;
         let access_hash: String = Sha256::digest(access_token_res.access_token.as_bytes())
-            .iter().map(|b| format!("{:02x}", b)).collect();
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect();
 
-        AuthRepo::update_login_refresh_hash_tx(&mut tx, &session_id, &new_refresh_hash, refresh_ttl_secs).await?;
+        AuthRepo::update_login_refresh_hash_tx(
+            &mut tx,
+            &session_id,
+            &new_refresh_hash,
+            refresh_ttl_secs,
+        )
+        .await?;
         AuthRepo::insert_login_log_tx(
             &mut tx,
             login_record.user_id,
@@ -682,24 +817,32 @@ impl AuthService {
             login_record.login_browser.as_deref(),
             login_record.login_os.as_deref(),
             user_agent.as_deref(),
-            None, None, None,
+            None,
+            None,
+            None,
             Some(&access_hash),
             Some(&jti),
             Some("none"),
             Some(refresh_ttl_secs),
-        ).await?;
+        )
+        .await?;
 
         tx.commit().await?;
 
         // [Step 6] Redis Sync
         // Delete old hash
-        let _: () = redis_conn.del(format!("ak:refresh:{}", login_record.refresh_hash))
-            .await.map_err(|e| AppError::Internal(e.to_string()))?;
-        let _: () = redis_conn.set_ex(
-            format!("ak:refresh:{}", new_refresh_hash),
-            &session_id,
-            refresh_ttl_secs as u64,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .del(format!("ak:refresh:{}", login_record.refresh_hash))
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .set_ex(
+                format!("ak:refresh:{}", new_refresh_hash),
+                &session_id,
+                refresh_ttl_secs as u64,
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         Ok((
             LoginRes {
@@ -715,16 +858,27 @@ impl AuthService {
     /// 아이디 찾기 (이름 + 생년월일 → 마스킹된 이메일 반환)
     pub async fn find_id(st: &AppState, req: FindIdReq, client_ip: String) -> AppResult<FindIdRes> {
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
+            return Err(AppError::BadRequest(format!(
+                "AUTH_400_INVALID_INPUT: {}",
+                e
+            )));
         }
 
         // Rate Limiting
         let rl_key = format!("rl:find_id:{}", client_ip);
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
+        let _: () = redis_conn
+            .expire(&rl_key, st.cfg.rate_limit_login_window_sec)
+            .await?;
         if attempts > st.cfg.rate_limit_login_max {
-            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
+            return Err(AppError::TooManyRequests(
+                "AUTH_429_TOO_MANY_ATTEMPTS".into(),
+            ));
         }
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
@@ -780,19 +934,31 @@ impl AuthService {
         client_ip: String,
     ) -> AppResult<FindPasswordRes> {
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
+            return Err(AppError::BadRequest(format!(
+                "AUTH_400_INVALID_INPUT: {}",
+                e
+            )));
         }
 
         let email = req.email.trim().to_lowercase();
-        let generic_msg = "If the information matches, a verification code has been sent.".to_string();
+        let generic_msg =
+            "If the information matches, a verification code has been sent.".to_string();
 
         // [Step 1] Rate Limiting (IP 기반)
         let rl_key = format!("rl:find_password:{}", client_ip);
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
+        let _: () = redis_conn
+            .expire(&rl_key, st.cfg.rate_limit_email_window_sec)
+            .await?;
         if attempts > st.cfg.rate_limit_email_max {
-            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
+            return Err(AppError::TooManyRequests(
+                "AUTH_429_TOO_MANY_ATTEMPTS".into(),
+            ));
         }
         let remaining = std::cmp::max(0, st.cfg.rate_limit_email_max - attempts);
 
@@ -808,7 +974,8 @@ impl AuthService {
             if let Some(ref bday_enc) = user.user_birthday {
                 if let Ok(bday) = crypto.decrypt(bday_enc, "users.user_birthday") {
                     if bday == req.birthday {
-                        if let Ok(user_email) = crypto.decrypt(&user.user_email, "users.user_email") {
+                        if let Ok(user_email) = crypto.decrypt(&user.user_email, "users.user_email")
+                        {
                             if user_email.to_lowercase() == email {
                                 matched_user = Some(user);
                                 break;
@@ -822,17 +989,28 @@ impl AuthService {
         let Some(user) = matched_user else {
             // 불일치 시 동일 성공 메시지 반환 (타이밍 공격 방지)
             info!("Find password: no matching user found");
-            return Ok(FindPasswordRes { message: generic_msg, remaining_attempts: remaining });
+            return Ok(FindPasswordRes {
+                message: generic_msg,
+                remaining_attempts: remaining,
+            });
         };
 
         // [Step 4] OAuth 전용 계정 체크
         if user.user_password.is_none() {
-            info!("Find password: OAuth-only account, user_id={}", user.user_id);
-            return Ok(FindPasswordRes { message: generic_msg, remaining_attempts: remaining });
+            info!(
+                "Find password: OAuth-only account, user_id={}",
+                user.user_id
+            );
+            return Ok(FindPasswordRes {
+                message: generic_msg,
+                remaining_attempts: remaining,
+            });
         }
 
         // [Step 5] 이메일 클라이언트 확인
-        let email_sender = st.email.as_ref()
+        let email_sender = st
+            .email
+            .as_ref()
             .ok_or_else(|| AppError::ServiceUnavailable("Email service not configured".into()))?;
 
         // [Step 6] 인증코드 생성 → HMAC 해시 → Redis 저장
@@ -841,22 +1019,28 @@ impl AuthService {
         let code_key = format!("ak:reset_code:{}", idx);
         let ttl_sec = st.cfg.verification_code_ttl_sec;
         let code_hash = crate::api::user::service::UserService::hmac_verification_code(
-            &st.cfg.hmac_key, &email, &code,
+            &st.cfg.hmac_key,
+            &email,
+            &code,
         );
 
-        let _: () = redis_conn.set_ex(
-            &code_key,
-            &code_hash,
-            ttl_sec as u64,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .set_ex(&code_key, &code_hash, ttl_sec as u64)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // [Step 7] 이메일 발송 (실패 시 rate limit 롤백)
         let expires_in_min = (ttl_sec / 60) as i32;
         if let Err(e) = crate::external::email::send_templated(
             email_sender.as_ref(),
             &email,
-            EmailTemplate::PasswordResetCode { code: code.clone(), expires_in_min },
-        ).await {
+            EmailTemplate::PasswordResetCode {
+                code: code.clone(),
+                expires_in_min,
+            },
+        )
+        .await
+        {
             let _: () = redis_conn.decr(&rl_key, 1).await.unwrap_or(());
             return Err(e);
         }
@@ -867,7 +1051,10 @@ impl AuthService {
             "Find password: verification code sent"
         );
 
-        Ok(FindPasswordRes { message: generic_msg, remaining_attempts: remaining })
+        Ok(FindPasswordRes {
+            message: generic_msg,
+            remaining_attempts: remaining,
+        })
     }
 
     /// 비밀번호 재설정
@@ -877,7 +1064,10 @@ impl AuthService {
         client_ip: String,
     ) -> AppResult<ResetPwRes> {
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
+            return Err(AppError::BadRequest(format!(
+                "AUTH_400_INVALID_INPUT: {}",
+                e
+            )));
         }
         if !Self::validate_password_policy(&req.new_password) {
             return Err(AppError::Unprocessable("password policy violation".into()));
@@ -885,11 +1075,19 @@ impl AuthService {
 
         // Rate Limiting
         let rl_key = format!("rl:reset_pw:{}", client_ip);
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
+        let _: () = redis_conn
+            .expire(&rl_key, st.cfg.rate_limit_login_window_sec)
+            .await?;
         if attempts > st.cfg.rate_limit_login_max {
-            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
+            return Err(AppError::TooManyRequests(
+                "AUTH_429_TOO_MANY_ATTEMPTS".into(),
+            ));
         }
 
         // Token Decode
@@ -904,31 +1102,56 @@ impl AuthService {
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let mut tx = st.db.begin().await?;
         AuthRepo::update_user_password_tx(&mut tx, user_id, &new_password_hash).await?;
-        user_repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user_id), user_id, "reset_pw", true).await?;
-        AuthRepo::update_login_state_by_user_tx(&mut tx, user_id, "revoked", Some("password_changed")).await?;
+        user_repo::insert_user_log_after_tx(
+            &mut tx,
+            &crypto,
+            Some(user_id),
+            user_id,
+            "reset_pw",
+            true,
+        )
+        .await?;
+        AuthRepo::update_login_state_by_user_tx(
+            &mut tx,
+            user_id,
+            "revoked",
+            Some("password_changed"),
+        )
+        .await?;
         tx.commit().await?;
 
         // Redis Session Cleanup — 배치 DB 조회 + fail-closed.
         // DB 는 이미 `update_login_state_by_user_tx` 로 revoked 상태지만, Redis 에 남은
         // access/refresh 키는 TTL 만료 전까지 유효하게 보이므로 즉시 정리한다.
         let session_key = format!("ak:user_sessions:{}", user_id);
-        let session_ids: Vec<String> = redis_conn.smembers(&session_key).await
+        let session_ids: Vec<String> = redis_conn
+            .smembers(&session_key)
+            .await
             .map_err(|e| AppError::Internal(format!("redis smembers failed: {e}")))?;
-        let refresh_hashes = AuthRepo::find_login_refresh_hashes_by_session_ids(
-            &st.db, &session_ids,
-        ).await?;
+        let refresh_hashes =
+            AuthRepo::find_login_refresh_hashes_by_session_ids(&st.db, &session_ids).await?;
 
         for sid in &session_ids {
             if let Some(hash) = refresh_hashes.get(sid) {
-                let _: () = redis_conn.del(format!("ak:refresh:{}", hash)).await
-                    .map_err(|e| AppError::Internal(format!("redis del(ak:refresh) failed: {e}")))?;
+                let _: () = redis_conn
+                    .del(format!("ak:refresh:{}", hash))
+                    .await
+                    .map_err(|e| {
+                        AppError::Internal(format!("redis del(ak:refresh) failed: {e}"))
+                    })?;
             }
-            let _: () = redis_conn.del(format!("ak:session:{}", sid)).await
+            let _: () = redis_conn
+                .del(format!("ak:session:{}", sid))
+                .await
                 .map_err(|e| AppError::Internal(format!("redis del(ak:session) failed: {e}")))?;
-            let _: () = redis_conn.srem(&session_key, sid).await
+            let _: () = redis_conn
+                .srem(&session_key, sid)
+                .await
                 .map_err(|e| AppError::Internal(format!("redis srem failed: {e}")))?;
         }
-        let _: () = redis_conn.del(&session_key).await
+        let _: () = redis_conn
+            .del(&session_key)
+            .await
             .map_err(|e| AppError::Internal(format!("redis del(user_sessions) failed: {e}")))?;
 
         Ok(ResetPwRes {
@@ -944,7 +1167,11 @@ impl AuthService {
         _login_ip: String,
         user_agent: Option<String>,
     ) -> AppResult<()> {
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
 
         // 1) DB Update
@@ -952,10 +1179,17 @@ impl AuthService {
         let login_record = AuthRepo::find_login_by_session_id_tx(&mut tx, session_id).await?;
 
         if let Some(record) = &login_record {
-            let ip_plain = crypto.decrypt(record.login_ip.as_deref().unwrap_or(""), "login.login_ip")?;
+            let ip_plain =
+                crypto.decrypt(record.login_ip.as_deref().unwrap_or(""), "login.login_ip")?;
             let login_ip_log_enc = crypto.encrypt(&ip_plain, "login_log.login_ip_log")?;
 
-            AuthRepo::update_login_state_by_session_tx(&mut tx, session_id, "logged_out", Some("none")).await?;
+            AuthRepo::update_login_state_by_session_tx(
+                &mut tx,
+                session_id,
+                "logged_out",
+                Some("none"),
+            )
+            .await?;
             AuthRepo::insert_logout_log_tx(
                 &mut tx,
                 user_id,
@@ -963,18 +1197,25 @@ impl AuthService {
                 &record.refresh_hash,
                 &login_ip_log_enc,
                 user_agent.as_deref(),
-            ).await?;
+            )
+            .await?;
         }
         tx.commit().await?;
 
         // 2) Redis Cleanup (fail-closed)
         if let Some(record) = login_record {
-            let _: () = redis_conn.del(format!("ak:refresh:{}", record.refresh_hash)).await
+            let _: () = redis_conn
+                .del(format!("ak:refresh:{}", record.refresh_hash))
+                .await
                 .map_err(|e| AppError::Internal(format!("redis del(ak:refresh) failed: {e}")))?;
         }
-        let _: () = redis_conn.del(format!("ak:session:{}", session_id)).await
+        let _: () = redis_conn
+            .del(format!("ak:session:{}", session_id))
+            .await
             .map_err(|e| AppError::Internal(format!("redis del(ak:session) failed: {e}")))?;
-        let _: () = redis_conn.srem(format!("ak:user_sessions:{}", user_id), session_id).await
+        let _: () = redis_conn
+            .srem(format!("ak:user_sessions:{}", user_id), session_id)
+            .await
             .map_err(|e| AppError::Internal(format!("redis srem failed: {e}")))?;
 
         Ok(())
@@ -993,12 +1234,22 @@ impl AuthService {
         let mut current_session_id: Option<String> = None;
 
         if let Some(token) = refresh_token {
-            let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
-            
+            let mut redis_conn = st
+                .redis
+                .get()
+                .await
+                .map_err(|e| AppError::Internal(e.to_string()))?;
+
             // 해시 계산은 에러가 나면 무효한 토큰으로 간주
             if let Ok(refresh_hash) = Self::hash_refresh_token(token) {
-                 if let Ok(sid) = redis_conn.get::<_, String>(format!("ak:refresh:{}", refresh_hash)).await {
-                    if let Ok(uid) = redis_conn.get::<_, i64>(format!("ak:session:{}", sid)).await {
+                if let Ok(sid) = redis_conn
+                    .get::<_, String>(format!("ak:refresh:{}", refresh_hash))
+                    .await
+                {
+                    if let Ok(uid) = redis_conn
+                        .get::<_, i64>(format!("ak:session:{}", sid))
+                        .await
+                    {
                         user_id = Some(uid);
                         current_session_id = Some(sid);
                     }
@@ -1017,19 +1268,22 @@ impl AuthService {
             // 모든 세션 조회
             let session_ids = AuthRepo::find_user_session_ids_tx(&mut tx, uid).await?;
             sessions_to_invalidate.extend(session_ids);
-            
+
             // DB 상태 일괄 업데이트
-            AuthRepo::update_login_state_by_user_tx(&mut tx, uid, "logged_out", Some("none")).await?;
+            AuthRepo::update_login_state_by_user_tx(&mut tx, uid, "logged_out", Some("none"))
+                .await?;
         } else if let Some(sid) = current_session_id {
             // 현재 세션만
             sessions_to_invalidate.push(sid.clone());
-            AuthRepo::update_login_state_by_session_tx(&mut tx, &sid, "logged_out", Some("none")).await?;
+            AuthRepo::update_login_state_by_session_tx(&mut tx, &sid, "logged_out", Some("none"))
+                .await?;
         }
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         for sid in &sessions_to_invalidate {
-             if let Some(record) = AuthRepo::find_login_by_session_id_tx(&mut tx, sid).await? {
-                let ip_plain = crypto.decrypt(record.login_ip.as_deref().unwrap_or(""), "login.login_ip")?;
+            if let Some(record) = AuthRepo::find_login_by_session_id_tx(&mut tx, sid).await? {
+                let ip_plain =
+                    crypto.decrypt(record.login_ip.as_deref().unwrap_or(""), "login.login_ip")?;
                 let login_ip_log_enc = crypto.encrypt(&ip_plain, "login_log.login_ip_log")?;
 
                 AuthRepo::insert_logout_log_tx(
@@ -1039,17 +1293,22 @@ impl AuthService {
                     &record.refresh_hash,
                     &login_ip_log_enc,
                     user_agent.as_deref(),
-                ).await?;
-             }
+                )
+                .await?;
+            }
         }
-        
+
         tx.commit().await?;
 
         // Redis Cleanup — 배치 DB 조회 + fail-closed
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
-        let refresh_hashes = AuthRepo::find_login_refresh_hashes_by_session_ids(
-            &st.db, &sessions_to_invalidate,
-        ).await?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let refresh_hashes =
+            AuthRepo::find_login_refresh_hashes_by_session_ids(&st.db, &sessions_to_invalidate)
+                .await?;
 
         // 배치 처리: DEL + SREM 한 번씩 (기존 3N 왕복 → 2 회).
         let mut keys_to_del: Vec<String> = Vec::with_capacity(sessions_to_invalidate.len() * 2);
@@ -1060,16 +1319,22 @@ impl AuthService {
             keys_to_del.push(format!("ak:session:{}", sid));
         }
         if !keys_to_del.is_empty() {
-            let _: () = redis_conn.del(&keys_to_del).await
+            let _: () = redis_conn
+                .del(&keys_to_del)
+                .await
                 .map_err(|e| AppError::Internal(format!("redis del(batch) failed: {e}")))?;
         }
         if !sessions_to_invalidate.is_empty() {
-            let _: () = redis_conn.srem(format!("ak:user_sessions:{}", uid), &sessions_to_invalidate).await
+            let _: () = redis_conn
+                .srem(format!("ak:user_sessions:{}", uid), &sessions_to_invalidate)
+                .await
                 .map_err(|e| AppError::Internal(format!("redis srem(batch) failed: {e}")))?;
         }
 
         if req.everywhere {
-            let _: () = redis_conn.del(format!("ak:user_sessions:{}", uid)).await
+            let _: () = redis_conn
+                .del(format!("ak:user_sessions:{}", uid))
+                .await
                 .map_err(|e| AppError::Internal(format!("redis del(user_sessions) failed: {e}")))?;
         }
 
@@ -1099,12 +1364,20 @@ impl AuthService {
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let idx = crypto.blind_index(&email)?;
         let rl_key = format!("rl:request_reset:{}:{}", idx, client_ip);
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
+        let _: () = redis_conn
+            .expire(&rl_key, st.cfg.rate_limit_email_window_sec)
+            .await?;
         if attempts > st.cfg.rate_limit_email_max {
-            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_RESET_REQUESTS".into()));
+            return Err(AppError::TooManyRequests(
+                "AUTH_429_TOO_MANY_RESET_REQUESTS".into(),
+            ));
         }
         let remaining = std::cmp::max(0, st.cfg.rate_limit_email_max - attempts);
 
@@ -1124,7 +1397,10 @@ impl AuthService {
 
         // OAuth 전용 계정 (비밀번호가 NULL)이면 이메일 발송 없이 성공 응답
         if user_info.user_password.is_none() {
-            info!("Password reset requested for OAuth-only account: {}", user_info.user_id);
+            info!(
+                "Password reset requested for OAuth-only account: {}",
+                user_info.user_id
+            );
             return Ok(RequestResetRes {
                 message: "If the email exists, a verification code has been sent.".to_string(),
                 remaining_attempts: remaining,
@@ -1132,7 +1408,9 @@ impl AuthService {
         }
 
         // [Step 3] 이메일 클라이언트 확인
-        let email_sender = st.email.as_ref()
+        let email_sender = st
+            .email
+            .as_ref()
             .ok_or_else(|| AppError::ServiceUnavailable("Email service not configured".into()))?;
 
         // [Step 4] 인증코드 생성 및 Redis 저장 (HMAC 해시 + blind index 키)
@@ -1140,22 +1418,28 @@ impl AuthService {
         let code_key = format!("ak:reset_code:{}", idx);
         let ttl_sec = st.cfg.verification_code_ttl_sec;
         let code_hash = crate::api::user::service::UserService::hmac_verification_code(
-            &st.cfg.hmac_key, &email, &code,
+            &st.cfg.hmac_key,
+            &email,
+            &code,
         );
 
-        let _: () = redis_conn.set_ex(
-            &code_key,
-            &code_hash,
-            ttl_sec as u64,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .set_ex(&code_key, &code_hash, ttl_sec as u64)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // [Step 5] 이메일 발송 (실패 시 rate limit 롤백)
         let expires_in_min = (ttl_sec / 60) as i32;
         if let Err(e) = crate::external::email::send_templated(
             email_sender.as_ref(),
             &email,
-            EmailTemplate::PasswordResetCode { code: code.clone(), expires_in_min },
-        ).await {
+            EmailTemplate::PasswordResetCode {
+                code: code.clone(),
+                expires_in_min,
+            },
+        )
+        .await
+        {
             let _: () = redis_conn.decr(&rl_key, 1).await.unwrap_or(());
             return Err(e);
         }
@@ -1186,34 +1470,49 @@ impl AuthService {
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let idx = crypto.blind_index(&email)?;
         let rl_key = format!("rl:verify_reset:{}:{}", idx, client_ip);
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
         let _: () = redis_conn.expire(&rl_key, 3600).await?;
         if attempts > 10 {
-            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_VERIFY_ATTEMPTS".into()));
+            return Err(AppError::TooManyRequests(
+                "AUTH_429_TOO_MANY_VERIFY_ATTEMPTS".into(),
+            ));
         }
 
         // [Step 2] Redis에서 저장된 HMAC 해시 조회
         let code_key = format!("ak:reset_code:{}", idx);
-        let stored_hash: Option<String> = redis_conn.get(&code_key).await
+        let stored_hash: Option<String> = redis_conn
+            .get(&code_key)
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let Some(expected_hash) = stored_hash else {
-            return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
+            return Err(AppError::Unauthorized(
+                "AUTH_401_INVALID_OR_EXPIRED_CODE".into(),
+            ));
         };
 
         // [Step 3] HMAC 해시 비교 (constant-time)
         let computed_hash = crate::api::user::service::UserService::hmac_verification_code(
-            &st.cfg.hmac_key, &email, code,
+            &st.cfg.hmac_key,
+            &email,
+            code,
         );
         if !Self::constant_time_eq(computed_hash.as_bytes(), expected_hash.as_bytes()) {
-            return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
+            return Err(AppError::Unauthorized(
+                "AUTH_401_INVALID_OR_EXPIRED_CODE".into(),
+            ));
         }
 
         // [Step 4] 코드 삭제 (일회용)
         let _: () = redis_conn.del(&code_key).await.unwrap_or(());
-        let user = AuthRepo::find_user_by_email_idx(&st.db, &idx).await?
+        let user = AuthRepo::find_user_by_email_idx(&st.db, &idx)
+            .await?
             .ok_or_else(|| AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()))?;
 
         // [Step 6] reset_token 생성 (Redis에 저장, JWT 대신 단순 토큰 사용)
@@ -1221,11 +1520,10 @@ impl AuthService {
         let token_key = format!("ak:reset_token:{}", reset_token);
         let token_ttl = st.cfg.reset_token_ttl_sec;
 
-        let _: () = redis_conn.set_ex(
-            &token_key,
-            user.user_id,
-            token_ttl as u64,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .set_ex(&token_key, user.user_id, token_ttl as u64)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         info!(
             user_id = user.user_id,
@@ -1248,28 +1546,41 @@ impl AuthService {
     ) -> AppResult<ResetPwRes> {
         // [Step 1] 비밀번호 정책 검증
         if !Self::validate_password_policy(new_password) {
-            return Err(AppError::Unprocessable("AUTH_422_PASSWORD_POLICY_VIOLATION".into()));
+            return Err(AppError::Unprocessable(
+                "AUTH_422_PASSWORD_POLICY_VIOLATION".into(),
+            ));
         }
 
         // [Step 2] Rate Limiting
         let rl_key = format!("rl:reset_pw:{}", client_ip);
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
+        let _: () = redis_conn
+            .expire(&rl_key, st.cfg.rate_limit_login_window_sec)
+            .await?;
         if attempts > st.cfg.rate_limit_login_max {
-            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_ATTEMPTS".into()));
+            return Err(AppError::TooManyRequests(
+                "AUTH_429_TOO_MANY_ATTEMPTS".into(),
+            ));
         }
 
         // [Step 3] reset_token 검증 (Redis 기반 or JWT)
         let user_id = if reset_token.starts_with("ak_reset_") {
             // Redis 기반 토큰 (새 flow)
             let token_key = format!("ak:reset_token:{}", reset_token);
-            let stored_user_id: Option<i64> = redis_conn.get(&token_key).await
+            let stored_user_id: Option<i64> = redis_conn
+                .get(&token_key)
+                .await
                 .map_err(|e| AppError::Internal(e.to_string()))?;
 
-            let uid = stored_user_id
-                .ok_or_else(|| AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_TOKEN".into()))?;
+            let uid = stored_user_id.ok_or_else(|| {
+                AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_TOKEN".into())
+            })?;
 
             // 토큰 삭제 (일회용)
             let _: () = redis_conn.del(&token_key).await.unwrap_or(());
@@ -1288,29 +1599,54 @@ impl AuthService {
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let mut tx = st.db.begin().await?;
         AuthRepo::update_user_password_tx(&mut tx, user_id, &new_password_hash).await?;
-        user_repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user_id), user_id, "reset_pw", true).await?;
-        AuthRepo::update_login_state_by_user_tx(&mut tx, user_id, "revoked", Some("password_changed")).await?;
+        user_repo::insert_user_log_after_tx(
+            &mut tx,
+            &crypto,
+            Some(user_id),
+            user_id,
+            "reset_pw",
+            true,
+        )
+        .await?;
+        AuthRepo::update_login_state_by_user_tx(
+            &mut tx,
+            user_id,
+            "revoked",
+            Some("password_changed"),
+        )
+        .await?;
         tx.commit().await?;
 
         // [Step 6] Redis 세션 정리 — 배치 DB 조회 + fail-closed.
         let session_key = format!("ak:user_sessions:{}", user_id);
-        let session_ids: Vec<String> = redis_conn.smembers(&session_key).await
+        let session_ids: Vec<String> = redis_conn
+            .smembers(&session_key)
+            .await
             .map_err(|e| AppError::Internal(format!("redis smembers failed: {e}")))?;
-        let refresh_hashes = AuthRepo::find_login_refresh_hashes_by_session_ids(
-            &st.db, &session_ids,
-        ).await?;
+        let refresh_hashes =
+            AuthRepo::find_login_refresh_hashes_by_session_ids(&st.db, &session_ids).await?;
 
         for sid in &session_ids {
             if let Some(hash) = refresh_hashes.get(sid) {
-                let _: () = redis_conn.del(format!("ak:refresh:{}", hash)).await
-                    .map_err(|e| AppError::Internal(format!("redis del(ak:refresh) failed: {e}")))?;
+                let _: () = redis_conn
+                    .del(format!("ak:refresh:{}", hash))
+                    .await
+                    .map_err(|e| {
+                        AppError::Internal(format!("redis del(ak:refresh) failed: {e}"))
+                    })?;
             }
-            let _: () = redis_conn.del(format!("ak:session:{}", sid)).await
+            let _: () = redis_conn
+                .del(format!("ak:session:{}", sid))
+                .await
                 .map_err(|e| AppError::Internal(format!("redis del(ak:session) failed: {e}")))?;
-            let _: () = redis_conn.srem(&session_key, sid).await
+            let _: () = redis_conn
+                .srem(&session_key, sid)
+                .await
                 .map_err(|e| AppError::Internal(format!("redis srem failed: {e}")))?;
         }
-        let _: () = redis_conn.del(&session_key).await
+        let _: () = redis_conn
+            .del(&session_key)
+            .await
             .map_err(|e| AppError::Internal(format!("redis del(user_sessions) failed: {e}")))?;
 
         info!(user_id = user_id, ip = %client_ip, "Password reset successful");
@@ -1329,7 +1665,10 @@ impl AuthService {
         if a.len() != b.len() {
             return false;
         }
-        a.iter().zip(b.iter()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+        a.iter()
+            .zip(b.iter())
+            .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+            == 0
     }
 
     /// 이메일 인증코드 검증
@@ -1340,7 +1679,10 @@ impl AuthService {
     ) -> AppResult<VerifyEmailRes> {
         let email = req.email.trim().to_lowercase();
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
+            return Err(AppError::BadRequest(format!(
+                "AUTH_400_INVALID_INPUT: {}",
+                e
+            )));
         }
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
@@ -1348,37 +1690,54 @@ impl AuthService {
 
         // [Step 1] Rate Limiting
         let rl_key = format!("rl:verify_email:{}:{}", email_idx, client_ip);
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
         let _: () = redis_conn.expire(&rl_key, 3600).await?;
         if attempts > 10 {
-            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_VERIFY_ATTEMPTS".into()));
+            return Err(AppError::TooManyRequests(
+                "AUTH_429_TOO_MANY_VERIFY_ATTEMPTS".into(),
+            ));
         }
 
         // [Step 2] Redis에서 HMAC 해시 조회
         let code_key = format!("ak:email_verify:{}", email_idx);
-        let stored_hash: Option<String> = redis_conn.get(&code_key).await
+        let stored_hash: Option<String> = redis_conn
+            .get(&code_key)
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let Some(expected_hash) = stored_hash else {
             // 계정 열거 방지: 코드 없음과 코드 불일치 동일 메시지
-            return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
+            return Err(AppError::Unauthorized(
+                "AUTH_401_INVALID_OR_EXPIRED_CODE".into(),
+            ));
         };
 
         // [Step 3] HMAC 해시 비교 (constant-time)
         let computed_hash = crate::api::user::service::UserService::hmac_verification_code(
-            &st.cfg.hmac_key, &email, &req.code,
+            &st.cfg.hmac_key,
+            &email,
+            &req.code,
         );
         if !Self::constant_time_eq(computed_hash.as_bytes(), expected_hash.as_bytes()) {
-            return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
+            return Err(AppError::Unauthorized(
+                "AUTH_401_INVALID_OR_EXPIRED_CODE".into(),
+            ));
         }
 
         // [Step 4] DB 업데이트 먼저 (user_check_email = true)
-        let user_row = user_repo::find_user_id_and_check_email_by_email_idx(&st.db, &email_idx).await?;
+        let user_row =
+            user_repo::find_user_id_and_check_email_by_email_idx(&st.db, &email_idx).await?;
         let Some((user_id, check_email)) = user_row else {
             // 계정 열거 방지
-            return Err(AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_CODE".into()));
+            return Err(AppError::Unauthorized(
+                "AUTH_401_INVALID_OR_EXPIRED_CODE".into(),
+            ));
         };
 
         if !check_email {
@@ -1403,7 +1762,10 @@ impl AuthService {
     ) -> AppResult<ResendVerificationRes> {
         let email = req.email.trim().to_lowercase();
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!("AUTH_400_INVALID_INPUT: {}", e)));
+            return Err(AppError::BadRequest(format!(
+                "AUTH_400_INVALID_INPUT: {}",
+                e
+            )));
         }
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
@@ -1411,17 +1773,26 @@ impl AuthService {
 
         // [Step 1] Rate Limiting
         let rl_key = format!("rl:resend_verify:{}:{}", email_idx, client_ip);
-        let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_email_window_sec).await?;
+        let _: () = redis_conn
+            .expire(&rl_key, st.cfg.rate_limit_email_window_sec)
+            .await?;
         if attempts > st.cfg.rate_limit_email_max {
-            return Err(AppError::TooManyRequests("AUTH_429_TOO_MANY_RESEND_REQUESTS".into()));
+            return Err(AppError::TooManyRequests(
+                "AUTH_429_TOO_MANY_RESEND_REQUESTS".into(),
+            ));
         }
         let remaining = std::cmp::max(0, st.cfg.rate_limit_email_max - attempts);
 
         // [Step 2] 미인증 사용자 확인 (타이밍 공격 방지: 항상 성공 메시지)
-        let user_row = user_repo::find_user_id_and_check_email_by_email_idx(&st.db, &email_idx).await?;
+        let user_row =
+            user_repo::find_user_id_and_check_email_by_email_idx(&st.db, &email_idx).await?;
 
         let success_msg = ResendVerificationRes {
             message: "If the email needs verification, a new code has been sent.".to_string(),
@@ -1439,24 +1810,35 @@ impl AuthService {
         // [Step 3] 새 인증코드 생성 → HMAC 해시 → Redis 저장 → 이메일 발송
         let code = Self::generate_verification_code();
         let code_hash = crate::api::user::service::UserService::hmac_verification_code(
-            &st.cfg.hmac_key, &email, &code,
+            &st.cfg.hmac_key,
+            &email,
+            &code,
         );
         let ttl_sec = st.cfg.verification_code_ttl_sec;
 
         let redis_key = format!("ak:email_verify:{}", email_idx);
-        let _: () = redis_conn.set_ex(&redis_key, &code_hash, ttl_sec as u64)
-            .await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .set_ex(&redis_key, &code_hash, ttl_sec as u64)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // 이메일 발송 (실패 시 rate limit 롤백)
-        let email_sender = st.email.as_ref()
+        let email_sender = st
+            .email
+            .as_ref()
             .ok_or_else(|| AppError::ServiceUnavailable("Email service not configured".into()))?;
 
         let expires_in_min = (ttl_sec / 60) as i32;
         if let Err(e) = crate::external::email::send_templated(
             email_sender.as_ref(),
             &email,
-            EmailTemplate::EmailVerification { code, expires_in_min },
-        ).await {
+            EmailTemplate::EmailVerification {
+                code,
+                expires_in_min,
+            },
+        )
+        .await
+        {
             let _: () = redis_conn.decr(&rl_key, 1).await.unwrap_or(());
             return Err(e);
         }
@@ -1476,11 +1858,20 @@ impl AuthService {
     /// Google OAuth 인증 URL 생성
     pub async fn google_auth_start(st: &AppState) -> AppResult<String> {
         // Google OAuth 설정 확인
-        let client_id = st.cfg.google_client_id.as_ref()
+        let client_id = st
+            .cfg
+            .google_client_id
+            .as_ref()
             .ok_or_else(|| AppError::Internal("GOOGLE_CLIENT_ID not configured".into()))?;
-        let client_secret = st.cfg.google_client_secret.as_ref()
+        let client_secret = st
+            .cfg
+            .google_client_secret
+            .as_ref()
             .ok_or_else(|| AppError::Internal("GOOGLE_CLIENT_SECRET not configured".into()))?;
-        let redirect_uri = st.cfg.google_redirect_uri.as_ref()
+        let redirect_uri = st
+            .cfg
+            .google_redirect_uri
+            .as_ref()
             .ok_or_else(|| AppError::Internal("GOOGLE_REDIRECT_URI not configured".into()))?;
 
         // State와 Nonce 생성 (CSRF/Replay 방지)
@@ -1488,15 +1879,17 @@ impl AuthService {
         let nonce = Uuid::new_v4().to_string();
 
         // Redis에 state -> nonce 저장
-        let mut redis_conn = st.redis.get().await
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let state_key = format!("ak:oauth_state:{}", state);
-        let _: () = redis_conn.set_ex(
-            &state_key,
-            &nonce,
-            st.cfg.oauth_state_ttl_sec as u64,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .set_ex(&state_key, &nonce, st.cfg.oauth_state_ttl_sec as u64)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // Auth URL 생성
         let client = GoogleOAuthClient::new(
@@ -1520,23 +1913,39 @@ impl AuthService {
         parsed_ua: crate::api::auth::handler::ParsedUa,
     ) -> AppResult<OAuthLoginOutcome> {
         // Google OAuth 설정 확인
-        let client_id = st.cfg.google_client_id.as_ref()
+        let client_id = st
+            .cfg
+            .google_client_id
+            .as_ref()
             .ok_or_else(|| AppError::Internal("GOOGLE_CLIENT_ID not configured".into()))?;
-        let client_secret = st.cfg.google_client_secret.as_ref()
+        let client_secret = st
+            .cfg
+            .google_client_secret
+            .as_ref()
             .ok_or_else(|| AppError::Internal("GOOGLE_CLIENT_SECRET not configured".into()))?;
-        let redirect_uri = st.cfg.google_redirect_uri.as_ref()
+        let redirect_uri = st
+            .cfg
+            .google_redirect_uri
+            .as_ref()
             .ok_or_else(|| AppError::Internal("GOOGLE_REDIRECT_URI not configured".into()))?;
 
         // [Step 1] State 검증 (CSRF 방지)
-        let mut redis_conn = st.redis.get().await
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let state_key = format!("ak:oauth_state:{}", state);
-        let stored_nonce: Option<String> = redis_conn.get(&state_key).await
+        let stored_nonce: Option<String> = redis_conn
+            .get(&state_key)
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let Some(nonce) = stored_nonce else {
-            return Err(AppError::Unauthorized("AUTH_401_INVALID_OAUTH_STATE".into()));
+            return Err(AppError::Unauthorized(
+                "AUTH_401_INVALID_OAUTH_STATE".into(),
+            ));
         };
 
         // State 사용 후 즉시 삭제 (일회용)
@@ -1567,7 +1976,8 @@ impl AuthService {
         let user_info: OAuthUserInfo = client.extract_user_info(&claims).into();
 
         // [Step 4] 사용자 조회 또는 생성
-        let (user_id, user_auth, is_new_user) = Self::find_or_create_oauth_user(st, &user_info, "google").await?;
+        let (user_id, user_auth, is_new_user) =
+            Self::find_or_create_oauth_user(st, &user_info, "google").await?;
 
         // [Step 5] MFA 체크 (기존 사용자 + MFA 활성화 시 챌린지 반환)
         if !is_new_user {
@@ -1584,24 +1994,30 @@ impl AuthService {
                     "os": parsed_ua.os,
                     "login_method": "google"
                 });
-                let mut redis_conn = st.redis.get().await
+                let mut redis_conn = st
+                    .redis
+                    .get()
+                    .await
                     .map_err(|e| AppError::Internal(e.to_string()))?;
                 let mfa_key = format!("ak:mfa_pending:{}", mfa_token);
-                let _: () = redis_conn.set_ex(
-                    &mfa_key,
-                    pending_data.to_string(),
-                    st.cfg.mfa_token_ttl_sec as u64,
-                ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+                let _: () = redis_conn
+                    .set_ex(
+                        &mfa_key,
+                        pending_data.to_string(),
+                        st.cfg.mfa_token_ttl_sec as u64,
+                    )
+                    .await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
 
-                return Ok(OAuthLoginOutcome::MfaChallenge {
-                    mfa_token,
-                    user_id,
-                });
+                return Ok(OAuthLoginOutcome::MfaChallenge { mfa_token, user_id });
             }
         }
 
         // [Step 6] 세션 생성 (MFA 미활성화 시)
-        let (login_res, cookie, refresh_ttl, refresh_token) = Self::create_oauth_session(st, user_id, user_auth, "google", login_ip, user_agent, parsed_ua).await?;
+        let (login_res, cookie, refresh_ttl, refresh_token) = Self::create_oauth_session(
+            st, user_id, user_auth, "google", login_ip, user_agent, parsed_ua,
+        )
+        .await?;
 
         Ok(OAuthLoginOutcome::Success(Box::new(OAuthLoginSuccess {
             login_res,
@@ -1620,8 +2036,10 @@ impl AuthService {
         user_agent: Option<String>,
         parsed_ua: crate::api::auth::handler::ParsedUa,
     ) -> AppResult<OAuthLoginOutcome> {
-        let client_id = st.cfg.google_mobile_client_id.as_ref()
-            .ok_or_else(|| AppError::Internal("GOOGLE_MOBILE_CLIENT_ID not configured".into()))?;
+        let client_id =
+            st.cfg.google_mobile_client_id.as_ref().ok_or_else(|| {
+                AppError::Internal("GOOGLE_MOBILE_CLIENT_ID not configured".into())
+            })?;
 
         // ID token JWKS 검증 (모바일은 Authorization Code 교환 불필요)
         let client = GoogleOAuthClient::new(client_id.clone(), String::new(), String::new());
@@ -1629,7 +2047,8 @@ impl AuthService {
         let user_info: OAuthUserInfo = client.extract_user_info(&claims).into();
 
         // 사용자 조회/생성 + MFA 체크 + 세션 생성
-        Self::oauth_mobile_login_flow(st, &user_info, "google", login_ip, user_agent, parsed_ua).await
+        Self::oauth_mobile_login_flow(st, &user_info, "google", login_ip, user_agent, parsed_ua)
+            .await
     }
 
     /// 모바일 Apple OAuth 로그인 (ID token 직접 검증)
@@ -1641,7 +2060,9 @@ impl AuthService {
         parsed_ua: crate::api::auth::handler::ParsedUa,
     ) -> AppResult<OAuthLoginOutcome> {
         // 싱글톤 클라이언트 재사용 — 매 요청마다 reqwest::Client 재생성 + JWKS 재-fetch 방지
-        let client = st.apple_oauth.as_ref()
+        let client = st
+            .apple_oauth
+            .as_ref()
             .ok_or_else(|| AppError::Internal("APPLE_CLIENT_ID not configured".into()))?;
 
         let claims = client.decode_id_token(&req.id_token).await?;
@@ -1651,7 +2072,8 @@ impl AuthService {
         if user_info.email.is_empty() {
             let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
             let sub_idx = crypto.blind_index_preserve_case(&user_info.sub)?;
-            let existing = AuthRepo::find_oauth_by_provider_subject_idx(&st.db, "apple", &sub_idx).await?;
+            let existing =
+                AuthRepo::find_oauth_by_provider_subject_idx(&st.db, "apple", &sub_idx).await?;
             if existing.is_none() {
                 return Err(AppError::BadRequest(
                     "Apple 계정에서 이메일을 가져올 수 없습니다. Apple ID 설정 > 로그인 및 보안 > Apple로 로그인에서 Amazing Korean을 제거한 후 다시 시도해주세요.".into()
@@ -1659,7 +2081,8 @@ impl AuthService {
             }
         }
 
-        Self::oauth_mobile_login_flow(st, &user_info, "apple", login_ip, user_agent, parsed_ua).await
+        Self::oauth_mobile_login_flow(st, &user_info, "apple", login_ip, user_agent, parsed_ua)
+            .await
     }
 
     /// 모바일 OAuth 공통 로그인 흐름 (사용자 조회/생성 → MFA → 세션)
@@ -1671,7 +2094,8 @@ impl AuthService {
         user_agent: Option<String>,
         parsed_ua: crate::api::auth::handler::ParsedUa,
     ) -> AppResult<OAuthLoginOutcome> {
-        let (user_id, user_auth, is_new_user) = Self::find_or_create_oauth_user(st, user_info, provider).await?;
+        let (user_id, user_auth, is_new_user) =
+            Self::find_or_create_oauth_user(st, user_info, provider).await?;
 
         // MFA 체크 (기존 사용자 + MFA 활성화 시 챌린지 반환)
         if !is_new_user {
@@ -1688,14 +2112,20 @@ impl AuthService {
                     "os": parsed_ua.os,
                     "login_method": provider
                 });
-                let mut redis_conn = st.redis.get().await
+                let mut redis_conn = st
+                    .redis
+                    .get()
+                    .await
                     .map_err(|e| AppError::Internal(e.to_string()))?;
                 let mfa_key = format!("ak:mfa_pending:{}", mfa_token);
-                let _: () = redis_conn.set_ex(
-                    &mfa_key,
-                    pending_data.to_string(),
-                    st.cfg.mfa_token_ttl_sec as u64,
-                ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+                let _: () = redis_conn
+                    .set_ex(
+                        &mfa_key,
+                        pending_data.to_string(),
+                        st.cfg.mfa_token_ttl_sec as u64,
+                    )
+                    .await
+                    .map_err(|e| AppError::Internal(e.to_string()))?;
 
                 return Ok(OAuthLoginOutcome::MfaChallenge { mfa_token, user_id });
             }
@@ -1703,7 +2133,8 @@ impl AuthService {
 
         let (login_res, cookie, refresh_ttl, refresh_token) = Self::create_oauth_session(
             st, user_id, user_auth, provider, login_ip, user_agent, parsed_ua,
-        ).await?;
+        )
+        .await?;
 
         Ok(OAuthLoginOutcome::Success(Box::new(OAuthLoginSuccess {
             login_res,
@@ -1725,16 +2156,21 @@ impl AuthService {
 
         // 1. OAuth subject blind index 검색 (case-sensitive: preserve_case)
         let sub_idx = crypto.blind_index_preserve_case(&user_info.sub)?;
-        let oauth = AuthRepo::find_oauth_by_provider_subject_idx(&st.db, provider, &sub_idx).await?;
+        let oauth =
+            AuthRepo::find_oauth_by_provider_subject_idx(&st.db, provider, &sub_idx).await?;
 
         if let Some(oauth) = oauth {
             // 이미 연결된 계정 존재 - 마지막 로그인 시간 업데이트
             AuthRepo::update_oauth_last_login(&st.db, oauth.user_oauth_id).await?;
 
-            let user = user_repo::find_user(&st.db, oauth.user_id).await?
+            let user = user_repo::find_user(&st.db, oauth.user_id)
+                .await?
                 .ok_or_else(|| AppError::Internal("OAuth linked user not found".into()))?;
 
-            info!("OAuth login: existing user {} via {}", oauth.user_id, provider);
+            info!(
+                "OAuth login: existing user {} via {}",
+                oauth.user_id, provider
+            );
             return Ok((user.id, user.user_auth, false));
         }
 
@@ -1759,17 +2195,24 @@ impl AuthService {
                 user_info.name.as_deref(),
                 user_info.picture.as_deref(),
                 &oauth_subject_idx,
-            ).await?;
+            )
+            .await?;
 
             tx.commit().await?;
 
             // OAuth 이메일 검증 완료 → 미인증 일반 가입도 자동 인증
             if !existing_user.user_check_email {
                 AuthRepo::update_user_check_email(&st.db, existing_user.user_id, true).await?;
-                info!("Auto-verified email via OAuth for user: {}", existing_user.user_id);
+                info!(
+                    "Auto-verified email via OAuth for user: {}",
+                    existing_user.user_id
+                );
             }
 
-            info!("OAuth account linked to existing user: {} ({})", existing_user.user_id, user_info.email);
+            info!(
+                "OAuth account linked to existing user: {} ({})",
+                existing_user.user_id, user_info.email
+            );
             return Ok((existing_user.user_id, existing_user.user_auth, false));
         }
 
@@ -1787,18 +2230,28 @@ impl AuthService {
         let mut tx = st.db.begin().await?;
 
         // 닉네임 생성 (이름 또는 이메일 앞부분)
-        let nickname = user_info.name.clone()
-            .unwrap_or_else(|| user_info.email.split('@').next().unwrap_or("User").to_string());
+        let nickname = user_info.name.clone().unwrap_or_else(|| {
+            user_info
+                .email
+                .split('@')
+                .next()
+                .unwrap_or("User")
+                .to_string()
+        });
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let email_enc = crypto.encrypt(&user_info.email, "users.user_email")?;
         let email_idx = crypto.blind_index(&user_info.email)?;
         let name_enc = crypto.encrypt(&nickname, "users.user_name")?;
         let name_idx = crypto.blind_index(&nickname)?;
-        let default_birthday = crypto.encrypt(&chrono::Utc::now().format("%Y-%m-%d").to_string(), "users.user_birthday")?;
+        let default_birthday = crypto.encrypt(
+            &chrono::Utc::now().format("%Y-%m-%d").to_string(),
+            "users.user_birthday",
+        )?;
 
         // 사용자 생성 (비밀번호 없이, user_check_email = true)
-        let user_id = sqlx::query_scalar::<_, i64>(r#"
+        let user_id = sqlx::query_scalar::<_, i64>(
+            r#"
             INSERT INTO users (
                 user_email, user_password, user_name,
                 user_nickname, user_language, user_country,
@@ -1816,7 +2269,8 @@ impl AuthService {
                 $4, $5
             )
             RETURNING user_id
-        "#)
+        "#,
+        )
         .bind(&email_enc)
         .bind(&name_enc)
         .bind(&nickname)
@@ -1840,14 +2294,19 @@ impl AuthService {
             user_info.name.as_deref(),
             user_info.picture.as_deref(),
             &oauth_subject_idx,
-        ).await?;
+        )
+        .await?;
 
         // 회원가입 로그
-        user_repo::insert_user_log_after_tx(&mut tx, &crypto, None, user_id, "signup", true).await?;
+        user_repo::insert_user_log_after_tx(&mut tx, &crypto, None, user_id, "signup", true)
+            .await?;
 
         tx.commit().await?;
 
-        info!("New OAuth user created: {} ({}) via {}", user_id, user_info.email, provider);
+        info!(
+            "New OAuth user created: {} ({}) via {}",
+            user_id, user_info.email, provider
+        );
         Ok((user_id, UserAuth::Learner))
     }
 
@@ -1862,7 +2321,8 @@ impl AuthService {
         parsed_ua: crate::api::auth::handler::ParsedUa,
     ) -> AppResult<(LoginRes, Cookie<'static>, i64, String)> {
         let session_id = Uuid::new_v4().to_string();
-        let (refresh_token_value, refresh_hash) = Self::generate_refresh_token_and_hash(&session_id);
+        let (refresh_token_value, refresh_hash) =
+            Self::generate_refresh_token_and_hash(&session_id);
         let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user_auth) * 24 * 3600;
 
         // Access Token 생성
@@ -1874,11 +2334,16 @@ impl AuthService {
             &st.cfg.jwt_secret,
         )?;
         let access_hash: String = Sha256::digest(access_token_res.access_token.as_bytes())
-            .iter().map(|b| format!("{:02x}", b)).collect();
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect();
 
         // 동시 세션 수 제한 검증
         {
-            let mut redis_conn = st.redis.get().await
+            let mut redis_conn = st
+                .redis
+                .get()
+                .await
                 .map_err(|e| AppError::Internal(e.to_string()))?;
             Self::enforce_session_limit(st, &mut redis_conn, user_id, user_auth).await?;
         }
@@ -1908,7 +2373,8 @@ impl AuthService {
             geo.country_code.as_deref(),
             geo.asn,
             geo.org.as_deref(),
-        ).await?;
+        )
+        .await?;
 
         AuthRepo::insert_login_log_oauth_tx(
             &mut tx,
@@ -1930,37 +2396,48 @@ impl AuthService {
             Some(&jti),
             Some("none"),
             Some(refresh_ttl_secs),
-        ).await?;
+        )
+        .await?;
 
         tx.commit().await?;
 
         // Redis 캐싱
-        let mut redis_conn = st.redis.get().await
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // 1. Session ID -> User ID
-        let _: () = redis_conn.set_ex(
-            format!("ak:session:{}", session_id),
-            user_id,
-            st.cfg.jwt_access_ttl_min as u64 * 60,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .set_ex(
+                format!("ak:session:{}", session_id),
+                user_id,
+                st.cfg.jwt_access_ttl_min as u64 * 60,
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // 2. Refresh Hash -> Session ID
-        let _: () = redis_conn.set_ex(
-            format!("ak:refresh:{}", refresh_hash),
-            &session_id,
-            refresh_ttl_secs as u64,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .set_ex(
+                format!("ak:refresh:{}", refresh_hash),
+                &session_id,
+                refresh_ttl_secs as u64,
+            )
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // 3. User Sessions Set
-        let _: () = redis_conn.sadd(
-            format!("ak:user_sessions:{}", user_id),
-            &session_id,
-        ).await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis_conn
+            .sadd(format!("ak:user_sessions:{}", user_id), &session_id)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // Cookie 생성
         let refresh_token_for_mobile = refresh_token_value.clone();
-        let mut refresh_cookie = Cookie::new(st.cfg.refresh_cookie_name.clone(), refresh_token_value);
+        let mut refresh_cookie =
+            Cookie::new(st.cfg.refresh_cookie_name.clone(), refresh_token_value);
         refresh_cookie.set_path("/");
         refresh_cookie.set_http_only(true);
         refresh_cookie.set_secure(st.cfg.refresh_cookie_secure);
@@ -1970,7 +2447,8 @@ impl AuthService {
             "None" => SameSite::None,
             _ => SameSite::Lax,
         });
-        refresh_cookie.set_expires(OffsetDateTime::now_utc() + time::Duration::seconds(refresh_ttl_secs));
+        refresh_cookie
+            .set_expires(OffsetDateTime::now_utc() + time::Duration::seconds(refresh_ttl_secs));
 
         if let Some(domain) = &st.cfg.refresh_cookie_domain {
             refresh_cookie.set_domain(domain.clone());
@@ -1999,13 +2477,18 @@ impl AuthService {
         user_email_enc: &str,
     ) -> AppResult<MfaSetupRes> {
         // Rate limit: 반복 MFA 설정 요청 방지
-        let mut redis_conn = st.redis.get().await
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
         let rl_key = format!("rl:mfa_setup:{}", user_id);
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
         let _: () = redis_conn.expire(&rl_key, 3600).await?; // 5회/1시간
         if attempts > 5 {
-            return Err(AppError::TooManyRequests("MFA_429_TOO_MANY_ATTEMPTS".into()));
+            return Err(AppError::TooManyRequests(
+                "MFA_429_TOO_MANY_ATTEMPTS".into(),
+            ));
         }
 
         // 이미 MFA 활성화된 경우 에러
@@ -2015,7 +2498,8 @@ impl AuthService {
         }
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let email = crypto.decrypt(user_email_enc, "users.user_email")
+        let email = crypto
+            .decrypt(user_email_enc, "users.user_email")
             .unwrap_or_else(|_| format!("user_{}", user_id));
 
         // TOTP 비밀키 생성
@@ -2024,16 +2508,20 @@ impl AuthService {
 
         let totp = TOTP::new(
             Algorithm::SHA1,
-            6,      // digits
-            1,      // skew (±1 step = 90초 허용)
-            30,     // step (30초)
-            secret.to_bytes().map_err(|e| AppError::Internal(format!("TOTP secret error: {}", e)))?,
+            6,  // digits
+            1,  // skew (±1 step = 90초 허용)
+            30, // step (30초)
+            secret
+                .to_bytes()
+                .map_err(|e| AppError::Internal(format!("TOTP secret error: {}", e)))?,
             Some("AmazingKorean".to_string()),
             email.clone(),
-        ).map_err(|e| AppError::Internal(format!("TOTP creation error: {}", e)))?;
+        )
+        .map_err(|e| AppError::Internal(format!("TOTP creation error: {}", e)))?;
 
         // QR 코드 data URI 생성
-        let qr_code_data_uri = totp.get_qr_base64()
+        let qr_code_data_uri = totp
+            .get_qr_base64()
             .map_err(|e| AppError::Internal(format!("QR generation error: {}", e)))?;
 
         let otpauth_uri = totp.get_url();
@@ -2056,19 +2544,27 @@ impl AuthService {
         code: &str,
     ) -> AppResult<MfaVerifySetupRes> {
         // Rate limit: TOTP 6자리 brute-force 방지
-        let mut redis_conn = st.redis.get().await
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
         let rl_key = format!("rl:mfa_verify_setup:{}", user_id);
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_mfa_window_sec).await?;
+        let _: () = redis_conn
+            .expire(&rl_key, st.cfg.rate_limit_mfa_window_sec)
+            .await?;
         if attempts > st.cfg.rate_limit_mfa_max {
-            return Err(AppError::TooManyRequests("MFA_429_TOO_MANY_ATTEMPTS".into()));
+            return Err(AppError::TooManyRequests(
+                "MFA_429_TOO_MANY_ATTEMPTS".into(),
+            ));
         }
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
 
         // DB에서 MFA secret 조회 + 복호화
-        let encrypted_secret = AuthRepo::find_mfa_secret(&st.db, user_id).await?
+        let encrypted_secret = AuthRepo::find_mfa_secret(&st.db, user_id)
+            .await?
             .ok_or_else(|| AppError::BadRequest("MFA_SETUP_NOT_STARTED".into()))?;
         let secret_base32 = crypto.decrypt(&encrypted_secret, "users.user_mfa_secret")?;
 
@@ -2079,7 +2575,10 @@ impl AuthService {
         let totp = TOTP::new(Algorithm::SHA1, 6, 1, 30, secret_bytes, None, String::new())
             .map_err(|e| AppError::Internal(format!("TOTP creation error: {}", e)))?;
 
-        if !totp.check_current(code).map_err(|e| AppError::Internal(format!("TOTP check error: {}", e)))? {
+        if !totp
+            .check_current(code)
+            .map_err(|e| AppError::Internal(format!("TOTP check error: {}", e)))?
+        {
             return Err(AppError::Unauthorized("MFA_INVALID_CODE".into()));
         }
 
@@ -2091,8 +2590,11 @@ impl AuthService {
                     (0..8)
                         .map(|_| {
                             let idx: u32 = rng.gen_range(0..36);
-                            if idx < 10 { (b'0' + idx as u8) as char }
-                            else { (b'a' + (idx - 10) as u8) as char }
+                            if idx < 10 {
+                                (b'0' + idx as u8) as char
+                            } else {
+                                (b'a' + (idx - 10) as u8) as char
+                            }
                         })
                         .collect()
                 })
@@ -2100,14 +2602,15 @@ impl AuthService {
         };
 
         // 백업 코드 해시 → JSON → 암호화
-        let backup_hashes: Vec<String> = backup_codes.iter()
+        let backup_hashes: Vec<String> = backup_codes
+            .iter()
             .map(|c| {
                 let hash = Sha256::digest(c.as_bytes());
                 URL_SAFE_NO_PAD.encode(hash)
             })
             .collect();
-        let hashes_json = serde_json::to_string(&backup_hashes)
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let hashes_json =
+            serde_json::to_string(&backup_hashes).map_err(|e| AppError::Internal(e.to_string()))?;
         let encrypted_backup = crypto.encrypt(&hashes_json, "users.user_mfa_backup_codes")?;
 
         // MFA 활성화
@@ -2127,12 +2630,17 @@ impl AuthService {
         req: MfaLoginReq,
         login_ip: String,
     ) -> AppResult<(LoginRes, Cookie<'static>, i64, String)> {
-        let mut redis_conn = st.redis.get().await
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // [Step 1] Redis에서 MFA pending 데이터 조회 + 삭제 (일회용)
         let mfa_key = format!("ak:mfa_pending:{}", req.mfa_token);
-        let pending_json: Option<String> = redis_conn.get(&mfa_key).await
+        let pending_json: Option<String> = redis_conn
+            .get(&mfa_key)
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let Some(pending_json) = pending_json else {
@@ -2145,7 +2653,8 @@ impl AuthService {
         let pending: serde_json::Value = serde_json::from_str(&pending_json)
             .map_err(|e| AppError::Internal(format!("MFA pending parse error: {}", e)))?;
 
-        let user_id = pending["user_id"].as_i64()
+        let user_id = pending["user_id"]
+            .as_i64()
             .ok_or_else(|| AppError::Internal("MFA pending missing user_id".into()))?;
         let user_auth_str = pending["user_auth"].as_str().unwrap_or("Learner");
         let user_auth: UserAuth = match user_auth_str {
@@ -2159,19 +2668,27 @@ impl AuthService {
         let pending_device = pending["device"].as_str().unwrap_or("other").to_string();
         let pending_browser = pending["browser"].as_str().map(|s| s.to_string());
         let pending_os = pending["os"].as_str().map(|s| s.to_string());
-        let pending_method = pending["login_method"].as_str().unwrap_or("login").to_string();
+        let pending_method = pending["login_method"]
+            .as_str()
+            .unwrap_or("login")
+            .to_string();
 
         // [Step 2] Rate limit: MFA 코드 검증
         let rl_key = format!("rl:mfa:{}:{}", user_id, login_ip);
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_mfa_window_sec).await?;
+        let _: () = redis_conn
+            .expire(&rl_key, st.cfg.rate_limit_mfa_window_sec)
+            .await?;
         if attempts > st.cfg.rate_limit_mfa_max {
-            return Err(AppError::TooManyRequests("MFA_429_TOO_MANY_ATTEMPTS".into()));
+            return Err(AppError::TooManyRequests(
+                "MFA_429_TOO_MANY_ATTEMPTS".into(),
+            ));
         }
 
         // [Step 3] TOTP 코드 또는 백업 코드 검증
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let encrypted_secret = AuthRepo::find_mfa_secret(&st.db, user_id).await?
+        let encrypted_secret = AuthRepo::find_mfa_secret(&st.db, user_id)
+            .await?
             .ok_or_else(|| AppError::Internal("MFA secret not found".into()))?;
         let secret_base32 = crypto.decrypt(&encrypted_secret, "users.user_mfa_secret")?;
 
@@ -2209,8 +2726,15 @@ impl AuthService {
 
         // 세션 생성 (pending_method에 저장된 login_method 그대로 사용)
         let (login_res, cookie, ttl, refresh_token) = Self::create_oauth_session(
-            st, user_id, user_auth, &pending_method, pending_ip, pending_ua, parsed_ua,
-        ).await?;
+            st,
+            user_id,
+            user_auth,
+            &pending_method,
+            pending_ip,
+            pending_ua,
+            parsed_ua,
+        )
+        .await?;
         Ok((login_res, cookie, ttl, refresh_token))
     }
 
@@ -2234,17 +2758,24 @@ impl AuthService {
         let input_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(code.as_bytes()));
 
         // 매치하는 해시 찾기
-        if let Some(pos) = hashes.iter().position(|h| Self::constant_time_eq(h.as_bytes(), input_hash.as_bytes())) {
+        if let Some(pos) = hashes
+            .iter()
+            .position(|h| Self::constant_time_eq(h.as_bytes(), input_hash.as_bytes()))
+        {
             // 사용된 코드 제거
             hashes.remove(pos);
 
             // 갱신된 해시 목록 저장
-            let updated_json = serde_json::to_string(&hashes)
-                .map_err(|e| AppError::Internal(e.to_string()))?;
+            let updated_json =
+                serde_json::to_string(&hashes).map_err(|e| AppError::Internal(e.to_string()))?;
             let encrypted_updated = crypto.encrypt(&updated_json, "users.user_mfa_backup_codes")?;
             AuthRepo::update_mfa_backup_codes(&st.db, user_id, &encrypted_updated).await?;
 
-            info!("MFA backup code used for user {} ({} remaining)", user_id, hashes.len());
+            info!(
+                "MFA backup code used for user {} ({} remaining)",
+                user_id,
+                hashes.len()
+            );
             Ok(true)
         } else {
             Ok(false)
@@ -2259,13 +2790,18 @@ impl AuthService {
         target_user_id: i64,
     ) -> AppResult<MfaDisableRes> {
         // Rate limit: 반복 MFA 비활성화 시도 방지
-        let mut redis_conn = st.redis.get().await
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
         let rl_key = format!("rl:mfa_disable:{}", auth_user_id);
         let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
         let _: () = redis_conn.expire(&rl_key, 3600).await?; // 5회/1시간
         if attempts > 5 {
-            return Err(AppError::TooManyRequests("MFA_429_TOO_MANY_ATTEMPTS".into()));
+            return Err(AppError::TooManyRequests(
+                "MFA_429_TOO_MANY_ATTEMPTS".into(),
+            ));
         }
 
         // HYMN만 가능
@@ -2283,12 +2819,22 @@ impl AuthService {
 
         // 대상 사용자의 모든 세션 무효화 (보안)
         let mut tx = st.db.begin().await?;
-        let sessions = AuthRepo::find_user_sessions_with_refresh_tx(&mut tx, target_user_id).await?;
-        AuthRepo::update_login_state_by_user_tx(&mut tx, target_user_id, "revoked", Some("mfa_disabled")).await?;
+        let sessions =
+            AuthRepo::find_user_sessions_with_refresh_tx(&mut tx, target_user_id).await?;
+        AuthRepo::update_login_state_by_user_tx(
+            &mut tx,
+            target_user_id,
+            "revoked",
+            Some("mfa_disabled"),
+        )
+        .await?;
         tx.commit().await?;
 
         // Redis 세션 + 리프레시 토큰 일괄 정리 (단일 DEL 명령)
-        let mut redis_conn = st.redis.get().await
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
         let mut keys: Vec<String> = sessions
             .iter()
@@ -2302,10 +2848,16 @@ impl AuthService {
         keys.push(format!("ak:user_sessions:{}", target_user_id));
         let _: () = redis_conn.del(keys).await.unwrap_or(());
 
-        info!("MFA disabled for user {} by HYMN user {}", target_user_id, auth_user_id);
+        info!(
+            "MFA disabled for user {} by HYMN user {}",
+            target_user_id, auth_user_id
+        );
 
         Ok(MfaDisableRes {
-            message: format!("MFA disabled for user {}. All sessions invalidated.", target_user_id),
+            message: format!(
+                "MFA disabled for user {}. All sessions invalidated.",
+                target_user_id
+            ),
         })
     }
 }

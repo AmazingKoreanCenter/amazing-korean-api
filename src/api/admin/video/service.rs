@@ -2,7 +2,7 @@ use super::repo;
 use crate::api::admin::video::dto::{
     AdminVideoListReq, AdminVideoListRes, AdminVideoRes, Pagination, VideoBulkCreateReq,
     VideoBulkCreateRes, VideoBulkItemError, VideoBulkItemResult, VideoBulkSummary,
-    VideoBulkUpdateReq, VideoBulkUpdateRes, VideoBulkUpdateItemResult, VideoCreateReq,
+    VideoBulkUpdateItemResult, VideoBulkUpdateReq, VideoBulkUpdateRes, VideoCreateReq,
     VideoTagBulkUpdateReq, VideoTagUpdateReq, VideoUpdateReq, VimeoPreviewRes,
     VimeoUploadTicketReq, VimeoUploadTicketRes,
 };
@@ -197,14 +197,8 @@ pub async fn admin_create_video(
     let mut tx = st.db.begin().await?;
 
     // Repo 호출 시 변경된 변수명 전달
-    let created = repo::admin_create_video(
-        &mut tx,
-        actor_user_id,
-        &req,
-        &video_idx,
-        &tag_key,
-    )
-    .await;
+    let created =
+        repo::admin_create_video(&mut tx, actor_user_id, &req, &video_idx, &tag_key).await;
 
     let created = match created {
         Ok(val) => val,
@@ -387,7 +381,10 @@ pub async fn admin_list_videos(
     }
 
     let sort = req.sort.as_deref().unwrap_or("created_at");
-    if !matches!(sort, "id" | "created_at" | "views" | "title" | "video_state" | "video_access") {
+    if !matches!(
+        sort,
+        "id" | "created_at" | "views" | "title" | "video_state" | "video_access"
+    ) {
         return Err(AppError::Unprocessable("invalid sort".into()));
     }
 
@@ -562,8 +559,8 @@ pub async fn admin_bulk_update_videos(
                 }
             }
 
-            let updated = repo::admin_update_video(&mut tx, item.id, actor_user_id, &update_req)
-                .await;
+            let updated =
+                repo::admin_update_video(&mut tx, item.id, actor_user_id, &update_req).await;
 
             let updated = match updated {
                 Ok(val) => val,
@@ -726,8 +723,8 @@ pub async fn admin_bulk_update_video_tags(
                 }
             }
 
-            let updated = repo::admin_update_video(&mut tx, item.id, actor_user_id, &update_req)
-                .await;
+            let updated =
+                repo::admin_update_video(&mut tx, item.id, actor_user_id, &update_req).await;
 
             let updated = match updated {
                 Ok(val) => val,

@@ -42,16 +42,16 @@ struct AppleJwk {
 #[derive(Debug, Deserialize)]
 pub struct AppleIdTokenClaims {
     #[allow(dead_code)]
-    pub iss: String,                       // "https://appleid.apple.com" (jsonwebtoken이 검증)
+    pub iss: String, // "https://appleid.apple.com" (jsonwebtoken이 검증)
     #[allow(dead_code)]
-    pub aud: String,                       // audience (Bundle ID) (jsonwebtoken이 검증)
-    pub sub: String,                       // Apple 고유 사용자 ID (team별 안정적, 고유)
-    pub email: Option<String>,             // 최초 인증에만 제공!
-    pub email_verified: Option<String>,    // Apple은 bool이 아닌 "true"/"false" 문자열
+    pub aud: String, // audience (Bundle ID) (jsonwebtoken이 검증)
+    pub sub: String,                    // Apple 고유 사용자 ID (team별 안정적, 고유)
+    pub email: Option<String>,          // 최초 인증에만 제공!
+    pub email_verified: Option<String>, // Apple은 bool이 아닌 "true"/"false" 문자열
     #[allow(dead_code)]
     pub iat: i64,
     #[allow(dead_code)]
-    pub exp: i64,                          // jsonwebtoken이 검증
+    pub exp: i64, // jsonwebtoken이 검증
 }
 
 impl AppleOAuthClient {
@@ -75,7 +75,8 @@ impl AppleOAuthClient {
         }
 
         // Cache miss — JWKS 전체를 가져와 캐시에 모두 적재.
-        let jwks: AppleJwks = self.client
+        let jwks: AppleJwks = self
+            .client
             .get(APPLE_JWKS_URL)
             .send()
             .await
@@ -93,11 +94,14 @@ impl AppleOAuthClient {
         }
         for jwk in &jwks.keys {
             let decoding_key = jsonwebtoken::DecodingKey::from_rsa_components(&jwk.n, &jwk.e)
-                .map_err(|e| AppError::External(format!("Failed to create Apple decoding key: {}", e)))?;
+                .map_err(|e| {
+                    AppError::External(format!("Failed to create Apple decoding key: {}", e))
+                })?;
             cache.insert(jwk.kid.clone(), decoding_key);
         }
 
-        cache.get(kid)
+        cache
+            .get(kid)
             .cloned()
             .ok_or_else(|| AppError::External("No matching key found in Apple JWKS".into()))
     }
@@ -108,7 +112,8 @@ impl AppleOAuthClient {
         let header = jsonwebtoken::decode_header(id_token)
             .map_err(|e| AppError::External(format!("Invalid Apple ID token header: {}", e)))?;
 
-        let kid = header.kid
+        let kid = header
+            .kid
             .ok_or_else(|| AppError::External("Apple ID token missing kid in header".into()))?;
 
         // 캐시 우선 조회, miss 면 JWKS 1회 fetch + 전체 적재
@@ -120,15 +125,22 @@ impl AppleOAuthClient {
         validation.set_audience(&[&self.client_id]);
 
         // 서명 검증 + 디코딩
-        let token_data = jsonwebtoken::decode::<AppleIdTokenClaims>(id_token, &decoding_key, &validation)
-            .map_err(|e| AppError::External(format!("Apple ID token verification failed: {}", e)))?;
+        let token_data =
+            jsonwebtoken::decode::<AppleIdTokenClaims>(id_token, &decoding_key, &validation)
+                .map_err(|e| {
+                    AppError::External(format!("Apple ID token verification failed: {}", e))
+                })?;
 
         Ok(token_data.claims)
     }
 
     /// Claims에서 OAuthUserInfo 추출
     /// user_name: 클라이언트가 캐싱한 이름 (Apple은 최초에만 제공)
-    pub fn extract_user_info(&self, claims: &AppleIdTokenClaims, user_name: Option<String>) -> OAuthUserInfo {
+    pub fn extract_user_info(
+        &self,
+        claims: &AppleIdTokenClaims,
+        user_name: Option<String>,
+    ) -> OAuthUserInfo {
         let email_verified = claims.email_verified.as_deref() == Some("true");
 
         OAuthUserInfo {

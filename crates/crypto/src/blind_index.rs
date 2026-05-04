@@ -36,8 +36,7 @@ fn compute_hmac(key: &[u8; 32], input: &str) -> CryptoResult<String> {
 
     let mut hex_string = String::with_capacity(64);
     for byte in result {
-        write!(&mut hex_string, "{:02x}", byte)
-            .expect("Writing to String should not fail");
+        write!(&mut hex_string, "{:02x}", byte).expect("Writing to String should not fail");
     }
 
     Ok(hex_string)

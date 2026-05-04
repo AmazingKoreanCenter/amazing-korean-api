@@ -12,14 +12,17 @@
 use std::time::Duration;
 
 use amazing_korean_api::config::Config;
-use amazing_korean_api::crypto::{CryptoService, KeyRing};
 use amazing_korean_api::crypto::cipher;
+use amazing_korean_api::crypto::{CryptoService, KeyRing};
 use clap::Parser;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{PgPool, Row};
 
 #[derive(Parser)]
-#[command(name = "rekey_encryption", about = "Re-encrypt data with the latest key version")]
+#[command(
+    name = "rekey_encryption",
+    about = "Re-encrypt data with the latest key version"
+)]
 struct Args {
     /// Check mode: report version distribution per column
     #[arg(long)]
@@ -55,32 +58,56 @@ fn rekey_targets() -> Vec<RekeyTarget> {
             table: "users",
             pk: "user_id",
             columns: vec![
-                RekeyColumn { name: "user_email", aad: "users.user_email", strict: true },
-                RekeyColumn { name: "user_name", aad: "users.user_name", strict: true },
-                RekeyColumn { name: "user_birthday", aad: "users.user_birthday", strict: true },
+                RekeyColumn {
+                    name: "user_email",
+                    aad: "users.user_email",
+                    strict: true,
+                },
+                RekeyColumn {
+                    name: "user_name",
+                    aad: "users.user_name",
+                    strict: true,
+                },
+                RekeyColumn {
+                    name: "user_birthday",
+                    aad: "users.user_birthday",
+                    strict: true,
+                },
             ],
         },
         RekeyTarget {
             table: "user_oauth",
             pk: "oauth_id",
             columns: vec![
-                RekeyColumn { name: "oauth_email", aad: "user_oauth.oauth_email", strict: false },
-                RekeyColumn { name: "oauth_subject", aad: "user_oauth.oauth_subject", strict: true },
+                RekeyColumn {
+                    name: "oauth_email",
+                    aad: "user_oauth.oauth_email",
+                    strict: false,
+                },
+                RekeyColumn {
+                    name: "oauth_subject",
+                    aad: "user_oauth.oauth_subject",
+                    strict: true,
+                },
             ],
         },
         RekeyTarget {
             table: "login",
             pk: "login_id",
-            columns: vec![
-                RekeyColumn { name: "login_ip", aad: "login.login_ip", strict: true },
-            ],
+            columns: vec![RekeyColumn {
+                name: "login_ip",
+                aad: "login.login_ip",
+                strict: true,
+            }],
         },
         RekeyTarget {
             table: "login_log",
             pk: "login_log_id",
-            columns: vec![
-                RekeyColumn { name: "login_ip_log", aad: "login_log.login_ip_log", strict: false },
-            ],
+            columns: vec![RekeyColumn {
+                name: "login_ip_log",
+                aad: "login_log.login_ip_log",
+                strict: false,
+            }],
         },
         // admin_action_log는 Phase 3 완료 후 추가 (현재 INET→TEXT 마이그레이션 전)
     ]
@@ -125,7 +152,8 @@ async fn run_check(pool: &PgPool, ring: &KeyRing) -> anyhow::Result<()> {
             );
             let rows: Vec<(String,)> = sqlx::query_as(&query).fetch_all(pool).await?;
 
-            let mut version_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+            let mut version_counts: std::collections::HashMap<String, usize> =
+                std::collections::HashMap::new();
             let mut non_enc_count = 0usize;
 
             for (val,) in &rows {
@@ -172,8 +200,10 @@ async fn run_verify(pool: &PgPool, ring: &KeyRing) -> anyhow::Result<()> {
                 let non_enc: (i64,) = sqlx::query_as(&non_enc_query).fetch_one(pool).await?;
 
                 if non_enc.0 > 0 {
-                    println!("[FAIL] {}.{} (strict): {} rows without enc prefix (plaintext/corrupted)",
-                        target.table, col.name, non_enc.0);
+                    println!(
+                        "[FAIL] {}.{} (strict): {} rows without enc prefix (plaintext/corrupted)",
+                        target.table, col.name, non_enc.0
+                    );
                     all_ok = false;
                 }
 
@@ -184,11 +214,16 @@ async fn run_verify(pool: &PgPool, ring: &KeyRing) -> anyhow::Result<()> {
                 let old_ver: (i64,) = sqlx::query_as(&old_ver_query).fetch_one(pool).await?;
 
                 if old_ver.0 > 0 {
-                    println!("[FAIL] {}.{} (strict): {} rows with old version (not v{})",
-                        target.table, col.name, old_ver.0, current);
+                    println!(
+                        "[FAIL] {}.{} (strict): {} rows with old version (not v{})",
+                        target.table, col.name, old_ver.0, current
+                    );
                     all_ok = false;
                 } else {
-                    println!("[OK]   {}.{} (strict): all rows are v{}", target.table, col.name, current);
+                    println!(
+                        "[OK]   {}.{} (strict): all rows are v{}",
+                        target.table, col.name, current
+                    );
                 }
             } else {
                 // Loose: enc prefix인 값만 대상으로 구버전 0건
@@ -199,11 +234,16 @@ async fn run_verify(pool: &PgPool, ring: &KeyRing) -> anyhow::Result<()> {
                 let old_ver: (i64,) = sqlx::query_as(&old_ver_query).fetch_one(pool).await?;
 
                 if old_ver.0 > 0 {
-                    println!("[FAIL] {}.{} (loose): {} encrypted rows with old version (not v{})",
-                        target.table, col.name, old_ver.0, current);
+                    println!(
+                        "[FAIL] {}.{} (loose): {} encrypted rows with old version (not v{})",
+                        target.table, col.name, old_ver.0, current
+                    );
                     all_ok = false;
                 } else {
-                    println!("[OK]   {}.{} (loose): no old-version encrypted rows", target.table, col.name);
+                    println!(
+                        "[OK]   {}.{} (loose): no old-version encrypted rows",
+                        target.table, col.name
+                    );
                 }
             }
         }
@@ -212,8 +252,8 @@ async fn run_verify(pool: &PgPool, ring: &KeyRing) -> anyhow::Result<()> {
     // 랜덤 5행 샘플 decrypt 테스트
     println!("\n--- Sample Decrypt Test ---");
     let crypto = CryptoService::new(ring, &[0u8; 32]); // hmac_key 불필요 (decrypt만)
-    // Note: CryptoService에서 blind_index는 사용하지 않으므로 더미 hmac_key OK
-    // 실제로는 Config에서 가져온 hmac_key를 사용하지만, rekey에서는 decrypt만 하므로 무관
+                                                       // Note: CryptoService에서 blind_index는 사용하지 않으므로 더미 hmac_key OK
+                                                       // 실제로는 Config에서 가져온 hmac_key를 사용하지만, rekey에서는 decrypt만 하므로 무관
 
     for target in rekey_targets() {
         for col in &target.columns {
@@ -233,10 +273,16 @@ async fn run_verify(pool: &PgPool, ring: &KeyRing) -> anyhow::Result<()> {
                         } else {
                             "***".to_string()
                         };
-                        println!("[OK]   {}.{} pk={}: decrypted → {}", target.table, col.name, pk, masked);
+                        println!(
+                            "[OK]   {}.{} pk={}: decrypted → {}",
+                            target.table, col.name, pk, masked
+                        );
                     }
                     Err(e) => {
-                        println!("[FAIL] {}.{} pk={}: decrypt error: {}", target.table, col.name, pk, e);
+                        println!(
+                            "[FAIL] {}.{} pk={}: decrypt error: {}",
+                            target.table, col.name, pk, e
+                        );
                         all_ok = false;
                     }
                 }
@@ -245,7 +291,10 @@ async fn run_verify(pool: &PgPool, ring: &KeyRing) -> anyhow::Result<()> {
     }
 
     if all_ok {
-        println!("\n✅ Verification PASSED — all data is v{}", ring.current_version());
+        println!(
+            "\n✅ Verification PASSED — all data is v{}",
+            ring.current_version()
+        );
     } else {
         println!("\n❌ Verification FAILED — see errors above");
         std::process::exit(1);
@@ -255,7 +304,12 @@ async fn run_verify(pool: &PgPool, ring: &KeyRing) -> anyhow::Result<()> {
 }
 
 /// 재암호화 실행: 구버전 → 현재 버전
-async fn run_rekey(pool: &PgPool, ring: &KeyRing, hmac_key: &[u8; 32], batch_size: i64) -> anyhow::Result<()> {
+async fn run_rekey(
+    pool: &PgPool,
+    ring: &KeyRing,
+    hmac_key: &[u8; 32],
+    batch_size: i64,
+) -> anyhow::Result<()> {
     let current = ring.current_version();
     let crypto = CryptoService::new(ring, hmac_key);
 
@@ -273,10 +327,14 @@ async fn run_rekey(pool: &PgPool, ring: &KeyRing, hmac_key: &[u8; 32], batch_siz
     });
 
     for target in rekey_targets() {
-        if !running.load(std::sync::atomic::Ordering::SeqCst) { break; }
+        if !running.load(std::sync::atomic::Ordering::SeqCst) {
+            break;
+        }
 
         for col in &target.columns {
-            if !running.load(std::sync::atomic::Ordering::SeqCst) { break; }
+            if !running.load(std::sync::atomic::Ordering::SeqCst) {
+                break;
+            }
 
             println!("--- {}.{} ---", target.table, col.name);
             let mut total_rekeyed = 0u64;
@@ -298,8 +356,14 @@ async fn run_rekey(pool: &PgPool, ring: &KeyRing, hmac_key: &[u8; 32], batch_siz
                 );
 
                 // lock_timeout, statement_timeout 설정
-                sqlx::query("SET LOCAL lock_timeout = '5s'").execute(pool).await.ok();
-                sqlx::query("SET LOCAL statement_timeout = '30s'").execute(pool).await.ok();
+                sqlx::query("SET LOCAL lock_timeout = '5s'")
+                    .execute(pool)
+                    .await
+                    .ok();
+                sqlx::query("SET LOCAL statement_timeout = '30s'")
+                    .execute(pool)
+                    .await
+                    .ok();
 
                 let rows = sqlx::query(&select_query)
                     .bind(last_pk)
@@ -307,7 +371,9 @@ async fn run_rekey(pool: &PgPool, ring: &KeyRing, hmac_key: &[u8; 32], batch_siz
                     .fetch_all(pool)
                     .await?;
 
-                if rows.is_empty() { break; }
+                if rows.is_empty() {
+                    break;
+                }
 
                 let batch_count = rows.len();
 
@@ -320,7 +386,10 @@ async fn run_rekey(pool: &PgPool, ring: &KeyRing, hmac_key: &[u8; 32], batch_siz
                     let plaintext = match crypto.decrypt(old_val, col.aad) {
                         Ok(p) => p,
                         Err(e) => {
-                            eprintln!("  [SKIP] {}.{} pk={}: decrypt failed: {}", target.table, col.name, pk, e);
+                            eprintln!(
+                                "  [SKIP] {}.{} pk={}: decrypt failed: {}",
+                                target.table, col.name, pk, e
+                            );
                             continue;
                         }
                     };
@@ -329,7 +398,9 @@ async fn run_rekey(pool: &PgPool, ring: &KeyRing, hmac_key: &[u8; 32], batch_siz
 
                     let update_query = format!(
                         "UPDATE {table} SET {col} = $1 WHERE {pk} = $2",
-                        table = target.table, col = col.name, pk = target.pk,
+                        table = target.table,
+                        col = col.name,
+                        pk = target.pk,
                     );
                     sqlx::query(&update_query)
                         .bind(&new_val)
@@ -339,13 +410,19 @@ async fn run_rekey(pool: &PgPool, ring: &KeyRing, hmac_key: &[u8; 32], batch_siz
                 }
 
                 total_rekeyed += batch_count as u64;
-                print!("  Rekeyed {} rows (total: {})\r", batch_count, total_rekeyed);
+                print!(
+                    "  Rekeyed {} rows (total: {})\r",
+                    batch_count, total_rekeyed
+                );
 
                 // Throttle
                 tokio::time::sleep(Duration::from_millis(100)).await;
             }
 
-            println!("  {}.{}: {} rows rekeyed", target.table, col.name, total_rekeyed);
+            println!(
+                "  {}.{}: {} rows rekeyed",
+                target.table, col.name, total_rekeyed
+            );
         }
     }
 

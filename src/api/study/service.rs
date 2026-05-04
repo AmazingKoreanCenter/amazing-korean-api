@@ -6,7 +6,9 @@ use crate::api::admin::translation::repo::TranslationRepo;
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
-use crate::types::{ContentType, StudyProgram, StudyTaskKind, StudyTaskLogAction, SupportedLanguage};
+use crate::types::{
+    ContentType, StudyProgram, StudyTaskKind, StudyTaskLogAction, SupportedLanguage,
+};
 
 // [Strict Mode] Import DTOs and Repo directly from the verified files
 use super::dto::{
@@ -293,8 +295,7 @@ impl StudyService {
                             // 가 빈 문자열이니 번역 대상 아님.
                             if !slot.is_empty() {
                                 requested += 1;
-                                if let Some(t) =
-                                    translations.get(&(content_id, field.to_string()))
+                                if let Some(t) = translations.get(&(content_id, field.to_string()))
                                 {
                                     *slot = t.text.clone();
                                     t.count_to(user_lang, &mut translated, &mut fallback);
@@ -768,12 +769,9 @@ impl StudyService {
 
         let (total_sessions, avg_accuracy, avg_cpm) =
             StudyRepo::writing_stats_overall(&st.db, claims.sub, days).await?;
-        let level_breakdown =
-            StudyRepo::writing_stats_by_level(&st.db, claims.sub, days).await?;
-        let recent_trend =
-            StudyRepo::writing_stats_daily(&st.db, claims.sub, days).await?;
-        let weak_chars =
-            StudyRepo::writing_stats_weak_chars(&st.db, claims.sub, days, 10).await?;
+        let level_breakdown = StudyRepo::writing_stats_by_level(&st.db, claims.sub, days).await?;
+        let recent_trend = StudyRepo::writing_stats_daily(&st.db, claims.sub, days).await?;
+        let weak_chars = StudyRepo::writing_stats_weak_chars(&st.db, claims.sub, days, 10).await?;
 
         Ok(WritingStatsRes {
             total_sessions,
@@ -802,9 +800,13 @@ impl StudyService {
             return Err(AppError::Unprocessable("limit must be <= 100".into()));
         }
 
-        let items =
-            StudyRepo::list_writing_practice_seed(&st.db, req.level, req.practice_type, i64::from(limit))
-                .await?;
+        let items = StudyRepo::list_writing_practice_seed(
+            &st.db,
+            req.level,
+            req.practice_type,
+            i64::from(limit),
+        )
+        .await?;
 
         Ok(WritingPracticeSeedRes {
             level: req.level,
@@ -823,7 +825,6 @@ fn content_type_for_task_kind(kind: StudyTaskKind) -> ContentType {
         StudyTaskKind::Writing => ContentType::StudyTaskWriting,
     }
 }
-
 
 fn parse_study_program(value: &str) -> Option<StudyProgram> {
     match value {

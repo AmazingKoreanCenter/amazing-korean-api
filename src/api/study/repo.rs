@@ -40,13 +40,13 @@ struct StudyTaskDetailRow {
 
     // Common
     question: Option<String>,
-    
+
     // Choice
     choice_1: Option<String>,
     choice_2: Option<String>,
     choice_3: Option<String>,
     choice_4: Option<String>,
-    choice_audio_url: Option<String>, 
+    choice_audio_url: Option<String>,
     choice_image_url: Option<String>,
 
     // Typing
@@ -150,10 +150,7 @@ impl StudyRepo {
             qb_count.push(" AND study_program = ").push_bind(program);
         }
 
-        let count: i64 = qb_count
-            .build_query_scalar()
-            .fetch_one(pool)
-            .await?;
+        let count: i64 = qb_count.build_query_scalar().fetch_one(pool).await?;
 
         // ---------------------------------------------------------
         // B. List Query
@@ -180,8 +177,9 @@ impl StudyRepo {
         match sort {
             StudyListSort::Latest => qb_list.push(" ORDER BY study_created_at DESC"),
             StudyListSort::Oldest => qb_list.push(" ORDER BY study_created_at ASC"),
-            StudyListSort::Alphabetical => qb_list
-                .push(" ORDER BY study_title ASC NULLS LAST, study_idx ASC"),
+            StudyListSort::Alphabetical => {
+                qb_list.push(" ORDER BY study_title ASC NULLS LAST, study_idx ASC")
+            }
         };
 
         let offset = (i64::from(page) - 1) * i64::from(per_page);
@@ -232,12 +230,10 @@ impl StudyRepo {
         per_page: u32,
     ) -> AppResult<(Vec<StudyTaskSummaryDto>, i64)> {
         // Count
-        let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM study_task WHERE study_id = $1",
-        )
-        .bind(study_id)
-        .fetch_one(pool)
-        .await?;
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM study_task WHERE study_id = $1")
+            .bind(study_id)
+            .fetch_one(pool)
+            .await?;
 
         // List
         let offset = (i64::from(page) - 1) * i64::from(per_page);
@@ -266,10 +262,7 @@ impl StudyRepo {
     // 2. Submit & Grading
     // =========================================================================
 
-    pub async fn find_answer_key(
-        pool: &PgPool,
-        task_id: i32,
-    ) -> AppResult<Option<AnswerKeyDto>> {
+    pub async fn find_answer_key(pool: &PgPool, task_id: i32) -> AppResult<Option<AnswerKeyDto>> {
         #[derive(sqlx::FromRow)]
         struct AnswerKeyRow {
             kind: StudyTaskKind,
@@ -764,9 +757,8 @@ impl StudyRepo {
         let finished_only = req.finished_only.unwrap_or(false);
 
         // Count
-        let mut qb_count = QueryBuilder::new(
-            "SELECT COUNT(*) FROM writing_practice_session WHERE user_id = ",
-        );
+        let mut qb_count =
+            QueryBuilder::new("SELECT COUNT(*) FROM writing_practice_session WHERE user_id = ");
         qb_count.push_bind(user_id);
         if let Some(level) = req.level {
             qb_count.push(" AND writing_level = ").push_bind(level);
@@ -775,10 +767,7 @@ impl StudyRepo {
             qb_count.push(" AND finished_at IS NOT NULL");
         }
 
-        let total: i64 = qb_count
-            .build_query_scalar()
-            .fetch_one(pool)
-            .await?;
+        let total: i64 = qb_count.build_query_scalar().fetch_one(pool).await?;
 
         // List
         let mut qb = QueryBuilder::new(

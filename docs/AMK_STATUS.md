@@ -166,18 +166,20 @@
 - ~~**#67 Phase 2~5 일괄 전환**~~ — 2026-04-23 ✅ **완료** (D+8 예정 대비 1일 앞당김. 데스크탑은 별도 PR 진행 중)
 - **Q14 — e-book 페이지 이미지 EC2 업로드** (2026-05-03 결정, 사용자 트리거 대기): books-api-bridge plan §3 Stage 2 #3-B. books 측 `dist/ebook_pages/` (8,928 페이지 / 693MB / 36 lang × 2 edition) → EC2 `${EBOOK_PAGE_IMAGES_DIR}` 동기화. 정책 = RDS 이전 전까지 EC2 local fs (RDS 이전 시 S3 + Q9 ebook fs::read 9곳 전환과 함께 통합 전환). 의존: 사용자 → EC2 디스크 여유 확인 (`df -h`) + books 측 동기화 스크립트 작성 (rsync 또는 `aws s3 sync`). 시간 추정: 인프라 결정 + 스크립트 반나절 + 업로드 30분. 정책 본문: [`AMK_API_EBOOK.md` "페이지 이미지 저장 위치 정책"](./AMK_API_EBOOK.md). 운영 모니터링: [`AMK_DEPLOY_OPS.md §6`](./AMK_DEPLOY_OPS.md) + 본 문서 §8.4 #8.
 - **Q15 — E-book 보안 옵션 A (행동 기반 봇 탐지)** (2026-05-03 권고, 사용자 트리거 대기): 네이버웹툰 TOONRADER 2025~2026 고도화 벤치마크 분석 결과 우리 시스템에서 가장 명확한 격차 = **자동화 탐지 부재**. 작업 = (1) 다중 IP/UA 동시 접속 감지 (Redis 세션 메타 확장) → 강제 종료 + 알림, (2) 페이지 요청 간격 통계 (<1s 빈발 → 봇 의심 카운터), (3) 헤드리스 시그널 (`navigator.webdriver` + WebGL/canvas 핑거프린트). 시간 추정 1~2일, 기존 Rate Limit/세션 인프라 재사용. 옵션 B (외부 모니터링) 는 1인 운영 한계로 보류, 옵션 C (AI 매칭) 는 콘텐츠 규모 대비 과투자로 비권장. 본문 SSoT: [`AMK_EBOOK_SECURITY.md` §2.5 + §4 Phase 1-6](./AMK_EBOOK_SECURITY.md).
+- **Q16 — Frontend lint + lint:ui baseline cleanup** (2026-05-04 발견 + 확장, 사용자 트리거 대기): PR-check workflow (`pr-check.yml`) 도입 시 main baseline 의 누적 위반 36건 검출. **합계 = ESLint 27 errors + lint:ui 9 errors**. (a) **ESLint 27건**: 대부분 `react-refresh/only-export-components` (shadcn/ui 컴포넌트 + variants 같은 파일 export 패턴이 새 plugin 룰과 충돌). 일부 `react-hooks/set-state-in-effect`, `react-hooks/incompatible-library`, `prefer-const`. 작업 = shadcn 컴포넌트 파일 분할 (예: `button.tsx` → `button.tsx` + `button-variants.ts`) + react-hooks 룰 위반 useEffect 리팩터 + prefer-const 1건. (b) **lint:ui 9건 (하드코딩 색상)**: `textbook_order_page.tsx` 4곳 / `receipt_parts.tsx` 1곳 / `book_hub_page.tsx` 4곳 / `HangulKeyboardKey.tsx` 1곳. 색상 = emerald/amber/rose/teal/red. 작업 = 디자인 토큰 결정 (예: 결제수단·할인·학습단계·destructive 별 시맨틱 토큰) + 9곳 코드 교체. 시간 추정 1-2일 (디자인 결정 0.5일 + 전수 수정 0.5-1일 + 회귀 테스트). 임시 조치 (PR #205) = pr-check.yml 의 `npm run lint` + `npm run lint:ui` 둘 다 `continue-on-error: true`. 본 작업 완료 후 둘 다 제거.
+- **Q17 — Backend cargo test + Frontend playwright e2e CI 도입 검토** (2026-05-04 식별, 보류): 두 검사 모두 **도입됐으나 자동 강제 안 되는 dormant 정책** (lint/lint:ui 와 같은 패턴). cargo test = 테스트 코드 일부 존재 (`cargo test --no-run` 통과 확인), 실행은 PostgreSQL 의존 → CI 환경에 postgres service container 셋업 필요. playwright e2e (`npm run test:e2e`) = 한글 자판 P10-C 시점 도입 (`ae1d624`), 시나리오/대상 미확인, 브라우저 런타임 + CI 분 사용 큼. 두 항목 모두 baseline 미검증 + 셋업 비용 큼 → 별도 트랙. 우선순위 = Q16 완료 후 검토. 도입 시 pr-check.yml 별도 job 으로 추가.
 
 #### 검증된 리스크 (2026-03-31 코드베이스 팩트체크 완료)
 
 | 작업 | 리스크 | 심각도 | 근거 |
 |------|--------|:------:|------|
-| Paddle Live | 12개 PADDLE_* Secret 일괄 교체 (누락 시 결제 실패) | CRITICAL | deploy.yml:87-98 |
-| Paddle Live | Webhook Secret 1회성 (재확인 불가) | CRITICAL | AMK_DEPLOY_OPS.md:819 |
-| Paddle Live | KYB/Onfido 인증 지연 가능 | HIGH | AMK_DEPLOY_OPS.md:781 |
-| Paddle Live | SPF 레코드 병합 (Resend + Cloudflare) | MEDIUM | AMK_DEPLOY_OPS.md:857 |
-| RDS 이전 | E-book 로컬 파일시스템 의존 (9곳 fs read) | CRITICAL | ebook/service.rs:51,261,502,516,525,605,620,629 + watermark.rs:13 |
-| RDS 이전 | SSL 연결 필수 (현재 미사용) | HIGH | config.rs:97 (localhost 기본값) |
-| RDS 이전 | ElastiCache AUTH 토큰 필요 (현재 인증 없음) | HIGH | config.rs:101 (redis://127.0.0.1:6379) |
+| Paddle Live | 12개 PADDLE_* Secret 일괄 교체 (누락 시 결제 실패) | CRITICAL | deploy.yml:92-103 (HEAD 2026-05-04) |
+| Paddle Live | Webhook Secret 1회성 (재확인 불가) | CRITICAL | AMK_DEPLOY_OPS.md:985 |
+| Paddle Live | KYB/Onfido 인증 지연 가능 | HIGH | AMK_DEPLOY_OPS.md:947 |
+| Paddle Live | SPF 레코드 병합 (Resend + Cloudflare) | MEDIUM | AMK_DEPLOY_OPS.md:1023 |
+| RDS 이전 | E-book 로컬 파일시스템 의존 (9곳 fs read) | CRITICAL | ebook/service.rs:63,381,627,641,650,731,746,755 + watermark.rs:13 (HEAD 2026-05-04) |
+| RDS 이전 | SSL 연결 필수 (현재 미사용) | HIGH | config.rs:109-110 (DATABASE_URL localhost 기본값) |
+| RDS 이전 | ElastiCache AUTH 토큰 필요 (현재 인증 없음) | HIGH | config.rs:113 (redis://127.0.0.1:6379) |
 | ~~동시 세션~~ | ~~제한 로직 미구현~~ ✅ 구현 완료 | — | enforce_session_limit() — SCARD + 유령 정리 + 역할별 정책 |
 | ~~모바일 인증~~ | ~~login-mobile/refresh-mobile~~ ✅ 구현 완료 | — | auth/router.rs, handler.rs |
 | ~~모바일 인증~~ | ~~X-Platform 헤더 검증~~ ✅ refresh-mobile에 적용 | — | auth/handler.rs:refresh_mobile |
@@ -186,7 +188,7 @@
 | Flutter | E-book 뷰어 메모리 OOM (14MB/페이지) | HIGH | AMK_APP_ROADMAP.md R7 |
 | ~~Flutter~~ | ~~IAP receipt 검증 엔드포인트~~ ✅ 구현 완료 | — | POST /ebook/purchase/iap + POST /payment/webhook/revenuecat |
 | Flutter | iOS isSecureTextEntry 비공식 API | MEDIUM | AMK_APP_ROADMAP.md R2 |
-| Flutter | 앱 백그라운드 시 세션 만료 (TTL 90초) | MEDIUM | config.rs:325 |
+| Flutter | 앱 백그라운드 시 세션 만료 (TTL 90초) | MEDIUM | config.rs:91 (선언) + 375-378 (env 파싱) — `EBOOK_SESSION_TTL_SEC` |
 | Tauri | macOS 캡처 방지 불가 (Apple 정책) | MEDIUM | AMK_APP_ROADMAP.md R5 (수용) |
 
 > **팩트체크 방법**: 코드베이스 전수 grep + 파일별 라인 검증. 총 32개 주장 중 31개 확인, 1개 수정 (Secret 13→12개).
@@ -200,7 +202,7 @@
 | 10 | step-up MFA | 보안 | 민감 작업 시 추가 인증 요구 | 결제/비밀번호 변경 시 보안 강화 | 필요 시 |
 | 11 | ~~이메일 수신~~ | ~~외부 API~~ | ~~`support@amazingkorean.net` 수신~~ | ~~사용자 문의 처리~~ | ✅ Cloudflare Email Routing 설정 완료 (→ Gmail 포워딩) |
 | 12 | 토큰 Redis 캐싱 | 보안 | 재발급 시 DB 조회 → Redis 캐시 | 동시 접속 성능 개선 | 동시접속 10K+ |
-| 13 | enum sqlx::Type 전환 | 코드 품질 | 수동 match → `#[sqlx(type_name)]` derive | 보일러플레이트 감소 | 일괄 전환 시점 검토 |
+| ~~13~~ | ~~enum sqlx::Type 전환~~ | ~~코드 품질~~ | ~~수동 match → `#[sqlx(type_name)]` derive~~ | ~~보일러플레이트 감소~~ | ✅ **2026-05-04 검증 결과 이미 전환 완료** — `src/types.rs` 에 `#[sqlx(type_name = ...)]` 36건 적용. AMK_DEBTS C5 와 함께 해결 등재 |
 | 14 | Keyset 페이징 | 기능 | page/size → keyset pagination | 대용량 테이블 성능 개선 | 데이터 1만 건+ |
 | 15 | Lesson 통계 | 기능 | `/admin/lessons/stats` 구현 | 수업별 진행도 분석 | 필요 시 |
 | 16 | 학습 문제 동적 생성 | 기능 | 커리큘럼 기반 문제 자동 생성/전달 | 학습 콘텐츠 확장 | 커리큘럼 완비 후 |

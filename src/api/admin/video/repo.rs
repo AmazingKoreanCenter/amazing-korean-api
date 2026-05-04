@@ -1,8 +1,10 @@
-use crate::api::admin::video::dto::{AdminVideoRes, VideoAccess, VideoCreateReq, VideoState, VideoUpdateReq};
-use std::str::FromStr;
+use crate::api::admin::video::dto::{
+    AdminVideoRes, VideoAccess, VideoCreateReq, VideoState, VideoUpdateReq,
+};
 use crate::error::AppResult;
 use serde_json::Value;
-use sqlx::{PgPool, Postgres, QueryBuilder, Transaction, Row}; // [수정] Row 추가
+use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
+use std::str::FromStr; // [수정] Row 추가
 
 pub async fn admin_list_videos(
     pool: &PgPool,
@@ -19,9 +21,9 @@ pub async fn admin_list_videos(
         "SELECT COUNT(DISTINCT v.video_id) 
          FROM video v
          LEFT JOIN video_tag_map m ON v.video_id = m.video_id
-         LEFT JOIN video_tag t ON m.video_tag_id = t.video_tag_id"
+         LEFT JOIN video_tag t ON m.video_tag_id = t.video_tag_id",
     );
-    
+
     if let Some(ref search) = search {
         count_builder.push(" WHERE (LOWER(t.video_tag_title) LIKE ");
         count_builder.push_bind(search);
@@ -66,7 +68,7 @@ pub async fn admin_list_videos(
             FROM video_stat_daily
             GROUP BY video_id
         ) stats ON stats.video_id = v.video_id
-        "#
+        "#,
     );
 
     if let Some(ref search) = search {
@@ -101,10 +103,7 @@ pub async fn admin_list_videos(
     list_builder.push(" OFFSET ");
     list_builder.push_bind((page - 1) * size);
 
-    let rows = list_builder
-        .build()
-        .fetch_all(pool)
-        .await?;
+    let rows = list_builder.build().fetch_all(pool).await?;
 
     let items: Vec<AdminVideoRes> = rows
         .into_iter()
@@ -342,7 +341,7 @@ pub async fn admin_create_video(
         updated_by_user_id: Some(actor_user_id),
         created_at,
         updated_at,
-        video_duration: None, // Vimeo 동기화 후 업데이트됨
+        video_duration: None,  // Vimeo 동기화 후 업데이트됨
         video_thumbnail: None, // Vimeo 동기화 후 업데이트됨
     })
 }
@@ -405,11 +404,13 @@ pub async fn admin_update_video(
     // -------------------------------------------------------------------------
     // "UPDATE video SET "까지 만들고 시작
     let mut builder = QueryBuilder::<Postgres>::new("UPDATE video SET ");
-    let mut is_first = true; 
+    let mut is_first = true;
 
     // (1) video_idx
     if let Some(ref idx) = req.video_idx {
-        if !is_first { builder.push(", "); }
+        if !is_first {
+            builder.push(", ");
+        }
         builder.push("video_idx = ");
         builder.push_bind(idx);
         is_first = false;
@@ -417,7 +418,9 @@ pub async fn admin_update_video(
 
     // (2) video_access (Enum 캐스팅)
     if let Some(ref access) = req.video_access {
-        if !is_first { builder.push(", "); }
+        if !is_first {
+            builder.push(", ");
+        }
         builder.push("video_access = ");
         builder.push_bind(access);
         builder.push("::video_access_enum"); // 문자열로 붙여서 캐스팅
@@ -426,7 +429,9 @@ pub async fn admin_update_video(
 
     // (3) video_state (Enum 캐스팅)
     if let Some(ref state) = req.video_state {
-        if !is_first { builder.push(", "); }
+        if !is_first {
+            builder.push(", ");
+        }
         builder.push("video_state = ");
         builder.push_bind(state);
         builder.push("::video_state_enum");
@@ -435,7 +440,9 @@ pub async fn admin_update_video(
 
     // (4) video_url
     if let Some(ref url) = req.video_url_vimeo {
-        if !is_first { builder.push(", "); }
+        if !is_first {
+            builder.push(", ");
+        }
         builder.push("video_url_vimeo = ");
         builder.push_bind(url);
         is_first = false;
@@ -444,39 +451,49 @@ pub async fn admin_update_video(
     // (5) Q1c B — video_title (Gemini 6차 HIGH 반영: backward-compat 폴백 + trim)
     // admin UI 가 Q1c 이전 버전이면 video_tag_title 만 보내는데, 이때도 video 테이블
     // 의 video_title 컬럼이 video/video_tag 간 불일치 없이 업데이트되도록 폴백.
-    let title_to_update = req.video_title.as_deref()
+    let title_to_update = req
+        .video_title
+        .as_deref()
         .or(req.video_tag_title.as_deref())
         .map(str::trim)
         .filter(|s| !s.is_empty());
     if let Some(title) = title_to_update {
-        if !is_first { builder.push(", "); }
+        if !is_first {
+            builder.push(", ");
+        }
         builder.push("video_title = ");
         builder.push_bind(title);
         is_first = false;
     }
 
     // (6) Q1c B — video_subtitle (동일 폴백 + trim)
-    let subtitle_to_update = req.video_subtitle.as_deref()
+    let subtitle_to_update = req
+        .video_subtitle
+        .as_deref()
         .or(req.video_tag_subtitle.as_deref())
         .map(str::trim)
         .filter(|s| !s.is_empty());
     if let Some(subtitle) = subtitle_to_update {
-        if !is_first { builder.push(", "); }
+        if !is_first {
+            builder.push(", ");
+        }
         builder.push("video_subtitle = ");
         builder.push_bind(subtitle);
         is_first = false;
     }
 
     // (7) 필수 업데이트 필드 (updated_by, updated_at)
-    if !is_first { builder.push(", "); }
+    if !is_first {
+        builder.push(", ");
+    }
     builder.push("updated_by_user_id = ");
     builder.push_bind(actor_user_id);
-    builder.push(", video_updated_at = now()"); 
+    builder.push(", video_updated_at = now()");
 
     // WHERE 절
     builder.push(" WHERE video_id = ");
     builder.push_bind(video_id);
-    
+
     // RETURNING
     builder.push(" RETURNING video_id::bigint, video_created_at, video_updated_at, video_state::text, video_access::text, video_url_vimeo, video_idx, updated_by_user_id");
 
@@ -494,8 +511,8 @@ pub async fn admin_update_video(
     // -------------------------------------------------------------------------
     // 2. VIDEO_TAG 테이블 업데이트
     // -------------------------------------------------------------------------
-    let has_tag_update = req.video_tag_title.is_some() 
-        || req.video_tag_subtitle.is_some() 
+    let has_tag_update = req.video_tag_title.is_some()
+        || req.video_tag_subtitle.is_some()
         || req.video_tag_key.is_some();
 
     if has_tag_update {
@@ -512,19 +529,25 @@ pub async fn admin_update_video(
             let mut t_first = true;
 
             if let Some(ref key) = req.video_tag_key {
-                if !t_first { t_builder.push(", "); }
+                if !t_first {
+                    t_builder.push(", ");
+                }
                 t_builder.push("video_tag_key = ");
                 t_builder.push_bind(key);
                 t_first = false;
             }
             if let Some(ref title) = req.video_tag_title {
-                if !t_first { t_builder.push(", "); }
+                if !t_first {
+                    t_builder.push(", ");
+                }
                 t_builder.push("video_tag_title = ");
                 t_builder.push_bind(title);
                 t_first = false;
             }
             if let Some(ref sub) = req.video_tag_subtitle {
-                if !t_first { t_builder.push(", "); }
+                if !t_first {
+                    t_builder.push(", ");
+                }
                 t_builder.push("video_tag_subtitle = ");
                 t_builder.push_bind(sub);
             }

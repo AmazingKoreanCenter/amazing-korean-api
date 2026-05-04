@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-04 (INC-005 사후 + deploy.yml KKRYOUN 트리거 제거 — production 약 1h 다운 재발 방지)
+updated: 2026-05-04 (PR 검사 워크플로 신규 — INC-005 후속, 머지 전 backend/frontend 자동 검증)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,275 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-05-04 (밤, 후속) — rustfmt baseline cleanup (C3, C4 해결)**
+
+  AMK_DEBTS.md C3 (rustfmt 90+ 파일 unformatted) + C4 (`docs.rs:92,94` trailing whitespace) 정리. 사용자 결정 = 옵션 1 (cleanup 즉시).
+
+  ## 작업
+
+  1. `src/docs.rs:92, 94` trailing whitespace 수동 제거 (rustfmt internal error 원인 해소)
+  2. `cargo fmt --all` 재실행 → exit=0 (성공)
+  3. 검증:
+     - `cargo fmt --check --all` exit=0 (baseline 통과)
+     - `cargo check --locked --workspace` exit=0
+     - `cargo clippy --lib --bins --locked -- -D warnings` exit=0
+
+  ## 변경 규모
+
+  **95 파일 / rustfmt 자동 포맷 + docs.rs trailing whitespace 1줄 수동 fix**.
+  의미 변경 0 (코드 동작 동일, 단순 whitespace/import/brace 자동 정리).
+
+  - `src/api/*` 79 파일
+  - `src/external/*` 7 파일
+  - `crates/crypto/*` 3 파일
+  - `src/types.rs / main.rs / lib.rs / config.rs / bin/rekey_encryption.rs` 5 파일
+  - `src/docs.rs` 1 파일 (trailing whitespace 수동 fix)
+
+  ## AMK_DEBTS 갱신
+
+  - C3 rustfmt baseline → ✅ 해결
+  - C4 docs.rs trailing whitespace → ✅ 해결
+  - PR #205 의 backend job 이제 cargo fmt --check 통과 예상
+
+  ## 다음 단계
+
+  cargo fmt 정책 영구 강제 정착 = pr-check.yml 의 cargo fmt --check --all step 이미 활성. 향후 새 unformatted 코드 머지 차단.
+
+---
+
+- **2026-05-04 (밤) — AMK_DEBTS.md 정합성 검증 + 정정 + 신규 부채 12건 등재**
+
+  사용자 지시: 부채 카탈로그 (어제 작성) 의 사실관계 정확성을 5 독립 agent 분담 검증 + 추가 미점검 영역 조사 (경로 1+2 = 약 4시간 작업).
+
+  ## 검증 결과 (이전 95% → 약 98% 도달)
+
+  ### (1) 라인 번호 stale 다수 (M-007 사고)
+  AMK_STATUS §8.2 검증된 리스크 표 + AMK_DEBTS 의 라인 번호 모두 stale. AMK_DEBTS 작성 시 `AMK_STATUS` 에서 직접 검증 없이 복사한 결과.
+
+  정정 (HEAD 2026-05-04 기준):
+  - `deploy.yml:87-98` → **L92-103** (PADDLE_*)
+  - `AMK_DEPLOY_OPS.md:819` → **L985** (Webhook Secret)
+  - `AMK_DEPLOY_OPS.md:781` → **L947** (KYB)
+  - `AMK_DEPLOY_OPS.md:857` → **L1023** (SPF)
+  - `ebook/service.rs:51,261,502,516,525,605,620,629` → **L63, 381, 627, 641, 650, 731, 746, 755** (8곳, 모두 stale)
+  - `config.rs:97 SSL` → **L109-110** (DATABASE_URL localhost 기본)
+  - `config.rs:101 Redis` → **L113**
+  - `config.rs:325 세션 TTL` → **L91 + L375-378** (`EBOOK_SESSION_TTL_SEC`)
+  - `auth/service.rs:397, 1396` (unwrap) → **L358 + L1123**
+  - `video/repo.rs:237` (TODO) → **L233**
+
+  ### (2) 카운트 정정
+  - **B3 npm 취약점**: 2건 (postcss XSS) → **3건** (postcss + follow-redirects + basic-ftp **HIGH**)
+  - **C1 ESLint 카테고리**: react-refresh 다수 → **react-hooks 25건 > react-refresh 7건** (분류 정정)
+  - **C2 lint:ui 위치**: textbook_order_page.tsx 4곳 → **2곳** (총 9건 카운트 동일)
+  - **J Secrets**: `.env.example` **57 → 65건**, `deploy.yml` secrets 22 + heredoc env 11 = **33건**
+
+  ### (3) 부채 상태 변경 (해결됨)
+  - **C5 enum sqlx::Type derive**: 보류 #13 → **이미 적용 완료** (`src/types.rs` 에 `#[sqlx(type_name)]` **36건**). AMK_STATUS §8.2 #13 행에 ~~취소선~~ + 해결 표시.
+
+  ### (4) 신규 부채 12건 등재 (경로 2 추가 조사 발견)
+
+  **A 운영/배포 신규 8건** (AMK_STATUS 미등재 운영 인프라 부채):
+  - A4-1 nginx HTTPS 미활성 (HSTS 미설정)
+  - A4-2 Let's Encrypt + certbot 자동 갱신 정책 부재 (90일 만료 위험)
+  - A4-3 EC2 디스크 모니터링 자동화 부재
+  - A4-4 DB/Redis 백업 정책 부재 (DR 0)
+  - A4-5 Docker log 로테이션 미설정
+  - A4-6 Cloudflare DNS / Email Routing 운영 정책 미문서화
+  - A4-7 nginx Rate Limiting 모니터링 부재
+  - A4-8 Docker base image 자동 업데이트 정책 부재
+
+  **B 보안 신규 1건**:
+  - B6 ipgeo HTTP-only (`src/external/ipgeo.rs`) — ip-api.com 평문 HTTP, 중간자 공격 위험. E-9 (GeoIP 전환) 와 통합 가능.
+
+  **C 코드 품질 신규 6건** (Rust/TS 룰 회피 카운트):
+  - C8 `#[allow(dead_code)]` **33건**
+  - C9 `#[allow(clippy::*)]` **11건**
+  - C10 `#[allow(unused_imports)]` **8건**
+  - C11 `#[allow(unused_assignments)]` 1건
+  - C12 TypeScript `any` **3건**
+  - C13 TypeScript `eslint-disable` 인라인 **11건**
+  - 안전 (참고): Rust `unsafe` **0건** ✅, TypeScript `@ts-ignore` **0건** ✅
+
+  **E 기능 신규 3건** (다른 docs 미구현 항목):
+  - E-FUTURE-1 콘텐츠 시딩 Phase 2/3 (`AMK_API_FUTURE.md`)
+  - E-FUTURE-2 발음/조음/TTS 평가 (`AMK_API_FUTURE.md`)
+  - E-TEXTBOOK-1 SpeechSuper API 프로토타이핑 (`AMK_API_TEXTBOOK.md`)
+
+  **G 자동 검증 신규 5건**:
+  - G10 src/ 테스트 부족 (4건만, `crates/crypto` 46건 OK)
+  - G11 cargo-deny 미설치 (라이선스 검증 X)
+  - G12 cargo-geiger 미설치 (unsafe 0건이라 우선순위 낮음)
+  - G13 `.github/CODEOWNERS` 미존재
+  - G14 PR template / issue template 미존재
+
+  **J Secrets 정합성 신규 4건**:
+  - **J1 (위험 잠재) `RATE_LIMIT_TEXTBOOK_*` config.rs `expect()` panic 사용 + .env.example 미정의 + deploy.yml 미명시** = INC-001 패턴 잠재 (production 배포 시 환경변수 부재 → expect panic → crash)
+  - J2 `APPLE_CLIENT_ID/TEAM_ID` config.rs Option 처리 (panic X) + .env.example 미정의 (Apple OAuth 미구현)
+  - J3 정합성 검증 자동 도구 X (deploy.yml/.env.example/config.rs 3중 동기화 수동)
+  - J4 panic 게이트 추가 시 동기화 누락 룰 강제 X
+
+  ### (5) AI 사고 신규 등재 (M-006 + M-007)
+
+  - M-006: `cargo fmt --check --all` 결과 의미 잘못 해석 (exit=0 만 보고 통과 단정, 출력 diff 무시)
+  - M-007: 다른 문서 라인 번호 직접 검증 X (AMK_STATUS 에서 복사 → stale)
+  - 카테고리 분포 갱신: 추정 단정 = M-002, M-005, M-006, M-007
+
+  ## 변경 파일
+
+  - `docs/AMK_DEBTS.md` 전체 재작성 (정정 + 신규 12건 + 라인 번호 사용 정책 명시)
+  - `docs/AMK_AI_MISTAKES.md` M-006 + M-007 등재 + 카테고리 분포 갱신
+  - `docs/AMK_STATUS.md §8.2` 검증된 리스크 표 라인 정정 + #13 해결 표시
+  - 본 CHANGELOG 엔트리
+
+  ## 검증
+
+  - 정정된 라인 번호 spot 재검증 (4건) — 모두 정확 (deploy.yml:92-103, ebook/service.rs:63, auth/service.rs:358, video/repo.rs:233)
+  - cargo fmt --all working tree 90+ 파일 변경은 별도 결정 대기 (본 commit 미포함)
+
+  ## 다음 단계 (사용자 결정 필요)
+
+  - cargo fmt PR 처리 (옵션 1 폐기 vs 옵션 2 cleanup) — working tree 잔존
+  - 신규 발견 우선 처리 후보: J1 RATE_LIMIT_TEXTBOOK 동기화 (INC-001 패턴 차단), B3 postcss/follow-redirects/basic-ftp `npm audit fix`, B1 rustls-webpki upgrade
+  - Q16 / Q17 큐 진입 시점
+
+---
+
+- **2026-05-04 (저녁) — Dormant 정책 일괄 조사 + rustfmt 추가 + lint:ui 임시 비활성 + AI 사고 기록 SSoT 신규**
+
+  사용자 지시: "도입됐으나 자동 강제 안 되는 정책" 일괄 조사. 발견 5종 (lint, lint:ui, rustfmt, cargo test, e2e). baseline 통과 1종 (rustfmt) 즉시 활성, 누적 부채 2종 (lint+lint:ui = 36 errors) Q16 단일 트랙 묶음, CI 셋업 필요 2종 (cargo test, e2e) Q17 별도.
+
+  ## (1) `.github/workflows/pr-check.yml` 변경 2건
+  - **신규**: backend job 에 `cargo fmt --check --all` step 추가. `rust-toolchain.toml` 에 rustfmt components 등재됐으나 자동 강제 부재로 dormant 였음. main HEAD baseline 통과 확인 (`exit=0`) 후 즉시 활성화.
+  - **임시 비활성**: frontend job 의 `npm run lint:ui` 에 `continue-on-error: true` 추가. 첫 자동 실행 시 9건 누적 위반 검출 (디자인 토큰 결정 필요 = Q16 트랙). cleanup 후 제거.
+
+  ## (2) `docs/AMK_STATUS.md §8.2`
+  - **Q16 확장**: ESLint 27 errors + lint:ui 9 errors = 합 36 errors 단일 트랙으로 묶음. (a) shadcn/ui 컴포넌트 파일 분할, (b) react-hooks 룰 위반 fix, (c) 디자인 토큰 결정 + 9곳 색상 교체. 추정 1-2일.
+  - **Q17 신규**: cargo test (DB 의존 CI 셋업 필요) + playwright e2e (브라우저 + CI 분 큼) 도입 검토. 우선순위 = Q16 완료 후.
+
+  ## (3) `docs/AMK_AI_MISTAKES.md` 신규 (별도 SSoT)
+
+  사용자 결정 (2026-05-04): "사고 회피 룰/훅 도입은 100% 확증 안 되면 X. 대신 사고 기록 → 작업 시 사전 참조 패턴 채택 (룰 무한 루프 회피 + 사용자 스트레스 감소)".
+
+  - 본 문서 = AI 작업 실수 SSoT. 사실만 기재 (가정/해석 배제), 원인/결과 분리.
+  - 오늘 사고 5건 등재 (M-001 ~ M-005). production 인시던트 (INC-001~005) 와 별도 카테고리.
+  - 카테고리 분포: (a) 사전 상태 미확인 = M-001/M-003/M-004, (b) 추정을 사실로 단정 = M-002/M-005.
+  - 메모리 `feedback_ai_mistakes_reference.md` 신규 (포인터만, 사고 내용 복붙 X). 작업 시작 전 본 문서 참조 강제.
+
+  ## 검증
+
+  - 로컬 `cargo fmt --check --all` 통과 (exit=0)
+  - 로컬 git status clean (AMK_AI_MISTAKES.md 만 untracked, 본 commit 에 포함)
+
+  ## 다음 단계
+
+  - 본 PR (KKRYOUN push) → pr-check.yml 자동 실행 → 새 backend step (cargo fmt --check --all) 통과 확인 = baseline 검증 끝
+  - 통과 시 사용자 머지
+  - Q16 작업은 별도 PR (디자인 결정 + baseline cleanup 1-2일)
+  - Q17 = Q16 완료 후 검토
+
+---
+
+- **2026-05-04 (오후, 후속) — pr-check.yml self-test fail 대응: clippy 1줄 fix + lint 일시 비활성화**
+
+  PR #205 push 직후 self-test 결과 = backend FAILURE + frontend FAILURE. 본 PR 코드 변경 0 = **기존 main baseline 의 lint 위반이 누적된 상태였던 것이 새 워크플로 검증으로 노출**.
+
+  **자가 진단 (제 잘못)**: 워크플로 도입 전 main baseline 가 `cargo clippy / npm run lint` 모두 통과하는지 사전 검증 안 함. INC-005 학습 의 "정책 도입 전 의도 fail 케이스 검증" 룰은 잡았지만 그 inverse (정책 통과 baseline 확인) 는 빠뜨림. 사고 패턴 반복 — 메모리 강화 (별도 `feedback_pre_action_validation.md` + 훅 도입 검토 진행 중).
+
+  ## fail 내역
+
+  | Job | step | 위반 |
+  |-----|------|------|
+  | backend | cargo clippy | `useless_conversion` 1건 (`src/api/auth/service.rs:192`). Rust 1.95 신규 룰 (어제 1.94 시점엔 통과) |
+  | frontend | npm run lint | ESLint 27 errors. 대부분 `react-refresh/only-export-components` (shadcn/ui 컴포넌트 + variants 같은 파일 export 패턴 vs 새 룰), 일부 `react-hooks/set-state-in-effect` / `react-hooks/incompatible-library` / `prefer-const` |
+  | frontend | lint:ui (하드코딩 색상) | ✅ PASS |
+
+  ## 즉시 조치
+
+  1. **Backend clippy fix** — `src/api/auth/service.rs:192` `.into_iter()` 1줄 제거 (zip() 가 IntoIterator 받음)
+  2. **`pr-check.yml` 의 `npm run lint` 단계** = `continue-on-error: true` 임시 적용. 결과 표시되나 workflow status 는 fail 처리 X
+  3. **Q16 신규 큐잉** (`docs/AMK_STATUS.md §8.2`) — Frontend ESLint baseline cleanup. 작업 = shadcn 컴포넌트 파일 분할 + react-hooks 위반 fix + prefer-const fix. 추정 1-2일. 완료 후 `continue-on-error` 제거
+
+  ## 잡힌 가치 (역설적)
+
+  본 워크플로 안 만들었으면 27 errors + 1 clippy 가 계속 누적되고 있었음. **워크플로 = 기존 부채 발견 도구로 정상 작동**. 다만 도입 시점에 한 번에 fix 어려운 양이라 baseline cleanup 별도 트랙 분리 (Q16).
+
+  ## 학습
+
+  - 정책 도입 시 fail 케이스 (의도 fail) 검증 + **통과 케이스 (현재 baseline)** 검증 둘 다 필요
+  - lint baseline 누적은 자동 검증 부재의 자연 결과 — 도입 첫 날엔 부채 발견량 클 수 있음
+  - 대량 위반 발견 시 즉시 전수 fix vs 임시 우회 + 별도 트랙 = 작업 분할 판단 (이번엔 후자)
+
+---
+
+- **2026-05-04 (오후) — PR 검사 워크플로 신규 (`.github/workflows/pr-check.yml`) — INC-005 학습 후속**
+
+  ## 배경
+
+  INC-005 fix (2026-05-04 오전) 로 `deploy.yml` trigger = `branches: [main]` 단일화. 그 결과 **KKRYOUN push 시 자동 검증 사라짐** = 컴파일/타입/lint 에러를 머지 후 deploy 단계 (Docker build) 에서야 발견하는 검증 갭 발생.
+
+  사용자 결정: 옵션 A (PR 검사 워크플로 신규) 채택. 이유 = 검증 책임을 사람 → CI 로 이전, 1인 환경 인지 부담 감소, 머지 후 deploy fail 부담 회피.
+
+  ## 변경
+
+  **`.github/workflows/pr-check.yml` 신규**
+
+  | Job | 명령 | 목적 |
+  |-----|------|------|
+  | `backend` | `cargo check --locked --workspace` | 컴파일 + Cargo.lock 정합성 (SQLX_OFFLINE=true, .sqlx/ 쿼리 캐시) |
+  | `backend` | `cargo clippy --lib --bins --locked -- -D warnings` | lint + warning fail-closed |
+  | `frontend` | `npm run build` (= `tsc -b && vite build`) | 타입 체크 + 빌드 |
+  | `frontend` | `npm run lint` | ESLint |
+  | `frontend` | `npm run lint:ui` | 하드코딩 색상 검사 (Tailwind 토큰화 정책) |
+
+  **트리거**: `push: [KKRYOUN]` + `workflow_dispatch`.
+
+  **concurrency**: `pr-check-${{ github.ref }}` 그룹 + `cancel-in-progress: true` — 같은 ref 에 빠른 연속 push 시 이전 실행 자동 취소 (CI 분 절약).
+
+  **캐시**:
+  - Rust: `Swatinem/rust-cache@v2` (target/ + ~/.cargo)
+  - Node: `actions/setup-node@v4` 의 `cache: 'npm'` (cache-dependency-path = `frontend/package-lock.json`)
+
+  ## 책임 분리 원칙
+
+  | 워크플로 | 책임 | 트리거 |
+  |---------|------|--------|
+  | `deploy.yml` | EC2 배포 (Docker build + push + SCP + SSH + health check) | `push: [main]` |
+  | `pr-check.yml` | 머지 전 검증 (backend cargo + frontend build/lint) | `push: [KKRYOUN]` |
+
+  INC-005 학습 = 한 워크플로에 다중 책임 (배포 + 검증) 두면 트리거 충돌 + race condition 위험. **별도 파일로 영구 분리**.
+
+  ## 효과 + 한계
+
+  **잡을 수 있는 사고**:
+  - 컴파일 에러 머지 (cargo check fail) → Docker build 단계 도달 전 차단
+  - 타입 에러 머지 (tsc fail in npm run build) → frontend 깨진 상태 머지 차단
+  - clippy warning 머지 (워닝도 fail) → 코드 품질 일관성
+  - 하드코딩 색상 머지 (lint:ui fail) → Tailwind 토큰화 정책 강제
+
+  **잡지 못하는 사고** (별도 트랙 필요):
+  - INC-005 패턴 (병렬 PR migration 비대칭) — 이미 deploy.yml fix 로 막힘
+  - INC-004 패턴 (적용된 migration 파일 수정) — sqlx checksum 문제, 본 PR 검사로는 감지 불가
+  - 런타임 panic — 테스트 부재 (cargo test 도입 별도 검토 필요)
+
+  ## 비용
+
+  - GitHub Actions 분: 본 워크플로 평균 ~3-5분 (캐시 hit 시 1-2분). KKRYOUN push 빈도 = 일 평균 5-10회 추정 → 월 ~150-500분 추가
+  - 무료 한도 2,000분/월 안에서 운영 가능 (deploy.yml 평균 3-4분 × 일 머지 1-3회 = 월 ~100-360분 + pr-check ~150-500분 = 합계 ~250-860분)
+
+  ## 문서/메모리 갱신
+
+  - `docs/AMK_DEPLOY_OPS.md §5` workflow 인벤토리 표 + §7 CI Gate 표
+  - `memory/feedback_deploy_env_sync.md` PR 검사 정책 섹션 추가
+  - 본 CHANGELOG 엔트리
+
+  ## 다음 단계 (트리거 시)
+
+  - 머지 후 KKRYOUN 의도 fail 케이스 (예: cargo check 깨지는 한 줄) push → pr-check fail 확인 → 정책 검증
+  - 옵션 C (branch protection + required status check) 도입 여부는 사용자 1인 환경 force push 자유도 vs 강제 트레이드오프 판단 (현재 보류)
 
 ---
 

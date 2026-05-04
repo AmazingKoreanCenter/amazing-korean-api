@@ -12,14 +12,12 @@ use axum::{extract::Query, response::Redirect};
 use axum::response::IntoResponse;
 
 use crate::api::auth::dto::{
-    FindIdReq, FindIdRes, FindPasswordReq, FindPasswordRes,
-    GoogleAuthUrlRes, GoogleCallbackQuery, LoginReq, LoginRes, LoginMobileRes,
-    LogoutAllReq, LogoutRes, RefreshReq, ResetPwReq, ResetPwRes,
-    RequestResetReq, RequestResetRes, VerifyResetReq, VerifyResetRes,
-    VerifyEmailReq, VerifyEmailRes, ResendVerificationReq, ResendVerificationRes,
-    MfaChallengeRes, MfaLoginReq, MfaSetupRes, MfaVerifySetupReq,
-    MfaVerifySetupRes, MfaDisableReq, MfaDisableRes,
-    GoogleMobileLoginReq, AppleMobileLoginReq,
+    AppleMobileLoginReq, FindIdReq, FindIdRes, FindPasswordReq, FindPasswordRes, GoogleAuthUrlRes,
+    GoogleCallbackQuery, GoogleMobileLoginReq, LoginMobileRes, LoginReq, LoginRes, LogoutAllReq,
+    LogoutRes, MfaChallengeRes, MfaDisableReq, MfaDisableRes, MfaLoginReq, MfaSetupRes,
+    MfaVerifySetupReq, MfaVerifySetupRes, RefreshReq, RequestResetReq, RequestResetRes,
+    ResendVerificationReq, ResendVerificationRes, ResetPwReq, ResetPwRes, VerifyEmailReq,
+    VerifyEmailRes, VerifyResetReq, VerifyResetRes,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::api::auth::service::{AuthService, LoginOutcome, OAuthLoginOutcome};
@@ -42,28 +40,45 @@ fn extract_user_agent(headers: &HeaderMap) -> Option<String> {
 pub struct ParsedUa {
     pub os: Option<String>,
     pub browser: Option<String>,
-    pub device: String,  // "desktop", "mobile", "other"
+    pub device: String, // "desktop", "mobile", "other"
 }
 
 pub fn parse_user_agent(headers: &HeaderMap) -> ParsedUa {
     let ua_str = headers.get("user-agent").and_then(|v| v.to_str().ok());
 
     let Some(ua) = ua_str else {
-        return ParsedUa { os: None, browser: None, device: "other".into() };
+        return ParsedUa {
+            os: None,
+            browser: None,
+            device: "other".into(),
+        };
     };
 
     let parser = woothee::parser::Parser::new();
     match parser.parse(ua) {
         Some(result) => ParsedUa {
-            os: if result.os != "UNKNOWN" { Some(result.os.to_string()) } else { None },
-            browser: if result.name != "UNKNOWN" { Some(result.name.to_string()) } else { None },
+            os: if result.os != "UNKNOWN" {
+                Some(result.os.to_string())
+            } else {
+                None
+            },
+            browser: if result.name != "UNKNOWN" {
+                Some(result.name.to_string())
+            } else {
+                None
+            },
             device: match result.category {
                 "pc" => "desktop",
                 "smartphone" | "mobilephone" => "mobile",
                 _ => "other",
-            }.into(),
+            }
+            .into(),
         },
-        None => ParsedUa { os: None, browser: None, device: "other".into() },
+        None => ParsedUa {
+            os: None,
+            browser: None,
+            device: "other".into(),
+        },
     }
 }
 
@@ -98,13 +113,12 @@ pub async fn login(
             let jar = jar.add(s.cookie);
             Ok((jar, Json(s.login_res)).into_response())
         }
-        LoginOutcome::MfaChallenge { mfa_token, user_id } => {
-            Ok(Json(MfaChallengeRes {
-                mfa_required: true,
-                mfa_token,
-                user_id,
-            }).into_response())
-        }
+        LoginOutcome::MfaChallenge { mfa_token, user_id } => Ok(Json(MfaChallengeRes {
+            mfa_required: true,
+            mfa_token,
+            user_id,
+        })
+        .into_response()),
     }
 }
 
@@ -150,8 +164,10 @@ pub async fn refresh(
         "None" => SameSite::None,
         _ => SameSite::Lax,
     });
-    refresh_cookie.set_expires(cookie::time::OffsetDateTime::now_utc() + cookie::time::Duration::seconds(ttl_secs));
-    
+    refresh_cookie.set_expires(
+        cookie::time::OffsetDateTime::now_utc() + cookie::time::Duration::seconds(ttl_secs),
+    );
+
     if let Some(domain) = &st.cfg.refresh_cookie_domain {
         refresh_cookie.set_domain(domain.clone());
     }
@@ -187,22 +203,20 @@ pub async fn login_mobile(
     let parsed_ua = parse_user_agent(&headers);
 
     match AuthService::login(&st, req, ip, ua, parsed_ua).await? {
-        LoginOutcome::Success(s) => {
-            Ok(Json(LoginMobileRes {
-                user_id: s.login_res.user_id,
-                access: s.login_res.access,
-                session_id: s.login_res.session_id,
-                refresh_token: s.refresh_token,
-                refresh_expires_in: s.ttl,
-            }).into_response())
-        }
-        LoginOutcome::MfaChallenge { mfa_token, user_id } => {
-            Ok(Json(MfaChallengeRes {
-                mfa_required: true,
-                mfa_token,
-                user_id,
-            }).into_response())
-        }
+        LoginOutcome::Success(s) => Ok(Json(LoginMobileRes {
+            user_id: s.login_res.user_id,
+            access: s.login_res.access,
+            session_id: s.login_res.session_id,
+            refresh_token: s.refresh_token,
+            refresh_expires_in: s.ttl,
+        })
+        .into_response()),
+        LoginOutcome::MfaChallenge { mfa_token, user_id } => Ok(Json(MfaChallengeRes {
+            mfa_required: true,
+            mfa_token,
+            user_id,
+        })
+        .into_response()),
     }
 }
 
@@ -313,7 +327,8 @@ pub async fn reset_password(
 ) -> Result<Json<ResetPwRes>, AppError> {
     let ip = extract_client_ip(&headers);
     // 새 서비스 메서드 사용 (JWT 토큰 + Redis 토큰 모두 지원)
-    let res = AuthService::reset_password_with_token(&st, &req.reset_token, &req.new_password, ip).await?;
+    let res = AuthService::reset_password_with_token(&st, &req.reset_token, &req.new_password, ip)
+        .await?;
     Ok(Json(res))
 }
 
@@ -335,7 +350,7 @@ pub async fn logout(
 ) -> Result<(CookieJar, StatusCode), AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
-    
+
     AuthService::logout(&st, auth_user.sub, &auth_user.session_id, ip, ua).await?;
 
     // Create expiration cookie
@@ -351,7 +366,7 @@ pub async fn logout(
     });
     // Set expiration to the past
     refresh_cookie.set_expires(OffsetDateTime::now_utc() - Duration::days(1));
-    
+
     if let Some(domain) = &st.cfg.refresh_cookie_domain {
         refresh_cookie.set_domain(domain.clone());
     }
@@ -380,7 +395,7 @@ pub async fn logout_all(
 ) -> Result<(CookieJar, Json<LogoutRes>), AppError> {
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
-    
+
     // Extract refresh token from cookie to identify the current session context if needed
     let rt = jar
         .get(&st.cfg.refresh_cookie_name)
@@ -400,7 +415,7 @@ pub async fn logout_all(
         _ => SameSite::Lax,
     });
     refresh_cookie.set_expires(OffsetDateTime::now_utc() - Duration::days(1));
-    
+
     if let Some(domain) = &st.cfg.refresh_cookie_domain {
         refresh_cookie.set_domain(domain.clone());
     }
@@ -567,7 +582,8 @@ pub async fn google_auth_callback(
     }
 
     // Authorization Code 확인
-    let code = query.code
+    let code = query
+        .code
         .ok_or_else(|| AppError::BadRequest("Missing authorization code".into()))?;
 
     let ip = extract_client_ip(&headers);
@@ -575,15 +591,14 @@ pub async fn google_auth_callback(
     let parsed_ua = parse_user_agent(&headers);
 
     // OAuth 콜백 처리
-    let result = AuthService::google_auth_callback(&st, &code, &query.state, ip, ua, parsed_ua).await;
+    let result =
+        AuthService::google_auth_callback(&st, &code, &query.state, ip, ua, parsed_ua).await;
 
     match result {
         Ok(OAuthLoginOutcome::Success(s)) => {
             let success_url = format!(
                 "{}/login?login=success&user_id={}&is_new_user={}",
-                st.cfg.frontend_url,
-                s.login_res.user_id,
-                s.is_new_user
+                st.cfg.frontend_url, s.login_res.user_id, s.is_new_user
             );
             let jar = jar.add(s.cookie);
             Ok((jar, Redirect::temporary(&success_url)))
@@ -628,7 +643,8 @@ pub async fn mfa_setup(
     AuthUser(auth_user): AuthUser,
 ) -> Result<Json<MfaSetupRes>, AppError> {
     // 사용자 이메일 조회 (QR 코드에 표시용)
-    let user = crate::api::user::repo::find_user(&st.db, auth_user.sub).await?
+    let user = crate::api::user::repo::find_user(&st.db, auth_user.sub)
+        .await?
         .ok_or_else(|| AppError::Internal("User not found".into()))?;
 
     let res = AuthService::mfa_setup(&st, auth_user.sub, &user.email).await?;
@@ -701,7 +717,8 @@ pub async fn mfa_disable(
     AuthUser(auth_user): AuthUser,
     AppJson(req): AppJson<MfaDisableReq>,
 ) -> Result<Json<MfaDisableRes>, AppError> {
-    let res = AuthService::mfa_disable(&st, auth_user.sub, auth_user.role, req.target_user_id).await?;
+    let res =
+        AuthService::mfa_disable(&st, auth_user.sub, auth_user.role, req.target_user_id).await?;
     Ok(Json(res))
 }
 
@@ -731,22 +748,20 @@ pub async fn google_mobile_login(
     let parsed_ua = parse_user_agent(&headers);
 
     match AuthService::google_mobile_login(&st, req, ip, ua, parsed_ua).await? {
-        OAuthLoginOutcome::Success(s) => {
-            Ok(Json(LoginMobileRes {
-                user_id: s.login_res.user_id,
-                access: s.login_res.access,
-                session_id: s.login_res.session_id,
-                refresh_token: s.refresh_token,
-                refresh_expires_in: s.ttl,
-            }).into_response())
-        }
-        OAuthLoginOutcome::MfaChallenge { mfa_token, user_id } => {
-            Ok(Json(MfaChallengeRes {
-                mfa_required: true,
-                mfa_token,
-                user_id,
-            }).into_response())
-        }
+        OAuthLoginOutcome::Success(s) => Ok(Json(LoginMobileRes {
+            user_id: s.login_res.user_id,
+            access: s.login_res.access,
+            session_id: s.login_res.session_id,
+            refresh_token: s.refresh_token,
+            refresh_expires_in: s.ttl,
+        })
+        .into_response()),
+        OAuthLoginOutcome::MfaChallenge { mfa_token, user_id } => Ok(Json(MfaChallengeRes {
+            mfa_required: true,
+            mfa_token,
+            user_id,
+        })
+        .into_response()),
     }
 }
 
@@ -772,22 +787,20 @@ pub async fn apple_mobile_login(
     let parsed_ua = parse_user_agent(&headers);
 
     match AuthService::apple_mobile_login(&st, req, ip, ua, parsed_ua).await? {
-        OAuthLoginOutcome::Success(s) => {
-            Ok(Json(LoginMobileRes {
-                user_id: s.login_res.user_id,
-                access: s.login_res.access,
-                session_id: s.login_res.session_id,
-                refresh_token: s.refresh_token,
-                refresh_expires_in: s.ttl,
-            }).into_response())
-        }
-        OAuthLoginOutcome::MfaChallenge { mfa_token, user_id } => {
-            Ok(Json(MfaChallengeRes {
-                mfa_required: true,
-                mfa_token,
-                user_id,
-            }).into_response())
-        }
+        OAuthLoginOutcome::Success(s) => Ok(Json(LoginMobileRes {
+            user_id: s.login_res.user_id,
+            access: s.login_res.access,
+            session_id: s.login_res.session_id,
+            refresh_token: s.refresh_token,
+            refresh_expires_in: s.ttl,
+        })
+        .into_response()),
+        OAuthLoginOutcome::MfaChallenge { mfa_token, user_id } => Ok(Json(MfaChallengeRes {
+            mfa_required: true,
+            mfa_token,
+            user_id,
+        })
+        .into_response()),
     }
 }
 
