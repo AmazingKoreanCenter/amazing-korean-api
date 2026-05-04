@@ -3,6 +3,7 @@
 > **목적**: amazing-korean-api 의 미해결 부채를 한 곳에 정리. 부채 발견 시 본 문서에 즉시 등재. 작업 우선순위 결정 + 조회 시 진입점.
 > **작성 원칙**: 사실 기반. 가정·해석 배제. 위치(파일:줄/명령어/공식 ID) + 영향 범위 + 처리 시점 명시. **라인 번호는 작성 시점 (HEAD) 기준 — commit 후 stale 가능, 사용 시 grep 재확인**.
 > **작성일**: 2026-05-04 (PR #205 진행 중 일괄 조사 + 5 agent 정합성 검증 + 경로 2 추가 조사 통합)
+> **검증 2회차**: 2026-05-04 (저녁, HEAD `3cad9a3`) — 6 agent 분담 병렬, M-007 사고 후 라인/카운트 stale 정정. A2-1 라인 9곳 / B4 unwrap 358→397, 1123→1396 / B5 47→48 / B6 11~12→50 / C6 233→237 / H1 72→41 / J 카운트 3건 정정.
 > **갱신 규칙**: 부채 신규 발생 시 해당 카테고리에 추가. 처리 완료 시 행 시작에 `~~취소선~~` + 완료일/PR 명시. 본 문서 직접 갱신 (메모리 미동기화 — 메모리는 본 문서 참조 포인터만).
 > **참조 SSoT**:
 > - production 인시던트 (INC-NNN): `AMK_CHANGELOG.md` + `feedback_deploy_env_sync.md`
@@ -19,7 +20,7 @@
 | B. 보안 부채 (취약점) | **4** | Rust **1** (rsa Marvin Attack, no upgrade) + npm **3** (postcss + follow-redirects + basic-ftp HIGH). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | B. 보안 부채 (unsound/unmaintained) | 7 | core2 yanked + paste + imageproc 3 + rand 2 |
 | B. 보안 부채 (panic 위험) | 2 | unwrap 잠재 위험 (9건 중) |
-| B. 보안 부채 (외부 통신) | **1** | ipgeo HTTP-only (신규 발견) |
+| B. 보안 부채 (외부 통신 + 결제) | **2** | B6 ipgeo HTTP-only + B7 Paddle amount defense-in-depth (검증 3회차 옵션 C 신규) |
 | C. 코드 품질 부채 | **13** | ESLint 27 + lint:ui 9 + rustfmt 90+ + docs.rs 2 + bundle 27MB + 신규 6 (allow 53건 + TS any 3 + eslint-disable 11) |
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
 | E. 기능 부채 (보류/조건부) | **11** | 9 (보류 8 + STATUS #11 이메일 수신 ✅) + **신규 3** (콘텐츠 시딩, SpeechSuper, 번들 최적화) |
@@ -29,7 +30,7 @@
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
 | J. 환경변수/Secrets 정합성 | **4** | 신규 — APPLE_*/RATE_LIMIT_TEXTBOOK_* 미동기화 + INC-001 패턴 위험 |
 
-**총 미해결 부채 = 약 91건** (카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 약 92건** (검증 3회차 옵션 C 결과 반영, B7 신규. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -50,7 +51,7 @@
 
 | 항목 | 위치 (HEAD) | 심각도 | 비고 |
 |------|------|:--:|------|
-| A2-1 | E-book fs::read 9곳 — service.rs 8 + watermark.rs 1 | `src/api/ebook/service.rs:63, 381, 627, 641, 650, 731, 746, 755` + `src/api/ebook/watermark.rs:13` | CRITICAL | RDS 이전 시 S3 SDK 전환 (Q9) |
+| A2-1 | E-book fs::read 9곳 — service.rs 8 + watermark.rs 1 | `src/api/ebook/service.rs:62, 402, 651, 665, 679, 762, 777, 791` + `src/api/ebook/watermark.rs:13` | CRITICAL | RDS 이전 시 S3 SDK 전환 (Q9) |
 | A2-2 | PostgreSQL SSL 미사용 (DATABASE_URL localhost 기본값) | `src/config.rs:109-110` | HIGH | RDS 전환 시 SSL 강제 |
 | A2-3 | Redis AUTH 토큰 부재 (REDIS_URL = `redis://127.0.0.1:6379` 기본값) | `src/config.rs:113` | HIGH | ElastiCache 이전 시 |
 
@@ -123,14 +124,14 @@
 |------|------|:--:|------|
 | `src/error.rs` | `to_string().parse().unwrap()` | 안전 | round-trip |
 | `src/api/user/service.rs` (3곳) | `NaiveDate::from_ymd_opt(1900,1,1).unwrap()` / Argon2 `Params::new` | 안전 | 정적 값 |
-| **`src/api/auth/service.rs:358`** | `Some(user) => PasswordHash::new(user.user_password.as_ref().unwrap())` | **위험 잠재** | Option 가 None 시 panic. 인증 흐름 |
-| **`src/api/auth/service.rs:1123`** | `let user_info = user.unwrap()` | **위험 잠재** | Option 가 None 시 panic |
+| **`src/api/auth/service.rs:397`** | `Some(user) => PasswordHash::new(user.user_password.as_ref().unwrap())` | **위험 잠재** | Option 가 None 시 panic. 인증 흐름 |
+| **`src/api/auth/service.rs:1396`** | `let user_info = user.unwrap()` | **위험 잠재** | Option 가 None 시 panic |
 | `src/api/ebook/watermark.rs:170` | `hash[..8].try_into().unwrap()` | 안전 | 길이 검증 후 |
 | `src/api/admin/user/service.rs` (2곳) | `NaiveDate::from_ymd_opt(1900,1,1).unwrap()` | 안전 | 정적 값 |
 
 **B4 처리**: 위험 잠재 2건 = 명시적 에러 매핑 (`AppError::Internal`) 으로 교체. 시간 1-2시간.
 
-### B5. `expect()` 47건 (전수 점검 미실행)
+### B5. `expect()` 48건 (전수 점검 미실행)
 
 > 카운트만 정확. 위험도 평가 = 별도 트랙. config.rs 의 panic 게이트 = 의도된 fail-fast (정상). 데이터 처리 흐름의 expect 만 검토 대상.
 
@@ -138,9 +139,22 @@
 
 | 위치 | 사실 |
 |------|------|
-| `src/external/ipgeo.rs:11~12` (또는 그 부근) | ip-api.com 무료 이용권 = HTTP only (HTTPS 는 유료). IP 기반 위치 조회 시 평문 전송 → 중간자 공격 위험 |
+| `src/external/ipgeo.rs:50` | ip-api.com 무료 이용권 = HTTP only (HTTPS 는 유료). IP 기반 위치 조회 시 평문 전송 → 중간자 공격 위험 |
 
 **처리**: ip-api 유료 전환 또는 MaxMind GeoLite2 로컬 DB 전환 (E-9 와 통합 가능).
+
+### B7. Paddle 웹훅 amount defense-in-depth 결여 (2026-05-04 옵션 C 발견)
+
+| 위치 | 사실 |
+|------|------|
+| `src/api/payment/service.rs:552` | `let amount_cents = txn.details.totals.total.parse::<i32>().unwrap_or(0);` |
+| `src/api/payment/service.rs:553` | `let tax_cents = txn.details.totals.tax.parse::<i32>().unwrap_or(0);` |
+
+**현재 흐름**: Paddle 서명 검증 SDK 통과 → amount = 웹훅 값 직접 신뢰 → DB 저장. 서버 측 가격 (`billing_interval.price_cents()`) vs 웹훅 amount **비교 X**.
+
+**위험**: LOW (서명 검증 통과 시 위변조 어려움). 단 defense-in-depth 결여 — SDK 버그 / 키 유출 시 가격 위조 차단 layer 부재.
+
+**처리**: `if amount_cents != billing_interval.price_cents() { tracing::error + Err }` 1시간. (참조: `AMK_AUDIT_2026-05-04.md` §N-38 + §3.3)
 
 ---
 
@@ -149,10 +163,11 @@
 ### C1. Frontend ESLint baseline (Q16) — 27 errors + 13 warnings
 
 > 카테고리 분류 정정 (2026-05-04 agent 검증):
-> - `react-hooks/incompatible-library` **10건**
-> - `react-hooks/static-components` **9건**
-> - `react-refresh/only-export-components` **7건**
-> - 기타 (prefer-const, no-empty 등) 1건씩
+> - `react-hooks/incompatible-library` **10건** (errors)
+> - `react-hooks/static-components` **9건** (errors)
+> - `react-refresh/only-export-components` **7건** (errors)
+> - 기타 errors (prefer-const, no-empty 등) 1건씩
+> - **warnings 13건 카테고리 (검증 2회차 추가 식별)**: `react-hooks/exhaustive-deps` 3 / `react-hooks/refs` 5 / `react-hooks/set-state-in-effect` 2 / `react-hooks/use-memo` 1 / 기타 2
 
 **처리**: shadcn 컴포넌트 파일 분할 + react-hooks 위반 fix + prefer-const fix. 시간 1-2일.
 
@@ -165,7 +180,7 @@
 | `frontend/src/category/book/page/book_hub_page.tsx` | 4 | emerald, amber, rose, teal |
 | `frontend/src/category/study/component/writing/HangulKeyboardKey.tsx` | 1 | amber |
 
-**합계 정정**: 9 (이전 표기 4+1+4+1=10 → 실제 2+1+4+1+? = 재확인 필요. agent 보고 = 9). 핵심 = 9 카운트 일치.
+**합계**: 9 (검증 2회차 = 표 합산 2+1+4+1=8 vs 실측 9. lint:ui 출력 카운트 9 정확).
 
 **처리**: 디자인 토큰 결정 + 9곳 교체. 시간 0.5-1일.
 
@@ -185,7 +200,7 @@
 
 | 위치 | 내용 |
 |------|------|
-| `src/api/video/repo.rs:233` | `video_last_ip_log는 현재 항상 NULL. IP 수집 시 암호화 필수 (Phase 3 참조)` |
+| `src/api/video/repo.rs:237` | `video_last_ip_log는 현재 항상 NULL. IP 수집 시 암호화 필수 (Phase 3 참조)` |
 
 ### C7. Frontend bundle 사이즈 모니터링 부재 (27MB)
 
@@ -318,7 +333,7 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 
 | ID | 항목 | 사실 |
 |:--:|------|------|
-| H1 | 메모리 stale 위험 (자동 갱신 부재) | 메모리 30개 중 가장 오래된 = `user_profile.md` (Mar 24, **72일 미갱신**). `reference_qa_automation.md` (Apr 8) / `reference_figma.md` (Apr 9) 등 |
+| H1 | 메모리 stale 위험 (자동 갱신 부재) | 메모리 30개 중 가장 오래된 = `user_profile.md` (Mar 24, **41일 미갱신**, 2026-05-04 기준 — 검증 2회차 정정). `reference_qa_automation.md` (Apr 8) / `reference_figma.md` (Apr 9) 등 |
 | H2 | docs ↔ 코드 일관성 자동 검증 없음 | 예: `AMK_API_TEXTBOOK.md` 35 lang 명시 = `src/types.rs::TextbookLanguage` 35 variant 일치 (2026-05-04 검증 OK), 단 자동 도구 X |
 
 ---
@@ -337,16 +352,16 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 
 | 영역 | 카운트 | 상세 |
 |------|:---:|------|
-| `.env.example` 정의 | **65건** | (이전 표기 57 → 정정) |
+| `.env.example` 정의 | **57건** | `grep -cE '^[A-Z_]+=' .env.example` (검증 2회차 정정: 65 → 57) |
 | `.github/workflows/deploy.yml` 안 secrets 사용 | **22건** | `secrets.X` 호출 |
 | `deploy.yml` heredoc env 변수 | **33건** | secrets + hardcoded (APP_ENV=production 등) |
-| `src/config.rs` `env::var()` 호출 | **78건** | env::var + ENCRYPTION_KEY 레거시 폴백 |
+| `src/config.rs` `env::var()` 호출 | **82건** | env::var + ENCRYPTION_KEY 레거시 폴백 (검증 2회차 정정: 78 → 82) |
 
 ### J1-J4. 정합성 문제 (신규 발견)
 
 | ID | 항목 | 위험 |
 |:--:|------|------|
-| **J1** | `RATE_LIMIT_TEXTBOOK_WINDOW_SEC` / `RATE_LIMIT_TEXTBOOK_MAX` config.rs `expect()` panic 사용 + `.env.example` 미정의 + `deploy.yml` 미명시 | **INC-001 패턴 잠재** (production 배포 시 환경변수 부재 → expect panic → 컨테이너 crash). config.rs:191-198 |
+| **J1** | `RATE_LIMIT_TEXTBOOK_WINDOW_SEC` / `RATE_LIMIT_TEXTBOOK_MAX` config.rs `expect()` panic 사용 + `.env.example` 미정의 + `deploy.yml` 미명시 | **INC-001 패턴 잠재** (단 hardcoded default `"3600"` / `"5"` 존재 → 실제 panic 위험 LOW. 검증 2회차 발견). config.rs:191-198 |
 | J2 | `APPLE_CLIENT_ID` / `APPLE_TEAM_ID` config.rs `Option` 사용 (panic X) + `.env.example` 미정의 | LOW (Apple OAuth 미구현 시 정상). config.rs:234-235 |
 | J3 | 정합성 검증 자동 도구 X | deploy.yml heredoc / .env.example / config.rs 3중 동기화 수동 |
 | J4 | `panic` 게이트 추가 시 동기화 누락 위험 | INC-001 사후 학습. feedback_deploy_env_sync.md 룰 강제 X |
@@ -362,7 +377,7 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 | 1 | **B1 rustls-webpki 3건 upgrade** | `cargo update` 1 명령 |
 | 2 | **B3 npm postcss + follow-redirects + basic-ftp HIGH** | `npm audit fix` 1 명령 |
 | 3 | **J1 RATE_LIMIT_TEXTBOOK_* 동기화** | INC-001 패턴 잠재. deploy.yml + .env.example 동시 추가 |
-| 4 | **B4 unwrap 위험 2건 (auth/service.rs:358, 1123)** | 1-2시간, 명시적 에러 매핑 |
+| 4 | **B4 unwrap 위험 2건 (auth/service.rs:397, 1396)** | 1-2시간, 명시적 에러 매핑 |
 | 5 | **C3+C4 rustfmt baseline** | 본 PR 결정 대기 |
 | 6 | **G6 dependabot 도입** | `.github/dependabot.yml` 1 파일 |
 | 7 | **A4-1, A4-2 SSL/HTTPS + certbot 자동 갱신** | 90일 만료 대비 (외부 트리거 없으면 잊기 쉬움) |
@@ -399,7 +414,7 @@ A1 Paddle Live (KYB), A2 RDS 이전 (앱 개발 후), E 기능 부채 (트리거
 | A3 Q14/Q15/Q16/Q17 | 사용자 트리거 | `AMK_STATUS.md §8.2` |
 | A4 운영 인프라 | 본 문서 직접 진입 | nginx / docker-compose / EC2 운영 |
 | B1-B3 의존성 보안 | 본 문서 직접 진입 | `cargo audit` / `npm audit` 재실행 |
-| B4 unwrap 위험 | 본 문서 직접 진입 | `src/api/auth/service.rs:358, 1123` |
+| B4 unwrap 위험 | 본 문서 직접 진입 | `src/api/auth/service.rs:397, 1396` |
 | B6 ipgeo HTTP | E-9 와 통합 | MaxMind 전환 |
 | C 품질 | Q16 (lint), Q17 (test) | `AMK_STATUS.md §8.2` |
 | D 인프라 | A2 와 통합 | 동일 |
