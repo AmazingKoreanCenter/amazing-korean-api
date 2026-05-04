@@ -11,6 +11,41 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-05-04 (저녁) — Dormant 정책 일괄 조사 + rustfmt 추가 + lint:ui 임시 비활성 + AI 사고 기록 SSoT 신규**
+
+  사용자 지시: "도입됐으나 자동 강제 안 되는 정책" 일괄 조사. 발견 5종 (lint, lint:ui, rustfmt, cargo test, e2e). baseline 통과 1종 (rustfmt) 즉시 활성, 누적 부채 2종 (lint+lint:ui = 36 errors) Q16 단일 트랙 묶음, CI 셋업 필요 2종 (cargo test, e2e) Q17 별도.
+
+  ## (1) `.github/workflows/pr-check.yml` 변경 2건
+  - **신규**: backend job 에 `cargo fmt --check --all` step 추가. `rust-toolchain.toml` 에 rustfmt components 등재됐으나 자동 강제 부재로 dormant 였음. main HEAD baseline 통과 확인 (`exit=0`) 후 즉시 활성화.
+  - **임시 비활성**: frontend job 의 `npm run lint:ui` 에 `continue-on-error: true` 추가. 첫 자동 실행 시 9건 누적 위반 검출 (디자인 토큰 결정 필요 = Q16 트랙). cleanup 후 제거.
+
+  ## (2) `docs/AMK_STATUS.md §8.2`
+  - **Q16 확장**: ESLint 27 errors + lint:ui 9 errors = 합 36 errors 단일 트랙으로 묶음. (a) shadcn/ui 컴포넌트 파일 분할, (b) react-hooks 룰 위반 fix, (c) 디자인 토큰 결정 + 9곳 색상 교체. 추정 1-2일.
+  - **Q17 신규**: cargo test (DB 의존 CI 셋업 필요) + playwright e2e (브라우저 + CI 분 큼) 도입 검토. 우선순위 = Q16 완료 후.
+
+  ## (3) `docs/AMK_AI_MISTAKES.md` 신규 (별도 SSoT)
+
+  사용자 결정 (2026-05-04): "사고 회피 룰/훅 도입은 100% 확증 안 되면 X. 대신 사고 기록 → 작업 시 사전 참조 패턴 채택 (룰 무한 루프 회피 + 사용자 스트레스 감소)".
+
+  - 본 문서 = AI 작업 실수 SSoT. 사실만 기재 (가정/해석 배제), 원인/결과 분리.
+  - 오늘 사고 5건 등재 (M-001 ~ M-005). production 인시던트 (INC-001~005) 와 별도 카테고리.
+  - 카테고리 분포: (a) 사전 상태 미확인 = M-001/M-003/M-004, (b) 추정을 사실로 단정 = M-002/M-005.
+  - 메모리 `feedback_ai_mistakes_reference.md` 신규 (포인터만, 사고 내용 복붙 X). 작업 시작 전 본 문서 참조 강제.
+
+  ## 검증
+
+  - 로컬 `cargo fmt --check --all` 통과 (exit=0)
+  - 로컬 git status clean (AMK_AI_MISTAKES.md 만 untracked, 본 commit 에 포함)
+
+  ## 다음 단계
+
+  - 본 PR (KKRYOUN push) → pr-check.yml 자동 실행 → 새 backend step (cargo fmt --check --all) 통과 확인 = baseline 검증 끝
+  - 통과 시 사용자 머지
+  - Q16 작업은 별도 PR (디자인 결정 + baseline cleanup 1-2일)
+  - Q17 = Q16 완료 후 검토
+
+---
+
 - **2026-05-04 (오후, 후속) — pr-check.yml self-test fail 대응: clippy 1줄 fix + lint 일시 비활성화**
 
   PR #205 push 직후 self-test 결과 = backend FAILURE + frontend FAILURE. 본 PR 코드 변경 0 = **기존 main baseline 의 lint 위반이 누적된 상태였던 것이 새 워크플로 검증으로 노출**.
