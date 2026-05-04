@@ -266,5 +266,12 @@ async fn security_headers(
         HeaderName::from_static("x-robots-tag"),
         HeaderValue::from_static("noindex, nofollow"),
     );
+    // N-33: Referrer-Policy — 외부 링크 클릭 시 referrer 노출 최소화
+    // strict-origin-when-cross-origin = HTTPS→HTTPS 동일 출처는 full URL,
+    // cross-origin 은 origin 만, 다운그레이드 (HTTPS→HTTP) 는 비전송
+    headers.insert(
+        HeaderName::from_static("referrer-policy"),
+        HeaderValue::from_static("strict-origin-when-cross-origin"),
+    );
     response
 }
