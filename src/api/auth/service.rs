@@ -394,8 +394,13 @@ impl AuthService {
         }
 
         let parsed_hash = match &user_info {
-            Some(user) => PasswordHash::new(user.user_password.as_ref().unwrap())
-                .map_err(|_| AppError::Internal("Failed to parse password hash".into()))?,
+            Some(user) => {
+                let password_hash = user.user_password.as_ref().ok_or_else(|| {
+                    AppError::Internal("user password not set for password login".into())
+                })?;
+                PasswordHash::new(password_hash)
+                    .map_err(|_| AppError::Internal("Failed to parse password hash".into()))?
+            }
             None => Self::dummy_password_hash()?,
         };
 
@@ -1393,7 +1398,8 @@ impl AuthService {
             });
         }
 
-        let user_info = user.unwrap();
+        let user_info =
+            user.ok_or_else(|| AppError::Internal("user not found after existence check".into()))?;
 
         // OAuth 전용 계정 (비밀번호가 NULL)이면 이메일 발송 없이 성공 응답
         if user_info.user_password.is_none() {

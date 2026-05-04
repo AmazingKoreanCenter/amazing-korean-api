@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-04 (PR 검사 워크플로 신규 — INC-005 후속, 머지 전 backend/frontend 자동 검증)
+updated: 2026-05-04 (Phase 1+2 부채 처리 10건 일괄 + 검증 2/3회차 정정)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,52 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-05-04 (밤, 후속 3) — Phase 1+2 부채 처리 10건 일괄 + 검증 2/3회차 정정**
+
+  본 세션 = 검증 2회차 (6 agent 병렬) + 옵션 C (직접 순차) + 부채 처리 (Phase 1 병렬 agent 3건 + Phase 2 직접 5건).
+
+  ## 검증 2/3회차 (commit `5d1132f`)
+
+  M-007 사고 (라인/카운트 stale) 후속. 6 agent 분담 병렬로 ~116 부채 검증, 정정 17건 적용:
+  - 라인: A2-1 ebook fs::read 9곳 / B4 unwrap / B6 ipgeo / C6 video/repo.rs
+  - 카운트: B5 expect 47→48 / H1 메모리 stale 72→41일 / J 카운트 3건
+  - 카테고리: C1 warnings / C2 합계 / N-5 / N-6 / N-15 종결 (false flag)
+  - N-27 도메인별 정확 매핑 = "58+" → "16" → **약 43건 + 8 도메인 완전 누락**
+  - 옵션 C 직접 순차로 §3.1~§3.4 부분 검증 영역 모두 종결 + N-38 신규 (Paddle amount)
+
+  ## Phase 1 부채 처리 (병렬 3 agent)
+
+  - **B7 / N-38** Paddle 웹훅 amount defense-in-depth (commit `c744efc`) — 서명 통과 후 server price_cents() 비교 추가, 불일치 시 fail-closed (500 → Paddle 자동 재시도)
+  - **B4** auth/service.rs unwrap 위험 2건 → AppError::Internal 매핑 (commit `ad239ed`) — anti-enumeration 유지
+  - **N-37** RUST_LOG 기본값 debug → info, 옵션 B 이중 안전망 (commit `90585ab`) — 검증 결과 deploy.yml 미명시 = production 사실상 debug 로 운영 중이었음 (이론 부채 → 실제 활성 발견)
+
+  ## Phase 2 부채 처리 (직접 5건)
+
+  - **B3** npm audit fix — postcss + follow-redirects + basic-ftp HIGH 3건 (commit `ee68c7c`) — semver 호환, breaking change 0
+  - **N-19** Dockerfile USER appuser 추가 (commit `28022ca`) — `useradd -r -u 1001 -M` + chown + USER, docker build 통과 검증
+  - **N-33** Referrer-Policy strict-origin-when-cross-origin (commit `f94e135`)
+  - **N-28~30** 결제 조회 인덱스 3건 신규 마이그 (commit `a4a47fb`) — `migrations/20260504_payment_lookup_indexes.sql`
+  - **A4-5** Docker log 로테이션 5 서비스 YAML anchor 일괄 (commit `7e86592`) — 서비스당 max 30MB
+
+  ## SSoT 갱신
+
+  - **부채 합계 92 → 85** (10건 처리)
+  - **신규 미해결 (AMK_AUDIT) 37 → 30**
+  - AMK_DEBTS B 보안 (취약점) 4 → 1 / (panic 위험) 2 → 0 / (외부 통신) 2 → 1 / A 운영 15 → 14
+  - 우선순위 매트릭스 갱신 (#2 B3, #4 B4 취소선)
+
+  ## 학습
+
+  - **이론 부채 → 실제 활성 발견**: N-37 검증 시 deploy.yml RUST_LOG 미명시 = production 이 사실상 debug 로 운영 중. 검증 깊이가 위험 분류를 바꿈
+  - **YAML anchor 패턴**: 5 서비스 logging 통합 적용 = 변경 시 한 곳만 수정 (DRY)
+  - **Defense-in-depth**: B7 처럼 1차 차단 (Paddle 서명) 통과 후에도 2차 검증 (server vs webhook amount) 추가 = SDK 버그 / 키 유출 시 차단 layer
+
+  ## 잔존 우선순위 (다음 세션)
+
+  - 정책 결정 필요: N-31 HSTS / N-32 CSP / N-35 remaining_attempts / N-36 Validation 에러 노출
+  - 큰 작업: N-26 i18n 21언어 (ai 측 의존) / N-27 OpenAPI 약 43건 누락
+  - 추가 작은 작업: A4-1/A4-2 SSL/HTTPS / A4-3/A4-4/A4-6/A4-7/A4-8 인프라
 
 - **2026-05-04 (밤, 후속 2) — B1 rustls-webpki 보안 취약점 3건 해결**
 

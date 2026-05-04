@@ -595,6 +595,24 @@ impl PaymentService {
             return Ok(());
         };
 
+        // Defense-in-depth: 웹훅 amount 가 서버 측 가격과 일치하는지 검증.
+        // Paddle 서명 검증을 통과했더라도 SDK/체인 단계 결함 또는 향후 가격 정책
+        // 변경 시 데이터 무결성 회귀를 조기에 차단하기 위한 2차 가드.
+        if let Some(b) = billing_interval {
+            let server_price_cents = b.price_cents();
+            if amount_cents != server_price_cents {
+                tracing::error!(
+                    txn_id = %provider_txn_id,
+                    user_id = user_id,
+                    webhook_amount = amount_cents,
+                    server_amount = server_price_cents,
+                    billing_interval = ?b,
+                    "amount mismatch — possible tampering attempt blocked"
+                );
+                return Err(AppError::Internal("payment amount mismatch".into()));
+            }
+        }
+
         PaymentRepo::create_transaction(
             &st.db,
             &super::repo::CreateTransactionParams {
