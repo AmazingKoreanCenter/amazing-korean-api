@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "驗證嘗試次數過多，請稍後再試。",
     "toastTooManyResendRequests": "重新發送次數過多，請稍後再試。",
     "oauthPasswordWarning": "透過社群登入（Google等）註冊的帳號沒有密碼，請使用對應的社群服務登入。",
-    "remainingAttempts": "剩餘發送次數：{{count}}次",
     "noAttemptsRemaining": "已達到發送上限，請稍後再試。",
     "mfaTitle": "兩步驟驗證",
     "mfaDescription": "請輸入 Google Authenticator 應用程式中的驗證碼",
@@ -219,7 +218,8 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "8 位備用碼",
     "mfaUseBackupCode": "使用備用碼",
-    "mfaUseAuthApp": "使用驗證器 App"
+    "mfaUseAuthApp": "使用驗證器 App",
+    "remainingAttempts_other": "剩餘發送次數：{{count}}次"
   },
   "user": {
     "myPageTitle": "我的頁面",
@@ -346,7 +346,6 @@
     "programTopikListen": "TOPIK聽力",
     "programTopikWrite": "TOPIK寫作",
     "programTbc": "TBC",
-    "totalProblems": "共 {{count}} 道題",
     "emptyTitle": "暫無題目",
     "emptyDescription": "所選項目暫無學習題目。",
     "emptyDetailDescription": "此學習暫無題目。",
@@ -369,7 +368,6 @@
     "viewExplanation": "查看解析",
     "references": "參考資料",
     "solvedBadge": "已完成",
-    "tryCount": "嘗試 {{count}} 次",
     "submitButton": "提交",
     "submitting": "提交中...",
     "retryButton": "重新作答",
@@ -383,13 +381,14 @@
     "toLesson": "前往課程",
     "nextItemVideo": "下一項（影片）",
     "nextItemTask": "下一項（題目）",
-    "completeLesson": "完成課程"
+    "completeLesson": "完成課程",
+    "totalProblems_other": "共 {{count}} 道題",
+    "tryCount_other": "嘗試 {{count}} 次"
   },
   "lesson": {
     "heroBadge": "階梯式課程",
     "listTitle": "課程列表",
     "listDescription": "透過系統化的課程階梯式學習韓語。提供集影片、題目和作業於一體的綜合課程。",
-    "totalLessons": "共 {{count}} 堂課",
     "emptyTitle": "暫無課程",
     "emptyDescription": "新課程即將上線。",
     "accessPaid": "付費",
@@ -403,19 +402,19 @@
     "completeLesson": "完成課程",
     "lessonCompleted": "課程已完成",
     "learningItems": "學習項目",
-    "itemCount": "{{count}}項",
     "emptyItemsTitle": "暫無學習項目",
     "emptyItemsDescription": "此課程暫無學習項目。",
     "notFoundTitle": "未找到課程",
     "notFoundDescription": "該課程不存在或已被刪除。",
     "videoId": "影片 #{{id}}",
-    "taskId": "題目 #{{id}}"
+    "taskId": "題目 #{{id}}",
+    "totalLessons_other": "共 {{count}} 堂課",
+    "itemCount_other": "{{count}}項"
   },
   "video": {
     "heroBadge": "透過影片學韓語",
     "listTitle": "影片學習",
     "listDescription": "透過各種主題的韓語影片自然地學習。觀看和聆聽母語發音和表達，提升您的韓語水平。",
-    "totalVideos": "共 {{count}} 部影片",
     "emptyTitle": "暫無影片。",
     "notFoundTitle": "未找到影片",
     "notFoundDescription": "該影片不存在或已被刪除。",
@@ -424,7 +423,8 @@
     "allItemsCompleted": "\"{{title}}\"的所有項目已完成！",
     "nextItem": "下一項",
     "backToLesson": "返回課程",
-    "backToLessonShort": "返回課程"
+    "backToLessonShort": "返回課程",
+    "totalVideos_other": "共 {{count}} 部影片"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +922,11 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_other": "{{count}} Pages",
+    "specLanguages_other": "{{count}} Languages"
   },
   "mfa": {
     "title": "雙重驗證",

@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "認証試行回数を超えました。しばらくしてからもう一度お試しください。",
     "toastTooManyResendRequests": "再送信リクエスト回数を超えました。しばらくしてからもう一度お試しください。",
     "oauthPasswordWarning": "ソーシャルログイン（Googleなど）で登録したアカウントにはパスワードがありません。該当のソーシャルサービスでログインしてください。",
-    "remainingAttempts": "残り送信回数：{{count}}回",
     "noAttemptsRemaining": "送信上限に達しました。しばらくしてからもう一度お試しください。",
     "mfaTitle": "2段階認証",
     "mfaDescription": "Google Authenticatorアプリのコードを入力してください",
@@ -219,7 +218,8 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "8文字のバックアップコード",
     "mfaUseBackupCode": "バックアップコードを使用する",
-    "mfaUseAuthApp": "認証アプリを使用する"
+    "mfaUseAuthApp": "認証アプリを使用する",
+    "remainingAttempts_other": "残り送信回数：{{count}}回"
   },
   "user": {
     "myPageTitle": "マイページ",
@@ -346,7 +346,6 @@
     "programTopikListen": "TOPIKリスニング",
     "programTopikWrite": "TOPIK作文",
     "programTbc": "TBC",
-    "totalProblems": "合計 {{count}}問",
     "emptyTitle": "登録された問題がありません",
     "emptyDescription": "選択したプログラムの学習問題はまだありません。",
     "emptyDetailDescription": "この学習にはまだ問題が登録されていません。",
@@ -369,7 +368,6 @@
     "viewExplanation": "解説を見る",
     "references": "参考資料",
     "solvedBadge": "解答済み",
-    "tryCount": "{{count}}回挑戦",
     "submitButton": "提出する",
     "submitting": "提出中...",
     "retryButton": "もう一度解く",
@@ -383,13 +381,14 @@
     "toLesson": "レッスンへ",
     "nextItemVideo": "次の項目へ（動画）",
     "nextItemTask": "次の項目へ（問題）",
-    "completeLesson": "レッスンを完了する"
+    "completeLesson": "レッスンを完了する",
+    "totalProblems_other": "合計 {{count}}問",
+    "tryCount_other": "{{count}}回挑戦"
   },
   "lesson": {
     "heroBadge": "段階的カリキュラム",
     "listTitle": "レッスン一覧",
     "listDescription": "体系的に構成されたレッスンで韓国語を段階的に学習しましょう。動画、問題、課題が統合されたレッスンを提供しています。",
-    "totalLessons": "合計 {{count}}レッスン",
     "emptyTitle": "登録されたレッスンがありません",
     "emptyDescription": "新しいレッスンが近日追加される予定です。",
     "accessPaid": "有料",
@@ -403,19 +402,19 @@
     "completeLesson": "レッスンを完了する",
     "lessonCompleted": "レッスン完了",
     "learningItems": "学習項目",
-    "itemCount": "{{count}}個",
     "emptyItemsTitle": "登録された学習項目がありません",
     "emptyItemsDescription": "このレッスンにはまだ学習項目が登録されていません。",
     "notFoundTitle": "レッスンが見つかりません",
     "notFoundDescription": "存在しないか削除されたレッスンです。",
     "videoId": "動画 #{{id}}",
-    "taskId": "問題 #{{id}}"
+    "taskId": "問題 #{{id}}",
+    "totalLessons_other": "合計 {{count}}レッスン",
+    "itemCount_other": "{{count}}個"
   },
   "video": {
     "heroBadge": "動画で学ぶ韓国語",
     "listTitle": "動画学習",
     "listDescription": "さまざまなテーマの韓国語動画で自然に学習しましょう。ネイティブの発音と表現を直接見て聞いて実力を向上させることができます。",
-    "totalVideos": "合計 {{count}}本の動画",
     "emptyTitle": "登録された動画がありません。",
     "notFoundTitle": "動画が見つかりません",
     "notFoundDescription": "存在しないか削除された動画です。",
@@ -424,7 +423,8 @@
     "allItemsCompleted": "「{{title}}」のすべての項目を完了しました！",
     "nextItem": "次の項目へ",
     "backToLesson": "レッスンに戻る",
-    "backToLessonShort": "レッスンへ"
+    "backToLessonShort": "レッスンへ",
+    "totalVideos_other": "合計 {{count}}本の動画"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +922,11 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_other": "{{count}} Pages",
+    "specLanguages_other": "{{count}} Languages"
   },
   "mfa": {
     "title": "二要素認証",

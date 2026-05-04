@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "Quá nhiều lần xác minh. Vui lòng thử lại sau.",
     "toastTooManyResendRequests": "Quá nhiều yêu cầu gửi lại. Vui lòng thử lại sau.",
     "oauthPasswordWarning": "Tài khoản đăng ký qua mạng xã hội (Google, v.v.) không có mật khẩu. Vui lòng đăng nhập bằng dịch vụ mạng xã hội tương ứng.",
-    "remainingAttempts": "Số lần gửi còn lại: {{count}}",
     "noAttemptsRemaining": "Đã đạt giới hạn gửi. Vui lòng thử lại sau.",
     "mfaTitle": "Xác thực hai bước",
     "mfaDescription": "Nhập mã từ ứng dụng Google Authenticator",
@@ -219,7 +218,8 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "Mã dự phòng 8 ký tự",
     "mfaUseBackupCode": "Sử dụng mã dự phòng",
-    "mfaUseAuthApp": "Sử dụng ứng dụng xác thực"
+    "mfaUseAuthApp": "Sử dụng ứng dụng xác thực",
+    "remainingAttempts_other": "Số lần gửi còn lại: {{count}}"
   },
   "user": {
     "myPageTitle": "Trang cá nhân",
@@ -346,7 +346,6 @@
     "programTopikListen": "TOPIK Nghe hiểu",
     "programTopikWrite": "TOPIK Viết",
     "programTbc": "TBC",
-    "totalProblems": "Tổng {{count}} câu hỏi",
     "emptyTitle": "Chưa có câu hỏi nào",
     "emptyDescription": "Chương trình đã chọn chưa có bài tập.",
     "emptyDetailDescription": "Bài học này chưa có câu hỏi nào.",
@@ -369,7 +368,6 @@
     "viewExplanation": "Xem giải thích",
     "references": "Tài liệu tham khảo",
     "solvedBadge": "Đã hoàn thành",
-    "tryCount": "{{count}} lần thử",
     "submitButton": "Nộp bài",
     "submitting": "Đang nộp...",
     "retryButton": "Làm lại",
@@ -383,13 +381,14 @@
     "toLesson": "Đến bài học",
     "nextItemVideo": "Mục tiếp theo (Video)",
     "nextItemTask": "Mục tiếp theo (Bài tập)",
-    "completeLesson": "Hoàn thành bài học"
+    "completeLesson": "Hoàn thành bài học",
+    "totalProblems_other": "Tổng {{count}} câu hỏi",
+    "tryCount_other": "{{count}} lần thử"
   },
   "lesson": {
     "heroBadge": "Chương trình theo từng bước",
     "listTitle": "Danh sách bài học",
     "listDescription": "Học tiếng Hàn theo từng bước qua các bài học có hệ thống. Cung cấp bài học tích hợp video, câu hỏi và bài tập.",
-    "totalLessons": "Tổng {{count}} bài học",
     "emptyTitle": "Chưa có bài học nào",
     "emptyDescription": "Bài học mới sẽ sớm được thêm vào.",
     "accessPaid": "Trả phí",
@@ -403,19 +402,19 @@
     "completeLesson": "Hoàn thành bài học",
     "lessonCompleted": "Bài học đã hoàn thành",
     "learningItems": "Mục học tập",
-    "itemCount": "{{count}} mục",
     "emptyItemsTitle": "Chưa có mục học tập nào",
     "emptyItemsDescription": "Bài học này chưa có mục học tập nào.",
     "notFoundTitle": "Không tìm thấy bài học",
     "notFoundDescription": "Bài học không tồn tại hoặc đã bị xóa.",
     "videoId": "Video #{{id}}",
-    "taskId": "Bài tập #{{id}}"
+    "taskId": "Bài tập #{{id}}",
+    "totalLessons_other": "Tổng {{count}} bài học",
+    "itemCount_other": "{{count}} mục"
   },
   "video": {
     "heroBadge": "Học tiếng Hàn qua video",
     "listTitle": "Học qua video",
     "listDescription": "Học tự nhiên qua các video tiếng Hàn đa dạng chủ đề. Xem và nghe phát âm và cách diễn đạt của người bản ngữ để nâng cao trình độ.",
-    "totalVideos": "Tổng {{count}} video",
     "emptyTitle": "Chưa có video nào.",
     "notFoundTitle": "Không tìm thấy video",
     "notFoundDescription": "Video không tồn tại hoặc đã bị xóa.",
@@ -424,7 +423,8 @@
     "allItemsCompleted": "Đã hoàn thành tất cả mục trong \"{{title}}\"!",
     "nextItem": "Mục tiếp theo",
     "backToLesson": "Quay lại bài học",
-    "backToLessonShort": "Bài học"
+    "backToLessonShort": "Bài học",
+    "totalVideos_other": "Tổng {{count}} video"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +922,11 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_other": "{{count}} Pages",
+    "specLanguages_other": "{{count}} Languages"
   },
   "mfa": {
     "title": "Xác thực hai yếu tố",
