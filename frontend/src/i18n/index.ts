@@ -13,7 +13,7 @@ import {
 import ko from "./locales/ko.json";
 import en from "./locales/en.json";
 
-// ── 지원 언어 목록 (21개, 아랍어 RTL 제외) ──────────────────────────
+// ── 지원 언어 목록 (23개, 아랍어 RTL 제외) ──────────────────────────
 export const SUPPORTED_LANGUAGES = [
   // Tier 1: 핵심
   { code: "ko", name: "Korean", nativeName: "한국어", flag: "🇰🇷" },
@@ -31,6 +31,7 @@ export const SUPPORTED_LANGUAGES = [
   // Tier 3: 중앙아시아 + 남아시아 + 유럽
   { code: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
   { code: "pt", name: "Portuguese", nativeName: "Português", flag: "🇧🇷" },
+  { code: "pt-PT", name: "Portuguese (Portugal)", nativeName: "Português (Portugal)", flag: "🇵🇹" },
   { code: "fr", name: "French", nativeName: "Français", flag: "🇫🇷" },
   { code: "de", name: "German", nativeName: "Deutsch", flag: "🇩🇪" },
   { code: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳" },
