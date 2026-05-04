@@ -16,7 +16,7 @@
 
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
-| A. 운영/배포 부채 | **15** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4 + **신규 8** (SSL/HTTPS, 백업, 디스크 모니터링 등) |
+| A. 운영/배포 부채 | **14** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4 + **신규 7** (SSL/HTTPS, 백업, 디스크 모니터링 등). ~~A4-5 log 로테이션~~ ✅ 해결 (2026-05-04, commit `7e86592`) |
 | B. 보안 부채 (취약점) | **1** | Rust **1** (rsa Marvin Attack, no upgrade). ~~npm 3건~~ ✅ 해결 (2026-05-04, commit `ee68c7c`). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | B. 보안 부채 (unsound/unmaintained) | 7 | core2 yanked + paste + imageproc 3 + rand 2 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
@@ -30,7 +30,7 @@
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
 | J. 환경변수/Secrets 정합성 | **4** | 신규 — APPLE_*/RATE_LIMIT_TEXTBOOK_* 미동기화 + INC-001 패턴 위험 |
 
-**총 미해결 부채 = 약 86건** (B3/B4/B7/N-19/N-37/N-38 처리 완료, 2026-05-04. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 약 85건** (B3/B4/B7/N-19/N-28~30/N-33/N-37/N-38/A4-5 처리 완료, 2026-05-04. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -74,7 +74,7 @@
 | A4-2 | Let's Encrypt + certbot 자동 갱신 정책 부재 | `docker-compose.prod.yml` 에 `amk-certbot` 컨테이너 존재하나 갱신 cron / 자동화 미명시 | HIGH (90일 만료 시 다운) |
 | A4-3 | EC2 디스크 모니터링 자동화 부재 | `df -h` 임계값 / 자동 정리 / 알림 X. UptimeRobot 은 HTTP 만 (#71) | MEDIUM |
 | A4-4 | DB / Redis 백업 정책 부재 (DR 0) | `docker-compose.prod.yml` volume-only. EC2 스냅샷 / pg_dump 자동화 X | HIGH |
-| A4-5 | Docker log 로테이션 미설정 | `docker-compose.prod.yml` 에 logging driver 옵션 없음 — 무한 누적 | MEDIUM |
+| ~~A4-5~~ | ~~Docker log 로테이션 미설정~~ ✅ 해결 (2026-05-04, commit `7e86592`) | YAML anchor `x-logging` + 5 서비스 (api/db/redis/nginx/certbot) 일괄 적용 (max-size 10m × max-file 3 = 서비스당 최대 30MB) | — |
 | A4-6 | Cloudflare DNS / Email Routing 운영 정책 미문서화 | 변경 시 수동 작업, SSoT 위치 명확화 X | MEDIUM |
 | A4-7 | nginx Rate Limiting 모니터링 부재 | `nginx.conf:31` 정의만, 실 위반 로그 / 대시보드 X | MEDIUM |
 | A4-8 | Docker base image 자동 업데이트 정책 부재 | postgres:16 / redis:7 / nginx:alpine 보안 패치 자동 모니터링 X | MEDIUM |
