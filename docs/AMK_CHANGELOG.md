@@ -11,6 +11,104 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-05-04 (밤) — AMK_DEBTS.md 정합성 검증 + 정정 + 신규 부채 12건 등재**
+
+  사용자 지시: 부채 카탈로그 (어제 작성) 의 사실관계 정확성을 5 독립 agent 분담 검증 + 추가 미점검 영역 조사 (경로 1+2 = 약 4시간 작업).
+
+  ## 검증 결과 (이전 95% → 약 98% 도달)
+
+  ### (1) 라인 번호 stale 다수 (M-007 사고)
+  AMK_STATUS §8.2 검증된 리스크 표 + AMK_DEBTS 의 라인 번호 모두 stale. AMK_DEBTS 작성 시 `AMK_STATUS` 에서 직접 검증 없이 복사한 결과.
+
+  정정 (HEAD 2026-05-04 기준):
+  - `deploy.yml:87-98` → **L92-103** (PADDLE_*)
+  - `AMK_DEPLOY_OPS.md:819` → **L985** (Webhook Secret)
+  - `AMK_DEPLOY_OPS.md:781` → **L947** (KYB)
+  - `AMK_DEPLOY_OPS.md:857` → **L1023** (SPF)
+  - `ebook/service.rs:51,261,502,516,525,605,620,629` → **L63, 381, 627, 641, 650, 731, 746, 755** (8곳, 모두 stale)
+  - `config.rs:97 SSL` → **L109-110** (DATABASE_URL localhost 기본)
+  - `config.rs:101 Redis` → **L113**
+  - `config.rs:325 세션 TTL` → **L91 + L375-378** (`EBOOK_SESSION_TTL_SEC`)
+  - `auth/service.rs:397, 1396` (unwrap) → **L358 + L1123**
+  - `video/repo.rs:237` (TODO) → **L233**
+
+  ### (2) 카운트 정정
+  - **B3 npm 취약점**: 2건 (postcss XSS) → **3건** (postcss + follow-redirects + basic-ftp **HIGH**)
+  - **C1 ESLint 카테고리**: react-refresh 다수 → **react-hooks 25건 > react-refresh 7건** (분류 정정)
+  - **C2 lint:ui 위치**: textbook_order_page.tsx 4곳 → **2곳** (총 9건 카운트 동일)
+  - **J Secrets**: `.env.example` **57 → 65건**, `deploy.yml` secrets 22 + heredoc env 11 = **33건**
+
+  ### (3) 부채 상태 변경 (해결됨)
+  - **C5 enum sqlx::Type derive**: 보류 #13 → **이미 적용 완료** (`src/types.rs` 에 `#[sqlx(type_name)]` **36건**). AMK_STATUS §8.2 #13 행에 ~~취소선~~ + 해결 표시.
+
+  ### (4) 신규 부채 12건 등재 (경로 2 추가 조사 발견)
+
+  **A 운영/배포 신규 8건** (AMK_STATUS 미등재 운영 인프라 부채):
+  - A4-1 nginx HTTPS 미활성 (HSTS 미설정)
+  - A4-2 Let's Encrypt + certbot 자동 갱신 정책 부재 (90일 만료 위험)
+  - A4-3 EC2 디스크 모니터링 자동화 부재
+  - A4-4 DB/Redis 백업 정책 부재 (DR 0)
+  - A4-5 Docker log 로테이션 미설정
+  - A4-6 Cloudflare DNS / Email Routing 운영 정책 미문서화
+  - A4-7 nginx Rate Limiting 모니터링 부재
+  - A4-8 Docker base image 자동 업데이트 정책 부재
+
+  **B 보안 신규 1건**:
+  - B6 ipgeo HTTP-only (`src/external/ipgeo.rs`) — ip-api.com 평문 HTTP, 중간자 공격 위험. E-9 (GeoIP 전환) 와 통합 가능.
+
+  **C 코드 품질 신규 6건** (Rust/TS 룰 회피 카운트):
+  - C8 `#[allow(dead_code)]` **33건**
+  - C9 `#[allow(clippy::*)]` **11건**
+  - C10 `#[allow(unused_imports)]` **8건**
+  - C11 `#[allow(unused_assignments)]` 1건
+  - C12 TypeScript `any` **3건**
+  - C13 TypeScript `eslint-disable` 인라인 **11건**
+  - 안전 (참고): Rust `unsafe` **0건** ✅, TypeScript `@ts-ignore` **0건** ✅
+
+  **E 기능 신규 3건** (다른 docs 미구현 항목):
+  - E-FUTURE-1 콘텐츠 시딩 Phase 2/3 (`AMK_API_FUTURE.md`)
+  - E-FUTURE-2 발음/조음/TTS 평가 (`AMK_API_FUTURE.md`)
+  - E-TEXTBOOK-1 SpeechSuper API 프로토타이핑 (`AMK_API_TEXTBOOK.md`)
+
+  **G 자동 검증 신규 5건**:
+  - G10 src/ 테스트 부족 (4건만, `crates/crypto` 46건 OK)
+  - G11 cargo-deny 미설치 (라이선스 검증 X)
+  - G12 cargo-geiger 미설치 (unsafe 0건이라 우선순위 낮음)
+  - G13 `.github/CODEOWNERS` 미존재
+  - G14 PR template / issue template 미존재
+
+  **J Secrets 정합성 신규 4건**:
+  - **J1 (위험 잠재) `RATE_LIMIT_TEXTBOOK_*` config.rs `expect()` panic 사용 + .env.example 미정의 + deploy.yml 미명시** = INC-001 패턴 잠재 (production 배포 시 환경변수 부재 → expect panic → crash)
+  - J2 `APPLE_CLIENT_ID/TEAM_ID` config.rs Option 처리 (panic X) + .env.example 미정의 (Apple OAuth 미구현)
+  - J3 정합성 검증 자동 도구 X (deploy.yml/.env.example/config.rs 3중 동기화 수동)
+  - J4 panic 게이트 추가 시 동기화 누락 룰 강제 X
+
+  ### (5) AI 사고 신규 등재 (M-006 + M-007)
+
+  - M-006: `cargo fmt --check --all` 결과 의미 잘못 해석 (exit=0 만 보고 통과 단정, 출력 diff 무시)
+  - M-007: 다른 문서 라인 번호 직접 검증 X (AMK_STATUS 에서 복사 → stale)
+  - 카테고리 분포 갱신: 추정 단정 = M-002, M-005, M-006, M-007
+
+  ## 변경 파일
+
+  - `docs/AMK_DEBTS.md` 전체 재작성 (정정 + 신규 12건 + 라인 번호 사용 정책 명시)
+  - `docs/AMK_AI_MISTAKES.md` M-006 + M-007 등재 + 카테고리 분포 갱신
+  - `docs/AMK_STATUS.md §8.2` 검증된 리스크 표 라인 정정 + #13 해결 표시
+  - 본 CHANGELOG 엔트리
+
+  ## 검증
+
+  - 정정된 라인 번호 spot 재검증 (4건) — 모두 정확 (deploy.yml:92-103, ebook/service.rs:63, auth/service.rs:358, video/repo.rs:233)
+  - cargo fmt --all working tree 90+ 파일 변경은 별도 결정 대기 (본 commit 미포함)
+
+  ## 다음 단계 (사용자 결정 필요)
+
+  - cargo fmt PR 처리 (옵션 1 폐기 vs 옵션 2 cleanup) — working tree 잔존
+  - 신규 발견 우선 처리 후보: J1 RATE_LIMIT_TEXTBOOK 동기화 (INC-001 패턴 차단), B3 postcss/follow-redirects/basic-ftp `npm audit fix`, B1 rustls-webpki upgrade
+  - Q16 / Q17 큐 진입 시점
+
+---
+
 - **2026-05-04 (저녁) — Dormant 정책 일괄 조사 + rustfmt 추가 + lint:ui 임시 비활성 + AI 사고 기록 SSoT 신규**
 
   사용자 지시: "도입됐으나 자동 강제 안 되는 정책" 일괄 조사. 발견 5종 (lint, lint:ui, rustfmt, cargo test, e2e). baseline 통과 1종 (rustfmt) 즉시 활성, 누적 부채 2종 (lint+lint:ui = 36 errors) Q16 단일 트랙 묶음, CI 셋업 필요 2종 (cargo test, e2e) Q17 별도.

@@ -173,13 +173,13 @@
 
 | 작업 | 리스크 | 심각도 | 근거 |
 |------|--------|:------:|------|
-| Paddle Live | 12개 PADDLE_* Secret 일괄 교체 (누락 시 결제 실패) | CRITICAL | deploy.yml:87-98 |
-| Paddle Live | Webhook Secret 1회성 (재확인 불가) | CRITICAL | AMK_DEPLOY_OPS.md:819 |
-| Paddle Live | KYB/Onfido 인증 지연 가능 | HIGH | AMK_DEPLOY_OPS.md:781 |
-| Paddle Live | SPF 레코드 병합 (Resend + Cloudflare) | MEDIUM | AMK_DEPLOY_OPS.md:857 |
-| RDS 이전 | E-book 로컬 파일시스템 의존 (9곳 fs read) | CRITICAL | ebook/service.rs:51,261,502,516,525,605,620,629 + watermark.rs:13 |
-| RDS 이전 | SSL 연결 필수 (현재 미사용) | HIGH | config.rs:97 (localhost 기본값) |
-| RDS 이전 | ElastiCache AUTH 토큰 필요 (현재 인증 없음) | HIGH | config.rs:101 (redis://127.0.0.1:6379) |
+| Paddle Live | 12개 PADDLE_* Secret 일괄 교체 (누락 시 결제 실패) | CRITICAL | deploy.yml:92-103 (HEAD 2026-05-04) |
+| Paddle Live | Webhook Secret 1회성 (재확인 불가) | CRITICAL | AMK_DEPLOY_OPS.md:985 |
+| Paddle Live | KYB/Onfido 인증 지연 가능 | HIGH | AMK_DEPLOY_OPS.md:947 |
+| Paddle Live | SPF 레코드 병합 (Resend + Cloudflare) | MEDIUM | AMK_DEPLOY_OPS.md:1023 |
+| RDS 이전 | E-book 로컬 파일시스템 의존 (9곳 fs read) | CRITICAL | ebook/service.rs:63,381,627,641,650,731,746,755 + watermark.rs:13 (HEAD 2026-05-04) |
+| RDS 이전 | SSL 연결 필수 (현재 미사용) | HIGH | config.rs:109-110 (DATABASE_URL localhost 기본값) |
+| RDS 이전 | ElastiCache AUTH 토큰 필요 (현재 인증 없음) | HIGH | config.rs:113 (redis://127.0.0.1:6379) |
 | ~~동시 세션~~ | ~~제한 로직 미구현~~ ✅ 구현 완료 | — | enforce_session_limit() — SCARD + 유령 정리 + 역할별 정책 |
 | ~~모바일 인증~~ | ~~login-mobile/refresh-mobile~~ ✅ 구현 완료 | — | auth/router.rs, handler.rs |
 | ~~모바일 인증~~ | ~~X-Platform 헤더 검증~~ ✅ refresh-mobile에 적용 | — | auth/handler.rs:refresh_mobile |
@@ -188,7 +188,7 @@
 | Flutter | E-book 뷰어 메모리 OOM (14MB/페이지) | HIGH | AMK_APP_ROADMAP.md R7 |
 | ~~Flutter~~ | ~~IAP receipt 검증 엔드포인트~~ ✅ 구현 완료 | — | POST /ebook/purchase/iap + POST /payment/webhook/revenuecat |
 | Flutter | iOS isSecureTextEntry 비공식 API | MEDIUM | AMK_APP_ROADMAP.md R2 |
-| Flutter | 앱 백그라운드 시 세션 만료 (TTL 90초) | MEDIUM | config.rs:325 |
+| Flutter | 앱 백그라운드 시 세션 만료 (TTL 90초) | MEDIUM | config.rs:91 (선언) + 375-378 (env 파싱) — `EBOOK_SESSION_TTL_SEC` |
 | Tauri | macOS 캡처 방지 불가 (Apple 정책) | MEDIUM | AMK_APP_ROADMAP.md R5 (수용) |
 
 > **팩트체크 방법**: 코드베이스 전수 grep + 파일별 라인 검증. 총 32개 주장 중 31개 확인, 1개 수정 (Secret 13→12개).
@@ -202,7 +202,7 @@
 | 10 | step-up MFA | 보안 | 민감 작업 시 추가 인증 요구 | 결제/비밀번호 변경 시 보안 강화 | 필요 시 |
 | 11 | ~~이메일 수신~~ | ~~외부 API~~ | ~~`support@amazingkorean.net` 수신~~ | ~~사용자 문의 처리~~ | ✅ Cloudflare Email Routing 설정 완료 (→ Gmail 포워딩) |
 | 12 | 토큰 Redis 캐싱 | 보안 | 재발급 시 DB 조회 → Redis 캐시 | 동시 접속 성능 개선 | 동시접속 10K+ |
-| 13 | enum sqlx::Type 전환 | 코드 품질 | 수동 match → `#[sqlx(type_name)]` derive | 보일러플레이트 감소 | 일괄 전환 시점 검토 |
+| ~~13~~ | ~~enum sqlx::Type 전환~~ | ~~코드 품질~~ | ~~수동 match → `#[sqlx(type_name)]` derive~~ | ~~보일러플레이트 감소~~ | ✅ **2026-05-04 검증 결과 이미 전환 완료** — `src/types.rs` 에 `#[sqlx(type_name = ...)]` 36건 적용. AMK_DEBTS C5 와 함께 해결 등재 |
 | 14 | Keyset 페이징 | 기능 | page/size → keyset pagination | 대용량 테이블 성능 개선 | 데이터 1만 건+ |
 | 15 | Lesson 통계 | 기능 | `/admin/lessons/stats` 구현 | 수업별 진행도 분석 | 필요 시 |
 | 16 | 학습 문제 동적 생성 | 기능 | 커리큘럼 기반 문제 자동 생성/전달 | 학습 콘텐츠 확장 | 커리큘럼 완비 후 |
