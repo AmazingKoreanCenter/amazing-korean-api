@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-03 (e-book 페이지 이미지 저장 위치 정책 결정 — RDS 이전 전까지 EC2 local fs)
+updated: 2026-05-04 (TOONRADER 벤치마크 + e-book 보안 옵션 A 권고 재작성 — 2026-05-04 reset 사고 복구)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,37 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-05-04 (오전) — 조사: 네이버웹툰 TOONRADER 벤치마크 + e-book 보안 옵션 A 권고 (2026-05-03 작업 재작성)**
+
+  > 본 엔트리는 2026-05-03 밤 최초 작성됐으나 2026-05-04 10:15 KKRYOUN→origin/main `git reset --hard` 시 미커밋 워킹 트리가 함께 사라져 손실. 대화 컨텍스트 + `memory/reference_toonrader.md`(생존) 기반으로 결정적 재작성. 코드 변경 없음, 문서 + memory 갱신만.
+
+  **TOONRADER 핵심**: 네이버웹툰 자체 개발 안티-파이러시 (2017.07~). 비가시적 워터마크 + AI 이미지 매칭(2018) + 도용계정/자동화/행동 패턴 탐지(2025~2026 고도화) + DMCA·CDN 소환장 워크플로. 2026-04-22 발표 성과: 24h 내 유출 작품 약 90% 감소, 유료 결제액 평균 23% 증가, 유출 시도 계정당 평균 회차 1/10.
+
+  **갭 분석**: AMK 는 워터마크 ✅ (LSB + 마이크로도트 + 풋터 + 접근로그 4중) / 단일 세션 강제 ✅ / accesslog 적재 ✅ 로 4축 중 워터마크·세션·로그는 보유. 부재 = (1) 자동화 봇/헤드리스 탐지, (2) 비정상 행동 패턴 시계열 분석, (3) 다중 IP 동시 접속 알림, (4) 외부 유출본 매칭 워크플로.
+
+  **검토 옵션 (T2 방향 승인 요청)**:
+  - **옵션 A (권장, 사용자 트리거 대기)** — 행동 기반 봇 탐지: 다중 IP/UA 감지 + 페이지 요청 간격 통계 + 헤드리스 시그널 (`navigator.webdriver` + WebGL/canvas 핑거프린트). 1~2일, 기존 Rate Limit/세션 인프라 재사용. 우리 갭 중 가장 명확하고 TOONRADER 2025~2026 고도화 핵심과 일치
+  - **옵션 B (보류)** — 외부 유출 모니터링 (Google 검색 알림 + 워터마크 ID 매칭 cron): 3~5일. 1인 운영 한계로 부분적 효과만, 외부 사이트 적발 발생 후 재검토
+  - **옵션 C (비권장)** — AI 이미지 매칭: 콘텐츠 규모(수십 권) 대비 과투자, 단속 대상 데이터 거의 없음
+
+  **결정**: 옵션 A 사용자 트리거 대기 (Q15). 옵션 B/C 보류.
+
+  **문서 갱신**:
+  - `docs/AMK_EBOOK_SECURITY.md` §2.5 신규 (TOONRADER 기술 구성 + 성과 + 갭 분석 + 출처 6) / §1.2 표 #7-#8 (행동 기반 봇 탐지 + 다중 IP 감지) / §4 Phase 1-6 (옵션 A 추가) / §5 한 줄 (벤치마크 격차)
+  - `docs/AMK_STATUS.md §8.2` Q15 신규 (사용자 트리거 대기)
+  - 본 CHANGELOG 엔트리 + title `updated:` 갱신
+
+  **메모리 (2026-05-03 작성, reset 영향 없이 생존)**:
+  - `reference_toonrader.md` — 외부 사이트 6 + 핵심 데이터 + 갭 영역 (다음 e-book 보안 검토 시 진입점)
+  - `project_status.md` 옵션 A 결정 대기 한 줄
+  - `MEMORY.md` 인덱스 reference 섹션 1줄
+
+  **재발 방지 (2026-05-04 신규 학습)**: 작업 완료 후 즉시 `git add` + 커밋. KKRYOUN 위에서 작업 후 reset 전 반드시 미커밋 변경 점검. 메모리는 `~/.claude/...` 별도 디스크라 git 사고 영향 없음 — docs/code 만 reset 으로 손실됐고 memory 가 복구의 핵심 자산이 됨 (이번 사고로 검증).
+
+  **다음 단계 (사용자 트리거 시)**: Q15 진입. 백엔드 = Redis 세션 메타에 `last_ip` / `last_ua` / `req_intervals` 추가 + 다중 IP 알림 endpoint. 프론트 = `navigator.webdriver` + WebGL/canvas 핑거프린트 검사 + 헤더 추가.
 
 ---
 
