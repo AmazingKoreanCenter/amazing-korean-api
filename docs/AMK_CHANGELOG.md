@@ -11,6 +11,37 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-05-04 (밤, 후속 2) — B1 rustls-webpki 보안 취약점 3건 해결**
+
+  AMK_DEBTS B1 우선순위 1번 처리 (cargo audit 발견 RUSTSEC-2026-0098/0099/0104 = rustls-webpki 0.103.10 의 wildcard certificate / CRL panic / URI name constraints 3건).
+
+  ## 변경
+
+  `cargo update -p rustls-webpki` 실행:
+  - `rustls-webpki 0.103.10 → 0.103.13`
+  - 변경 파일 = `Cargo.lock` 1건만
+
+  ## 검증
+
+  - `cargo audit` 재실행 = rustls-webpki 매칭 없음 (3건 모두 사라짐)
+  - `cargo fmt --check --all` exit=0
+  - `cargo check --locked --workspace` exit=0
+  - `cargo clippy --lib --bins --locked -- -D warnings` exit=0
+
+  ## AMK_DEBTS 갱신
+
+  - B1 표 RUSTSEC-2026-0098/0099/0104 행 ~~취소선~~ + 해결일/방법 명시
+  - §0 카운트 갱신 (B 보안 취약점 7 → 4)
+  - 잔존 = rsa Marvin Attack (RUSTSEC-2023-0071) — no fixed upgrade, 의존성 회피 검토 필요
+
+  ## 다음 부채 후보 (AMK_DEBTS 우선순위)
+
+  - B3 npm audit fix (postcss + follow-redirects + basic-ftp HIGH) — `npm audit fix` 1 명령
+  - J1 RATE_LIMIT_TEXTBOOK_* INC-001 패턴 차단
+  - B4 unwrap 위험 2건 fix (auth/service.rs:358, 1123)
+
+---
+
 - **2026-05-04 (밤, 후속) — rustfmt baseline cleanup (C3, C4 해결)**
 
   AMK_DEBTS.md C3 (rustfmt 90+ 파일 unformatted) + C4 (`docs.rs:92,94` trailing whitespace) 정리. 사용자 결정 = 옵션 1 (cleanup 즉시).

@@ -16,7 +16,7 @@
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
 | A. 운영/배포 부채 | **15** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4 + **신규 8** (SSL/HTTPS, 백업, 디스크 모니터링 등) |
-| B. 보안 부채 (취약점) | **7** | Rust 4 + npm **3** (postcss + follow-redirects + basic-ftp HIGH) |
+| B. 보안 부채 (취약점) | **4** | Rust **1** (rsa Marvin Attack, no upgrade) + npm **3** (postcss + follow-redirects + basic-ftp HIGH). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | B. 보안 부채 (unsound/unmaintained) | 7 | core2 yanked + paste + imageproc 3 + rand 2 |
 | B. 보안 부채 (panic 위험) | 2 | unwrap 잠재 위험 (9건 중) |
 | B. 보안 부채 (외부 통신) | **1** | ipgeo HTTP-only (신규 발견) |
@@ -87,9 +87,9 @@
 | ID | Crate | Version | Severity | Title | 처리 가능성 |
 |:--:|:-----:|:-------:|:--------:|-------|----------|
 | RUSTSEC-2023-0071 | rsa | 0.9.10 | medium 5.9 | Marvin Attack: timing sidechannel key recovery | **No fixed upgrade — 의존성 회피 검토 필요** |
-| RUSTSEC-2026-0099 | rustls-webpki | 0.103.10 | — | Name constraints accepted for wildcard certificates | upgrade ≥0.103.12 |
-| RUSTSEC-2026-0104 | rustls-webpki | 0.103.10 | — | Reachable panic in CRL parsing | upgrade ≥0.103.13 |
-| RUSTSEC-2026-0098 | rustls-webpki | 0.103.10 | — | Name constraints for URI names incorrectly accepted | upgrade ≥0.103.12 |
+| ~~RUSTSEC-2026-0099~~ | ~~rustls-webpki~~ | ~~0.103.10~~ | — | ~~Name constraints accepted for wildcard certificates~~ | ✅ **2026-05-04 해결** (rustls-webpki 0.103.10 → 0.103.13, `cargo update`) |
+| ~~RUSTSEC-2026-0104~~ | ~~rustls-webpki~~ | ~~0.103.10~~ | — | ~~Reachable panic in CRL parsing~~ | ✅ **2026-05-04 해결** (동일) |
+| ~~RUSTSEC-2026-0098~~ | ~~rustls-webpki~~ | ~~0.103.10~~ | — | ~~Name constraints for URI names incorrectly accepted~~ | ✅ **2026-05-04 해결** (동일) |
 
 > rustls-webpki 3건 = 한 번 cargo update 로 처리 가능.
 
