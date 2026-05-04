@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-04 (TOONRADER 벤치마크 + e-book 보안 옵션 A 권고 재작성 — 2026-05-04 reset 사고 복구)
+updated: 2026-05-04 (INC-005 사후 + deploy.yml KKRYOUN 트리거 제거 — production 약 1h 다운 재발 방지)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,77 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-05-04 (오전) — 🚨 INC-005 사후 기록 + deploy.yml KKRYOUN 트리거 제거**
+
+  ## 사고 개요
+
+  **2026-05-03 14:39 ~ 15:38 KST (약 1시간) production 다운**. nginx 502 응답. 사용자 인지 전 PR #201 머지 deploy 로 자가 복구.
+
+  ## 타임라인 (UTC, 한국시간 +9h)
+
+  | UTC | 한국 | 이벤트 | 결과 |
+  |------|------|--------|:--:|
+  | 02:44:53 | 11:44 | KKRYOUN `195e997` push (TextbookLanguage 14 + migration `20260503_textbook_language_expand.sql`) → **KKRYOUN deploy 트리거** | ✅ deploy SUCCESS, **production DB `_sqlx_migrations` 에 `20260503` row 적재됨** |
+  | 05:36:16 | 14:36 | KKRYOUN `f4e0519` push (docs only) → KKRYOUN deploy | ✅ SUCCESS |
+  | 05:36:43 | 14:36 | main `934f567` (PR #202 머지, ai 측 `i18n/phase2-it-lei` 브랜치, **migration `20260503` 파일 미포함**) → main deploy | 🔴 **FAILURE** |
+  | ~05:39 | ~14:39 | amk-api crash loop (sqlx panic) → nginx 502 | **🚨 production 다운 시작** |
+  | 06:34:25 | 15:34 | main `93a6fdd` (PR #201 머지, migration 파일 포함) → main deploy | ✅ SUCCESS |
+  | ~06:38 | ~15:38 | api 컨테이너 정상 기동, /health 200 | **자가 복구** |
+
+  ## 근본 원인 (Root Cause)
+
+  `.github/workflows/deploy.yml` trigger = `branches: [main, KKRYOUN]`. KKRYOUN push 가 production 으로 직접 배포되는 부수 효과.
+
+  메커니즘:
+  1. KKRYOUN deploy → migration 적용 → production DB 에 `20260503` row 적재
+  2. ai 측 PR #202 (별도 feature 브랜치 `i18n/phase2-it-lei`) main 머지. **PR #202 의 commit base 시점에 KKRYOUN 의 migration 파일 미반영** → main HEAD `934f567` 에 migration 파일 없음
+  3. main push → deploy → 새 컨테이너 시작 → `sqlx::migrate::run` → DB 의 `20260503` row 검사 → 코드의 `migrations/` 디렉터리에 파일 없음 → **"Error: migration 20260503 was previously applied but is missing in the resolved migrations"** → panic
+  4. amk-api restart loop → nginx upstream `api:3000` 응답 불가 → 502
+  5. PR #201 머지 (migration 파일 포함) → deploy → 정상화
+
+  ## sqlx 에러 의미
+
+  ```
+  Error: migration 20260503 was previously applied but is missing in the resolved migrations
+  ```
+
+  = "DB `_sqlx_migrations` 테이블에 `20260503` row 가 있는데, 현재 deploy 된 코드의 `migrations/` 디렉터리에 그 파일이 없다 → fail-closed (절대 자동 진행 X)"
+
+  ## 비교: INC-004 vs INC-005
+
+  | | INC-004 (2026-04-28) | INC-005 (2026-05-03) |
+  |---|---|---|
+  | 원인 | 이미 적용된 migration 파일 **수정** | 다른 브랜치 deploy 가 migration 적용 + 다른 PR 가 migration 없이 main 머지 |
+  | sqlx 에러 | checksum 불일치 | "previously applied but missing" |
+  | 트리거 | 주석 수정 commit | KKRYOUN deploy + 병렬 main 머지 (다른 PR) |
+  | 다운타임 | 약 8분 (즉각 hotfix) | 약 1시간 (자가 복구 대기) |
+  | 사용자 인지 | 즉시 | 미인지 (자가 복구로 수습) |
+
+  ## 수정 (본 PR 묶음에 포함)
+
+  **`.github/workflows/deploy.yml`**: trigger `branches: [main, KKRYOUN]` → `[main]`. 주석으로 변경 사유 + INC 참조 명시.
+
+  효과:
+  - KKRYOUN push = 더 이상 production 안 건드림
+  - PR 머지 시점 (main push) 에만 deploy
+  - INC-005 같은 병렬 deploy 경로 race 영구 차단
+  - PR 페이지에서 build-and-push/deploy status check 사라짐 (cargo check 등 로컬 검증 + main push 후 deploy 결과로 판정)
+
+  비용: 거의 0 (KKRYOUN push deploy 는 어차피 PR 머지 시 main deploy 와 중복이었음)
+
+  ## 부수 사고: 본 세션의 reset --hard 우발적 데이터 손실
+
+  본 INC-005 fix 작업 진입 시점에 KKRYOUN sync 절차로 `git reset --hard origin/main` 실행. 이때 working tree 의 미커밋 변경 3건 (`AMK_CHANGELOG.md`, `AMK_EBOOK_SECURITY.md`, `AMK_STATUS.md`) 폐기. 다른 세션이 대화 컨텍스트 + 생존한 memory (`reference_toonrader.md`) 기반으로 재작성, 본 세션이 즉시 commit (`00a7ec0`) 으로 보호. **재발 방지 학습 = `feedback_migration_safety.md` §INC-005 + 본 엔트리 하단 명시**.
+
+  ## 재발 방지 (학습 정리)
+
+  1. **destructive git 명령 (reset --hard, push --force, branch -D 등) 전 `git status` 필수** — 미커밋 변경 stash 또는 commit 후 진행
+  2. **memory (`~/.claude/...`) = 별도 디스크라 git 사고 영향 없음** → 작업 컨텍스트 / 결정 / 외부 조사 결과는 memory 우선 저장 (이번 사고에서 `reference_toonrader.md` 가 복구 핵심 자산)
+  3. **migration 파일 추가 PR 은 즉시 main 머지 우선** — KKRYOUN 위에 미머지 migration 있는 동안 다른 PR 머지 차단 (병렬 deploy 경로 막혔어도 신중하게 운영)
+  4. **deploy 트리거는 main 단일 경로** — feature 브랜치/working 브랜치 deploy 금지. 긴급 시 `workflow_dispatch` 수동 실행
 
 ---
 

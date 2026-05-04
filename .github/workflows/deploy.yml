@@ -2,8 +2,11 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [main, KKRYOUN]
-  workflow_dispatch:  # 수동 실행 가능
+    branches: [main]      # KKRYOUN 제거 (INC-005, 2026-05-04). KKRYOUN push 와 main 머지의 병렬
+                          # deploy 경로가 migration 파일 존재 mismatch 시 sqlx 'previously applied
+                          # but missing' panic + production 약 1h 다운 유발. PR 머지 시점에만
+                          # deploy 하는 표준 흐름으로 회귀.
+  workflow_dispatch:  # 수동 실행 가능 (긴급 hotfix 등)
 
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/amazing-korean-api
