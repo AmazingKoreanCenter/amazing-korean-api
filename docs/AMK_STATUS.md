@@ -165,6 +165,7 @@
 - ~~**#67 D+7 관측 로그 체크**~~ — 2026-04-23 ✅ **완료** (0건 확인)
 - ~~**#67 Phase 2~5 일괄 전환**~~ — 2026-04-23 ✅ **완료** (D+8 예정 대비 1일 앞당김. 데스크탑은 별도 PR 진행 중)
 - **Q14 — e-book 페이지 이미지 EC2 업로드** (2026-05-03 결정, 사용자 트리거 대기): books-api-bridge plan §3 Stage 2 #3-B. books 측 `dist/ebook_pages/` (8,928 페이지 / 693MB / 36 lang × 2 edition) → EC2 `${EBOOK_PAGE_IMAGES_DIR}` 동기화. 정책 = RDS 이전 전까지 EC2 local fs (RDS 이전 시 S3 + Q9 ebook fs::read 9곳 전환과 함께 통합 전환). 의존: 사용자 → EC2 디스크 여유 확인 (`df -h`) + books 측 동기화 스크립트 작성 (rsync 또는 `aws s3 sync`). 시간 추정: 인프라 결정 + 스크립트 반나절 + 업로드 30분. 정책 본문: [`AMK_API_EBOOK.md` "페이지 이미지 저장 위치 정책"](./AMK_API_EBOOK.md). 운영 모니터링: [`AMK_DEPLOY_OPS.md §6`](./AMK_DEPLOY_OPS.md) + 본 문서 §8.4 #8.
+- **Q15 — E-book 보안 옵션 A (행동 기반 봇 탐지)** (2026-05-03 권고, 사용자 트리거 대기): 네이버웹툰 TOONRADER 2025~2026 고도화 벤치마크 분석 결과 우리 시스템에서 가장 명확한 격차 = **자동화 탐지 부재**. 작업 = (1) 다중 IP/UA 동시 접속 감지 (Redis 세션 메타 확장) → 강제 종료 + 알림, (2) 페이지 요청 간격 통계 (<1s 빈발 → 봇 의심 카운터), (3) 헤드리스 시그널 (`navigator.webdriver` + WebGL/canvas 핑거프린트). 시간 추정 1~2일, 기존 Rate Limit/세션 인프라 재사용. 옵션 B (외부 모니터링) 는 1인 운영 한계로 보류, 옵션 C (AI 매칭) 는 콘텐츠 규모 대비 과투자로 비권장. 본문 SSoT: [`AMK_EBOOK_SECURITY.md` §2.5 + §4 Phase 1-6](./AMK_EBOOK_SECURITY.md).
 
 #### 검증된 리스크 (2026-03-31 코드베이스 팩트체크 완료)
 

@@ -648,13 +648,15 @@ GitHub repo → **Settings** → **Secrets and variables** → **Actions**에서
 
 ##### Workflow 파일 (.github/workflows/deploy.yml)
 
+> **Branch trigger 정책 (2026-05-04, INC-005 후)**: `branches: [main]` 단일. KKRYOUN push deploy 는 INC-005 근본 원인 (KKRYOUN deploy 의 migration 적용 + 다른 PR main 머지 시 sqlx 'previously applied but missing' panic) 으로 영구 제거. PR 머지 시점 (main push) 에만 deploy. 긴급 hotfix 는 `workflow_dispatch` 수동 실행. 상세: `AMK_CHANGELOG.md` 2026-05-04 INC-005 엔트리.
+
 ```yaml
 name: Deploy to EC2
 
 on:
   push:
-    branches: [main, KKRYOUN]
-  workflow_dispatch:  # 수동 실행 가능
+    branches: [main]      # KKRYOUN 제거 (INC-005, 2026-05-04)
+  workflow_dispatch:  # 수동 실행 가능 (긴급 hotfix 등)
 
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/amazing-korean-api
