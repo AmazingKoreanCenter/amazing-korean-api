@@ -57,6 +57,12 @@ COPY migrations ./migrations
 # Copy seeds (클린 배포 시 시드 데이터 수동 투입용)
 COPY seeds ./seeds
 
+# Create non-root user (security N-19)
+RUN useradd -r -u 1001 -M -d /nonexistent appuser \
+    && chown -R appuser:appuser /app
+
+USER appuser
+
 # Expose port
 EXPOSE 3000
 
