@@ -17,7 +17,7 @@
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
 | A. 운영/배포 부채 | **15** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4 + **신규 8** (SSL/HTTPS, 백업, 디스크 모니터링 등) |
-| B. 보안 부채 (취약점) | **4** | Rust **1** (rsa Marvin Attack, no upgrade) + npm **3** (postcss + follow-redirects + basic-ftp HIGH). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
+| B. 보안 부채 (취약점) | **1** | Rust **1** (rsa Marvin Attack, no upgrade). ~~npm 3건~~ ✅ 해결 (2026-05-04, commit `ee68c7c`). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | B. 보안 부채 (unsound/unmaintained) | 7 | core2 yanked + paste + imageproc 3 + rand 2 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
 | B. 보안 부채 (외부 통신) | **1** | B6 ipgeo HTTP-only. ~~B7 Paddle amount~~ ✅ 해결 (2026-05-04, commit `c744efc`) |
@@ -30,7 +30,7 @@
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
 | J. 환경변수/Secrets 정합성 | **4** | 신규 — APPLE_*/RATE_LIMIT_TEXTBOOK_* 미동기화 + INC-001 패턴 위험 |
 
-**총 미해결 부채 = 약 89건** (B4/B7/N-37 처리 완료, 2026-05-04. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 약 86건** (B3/B4/B7/N-19/N-37/N-38 처리 완료, 2026-05-04. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -108,15 +108,15 @@
 
 > imageproc = `src/api/ebook/watermark.rs:2,44,106` 사용 (텍스트 오버레이). agent 검증 = 3건 unsound 모두 기하학 변환/샘플링 관련, 텍스트 오버레이 경로 영향 낮음. rand = 우리 시스템 custom logger 미사용으로 영향 낮음.
 
-### B3. npm 의존성 보안 취약점 (2026-05-04 정합성 검증 후 3건으로 정정)
+### ~~B3. npm 의존성 보안 취약점~~ ✅ 해결 (2026-05-04, commit `ee68c7c`)
 
 | Severity | Package | 상세 |
 |:--------:|:-------:|------|
-| moderate | postcss <8.5.10 | XSS via Unescaped `</style>` (GHSA-qx2v-qp2m-jg93) |
-| moderate | follow-redirects ≤1.15.11 | Custom Auth Header leak |
-| **HIGH** | basic-ftp ≤5.2.2 | DoS via unbounded memory |
+| ~~moderate~~ | ~~postcss <8.5.10~~ | ~~XSS via Unescaped `</style>` (GHSA-qx2v-qp2m-jg93)~~ ✅ |
+| ~~moderate~~ | ~~follow-redirects ≤1.15.11~~ | ~~Custom Auth Header leak~~ ✅ |
+| ~~**HIGH**~~ | ~~basic-ftp ≤5.2.2~~ | ~~DoS via unbounded memory~~ ✅ |
 
-> `npm audit fix` 로 자동 해결 시도 가능 (미실행).
+**처리 완료**: `npm audit fix` 자동 처리 (lock 만 갱신, package.json 무변경 = semver 호환). `npm audit` 0 vulnerabilities + `npm run build` 통과.
 
 ### ~~B4. panic 위험 잠재 — `unwrap()` (9건 중 2건 위험)~~ ✅ 해결 (2026-05-04, commit `ad239ed`)
 
@@ -371,7 +371,7 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 | 우선 | 항목 | 사유 |
 |:-:|------|------|
 | 1 | **B1 rustls-webpki 3건 upgrade** | `cargo update` 1 명령 |
-| 2 | **B3 npm postcss + follow-redirects + basic-ftp HIGH** | `npm audit fix` 1 명령 |
+| ~~2~~ | ~~**B3 npm postcss + follow-redirects + basic-ftp HIGH**~~ | ✅ 해결 2026-05-04 (commit `ee68c7c`) |
 | 3 | **J1 RATE_LIMIT_TEXTBOOK_* 동기화** | INC-001 패턴 잠재. deploy.yml + .env.example 동시 추가 |
 | ~~4~~ | ~~**B4 unwrap 위험 2건 (auth/service.rs:397, 1396)**~~ | ✅ 해결 2026-05-04 (commit `ad239ed`) |
 | 5 | **C3+C4 rustfmt baseline** | 본 PR 결정 대기 |
