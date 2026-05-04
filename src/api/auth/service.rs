@@ -189,7 +189,7 @@ impl AuthService {
             }
             let exists_results: Vec<bool> = pipe.query_async(redis_conn).await
                 .map_err(|e| AppError::Internal(format!("redis pipeline exists(ak:session) failed: {e}")))?;
-            session_ids.into_iter().zip(exists_results.into_iter())
+            session_ids.into_iter().zip(exists_results)
                 .filter(|(_, exists)| !*exists)
                 .map(|(sid, _)| sid)
                 .collect()

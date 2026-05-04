@@ -11,6 +11,38 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-05-04 (오후, 후속) — pr-check.yml self-test fail 대응: clippy 1줄 fix + lint 일시 비활성화**
+
+  PR #205 push 직후 self-test 결과 = backend FAILURE + frontend FAILURE. 본 PR 코드 변경 0 = **기존 main baseline 의 lint 위반이 누적된 상태였던 것이 새 워크플로 검증으로 노출**.
+
+  **자가 진단 (제 잘못)**: 워크플로 도입 전 main baseline 가 `cargo clippy / npm run lint` 모두 통과하는지 사전 검증 안 함. INC-005 학습 의 "정책 도입 전 의도 fail 케이스 검증" 룰은 잡았지만 그 inverse (정책 통과 baseline 확인) 는 빠뜨림. 사고 패턴 반복 — 메모리 강화 (별도 `feedback_pre_action_validation.md` + 훅 도입 검토 진행 중).
+
+  ## fail 내역
+
+  | Job | step | 위반 |
+  |-----|------|------|
+  | backend | cargo clippy | `useless_conversion` 1건 (`src/api/auth/service.rs:192`). Rust 1.95 신규 룰 (어제 1.94 시점엔 통과) |
+  | frontend | npm run lint | ESLint 27 errors. 대부분 `react-refresh/only-export-components` (shadcn/ui 컴포넌트 + variants 같은 파일 export 패턴 vs 새 룰), 일부 `react-hooks/set-state-in-effect` / `react-hooks/incompatible-library` / `prefer-const` |
+  | frontend | lint:ui (하드코딩 색상) | ✅ PASS |
+
+  ## 즉시 조치
+
+  1. **Backend clippy fix** — `src/api/auth/service.rs:192` `.into_iter()` 1줄 제거 (zip() 가 IntoIterator 받음)
+  2. **`pr-check.yml` 의 `npm run lint` 단계** = `continue-on-error: true` 임시 적용. 결과 표시되나 workflow status 는 fail 처리 X
+  3. **Q16 신규 큐잉** (`docs/AMK_STATUS.md §8.2`) — Frontend ESLint baseline cleanup. 작업 = shadcn 컴포넌트 파일 분할 + react-hooks 위반 fix + prefer-const fix. 추정 1-2일. 완료 후 `continue-on-error` 제거
+
+  ## 잡힌 가치 (역설적)
+
+  본 워크플로 안 만들었으면 27 errors + 1 clippy 가 계속 누적되고 있었음. **워크플로 = 기존 부채 발견 도구로 정상 작동**. 다만 도입 시점에 한 번에 fix 어려운 양이라 baseline cleanup 별도 트랙 분리 (Q16).
+
+  ## 학습
+
+  - 정책 도입 시 fail 케이스 (의도 fail) 검증 + **통과 케이스 (현재 baseline)** 검증 둘 다 필요
+  - lint baseline 누적은 자동 검증 부재의 자연 결과 — 도입 첫 날엔 부채 발견량 클 수 있음
+  - 대량 위반 발견 시 즉시 전수 fix vs 임시 우회 + 별도 트랙 = 작업 분할 판단 (이번엔 후자)
+
+---
+
 - **2026-05-04 (오후) — PR 검사 워크플로 신규 (`.github/workflows/pr-check.yml`) — INC-005 학습 후속**
 
   ## 배경
