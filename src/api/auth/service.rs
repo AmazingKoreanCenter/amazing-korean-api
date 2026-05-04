@@ -1398,8 +1398,8 @@ impl AuthService {
             });
         }
 
-        let user_info = user
-            .ok_or_else(|| AppError::Internal("user not found after existence check".into()))?;
+        let user_info =
+            user.ok_or_else(|| AppError::Internal("user not found after existence check".into()))?;
 
         // OAuth 전용 계정 (비밀번호가 NULL)이면 이메일 발송 없이 성공 응답
         if user_info.user_password.is_none() {
