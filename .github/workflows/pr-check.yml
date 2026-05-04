@@ -1,0 +1,75 @@
+name: PR Check
+
+# 도입 배경 (2026-05-04, INC-005 학습):
+# deploy.yml 은 main push 에만 트리거 (KKRYOUN 제거됨). 그 결과 KKRYOUN push 시
+# 자동 검증이 사라져 컴파일/타입/lint 에러를 머지 후 deploy 단계에서야 발견.
+# 본 워크플로는 KKRYOUN push 시점에 backend (cargo check + clippy) + frontend
+# (build + lint) 검증을 자동 실행하여 머지 전 차단한다. 배포 책임은 없음
+# (deploy.yml 단일 책임 유지).
+
+on:
+  push:
+    branches: [KKRYOUN]
+  workflow_dispatch:
+
+# 같은 ref 에 대해 push 가 빠르게 연속 발생하면 이전 실행 취소 (CI 분 절약)
+concurrency:
+  group: pr-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend (cargo check + clippy)
+    runs-on: ubuntu-latest
+    env:
+      # sqlx offline mode — DB 없이 .sqlx/ 쿼리 캐시로 컴파일
+      SQLX_OFFLINE: "true"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (stable + clippy)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo check (--locked = Cargo.lock 정합성 같이 검증)
+        run: cargo check --locked --workspace
+
+      - name: cargo clippy (-D warnings = warning 도 fail)
+        run: cargo clippy --lib --bins --locked -- -D warnings
+
+  frontend:
+    name: frontend (build + lint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20 (with npm cache)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      # npm run build = tsc -b && vite build (package.json scripts.build)
+      # tsc -b 가 type check 포함하므로 별도 npx tsc --noEmit 불필요
+      - name: npm run build
+        run: npm run build
+
+      - name: npm run lint (ESLint)
+        run: npm run lint
+
+      # 하드코딩 색상 검사 (Tailwind 토큰화 정책)
+      - name: npm run lint:ui (hardcoded colors)
+        run: npm run lint:ui

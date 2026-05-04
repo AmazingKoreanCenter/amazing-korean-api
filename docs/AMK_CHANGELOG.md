@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-04 (INC-005 사후 + deploy.yml KKRYOUN 트리거 제거 — production 약 1h 다운 재발 방지)
+updated: 2026-05-04 (PR 검사 워크플로 신규 — INC-005 후속, 머지 전 backend/frontend 자동 검증)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -8,6 +8,74 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 > `AMK_API_MASTER.md` Section 9에서 분리됨 (2026-02-17).
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
+
+---
+
+- **2026-05-04 (오후) — PR 검사 워크플로 신규 (`.github/workflows/pr-check.yml`) — INC-005 학습 후속**
+
+  ## 배경
+
+  INC-005 fix (2026-05-04 오전) 로 `deploy.yml` trigger = `branches: [main]` 단일화. 그 결과 **KKRYOUN push 시 자동 검증 사라짐** = 컴파일/타입/lint 에러를 머지 후 deploy 단계 (Docker build) 에서야 발견하는 검증 갭 발생.
+
+  사용자 결정: 옵션 A (PR 검사 워크플로 신규) 채택. 이유 = 검증 책임을 사람 → CI 로 이전, 1인 환경 인지 부담 감소, 머지 후 deploy fail 부담 회피.
+
+  ## 변경
+
+  **`.github/workflows/pr-check.yml` 신규**
+
+  | Job | 명령 | 목적 |
+  |-----|------|------|
+  | `backend` | `cargo check --locked --workspace` | 컴파일 + Cargo.lock 정합성 (SQLX_OFFLINE=true, .sqlx/ 쿼리 캐시) |
+  | `backend` | `cargo clippy --lib --bins --locked -- -D warnings` | lint + warning fail-closed |
+  | `frontend` | `npm run build` (= `tsc -b && vite build`) | 타입 체크 + 빌드 |
+  | `frontend` | `npm run lint` | ESLint |
+  | `frontend` | `npm run lint:ui` | 하드코딩 색상 검사 (Tailwind 토큰화 정책) |
+
+  **트리거**: `push: [KKRYOUN]` + `workflow_dispatch`.
+
+  **concurrency**: `pr-check-${{ github.ref }}` 그룹 + `cancel-in-progress: true` — 같은 ref 에 빠른 연속 push 시 이전 실행 자동 취소 (CI 분 절약).
+
+  **캐시**:
+  - Rust: `Swatinem/rust-cache@v2` (target/ + ~/.cargo)
+  - Node: `actions/setup-node@v4` 의 `cache: 'npm'` (cache-dependency-path = `frontend/package-lock.json`)
+
+  ## 책임 분리 원칙
+
+  | 워크플로 | 책임 | 트리거 |
+  |---------|------|--------|
+  | `deploy.yml` | EC2 배포 (Docker build + push + SCP + SSH + health check) | `push: [main]` |
+  | `pr-check.yml` | 머지 전 검증 (backend cargo + frontend build/lint) | `push: [KKRYOUN]` |
+
+  INC-005 학습 = 한 워크플로에 다중 책임 (배포 + 검증) 두면 트리거 충돌 + race condition 위험. **별도 파일로 영구 분리**.
+
+  ## 효과 + 한계
+
+  **잡을 수 있는 사고**:
+  - 컴파일 에러 머지 (cargo check fail) → Docker build 단계 도달 전 차단
+  - 타입 에러 머지 (tsc fail in npm run build) → frontend 깨진 상태 머지 차단
+  - clippy warning 머지 (워닝도 fail) → 코드 품질 일관성
+  - 하드코딩 색상 머지 (lint:ui fail) → Tailwind 토큰화 정책 강제
+
+  **잡지 못하는 사고** (별도 트랙 필요):
+  - INC-005 패턴 (병렬 PR migration 비대칭) — 이미 deploy.yml fix 로 막힘
+  - INC-004 패턴 (적용된 migration 파일 수정) — sqlx checksum 문제, 본 PR 검사로는 감지 불가
+  - 런타임 panic — 테스트 부재 (cargo test 도입 별도 검토 필요)
+
+  ## 비용
+
+  - GitHub Actions 분: 본 워크플로 평균 ~3-5분 (캐시 hit 시 1-2분). KKRYOUN push 빈도 = 일 평균 5-10회 추정 → 월 ~150-500분 추가
+  - 무료 한도 2,000분/월 안에서 운영 가능 (deploy.yml 평균 3-4분 × 일 머지 1-3회 = 월 ~100-360분 + pr-check ~150-500분 = 합계 ~250-860분)
+
+  ## 문서/메모리 갱신
+
+  - `docs/AMK_DEPLOY_OPS.md §5` workflow 인벤토리 표 + §7 CI Gate 표
+  - `memory/feedback_deploy_env_sync.md` PR 검사 정책 섹션 추가
+  - 본 CHANGELOG 엔트리
+
+  ## 다음 단계 (트리거 시)
+
+  - 머지 후 KKRYOUN 의도 fail 케이스 (예: cargo check 깨지는 한 줄) push → pr-check fail 확인 → 정책 검증
+  - 옵션 C (branch protection + required status check) 도입 여부는 사용자 1인 환경 force push 자유도 vs 강제 트레이드오프 판단 (현재 보류)
 
 ---
 
