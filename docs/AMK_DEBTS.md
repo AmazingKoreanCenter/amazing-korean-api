@@ -19,8 +19,8 @@
 | A. 운영/배포 부채 | **15** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4 + **신규 8** (SSL/HTTPS, 백업, 디스크 모니터링 등) |
 | B. 보안 부채 (취약점) | **4** | Rust **1** (rsa Marvin Attack, no upgrade) + npm **3** (postcss + follow-redirects + basic-ftp HIGH). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | B. 보안 부채 (unsound/unmaintained) | 7 | core2 yanked + paste + imageproc 3 + rand 2 |
-| B. 보안 부채 (panic 위험) | 2 | unwrap 잠재 위험 (9건 중) |
-| B. 보안 부채 (외부 통신 + 결제) | **2** | B6 ipgeo HTTP-only + B7 Paddle amount defense-in-depth (검증 3회차 옵션 C 신규) |
+| ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
+| B. 보안 부채 (외부 통신) | **1** | B6 ipgeo HTTP-only. ~~B7 Paddle amount~~ ✅ 해결 (2026-05-04, commit `c744efc`) |
 | C. 코드 품질 부채 | **13** | ESLint 27 + lint:ui 9 + rustfmt 90+ + docs.rs 2 + bundle 27MB + 신규 6 (allow 53건 + TS any 3 + eslint-disable 11) |
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
 | E. 기능 부채 (보류/조건부) | **11** | 9 (보류 8 + STATUS #11 이메일 수신 ✅) + **신규 3** (콘텐츠 시딩, SpeechSuper, 번들 최적화) |
@@ -30,7 +30,7 @@
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
 | J. 환경변수/Secrets 정합성 | **4** | 신규 — APPLE_*/RATE_LIMIT_TEXTBOOK_* 미동기화 + INC-001 패턴 위험 |
 
-**총 미해결 부채 = 약 92건** (검증 3회차 옵션 C 결과 반영, B7 신규. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 약 89건** (B4/B7/N-37 처리 완료, 2026-05-04. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -118,18 +118,18 @@
 
 > `npm audit fix` 로 자동 해결 시도 가능 (미실행).
 
-### B4. panic 위험 잠재 — `unwrap()` (9건 중 2건 위험)
+### ~~B4. panic 위험 잠재 — `unwrap()` (9건 중 2건 위험)~~ ✅ 해결 (2026-05-04, commit `ad239ed`)
 
 | 위치 | 코드 | 위험 | 비고 |
 |------|------|:--:|------|
 | `src/error.rs` | `to_string().parse().unwrap()` | 안전 | round-trip |
 | `src/api/user/service.rs` (3곳) | `NaiveDate::from_ymd_opt(1900,1,1).unwrap()` / Argon2 `Params::new` | 안전 | 정적 값 |
-| **`src/api/auth/service.rs:397`** | `Some(user) => PasswordHash::new(user.user_password.as_ref().unwrap())` | **위험 잠재** | Option 가 None 시 panic. 인증 흐름 |
-| **`src/api/auth/service.rs:1396`** | `let user_info = user.unwrap()` | **위험 잠재** | Option 가 None 시 panic |
+| ~~`src/api/auth/service.rs:397`~~ | ~~`Some(user) => PasswordHash::new(user.user_password.as_ref().unwrap())`~~ | ✅ 해결 | `ok_or_else(\|\| AppError::Internal(...))?` 매핑 |
+| ~~`src/api/auth/service.rs:1396`~~ | ~~`let user_info = user.unwrap()`~~ | ✅ 해결 | `ok_or_else(\|\| AppError::Internal(...))?` 매핑 |
 | `src/api/ebook/watermark.rs:170` | `hash[..8].try_into().unwrap()` | 안전 | 길이 검증 후 |
 | `src/api/admin/user/service.rs` (2곳) | `NaiveDate::from_ymd_opt(1900,1,1).unwrap()` | 안전 | 정적 값 |
 
-**B4 처리**: 위험 잠재 2건 = 명시적 에러 매핑 (`AppError::Internal`) 으로 교체. 시간 1-2시간.
+**처리 완료**: 위험 잠재 2건 모두 `AppError::Internal` 명시 매핑으로 교체 (commit `ad239ed`). anti-enumeration 유지.
 
 ### B5. `expect()` 48건 (전수 점검 미실행)
 
@@ -143,18 +143,14 @@
 
 **처리**: ip-api 유료 전환 또는 MaxMind GeoLite2 로컬 DB 전환 (E-9 와 통합 가능).
 
-### B7. Paddle 웹훅 amount defense-in-depth 결여 (2026-05-04 옵션 C 발견)
+### ~~B7. Paddle 웹훅 amount defense-in-depth 결여~~ ✅ 해결 (2026-05-04, commit `c744efc`)
 
 | 위치 | 사실 |
 |------|------|
 | `src/api/payment/service.rs:552` | `let amount_cents = txn.details.totals.total.parse::<i32>().unwrap_or(0);` |
 | `src/api/payment/service.rs:553` | `let tax_cents = txn.details.totals.tax.parse::<i32>().unwrap_or(0);` |
 
-**현재 흐름**: Paddle 서명 검증 SDK 통과 → amount = 웹훅 값 직접 신뢰 → DB 저장. 서버 측 가격 (`billing_interval.price_cents()`) vs 웹훅 amount **비교 X**.
-
-**위험**: LOW (서명 검증 통과 시 위변조 어려움). 단 defense-in-depth 결여 — SDK 버그 / 키 유출 시 가격 위조 차단 layer 부재.
-
-**처리**: `if amount_cents != billing_interval.price_cents() { tracing::error + Err }` 1시간. (참조: `AMK_AUDIT_2026-05-04.md` §N-38 + §3.3)
+**처리 완료**: subscription 매핑 후 `create_transaction` 전에 `amount_cents != billing_interval.price_cents()` 검증 추가. 불일치 시 `tracing::error` + `AppError::Internal` → 500 응답 (Paddle 자동 재시도). DB 저장 차단 = fail-closed semantics. (commit `c744efc`)
 
 ---
 
@@ -377,7 +373,7 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 | 1 | **B1 rustls-webpki 3건 upgrade** | `cargo update` 1 명령 |
 | 2 | **B3 npm postcss + follow-redirects + basic-ftp HIGH** | `npm audit fix` 1 명령 |
 | 3 | **J1 RATE_LIMIT_TEXTBOOK_* 동기화** | INC-001 패턴 잠재. deploy.yml + .env.example 동시 추가 |
-| 4 | **B4 unwrap 위험 2건 (auth/service.rs:397, 1396)** | 1-2시간, 명시적 에러 매핑 |
+| ~~4~~ | ~~**B4 unwrap 위험 2건 (auth/service.rs:397, 1396)**~~ | ✅ 해결 2026-05-04 (commit `ad239ed`) |
 | 5 | **C3+C4 rustfmt baseline** | 본 PR 결정 대기 |
 | 6 | **G6 dependabot 도입** | `.github/dependabot.yml` 1 파일 |
 | 7 | **A4-1, A4-2 SSL/HTTPS + certbot 자동 갱신** | 90일 만료 대비 (외부 트리거 없으면 잊기 쉬움) |
