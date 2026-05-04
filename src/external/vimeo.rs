@@ -151,7 +151,9 @@ impl VimeoClient {
             .json(&body)
             .send()
             .await
-            .map_err(|e| AppError::External(format!("Vimeo upload ticket request failed: {}", e)))?;
+            .map_err(|e| {
+                AppError::External(format!("Vimeo upload ticket request failed: {}", e))
+            })?;
 
         if !response.status().is_success() {
             let status = response.status();

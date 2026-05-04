@@ -53,16 +53,25 @@ pub async fn create_order(
     // IP 기반 Rate Limiting (주문 스팸 방지)
     let client_ip = extract_client_ip(&headers);
     let rl_key = format!("rl:textbook_order:{}", client_ip);
-    let mut redis_conn = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+    let mut redis_conn = st
+        .redis
+        .get()
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?;
 
     let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-    let _: () = redis_conn.expire(&rl_key, st.cfg.rate_limit_textbook_window_sec).await?;
+    let _: () = redis_conn
+        .expire(&rl_key, st.cfg.rate_limit_textbook_window_sec)
+        .await?;
     if attempts > st.cfg.rate_limit_textbook_max {
-        return Err(AppError::TooManyRequests("TEXTBOOK_429_TOO_MANY_ORDERS".into()));
+        return Err(AppError::TooManyRequests(
+            "TEXTBOOK_429_TOO_MANY_ORDERS".into(),
+        ));
     }
 
     // 입력 검증 (length, email 형식 등)
-    req.validate().map_err(|e| AppError::BadRequest(e.to_string()))?;
+    req.validate()
+        .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
     let res = TextbookService::create_order(&st, claims.sub, req).await?;
     Ok(Json(res))

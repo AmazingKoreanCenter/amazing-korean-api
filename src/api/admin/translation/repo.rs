@@ -5,7 +5,9 @@ use sqlx::PgPool;
 use crate::error::AppResult;
 use crate::types::{ContentType, SupportedLanguage, TranslationStatus};
 
-use super::dto::{ContentRecordItem, SourceFieldItem, TranslatedField, TranslationRes, TranslationSearchItem};
+use super::dto::{
+    ContentRecordItem, SourceFieldItem, TranslatedField, TranslationRes, TranslationSearchItem,
+};
 
 /// 번역 목록 쿼리 파라미터
 pub struct TranslationListQuery {
@@ -61,7 +63,10 @@ impl TranslationRepo {
     }
 
     /// ID로 번역 조회
-    pub async fn find_by_id(pool: &PgPool, translation_id: i64) -> AppResult<Option<TranslationRes>> {
+    pub async fn find_by_id(
+        pool: &PgPool,
+        translation_id: i64,
+    ) -> AppResult<Option<TranslationRes>> {
         let row = sqlx::query_as::<_, TranslationRes>(
             r#"
             SELECT
@@ -218,12 +223,10 @@ impl TranslationRepo {
 
     /// 번역 삭제
     pub async fn delete_one(pool: &PgPool, translation_id: i64) -> AppResult<bool> {
-        let result = sqlx::query(
-            r#"DELETE FROM content_translations WHERE translation_id = $1"#,
-        )
-        .bind(translation_id)
-        .execute(pool)
-        .await?;
+        let result = sqlx::query(r#"DELETE FROM content_translations WHERE translation_id = $1"#)
+            .bind(translation_id)
+            .execute(pool)
+            .await?;
 
         Ok(result.rows_affected() > 0)
     }
@@ -557,12 +560,18 @@ impl TranslationRepo {
 
                 if let Some(r) = row {
                     for (name, text) in [
-                        ("study_task_choice_question", Some(r.study_task_choice_question)),
+                        (
+                            "study_task_choice_question",
+                            Some(r.study_task_choice_question),
+                        ),
                         ("study_task_choice_1", Some(r.study_task_choice_1)),
                         ("study_task_choice_2", Some(r.study_task_choice_2)),
                         ("study_task_choice_3", Some(r.study_task_choice_3)),
                         ("study_task_choice_4", Some(r.study_task_choice_4)),
-                        ("study_task_choice_answer", Some(r.study_task_choice_answer.to_string())),
+                        (
+                            "study_task_choice_answer",
+                            Some(r.study_task_choice_answer.to_string()),
+                        ),
                     ] {
                         fields.push(SourceFieldItem {
                             content_type: ContentType::StudyTaskChoice,
@@ -662,8 +671,14 @@ impl TranslationRepo {
 
                 if let Some(r) = row {
                     for (name, text) in [
-                        ("study_task_writing_prompt", Some(r.study_task_writing_prompt)),
-                        ("study_task_writing_answer", Some(r.study_task_writing_answer)),
+                        (
+                            "study_task_writing_prompt",
+                            Some(r.study_task_writing_prompt),
+                        ),
+                        (
+                            "study_task_writing_answer",
+                            Some(r.study_task_writing_answer),
+                        ),
                         ("study_task_writing_hint", r.study_task_writing_hint),
                     ] {
                         fields.push(SourceFieldItem {

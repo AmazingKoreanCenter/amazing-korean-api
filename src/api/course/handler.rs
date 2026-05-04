@@ -1,8 +1,8 @@
-use crate::extract::AppJson;
 use super::{
     dto::{CourseDetailRes, CourseListQuery, CourseListRes, CreateCourseReq},
     service::CourseService,
 };
+use crate::extract::AppJson;
 use crate::{
     api::auth::extractor::AuthUser,
     error::{AppError, AppResult},

@@ -26,10 +26,10 @@ use validator::Validate;
 pub struct SignupReq {
     #[validate(email)]
     pub email: String,
-    
+
     #[validate(length(min = 8, max = 72))]
     pub password: String,
-    
+
     #[validate(length(min = 1, max = 50))]
     pub name: String,
 
@@ -101,7 +101,7 @@ pub struct SettingsUpdateReq {
 
     /// 타임존 (예: "Asia/Seoul")
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[validate(length(min = 1))] 
+    #[validate(length(min = 1))]
     pub user_set_timezone: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -110,7 +110,6 @@ pub struct SettingsUpdateReq {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_set_note_push: Option<bool>,
 }
-
 
 // =====================================================================
 // Response DTOs (응답)
@@ -163,7 +162,7 @@ pub struct SettingsRes {
     pub user_set_timezone: String,
     pub user_set_note_email: bool,
     pub user_set_note_push: bool,
-    
+
     #[schema(value_type = String, format = "date-time")]
     pub updated_at: DateTime<Utc>,
 }

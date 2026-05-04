@@ -13,8 +13,8 @@ use crate::api::admin::lesson::dto::{
     LessonBulkUpdateRes, LessonCreateReq, LessonItemBulkCreateReq, LessonItemBulkCreateRes,
     LessonItemBulkDeleteReq, LessonItemBulkDeleteRes, LessonItemBulkUpdateReq,
     LessonItemBulkUpdateRes, LessonItemCreateReq, LessonItemListReq, LessonItemUpdateReq,
-    LessonListReq, LessonProgressBulkUpdateReq, LessonProgressBulkUpdateRes,
-    LessonProgressListReq, LessonProgressUpdateReq, LessonUpdateReq,
+    LessonListReq, LessonProgressBulkUpdateReq, LessonProgressBulkUpdateRes, LessonProgressListReq,
+    LessonProgressUpdateReq, LessonUpdateReq,
 };
 use crate::api::auth::extractor::AuthUser;
 use crate::error::AppResult;
@@ -70,14 +70,9 @@ pub async fn admin_list_lessons(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_list_lessons(
-        &st,
-        auth_user.sub,
-        params,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res =
+        super::service::admin_list_lessons(&st, auth_user.sub, params, ip_address, user_agent)
+            .await?;
 
     Ok(Json(res))
 }
@@ -105,14 +100,9 @@ pub async fn admin_list_lesson_items(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_list_lesson_items(
-        &st,
-        auth_user.sub,
-        params,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res =
+        super::service::admin_list_lesson_items(&st, auth_user.sub, params, ip_address, user_agent)
+            .await?;
 
     Ok(Json(res))
 }
@@ -476,14 +466,8 @@ pub async fn admin_create_lesson(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_create_lesson(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res = super::service::admin_create_lesson(&st, auth_user.sub, req, ip_address, user_agent)
+        .await?;
 
     Ok((StatusCode::CREATED, Json(res)))
 }
@@ -513,14 +497,9 @@ pub async fn admin_bulk_create_lessons(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let (all_success, res) = super::service::admin_bulk_create_lessons(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let (all_success, res) =
+        super::service::admin_bulk_create_lessons(&st, auth_user.sub, req, ip_address, user_agent)
+            .await?;
 
     let status = if all_success {
         StatusCode::CREATED
@@ -557,14 +536,9 @@ pub async fn admin_bulk_update_lessons(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let (all_success, res) = super::service::admin_bulk_update_lessons(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let (all_success, res) =
+        super::service::admin_bulk_update_lessons(&st, auth_user.sub, req, ip_address, user_agent)
+            .await?;
 
     let status = if all_success {
         StatusCode::OK
@@ -646,14 +620,9 @@ pub async fn admin_get_lesson(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_get_lesson(
-        &st,
-        auth_user.sub,
-        lesson_id,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res =
+        super::service::admin_get_lesson(&st, auth_user.sub, lesson_id, ip_address, user_agent)
+            .await?;
 
     Ok(Json(res))
 }

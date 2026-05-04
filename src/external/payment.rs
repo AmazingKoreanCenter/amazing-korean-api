@@ -82,9 +82,8 @@ impl PaddleProvider {
             paddle_rust_sdk::Paddle::PRODUCTION
         };
 
-        let client = paddle_rust_sdk::Paddle::new(api_key, environment).map_err(|e| {
-            AppError::Internal(format!("Failed to create Paddle client: {}", e))
-        })?;
+        let client = paddle_rust_sdk::Paddle::new(api_key, environment)
+            .map_err(|e| AppError::Internal(format!("Failed to create Paddle client: {}", e)))?;
 
         Ok(Self {
             client,

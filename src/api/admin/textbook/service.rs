@@ -1,7 +1,7 @@
 use crate::api::textbook::dto::OrderRes;
 use crate::api::textbook::repo::{InsertOrderParams, TextbookRepo};
 use crate::api::textbook::service::{
-    TextbookService, UNIT_PRICE, MIN_TOTAL_QUANTITY, build_order_res_from, catalog_languages,
+    build_order_res_from, catalog_languages, TextbookService, MIN_TOTAL_QUANTITY, UNIT_PRICE,
 };
 use crate::crypto::CryptoService;
 use crate::error::{AppError, AppResult};
@@ -32,7 +32,8 @@ impl AdminTextbookService {
         let order_ids: Vec<i64> = rows.iter().map(|r| r.order_id).collect();
         let all_items = TextbookRepo::find_items_by_orders(&st.db, &order_ids).await?;
 
-        let mut items_map: std::collections::HashMap<i64, Vec<_>> = std::collections::HashMap::new();
+        let mut items_map: std::collections::HashMap<i64, Vec<_>> =
+            std::collections::HashMap::new();
         for item in all_items {
             items_map.entry(item.order_id).or_default().push(item);
         }
@@ -86,8 +87,7 @@ impl AdminTextbookService {
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let mut items = Vec::with_capacity(rows.len());
         for row in rows {
-            let admin_email = crypto
-                .decrypt(&row.admin_email_enc, "users.user_email")?;
+            let admin_email = crypto.decrypt(&row.admin_email_enc, "users.user_email")?;
             items.push(AdminTextbookLogItem {
                 log_id: row.log_id,
                 admin_user_id: row.admin_user_id,
@@ -349,9 +349,7 @@ impl AdminTextbookService {
                 total_quantity,
                 total_amount,
             };
-            if let Err(e) =
-                send_templated(email_sender.as_ref(), recipient_email, template).await
-            {
+            if let Err(e) = send_templated(email_sender.as_ref(), recipient_email, template).await {
                 tracing::warn!(
                     order_code = %order_code,
                     email = %recipient_email,
@@ -491,10 +489,9 @@ impl AdminTextbookService {
 
         // 상태 변경 이메일 알림 (fire-and-forget).
         // 이메일이 없으면 스킵 (관리자 대리 주문 일부는 이메일 없음).
-        if let (Some(email_sender), Some(recipient_email)) = (
-            st.email.as_ref(),
-            order.orderer_email.as_deref(),
-        ) {
+        if let (Some(email_sender), Some(recipient_email)) =
+            (st.email.as_ref(), order.orderer_email.as_deref())
+        {
             let status_label = status_display_label(&new_status);
             let template = EmailTemplate::TextbookOrderStatusUpdate {
                 order_code: order.order_code.clone(),
@@ -533,8 +530,7 @@ impl AdminTextbookService {
             "tracking_provider": order.tracking_provider,
         });
 
-        TextbookRepo::update_tracking(&st.db, order_id, tracking_number, tracking_provider)
-            .await?;
+        TextbookRepo::update_tracking(&st.db, order_id, tracking_number, tracking_provider).await?;
 
         let after = serde_json::json!({
             "tracking_number": tracking_number,
@@ -561,11 +557,7 @@ impl AdminTextbookService {
     }
 
     /// 주문 삭제 (Soft Delete — 감사 로그 보존)
-    pub async fn delete_order(
-        st: &AppState,
-        admin_user_id: i64,
-        order_id: i64,
-    ) -> AppResult<()> {
+    pub async fn delete_order(st: &AppState, admin_user_id: i64, order_id: i64) -> AppResult<()> {
         let order = TextbookRepo::find_by_id(&st.db, order_id)
             .await?
             .ok_or(AppError::NotFound)?;
@@ -622,9 +614,6 @@ fn status_display_label(status: &TextbookOrderStatus) -> &'static str {
 /// 모든 상태 쌍 간 전환을 허용. 동일 상태 재설정만 무의미하므로 금지.
 /// timestamp 는 `update_status_in_tx` / `update_status` 에서 `COALESCE` 로
 /// set-if-null 적용되어 기존 첫 전환 시점이 보존됨.
-fn is_valid_status_transition(
-    current: &TextbookOrderStatus,
-    next: &TextbookOrderStatus,
-) -> bool {
+fn is_valid_status_transition(current: &TextbookOrderStatus, next: &TextbookOrderStatus) -> bool {
     current != next
 }

@@ -9,9 +9,9 @@ use crate::state::AppState;
 
 use super::dto::{
     ContentRecordsReq, ContentRecordsRes, SourceFieldsReq, SourceFieldsRes,
-    TranslationBulkCreateReq, TranslationBulkCreateRes, TranslationCreateReq,
-    TranslationListReq, TranslationListRes, TranslationRes, TranslationSearchReq,
-    TranslationSearchRes, TranslationStatsRes, TranslationStatusReq, TranslationUpdateReq,
+    TranslationBulkCreateReq, TranslationBulkCreateRes, TranslationCreateReq, TranslationListReq,
+    TranslationListRes, TranslationRes, TranslationSearchReq, TranslationSearchRes,
+    TranslationStatsRes, TranslationStatusReq, TranslationUpdateReq,
 };
 use super::service::TranslationService;
 

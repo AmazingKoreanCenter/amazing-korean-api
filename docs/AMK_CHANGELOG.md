@@ -11,6 +11,42 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
 ---
 
+- **2026-05-04 (밤, 후속) — rustfmt baseline cleanup (C3, C4 해결)**
+
+  AMK_DEBTS.md C3 (rustfmt 90+ 파일 unformatted) + C4 (`docs.rs:92,94` trailing whitespace) 정리. 사용자 결정 = 옵션 1 (cleanup 즉시).
+
+  ## 작업
+
+  1. `src/docs.rs:92, 94` trailing whitespace 수동 제거 (rustfmt internal error 원인 해소)
+  2. `cargo fmt --all` 재실행 → exit=0 (성공)
+  3. 검증:
+     - `cargo fmt --check --all` exit=0 (baseline 통과)
+     - `cargo check --locked --workspace` exit=0
+     - `cargo clippy --lib --bins --locked -- -D warnings` exit=0
+
+  ## 변경 규모
+
+  **95 파일 / rustfmt 자동 포맷 + docs.rs trailing whitespace 1줄 수동 fix**.
+  의미 변경 0 (코드 동작 동일, 단순 whitespace/import/brace 자동 정리).
+
+  - `src/api/*` 79 파일
+  - `src/external/*` 7 파일
+  - `crates/crypto/*` 3 파일
+  - `src/types.rs / main.rs / lib.rs / config.rs / bin/rekey_encryption.rs` 5 파일
+  - `src/docs.rs` 1 파일 (trailing whitespace 수동 fix)
+
+  ## AMK_DEBTS 갱신
+
+  - C3 rustfmt baseline → ✅ 해결
+  - C4 docs.rs trailing whitespace → ✅ 해결
+  - PR #205 의 backend job 이제 cargo fmt --check 통과 예상
+
+  ## 다음 단계
+
+  cargo fmt 정책 영구 강제 정착 = pr-check.yml 의 cargo fmt --check --all step 이미 활성. 향후 새 unformatted 코드 머지 차단.
+
+---
+
 - **2026-05-04 (밤) — AMK_DEBTS.md 정합성 검증 + 정정 + 신규 부채 12건 등재**
 
   사용자 지시: 부채 카탈로그 (어제 작성) 의 사실관계 정확성을 5 독립 agent 분담 검증 + 추가 미점검 영역 조사 (경로 1+2 = 약 4시간 작업).

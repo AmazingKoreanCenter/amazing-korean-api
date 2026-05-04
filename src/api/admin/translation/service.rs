@@ -137,10 +137,7 @@ impl TranslationService {
     }
 
     /// 번역 상세 조회
-    pub async fn get_translation(
-        pool: &PgPool,
-        translation_id: i64,
-    ) -> AppResult<TranslationRes> {
+    pub async fn get_translation(pool: &PgPool, translation_id: i64) -> AppResult<TranslationRes> {
         TranslationRepo::find_by_id(pool, translation_id)
             .await?
             .ok_or(AppError::NotFound)
@@ -176,10 +173,7 @@ impl TranslationService {
     }
 
     /// 번역 삭제
-    pub async fn delete_translation(
-        pool: &PgPool,
-        translation_id: i64,
-    ) -> AppResult<()> {
+    pub async fn delete_translation(pool: &PgPool, translation_id: i64) -> AppResult<()> {
         let deleted = TranslationRepo::delete_one(pool, translation_id).await?;
         if !deleted {
             return Err(AppError::NotFound);
@@ -205,7 +199,8 @@ impl TranslationService {
         pool: &PgPool,
         req: SourceFieldsReq,
     ) -> AppResult<SourceFieldsRes> {
-        let fields = TranslationRepo::find_source_fields(pool, req.content_type, req.content_id).await?;
+        let fields =
+            TranslationRepo::find_source_fields(pool, req.content_type, req.content_id).await?;
         Ok(SourceFieldsRes { fields })
     }
 
@@ -227,5 +222,4 @@ impl TranslationService {
             total_translations,
         })
     }
-
 }

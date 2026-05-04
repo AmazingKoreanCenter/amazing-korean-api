@@ -128,13 +128,14 @@ pub async fn admin_list_lessons(
     let search = query.q.as_ref().map(|s| format!("%{}%", s));
 
     let mut count_builder = QueryBuilder::new("SELECT count(*) FROM lesson");
-    apply_lesson_filters(&mut count_builder, search.as_ref(), query.lesson_state, query.lesson_access);
+    apply_lesson_filters(
+        &mut count_builder,
+        search.as_ref(),
+        query.lesson_state,
+        query.lesson_access,
+    );
 
-    let total_count: i64 = count_builder
-        .build()
-        .fetch_one(pool)
-        .await?
-        .try_get(0)?;
+    let total_count: i64 = count_builder.build().fetch_one(pool).await?.try_get(0)?;
 
     let mut builder = QueryBuilder::new(
         r#"
@@ -153,7 +154,12 @@ pub async fn admin_list_lessons(
         "#,
     );
 
-    apply_lesson_filters(&mut builder, search.as_ref(), query.lesson_state, query.lesson_access);
+    apply_lesson_filters(
+        &mut builder,
+        search.as_ref(),
+        query.lesson_state,
+        query.lesson_access,
+    );
 
     builder.push(" ORDER BY ");
     let sort_col = match query.sort {
@@ -166,7 +172,11 @@ pub async fn admin_list_lessons(
         _ => "lesson_created_at",
     };
     builder.push(sort_col);
-    builder.push(if query.order == "asc" { " ASC" } else { " DESC" });
+    builder.push(if query.order == "asc" {
+        " ASC"
+    } else {
+        " DESC"
+    });
 
     builder.push(" LIMIT ");
     builder.push_bind(query.size as i64);
@@ -193,10 +203,7 @@ pub async fn admin_list_lesson_items(
     let mut count_builder = QueryBuilder::new("SELECT COUNT(*) FROM lesson_item");
     apply_lesson_item_filters(&mut count_builder, lesson_id, lesson_item_kind);
 
-    let total_count: i64 = count_builder
-        .build_query_scalar()
-        .fetch_one(pool)
-        .await?;
+    let total_count: i64 = count_builder.build_query_scalar().fetch_one(pool).await?;
 
     let mut builder = QueryBuilder::new(
         r#"
@@ -248,10 +255,7 @@ pub async fn admin_list_lesson_progress(
     let mut count_builder = QueryBuilder::new("SELECT COUNT(*) FROM lesson_progress");
     apply_lesson_progress_filters(&mut count_builder, lesson_id, user_id);
 
-    let total_count: i64 = count_builder
-        .build_query_scalar()
-        .fetch_one(pool)
-        .await?;
+    let total_count: i64 = count_builder.build_query_scalar().fetch_one(pool).await?;
 
     let mut builder = QueryBuilder::new(
         r#"
@@ -813,8 +817,7 @@ pub async fn create_lesson_log_tx(
     tx: &mut Transaction<'_, Postgres>,
     p: &LessonLogParams<'_>,
 ) -> AppResult<()> {
-    create_lesson_log(tx, p)
-    .await
+    create_lesson_log(tx, p).await
 }
 
 pub async fn find_lesson_by_id_tx(
@@ -1102,8 +1105,12 @@ pub async fn get_lesson_items_with_details(
                     study_id: row.st_study_id.unwrap_or(0),
                     study_task_kind: row.st_study_task_kind.unwrap_or_default(),
                     study_task_seq: row.st_study_task_seq.unwrap_or(1),
-                    study_task_created_at: row.st_study_task_created_at.unwrap_or_else(chrono::Utc::now),
-                    study_task_updated_at: row.st_study_task_updated_at.unwrap_or_else(chrono::Utc::now),
+                    study_task_created_at: row
+                        .st_study_task_created_at
+                        .unwrap_or_else(chrono::Utc::now),
+                    study_task_updated_at: row
+                        .st_study_task_updated_at
+                        .unwrap_or_else(chrono::Utc::now),
                 })
             } else {
                 None

@@ -17,7 +17,7 @@ pub struct GoogleOAuthClient {
 
 /// Google Token 교환 응답
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]  // 역직렬화에 필요하지만 id_token만 사용
+#[allow(dead_code)] // 역직렬화에 필요하지만 id_token만 사용
 pub struct GoogleTokenResponse {
     pub access_token: String,
     pub id_token: String,
@@ -45,12 +45,12 @@ struct GoogleJwk {
 #[derive(Debug, Deserialize)]
 pub struct GoogleIdTokenClaims {
     #[allow(dead_code)]
-    pub iss: String,              // "https://accounts.google.com" (jsonwebtoken이 검증)
+    pub iss: String, // "https://accounts.google.com" (jsonwebtoken이 검증)
     #[allow(dead_code)]
-    pub azp: String,              // authorized party (client_id)
+    pub azp: String, // authorized party (client_id)
     #[allow(dead_code)]
-    pub aud: String,              // audience (client_id) (jsonwebtoken이 검증)
-    pub sub: String,              // Google 고유 사용자 ID (핵심!)
+    pub aud: String, // audience (client_id) (jsonwebtoken이 검증)
+    pub sub: String, // Google 고유 사용자 ID (핵심!)
     pub email: String,
     pub email_verified: bool,
     pub name: Option<String>,
@@ -64,15 +64,15 @@ pub struct GoogleIdTokenClaims {
     #[allow(dead_code)]
     pub iat: i64,
     #[allow(dead_code)]
-    pub exp: i64,                 // jsonwebtoken이 검증
-    pub nonce: Option<String>,    // CSRF/Replay 방지용
+    pub exp: i64, // jsonwebtoken이 검증
+    pub nonce: Option<String>, // CSRF/Replay 방지용
 }
 
 /// Google 사용자 정보 (간소화된 구조)
 #[derive(Debug, Clone)]
-#[allow(dead_code)]  // 확장성을 위해 모든 필드 보관
+#[allow(dead_code)] // 확장성을 위해 모든 필드 보관
 pub struct GoogleUserInfo {
-    pub sub: String,              // Google 고유 ID
+    pub sub: String, // Google 고유 ID
     pub email: String,
     pub email_verified: bool,
     pub name: Option<String>,
@@ -148,11 +148,13 @@ impl GoogleOAuthClient {
         let header = jsonwebtoken::decode_header(id_token)
             .map_err(|e| AppError::External(format!("Invalid ID token header: {}", e)))?;
 
-        let kid = header.kid
+        let kid = header
+            .kid
             .ok_or_else(|| AppError::External("ID token missing kid in header".into()))?;
 
         // Google JWKS에서 공개키 가져오기
-        let jwks: GoogleJwks = self.client
+        let jwks: GoogleJwks = self
+            .client
             .get(GOOGLE_JWKS_URL)
             .send()
             .await
@@ -162,7 +164,9 @@ impl GoogleOAuthClient {
             .map_err(|e| AppError::External(format!("Failed to parse Google JWKS: {}", e)))?;
 
         // kid에 매칭되는 키 찾기
-        let jwk = jwks.keys.iter()
+        let jwk = jwks
+            .keys
+            .iter()
             .find(|k| k.kid == kid)
             .ok_or_else(|| AppError::External("No matching key found in Google JWKS".into()))?;
 
@@ -176,8 +180,9 @@ impl GoogleOAuthClient {
         validation.set_audience(&[&self.client_id]);
 
         // 서명 검증 + 디코딩
-        let token_data = jsonwebtoken::decode::<GoogleIdTokenClaims>(id_token, &decoding_key, &validation)
-            .map_err(|e| AppError::External(format!("ID token verification failed: {}", e)))?;
+        let token_data =
+            jsonwebtoken::decode::<GoogleIdTokenClaims>(id_token, &decoding_key, &validation)
+                .map_err(|e| AppError::External(format!("ID token verification failed: {}", e)))?;
 
         Ok(token_data.claims)
     }

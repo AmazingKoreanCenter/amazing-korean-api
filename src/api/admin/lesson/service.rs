@@ -136,7 +136,6 @@ pub async fn admin_list_lesson_items(
         None => None,
     };
 
-    
     let details = serde_json::to_value(&req).unwrap_or(serde_json::Value::Null);
 
     crate::api::admin::user::repo::write_audit_log(
@@ -190,7 +189,6 @@ pub async fn admin_list_lesson_progress(
         .unwrap_or("lesson_progress_last_progress_at");
     let order = req.order.as_deref().unwrap_or("desc");
 
-    
     let details = serde_json::json!({
         "page": page,
         "size": size,
@@ -253,7 +251,6 @@ pub async fn admin_update_lesson_progress(
         return Err(AppError::BadRequest("no fields to update".into()));
     }
 
-    
     let details = serde_json::json!({
         "lesson_id": lesson_id,
         "user_id": req.user_id,
@@ -327,7 +324,6 @@ pub async fn admin_bulk_update_lesson_progress(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -479,7 +475,6 @@ pub async fn admin_create_lesson_item(
         _ => return Err(AppError::BadRequest("invalid lesson_item_kind".into())),
     };
 
-    
     let details = serde_json::json!({
         "lesson_id": lesson_id,
         "payload": &req
@@ -569,7 +564,6 @@ pub async fn admin_bulk_create_lesson_items(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -774,9 +768,7 @@ pub async fn admin_update_lesson_item(
         .filter(|kind| *kind != before_kind)
         .map(|kind| kind.to_string());
 
-    let target_kind = normalized_kind
-        .as_deref()
-        .unwrap_or(before_kind);
+    let target_kind = normalized_kind.as_deref().unwrap_or(before_kind);
 
     let new_seq = req
         .lesson_item_seq
@@ -889,7 +881,6 @@ pub async fn admin_bulk_update_lesson_items(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -914,7 +905,13 @@ pub async fn admin_bulk_update_lesson_items(
                 && item.video_id.is_none()
                 && item.study_task_id.is_none()
         })
-        && req.items.iter().map(|i| i.lesson_id).collect::<std::collections::HashSet<_>>().len() == 1;
+        && req
+            .items
+            .iter()
+            .map(|i| i.lesson_id)
+            .collect::<std::collections::HashSet<_>>()
+            .len()
+            == 1;
 
     if is_pure_reorder {
         // Use atomic reorder with two-phase update to avoid unique constraint violations
@@ -969,9 +966,7 @@ pub async fn admin_bulk_update_lesson_items(
                 .filter(|kind| *kind != before_kind)
                 .map(|kind| kind.to_string());
 
-            let target_kind = normalized_kind
-                .as_deref()
-                .unwrap_or(before_kind);
+            let target_kind = normalized_kind.as_deref().unwrap_or(before_kind);
 
             let new_seq = item
                 .new_lesson_item_seq
@@ -1011,9 +1006,9 @@ pub async fn admin_bulk_update_lesson_items(
                         ));
                     }
                     if kind_changed {
-                        let task_id = item
-                            .study_task_id
-                            .ok_or_else(|| AppError::BadRequest("study_task_id is required".into()))?;
+                        let task_id = item.study_task_id.ok_or_else(|| {
+                            AppError::BadRequest("study_task_id is required".into())
+                        })?;
                         task_update = Some(Some(task_id));
                         video_update = Some(None);
                     } else if let Some(task_id) = item.study_task_id {
@@ -1215,7 +1210,6 @@ pub async fn admin_bulk_delete_lesson_items(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1353,7 +1347,6 @@ pub async fn admin_create_lesson(
     let lesson_state = req.lesson_state.unwrap_or(LessonState::Ready);
     let lesson_access = req.lesson_access.unwrap_or(LessonAccess::Public);
 
-    
     crate::api::admin::user::repo::write_audit_log(
         st,
         actor_user_id,
@@ -1428,7 +1421,6 @@ pub async fn admin_bulk_create_lessons(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1584,7 +1576,6 @@ pub async fn admin_bulk_update_lessons(
         return Err(AppError::BadRequest(e.to_string()));
     }
 
-    
     let details = serde_json::json!({
         "count": req.items.len()
     });
@@ -1867,7 +1858,6 @@ pub async fn admin_get_lesson(
 ) -> AppResult<AdminLessonRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    
     let details = serde_json::json!({
         "lesson_id": lesson_id
     });
@@ -1904,7 +1894,6 @@ pub async fn admin_get_lesson_items_detail(
 ) -> AppResult<AdminLessonItemsDetailRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    
     let details = serde_json::json!({
         "lesson_id": lesson_id
     });
@@ -1951,7 +1940,6 @@ pub async fn admin_get_lesson_progress_detail(
 ) -> AppResult<AdminLessonProgressListDetailRes> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    
     let details = serde_json::json!({
         "lesson_id": lesson_id
     });
@@ -1999,7 +1987,6 @@ pub async fn admin_delete_lesson_item(
 ) -> AppResult<()> {
     check_admin_rbac(&st.db, actor_user_id).await?;
 
-    
     crate::api::admin::user::repo::write_audit_log(
         st,
         actor_user_id,

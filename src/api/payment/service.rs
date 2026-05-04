@@ -14,10 +14,9 @@ pub struct PaymentService;
 impl PaymentService {
     /// 사용 가능한 구독 플랜 목록 반환
     pub async fn get_plans(st: &AppState) -> AppResult<PlansRes> {
-        let payment = st
-            .payment
-            .as_ref()
-            .ok_or_else(|| AppError::ServiceUnavailable("Payment provider not configured".into()))?;
+        let payment = st.payment.as_ref().ok_or_else(|| {
+            AppError::ServiceUnavailable("Payment provider not configured".into())
+        })?;
 
         let intervals = [
             (BillingInterval::Month1, "Monthly"),
@@ -103,10 +102,9 @@ impl PaymentService {
         user_id: i64,
         immediately: bool,
     ) -> AppResult<SubscriptionRes> {
-        let payment = st
-            .payment
-            .as_ref()
-            .ok_or_else(|| AppError::ServiceUnavailable("Payment provider not configured".into()))?;
+        let payment = st.payment.as_ref().ok_or_else(|| {
+            AppError::ServiceUnavailable("Payment provider not configured".into())
+        })?;
 
         // get_latest_subscription 사용 — paused 상태에서도 취소 가능
         let sub = PaymentRepo::get_latest_subscription(&st.db, user_id)
@@ -114,7 +112,9 @@ impl PaymentService {
             .ok_or_else(|| AppError::BadRequest("No subscription found".into()))?;
 
         if sub.status == SubscriptionStatus::Canceled {
-            return Err(AppError::BadRequest("Subscription is already canceled".into()));
+            return Err(AppError::BadRequest(
+                "Subscription is already canceled".into(),
+            ));
         }
 
         let effective_from = if immediately {
@@ -167,8 +167,7 @@ impl PaymentService {
             EventData::SubscriptionCreated(sub) => {
                 Self::handle_subscription_created(st, sub).await?;
             }
-            EventData::SubscriptionActivated(sub)
-            | EventData::SubscriptionResumed(sub) => {
+            EventData::SubscriptionActivated(sub) | EventData::SubscriptionResumed(sub) => {
                 Self::handle_subscription_activated(st, sub).await?;
             }
             EventData::SubscriptionUpdated(sub) => {
@@ -277,10 +276,7 @@ impl PaymentService {
     // =========================================================================
 
     /// subscription.created — 구독 생성 (trialing 상태)
-    async fn handle_subscription_created(
-        st: &AppState,
-        sub: &PaddleSubscription,
-    ) -> AppResult<()> {
+    async fn handle_subscription_created(st: &AppState, sub: &PaddleSubscription) -> AppResult<()> {
         let user_id = match extract_user_id(sub) {
             Some(id) => id,
             None => {
@@ -362,7 +358,8 @@ impl PaymentService {
         .await?;
 
         // user_course 수강권 부여
-        let existing = PaymentRepo::get_subscription_by_provider_id(&st.db, &provider_sub_id).await?;
+        let existing =
+            PaymentRepo::get_subscription_by_provider_id(&st.db, &provider_sub_id).await?;
         if let Some(row) = existing {
             let granted = PaymentRepo::grant_all_courses(&st.db, row.user_id, period_end).await?;
             tracing::info!(
@@ -377,10 +374,7 @@ impl PaymentService {
     }
 
     /// subscription.updated — 구독 정보 업데이트 (billing period 갱신 등)
-    async fn handle_subscription_updated(
-        st: &AppState,
-        sub: &PaddleSubscription,
-    ) -> AppResult<()> {
+    async fn handle_subscription_updated(st: &AppState, sub: &PaddleSubscription) -> AppResult<()> {
         let provider_sub_id = sub.id.to_string();
         let status = paddle_status_to_internal(&sub.status);
         let period_start = sub.current_billing_period.as_ref().map(|p| p.starts_at);
@@ -449,10 +443,7 @@ impl PaymentService {
     }
 
     /// subscription.paused — 구독 일시정지 + 수강권 비활성화
-    async fn handle_subscription_paused(
-        st: &AppState,
-        sub: &PaddleSubscription,
-    ) -> AppResult<()> {
+    async fn handle_subscription_paused(st: &AppState, sub: &PaddleSubscription) -> AppResult<()> {
         let provider_sub_id = sub.id.to_string();
 
         PaymentRepo::update_subscription_status(
@@ -558,61 +549,51 @@ impl PaymentService {
         let provider_txn_id = txn.id.to_string();
 
         // 금액 파싱 (Paddle은 최소 통화 단위 문자열로 반환)
-        let amount_cents = txn
-            .details
-            .totals
-            .total
-            .parse::<i32>()
-            .unwrap_or(0);
-        let tax_cents = txn
-            .details
-            .totals
-            .tax
-            .parse::<i32>()
-            .unwrap_or(0);
+        let amount_cents = txn.details.totals.total.parse::<i32>().unwrap_or(0);
+        let tax_cents = txn.details.totals.tax.parse::<i32>().unwrap_or(0);
         let currency = format!("{:?}", txn.details.totals.currency_code);
 
         // 연결된 구독에서 user_id 조회
-        let (subscription_id, user_id, billing_interval) =
-            if let Some(ref paddle_sub_id) = txn.subscription_id {
-                let sub_id_str = paddle_sub_id.to_string();
-                let row =
-                    PaymentRepo::get_subscription_by_provider_id(&st.db, &sub_id_str).await?;
-                match row {
-                    Some(r) => (Some(r.subscription_id), r.user_id, Some(r.billing_interval)),
-                    None => {
-                        // custom_data에서 user_id 시도
-                        let uid = txn
-                            .custom_data
-                            .as_ref()
-                            .and_then(|cd| cd["user_id"].as_str())
-                            .and_then(|s| s.parse::<i64>().ok())
-                            .unwrap_or(0);
-                        if uid == 0 {
-                            tracing::error!(
-                                txn_id = %provider_txn_id,
-                                "transaction.completed: cannot determine user_id"
-                            );
-                            return Ok(());
-                        }
-                        (None, uid, None)
+        let (subscription_id, user_id, billing_interval) = if let Some(ref paddle_sub_id) =
+            txn.subscription_id
+        {
+            let sub_id_str = paddle_sub_id.to_string();
+            let row = PaymentRepo::get_subscription_by_provider_id(&st.db, &sub_id_str).await?;
+            match row {
+                Some(r) => (Some(r.subscription_id), r.user_id, Some(r.billing_interval)),
+                None => {
+                    // custom_data에서 user_id 시도
+                    let uid = txn
+                        .custom_data
+                        .as_ref()
+                        .and_then(|cd| cd["user_id"].as_str())
+                        .and_then(|s| s.parse::<i64>().ok())
+                        .unwrap_or(0);
+                    if uid == 0 {
+                        tracing::error!(
+                            txn_id = %provider_txn_id,
+                            "transaction.completed: cannot determine user_id"
+                        );
+                        return Ok(());
                     }
+                    (None, uid, None)
                 }
-            } else {
-                // 구독 없는 일회성 결제 — e-book 구매 확인
-                let custom_data = txn.custom_data.as_ref();
-                let is_ebook = custom_data
-                    .and_then(|cd| cd["type"].as_str())
-                    .map(|t| t == "ebook")
-                    .unwrap_or(false);
+            }
+        } else {
+            // 구독 없는 일회성 결제 — e-book 구매 확인
+            let custom_data = txn.custom_data.as_ref();
+            let is_ebook = custom_data
+                .and_then(|cd| cd["type"].as_str())
+                .map(|t| t == "ebook")
+                .unwrap_or(false);
 
-                if is_ebook {
-                    return Self::handle_ebook_transaction_completed(st, txn).await;
-                }
+            if is_ebook {
+                return Self::handle_ebook_transaction_completed(st, txn).await;
+            }
 
-                tracing::warn!(txn_id = %provider_txn_id, "Transaction without subscription_id and not ebook, skipping");
-                return Ok(());
-            };
+            tracing::warn!(txn_id = %provider_txn_id, "Transaction without subscription_id and not ebook, skipping");
+            return Ok(());
+        };
 
         PaymentRepo::create_transaction(
             &st.db,
@@ -736,19 +717,25 @@ impl PaymentService {
 
                 // 결제 완료 이메일 발송 (fire-and-forget)
                 if let Some(ref email_sender) = st.email {
+                    use crate::api::ebook::service::{edition_label_ko, language_name_ko};
                     use crate::crypto::CryptoService;
                     use crate::external::email::{send_templated, EmailTemplate};
-                    use crate::api::ebook::service::{language_name_ko, edition_label_ko};
 
                     let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-                    if let Ok(Some(encrypted_email)) = crate::api::ebook::repo::find_user_encrypted_email(&st.db, row.user_id).await {
-                        if let Ok(user_email) = crypto.decrypt(&encrypted_email, "users.user_email") {
+                    if let Ok(Some(encrypted_email)) =
+                        crate::api::ebook::repo::find_user_encrypted_email(&st.db, row.user_id)
+                            .await
+                    {
+                        if let Ok(user_email) = crypto.decrypt(&encrypted_email, "users.user_email")
+                        {
                             let template = EmailTemplate::EbookPurchaseCompleted {
                                 purchase_code: purchase_code.to_string(),
                                 language_name: language_name_ko(row.language).to_string(),
                                 edition_label: edition_label_ko(row.edition).to_string(),
                             };
-                            if let Err(e) = send_templated(email_sender.as_ref(), &user_email, template).await {
+                            if let Err(e) =
+                                send_templated(email_sender.as_ref(), &user_email, template).await
+                            {
                                 tracing::warn!(
                                     purchase_code = %purchase_code,
                                     error = %e,
@@ -792,7 +779,9 @@ fn extract_billing_interval(st: &AppState, sub: &PaddleSubscription) -> Option<B
 }
 
 /// Paddle SDK의 SubscriptionStatus → 내부 SubscriptionStatus 변환
-fn paddle_status_to_internal(status: &paddle_rust_sdk::enums::SubscriptionStatus) -> SubscriptionStatus {
+fn paddle_status_to_internal(
+    status: &paddle_rust_sdk::enums::SubscriptionStatus,
+) -> SubscriptionStatus {
     match status {
         paddle_rust_sdk::enums::SubscriptionStatus::Active => SubscriptionStatus::Active,
         paddle_rust_sdk::enums::SubscriptionStatus::Trialing => SubscriptionStatus::Trialing,

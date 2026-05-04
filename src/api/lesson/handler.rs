@@ -137,6 +137,7 @@ pub async fn update_lesson_progress(
     Path(lesson_id): Path<i64>,
     AppJson(req): AppJson<LessonProgressUpdateReq>,
 ) -> AppResult<Json<LessonProgressRes>> {
-    let res = LessonService::update_lesson_progress(&state.db, auth_user.sub, lesson_id, req).await?;
+    let res =
+        LessonService::update_lesson_progress(&state.db, auth_user.sub, lesson_id, req).await?;
     Ok(Json(res))
 }

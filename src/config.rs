@@ -22,84 +22,84 @@ pub struct Config {
     pub skip_db: bool,
     pub jwt_access_ttl_min: i64,
     pub refresh_ttl_days: i64,
-    pub refresh_ttl_days_admin: i64,  // HYMN, Admin, Manager용 (더 짧은 TTL)
-    pub refresh_ttl_days_hymn: i64,   // HYMN 전용 (가장 짧은 TTL)
+    pub refresh_ttl_days_admin: i64, // HYMN, Admin, Manager용 (더 짧은 TTL)
+    pub refresh_ttl_days_hymn: i64,  // HYMN 전용 (가장 짧은 TTL)
     pub refresh_cookie_name: String,
     pub refresh_cookie_domain: Option<String>,
     pub refresh_cookie_secure: bool,
     pub refresh_cookie_samesite: String,
     pub rate_limit_login_window_sec: i64,
     pub rate_limit_login_max: i64,
-    pub rate_limit_study_window_sec: i64,  // Study 답안 제출 레이트리밋 윈도우 (초)
-    pub rate_limit_study_max: i64,         // Study 답안 제출 최대 횟수/윈도우
-    pub rate_limit_email_window_sec: i64,  // 이메일 발송 레이트리밋 윈도우 (초, 기본: 18000 = 5시간)
-    pub rate_limit_email_max: i64,         // 이메일 발송 최대 횟수/윈도우 (기본: 5)
+    pub rate_limit_study_window_sec: i64, // Study 답안 제출 레이트리밋 윈도우 (초)
+    pub rate_limit_study_max: i64,        // Study 답안 제출 최대 횟수/윈도우
+    pub rate_limit_email_window_sec: i64, // 이메일 발송 레이트리밋 윈도우 (초, 기본: 18000 = 5시간)
+    pub rate_limit_email_max: i64,        // 이메일 발송 최대 횟수/윈도우 (기본: 5)
     pub rate_limit_textbook_window_sec: i64, // 교재 주문 레이트리밋 윈도우 (초, 기본: 3600 = 1시간)
-    pub rate_limit_textbook_max: i64,        // 교재 주문 IP당 최대 횟수/윈도우 (기본: 5)
+    pub rate_limit_textbook_max: i64,     // 교재 주문 IP당 최대 횟수/윈도우 (기본: 5)
     pub cors_origins: Vec<String>,
     pub vimeo_access_token: Option<String>,
-    pub admin_ip_allowlist: Vec<String>,  // Admin 접근 허용 IP 목록 (비어있으면 모든 IP 허용)
+    pub admin_ip_allowlist: Vec<String>, // Admin 접근 허용 IP 목록 (비어있으면 모든 IP 허용)
     // Google OAuth
     pub google_client_id: Option<String>,
     pub google_client_secret: Option<String>,
     pub google_redirect_uri: Option<String>,
     pub google_mobile_client_id: Option<String>, // 모바일 전용 Google OAuth Client ID (Android/iOS)
-    pub oauth_state_ttl_sec: i64,         // OAuth state 유효시간 (초, 기본 300)
-    pub frontend_url: String,             // OAuth 콜백 후 리다이렉트할 프론트엔드 URL
+    pub oauth_state_ttl_sec: i64,                // OAuth state 유효시간 (초, 기본 300)
+    pub frontend_url: String,                    // OAuth 콜백 후 리다이렉트할 프론트엔드 URL
     // Apple OAuth (모바일 Sign in with Apple)
-    pub apple_client_id: Option<String>,  // Apple Bundle ID (e.g., net.amazingkorean.app)
-    pub apple_team_id: Option<String>,    // Apple Team ID
+    pub apple_client_id: Option<String>, // Apple Bundle ID (e.g., net.amazingkorean.app)
+    pub apple_team_id: Option<String>,   // Apple Team ID
     // Email Provider
-    pub email_provider: String,           // "resend" | "none" (기본: "none")
-    pub resend_api_key: Option<String>,   // Resend API 키 (email_provider=resend 시 필수)
+    pub email_provider: String,         // "resend" | "none" (기본: "none")
+    pub resend_api_key: Option<String>, // Resend API 키 (email_provider=resend 시 필수)
     pub email_from_address: Option<String>, // 발신자 이메일 (noreply@amazingkorean.net)
     // Password Reset (비밀번호 재설정)
-    pub verification_code_ttl_sec: i64,   // 인증코드 유효시간 (초, 기본 600 = 10분)
-    pub reset_token_ttl_sec: i64,         // reset_token 유효시간 (초, 기본 1800 = 30분)
+    pub verification_code_ttl_sec: i64, // 인증코드 유효시간 (초, 기본 600 = 10분)
+    pub reset_token_ttl_sec: i64,       // reset_token 유효시간 (초, 기본 1800 = 30분)
     // MFA (Multi-Factor Authentication)
-    pub mfa_token_ttl_sec: i64,                  // MFA 토큰 유효시간 (초, 기본: 300 = 5분)
-    pub rate_limit_mfa_max: i64,                 // MFA 코드 검증 최대 시도 횟수 (기본: 5)
-    pub rate_limit_mfa_window_sec: i64,          // MFA 코드 검증 레이트리밋 윈도우 (초, 기본: 300)
+    pub mfa_token_ttl_sec: i64,  // MFA 토큰 유효시간 (초, 기본: 300 = 5분)
+    pub rate_limit_mfa_max: i64, // MFA 코드 검증 최대 시도 횟수 (기본: 5)
+    pub rate_limit_mfa_window_sec: i64, // MFA 코드 검증 레이트리밋 윈도우 (초, 기본: 300)
     // 동시 세션 수 제한 (역할별)
-    pub max_sessions_learner: i64,               // Learner 최대 동시 세션 (기본: 5, 초과 시 FIFO 자동 퇴장)
-    pub max_sessions_manager: i64,               // Manager 최대 동시 세션 (기본: 3, 초과 시 로그인 거부)
-    pub max_sessions_admin: i64,                 // Admin 최대 동시 세션 (기본: 2, 초과 시 로그인 거부)
-    pub max_sessions_hymn: i64,                  // HYMN 최대 동시 세션 (기본: 2, 초과 시 로그인 거부)
+    pub max_sessions_learner: i64, // Learner 최대 동시 세션 (기본: 5, 초과 시 FIFO 자동 퇴장)
+    pub max_sessions_manager: i64, // Manager 최대 동시 세션 (기본: 3, 초과 시 로그인 거부)
+    pub max_sessions_admin: i64,   // Admin 최대 동시 세션 (기본: 2, 초과 시 로그인 거부)
+    pub max_sessions_hymn: i64,    // HYMN 최대 동시 세션 (기본: 2, 초과 시 로그인 거부)
     // RevenueCat (모바일 IAP)
-    pub revenuecat_api_key: Option<String>,              // RevenueCat 서버 API 키
-    pub revenuecat_webhook_auth_token: Option<String>,   // RevenueCat 웹훅 Bearer 토큰
+    pub revenuecat_api_key: Option<String>, // RevenueCat 서버 API 키
+    pub revenuecat_webhook_auth_token: Option<String>, // RevenueCat 웹훅 Bearer 토큰
     // Payment Provider (Paddle Billing)
-    pub payment_provider: String,                    // "paddle" | "none" (기본: "none")
-    pub paddle_api_key: Option<String>,              // Paddle API Key (서버용)
-    pub paddle_webhook_secret: Option<String>,       // Paddle Webhook 서명 검증 시크릿
-    pub paddle_client_token: Option<String>,         // Paddle Client-side Token (프론트엔드용)
-    pub paddle_sandbox: bool,                        // true: Sandbox, false: Production
-    pub paddle_price_month_1: Option<String>,        // Paddle Price ID: 1개월
-    pub paddle_price_month_3: Option<String>,        // Paddle Price ID: 3개월
-    pub paddle_price_month_6: Option<String>,        // Paddle Price ID: 6개월
-    pub paddle_price_month_12: Option<String>,       // Paddle Price ID: 12개월
-    pub paddle_ebook_price: Option<String>,          // Paddle Price ID: e-book 일회성 $10
-    pub paddle_discount_month_3: Option<String>,       // Paddle Discount ID: 3개월 $5 off
-    pub paddle_discount_month_6: Option<String>,       // Paddle Discount ID: 6개월 $10 off
-    pub paddle_discount_month_12: Option<String>,      // Paddle Discount ID: 12개월 $20 off
+    pub payment_provider: String, // "paddle" | "none" (기본: "none")
+    pub paddle_api_key: Option<String>, // Paddle API Key (서버용)
+    pub paddle_webhook_secret: Option<String>, // Paddle Webhook 서명 검증 시크릿
+    pub paddle_client_token: Option<String>, // Paddle Client-side Token (프론트엔드용)
+    pub paddle_sandbox: bool,     // true: Sandbox, false: Production
+    pub paddle_price_month_1: Option<String>, // Paddle Price ID: 1개월
+    pub paddle_price_month_3: Option<String>, // Paddle Price ID: 3개월
+    pub paddle_price_month_6: Option<String>, // Paddle Price ID: 6개월
+    pub paddle_price_month_12: Option<String>, // Paddle Price ID: 12개월
+    pub paddle_ebook_price: Option<String>, // Paddle Price ID: e-book 일회성 $10
+    pub paddle_discount_month_3: Option<String>, // Paddle Discount ID: 3개월 $5 off
+    pub paddle_discount_month_6: Option<String>, // Paddle Discount ID: 6개월 $10 off
+    pub paddle_discount_month_12: Option<String>, // Paddle Discount ID: 12개월 $20 off
     // E-book Viewer
-    pub ebook_page_images_dir: String,              // EBOOK_PAGE_IMAGES_DIR (페이지 이미지 루트)
-    pub rate_limit_ebook_page_max: i64,             // RATE_LIMIT_EBOOK_PAGE_MAX (기본 30/분)
-    pub rate_limit_ebook_page_window_sec: i64,      // RATE_LIMIT_EBOOK_PAGE_WINDOW_SEC (기본 60)
-    pub rate_limit_ebook_purchase_max: i64,         // RATE_LIMIT_EBOOK_PURCHASE_MAX (기본 5/시간)
-    pub rate_limit_ebook_purchase_window_sec: i64,  // RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC (기본 3600)
-    pub ebook_session_ttl_sec: i64,                // EBOOK_SESSION_TTL_SEC (기본 90, heartbeat 갱신)
-    pub ebook_tile_enabled: bool,                  // EBOOK_TILE_MODE (기본 false, 타일 분할 활성화)
-    pub ebook_tile_grid_rows: u32,                 // EBOOK_TILE_GRID_ROWS (기본 3)
-    pub ebook_tile_grid_cols: u32,                 // EBOOK_TILE_GRID_COLS (기본 3)
-    pub rate_limit_ebook_tile_max: i64,            // RATE_LIMIT_EBOOK_TILE_MAX (기본 270/분)
-    pub rate_limit_ebook_tile_window_sec: i64,     // RATE_LIMIT_EBOOK_TILE_WINDOW_SEC (기본 60)
-    pub ebook_images_encrypted: bool,              // EBOOK_IMAGES_ENCRYPTED (기본 false, .webp.enc 암호화 모드)
-    pub ebook_image_key: Option<[u8; 32]>,         // EBOOK_IMAGE_ENCRYPTION_KEY (이미지 전용, 미설정 시 encryption_ring 사용)
+    pub ebook_page_images_dir: String, // EBOOK_PAGE_IMAGES_DIR (페이지 이미지 루트)
+    pub rate_limit_ebook_page_max: i64, // RATE_LIMIT_EBOOK_PAGE_MAX (기본 30/분)
+    pub rate_limit_ebook_page_window_sec: i64, // RATE_LIMIT_EBOOK_PAGE_WINDOW_SEC (기본 60)
+    pub rate_limit_ebook_purchase_max: i64, // RATE_LIMIT_EBOOK_PURCHASE_MAX (기본 5/시간)
+    pub rate_limit_ebook_purchase_window_sec: i64, // RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC (기본 3600)
+    pub ebook_session_ttl_sec: i64, // EBOOK_SESSION_TTL_SEC (기본 90, heartbeat 갱신)
+    pub ebook_tile_enabled: bool,   // EBOOK_TILE_MODE (기본 false, 타일 분할 활성화)
+    pub ebook_tile_grid_rows: u32,  // EBOOK_TILE_GRID_ROWS (기본 3)
+    pub ebook_tile_grid_cols: u32,  // EBOOK_TILE_GRID_COLS (기본 3)
+    pub rate_limit_ebook_tile_max: i64, // RATE_LIMIT_EBOOK_TILE_MAX (기본 270/분)
+    pub rate_limit_ebook_tile_window_sec: i64, // RATE_LIMIT_EBOOK_TILE_WINDOW_SEC (기본 60)
+    pub ebook_images_encrypted: bool, // EBOOK_IMAGES_ENCRYPTED (기본 false, .webp.enc 암호화 모드)
+    pub ebook_image_key: Option<[u8; 32]>, // EBOOK_IMAGE_ENCRYPTION_KEY (이미지 전용, 미설정 시 encryption_ring 사용)
     // Field Encryption (AES-256-GCM + HMAC-SHA256 Blind Index)
-    pub app_env: String,                         // "production" | "development" (기본)
-    pub encryption_ring: KeyRing,                // 다중 키 버전 (ENCRYPTION_KEY_V{n})
-    pub hmac_key: [u8; 32],                      // HMAC-SHA256 키 (blind index용, 필수)
+    pub app_env: String,          // "production" | "development" (기본)
+    pub encryption_ring: KeyRing, // 다중 키 버전 (ENCRYPTION_KEY_V{n})
+    pub hmac_key: [u8; 32],       // HMAC-SHA256 키 (blind index용, 필수)
 }
 
 impl Config {
@@ -115,7 +115,10 @@ impl Config {
 
         // Security: JWT secret should be at least 32 bytes for HS256
         if jwt_secret.len() < 32 {
-            panic!("JWT_SECRET must be at least 32 bytes for security. Current length: {}", jwt_secret.len());
+            panic!(
+                "JWT_SECRET must be at least 32 bytes for security. Current length: {}",
+                jwt_secret.len()
+            );
         }
         let jwt_expire_hours = env::var("JWT_EXPIRE_HOURS")
             .unwrap_or_else(|_| "24".into())
@@ -178,7 +181,10 @@ impl Config {
             .parse::<i64>()
             .expect("RATE_LIMIT_EMAIL_MAX must be a number");
         if rate_limit_email_max < 1 {
-            panic!("RATE_LIMIT_EMAIL_MAX must be >= 1, got {}", rate_limit_email_max);
+            panic!(
+                "RATE_LIMIT_EMAIL_MAX must be >= 1, got {}",
+                rate_limit_email_max
+            );
         }
 
         // Textbook Order Rate Limit: 비회원 주문 스팸 방지
@@ -195,7 +201,9 @@ impl Config {
         // 예: "http://localhost:5173,https://amazing-korean-api.pages.dev"
         // Tauri 데스크탑 앱: tauri://localhost, https://tauri.localhost
         let cors_origins = env::var("CORS_ORIGINS")
-            .unwrap_or_else(|_| "http://localhost:5173,tauri://localhost,https://tauri.localhost".into())
+            .unwrap_or_else(|_| {
+                "http://localhost:5173,tauri://localhost,https://tauri.localhost".into()
+            })
             .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
@@ -223,26 +231,20 @@ impl Config {
             .filter(|s| !s.is_empty());
 
         // Apple OAuth (optional, 모바일 Sign in with Apple)
-        let apple_client_id = env::var("APPLE_CLIENT_ID")
-            .ok()
-            .filter(|s| !s.is_empty());
-        let apple_team_id = env::var("APPLE_TEAM_ID")
-            .ok()
-            .filter(|s| !s.is_empty());
+        let apple_client_id = env::var("APPLE_CLIENT_ID").ok().filter(|s| !s.is_empty());
+        let apple_team_id = env::var("APPLE_TEAM_ID").ok().filter(|s| !s.is_empty());
         let oauth_state_ttl_sec = env::var("OAUTH_STATE_TTL_SEC")
             .unwrap_or_else(|_| "300".into())
             .parse::<i64>()
             .expect("OAUTH_STATE_TTL_SEC must be a number");
-        let frontend_url = env::var("FRONTEND_URL")
-            .unwrap_or_else(|_| "http://localhost:5173".into());
+        let frontend_url =
+            env::var("FRONTEND_URL").unwrap_or_else(|_| "http://localhost:5173".into());
 
         // Email Provider: "resend" | "none"
         let email_provider = env::var("EMAIL_PROVIDER")
             .unwrap_or_else(|_| "none".into())
             .to_lowercase();
-        let resend_api_key = env::var("RESEND_API_KEY")
-            .ok()
-            .filter(|s| !s.is_empty());
+        let resend_api_key = env::var("RESEND_API_KEY").ok().filter(|s| !s.is_empty());
         let email_from_address = env::var("EMAIL_FROM_ADDRESS")
             .ok()
             .filter(|s| !s.is_empty());
@@ -301,9 +303,7 @@ impl Config {
         let payment_provider = env::var("PAYMENT_PROVIDER")
             .unwrap_or_else(|_| "none".into())
             .to_lowercase();
-        let paddle_api_key = env::var("PADDLE_API_KEY")
-            .ok()
-            .filter(|s| !s.is_empty());
+        let paddle_api_key = env::var("PADDLE_API_KEY").ok().filter(|s| !s.is_empty());
         let paddle_webhook_secret = env::var("PADDLE_WEBHOOK_SECRET")
             .ok()
             .filter(|s| !s.is_empty());
@@ -400,11 +400,11 @@ impl Config {
             .unwrap_or_else(|_| "false".into())
             .parse::<bool>()
             .expect("EBOOK_IMAGES_ENCRYPTED must be true or false");
-        let ebook_image_key: Option<[u8; 32]> = env::var("EBOOK_IMAGE_ENCRYPTION_KEY")
-            .ok()
-            .map(|hex_str| {
-                let bytes = hex::decode(&hex_str)
-                    .unwrap_or_else(|_| panic!("EBOOK_IMAGE_ENCRYPTION_KEY must be valid hex (64 chars)"));
+        let ebook_image_key: Option<[u8; 32]> =
+            env::var("EBOOK_IMAGE_ENCRYPTION_KEY").ok().map(|hex_str| {
+                let bytes = hex::decode(&hex_str).unwrap_or_else(|_| {
+                    panic!("EBOOK_IMAGE_ENCRYPTION_KEY must be valid hex (64 chars)")
+                });
                 let mut key = [0u8; 32];
                 if bytes.len() != 32 {
                     panic!("EBOOK_IMAGE_ENCRYPTION_KEY must be exactly 32 bytes (64 hex chars)");
@@ -419,9 +419,9 @@ impl Config {
         // Production fail-fast: 이메일 서비스 미설정 시 서버 부팅 실패
         if app_env == "production" {
             match email_provider.as_str() {
-                "none" => panic!(
-                    "EMAIL_PROVIDER=none is not allowed in production. Set to 'resend'."
-                ),
+                "none" => {
+                    panic!("EMAIL_PROVIDER=none is not allowed in production. Set to 'resend'.")
+                }
                 "resend" => {
                     if resend_api_key.is_none() {
                         panic!("RESEND_API_KEY must be set when EMAIL_PROVIDER=resend");
@@ -431,7 +431,8 @@ impl Config {
                     }
                 }
                 other => panic!(
-                    "Unknown EMAIL_PROVIDER '{}'. Must be 'resend' or 'none'.", other
+                    "Unknown EMAIL_PROVIDER '{}'. Must be 'resend' or 'none'.",
+                    other
                 ),
             }
 
@@ -448,18 +449,18 @@ impl Config {
 
         // HMAC 키 (필수, 로테이션 안 함)
         let hmac_key = {
-            let b64 = env::var("HMAC_KEY")
-                .expect("HMAC_KEY must be set (base64-encoded 32-byte key)");
+            let b64 =
+                env::var("HMAC_KEY").expect("HMAC_KEY must be set (base64-encoded 32-byte key)");
             if b64.is_empty() {
                 panic!("HMAC_KEY must not be empty");
             }
             use base64::engine::{general_purpose::STANDARD, Engine};
-            let decoded = STANDARD.decode(&b64)
+            let decoded = STANDARD
+                .decode(&b64)
                 .unwrap_or_else(|e| panic!("HMAC_KEY must be valid base64: {e}"));
-            <[u8; 32]>::try_from(decoded.as_slice())
-                .unwrap_or_else(|_| panic!(
-                    "HMAC_KEY must be exactly 32 bytes (got {})", decoded.len()
-                ))
+            <[u8; 32]>::try_from(decoded.as_slice()).unwrap_or_else(|_| {
+                panic!("HMAC_KEY must be exactly 32 bytes (got {})", decoded.len())
+            })
         };
 
         // 암호화 키 로딩: ENCRYPTION_KEY_V{n} 패턴 (n = 1~255)
@@ -473,13 +474,18 @@ impl Config {
             for ver in 1..=255u8 {
                 let env_name = format!("ENCRYPTION_KEY_V{}", ver);
                 if let Ok(b64) = env::var(&env_name) {
-                    if b64.is_empty() { continue; }
-                    let decoded = STANDARD.decode(&b64)
+                    if b64.is_empty() {
+                        continue;
+                    }
+                    let decoded = STANDARD
+                        .decode(&b64)
                         .unwrap_or_else(|e| panic!("{env_name} must be valid base64: {e}"));
-                    let key = <[u8; 32]>::try_from(decoded.as_slice())
-                        .unwrap_or_else(|_| panic!(
-                            "{env_name} must be exactly 32 bytes (got {})", decoded.len()
-                        ));
+                    let key = <[u8; 32]>::try_from(decoded.as_slice()).unwrap_or_else(|_| {
+                        panic!(
+                            "{env_name} must be exactly 32 bytes (got {})",
+                            decoded.len()
+                        )
+                    });
                     keys.insert(ver, key);
                 }
             }
@@ -488,19 +494,24 @@ impl Config {
             if let std::collections::hash_map::Entry::Vacant(e) = keys.entry(1) {
                 if let Ok(b64) = env::var("ENCRYPTION_KEY") {
                     if !b64.is_empty() {
-                        let decoded = STANDARD.decode(&b64)
+                        let decoded = STANDARD
+                            .decode(&b64)
                             .unwrap_or_else(|e| panic!("ENCRYPTION_KEY must be valid base64: {e}"));
-                        let key = <[u8; 32]>::try_from(decoded.as_slice())
-                            .unwrap_or_else(|_| panic!(
-                                "ENCRYPTION_KEY must be exactly 32 bytes (got {})", decoded.len()
-                            ));
+                        let key = <[u8; 32]>::try_from(decoded.as_slice()).unwrap_or_else(|_| {
+                            panic!(
+                                "ENCRYPTION_KEY must be exactly 32 bytes (got {})",
+                                decoded.len()
+                            )
+                        });
                         e.insert(key);
                     }
                 }
             }
 
             if keys.is_empty() {
-                panic!("At least one encryption key must be set (ENCRYPTION_KEY_V1 or ENCRYPTION_KEY)");
+                panic!(
+                    "At least one encryption key must be set (ENCRYPTION_KEY_V1 or ENCRYPTION_KEY)"
+                );
             }
 
             let current_version = env::var("ENCRYPTION_CURRENT_VERSION")
@@ -672,7 +683,10 @@ impl Config {
     }
 
     /// Paddle Price ID → BillingInterval 매핑
-    pub fn billing_interval_for_price(&self, price_id: &str) -> Option<crate::types::BillingInterval> {
+    pub fn billing_interval_for_price(
+        &self,
+        price_id: &str,
+    ) -> Option<crate::types::BillingInterval> {
         use crate::types::BillingInterval;
         if self.paddle_price_month_1.as_deref() == Some(price_id) {
             return Some(BillingInterval::Month1);
@@ -746,27 +760,57 @@ impl fmt::Debug for Config {
             .field("refresh_cookie_domain", &self.refresh_cookie_domain)
             .field("refresh_cookie_secure", &self.refresh_cookie_secure)
             .field("refresh_cookie_samesite", &self.refresh_cookie_samesite)
-            .field("rate_limit_login_window_sec", &self.rate_limit_login_window_sec)
+            .field(
+                "rate_limit_login_window_sec",
+                &self.rate_limit_login_window_sec,
+            )
             .field("rate_limit_login_max", &self.rate_limit_login_max)
-            .field("rate_limit_study_window_sec", &self.rate_limit_study_window_sec)
+            .field(
+                "rate_limit_study_window_sec",
+                &self.rate_limit_study_window_sec,
+            )
             .field("rate_limit_study_max", &self.rate_limit_study_max)
-            .field("rate_limit_email_window_sec", &self.rate_limit_email_window_sec)
+            .field(
+                "rate_limit_email_window_sec",
+                &self.rate_limit_email_window_sec,
+            )
             .field("rate_limit_email_max", &self.rate_limit_email_max)
-            .field("rate_limit_textbook_window_sec", &self.rate_limit_textbook_window_sec)
+            .field(
+                "rate_limit_textbook_window_sec",
+                &self.rate_limit_textbook_window_sec,
+            )
             .field("rate_limit_textbook_max", &self.rate_limit_textbook_max)
             .field("cors_origins", &self.cors_origins)
-            .field("vimeo_access_token", &self.vimeo_access_token.as_ref().map(|_| "***"))
+            .field(
+                "vimeo_access_token",
+                &self.vimeo_access_token.as_ref().map(|_| "***"),
+            )
             .field("admin_ip_allowlist", &self.admin_ip_allowlist)
-            .field("google_client_id", &self.google_client_id.as_ref().map(|_| "***"))
-            .field("google_client_secret", &self.google_client_secret.as_ref().map(|_| "***"))
+            .field(
+                "google_client_id",
+                &self.google_client_id.as_ref().map(|_| "***"),
+            )
+            .field(
+                "google_client_secret",
+                &self.google_client_secret.as_ref().map(|_| "***"),
+            )
             .field("google_redirect_uri", &self.google_redirect_uri)
-            .field("google_mobile_client_id", &self.google_mobile_client_id.as_ref().map(|_| "***"))
+            .field(
+                "google_mobile_client_id",
+                &self.google_mobile_client_id.as_ref().map(|_| "***"),
+            )
             .field("oauth_state_ttl_sec", &self.oauth_state_ttl_sec)
             .field("frontend_url", &self.frontend_url)
-            .field("apple_client_id", &self.apple_client_id.as_ref().map(|_| "***"))
+            .field(
+                "apple_client_id",
+                &self.apple_client_id.as_ref().map(|_| "***"),
+            )
             .field("apple_team_id", &self.apple_team_id.as_ref().map(|_| "***"))
             .field("email_provider", &self.email_provider)
-            .field("resend_api_key", &self.resend_api_key.as_ref().map(|_| "***"))
+            .field(
+                "resend_api_key",
+                &self.resend_api_key.as_ref().map(|_| "***"),
+            )
             .field("email_from_address", &self.email_from_address)
             .field("verification_code_ttl_sec", &self.verification_code_ttl_sec)
             .field("reset_token_ttl_sec", &self.reset_token_ttl_sec)
@@ -777,12 +821,27 @@ impl fmt::Debug for Config {
             .field("max_sessions_manager", &self.max_sessions_manager)
             .field("max_sessions_admin", &self.max_sessions_admin)
             .field("max_sessions_hymn", &self.max_sessions_hymn)
-            .field("revenuecat_api_key", &self.revenuecat_api_key.as_ref().map(|_| "***"))
-            .field("revenuecat_webhook_auth_token", &self.revenuecat_webhook_auth_token.as_ref().map(|_| "***"))
+            .field(
+                "revenuecat_api_key",
+                &self.revenuecat_api_key.as_ref().map(|_| "***"),
+            )
+            .field(
+                "revenuecat_webhook_auth_token",
+                &self.revenuecat_webhook_auth_token.as_ref().map(|_| "***"),
+            )
             .field("payment_provider", &self.payment_provider)
-            .field("paddle_api_key", &self.paddle_api_key.as_ref().map(|_| "***"))
-            .field("paddle_webhook_secret", &self.paddle_webhook_secret.as_ref().map(|_| "***"))
-            .field("paddle_client_token", &self.paddle_client_token.as_ref().map(|_| "***"))
+            .field(
+                "paddle_api_key",
+                &self.paddle_api_key.as_ref().map(|_| "***"),
+            )
+            .field(
+                "paddle_webhook_secret",
+                &self.paddle_webhook_secret.as_ref().map(|_| "***"),
+            )
+            .field(
+                "paddle_client_token",
+                &self.paddle_client_token.as_ref().map(|_| "***"),
+            )
             .field("paddle_sandbox", &self.paddle_sandbox)
             .field("paddle_ebook_price", &self.paddle_ebook_price)
             .field("paddle_discount_month_3", &self.paddle_discount_month_3)
@@ -790,15 +849,27 @@ impl fmt::Debug for Config {
             .field("paddle_discount_month_12", &self.paddle_discount_month_12)
             .field("ebook_page_images_dir", &self.ebook_page_images_dir)
             .field("rate_limit_ebook_page_max", &self.rate_limit_ebook_page_max)
-            .field("rate_limit_ebook_page_window_sec", &self.rate_limit_ebook_page_window_sec)
-            .field("rate_limit_ebook_purchase_max", &self.rate_limit_ebook_purchase_max)
-            .field("rate_limit_ebook_purchase_window_sec", &self.rate_limit_ebook_purchase_window_sec)
+            .field(
+                "rate_limit_ebook_page_window_sec",
+                &self.rate_limit_ebook_page_window_sec,
+            )
+            .field(
+                "rate_limit_ebook_purchase_max",
+                &self.rate_limit_ebook_purchase_max,
+            )
+            .field(
+                "rate_limit_ebook_purchase_window_sec",
+                &self.rate_limit_ebook_purchase_window_sec,
+            )
             .field("ebook_session_ttl_sec", &self.ebook_session_ttl_sec)
             .field("ebook_tile_enabled", &self.ebook_tile_enabled)
             .field("ebook_tile_grid_rows", &self.ebook_tile_grid_rows)
             .field("ebook_tile_grid_cols", &self.ebook_tile_grid_cols)
             .field("rate_limit_ebook_tile_max", &self.rate_limit_ebook_tile_max)
-            .field("rate_limit_ebook_tile_window_sec", &self.rate_limit_ebook_tile_window_sec)
+            .field(
+                "rate_limit_ebook_tile_window_sec",
+                &self.rate_limit_ebook_tile_window_sec,
+            )
             .field("ebook_images_encrypted", &self.ebook_images_encrypted)
             .field("ebook_image_key", &self.ebook_image_key.map(|_| "***"))
             .field("app_env", &self.app_env)

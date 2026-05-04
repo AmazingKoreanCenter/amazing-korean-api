@@ -38,16 +38,15 @@ impl CourseService {
                 let mut requested = 0usize;
                 for item in items.iter_mut() {
                     requested += 1; // course_title 은 필수
-                    if let Some(t) = translations
-                        .get(&(item.course_id, "course_title".to_string()))
+                    if let Some(t) = translations.get(&(item.course_id, "course_title".to_string()))
                     {
                         item.course_title = t.text.clone();
                         t.count_to(user_lang, &mut translated, &mut fallback);
                     }
                     if item.course_subtitle.is_some() {
                         requested += 1;
-                        if let Some(t) = translations
-                            .get(&(item.course_id, "course_subtitle".to_string()))
+                        if let Some(t) =
+                            translations.get(&(item.course_id, "course_subtitle".to_string()))
                         {
                             item.course_subtitle = Some(t.text.clone());
                             t.count_to(user_lang, &mut translated, &mut fallback);
@@ -88,9 +87,7 @@ impl CourseService {
                 let mut translated = 0usize;
                 let mut fallback = 0usize;
                 let mut requested = 1usize; // course_title 은 필수
-                if let Some(t) =
-                    translations.get(&(item.course_id, "course_title".to_string()))
-                {
+                if let Some(t) = translations.get(&(item.course_id, "course_title".to_string())) {
                     item.course_title = t.text.clone();
                     t.count_to(user_lang, &mut translated, &mut fallback);
                 }
@@ -123,5 +120,3 @@ impl CourseService {
         repo::create(&state.db, title, price, ctype, subtitle).await
     }
 }
-
-

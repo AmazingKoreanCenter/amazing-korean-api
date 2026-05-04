@@ -5,20 +5,20 @@ use argon2::{
 use hmac::{Hmac, Mac};
 use redis::AsyncCommands;
 use sha2::Sha256;
-use validator::Validate;
 use std::collections::HashSet;
 use tracing::{info, warn};
+use validator::Validate;
 
+use super::{
+    dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes},
+    repo,
+};
 use crate::{
     api::auth::service::AuthService,
     crypto::CryptoService,
     error::{AppError, AppResult},
     external::email::{self, EmailTemplate},
     state::AppState,
-};
-use super::{
-    dto::{ProfileRes, ProfileUpdateReq, SettingsRes, SettingsUpdateReq, SignupReq, SignupRes},
-    repo,
 };
 
 type HmacSha256 = Hmac<Sha256>;
@@ -49,8 +49,7 @@ impl UserService {
 
     /// 인증 코드를 HMAC-SHA256 해시 (Redis에 평문 저장 금지)
     pub fn hmac_verification_code(hmac_key: &[u8; 32], email: &str, code: &str) -> String {
-        let mut mac = HmacSha256::new_from_slice(hmac_key)
-            .expect("HMAC key length is always 32");
+        let mut mac = HmacSha256::new_from_slice(hmac_key).expect("HMAC key length is always 32");
         mac.update(format!("{}:{}", email, code).as_bytes());
         hex::encode(mac.finalize().into_bytes())
     }
@@ -60,11 +59,7 @@ impl UserService {
     // =========================================================================
 
     /// 회원가입 (RateLimit -> Validation -> DB Insert -> 인증코드 발송)
-    pub async fn signup(
-        st: &AppState,
-        mut req: SignupReq,
-        ip: String,
-    ) -> AppResult<SignupRes> {
+    pub async fn signup(st: &AppState, mut req: SignupReq, ip: String) -> AppResult<SignupRes> {
         // [Step 1] Input Validation
         req.email = req.email.trim().to_lowercase();
 
@@ -78,7 +73,9 @@ impl UserService {
             return Err(AppError::BadRequest("Terms must be accepted".into()));
         }
         if !Self::validate_password_policy(&req.password) {
-            return Err(AppError::Unprocessable("Weak password: need 8+ chars, letter & digit".into()));
+            return Err(AppError::Unprocessable(
+                "Weak password: need 8+ chars, letter & digit".into(),
+            ));
         }
 
         let today = chrono::Utc::now().date_naive();
@@ -98,10 +95,16 @@ impl UserService {
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let email_idx = crypto.blind_index(&req.email)?;
         let rl_key = format!("rl:signup:{}:{}", email_idx, ip);
-        let mut redis = st.redis.get().await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut redis = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         let attempts: i64 = redis.incr(&rl_key, 1).await?;
-        let _: () = redis.expire(&rl_key, st.cfg.rate_limit_login_window_sec).await?;
+        let _: () = redis
+            .expire(&rl_key, st.cfg.rate_limit_login_window_sec)
+            .await?;
         if attempts > st.cfg.rate_limit_login_max {
             return Err(AppError::TooManyRequests("Too many signup attempts".into()));
         }
@@ -123,16 +126,30 @@ impl UserService {
 
             // 미인증 계정 → 비밀번호/프로필 덮어쓰기 + 새 인증코드 발송
             let salt = SaltString::generate(&mut OsRng);
-            let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, Params::new(19_456, 2, 1, None).unwrap());
-            let password_hash = argon2.hash_password(req.password.as_bytes(), &salt)
+            let argon2 = Argon2::new(
+                Algorithm::Argon2id,
+                Version::V0x13,
+                Params::new(19_456, 2, 1, None).unwrap(),
+            );
+            let password_hash = argon2
+                .hash_password(req.password.as_bytes(), &salt)
                 .map_err(|e| AppError::Internal(format!("Hash error: {e}")))?
                 .to_string();
 
             repo::overwrite_unverified_user(
-                &st.db, existing_id, &email_enc, &password_hash,
-                &name_enc, &req.nickname, &req.language, &req.country,
-                &birthday_enc, req.gender, &name_idx,
-            ).await?;
+                &st.db,
+                existing_id,
+                &email_enc,
+                &password_hash,
+                &name_enc,
+                &req.nickname,
+                &req.language,
+                &req.country,
+                &birthday_enc,
+                req.gender,
+                &name_idx,
+            )
+            .await?;
 
             info!(user_id = existing_id, "Overwritten unverified user data");
 
@@ -142,8 +159,13 @@ impl UserService {
 
         // [Step 4] Password Hashing (Argon2)
         let salt = SaltString::generate(&mut OsRng);
-        let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, Params::new(19_456, 2, 1, None).unwrap());
-        let password_hash = argon2.hash_password(req.password.as_bytes(), &salt)
+        let argon2 = Argon2::new(
+            Algorithm::Argon2id,
+            Version::V0x13,
+            Params::new(19_456, 2, 1, None).unwrap(),
+        );
+        let password_hash = argon2
+            .hash_password(req.password.as_bytes(), &salt)
             .map_err(|e| AppError::Internal(format!("Hash error: {e}")))?
             .to_string();
 
@@ -151,18 +173,34 @@ impl UserService {
         let mut tx = st.db.begin().await?;
 
         let user = match repo::signup_tx(
-            &mut tx, &email_enc, &password_hash, &name_enc, &req.nickname,
-            &req.language, &req.country, &birthday_enc, req.gender,
-            req.terms_service, req.terms_personal,
-            &email_idx, &name_idx,
-        ).await {
+            &mut tx,
+            &email_enc,
+            &password_hash,
+            &name_enc,
+            &req.nickname,
+            &req.language,
+            &req.country,
+            &birthday_enc,
+            req.gender,
+            req.terms_service,
+            req.terms_personal,
+            &email_idx,
+            &name_idx,
+        )
+        .await
+        {
             Ok(u) => u,
-            Err(e) if Self::is_unique_violation(&e) => return Err(AppError::Conflict("Email exists".into())),
+            Err(e) if Self::is_unique_violation(&e) => {
+                return Err(AppError::Conflict("Email exists".into()))
+            }
             Err(e) => return Err(e),
         };
 
         // Audit Log (Signup)
-        if let Err(e) = repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user.id), user.id, "signup", true).await {
+        if let Err(e) =
+            repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user.id), user.id, "signup", true)
+                .await
+        {
             warn!(error = ?e, user_id = user.id, "Failed to insert signup log");
         }
 
@@ -171,8 +209,12 @@ impl UserService {
         // [Step 6] 이메일 인증코드 발송
         // 개발 환경에서 EMAIL_PROVIDER=none이면 자동 인증
         if st.cfg.email_provider == "none" {
-            warn!("EMAIL_PROVIDER=none: auto-verifying email for user {}", user.id);
-            crate::api::auth::repo::AuthRepo::update_user_check_email(&st.db, user.id, true).await?;
+            warn!(
+                "EMAIL_PROVIDER=none: auto-verifying email for user {}",
+                user.id
+            );
+            crate::api::auth::repo::AuthRepo::update_user_check_email(&st.db, user.id, true)
+                .await?;
             return Ok(SignupRes {
                 message: "Account created (email auto-verified in development mode).".to_string(),
                 requires_verification: false,
@@ -195,19 +237,27 @@ impl UserService {
 
         // Redis에 HMAC 해시 저장 (blind index 키)
         let redis_key = format!("ak:email_verify:{}", email_idx);
-        let _: () = redis.set_ex(&redis_key, &code_hash, ttl_sec as u64)
-            .await.map_err(|e| AppError::Internal(e.to_string()))?;
+        let _: () = redis
+            .set_ex(&redis_key, &code_hash, ttl_sec as u64)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
 
         // 이메일 발송
-        let email_sender = st.email.as_ref()
+        let email_sender = st
+            .email
+            .as_ref()
             .ok_or_else(|| AppError::ServiceUnavailable("Email service not configured".into()))?;
 
         let expires_in_min = (ttl_sec / 60) as i32;
         email::send_templated(
             email_sender.as_ref(),
             email_plain,
-            EmailTemplate::EmailVerification { code, expires_in_min },
-        ).await?;
+            EmailTemplate::EmailVerification {
+                code,
+                expires_in_min,
+            },
+        )
+        .await?;
 
         info!(email_idx = %email_idx, "Verification code sent");
 
@@ -218,8 +268,12 @@ impl UserService {
     }
 
     pub async fn get_me(st: &AppState, user_id: i64) -> AppResult<ProfileRes> {
-        let mut user = repo::find_profile_by_id(&st.db, user_id).await?.ok_or(AppError::NotFound)?;
-        if !user.user_state { return Err(AppError::NotFound); }
+        let mut user = repo::find_profile_by_id(&st.db, user_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        if !user.user_state {
+            return Err(AppError::NotFound);
+        }
 
         // Decrypt encrypted fields
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
@@ -232,8 +286,13 @@ impl UserService {
         Ok(user)
     }
 
-    pub async fn update_me(st: &AppState, user_id: i64, req: ProfileUpdateReq) -> AppResult<ProfileRes> {
-        req.validate().map_err(|e| AppError::Unprocessable(e.to_string()))?;
+    pub async fn update_me(
+        st: &AppState,
+        user_id: i64,
+        req: ProfileUpdateReq,
+    ) -> AppResult<ProfileRes> {
+        req.validate()
+            .map_err(|e| AppError::Unprocessable(e.to_string()))?;
 
         if let Some(birthday) = req.birthday {
             if birthday > chrono::Utc::now().date_naive() {
@@ -241,19 +300,27 @@ impl UserService {
             }
         }
 
-        let user = repo::find_profile_by_id(&st.db, user_id).await?.ok_or(AppError::NotFound)?;
-        if !user.user_state { return Err(AppError::NotFound); }
+        let user = repo::find_profile_by_id(&st.db, user_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        if !user.user_state {
+            return Err(AppError::NotFound);
+        }
 
         // Encrypt birthday if updated
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let birthday_enc = req.birthday
+        let birthday_enc = req
+            .birthday
             .map(|b| crypto.encrypt(&b.to_string(), "users.user_birthday"))
             .transpose()?;
 
         let mut tx = st.db.begin().await?;
 
-        let mut updated = repo::update_profile_tx(&mut tx, user_id, &req, birthday_enc.as_deref()).await?.ok_or(AppError::NotFound)?;
-        repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user_id), user_id, "update", true).await?;
+        let mut updated = repo::update_profile_tx(&mut tx, user_id, &req, birthday_enc.as_deref())
+            .await?
+            .ok_or(AppError::NotFound)?;
+        repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user_id), user_id, "update", true)
+            .await?;
 
         tx.commit().await?;
 
@@ -268,8 +335,12 @@ impl UserService {
     }
 
     pub async fn get_settings(st: &AppState, user_id: i64) -> AppResult<SettingsRes> {
-        let user = repo::find_user(&st.db, user_id).await?.ok_or(AppError::NotFound)?;
-        if !user.user_state { return Err(AppError::Forbidden("Forbidden".to_string())); }
+        let user = repo::find_user(&st.db, user_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        if !user.user_state {
+            return Err(AppError::Forbidden("Forbidden".to_string()));
+        }
 
         let settings = repo::find_users_setting(&st.db, user_id).await?;
 
@@ -281,20 +352,30 @@ impl UserService {
             updated_at: chrono::Utc::now(),
         });
         // DB enum("zh_cn") → 프론트엔드("zh-CN") 변환
-        result.user_set_language = crate::types::UserSetLanguage::db_to_frontend(&result.user_set_language);
+        result.user_set_language =
+            crate::types::UserSetLanguage::db_to_frontend(&result.user_set_language);
         Ok(result)
     }
 
-    pub async fn update_settings(st: &AppState, user_id: i64, mut req: SettingsUpdateReq) -> AppResult<SettingsRes> {
-        req.validate().map_err(|e| AppError::BadRequest(e.to_string()))?;
+    pub async fn update_settings(
+        st: &AppState,
+        user_id: i64,
+        mut req: SettingsUpdateReq,
+    ) -> AppResult<SettingsRes> {
+        req.validate()
+            .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
-        let user = repo::find_user(&st.db, user_id).await?.ok_or(AppError::NotFound)?;
-        if !user.user_state { return Err(AppError::Forbidden("Forbidden".to_string())); }
+        let user = repo::find_user(&st.db, user_id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        if !user.user_state {
+            return Err(AppError::Forbidden("Forbidden".to_string()));
+        }
 
         if let Some(lang) = &mut req.user_set_language {
-            serde_json::from_value::<crate::types::UserSetLanguage>(
-                serde_json::Value::String(lang.clone()),
-            )
+            serde_json::from_value::<crate::types::UserSetLanguage>(serde_json::Value::String(
+                lang.clone(),
+            ))
             .map_err(|_| AppError::BadRequest("Invalid language".into()))?;
             // 프론트엔드("zh-CN") → DB enum("zh_cn") 변환
             *lang = crate::types::UserSetLanguage::frontend_to_db(lang);
@@ -304,13 +385,15 @@ impl UserService {
         let mut tx = st.db.begin().await?;
 
         let settings = repo::upsert_settings_tx(&mut tx, user_id, &req).await?;
-        repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user_id), user_id, "update", true).await?;
+        repo::insert_user_log_after_tx(&mut tx, &crypto, Some(user_id), user_id, "update", true)
+            .await?;
 
         tx.commit().await?;
 
         // DB enum("zh_cn") → 프론트엔드("zh-CN") 변환
         let mut result = settings;
-        result.user_set_language = crate::types::UserSetLanguage::db_to_frontend(&result.user_set_language);
+        result.user_set_language =
+            crate::types::UserSetLanguage::db_to_frontend(&result.user_set_language);
         Ok(result)
     }
 }

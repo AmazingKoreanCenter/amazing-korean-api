@@ -8,11 +8,11 @@ use crate::error::{AppError, AppResult};
 /// 비밀번호 해싱
 pub fn hash_password(password: &str) -> AppResult<String> {
     let salt = SaltString::generate(&mut OsRng);
-    
+
     // Argon2id 설정 (메모리 19MB, 2 iterations, 1 parallelism)
     let params = Params::new(19_456, 2, 1, None)
         .map_err(|e| AppError::Internal(format!("Failed to create Argon2 params: {}", e)))?;
-        
+
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
     let password_hash = argon2

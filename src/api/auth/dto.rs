@@ -296,7 +296,7 @@ pub struct VerifyResetReq {
 }))]
 pub struct VerifyResetRes {
     pub reset_token: String,
-    pub expires_in: i64,  // 초 단위
+    pub expires_in: i64, // 초 단위
 }
 
 // =====================================================================

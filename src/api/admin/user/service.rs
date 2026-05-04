@@ -13,10 +13,10 @@ use crate::{
 
 use super::{
     dto::{
-        AdminBulkCreateReq, AdminBulkCreateRes, AdminBulkUpdateReq,
-        AdminBulkUpdateRes, AdminCreateUserReq, AdminUpdateUserReq, AdminUserListMeta,
-        AdminUserListReq, AdminUserListRes, AdminUserRes, BulkItemError, BulkItemResult,
-        BulkSummary, BulkUpdateItemResult,
+        AdminBulkCreateReq, AdminBulkCreateRes, AdminBulkUpdateReq, AdminBulkUpdateRes,
+        AdminCreateUserReq, AdminUpdateUserReq, AdminUserListMeta, AdminUserListReq,
+        AdminUserListRes, AdminUserRes, BulkItemError, BulkItemResult, BulkSummary,
+        BulkUpdateItemResult,
     },
     repo,
 };
@@ -152,8 +152,16 @@ impl AdminUserService {
             None
         };
 
-        let (total_count, mut items) =
-            repo::admin_list_users(&st.db, req.q.as_deref(), email_idx.as_deref(), page, size, sort, order).await?;
+        let (total_count, mut items) = repo::admin_list_users(
+            &st.db,
+            req.q.as_deref(),
+            email_idx.as_deref(),
+            page,
+            size,
+            sort,
+            order,
+        )
+        .await?;
 
         // 이메일 복호화
         for item in &mut items {
@@ -234,7 +242,9 @@ impl AdminUserService {
         req.email = req.email.trim().to_lowercase();
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let birthday = req.birthday.unwrap_or_else(|| NaiveDate::from_ymd_opt(1900, 1, 1).unwrap());
+        let birthday = req
+            .birthday
+            .unwrap_or_else(|| NaiveDate::from_ymd_opt(1900, 1, 1).unwrap());
         let email_enc = crypto.encrypt(&req.email, "users.user_email")?;
         let email_idx = crypto.blind_index(&req.email)?;
         let name_enc = crypto.encrypt(&req.name, "users.user_name")?;
@@ -247,9 +257,7 @@ impl AdminUserService {
         }
 
         if !Self::validate_password_policy(&req.password) {
-            return Err(AppError::Unprocessable(
-                "password policy violation".into(),
-            ));
+            return Err(AppError::Unprocessable("password policy violation".into()));
         }
 
         let user_auth = Self::parse_user_auth(req.user_auth.as_deref())?;
@@ -378,13 +386,7 @@ impl AdminUserService {
 
         let all_success = failure == 0;
 
-        Ok((
-            all_success,
-            AdminBulkCreateRes {
-                summary,
-                results,
-            },
-        ))
+        Ok((all_success, AdminBulkCreateRes { summary, results }))
     }
 
     async fn admin_create_user_single(
@@ -402,15 +404,20 @@ impl AdminUserService {
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
         let birthday = NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
-        let email_enc = crypto.encrypt(&req.email, "users.user_email")
+        let email_enc = crypto
+            .encrypt(&req.email, "users.user_email")
             .map_err(|e| (500, "INTERNAL_SERVER_ERROR".into(), e.to_string()))?;
-        let email_idx = crypto.blind_index(&req.email)
+        let email_idx = crypto
+            .blind_index(&req.email)
             .map_err(|e| (500, "INTERNAL_SERVER_ERROR".into(), e.to_string()))?;
-        let name_enc = crypto.encrypt(&req.name, "users.user_name")
+        let name_enc = crypto
+            .encrypt(&req.name, "users.user_name")
             .map_err(|e| (500, "INTERNAL_SERVER_ERROR".into(), e.to_string()))?;
-        let name_idx = crypto.blind_index(&req.name)
+        let name_idx = crypto
+            .blind_index(&req.name)
             .map_err(|e| (500, "INTERNAL_SERVER_ERROR".into(), e.to_string()))?;
-        let birthday_enc = crypto.encrypt(&birthday.to_string(), "users.user_birthday")
+        let birthday_enc = crypto
+            .encrypt(&birthday.to_string(), "users.user_birthday")
             .map_err(|e| (500, "INTERNAL_SERVER_ERROR".into(), e.to_string()))?;
 
         // 이메일 중복 체크
@@ -419,7 +426,11 @@ impl AdminUserService {
             Err(e) => return Err((500, "INTERNAL_SERVER_ERROR".to_string(), e.to_string())),
         };
         if idx_exists {
-            return Err((409, "CONFLICT".to_string(), "email already exists".to_string()));
+            return Err((
+                409,
+                "CONFLICT".to_string(),
+                "email already exists".to_string(),
+            ));
         }
 
         if !Self::validate_password_policy(&req.password) {
@@ -529,9 +540,7 @@ impl AdminUserService {
 
         let password_hash = if let Some(password) = req.password.as_deref() {
             if !Self::validate_password_policy(password) {
-                return Err(AppError::Unprocessable(
-                    "password policy violation".into(),
-                ));
+                return Err(AppError::Unprocessable("password policy violation".into()));
             }
             Some(password::hash_password(password)?)
         } else {
@@ -539,12 +548,23 @@ impl AdminUserService {
         };
 
         let (email_enc, email_idx) = if let Some(ref email) = req.email {
-            (Some(crypto.encrypt(email, "users.user_email")?), Some(crypto.blind_index(email)?))
-        } else { (None, None) };
+            (
+                Some(crypto.encrypt(email, "users.user_email")?),
+                Some(crypto.blind_index(email)?),
+            )
+        } else {
+            (None, None)
+        };
         let (name_enc, name_idx) = if let Some(ref name) = req.name {
-            (Some(crypto.encrypt(name, "users.user_name")?), Some(crypto.blind_index(name)?))
-        } else { (None, None) };
-        let birthday_enc = req.birthday
+            (
+                Some(crypto.encrypt(name, "users.user_name")?),
+                Some(crypto.blind_index(name)?),
+            )
+        } else {
+            (None, None)
+        };
+        let birthday_enc = req
+            .birthday
             .map(|b| crypto.encrypt(&b.to_string(), "users.user_birthday"))
             .transpose()?;
 
@@ -629,21 +649,20 @@ impl AdminUserService {
         ip_address: Option<IpAddr>,
         user_agent: Option<String>,
     ) -> AppResult<(bool, AdminBulkUpdateRes)> {
-        
         // 1. 요청자(Actor) 권한 확인
         let actor = super::repo::admin_get_user(&st.db, actor_user_id)
             .await?
-            .ok_or(AppError::NotFound)?; 
-    
+            .ok_or(AppError::NotFound)?;
+
         match actor.user_auth.to_string().as_str() {
-            "admin" | "hymn" | "manager" => {} 
-            _ => return Err(AppError::Forbidden("Forbidden".to_string())), 
+            "admin" | "hymn" | "manager" => {}
+            _ => return Err(AppError::Forbidden("Forbidden".to_string())),
         }
-    
+
         let mut results = Vec::new();
         let mut success_count = 0i64;
         let mut failure_count = 0i64;
-    
+
         // 2. 루프 시작
         for item in req.items {
             let process_result = async {
@@ -652,28 +671,34 @@ impl AdminUserService {
                 let target_user = super::repo::admin_get_user(&st.db, item.id)
                     .await?
                     .ok_or(AppError::NotFound)?;
-    
+
                 // RBAC 체크
                 let actor_role = actor.user_auth.to_string();
                 let target_role = target_user.user_auth.to_string();
                 if actor_role == "manager" && (target_role == "admin" || target_role == "hymn") {
-                     return Err(AppError::Forbidden("Forbidden".to_string()));
+                    return Err(AppError::Forbidden("Forbidden".to_string()));
                 }
-    
+
                 let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
                 let (email_enc, email_idx) = if let Some(ref email) = item.email {
                     let enc = crypto.encrypt(email, "users.user_email")?;
                     let idx = crypto.blind_index(email)?;
                     (Some(enc), Some(idx))
-                } else { (None, None) };
+                } else {
+                    (None, None)
+                };
                 let (name_enc, name_idx) = if let Some(ref name) = item.name {
                     let enc = crypto.encrypt(name, "users.user_name")?;
                     let idx = crypto.blind_index(name)?;
                     (Some(enc), Some(idx))
-                } else { (None, None) };
+                } else {
+                    (None, None)
+                };
                 let birthday_enc = if let Some(birthday) = item.birthday {
                     Some(crypto.encrypt(&birthday.to_string(), "users.user_birthday")?)
-                } else { None };
+                } else {
+                    None
+                };
 
                 if let Some(new_email) = &item.email {
                     let new_email_lower = new_email.trim().to_lowercase();
@@ -724,14 +749,16 @@ impl AdminUserService {
                         name_idx: name_idx.as_deref(),
                         birthday_encrypted: birthday_enc.as_deref(),
                     },
-                ).await?;
-    
+                )
+                .await?;
+
                 // 2-5. 커밋
                 tx.commit().await?;
-                
+
                 Ok(updated_user)
-            }.await;
-    
+            }
+            .await;
+
             match process_result {
                 Ok(user) => {
                     success_count += 1;
@@ -751,30 +778,33 @@ impl AdminUserService {
                         AppError::BadRequest(m) => (400, m),
                         _ => (500, "Internal Server Error".to_string()),
                     };
-                    
+
                     results.push(BulkUpdateItemResult {
                         id: item.id,
                         status,
                         data: None,
-                        error: Some(BulkItemError { code: "ERR".into(), message: msg }),
+                        error: Some(BulkItemError {
+                            code: "ERR".into(),
+                            message: msg,
+                        }),
                     });
                 }
             }
         }
-    
+
         // 4. Audit Log
         let summary = BulkSummary {
             total: (success_count + failure_count),
             success: success_count,
             failure: failure_count,
         };
-        
+
         let details = serde_json::json!({
             "total": summary.total,
             "success": summary.success,
             "failure": summary.failure
         });
-    
+
         super::repo::write_audit_log(
             st,
             actor_user_id,
@@ -784,14 +814,12 @@ impl AdminUserService {
             &details,
             ip_address,
             user_agent.as_deref(),
-        ).await?;
-    
+        )
+        .await?;
+
         let all_success = failure_count == 0;
 
-        Ok((all_success, AdminBulkUpdateRes {
-            summary,
-            results,
-        }))
+        Ok((all_success, AdminBulkUpdateRes { summary, results }))
     }
 
     // ==========================================

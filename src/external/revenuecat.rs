@@ -89,7 +89,8 @@ impl RevenueCatClient for RevenueCatApiClient {
     async fn get_subscriber(&self, app_user_id: &str) -> AppResult<RevenueCatSubscriber> {
         let url = format!("{}/subscribers/{}", REVENUECAT_API_URL, app_user_id);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
@@ -111,30 +112,50 @@ impl RevenueCatClient for RevenueCatApiClient {
             .await
             .map_err(|e| AppError::External(format!("RevenueCat response parse error: {}", e)))?;
 
-        let entitlements = data.subscriber.entitlements.into_iter().map(|(k, v)| {
-            // Why: 문자열 사전순 비교는 타임존 포맷(`Z` vs `+00:00`)이나 초 정밀도
-            // 차이에서 오판한다. RFC3339 파싱 후 UTC 비교로 정확도 확보.
-            let is_active = v.expires_date.as_ref()
-                .and_then(|d| chrono::DateTime::parse_from_rfc3339(d).ok())
-                .map(|d| d.with_timezone(&chrono::Utc) > chrono::Utc::now())
-                .unwrap_or(true); // non-subscription entitlements는 만료 없음
+        let entitlements = data
+            .subscriber
+            .entitlements
+            .into_iter()
+            .map(|(k, v)| {
+                // Why: 문자열 사전순 비교는 타임존 포맷(`Z` vs `+00:00`)이나 초 정밀도
+                // 차이에서 오판한다. RFC3339 파싱 후 UTC 비교로 정확도 확보.
+                let is_active = v
+                    .expires_date
+                    .as_ref()
+                    .and_then(|d| chrono::DateTime::parse_from_rfc3339(d).ok())
+                    .map(|d| d.with_timezone(&chrono::Utc) > chrono::Utc::now())
+                    .unwrap_or(true); // non-subscription entitlements는 만료 없음
 
-            (k, RevenueCatEntitlement {
-                is_active,
-                product_identifier: v.product_identifier,
-                store: v.store,
-                purchase_date: v.purchase_date,
-                expires_date: v.expires_date,
+                (
+                    k,
+                    RevenueCatEntitlement {
+                        is_active,
+                        product_identifier: v.product_identifier,
+                        store: v.store,
+                        purchase_date: v.purchase_date,
+                        expires_date: v.expires_date,
+                    },
+                )
             })
-        }).collect();
+            .collect();
 
-        let non_subscriptions = data.subscriber.non_subscriptions.into_iter().map(|(k, v)| {
-            (k, v.into_iter().map(|ns| RevenueCatNonSubscription {
-                id: ns.id,
-                store: ns.store,
-                purchase_date: ns.purchase_date,
-            }).collect())
-        }).collect();
+        let non_subscriptions = data
+            .subscriber
+            .non_subscriptions
+            .into_iter()
+            .map(|(k, v)| {
+                (
+                    k,
+                    v.into_iter()
+                        .map(|ns| RevenueCatNonSubscription {
+                            id: ns.id,
+                            store: ns.store,
+                            purchase_date: ns.purchase_date,
+                        })
+                        .collect(),
+                )
+            })
+            .collect();
 
         Ok(RevenueCatSubscriber {
             entitlements,

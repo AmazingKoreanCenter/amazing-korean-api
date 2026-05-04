@@ -5,7 +5,7 @@ use crate::state::AppState;
 use crate::types::{AdminAction, EbookPurchaseStatus};
 
 use crate::api::ebook::repo;
-use crate::api::ebook::service::{language_name_ko, edition_label_ko};
+use crate::api::ebook::service::{edition_label_ko, language_name_ko};
 
 use super::dto::{
     AdminEbookListReq, AdminEbookListRes, AdminEbookMeta, AdminEbookPurchaseItem,
@@ -23,14 +23,8 @@ impl AdminEbookService {
         let page = req.page.unwrap_or(1).max(1);
         let per_page = req.per_page.unwrap_or(20).clamp(1, 100);
 
-        let (rows, total_count) = repo::list_purchases(
-            &st.db,
-            page,
-            per_page,
-            req.status,
-            req.search.as_deref(),
-        )
-        .await?;
+        let (rows, total_count) =
+            repo::list_purchases(&st.db, page, per_page, req.status, req.search.as_deref()).await?;
 
         let total_pages = if total_count == 0 {
             0
@@ -134,14 +128,18 @@ impl AdminEbookService {
         if req.status == EbookPurchaseStatus::Completed {
             if let Some(ref email_sender) = st.email {
                 let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-                if let Ok(Some(encrypted_email)) = repo::find_user_encrypted_email(&st.db, existing.user_id).await {
+                if let Ok(Some(encrypted_email)) =
+                    repo::find_user_encrypted_email(&st.db, existing.user_id).await
+                {
                     if let Ok(user_email) = crypto.decrypt(&encrypted_email, "users.user_email") {
                         let template = EmailTemplate::EbookPurchaseCompleted {
                             purchase_code: existing.purchase_code.clone(),
                             language_name: language_name_ko(existing.language).to_string(),
                             edition_label: edition_label_ko(existing.edition).to_string(),
                         };
-                        if let Err(e) = send_templated(email_sender.as_ref(), &user_email, template).await {
+                        if let Err(e) =
+                            send_templated(email_sender.as_ref(), &user_email, template).await
+                        {
                             tracing::warn!(
                                 purchase_code = %existing.purchase_code,
                                 error = %e,
@@ -212,6 +210,9 @@ fn is_valid_status_transition(from: EbookPurchaseStatus, to: EbookPurchaseStatus
         (from, to),
         (EbookPurchaseStatus::Pending, EbookPurchaseStatus::Completed)
             | (EbookPurchaseStatus::Pending, EbookPurchaseStatus::Refunded)
-            | (EbookPurchaseStatus::Completed, EbookPurchaseStatus::Refunded)
+            | (
+                EbookPurchaseStatus::Completed,
+                EbookPurchaseStatus::Refunded
+            )
     )
 }

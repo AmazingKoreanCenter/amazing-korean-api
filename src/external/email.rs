@@ -23,7 +23,9 @@ pub async fn send_templated(
     template: EmailTemplate,
 ) -> AppResult<()> {
     let (subject, html_body, text_body) = render_template(template);
-    sender.send_email(to, &subject, &html_body, &text_body).await
+    sender
+        .send_email(to, &subject, &html_body, &text_body)
+        .await
 }
 
 // =============================================================================
@@ -52,13 +54,7 @@ impl ResendEmailSender {
 
 #[async_trait]
 impl EmailSender for ResendEmailSender {
-    async fn send_email(
-        &self,
-        to: &str,
-        subject: &str,
-        html: &str,
-        text: &str,
-    ) -> AppResult<()> {
+    async fn send_email(&self, to: &str, subject: &str, html: &str, text: &str) -> AppResult<()> {
         let body = serde_json::json!({
             "from": self.from_address,
             "to": [to],
@@ -94,7 +90,10 @@ impl EmailSender for ResendEmailSender {
                 429 => "Resend rate limit exceeded",
                 _ => "Resend API error",
             };
-            return Err(AppError::External(format!("{}: {} {}", msg, status, error_body)));
+            return Err(AppError::External(format!(
+                "{}: {} {}",
+                msg, status, error_body
+            )));
         }
 
         tracing::info!(to = %to, subject = %subject, provider = "resend", "Email sent successfully");
@@ -157,7 +156,10 @@ pub enum EmailTemplate {
 /// 템플릿을 HTML/텍스트로 렌더링
 fn render_template(template: EmailTemplate) -> (String, String, String) {
     match template {
-        EmailTemplate::PasswordResetCode { code, expires_in_min } => {
+        EmailTemplate::PasswordResetCode {
+            code,
+            expires_in_min,
+        } => {
             let subject = "[Amazing Korean] 비밀번호 재설정 인증 코드".to_string();
             let html_body = format!(
                 r#"<!DOCTYPE html>
@@ -213,7 +215,10 @@ fn render_template(template: EmailTemplate) -> (String, String, String) {
             (subject, html_body, text_body)
         }
 
-        EmailTemplate::EmailVerification { code, expires_in_min } => {
+        EmailTemplate::EmailVerification {
+            code,
+            expires_in_min,
+        } => {
             let subject = "[Amazing Korean] 이메일 인증 코드".to_string();
             let html_body = format!(
                 r#"<!DOCTYPE html>
@@ -664,7 +669,10 @@ fn render_template(template: EmailTemplate) -> (String, String, String) {
             language_name,
             edition_label,
         } => {
-            let subject = format!("[Amazing Korean] E-book 결제 완료 — 열람 가능 ({})", purchase_code);
+            let subject = format!(
+                "[Amazing Korean] E-book 결제 완료 — 열람 가능 ({})",
+                purchase_code
+            );
             let html_body = format!(
                 r#"<!DOCTYPE html>
 <html lang="ko">

@@ -179,7 +179,9 @@ mod tests {
         let (ring, hmac_key) = test_keys();
         let crypto = CryptoService::new(&ring, &hmac_key);
 
-        let encrypted = crypto.encrypt("test@example.com", "users.user_email").unwrap();
+        let encrypted = crypto
+            .encrypt("test@example.com", "users.user_email")
+            .unwrap();
         assert!(encrypted.starts_with("enc:v1:"));
 
         let decrypted = crypto.decrypt(&encrypted, "users.user_email").unwrap();
@@ -233,8 +235,14 @@ mod tests {
         let (ring, hmac_key) = test_keys();
         let crypto = CryptoService::new(&ring, &hmac_key);
 
-        assert_eq!(crypto.try_decrypt_or_plaintext("192.168.1.1", "aad"), "192.168.1.1");
-        assert_eq!(crypto.try_decrypt_or_plaintext("user@example.com", "aad"), "user@example.com");
+        assert_eq!(
+            crypto.try_decrypt_or_plaintext("192.168.1.1", "aad"),
+            "192.168.1.1"
+        );
+        assert_eq!(
+            crypto.try_decrypt_or_plaintext("user@example.com", "aad"),
+            "user@example.com"
+        );
     }
 
     #[test]
@@ -242,7 +250,9 @@ mod tests {
         let (ring, hmac_key) = test_keys();
         let crypto = CryptoService::new(&ring, &hmac_key);
 
-        let encrypted = crypto.encrypt("10.0.0.1", "admin_action_log.ip_address").unwrap();
+        let encrypted = crypto
+            .encrypt("10.0.0.1", "admin_action_log.ip_address")
+            .unwrap();
         let result = crypto.try_decrypt_or_plaintext(&encrypted, "admin_action_log.ip_address");
         assert_eq!(result, "10.0.0.1");
     }

@@ -16,6 +16,9 @@ pub fn admin_payment_router() -> Router<AppState> {
             post(handler::cancel_subscription),
         )
         .route("/transactions", get(handler::list_transactions))
-        .route("/grants", get(handler::list_grants).post(handler::create_grant))
+        .route(
+            "/grants",
+            get(handler::list_grants).post(handler::create_grant),
+        )
         .route("/grants/{user_id}", delete(handler::revoke_grant))
 }

@@ -61,25 +61,26 @@ impl IpGeoClient {
             return GeoLocation::default();
         }
 
-        let url = format!("{}/{}?fields=status,countryCode,as,org,isp", self.base_url, ip);
+        let url = format!(
+            "{}/{}?fields=status,countryCode,as,org,isp",
+            self.base_url, ip
+        );
 
         match self.client.get(&url).send().await {
-            Ok(response) => {
-                match response.json::<IpApiResponse>().await {
-                    Ok(data) => {
-                        if data.status == "success" {
-                            self.parse_response(data)
-                        } else {
-                            warn!(ip = %ip, "ip-api.com returned failure status");
-                            GeoLocation::default()
-                        }
-                    }
-                    Err(e) => {
-                        warn!(ip = %ip, error = %e, "Failed to parse ip-api.com response");
+            Ok(response) => match response.json::<IpApiResponse>().await {
+                Ok(data) => {
+                    if data.status == "success" {
+                        self.parse_response(data)
+                    } else {
+                        warn!(ip = %ip, "ip-api.com returned failure status");
                         GeoLocation::default()
                     }
                 }
-            }
+                Err(e) => {
+                    warn!(ip = %ip, error = %e, "Failed to parse ip-api.com response");
+                    GeoLocation::default()
+                }
+            },
             Err(e) => {
                 warn!(ip = %ip, error = %e, "Failed to call ip-api.com");
                 GeoLocation::default()

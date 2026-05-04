@@ -11,8 +11,11 @@ use tokio::net::TcpListener;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 // [CORS] 필요한 모듈 추가
+use http::{
+    header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
+    HeaderName, HeaderValue, Method,
+};
 use tower_http::cors::CorsLayer;
-use http::{Method, HeaderValue, HeaderName, header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT}};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -59,19 +62,28 @@ async fn main() -> anyhow::Result<()> {
     // 5) EmailSender 생성 (EMAIL_PROVIDER 설정에 따라 분기)
     let email: Option<Arc<dyn external::email::EmailSender>> = match cfg.email_provider.as_str() {
         "resend" => {
-            let api_key = cfg.resend_api_key.clone()
+            let api_key = cfg
+                .resend_api_key
+                .clone()
                 .expect("RESEND_API_KEY required for resend provider");
-            let from = cfg.email_from_address.clone()
+            let from = cfg
+                .email_from_address
+                .clone()
                 .expect("EMAIL_FROM_ADDRESS required for resend provider");
             tracing::info!("📩 Email client enabled: Resend (from: {})", from);
-            Some(Arc::new(external::email::ResendEmailSender::new(api_key, from)))
+            Some(Arc::new(external::email::ResendEmailSender::new(
+                api_key, from,
+            )))
         }
         "none" => {
             tracing::info!("Email client disabled (EMAIL_PROVIDER=none)");
             None
         }
         other => {
-            panic!("Unknown EMAIL_PROVIDER '{}'. Must be 'resend' or 'none'.", other);
+            panic!(
+                "Unknown EMAIL_PROVIDER '{}'. Must be 'resend' or 'none'.",
+                other
+            );
         }
     };
 
@@ -80,48 +92,52 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("🌍 IP Geolocation client enabled (ip-api.com)");
 
     // 6.7) PaymentProvider 생성 (PAYMENT_PROVIDER 설정에 따라 분기)
-    let payment: Option<Arc<dyn external::payment::PaymentProvider>> =
-        match cfg.payment_provider.as_str() {
-            "paddle" => {
-                let api_key = cfg
-                    .paddle_api_key
-                    .clone()
-                    .expect("PADDLE_API_KEY required for paddle provider");
-                let client_token = cfg
-                    .paddle_client_token
-                    .clone()
-                    .expect("PADDLE_CLIENT_TOKEN required for paddle provider");
-                let env_label = if cfg.paddle_sandbox { "Sandbox" } else { "Production" };
-                tracing::info!(
-                    "💳 Payment provider enabled: Paddle Billing ({})",
-                    env_label
-                );
-                Some(Arc::new(
-                    external::payment::PaddleProvider::new(
-                        &api_key,
-                        cfg.paddle_sandbox,
-                        client_token,
-                    )
+    let payment: Option<Arc<dyn external::payment::PaymentProvider>> = match cfg
+        .payment_provider
+        .as_str()
+    {
+        "paddle" => {
+            let api_key = cfg
+                .paddle_api_key
+                .clone()
+                .expect("PADDLE_API_KEY required for paddle provider");
+            let client_token = cfg
+                .paddle_client_token
+                .clone()
+                .expect("PADDLE_CLIENT_TOKEN required for paddle provider");
+            let env_label = if cfg.paddle_sandbox {
+                "Sandbox"
+            } else {
+                "Production"
+            };
+            tracing::info!(
+                "💳 Payment provider enabled: Paddle Billing ({})",
+                env_label
+            );
+            Some(Arc::new(
+                external::payment::PaddleProvider::new(&api_key, cfg.paddle_sandbox, client_token)
                     .expect("Failed to create Paddle client"),
-                ))
-            }
-            "none" => {
-                tracing::info!("Payment provider disabled (PAYMENT_PROVIDER=none)");
-                None
-            }
-            other => {
-                panic!(
-                    "Unknown PAYMENT_PROVIDER '{}'. Must be 'paddle' or 'none'.",
-                    other
-                );
-            }
-        };
+            ))
+        }
+        "none" => {
+            tracing::info!("Payment provider disabled (PAYMENT_PROVIDER=none)");
+            None
+        }
+        other => {
+            panic!(
+                "Unknown PAYMENT_PROVIDER '{}'. Must be 'paddle' or 'none'.",
+                other
+            );
+        }
+    };
 
     // 6.5) RevenueCat 클라이언트 (모바일 IAP)
     let revenuecat: Option<Arc<dyn external::revenuecat::RevenueCatClient>> =
         if let Some(api_key) = &cfg.revenuecat_api_key {
             tracing::info!("RevenueCat client initialized");
-            Some(Arc::new(external::revenuecat::RevenueCatApiClient::new(api_key.clone())))
+            Some(Arc::new(external::revenuecat::RevenueCatApiClient::new(
+                api_key.clone(),
+            )))
         } else {
             tracing::info!("RevenueCat client disabled (REVENUECAT_API_KEY not set)");
             None
@@ -131,7 +147,9 @@ async fn main() -> anyhow::Result<()> {
     let apple_oauth: Option<Arc<external::apple::AppleOAuthClient>> =
         if let Some(client_id) = &cfg.apple_client_id {
             tracing::info!("Apple OAuth client initialized");
-            Some(Arc::new(external::apple::AppleOAuthClient::new(client_id.clone())))
+            Some(Arc::new(external::apple::AppleOAuthClient::new(
+                client_id.clone(),
+            )))
         } else {
             tracing::info!("Apple OAuth client disabled (APPLE_CLIENT_ID not set)");
             None
@@ -173,9 +191,19 @@ async fn main() -> anyhow::Result<()> {
             Method::PUT,
             Method::PATCH,
             Method::DELETE,
-            Method::OPTIONS
+            Method::OPTIONS,
         ])
-        .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT, HeaderName::from_static("x-request-id"), HeaderName::from_static("x-ebook-viewer"), HeaderName::from_static("x-ebook-session"), HeaderName::from_static("x-ebook-signature"), HeaderName::from_static("x-ebook-timestamp"), HeaderName::from_static("x-platform")])
+        .allow_headers([
+            AUTHORIZATION,
+            CONTENT_TYPE,
+            ACCEPT,
+            HeaderName::from_static("x-request-id"),
+            HeaderName::from_static("x-ebook-viewer"),
+            HeaderName::from_static("x-ebook-session"),
+            HeaderName::from_static("x-ebook-signature"),
+            HeaderName::from_static("x-ebook-timestamp"),
+            HeaderName::from_static("x-platform"),
+        ])
         .expose_headers([HeaderName::from_static("x-request-id")])
         .allow_credentials(true); // 쿠키(Refresh Token) 교환을 위해 필수
 

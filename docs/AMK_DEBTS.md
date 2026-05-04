@@ -169,13 +169,13 @@
 
 **처리**: 디자인 토큰 결정 + 9곳 교체. 시간 0.5-1일.
 
-### C3. Rust rustfmt baseline (오늘 발견)
+### ~~C3. Rust rustfmt baseline~~ ✅ 해결 (2026-05-04 밤, commit 후속)
 
-`cargo fmt --check --all` 실행 = unformatted 영역 다수. 정확한 파일 카운트 = C4 (docs.rs:92,94 trailing whitespace) 선결 후 재실행 필요. PR #205 진행 중 사용자 결정 대기.
+> 95 파일 cleanup 완료. `cargo fmt --check --all` exit=0. C4 trailing whitespace 수동 fix 후 cargo fmt --all 재실행 성공.
 
-### C4. `src/docs.rs:92, 94` trailing whitespace
+### ~~C4. `src/docs.rs:92, 94` trailing whitespace~~ ✅ 해결 (2026-05-04 밤)
 
-L92 = `admin_create_video,   ` (3 spaces trailing) / L94 = `admin_update_video,     ` (5 spaces trailing). rustfmt internal error 원인.
+> 수동 제거 완료. rustfmt internal error 해소. C3 cleanup 진행 가능해짐.
 
 ### ~~C5. enum sqlx::Type derive 미전환~~ ✅ 해결됨
 

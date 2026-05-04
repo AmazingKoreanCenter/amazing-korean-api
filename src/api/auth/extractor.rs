@@ -71,9 +71,9 @@ where
                 .to_str()
                 .map_err(|_| AppError::Unauthorized("Invalid Authorization header".into()))?;
 
-            let token = header_str
-                .strip_prefix("Bearer ")
-                .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".into()))?;
+            let token = header_str.strip_prefix("Bearer ").ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".into())
+            })?;
 
             let claims = jwt::decode_token(token, &secret)
                 .map_err(|_| AppError::Unauthorized("Invalid token".into()))?;

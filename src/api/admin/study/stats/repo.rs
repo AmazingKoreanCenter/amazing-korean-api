@@ -165,7 +165,9 @@ pub async fn fetch_top_studies(
             rank: (i + 1) as i32,
             study_id: r.try_get::<i32, _>("study_id").unwrap_or(0) as i64,
             study_idx: r.try_get::<String, _>("study_idx").unwrap_or_default(),
-            study_title: r.try_get::<Option<String>, _>("study_title").unwrap_or(None),
+            study_title: r
+                .try_get::<Option<String>, _>("study_title")
+                .unwrap_or(None),
             study_program: r.try_get::<String, _>("study_program").unwrap_or_default(),
             task_count: r.try_get::<i64, _>("task_count").unwrap_or(0),
             attempt_count: r.try_get::<i64, _>("attempt_count").unwrap_or(0),
@@ -221,7 +223,9 @@ pub async fn fetch_daily_stats(
     let items = rows
         .into_iter()
         .map(|r| DailyStatItem {
-            date: r.try_get::<chrono::NaiveDate, _>("stat_date").unwrap_or_default(),
+            date: r
+                .try_get::<chrono::NaiveDate, _>("stat_date")
+                .unwrap_or_default(),
             attempts: r.try_get::<i64, _>("attempts").unwrap_or(0),
             solves: r.try_get::<i64, _>("solves").unwrap_or(0),
             active_users: r.try_get::<i64, _>("active_users").unwrap_or(0),

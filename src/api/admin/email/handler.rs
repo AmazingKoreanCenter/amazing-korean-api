@@ -43,7 +43,10 @@ pub async fn send_test_email(
     AppJson(req): AppJson<TestEmailReq>,
 ) -> AppResult<Json<TestEmailRes>> {
     // 1. Admin/Manager 권한 확인
-    if !matches!(auth_user.role, UserAuth::Admin | UserAuth::Manager | UserAuth::Hymn) {
+    if !matches!(
+        auth_user.role,
+        UserAuth::Admin | UserAuth::Manager | UserAuth::Hymn
+    ) {
         return Err(AppError::Forbidden(
             "이메일 테스트는 Admin 또는 Manager 권한이 필요합니다.".to_string(),
         ));

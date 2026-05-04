@@ -2,7 +2,9 @@ use sqlx::PgPool;
 
 use crate::error::AppResult;
 
-use super::dto::{AdminGrantSummary, AdminSubDetail, AdminSubSummary, AdminSubUser, AdminTxnSummary};
+use super::dto::{
+    AdminGrantSummary, AdminSubDetail, AdminSubSummary, AdminSubUser, AdminTxnSummary,
+};
 
 /// 구독 목록 쿼리 파라미터
 pub struct SubscriptionListQuery<'a> {
@@ -222,10 +224,7 @@ impl AdminPaymentRepo {
         }
 
         if let Some(status) = status_filter {
-            let clause = format!(
-                " AND t.status = ${}::transaction_status_enum",
-                bind_idx
-            );
+            let clause = format!(" AND t.status = ${}::transaction_status_enum", bind_idx);
             count_sql.push_str(&clause);
             select_sql.push_str(&clause);
             query_args.push(status.to_string());

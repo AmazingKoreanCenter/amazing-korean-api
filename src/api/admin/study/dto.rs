@@ -1,25 +1,25 @@
-use serde::{Deserialize, Serialize};
-use utoipa::{IntoParams, ToSchema};
-use validator::{Validate, ValidationError};
 use crate::types::{
     StudyAccess, StudyProgram, StudyState, StudyTaskKind, UserSetLanguage, WritingLevel,
     WritingPracticeType,
 };
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use utoipa::{IntoParams, ToSchema};
+use validator::{Validate, ValidationError};
 
 #[derive(Deserialize, IntoParams, Validate, ToSchema)]
 pub struct StudyListReq {
     #[validate(range(min = 1))]
     pub page: Option<u64>,
-    
+
     #[validate(range(min = 1, max = 100))]
     pub size: Option<u64>, // per_page -> size 로 통일
-    
+
     pub q: Option<String>,
     pub sort: Option<String>,
     pub order: Option<String>,
-    
+
     // String 대신 Enum을 직접 사용하여 Axum이 자동 파싱하게 함
     pub study_state: Option<StudyState>,
     pub study_access: Option<StudyAccess>,

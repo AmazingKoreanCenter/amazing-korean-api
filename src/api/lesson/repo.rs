@@ -48,7 +48,10 @@ impl LessonRepo {
         Ok(rows)
     }
 
-    pub async fn find_lesson_by_id(pool: &PgPool, lesson_id: i64) -> AppResult<Option<LessonMetaRow>> {
+    pub async fn find_lesson_by_id(
+        pool: &PgPool,
+        lesson_id: i64,
+    ) -> AppResult<Option<LessonMetaRow>> {
         let row = sqlx::query_as::<_, LessonMetaRow>(
             r#"
             SELECT
@@ -108,11 +111,7 @@ impl LessonRepo {
 
     /// 사용자가 특정 레슨에 대한 수강권이 있는지 확인
     /// (Course 도메인 구현 후 user_course 테이블과 연동)
-    pub async fn has_course_access(
-        pool: &PgPool,
-        user_id: i64,
-        lesson_id: i64,
-    ) -> AppResult<bool> {
+    pub async fn has_course_access(pool: &PgPool, user_id: i64, lesson_id: i64) -> AppResult<bool> {
         // user_course 테이블과 course_lesson 매핑을 통해 확인
         let has_access = sqlx::query_scalar::<_, bool>(
             r#"

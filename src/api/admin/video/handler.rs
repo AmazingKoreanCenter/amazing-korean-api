@@ -9,8 +9,9 @@ use utoipa::ToSchema;
 
 use crate::api::admin::video::dto::{
     AdminVideoListReq, AdminVideoListRes, AdminVideoRes, VideoBulkCreateReq, VideoBulkCreateRes,
-    VideoBulkUpdateReq, VideoBulkUpdateRes, VideoCreateReq, VideoTagBulkUpdateReq, VideoTagUpdateReq,
-    VideoUpdateReq, VimeoPreviewReq, VimeoPreviewRes, VimeoUploadTicketReq, VimeoUploadTicketRes,
+    VideoBulkUpdateReq, VideoBulkUpdateRes, VideoCreateReq, VideoTagBulkUpdateReq,
+    VideoTagUpdateReq, VideoUpdateReq, VimeoPreviewReq, VimeoPreviewRes, VimeoUploadTicketReq,
+    VimeoUploadTicketRes,
 };
 use crate::api::auth::extractor::AuthUser;
 #[allow(unused_imports)] // Used in return type
@@ -70,14 +71,8 @@ pub async fn admin_list_videos(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_list_videos(
-        &st,
-        auth_user.sub,
-        params,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res = super::service::admin_list_videos(&st, auth_user.sub, params, ip_address, user_agent)
+        .await?;
 
     Ok(Json(res))
 }
@@ -106,14 +101,8 @@ pub async fn admin_get_video(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_get_video(
-        &st,
-        auth_user.sub,
-        video_id,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res = super::service::admin_get_video(&st, auth_user.sub, video_id, ip_address, user_agent)
+        .await?;
 
     Ok(Json(res))
 }
@@ -143,14 +132,8 @@ pub async fn admin_create_video(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = super::service::admin_create_video(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res =
+        super::service::admin_create_video(&st, auth_user.sub, req, ip_address, user_agent).await?;
 
     Ok((StatusCode::CREATED, Json(res)))
 }
@@ -180,14 +163,9 @@ pub async fn admin_bulk_create_videos(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let (all_success, res) = super::service::admin_bulk_create_videos(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let (all_success, res) =
+        super::service::admin_bulk_create_videos(&st, auth_user.sub, req, ip_address, user_agent)
+            .await?;
 
     let status = if all_success {
         StatusCode::CREATED
@@ -223,14 +201,9 @@ pub async fn admin_bulk_update_videos(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let (all_success, res) = super::service::admin_bulk_update_videos(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let (all_success, res) =
+        super::service::admin_bulk_update_videos(&st, auth_user.sub, req, ip_address, user_agent)
+            .await?;
 
     let status = if all_success {
         StatusCode::OK

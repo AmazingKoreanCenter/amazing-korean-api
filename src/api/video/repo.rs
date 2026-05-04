@@ -1,8 +1,6 @@
 use sqlx::{PgPool, QueryBuilder, Row};
 
-use crate::api::video::dto::{
-    VideoDetailRes, VideoListItem, VideoListReq, VideoProgressRes,
-};
+use crate::api::video::dto::{VideoDetailRes, VideoListItem, VideoListReq, VideoProgressRes};
 use crate::error::AppResult;
 
 pub struct VideoRepo;
@@ -81,7 +79,7 @@ impl VideoRepo {
 
         // 2-3. Language (DB 컬럼이 없으므로 필터 기능도 작동 안 함 - 무시하거나 에러처리)
         // 일단 DB에 없으므로 조건절 추가하지 않음 (필요 시 나중에 컬럼 추가 후 복구)
-        // if let Some(lang) = &req.lang { ... } 
+        // if let Some(lang) = &req.lang { ... }
 
         // 2-4. Tag Filter
         if let Some(tag_key) = &req.tag {
@@ -97,7 +95,7 @@ impl VideoRepo {
                 v.video_id, v.video_idx,
                 v.video_title, v.video_subtitle,
                 v.video_state, v.video_access, v.video_created_at
-            "#
+            "#,
         );
 
         // 4. Sort & Order
@@ -119,22 +117,28 @@ impl VideoRepo {
         let rows = qb.build().fetch_all(pool).await?;
 
         // 7. Parse Result
-        let total_count: i64 = rows.first().map(|r| r.try_get("total_count").unwrap_or(0)).unwrap_or(0);
+        let total_count: i64 = rows
+            .first()
+            .map(|r| r.try_get("total_count").unwrap_or(0))
+            .unwrap_or(0);
 
-        let list: Vec<VideoListItem> = rows.iter().map(|row| VideoListItem {
-            video_id: row.get("video_id"),
-            video_idx: row.get("video_idx"),
-            title: row.get("title"),
-            subtitle: row.get("subtitle"),
-            duration_seconds: row.get("duration_seconds"), // NULL
-            language: row.get("language"),                 // NULL
-            thumbnail_url: row.get("thumbnail_url"),       // NULL
-            state: row.get("state"),
-            access: row.get("access"),
-            tags: row.get("tags"),
-            has_captions: row.get("has_captions"),         // false
-            created_at: row.get("created_at"),
-        }).collect();
+        let list: Vec<VideoListItem> = rows
+            .iter()
+            .map(|row| VideoListItem {
+                video_id: row.get("video_id"),
+                video_idx: row.get("video_idx"),
+                title: row.get("title"),
+                subtitle: row.get("subtitle"),
+                duration_seconds: row.get("duration_seconds"), // NULL
+                language: row.get("language"),                 // NULL
+                thumbnail_url: row.get("thumbnail_url"),       // NULL
+                state: row.get("state"),
+                access: row.get("access"),
+                tags: row.get("tags"),
+                has_captions: row.get("has_captions"), // false
+                created_at: row.get("created_at"),
+            })
+            .collect();
 
         Ok((list, total_count))
     }
@@ -177,7 +181,7 @@ impl VideoRepo {
             WHERE v.video_id = $1
               AND v.video_state = 'open'
             GROUP BY v.video_id
-            "#
+            "#,
         )
         .bind(video_id)
         .fetch_optional(pool)
@@ -201,7 +205,7 @@ impl VideoRepo {
     // =========================================================================
     // Progress (Learning Logs)
     // =========================================================================
-    
+
     // 내 학습 진도 조회(이전과 동일)
     pub async fn get_progress(
         pool: &PgPool,
@@ -289,10 +293,7 @@ impl VideoRepo {
     // =========================================================================
 
     /// 일별 통계 views 증가 (UPSERT)
-    pub async fn increment_daily_views(
-        pool: &PgPool,
-        video_id: i64,
-    ) -> AppResult<()> {
+    pub async fn increment_daily_views(pool: &PgPool, video_id: i64) -> AppResult<()> {
         sqlx::query(
             r#"
             INSERT INTO video_stat_daily (video_stat_date, video_id, video_stat_views, video_stat_completes)
@@ -308,10 +309,7 @@ impl VideoRepo {
     }
 
     /// 일별 통계 completes 증가 (UPSERT)
-    pub async fn increment_daily_completes(
-        pool: &PgPool,
-        video_id: i64,
-    ) -> AppResult<()> {
+    pub async fn increment_daily_completes(pool: &PgPool, video_id: i64) -> AppResult<()> {
         sqlx::query(
             r#"
             INSERT INTO video_stat_daily (video_stat_date, video_id, video_stat_views, video_stat_completes)

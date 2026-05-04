@@ -93,14 +93,9 @@ pub async fn admin_list_users(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = AdminUserService::admin_list_users(
-        &st,
-        auth_user.sub,
-        params,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res =
+        AdminUserService::admin_list_users(&st, auth_user.sub, params, ip_address, user_agent)
+            .await?;
 
     Ok(Json(res))
 }
@@ -129,14 +124,8 @@ pub async fn admin_create_user(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = AdminUserService::admin_create_user(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res = AdminUserService::admin_create_user(&st, auth_user.sub, req, ip_address, user_agent)
+        .await?;
 
     let mut resp_headers = HeaderMap::new();
     let location = format!("/admin/users/{}", res.id);
@@ -170,14 +159,9 @@ pub async fn admin_create_users_bulk(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let (all_success, res) = AdminUserService::admin_create_users_bulk(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let (all_success, res) =
+        AdminUserService::admin_create_users_bulk(&st, auth_user.sub, req, ip_address, user_agent)
+            .await?;
 
     let status = if all_success {
         StatusCode::CREATED
@@ -231,14 +215,8 @@ pub async fn admin_get_user(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let res = AdminUserService::admin_get_user(
-        &st,
-        auth_user.sub,
-        user_id,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let res = AdminUserService::admin_get_user(&st, auth_user.sub, user_id, ip_address, user_agent)
+        .await?;
 
     Ok(Json(res))
 }
@@ -330,14 +308,9 @@ pub async fn admin_update_users_bulk(
     let ip_address = extract_client_ip(&headers);
     let user_agent = extract_user_agent(&headers);
 
-    let (all_success, res) = AdminUserService::admin_update_users_bulk(
-        &st,
-        auth_user.sub,
-        req,
-        ip_address,
-        user_agent,
-    )
-    .await?;
+    let (all_success, res) =
+        AdminUserService::admin_update_users_bulk(&st, auth_user.sub, req, ip_address, user_agent)
+            .await?;
 
     let status = if all_success {
         StatusCode::OK

@@ -2,9 +2,8 @@ use crate::error::AppResult;
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, Transaction};
 
-
-use crate::types::UserGender;
 use super::dto::{AdminUpdateUserReq, AdminUserRes, AdminUserSummary};
+use crate::types::UserGender;
 
 /// 검색어에 @ 포함 → email blind index exact match, 그 외 → nickname LIKE
 pub async fn admin_list_users(
@@ -37,28 +36,16 @@ pub async fn admin_list_users(
         if keyword.contains('@') {
             // 이메일 검색: blind index exact match
             if let Some(idx) = email_idx {
-                count_sql.push_str(&format!(
-                    " AND user_email_idx = ${0}",
-                    bind_idx
-                ));
-                select_sql.push_str(&format!(
-                    " AND user_email_idx = ${0}",
-                    bind_idx
-                ));
+                count_sql.push_str(&format!(" AND user_email_idx = ${0}", bind_idx));
+                select_sql.push_str(&format!(" AND user_email_idx = ${0}", bind_idx));
                 query_args.push(idx.to_string());
                 bind_idx += 1;
             }
         } else {
             // 닉네임 검색: LIKE
             let search_query = format!("%{}%", keyword.to_lowercase());
-            count_sql.push_str(&format!(
-                " AND LOWER(user_nickname) LIKE ${0}",
-                bind_idx
-            ));
-            select_sql.push_str(&format!(
-                " AND LOWER(user_nickname) LIKE ${0}",
-                bind_idx
-            ));
+            count_sql.push_str(&format!(" AND LOWER(user_nickname) LIKE ${0}", bind_idx));
+            select_sql.push_str(&format!(" AND LOWER(user_nickname) LIKE ${0}", bind_idx));
             query_args.push(search_query);
             bind_idx += 1;
         }
@@ -218,7 +205,15 @@ pub async fn admin_create_user(
 
     let after = serde_json::to_value(&user).unwrap_or_default();
 
-    create_history_log(&mut tx, params.actor_user_id, user.id, "create", None, Some(&after)).await?;
+    create_history_log(
+        &mut tx,
+        params.actor_user_id,
+        user.id,
+        "create",
+        None,
+        Some(&after),
+    )
+    .await?;
 
     let details = serde_json::json!({
         "created_user_id": user.id,
@@ -385,10 +380,7 @@ pub async fn write_audit_log(
     .await
 }
 
-pub async fn create_audit_log(
-    pool: &PgPool,
-    p: &AuditLogParams<'_>,
-) -> AppResult<()> {
+pub async fn create_audit_log(pool: &PgPool, p: &AuditLogParams<'_>) -> AppResult<()> {
     sqlx::query(
         r#"
         INSERT INTO admin_action_log (

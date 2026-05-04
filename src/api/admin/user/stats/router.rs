@@ -1,6 +1,7 @@
 use super::handler::{
-    get_login_stats_daily_handler, get_login_stats_devices_handler, get_login_stats_summary_handler,
-    get_user_stats_signups_handler, get_user_stats_summary_handler,
+    get_login_stats_daily_handler, get_login_stats_devices_handler,
+    get_login_stats_summary_handler, get_user_stats_signups_handler,
+    get_user_stats_summary_handler,
 };
 use crate::AppState;
 use axum::{routing::get, Router};

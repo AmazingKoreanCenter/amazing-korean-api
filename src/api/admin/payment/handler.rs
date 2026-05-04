@@ -6,11 +6,7 @@ use axum::{
 };
 use std::net::IpAddr;
 
-use crate::{
-    api::auth::extractor::AuthUser,
-    error::AppResult,
-    state::AppState,
-};
+use crate::{api::auth::extractor::AuthUser, error::AppResult, state::AppState};
 
 use super::{
     dto::{
@@ -78,8 +74,7 @@ pub async fn list_subscriptions(
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
 
-    let res =
-        AdminPaymentService::list_subscriptions(&st, auth_user.sub, params, ip, ua).await?;
+    let res = AdminPaymentService::list_subscriptions(&st, auth_user.sub, params, ip, ua).await?;
 
     Ok(Json(res))
 }
@@ -136,8 +131,7 @@ pub async fn cancel_subscription(
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
 
-    let res =
-        AdminPaymentService::cancel_subscription(&st, auth_user.sub, id, req, ip, ua).await?;
+    let res = AdminPaymentService::cancel_subscription(&st, auth_user.sub, id, req, ip, ua).await?;
 
     Ok(Json(res))
 }
@@ -174,8 +168,7 @@ pub async fn list_transactions(
     let ip = extract_client_ip(&headers);
     let ua = extract_user_agent(&headers);
 
-    let res =
-        AdminPaymentService::list_transactions(&st, auth_user.sub, params, ip, ua).await?;
+    let res = AdminPaymentService::list_transactions(&st, auth_user.sub, params, ip, ua).await?;
 
     Ok(Json(res))
 }
