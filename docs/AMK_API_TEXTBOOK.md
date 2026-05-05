@@ -10,7 +10,8 @@
 ### 5.12 Phase 12 — 교재 주문 (Textbook Ordering)
 
 > 교재 주문 시스템. 계좌이체 기반, 35개 언어 × 2종(학생용/교사용), ₩25,000/권, 최소 10권. 신규 14언어 (am/ar/bn/es_es/fa/it/ky/lo/pl/pt_pt/sw/tr/uk/ur, 2026-05-03 추가) 는 출판본 미준비로 `catalog.available=false` (주문 불가, 향후 활성화).
-> 마이그레이션: `migrations/20260226_textbook.sql`, `migrations/20260303_textbook_improvements.sql`, `migrations/20260310_add_tl_language.sql`, `migrations/20260503_textbook_language_expand.sql`
+> 마이그레이션 (textbook 직접, 7개): `20260226_textbook.sql`, `20260303_textbook_improvements.sql`, `20260323_textbook_tax_fields.sql`, `20260324_textbook_user_id.sql`, `20260423_textbook_order_discount.sql`, `20260424_textbook_orderer_email_optional.sql`, `20260503_textbook_language_expand.sql`
+> 관련 마이그레이션 (supported_language): `20260310_add_tl_language.sql` (textbook 직접 X — supported_language enum tl 변형 추가)
 
 <details>
 <summary>📋 Textbook 엔드포인트 상세 (클릭)</summary>
