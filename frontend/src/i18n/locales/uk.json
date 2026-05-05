@@ -220,9 +220,9 @@
     "mfaUseBackupCode": "Використати резервний код",
     "mfaUseAuthApp": "Використати додаток для автентифікації",
     "remainingAttempts_one": "Залишилася спроба: {{count}}",
-    "remainingAttempts_few": "Залишилося спроб: {{count}}",
+    "remainingAttempts_few": "Залишилося спроби: {{count}}",
     "remainingAttempts_many": "Залишилося спроб: {{count}}",
-    "remainingAttempts_other": "Залишилося спроб: {{count}}"
+    "remainingAttempts_other": "Залишилося спроби: {{count}}"
   },
   "mfa": {
     "title": "Двофакторна автентифікація",
@@ -492,7 +492,7 @@
         "lastDays_one": "Останній {{count}} день",
         "lastDays_few": "Останні {{count}} дні",
         "lastDays_many": "Останні {{count}} днів",
-        "lastDays_other": "Останні {{count}} дні",
+        "lastDays_other": "Останні {{count}} дня",
         "sessionCount_one": "{{count}} сесія",
         "sessionCount_few": "{{count}} сесії",
         "sessionCount_many": "{{count}} сесій",
@@ -538,11 +538,11 @@
     "totalLessons_one": "Всього {{count}} урок",
     "totalLessons_few": "Всього {{count}} уроки",
     "totalLessons_many": "Всього {{count}} уроків",
-    "totalLessons_other": "Всього {{count}} уроки",
+    "totalLessons_other": "Всього {{count}} уроку",
     "itemCount_one": "{{count}} елемент",
     "itemCount_few": "{{count}} елементи",
     "itemCount_many": "{{count}} елементів",
-    "itemCount_other": "{{count}} елементи"
+    "itemCount_other": "{{count}} елемента"
   },
   "video": {
     "heroBadge": "Вивчайте корейську через відео",

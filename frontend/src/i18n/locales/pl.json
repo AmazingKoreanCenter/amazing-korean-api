@@ -492,7 +492,7 @@
         "lastDays_one": "Ostatni {{count}} dzień",
         "lastDays_few": "Ostatnie {{count}} dni",
         "lastDays_many": "Ostatnich {{count}} dni",
-        "lastDays_other": "Ostatnie {{count}} dni",
+        "lastDays_other": "Ostatnie {{count}} dnia",
         "sessionCount_one": "{{count}} sesja",
         "sessionCount_few": "{{count}} sesje",
         "sessionCount_many": "{{count}} sesji",
@@ -542,7 +542,7 @@
     "itemCount_one": "{{count}} element",
     "itemCount_few": "{{count}} elementy",
     "itemCount_many": "{{count}} elementów",
-    "itemCount_other": "{{count}} elementów"
+    "itemCount_other": "{{count}} elementu"
   },
   "video": {
     "heroBadge": "Ucz się koreańskiego dzięki filmom",
@@ -560,7 +560,7 @@
     "totalVideos_one": "Łącznie {{count}} film",
     "totalVideos_few": "Łącznie {{count}} filmy",
     "totalVideos_many": "Łącznie {{count}} filmów",
-    "totalVideos_other": "Łącznie {{count}} filmów"
+    "totalVideos_other": "Łącznie {{count}} filmu"
   },
   "payment": {
     "title": "Wybór planu",
@@ -1539,10 +1539,10 @@
     "specPages_one": "{{count}} strona",
     "specPages_few": "{{count}} strony",
     "specPages_many": "{{count}} stron",
-    "specPages_other": "{{count}} stron",
+    "specPages_other": "{{count}} strony",
     "specLanguages_one": "{{count}} język",
     "specLanguages_few": "{{count}} języki",
     "specLanguages_many": "{{count}} języków",
-    "specLanguages_other": "{{count}} języki"
+    "specLanguages_other": "{{count}} języka"
   }
 }
