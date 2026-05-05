@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-05 (PR #214 머지 후 G11/G13/G14 처리. 본 세션 누계 30 부채 처리)
+updated: 2026-05-05 (PR #215 머지 후 G3/G4/A4-3/J3 + G5/G7 수용. 본 세션 누계 36 부채 처리)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -156,14 +156,50 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - G 자동 검증 13 → 9 (G6/G11/G13/G14 처리)
   - A 운영 14 → 11 (A4-5/A4-6/A4-7/A4-8 처리)
 
+  ## PR #215 머지 후속 G/A4/J 묶음 (commit `766c1ce` + `693dc2a` + `697dbae`)
+
+  ### G3 + G4 ✅ Security Audit workflow (commit `766c1ce`)
+
+  `.github/workflows/security-audit.yml` 신규 — 매주 월 09:00 KST + workflow_dispatch:
+  - cargo-deny job: EmbarkStudios/cargo-deny-action@v2 (deny.toml 정책 = advisory + licenses + bans + sources 모든 check)
+  - npm-audit job: `npm audit --audit-level=high` (high+ critical fail)
+  - dependabot 보안 PR 과 별개 = 즉시 fail (패치 도착 전 알림)
+
+  ### A4-3 ✅ 디스크 모니터링 절차 (commit `693dc2a`)
+
+  `AMK_DEPLOY_OPS §6` 안에 EC2 디스크 사용량 모니터링 sub-section 추가. 누적 항목 / 조회 명령 (df -h, docker system df, du, postgres volume) / 임계값 (70/85/95%) / 정리 명령 (docker system prune 안전 vs --volumes).
+
+  ### J3 ✅ env 정합성 검증 도구 (commit `697dbae`)
+
+  `scripts/check_env_consistency.sh` 신규 — deploy.yml ↔ .env.example ↔ config.rs 3중 동기화 자동 검증. 검증 차원 3개 (production 미명시 / dev 미명시 / 불필요 secret). exit 1 시 차이 발견. INC-001 패턴 회피.
+
+  실행 결과 신규 차이 14건+ 발견 (별도 트랙):
+  - 차원 1 production 미명시 3건 (RESET_TOKEN_TTL_SEC / SKIP_DB / VERIFICATION_CODE_TTL_SEC)
+  - 차원 2 .env.example 미명시 14건 (APPLE_*/EBOOK_*/RATE_LIMIT_TEXTBOOK_*/MAX_SESSIONS_*/REVENUECAT_*/ENCRYPTION_KEY/GOOGLE_MOBILE_CLIENT_ID)
+
+  ### G5 / G7 🟡 수용 결정
+
+  - G5 outdated: dependabot 자동 PR 과 중복 = 별도 outdated 검사 불필요
+  - G7 secret scanning: private repo + GHAS 라이선스 비용 평가 별도. 1인 환경 + hardcoded secret 0건 = 위험 작음
+
+  ## SSoT 갱신 누계
+
+  - 본 세션 누계 36 부채 처리 (28 ✅ + 9 🟡 + 1 🟢 + 1 M-008 등재 = 39 작업)
+  - AMK_DEBTS 합계 92 → 74 (-18)
+  - A 운영 14 → 10 (A4-3/A4-5/A4-6/A4-7/A4-8 처리)
+  - G 자동 검증 13 → 5 (G3/G4/G5/G6/G7/G11/G13/G14 처리/수용)
+  - J Secrets 4 → 3 (J3 처리)
+
   ## 다음 세션 진입점
 
-  1. **N-26 i18n 21언어 legal/admin** (ai 측 번역 의존, ai 세션 트리거 후 진행)
-  2. **N-27 OpenAPI ~43건** (도메인별 PR 분할 — auth 10 / payment 4 / textbook 4 / ebook 7 등)
-  3. **A4-1/A4-2 + N-13 + N-31 origin 인프라 묶음** = HTTPS + certbot + nginx HTTPS + origin HSTS layer (1일+, production 영향)
-  4. **A4-3/A4-4** (디스크 모니터링 / DB·Redis 백업)
-  5. **G 잔여**: G3 cargo audit / G4 npm audit / G5 outdated / G7 secret scanning / G10 src 테스트 부족
-  6. **AMK_DEBTS 잔여**: B 보안 (rsa Marvin / unsound 7건 / expect 48건) / C 코드 품질 (ESLint Q16 / lint:ui Q16) / J Secrets (J3/J4)
+  1. **N-26 i18n 21언어 legal/admin** (ai 측 번역 의존)
+  2. **N-27 OpenAPI ~43건** (도메인별 PR 분할)
+  3. **A4-1/A4-2 + N-13 + N-31 origin 인프라 묶음** (HTTPS + certbot, 1일+, production 영향)
+  4. **A4-4** DB·Redis 백업
+  5. **G10** src 테스트 부족 (큰 작업)
+  6. **AMK_DEBTS B 보안** (rsa Marvin / unsound 7건 / expect 48건 전수 점검)
+  7. **AMK_DEBTS C 코드 품질** (ESLint Q16 / lint:ui Q16)
+  8. **J1/J2 환경변수 처리** + J3 검증 도구 발견 신규 차이 14건+ (별도 트랙)
 
 - **2026-05-04 (밤, 후속 3) — Phase 1+2 부채 처리 10건 일괄 + 검증 2/3회차 정정**
 
