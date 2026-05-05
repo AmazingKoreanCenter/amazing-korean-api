@@ -833,6 +833,50 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 > **참고**: CI/CD 적용 후 EC2에서는 빌드 작업이 없으므로 t2.micro (1GB RAM)로 모든 유지보수 작업 가능.
 
+##### EC2 디스크 사용량 모니터링 (A4-3)
+
+EC2 t2.micro = 8GB 기본 디스크. 누적 항목:
+- Docker 이미지 (build cache, dangling, postgres/redis volume)
+- 로그 파일 (Docker container — A4-5 log 로테이션 후 서비스당 max 30MB)
+- ebook 페이지 이미지 (Q14 이후 추가, EC2 local fs 정책)
+- DB 데이터 (postgres_data volume)
+
+**조회 명령** (EC2 SSH 후):
+
+```bash
+# 전체 디스크 사용량
+df -h
+
+# Docker 사용량 (이미지 / 컨테이너 / 볼륨 / 빌드 캐시)
+docker system df -v
+
+# 가장 큰 디렉토리 top 20
+sudo du -sh /var/lib/docker/* /home/* /opt/* 2>/dev/null | sort -hr | head -20
+
+# postgres volume 사용량
+docker exec amk-pg du -sh /var/lib/postgresql/data
+```
+
+**임계값 권고** (수동 확인 시):
+- /dev/root 사용률 > **70%** = 정리 권장 (`docker system prune -a`)
+- /dev/root > **85%** = 즉시 정리 (운영 위험)
+- /dev/root > **95%** = 알림 (배포 중단 가능)
+
+**정리 명령**:
+
+```bash
+# 미사용 Docker 자원 정리 (안전, 활성 컨테이너 영향 X)
+docker system prune -a --volumes  # 단 unused volume 도 삭제 = 신중
+
+# 안전한 정리 (volume 보존)
+docker system prune -a  # image + container + network + build cache
+
+# 컨테이너 로그 강제 truncate (max-size 외 임시)
+sudo truncate -s 0 $(docker inspect --format='{{.LogPath}}' amk-api)
+```
+
+**향후 자동화 후속**: GitHub Action 으로 EC2 SSH + df -h 점검 + 임계 초과 시 알림 (별도 트랙). UptimeRobot / Cloudflare Pro 시점에 통합 가능.
+
 ##### nginx Rate Limit 위반 모니터링 (A4-7)
 
 `nginx/nginx.conf:31` 의 `limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s` 정의 = 10 req/sec/IP 초과 시 503/429 응답. 위반 발생 시 nginx 가 `error.log` 에 `warn` 레벨 로그 기록.
