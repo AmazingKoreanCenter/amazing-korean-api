@@ -833,6 +833,38 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 > **참고**: CI/CD 적용 후 EC2에서는 빌드 작업이 없으므로 t2.micro (1GB RAM)로 모든 유지보수 작업 가능.
 
+##### nginx Rate Limit 위반 모니터링 (A4-7)
+
+`nginx/nginx.conf:31` 의 `limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s` 정의 = 10 req/sec/IP 초과 시 503/429 응답. 위반 발생 시 nginx 가 `error.log` 에 `warn` 레벨 로그 기록.
+
+**조회 명령** (EC2 SSH 후):
+
+```bash
+# 최근 위반 (실시간)
+docker logs amk-nginx 2>&1 | grep 'limiting requests' | tail -20
+
+# 24시간 위반 카운트
+docker logs --since 24h amk-nginx 2>&1 | grep -c 'limiting requests'
+
+# 위반 IP 별 카운트 (분석)
+docker logs --since 24h amk-nginx 2>&1 | grep 'limiting requests' \
+  | grep -oE 'client: [0-9.]+' | sort | uniq -c | sort -rn | head -10
+```
+
+**로그 형식 예시**:
+```
+2026/05/05 06:30:12 [warn] 7#7: *123 limiting requests, excess: 0.456 by zone "api_limit", client: 1.2.3.4, server: api.amazingkorean.net, request: "GET /lessons HTTP/2.0"
+```
+
+**대응 정책**:
+| 상황 | 대응 |
+|------|------|
+| 단발성 위반 (정상 사용자 burst) | 수용 (10r/s = 충분, 일시 spike 정상) |
+| 동일 IP 다수 위반 (>50건/h) | Cloudflare WAF 에서 해당 IP 차단 검토 |
+| zone 차원 다수 위반 | rate / burst 파라미터 재조정 또는 zone 분리 (auth / general 등) |
+
+**향후 자동화 후속**: cron + 위반 카운트 임계 초과 시 알림 (현재 수동 조회).
+
 ## 7. 품질 보증 (QA) & 스모크 체크
 
 - **CI Gate — `pr-check.yml` 자동 실행 (KKRYOUN push 시점, 2026-05-04 도입)**
