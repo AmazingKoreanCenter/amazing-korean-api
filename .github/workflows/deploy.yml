@@ -105,6 +105,10 @@ jobs:
             REVENUECAT_WEBHOOK_AUTH_TOKEN=${{ secrets.REVENUECAT_WEBHOOK_AUTH_TOKEN }}
             RUST_LOG=amazing_korean_api=info,tower_http=info
             EBOOK_PAGE_IMAGES_DIR=docs/textbook/page-images
+            RATE_LIMIT_TEXTBOOK_WINDOW_SEC=3600
+            RATE_LIMIT_TEXTBOOK_MAX=5
+            VERIFICATION_CODE_TTL_SEC=600
+            RESET_TOKEN_TTL_SEC=1800
             EOF
 
             # Restart containers

@@ -21,16 +21,16 @@
 | B. 보안 부채 (unsound/unmaintained) | 7 | core2 yanked + paste + imageproc 3 + rand 2 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
 | B. 보안 부채 (외부 통신) | **1** | B6 ipgeo HTTP-only. ~~B7 Paddle amount~~ ✅ 해결 (2026-05-04, commit `c744efc`) |
-| C. 코드 품질 부채 | **13** | ESLint 27 + lint:ui 9 + rustfmt 90+ + docs.rs 2 + bundle 27MB + 신규 6 (allow 53건 + TS any 3 + eslint-disable 11) |
+| C. 코드 품질 부채 | **2** | C1 ESLint 27 + C2 lint:ui 9. ~~C3/C4/C5/C6/C7/C8~C13~~ 처리/수용 (2026-05-04~05). C7 ✅ commit `2641766` (bundle 모니터링). B5/B6 = B 카테고리로 재분류 |
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
 | E. 기능 부채 (보류/조건부) | **11** | 9 (보류 8 + STATUS #11 이메일 수신 ✅) + **신규 3** (콘텐츠 시딩, SpeechSuper, 번들 최적화) |
 | F. 모바일/데스크탑 앱 부채 | 5 | 외부 리포 SSoT |
 | G. 자동 검증 부재 (CI 부채) | **5** | ~~G3/G4/G5/G6/G7/G11/G13/G14~~ ✅ 해결 또는 🟡 수용 (2026-05-05). 잔여 = G1/G2 (보류 cargo test/playwright) + G8 branch protection (보류) + G10 src 테스트 부족 + G12 cargo-geiger (보류) |
-| H. 문서/메모리 부채 | 2 | H1 메모리 stale (`user_profile.md` 72일) + H2 docs↔코드 검증 자동 X |
+| H. 문서/메모리 부채 | **0** | ~~H1 메모리 stale~~ 🟡 + ~~H2 docs↔코드 자동 도구~~ 🟡 = 수용 결정 (2026-05-05) |
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
-| J. 환경변수/Secrets 정합성 | **3** | ~~J3 정합성 검증 자동 도구~~ ✅ 해결 (2026-05-05, commit `697dbae`). 잔여 = J1 (RATE_LIMIT_TEXTBOOK_*) / J2 (APPLE_*) / J4 (panic 게이트 동기화 룰) |
+| J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 약 74건** (B3/B4/B7/N-19/N-28~30/N-33/N-37/N-38/A4-3/A4-5~A4-8/G3/G4/G6/G11/G13/G14/J3 처리 완료. 2026-05-04 ~ 2026-05-05. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 약 57건** (본 세션 누계 처리 ✅ + 수용 🟡 = ~35건. 단계 2 추가 = J1/J2/C7 처리 + J3 도구 발견 차원 1/2 처리. 2026-05-04 ~ 2026-05-05. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -192,34 +192,40 @@
 
 > 2026-05-04 검증 결과 = `src/types.rs` 의 enum 들은 이미 `#[sqlx(type_name = "...", rename_all = "...")]` 패턴 적용 완료. `AMK_STATUS.md §8.2 보류 #13` 도 정정 필요.
 
-### C6. TODO/FIXME 주석 — 1건
+### 🟡 C6. TODO/FIXME 주석 — 1건 — 수용 결정 (2026-05-05)
 
 | 위치 | 내용 |
 |------|------|
 | `src/api/video/repo.rs:237` | `video_last_ip_log는 현재 항상 NULL. IP 수집 시 암호화 필수 (Phase 3 참조)` |
 
-### C7. Frontend bundle 사이즈 모니터링 부재 (27MB)
+**결정**: 수용. Phase 3 (IP 수집 활성화) 트리거 시점에 같이 처리 = 의도된 미래 작업 마커.
 
-| 큰 파일 (top 5) | 사이즈 |
+### ~~C7. Frontend bundle 사이즈 모니터링 부재~~ ✅ 해결 (2026-05-05, commit `2641766`)
+
+`rollup-plugin-visualizer` 추가 + `frontend/vite.config.ts` plugin 등록. `npm run build` 시 `dist/bundle-stats.html` 자동 생성 (gzip/brotli 사이즈 트리맵 시각화).
+
+| 큰 파일 (top 5, 본 세션 빌드) | 사이즈 |
 |---|---:|
-| `vendor-react-D3yu5mlF.js` | 226KB |
-| `index-Bmlfndn9.js` | 208KB |
-| `vendor-BqtW7tHd.js` | 183KB |
-| `bn-BgM32R8S.js` | 113KB |
-| `lo-xZsRdXQX.js` | 110KB |
+| `vendor-react-D3yu5mlF.js` | 231KB (gzip 74KB) |
+| `index-DkVKf_Ig.js` | 213KB (gzip 62KB) |
+| `vendor-BqtW7tHd.js` | 186KB (gzip 65KB) |
+| `bn-D_X29MvY.js` | 115KB (gzip 27KB) |
+| `lo-BknZrytl.js` | 112KB (gzip 26KB) |
 
-vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_DEPLOY_OPS.md:29 TODO "번들 크기 최적화" — 같은 부채)
+향후 후속: 임계 기준 (예: index.js > 250KB warning) CI 통합.
 
-### C8-C13. Rust/TS 룰 회피 카운트 (2026-05-04 신규 조사)
+### 🟡 C8-C13. Rust/TS 룰 회피 카운트 — 수용 결정 (2026-05-05)
 
 | ID | 항목 | 카운트 | 비고 |
 |:--:|------|:--:|------|
-| C8 | Rust `#[allow(dead_code)]` | **33건** | 죽은 코드 회피 |
-| C9 | Rust `#[allow(clippy::*)]` | **11건** | 특정 clippy 룰 회피 |
-| C10 | Rust `#[allow(unused_imports)]` | **8건** | 미사용 import 회피 |
+| C8 | Rust `#[allow(dead_code)]` | **33건** | 죽은 코드 회피 (의도된 향후 사용 / 외부 trait impl) |
+| C9 | Rust `#[allow(clippy::*)]` | **11건** | 특정 clippy 룰 회피 (의도된 패턴) |
+| C10 | Rust `#[allow(unused_imports)]` | **8건** | 미사용 import 회피 (의도된 trait re-export) |
 | C11 | Rust `#[allow(unused_assignments)]` | 1건 | 미사용 할당 회피 |
-| C12 | TypeScript `any` 사용 | **3건** | 타입 안전성 회피 |
-| C13 | TypeScript `eslint-disable` 인라인 | **11건** | 인라인 룰 회피 |
+| C12 | TypeScript `any` 사용 | **3건** | ebook DRM 의도 (N-3 동일 영역 = 수용) |
+| C13 | TypeScript `eslint-disable` 인라인 | **11건** | mount-once / DRM / devtools_detect 의도 (N-5 동일 정책) |
+
+**결정**: 수용. 각 룰 회피 = 의도된 사용 (Rust unsafe 0건 + TS @ts-ignore 0건 = 안전 보장). Q16 baseline cleanup 트랙에서 개별 평가 (C8 dead_code 위주).
 
 > 안전 (참고): Rust `unsafe` **0건** ✅ / TypeScript `@ts-ignore` **0건** ✅
 
@@ -329,8 +335,8 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 
 | ID | 항목 | 사실 |
 |:--:|------|------|
-| H1 | 메모리 stale 위험 (자동 갱신 부재) | 메모리 30개 중 가장 오래된 = `user_profile.md` (Mar 24, **41일 미갱신**, 2026-05-04 기준 — 검증 2회차 정정). `reference_qa_automation.md` (Apr 8) / `reference_figma.md` (Apr 9) 등 |
-| H2 | docs ↔ 코드 일관성 자동 검증 없음 | 예: `AMK_API_TEXTBOOK.md` 35 lang 명시 = `src/types.rs::TextbookLanguage` 35 variant 일치 (2026-05-04 검증 OK), 단 자동 도구 X |
+| 🟡 H1 | 메모리 stale 위험 — 수용 결정 (2026-05-05) | 정책상 메모리 = 수동 갱신 (자동 도구 도입 = 메모리 시스템 정책 변경 필요 = 별도 결정). 본 세션 자체 갱신 = 패턴 정착 |
+| 🟡 H2 | docs ↔ 코드 일관성 자동 검증 — 수용 결정 (2026-05-05) | J3 패턴 (env 정합성 자동 도구) 처럼 docs↔코드 자동 도구 = 작업 큼 + 가치 분산. AMK_API_*.md 의 enum 카운트 / N-NNN 라인 등 = 수동 grep 검증 (M-007 사고 후 정착). 향후 별도 트랙 |
 
 ---
 
@@ -357,10 +363,10 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 
 | ID | 항목 | 위험 |
 |:--:|------|------|
-| **J1** | `RATE_LIMIT_TEXTBOOK_WINDOW_SEC` / `RATE_LIMIT_TEXTBOOK_MAX` config.rs `expect()` panic 사용 + `.env.example` 미정의 + `deploy.yml` 미명시 | **INC-001 패턴 잠재** (단 hardcoded default `"3600"` / `"5"` 존재 → 실제 panic 위험 LOW. 검증 2회차 발견). config.rs:191-198 |
-| J2 | `APPLE_CLIENT_ID` / `APPLE_TEAM_ID` config.rs `Option` 사용 (panic X) + `.env.example` 미정의 | LOW (Apple OAuth 미구현 시 정상). config.rs:234-235 |
+| ~~**J1**~~ | ~~`RATE_LIMIT_TEXTBOOK_WINDOW_SEC` / `RATE_LIMIT_TEXTBOOK_MAX`~~ ✅ 해결 (2026-05-05, commit `7aae36a`) | `.env.example` 추가 + `deploy.yml` heredoc 추가. config.rs default ("3600"/"5") 명시적 |
+| ~~J2~~ | ~~`APPLE_CLIENT_ID` / `APPLE_TEAM_ID`~~ ✅ 해결 (2026-05-05, commit `7aae36a`) | `.env.example` 추가. Apple OAuth 미구현 시 비활성 (Option) |
 | ~~J3~~ | ~~정합성 검증 자동 도구 X~~ ✅ 해결 (2026-05-05, commit `697dbae`) | `scripts/check_env_consistency.sh` 신규 (3중 동기화 검증, exit 1 시 차이 발견). 사용 = `bash scripts/check_env_consistency.sh`. PR 자동 통합 = 후속 (J1/J2 등 기존 차이 처리 후) |
-| J4 | `panic` 게이트 추가 시 동기화 누락 위험 | INC-001 사후 학습. feedback_deploy_env_sync.md 룰 강제 X |
+| 🟡 J4 | `panic` 게이트 동기화 룰 강제 X — 수용 결정 (2026-05-05) | 사용자 결정 정책 (룰 추가 X = 무한 루프 회피). M-008 등재 패턴 = 사고 기록 + 사전 참조. INC-001 학습 = `feedback_deploy_env_sync.md` 인라인 룰 (강제 X 의도) |
 
 ---
 
@@ -372,7 +378,7 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 |:-:|------|------|
 | 1 | **B1 rustls-webpki 3건 upgrade** | `cargo update` 1 명령 |
 | ~~2~~ | ~~**B3 npm postcss + follow-redirects + basic-ftp HIGH**~~ | ✅ 해결 2026-05-04 (commit `ee68c7c`) |
-| 3 | **J1 RATE_LIMIT_TEXTBOOK_* 동기화** | INC-001 패턴 잠재. deploy.yml + .env.example 동시 추가 |
+| ~~3~~ | ~~**J1 RATE_LIMIT_TEXTBOOK_* 동기화**~~ | ✅ 해결 2026-05-05 (commit `7aae36a`) |
 | ~~4~~ | ~~**B4 unwrap 위험 2건 (auth/service.rs:397, 1396)**~~ | ✅ 해결 2026-05-04 (commit `ad239ed`) |
 | 5 | **C3+C4 rustfmt baseline** | 본 PR 결정 대기 |
 | ~~6~~ | ~~**G6 dependabot 도입**~~ | ✅ 해결 2026-05-05 (commit `9367f72`, A4-8 동시) |

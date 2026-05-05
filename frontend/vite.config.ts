@@ -2,12 +2,21 @@ import path from "path"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import checker from "vite-plugin-checker";
+import { visualizer } from "rollup-plugin-visualizer";
 
 export default defineConfig({
   plugins: [
     react(),
     checker({
       typescript: true,
+    }),
+    // C7: bundle 사이즈 모니터링 — npm run build 시 dist/bundle-stats.html 생성.
+    // gzip/brotli 사이즈 시각화 + 트리맵. dev 영향 X (build 시만).
+    visualizer({
+      filename: "dist/bundle-stats.html",
+      gzipSize: true,
+      brotliSize: true,
+      template: "treemap",
     }),
   ],
   resolve: {
