@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-05 (PR #212 머지 + 배포 + 외부 검증 완료. 본 세션 누계 17 부채 처리)
+updated: 2026-05-05 (PR #212 머지 후 추가 부채 처리 — N-18/N-23/N-1~N-7 frontend Q16 묶음. 본 세션 누계 23 부채 처리)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -84,13 +84,39 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
   Cloudflare 통과 트래픽 = 모두 HSTS 적용 = 일반 사용자 보호 활성. Origin layer (`src/main.rs` 또는 nginx) 미추가 = Cloudflare 우회 (직접 EC2 접근) 시 미보호. EC2 직접 접근 = 기본 차단 대상이라 우선순위 낮음. AMK_AUDIT 의 N-31 = 🟢 발견 표기로 갱신 (수용 X, origin layer 추가 다음 세션 결정).
 
+  ## PR #212 머지 후속 작업 (본 세션 후반)
+
+  ### N-18 / N-23 처리 (commit `0bb3d16`)
+
+  - **N-18 🟡 수용**: `cargo tree -d` 검증 = 9+ 그룹 모두 transitive 의존 (rand/getrandom/darling/itertools/socket2/hashbrown/indexmap/schemars/redox_syscall/webpki-roots). 통합 = 의존 라이브러리 자체 업데이트 대기 필요 = 작업 비용 vs 가치 (영향 작음) trade-off
+  - **N-23 ✅ 해결** (commit 직전): `LICENSE` (proprietary, HYMN Co., Ltd.) + `README.md` (스택/구조/문서 포인터/개발 가이드) 신규 작성
+
+  ### N-1~N-7 frontend Q16 묶음 (commit `04e74f3` + `56f1f39`)
+
+  ✅ **해결 3건 (1 commit 묶음)**:
+  - **N-1** window.open rel: audit 4건 표기 → 실측 5건 (admin_video_detail external + textbook 4 internal). 모두 `"noopener,noreferrer"` 추가
+  - **N-4** non-null assertion 3 위치: `params.page!` → `(params.page ?? 1)`, `choiceCorrectValue!` → nullish guard
+  - **N-7** fullscreen catch 무음 2건: `.catch(() => {})` → `console.warn(err)` (진단 보존)
+
+  🟡 **수용 4건**:
+  - **N-2** admin 한국어 정책 (영역 전체 한국어 일관, 1 줄만 t() 변환 시 일관성 깨짐)
+  - **N-3** ebook DRM 의도 (`window.createImageBitmap` readonly override = `as any` 필수)
+  - **N-5** 9 인라인 회피 = 각 의도된 사용 (mount-once / DRM / devtools_detect)
+  - **N-6** Tailwind blue/yellow = 디자인 토큰 결정 대기
+
+  ## SSoT 갱신 누계
+
+  - 본 세션 신규 미해결 27 → 4건 (-23)
+  - 처리 ✅ 16건 / 수용 🟡 7건 / 발견 🟢 1건 / 사고 등재 1건
+  - 남은 4건: N-13 (nginx HTTPS, A4-1 묶음) / N-26 (i18n) / N-27 (OpenAPI) / N-31 origin
+
   ## 다음 세션 진입점
 
-  1. **N-1~N-7 frontend Q16** baseline cleanup 트랙 (window.open rel / i18n 하드코딩 / as any / non-null / eslint-disable / Tailwind 색상 / catch 무음)
-  2. **N-26 i18n 21언어 legal/admin** (ai 측 번역 의존)
-  3. **N-27 OpenAPI ~43건** (도메인별 PR 분할)
-  4. **A4-1/A4-2 인프라 트랙** = HTTPS + certbot 자동 갱신 (production 전환 결정 시)
-  5. **잔여 작은 부채**: N-13 / N-18 / N-23 / N-31 origin layer 결정
+  1. **N-26 i18n 21언어 legal/admin** (ai 측 번역 의존, ai 세션 트리거 후 진행)
+  2. **N-27 OpenAPI ~43건** (도메인별 PR 분할 — auth 10 / payment 4 / textbook 4 / ebook 7 등)
+  3. **A4-1/A4-2 + N-13 + N-31 origin 인프라 묶음** = HTTPS + certbot + nginx HTTPS 활성 + origin HSTS layer (1일+, production 영향)
+  4. **A4 잔여 인프라**: A4-3 (디스크 모니터링) / A4-4 (DB/Redis 백업) / A4-6 (Cloudflare DNS 운영 정책) / A4-7 (nginx rate limit 모니터링) / A4-8 (base image 자동 업데이트 정책)
+  5. **AMK_DEBTS 잔여**: B 보안 (rsa Marvin 의존성 회피 / unsound 7건 / expect 48건) / C 코드 품질 (ESLint Q16 / lint:ui Q16 / 룰 회피 카운트) / J Secrets (J3/J4 자동 도구)
 
 - **2026-05-04 (밤, 후속 3) — Phase 1+2 부채 처리 10건 일괄 + 검증 2/3회차 정정**
 
