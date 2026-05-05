@@ -996,7 +996,7 @@ impl AuthService {
             info!("Find password: no matching user found");
             return Ok(FindPasswordRes {
                 message: generic_msg,
-                remaining_attempts: remaining,
+                remaining_attempts: if remaining == 1 { Some(1) } else { None },
             });
         };
 
@@ -1008,7 +1008,7 @@ impl AuthService {
             );
             return Ok(FindPasswordRes {
                 message: generic_msg,
-                remaining_attempts: remaining,
+                remaining_attempts: if remaining == 1 { Some(1) } else { None },
             });
         }
 
@@ -1058,7 +1058,7 @@ impl AuthService {
 
         Ok(FindPasswordRes {
             message: generic_msg,
-            remaining_attempts: remaining,
+            remaining_attempts: if remaining == 1 { Some(1) } else { None },
         })
     }
 
@@ -1394,7 +1394,7 @@ impl AuthService {
             info!("Password reset requested for non-existent email");
             return Ok(RequestResetRes {
                 message: "If the email exists, a verification code has been sent.".to_string(),
-                remaining_attempts: remaining,
+                remaining_attempts: if remaining == 1 { Some(1) } else { None },
             });
         }
 
@@ -1409,7 +1409,7 @@ impl AuthService {
             );
             return Ok(RequestResetRes {
                 message: "If the email exists, a verification code has been sent.".to_string(),
-                remaining_attempts: remaining,
+                remaining_attempts: if remaining == 1 { Some(1) } else { None },
             });
         }
 
@@ -1458,7 +1458,7 @@ impl AuthService {
 
         Ok(RequestResetRes {
             message: "If the email exists, a verification code has been sent.".to_string(),
-            remaining_attempts: remaining,
+            remaining_attempts: if remaining == 1 { Some(1) } else { None },
         })
     }
 
@@ -1802,7 +1802,7 @@ impl AuthService {
 
         let success_msg = ResendVerificationRes {
             message: "If the email needs verification, a new code has been sent.".to_string(),
-            remaining_attempts: remaining,
+            remaining_attempts: if remaining == 1 { Some(1) } else { None },
         };
 
         let Some((_user_id, check_email)) = user_row else {
@@ -1853,7 +1853,7 @@ impl AuthService {
 
         Ok(ResendVerificationRes {
             message: "If the email needs verification, a new code has been sent.".to_string(),
-            remaining_attempts: remaining,
+            remaining_attempts: if remaining == 1 { Some(1) } else { None },
         })
     }
 
