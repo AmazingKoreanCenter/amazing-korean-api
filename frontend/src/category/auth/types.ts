@@ -96,7 +96,8 @@ export type RequestResetReq = z.infer<typeof requestResetReqSchema>;
 
 export const requestResetResSchema = z.object({
   message: z.string(),
-  remaining_attempts: z.number(),
+  // N-35: 백엔드가 1회 남음 시만 노출, 그 외에는 필드 생략 (Option<i64>)
+  remaining_attempts: z.number().optional(),
 });
 export type RequestResetRes = z.infer<typeof requestResetResSchema>;
 
@@ -141,7 +142,8 @@ export type FindPasswordReq = z.infer<typeof findPasswordReqSchema>;
 
 export const findPasswordResSchema = z.object({
   message: z.string(),
-  remaining_attempts: z.number(),
+  // N-35: 백엔드가 1회 남음 시만 노출, 그 외에는 필드 생략 (Option<i64>)
+  remaining_attempts: z.number().optional(),
 });
 export type FindPasswordRes = z.infer<typeof findPasswordResSchema>;
 
@@ -206,7 +208,8 @@ export type ResendVerificationReq = z.infer<typeof resendVerificationReqSchema>;
 
 export const resendVerificationResSchema = z.object({
   message: z.string(),
-  remaining_attempts: z.number(),
+  // N-35: 백엔드가 1회 남음 시만 노출, 그 외에는 필드 생략 (Option<i64>)
+  remaining_attempts: z.number().optional(),
 });
 export type ResendVerificationRes = z.infer<typeof resendVerificationResSchema>;
 
