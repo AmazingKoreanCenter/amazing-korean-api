@@ -16,7 +16,7 @@
 
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
-| A. 운영/배포 부채 | **11** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4. ~~A4-5/A4-6/A4-7/A4-8~~ ✅ 해결 (2026-05-04~05). 잔여 신규 4 (A4-1 SSL/HTTPS / A4-2 certbot 자동 갱신 / A4-3 디스크 모니터링 / A4-4 DB·Redis 백업) |
+| A. 운영/배포 부채 | **10** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4. ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ 해결 (2026-05-04~05). 잔여 신규 3 (A4-1 SSL/HTTPS / A4-2 certbot / A4-4 DB·Redis 백업) |
 | B. 보안 부채 (취약점) | **1** | Rust **1** (rsa Marvin Attack, no upgrade). ~~npm 3건~~ ✅ 해결 (2026-05-04, commit `ee68c7c`). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | B. 보안 부채 (unsound/unmaintained) | 7 | core2 yanked + paste + imageproc 3 + rand 2 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
@@ -25,12 +25,12 @@
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
 | E. 기능 부채 (보류/조건부) | **11** | 9 (보류 8 + STATUS #11 이메일 수신 ✅) + **신규 3** (콘텐츠 시딩, SpeechSuper, 번들 최적화) |
 | F. 모바일/데스크탑 앱 부채 | 5 | 외부 리포 SSoT |
-| G. 자동 검증 부재 (CI 부채) | **9** | ~~G6 dependabot~~ + ~~G11 cargo-deny~~ + ~~G13 CODEOWNERS~~ + ~~G14 PR/issue template~~ ✅ 해결 (2026-05-05). 잔여 = G1/G2 (보류 cargo test/playwright) + G3 cargo audit / G4 npm audit / G5 outdated / G7 secret scanning / G8 branch protection (보류) / G10 src 테스트 / G12 cargo-geiger (보류) |
+| G. 자동 검증 부재 (CI 부채) | **5** | ~~G3/G4/G5/G6/G7/G11/G13/G14~~ ✅ 해결 또는 🟡 수용 (2026-05-05). 잔여 = G1/G2 (보류 cargo test/playwright) + G8 branch protection (보류) + G10 src 테스트 부족 + G12 cargo-geiger (보류) |
 | H. 문서/메모리 부채 | 2 | H1 메모리 stale (`user_profile.md` 72일) + H2 docs↔코드 검증 자동 X |
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
-| J. 환경변수/Secrets 정합성 | **4** | 신규 — APPLE_*/RATE_LIMIT_TEXTBOOK_* 미동기화 + INC-001 패턴 위험 |
+| J. 환경변수/Secrets 정합성 | **3** | ~~J3 정합성 검증 자동 도구~~ ✅ 해결 (2026-05-05, commit `697dbae`). 잔여 = J1 (RATE_LIMIT_TEXTBOOK_*) / J2 (APPLE_*) / J4 (panic 게이트 동기화 룰) |
 
-**총 미해결 부채 = 약 78건** (B3/B4/B7/N-19/N-28~30/N-33/N-37/N-38/A4-5/A4-6/A4-7/A4-8/G6/G11/G13/G14 처리 완료, 2026-05-04 ~ 2026-05-05. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 약 74건** (B3/B4/B7/N-19/N-28~30/N-33/N-37/N-38/A4-3/A4-5~A4-8/G3/G4/G6/G11/G13/G14/J3 처리 완료. 2026-05-04 ~ 2026-05-05. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -72,7 +72,7 @@
 |:--:|------|-------------|:--:|
 | A4-1 | nginx HTTPS 미활성 (HTTP-only) | `nginx/nginx.conf` 의 SSL 블록 주석 처리 상태. HSTS 미설정 | HIGH |
 | A4-2 | Let's Encrypt + certbot 자동 갱신 정책 부재 | `docker-compose.prod.yml` 에 `amk-certbot` 컨테이너 존재하나 갱신 cron / 자동화 미명시 | HIGH (90일 만료 시 다운) |
-| A4-3 | EC2 디스크 모니터링 자동화 부재 | `df -h` 임계값 / 자동 정리 / 알림 X. UptimeRobot 은 HTTP 만 (#71) | MEDIUM |
+| ~~A4-3~~ | ~~EC2 디스크 모니터링 자동화 부재~~ ✅ 해결 (2026-05-05, commit `693dc2a`) | `AMK_DEPLOY_OPS §6` 안에 모니터링 절차 (df -h / docker system df / 임계 70/85/95% / 정리 명령) 추가. 향후 자동화 후속 (GitHub Action SSH) | — |
 | A4-4 | DB / Redis 백업 정책 부재 (DR 0) | `docker-compose.prod.yml` volume-only. EC2 스냅샷 / pg_dump 자동화 X | HIGH |
 | ~~A4-5~~ | ~~Docker log 로테이션 미설정~~ ✅ 해결 (2026-05-04, commit `7e86592`) | YAML anchor `x-logging` + 5 서비스 (api/db/redis/nginx/certbot) 일괄 적용 (max-size 10m × max-file 3 = 서비스당 최대 30MB) | — |
 | ~~A4-6~~ | ~~Cloudflare DNS / Email Routing 운영 정책 미문서화~~ ✅ 해결 (2026-05-05, commit `6e7b006`) | `AMK_DEPLOY_OPS.md §7.6` 통합 SSoT 신규 (DNS/Pages/SSL/WAF/Email Routing + 변경 절차 + 비상 시 절차) | — |
@@ -294,11 +294,11 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 
 | ID | 항목 | 현재 상태 |
 |:--:|------|----------|
-| G3 | `cargo audit` 자동 실행 | ❌ 미설정. 2026-05-04 수동 실행 = B1 4건 + B2 7건 발견 |
-| G4 | `npm audit` 자동 실행 | ❌ 미설정. 2026-05-04 수동 = B3 3건 |
-| G5 | `cargo outdated` / `npm outdated` | ❌ 미실행 |
+| ~~G3~~ | ~~`cargo audit` 자동 실행~~ ✅ 해결 (2026-05-05, commit `766c1ce`) | `.github/workflows/security-audit.yml` 신규 (cargo-deny-action@v2 사용, deny.toml 정책). 매주 월 09:00 KST + 수동 |
+| ~~G4~~ | ~~`npm audit` 자동 실행~~ ✅ 해결 (2026-05-05, commit `766c1ce`) | 같은 workflow 의 npm-audit job (`--audit-level=high`). dependabot 보안 PR 과 별개 즉시 fail |
+| ~~G5~~ | ~~`cargo outdated` / `npm outdated`~~ 🟡 수용 (2026-05-05) | dependabot 자동 PR (commit `9367f72`) 과 중복 = 별도 outdated 검사 불필요 |
 | ~~G6~~ | ~~dependabot 자동 PR~~ ✅ 해결 (2026-05-05, commit `9367f72`) | `.github/dependabot.yml` 신규 (Cargo/npm/Docker/Actions). A4-8 동시 해결 |
-| G7 | secret scanning / GitHub Advanced Security | ❌ 미확인 (repo 설정 점검 필요) |
+| 🟡 G7 | secret scanning / GitHub Advanced Security 🟡 수용 (2026-05-05) | private repo + GHAS 라이선스 비용 평가 별도. 1인 환경 + 기존 anti-pattern (config.rs hardcoded secret 0건) = 위험 작음. 향후 plan 결정 시 활성 |
 | G8 | main branch protection | ❌ 명시 보류 (1인 환경 force push 자유도 우선) |
 
 ### G9. PR 검사 워크플로 한계
@@ -359,7 +359,7 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 |:--:|------|------|
 | **J1** | `RATE_LIMIT_TEXTBOOK_WINDOW_SEC` / `RATE_LIMIT_TEXTBOOK_MAX` config.rs `expect()` panic 사용 + `.env.example` 미정의 + `deploy.yml` 미명시 | **INC-001 패턴 잠재** (단 hardcoded default `"3600"` / `"5"` 존재 → 실제 panic 위험 LOW. 검증 2회차 발견). config.rs:191-198 |
 | J2 | `APPLE_CLIENT_ID` / `APPLE_TEAM_ID` config.rs `Option` 사용 (panic X) + `.env.example` 미정의 | LOW (Apple OAuth 미구현 시 정상). config.rs:234-235 |
-| J3 | 정합성 검증 자동 도구 X | deploy.yml heredoc / .env.example / config.rs 3중 동기화 수동 |
+| ~~J3~~ | ~~정합성 검증 자동 도구 X~~ ✅ 해결 (2026-05-05, commit `697dbae`) | `scripts/check_env_consistency.sh` 신규 (3중 동기화 검증, exit 1 시 차이 발견). 사용 = `bash scripts/check_env_consistency.sh`. PR 자동 통합 = 후속 (J1/J2 등 기존 차이 처리 후) |
 | J4 | `panic` 게이트 추가 시 동기화 누락 위험 | INC-001 사후 학습. feedback_deploy_env_sync.md 룰 강제 X |
 
 ---
