@@ -177,7 +177,10 @@ pub async fn handle_revenuecat_webhook(
     };
 
     let token = auth_header.strip_prefix("Bearer ").unwrap_or("");
-    if token != expected_token {
+    // N-8: constant-time 비교 (타이밍 공격 방지). 길이 다르면 즉시 unauthorized.
+    use subtle::ConstantTimeEq;
+    let token_match = token.as_bytes().ct_eq(expected_token.as_bytes());
+    if !bool::from(token_match) {
         tracing::warn!("RevenueCat webhook: invalid bearer token");
         return StatusCode::UNAUTHORIZED;
     }
@@ -198,6 +201,34 @@ pub async fn handle_revenuecat_webhook(
             return StatusCode::BAD_REQUEST;
         }
     };
+
+    // N-9: Replay 방지 — event_timestamp_ms 와 현재 시간 비교 (5분 variance, Paddle 패턴 일치)
+    const REVENUECAT_MAX_VARIANCE_MS: i64 = 5 * 60 * 1000;
+    let event_ts_ms = payload
+        .get("event")
+        .and_then(|e| e.get("event_timestamp_ms"))
+        .and_then(|t| t.as_i64());
+    match event_ts_ms {
+        Some(ts_ms) => {
+            let now_ms = chrono::Utc::now().timestamp_millis();
+            let variance_ms = (now_ms - ts_ms).abs();
+            if variance_ms > REVENUECAT_MAX_VARIANCE_MS {
+                tracing::warn!(
+                    event_ts_ms = ts_ms,
+                    now_ms = now_ms,
+                    variance_ms = variance_ms,
+                    "RevenueCat webhook: event timestamp out of variance (replay protection)"
+                );
+                return StatusCode::UNAUTHORIZED;
+            }
+        }
+        None => {
+            tracing::warn!(
+                "RevenueCat webhook: missing event.event_timestamp_ms (replay protection check skipped)"
+            );
+            return StatusCode::BAD_REQUEST;
+        }
+    }
 
     // 3. 이벤트 처리 (항상 200 반환)
     if let Err(e) = PaymentService::process_revenuecat_webhook(&st, &payload).await {

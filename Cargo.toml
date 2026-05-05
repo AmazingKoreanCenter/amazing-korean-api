@@ -38,6 +38,7 @@ deadpool-redis = "0.16"
 axum-extra = { version = "0.10", features = ["cookie"] }
 cookie = "0.18"
 sha2 = "0.10"
+subtle = "2.6"  # N-8: constant-time comparison (Bearer 토큰 타이밍 공격 방지)
 base64 = { version = "0.22", default-features = false }
 percent-encoding = "2"
 rand = "0.8"
