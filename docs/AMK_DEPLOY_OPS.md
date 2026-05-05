@@ -9,6 +9,7 @@
 - [1. 빌드 & 배포 전략](#1-빌드--배포-전략)
 - [2. 도메인 및 DNS 설정 (Route 53)](#2-도메인-및-dns-설정-route-53)
 - [3. Cloudflare Pages 배포 (프론트엔드)](#3-cloudflare-pages-배포-프론트엔드)
+- [7.6. Cloudflare 운영 정책 (통합 SSoT)](#76-cloudflare-운영-정책-dns--pages--ssl--email-routing)
 - [4. AWS EC2 배포 (백엔드)](#4-aws-ec2-배포-백엔드)
 - [5. GitHub Actions CI/CD 파이프라인](#5-github-actions-cicd-파이프라인)
 - [6. EC2 유지보수 가이드](#6-ec2-유지보수-가이드)
@@ -832,6 +833,38 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 > **참고**: CI/CD 적용 후 EC2에서는 빌드 작업이 없으므로 t2.micro (1GB RAM)로 모든 유지보수 작업 가능.
 
+##### nginx Rate Limit 위반 모니터링 (A4-7)
+
+`nginx/nginx.conf:31` 의 `limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s` 정의 = 10 req/sec/IP 초과 시 503/429 응답. 위반 발생 시 nginx 가 `error.log` 에 `warn` 레벨 로그 기록.
+
+**조회 명령** (EC2 SSH 후):
+
+```bash
+# 최근 위반 (실시간)
+docker logs amk-nginx 2>&1 | grep 'limiting requests' | tail -20
+
+# 24시간 위반 카운트
+docker logs --since 24h amk-nginx 2>&1 | grep -c 'limiting requests'
+
+# 위반 IP 별 카운트 (분석)
+docker logs --since 24h amk-nginx 2>&1 | grep 'limiting requests' \
+  | grep -oE 'client: [0-9.]+' | sort | uniq -c | sort -rn | head -10
+```
+
+**로그 형식 예시**:
+```
+2026/05/05 06:30:12 [warn] 7#7: *123 limiting requests, excess: 0.456 by zone "api_limit", client: 1.2.3.4, server: api.amazingkorean.net, request: "GET /lessons HTTP/2.0"
+```
+
+**대응 정책**:
+| 상황 | 대응 |
+|------|------|
+| 단발성 위반 (정상 사용자 burst) | 수용 (10r/s = 충분, 일시 spike 정상) |
+| 동일 IP 다수 위반 (>50건/h) | Cloudflare WAF 에서 해당 IP 차단 검토 |
+| zone 차원 다수 위반 | rate / burst 파라미터 재조정 또는 zone 분리 (auth / general 등) |
+
+**향후 자동화 후속**: cron + 위반 카운트 임계 초과 시 알림 (현재 수동 조회).
+
 ## 7. 품질 보증 (QA) & 스모크 체크
 
 - **CI Gate — `pr-check.yml` 자동 실행 (KKRYOUN push 시점, 2026-05-04 도입)**
@@ -922,6 +955,60 @@ location = /health {
 ```
 
 CF 재압축은 Free 플랜에서 끊기 어려우나 origin 은 깨끗하게 유지 → 향후 grey-cloud 도입 시 즉시 keyword 매칭 동작.
+
+[⬆️ 목차로 돌아가기](#-목차-table-of-contents)
+
+---
+
+## 7.6. Cloudflare 운영 정책 (DNS / Pages / SSL / Email Routing)
+
+> 본 절 = A4-6 (AMK_DEBTS) 처리 — Cloudflare 사용 영역 통합 SSoT.
+
+### 사용 영역
+
+| 영역 | 용도 | Cloudflare 대시보드 위치 |
+|------|------|---------|
+| **DNS** | `amazingkorean.net` zone — A/CNAME/MX/TXT 관리 | DNS → Records |
+| **Pages** | frontend 배포 (`amazingkorean.net`) — Git 연동 자동 빌드 | Workers & Pages → `amazing-korean-api` |
+| **SSL/TLS** | Flexible 모드 (CF↔사용자 HTTPS, CF↔EC2 HTTP) | SSL/TLS → Overview |
+| **WAF / Security** | AI Crawl Control / Bot Fight Mode / Managed robots.txt | Security → Settings |
+| **Email Routing** | `noreply@amazingkorean.net` 등 alias → 외부 메일박스 (Resend 발신과 별개) | Email Routing → Routes |
+
+### 변경 절차 (정상 운영 시)
+
+| 작업 | 절차 |
+|------|------|
+| DNS 신규 레코드 | DNS → Records → Add → 변경 후 propagation 1-5분 |
+| frontend 재배포 | Cloudflare Pages 자동 (KKRYOUN main 머지 시 트리거) — 수동 재배포 = Pages → Deployments → "Retry deployment" |
+| SSL 인증서 갱신 | Universal SSL (자동, 90일 갱신) — 수동 개입 X |
+| WAF 룰 변경 | Security → WAF → Custom rules. 적용 즉시 |
+| Email 라우팅 | Email Routing → Routes → Edit. propagation 1-2분 |
+| 관리형 robots.txt | Security → Settings → "AI Crawl Control" 토글. 본 프로젝트 = ON 유지 (#65 SEO hardening 결정) |
+
+### 외부 의존성
+
+- **Cloudflare 계정**: HYMN Co., Ltd. 단일 계정 (`amazingkorean.net` zone owner)
+- **API 토큰**: 자동화 시 별도 발급 (현재 미사용 = 수동 운영)
+- **DNS 변경 권한**: 계정 owner 만
+
+### 비상 시 절차
+
+| 상황 | 대응 |
+|------|------|
+| Cloudflare edge 다운 (region-wide) | 일시 DNS 직접 EC2 가리키도록 임시 변경 (단 SSL 미작동, Flexible 모드 의존) |
+| Pages 배포 실패 | Pages → Deployments → Retry deployment. 빌드 로그 확인 |
+| DNS propagation 지연 | TTL 5분 → 짧게 변경 (1분) → 변경 후 재설정 |
+| Email Routing 미수신 | Routes → 활성 상태 확인 + 외부 메일박스 도착 확인 (Cloudflare 측 + 외부 측 모두) |
+
+### Cloudflare Free 플랜 한계 (참고)
+
+- **CF Health Checks 미사용 가능** (Pro 이상) — 외부 모니터 = UptimeRobot 사용 (#71)
+- **Page Rules 3개** — 현재 `_redirects` 파일로 SPA fallback / 301 처리
+- **Workers 무료 100K req/day** — 현재 미사용
+
+### 변경 이력 추적
+
+본 SSoT 변경 시 git commit `docs(deploy): Cloudflare ...` 형식 + AMK_CHANGELOG entry 추가.
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
