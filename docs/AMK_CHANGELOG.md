@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-05 (PR #212 머지 후 추가 부채 처리 — N-18/N-23/N-1~N-7 frontend Q16 묶음. 본 세션 누계 23 부채 처리)
+updated: 2026-05-05 (PR #213 머지 후 A4-6/A4-7/A4-8 + G6 처리. 본 세션 누계 27 부채 처리)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -110,13 +110,36 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - 처리 ✅ 16건 / 수용 🟡 7건 / 발견 🟢 1건 / 사고 등재 1건
   - 남은 4건: N-13 (nginx HTTPS, A4-1 묶음) / N-26 (i18n) / N-27 (OpenAPI) / N-31 origin
 
+  ## PR #213 머지 후속 인프라 묶음 (commit `6e7b006` / `f82dd0d` / `9367f72` / `312ec54` + `f10f900`)
+
+  ### A4-6 ✅ Cloudflare 운영 정책 통합 SSoT (commit `6e7b006`)
+
+  `AMK_DEPLOY_OPS §7.6` 신규 — DNS / Pages / SSL / WAF / Email Routing 통합 + 변경 절차 + 외부 의존성 + 비상 시 절차 + Free 플랜 한계 + 변경 이력 추적 정책. 기존 = §2/§3/§4/§5/§7.5 분산.
+
+  ### A4-7 ✅ nginx Rate Limit 모니터링 절차 (commit `f82dd0d`)
+
+  `AMK_DEPLOY_OPS §6` (EC2 유지보수) 안에 nginx limit_req 위반 모니터링 sub-section 추가. 조회 명령 (`docker logs amk-nginx | grep 'limiting requests'`) + 로그 형식 예시 + 대응 정책 (단발성 / 동일 IP / zone 차원) + 향후 자동화 후속.
+
+  ### A4-8 + G6 ✅ dependabot.yml 신규 (commit `9367f72`)
+
+  `.github/dependabot.yml` 신규 — Cargo / npm (frontend) / Docker / GitHub Actions 4 ecosystems. 주간/월간 스케줄 (KST 09:00 월요일 또는 매월 1일). 보안 업데이트 = 별도 즉시 PR. **A4-8 (Docker base image 정책) + G6 (dependabot 미존재) 동시 해결**.
+
+  ## SSoT 갱신 누계
+
+  - 본 세션 신규 미해결 27 → 4 (-23)
+  - AMK_DEBTS 합계 92 → 81 (본 세션 -11)
+  - A 운영/배포 14 → 11 (A4-5/A4-6/A4-7/A4-8 처리)
+  - G 자동 검증 13 → 12 (G6 처리)
+  - 처리 ✅ **20건** (정책 결정 3 + 작은 묶음 8 + frontend Q16 3 + N-16/N-17 + N-23 + A4-6/A4-7/A4-8/G6 + N-24 동시)
+  - 수용 🟡 7건 / 발견 🟢 1건 / 사고 등재 1건 = **본 세션 누계 29 작업** (commits 36+)
+
   ## 다음 세션 진입점
 
   1. **N-26 i18n 21언어 legal/admin** (ai 측 번역 의존, ai 세션 트리거 후 진행)
   2. **N-27 OpenAPI ~43건** (도메인별 PR 분할 — auth 10 / payment 4 / textbook 4 / ebook 7 등)
-  3. **A4-1/A4-2 + N-13 + N-31 origin 인프라 묶음** = HTTPS + certbot + nginx HTTPS 활성 + origin HSTS layer (1일+, production 영향)
-  4. **A4 잔여 인프라**: A4-3 (디스크 모니터링) / A4-4 (DB/Redis 백업) / A4-6 (Cloudflare DNS 운영 정책) / A4-7 (nginx rate limit 모니터링) / A4-8 (base image 자동 업데이트 정책)
-  5. **AMK_DEBTS 잔여**: B 보안 (rsa Marvin 의존성 회피 / unsound 7건 / expect 48건) / C 코드 품질 (ESLint Q16 / lint:ui Q16 / 룰 회피 카운트) / J Secrets (J3/J4 자동 도구)
+  3. **A4-1/A4-2 + N-13 + N-31 origin 인프라 묶음** = HTTPS + certbot + nginx HTTPS + origin HSTS layer (1일+, production 영향)
+  4. **A4 잔여 인프라** (A4-1/A4-2/A4-3/A4-4)
+  5. **AMK_DEBTS 잔여**: B 보안 (rsa Marvin / unsound 7건 / expect 48건) / C 코드 품질 (ESLint Q16 / lint:ui Q16) / J Secrets (J3/J4 자동 도구) / G 자동 검증 잔여 (G3/G4/G5/G7/G8/G10~14)
 
 - **2026-05-04 (밤, 후속 3) — Phase 1+2 부채 처리 10건 일괄 + 검증 2/3회차 정정**
 
