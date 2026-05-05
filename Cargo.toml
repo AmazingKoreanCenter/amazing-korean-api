@@ -5,6 +5,8 @@ members = [".", "crates/crypto"]
 name = "amazing-korean-api"
 version = "1.0.0"
 edition = "2021"
+license = "UNLICENSED"  # N-16: private repo, 외부 배포 차단 (Cargo publish block)
+publish = false         # crates.io 게시 의도 X (private)
 default-run = "amazing-korean-api"
 
 [dependencies]
