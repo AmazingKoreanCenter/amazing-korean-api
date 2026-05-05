@@ -93,11 +93,24 @@
 
 ---
 
-## 카테고리 분포 (M-001 ~ M-007)
+### M-008 — B4 commit 시 cargo fmt 검증 단계 누락
+
+| 항목 | 내용 |
+|------|------|
+| 발생일 | 2026-05-04 (밤, Phase 1 부채 처리) |
+| AI 행위 | B4 부채 (auth/service.rs unwrap → AppError::Internal 매핑) commit 시 `cargo check --workspace` 만 실행, `cargo fmt --check --all` 미실행. 통과 단정 후 commit `ad239ed` push |
+| 누락 행위 | 본 commit 시점에 pr-check.yml 의 fmt step 인지 안 함 (해당 step 은 PR #205 머지 시 이미 추가되어 활성). cargo fmt 가 method chaining 줄바꿈 위치 (`let user_info = user\n    .ok_or_else(...)` vs `let user_info =\n    user.ok_or_else(...)`) 권고 미적용 |
+| 결과 | PR #211 backend (cargo check + clippy) job FAILURE (Diff in src/api/auth/service.rs:1398). 사용자가 머지 전 직접 발견 + 메시지 ("이게 맞아??"). 추가 commit `7ffcc96` (fix(fmt): cargo fmt 적용) 으로 fix → backend job pass → 머지 진행 |
+| 사용자 응답 | "지금 아래와 같이 나오는데, [diff]. 이게 맞아??" |
+| 후속 | M-006 (cargo fmt 결과 의미 잘못 해석) 와 동일 카테고리 (검증 단계 미챙김) 의 다른 발현 — M-006 = 결과 해석 오류, M-008 = 단계 자체 누락 |
+
+---
+
+## 카테고리 분포 (M-001 ~ M-008)
 
 | 카테고리 | 사고 ID | 공통 행위 |
 |----------|---------|----------|
-| 사전 상태 미확인 | M-001, M-003, M-004 | 작업 시작 전 현재 상태 (origin / git status / baseline) 확인 누락 |
+| 사전 상태 미확인 | M-001, M-003, M-004, **M-008** | 작업 시작 전 현재 상태 (origin / git status / baseline / CI step 활성 여부) 확인 누락 |
 | 추정을 사실로 단정 | M-002, M-005, M-006, M-007 | 데이터 X 또는 검증 X 인 항목을 결과 단정 형태로 출력 (M-006 = 검증 결과의 의미 잘못 해석, M-007 = 다른 문서 라인 번호 복사) |
 
 ---
