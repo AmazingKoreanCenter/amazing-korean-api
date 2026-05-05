@@ -220,7 +220,7 @@
     "mfaUseBackupCode": "Резервдик кодду колдонуу",
     "mfaUseAuthApp": "Аутентификатор тиркемесин колдонуу",
     "remainingAttempts_one": "Калган аракет: {{count}}",
-    "remainingAttempts_other": "Калган аракеттер: {{count}}"
+    "remainingAttempts_other": "Калган аракет: {{count}}"
   },
   "mfa": {
     "title": "Эки факторлуу автентификация",

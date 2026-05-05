@@ -931,7 +931,7 @@
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
     "tabEbook": "E-book",
-    "specPages_one": "{{count}} Halaman",
+    "specPages_one": "{{count}} halaman",
     "specPages_other": "{{count}} Halaman",
     "specLanguages_one": "{{count}} bahasa",
     "specLanguages_other": "{{count}} bahasa"

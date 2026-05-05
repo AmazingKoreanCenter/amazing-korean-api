@@ -412,9 +412,9 @@
     "videoId": "Видео #{{id}}",
     "taskId": "Масъала #{{id}}",
     "totalLessons_one": "Ҳамагӣ {{count}} дарс",
-    "totalLessons_other": "Ҳамагӣ {{count}} дарсҳо",
+    "totalLessons_other": "Ҳамагӣ {{count}} дарс",
     "itemCount_one": "{{count}} элемент",
-    "itemCount_other": "{{count}} элементҳо"
+    "itemCount_other": "{{count}} элемент"
   },
   "video": {
     "heroBadge": "Забони кореягиро тавассути видео омӯзед",
@@ -430,7 +430,7 @@
     "backToLesson": "Бозгашт ба дарс",
     "backToLessonShort": "Ба дарс",
     "totalVideos_one": "Ҳамагӣ {{count}} видео",
-    "totalVideos_other": "Ҳамагӣ {{count}} видеоҳо"
+    "totalVideos_other": "Ҳамагӣ {{count}} видео"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -932,9 +932,9 @@
     "tabTextbook": "Textbook",
     "tabEbook": "E-book",
     "specPages_one": "{{count}} саҳифа",
-    "specPages_other": "{{count}} саҳифаҳо",
+    "specPages_other": "{{count}} саҳифа",
     "specLanguages_one": "{{count}} забон",
-    "specLanguages_other": "{{count}} забонҳо"
+    "specLanguages_other": "{{count}} забон"
   },
   "mfa": {
     "title": "Аутентификатсияи дуқабата",

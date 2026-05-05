@@ -220,7 +220,7 @@
     "mfaUseBackupCode": "استفاده از کد پشتیبان",
     "mfaUseAuthApp": "استفاده از اپلیکیشن احراز هویت",
     "remainingAttempts_one": "تلاش باقی‌مانده: {{count}}",
-    "remainingAttempts_other": "تلاش‌های باقی‌مانده: {{count}}"
+    "remainingAttempts_other": "تلاش باقی‌مانده: {{count}}"
   },
   "mfa": {
     "title": "احراز هویت دو مرحله‌ای",

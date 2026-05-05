@@ -488,17 +488,17 @@
         "emptyDescription": "Magsimulang magsanay para makabuo ng inyong unang istatistika.",
         "emptyAction": "Magsimulang magsanay",
         "lastDays_one": "Huling {{count}} araw",
-        "lastDays_other": "Huling {{count}} (na) mga araw",
+        "lastDays_other": "Huling {{count}} araw",
         "sessionCount_one": "{{count}} session",
-        "sessionCount_other": "{{count}} (na) mga session",
+        "sessionCount_other": "{{count}} session",
         "missCount_one": "{{count}}×",
         "missCount_other": "{{count}}×"
       }
     },
     "totalProblems_one": "Kabuuang {{count}} problema",
-    "totalProblems_other": "Kabuuang {{count}} (na) mga problema",
+    "totalProblems_other": "Kabuuang {{count}} problema",
     "tryCount_one": "{{count}} subok",
-    "tryCount_other": "{{count}} (na) mga subok"
+    "tryCount_other": "{{count}} subok"
   },
   "lesson": {
     "heroBadge": "Step-by-Step na Kurikulum",
