@@ -206,7 +206,6 @@
     "toastTooManyVerifyAttempts": "تعداد تلاش‌های تأیید بیش از حد مجاز است. لطفاً بعداً دوباره تلاش کنید.",
     "toastTooManyResendRequests": "تعداد درخواست‌های ارسال مجدد بیش از حد مجاز است. لطفاً بعداً دوباره تلاش کنید.",
     "oauthPasswordWarning": "حساب‌هایی که از طریق ورود با شبکه‌های اجتماعی (گوگل و غیره) ساخته شده‌اند، رمز عبور ندارند. لطفاً با استفاده از همان سرویس وارد شوید.",
-    "remainingAttempts": "تعداد تلاش‌های باقی‌مانده: {{count}}",
     "noAttemptsRemaining": "به سقف مجاز ارسال رسیده‌اید. لطفاً بعداً دوباره تلاش کنید.",
     "mfaTitle": "تایید هویت دو مرحله‌ای",
     "mfaDescription": "کد اپلیکیشن Google Authenticator را وارد کنید",
@@ -219,7 +218,9 @@
     "mfaInvalidCode": "کد تأیید نامعتبر است",
     "mfaBackupPlaceholder": "کد پشتیبان ۸ کاراکتری",
     "mfaUseBackupCode": "استفاده از کد پشتیبان",
-    "mfaUseAuthApp": "استفاده از اپلیکیشن احراز هویت"
+    "mfaUseAuthApp": "استفاده از اپلیکیشن احراز هویت",
+    "remainingAttempts_one": "تلاش باقی‌مانده: {{count}}",
+    "remainingAttempts_other": "تلاش‌های باقی‌مانده: {{count}}"
   },
   "mfa": {
     "title": "احراز هویت دو مرحله‌ای",
@@ -374,7 +375,6 @@
     "programTopikListen": "شنیدن TOPIK",
     "programTopikWrite": "بخش نوشتاری TOPIK",
     "programTbc": "در انتظار تأیید",
-    "totalProblems": "در مجموع {{count}} سوال",
     "emptyTitle": "هیچ سوالی ثبت نشده است",
     "emptyDescription": "هنوز هیچ سوال آموزشی برای برنامه انتخاب‌شده وجود ندارد.",
     "emptyDetailDescription": "هنوز هیچ سوالی برای این مطالعه ثبت نشده است.",
@@ -398,7 +398,6 @@
     "viewExplanation": "مشاهده توضیحات",
     "references": "منابع",
     "solvedBadge": "حل شده",
-    "tryCount": "{{count}} بار تلاش",
     "submitButton": "ارسال",
     "submitting": "در حال ارسال...",
     "retryButton": "تلاش مجدد",
@@ -468,13 +467,11 @@
       "stats": {
         "pageTitle": "آمار تمرین تایپ",
         "pageDescription": "دقت، سرعت و ضعیف‌ترین حروف خود را در تاریخچه تایپ هانگول بررسی کنید.",
-        "lastDays": "{{count}} روز گذشته",
         "totalSessions": "تعداد کل جلسات",
         "avgAccuracy": "میانگین دقت",
         "avgCpm": "میانگین CPM",
         "cpmUnit": "کاراکتر در دقیقه",
         "levelTitle": "بر اساس سطح",
-        "sessionCount": "{{count}} جلسه",
         "accuracyLabel": "دقت",
         "cpmLabel": "CPM",
         "noLevelData": "هنوز اطلاعاتی برای سطح وجود ندارد.",
@@ -486,19 +483,27 @@
         "noTrendData": "هنوز داده‌ای برای روند وجود ندارد.",
         "weakTitle": "۱۰ نویسه ضعیف برتر",
         "weakSubtitle": "بر اساس تعداد دفعات اشتباه تایپ شدن هر نویسه مرتب شده‌اند. در جلسه بعدی خود روی این موارد تمرکز کنید.",
-        "missCount": "{{count}}×",
         "noWeakData": "هنوز داده‌ای از نویسه‌های ضعیف وجود ندارد. عالی بود!",
         "emptyTitle": "هنوز هیچ جلسه‌ای ثبت نشده است",
         "emptyDescription": "برای ثبت اولین آمارهای خود، تمرین را شروع کنید.",
-        "emptyAction": "شروع تمرین"
+        "emptyAction": "شروع تمرین",
+        "lastDays_one": "{{count}} روز گذشته",
+        "lastDays_other": "{{count}} روز گذشته",
+        "sessionCount_one": "{{count}} جلسه",
+        "sessionCount_other": "{{count}} جلسه",
+        "missCount_one": "{{count}}×",
+        "missCount_other": "{{count}}×"
       }
-    }
+    },
+    "totalProblems_one": "مجموع {{count}} مسئله",
+    "totalProblems_other": "مجموع {{count}} مسئله",
+    "tryCount_one": "{{count}} تلاش",
+    "tryCount_other": "{{count}} تلاش"
   },
   "lesson": {
     "heroBadge": "برنامه آموزشی گام‌به‌گام",
     "listTitle": "فهرست درس‌ها",
     "listDescription": "زبان کره‌ای را با درس‌های سازمان‌یافته، گام‌به‌گام بیاموزید. ما درس‌های جامع شامل ویدیو، تمرین و تکلیف را در اختیار شما قرار می‌دهیم.",
-    "totalLessons": "در مجموع {{count}} درس",
     "emptyTitle": "هیچ درسی ثبت نشده است",
     "emptyDescription": "درس‌های جدید به‌زودی اضافه خواهند شد.",
     "accessPaid": "پولی",
@@ -512,19 +517,21 @@
     "completeLesson": "تکمیل درس",
     "lessonCompleted": "درس به پایان رسید",
     "learningItems": "موارد آموزشی",
-    "itemCount": "{{count}} مورد",
     "emptyItemsTitle": "هیچ مورد آموزشی ثبت نشده است",
     "emptyItemsDescription": "هنوز هیچ مورد آموزشی برای این درس ثبت نشده است.",
     "notFoundTitle": "درس یافت نشد",
     "notFoundDescription": "این درس وجود ندارد یا حذف شده است.",
     "videoId": "ویدیو شماره {{id}}",
-    "taskId": "تمرین شماره {{id}}"
+    "taskId": "تمرین شماره {{id}}",
+    "totalLessons_one": "مجموع {{count}} درس",
+    "totalLessons_other": "مجموع {{count}} درس",
+    "itemCount_one": "{{count}} مورد",
+    "itemCount_other": "{{count}} مورد"
   },
   "video": {
     "heroBadge": "یادگیری کره‌ای با ویدیو",
     "listTitle": "یادگیری با ویدیو",
     "listDescription": "با ویدیوهای کره‌ای در موضوعات مختلف، به شکلی طبیعی یاد بگیرید. برای تقویت مهارت‌های خود، به تلفظ و اصطلاحات بومی گوش دهید و آن‌ها را تماشا کنید.",
-    "totalVideos": "در مجموع {{count}} ویدیو",
     "emptyTitle": "هیچ ویدیویی ثبت نشده است.",
     "notFoundTitle": "ویدیو پیدا نشد",
     "notFoundDescription": "این ویدیو وجود ندارد یا حذف شده است.",
@@ -533,7 +540,9 @@
     "allItemsCompleted": "تمام موارد در «{{title}}» تکمیل شده‌اند!",
     "nextItem": "مورد بعدی",
     "backToLesson": "بازگشت به درس",
-    "backToLessonShort": "به درس"
+    "backToLessonShort": "به درس",
+    "totalVideos_one": "مجموع {{count}} ویدیو",
+    "totalVideos_other": "مجموع {{count}} ویدیو"
   },
   "payment": {
     "title": "طرح خود را انتخاب کنید",
@@ -1508,8 +1517,10 @@
     "slideTags3": "زمان‌ها، پسوندها، کلمات پرسشی",
     "slideTags4": "۵۰۰ جمله، بر اساس فراوانی، بر اساس سطح دشواری",
     "slideTags5": "اعداد، منفی‌سازی، رسمی، محاوره‌ای و نوشتاری",
-    "specPages": "{{count}} صفحه",
-    "specLanguages": "{{count}} زبان",
-    "specPrice": "۲۵,۰۰۰ وون کره‌ای"
+    "specPrice": "۲۵,۰۰۰ وون کره‌ای",
+    "specPages_one": "{{count}} صفحه",
+    "specPages_other": "{{count}} صفحه",
+    "specLanguages_one": "{{count}} زبان",
+    "specLanguages_other": "{{count}} زبان"
   }
 }

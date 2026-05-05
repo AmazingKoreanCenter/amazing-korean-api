@@ -206,7 +206,6 @@
     "toastTooManyVerifyAttempts": "Majaribio mengi sana ya uhakiki. Tafadhali jaribu tena baadaye.",
     "toastTooManyResendRequests": "Maombi mengi sana ya kutuma tena. Tafadhali jaribu tena baadaye.",
     "oauthPasswordWarning": "Akaunti zilizoundwa kupitia login ya kijamii (Google, n.k.) hazina nywila. Tafadhali ingia ukitumia huduma hiyo ya kijamii.",
-    "remainingAttempts": "Majaribio yaliyobaki: {{count}}",
     "noAttemptsRemaining": "Umevuka kikomo cha kutuma. Tafadhali jaribu tena baadaye.",
     "mfaTitle": "Uthibitishaji wa Hatua Mbili",
     "mfaDescription": "Ingiza nambari kutoka kwenye programu yako ya Google Authenticator",
@@ -219,7 +218,9 @@
     "mfaInvalidCode": "Nambari ya uthibitisho si sahihi",
     "mfaBackupPlaceholder": "Msimbo wa dharura wa herufi 8",
     "mfaUseBackupCode": "Tumia msimbo wa dharura",
-    "mfaUseAuthApp": "Tumia programu ya uthibitishaji"
+    "mfaUseAuthApp": "Tumia programu ya uthibitishaji",
+    "remainingAttempts_one": "Jaribio linalobaki: {{count}}",
+    "remainingAttempts_other": "Majaribio yanayobaki: {{count}}"
   },
   "mfa": {
     "title": "Uhakiki wa hatua mbili",
@@ -374,7 +375,6 @@
     "programTopikListen": "Kusikiliza TOPIK",
     "programTopikWrite": "Uandishi wa TOPIK",
     "programTbc": "Itathibitishwa baadaye",
-    "totalProblems": "Jumla ya maswali {{count}}",
     "emptyTitle": "Hakuna maswali yaliyosajiliwa",
     "emptyDescription": "Bado hakuna maswali ya kujifunzia kwa programu iliyochaguliwa.",
     "emptyDetailDescription": "Bado hakuna maswali yaliyosajiliwa kwa ajili ya somo hili.",
@@ -398,7 +398,6 @@
     "viewExplanation": "Angalia Maelezo",
     "references": "Marejeleo",
     "solvedBadge": "Imetatuliwa",
-    "tryCount": "{{count}} majaribio",
     "submitButton": "Tuma",
     "submitting": "Inatuma...",
     "retryButton": "Jaribu tena",
@@ -468,13 +467,11 @@
       "stats": {
         "pageTitle": "Takwimu za Mazoezi ya Kuandika",
         "pageDescription": "Kagua usahihi, kasi, na herufi ambazo ni vigumu zaidi kwako kutoka kwenye historia yako ya uandishi wa Hangul.",
-        "lastDays": "Siku {{count}} zilizopita",
         "totalSessions": "Jumla ya Vipindi",
         "avgAccuracy": "Usahihi wa wastani",
         "avgCpm": "Wastani wa CPM",
         "cpmUnit": "Herufi kwa dakika",
         "levelTitle": "Kwa Kiwango",
-        "sessionCount": "{{count}} vipindi",
         "accuracyLabel": "Usahihi",
         "cpmLabel": "Herufi kwa dakika",
         "noLevelData": "Bado hakuna data ya kiwango.",
@@ -486,19 +483,27 @@
         "noTrendData": "Bado hakuna data ya mwelekeo.",
         "weakTitle": "Herufi 10 Zinazokupa Changamoto Zaidi",
         "weakSubtitle": "Zimepangwa kulingana na mara ambazo herufi hizo zimekosewa. Zizingatie katika kipindi chako kijacho.",
-        "missCount": "{{count}}×",
         "noWeakData": "Bado hakuna data ya herufi zinazokupa changamoto. Kazi nzuri!",
         "emptyTitle": "Bado hakuna vipindi vilivyorekodiwa",
         "emptyDescription": "Anza kufanya mazoezi ili uanze kuona takwimu zako za kwanza.",
-        "emptyAction": "Anza kufanya mazoezi"
+        "emptyAction": "Anza kufanya mazoezi",
+        "lastDays_one": "Siku {{count}} iliyopita",
+        "lastDays_other": "Siku {{count}} zilizopita",
+        "sessionCount_one": "Kipindi {{count}}",
+        "sessionCount_other": "Vipindi {{count}}",
+        "missCount_one": "{{count}}×",
+        "missCount_other": "{{count}}×"
       }
-    }
+    },
+    "totalProblems_one": "Jumla ya tatizo {{count}}",
+    "totalProblems_other": "Jumla ya matatizo {{count}}",
+    "tryCount_one": "Jaribio {{count}}",
+    "tryCount_other": "Majaribio {{count}}"
   },
   "lesson": {
     "heroBadge": "Mtaala wa hatua kwa hatua",
     "listTitle": "Orodha ya Masomo",
     "listDescription": "Jifunze Kikorea hatua kwa hatua kupitia masomo yaliyopangwa kwa utaratibu. Tunatoa masomo yanayojumuisha video, mazoezi, na kazi.",
-    "totalLessons": "Jumla ya {{count}} masomo",
     "emptyTitle": "Hakuna masomo yaliyosajiliwa",
     "emptyDescription": "Masomo mapya yataongezwa hivi karibuni.",
     "accessPaid": "Ya kulipia",
@@ -512,19 +517,21 @@
     "completeLesson": "Kamilisha Somo",
     "lessonCompleted": "Somo Limekamilika",
     "learningItems": "Vitu vya Kujifunza",
-    "itemCount": "{{count}} vitu",
     "emptyItemsTitle": "Hakuna vitu vya kujifunza vilivyosajiliwa",
     "emptyItemsDescription": "Bado hakuna vitu vya kujifunza vilivyosajiliwa kwa ajili ya somo hili.",
     "notFoundTitle": "Somo halijapatikana",
     "notFoundDescription": "Somo hili halipo au limefutwa.",
     "videoId": "Video #{{id}}",
-    "taskId": "Zoezi #{{id}}"
+    "taskId": "Zoezi #{{id}}",
+    "totalLessons_one": "Jumla ya somo {{count}}",
+    "totalLessons_other": "Jumla ya masomo {{count}}",
+    "itemCount_one": "Kitu {{count}}",
+    "itemCount_other": "Vitu {{count}}"
   },
   "video": {
     "heroBadge": "Jifunze Kikorea kupitia Video",
     "listTitle": "Mafunzo ya Video",
     "listDescription": "Jifunze kwa asili kupitia video za Kikorea kuhusu mada mbalimbali. Tazama na usikilize matamshi na misemo ya wenye lugha ili kuboresha ujuzi wako.",
-    "totalVideos": "Jumla ya video {{count}}",
     "emptyTitle": "Hakuna video zilizosajiliwa.",
     "notFoundTitle": "Video haijapatikana",
     "notFoundDescription": "Video hii haipo au imefutwa.",
@@ -533,7 +540,9 @@
     "allItemsCompleted": "Vipengele vyote katika \"{{title}}\" vimekamilika!",
     "nextItem": "Kinachofuata",
     "backToLesson": "Rudi kwenye Somo",
-    "backToLessonShort": "Kwenye Somo"
+    "backToLessonShort": "Kwenye Somo",
+    "totalVideos_one": "Jumla ya video {{count}}",
+    "totalVideos_other": "Jumla ya video {{count}}"
   },
   "payment": {
     "title": "Chagua Mpango Wako",
@@ -1508,8 +1517,10 @@
     "slideTags3": "Nyakati, Viambishi, Maswali",
     "slideTags4": "Sentensi 500, Kwa Marudio, Kwa Ugumu",
     "slideTags5": "Nambari, Kanusho, Rasmi, Isiyo rasmi & Maandishi",
-    "specPages": "{{count}} Kurasa",
-    "specLanguages": "{{count}} Lugha",
-    "specPrice": "25,000 KRW"
+    "specPrice": "25,000 KRW",
+    "specPages_one": "Ukurasa {{count}}",
+    "specPages_other": "Kurasa {{count}}",
+    "specLanguages_one": "Lugha {{count}}",
+    "specLanguages_other": "Lugha {{count}}"
   }
 }

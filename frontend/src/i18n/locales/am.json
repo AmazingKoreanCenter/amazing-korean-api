@@ -206,7 +206,6 @@
     "toastTooManyVerifyAttempts": "የማረጋገጫ ሙከራዎች በጣም በዝተዋል። እባክዎ ቆይተው እንደገና ይሞክሩ።",
     "toastTooManyResendRequests": "እንደገና የመላክ ጥያቄዎች በጣም በዝተዋል። እባክዎ ቆይተው እንደገና ይሞክሩ።",
     "oauthPasswordWarning": "በሶሻል አካውንት (Google፣ ወዘተ) የተፈጠሩ አካውንቶች የይለፍ ቃል የላቸውም። እባክዎ በዚያው ሶሻል አካውንት በመጠቀም ይግቡ።",
-    "remainingAttempts": "ቀሪ ሙከራዎች፡ {{count}}",
     "noAttemptsRemaining": "የመላኪያ ገደቡ ላይ ደርሰዋል። እባክዎ ቆይተው እንደገና ይሞክሩ።",
     "mfaTitle": "ባለ ሁለት ደረጃ ማረጋገጫ",
     "mfaDescription": "ከGoogle Authenticator መተግበሪያዎ ኮዱን ያስገቡ",
@@ -219,7 +218,9 @@
     "mfaInvalidCode": "የተሳሳተ የማረጋገጫ ኮድ",
     "mfaBackupPlaceholder": "8-ፊደላት ያለው የመጠባበቂያ ኮድ",
     "mfaUseBackupCode": "የመጠባበቂያ ኮዱን ይጠቀሙ",
-    "mfaUseAuthApp": "የማረጋገጫ መተግበሪያውን ይጠቀሙ"
+    "mfaUseAuthApp": "የማረጋገጫ መተግበሪያውን ይጠቀሙ",
+    "remainingAttempts_one": "ቀሪ ሙከራ: {{count}}",
+    "remainingAttempts_other": "ቀሪ ሙከራዎች: {{count}}"
   },
   "mfa": {
     "title": "ባለሁለት ደረጃ ማረጋገጫ",
@@ -374,7 +375,6 @@
     "programTopikListen": "የTOPIK ማዳመጥ",
     "programTopikWrite": "TOPIK ጽሁፍ",
     "programTbc": "ሊረጋገጥ የሚችል",
-    "totalProblems": "ጠቅላላ {{count}} ጥያቄዎች",
     "emptyTitle": "ምንም ጥያቄ አልተመዘገበም",
     "emptyDescription": "ለተመረጠው ፕሮግራም እስካሁን ምንም የጥናት ጥያቄዎች አልተመዘገቡም።",
     "emptyDetailDescription": "ለዚህ ጥናት እስካሁን ምንም አይነት ጥያቄ አልተመዘገበም።",
@@ -398,7 +398,6 @@
     "viewExplanation": "ማብራሪያውን ይመልከቱ",
     "references": "ምንጮች",
     "solvedBadge": "ተፈትቷል",
-    "tryCount": "{{count}} ሙከራዎች",
     "submitButton": "አቅርቡ",
     "submitting": "እየተላከ...",
     "retryButton": "እንደገና ይሞክሩ",
@@ -468,13 +467,11 @@
       "stats": {
         "pageTitle": "የመተየብ ልምምድ ስታቲስቲክስ",
         "pageDescription": "የሀንግል መተየብ ታሪክዎን በመመልከት ትክክለኛነትዎን፣ ፍጥነትዎን እና ደካማ የሆኑ ፊደላትን ይገምግሙ።",
-        "lastDays": "ያለፉት {{count}} ቀናት",
         "totalSessions": "ጠቅላላ ክፍለ-ጊዜዎች",
         "avgAccuracy": "አማካይ ትክክለኛነት",
         "avgCpm": "አማካይ CPM",
         "cpmUnit": "በደቂቃ የሚጻፉ ፊደላት",
         "levelTitle": "በደረጃ",
-        "sessionCount": "{{count}} ክፍለ-ጊዜዎች",
         "accuracyLabel": "ትክክለኛነት",
         "cpmLabel": "CPM",
         "noLevelData": "ገና ምንም የደረጃ መረጃ የለም።",
@@ -486,19 +483,27 @@
         "noTrendData": "እስካሁን ምንም ዓይነት መረጃ አልተመዘገበም።",
         "weakTitle": "በብዛት የሚሳሳቱ 10 ፊደላት",
         "weakSubtitle": "እያንዳንዱ ፊደል በተሳሳተ መንገድ የተጻፈበትን ድግግሞሽ መሠረት በማድረግ የተዘረዘሩ ናቸው። በሚቀጥለው ትምህርትዎ ወቅት በእነዚህ ላይ ትኩረት ያድርጉ።",
-        "missCount": "{{count}}×",
         "noWeakData": "ገና ምንም ደካማ ፊደላት አልታዩም። በርቱ!",
         "emptyTitle": "ገና ምንም የተመዘገበ ትምህርት የለም",
         "emptyDescription": "የመጀመሪያ ስታቲስቲክስዎን ለማግኘት መለማመድን ይጀምሩ።",
-        "emptyAction": "መለማመድን ይጀምሩ"
+        "emptyAction": "መለማመድን ይጀምሩ",
+        "lastDays_one": "ባለፈው {{count}} ቀን",
+        "lastDays_other": "ባለፉት {{count}} ቀናት",
+        "sessionCount_one": "{{count}} ክፍለ ጊዜ",
+        "sessionCount_other": "{{count}} ክፍለ ጊዜዎች",
+        "missCount_one": "{{count}}×",
+        "missCount_other": "{{count}}×"
       }
-    }
+    },
+    "totalProblems_one": "ጠቅላላ {{count}} ጥያቄ",
+    "totalProblems_other": "ጠቅላላ {{count}} ጥያቄዎች",
+    "tryCount_one": "{{count}} ሙከራ",
+    "tryCount_other": "{{count}} ሙከራዎች"
   },
   "lesson": {
     "heroBadge": "ደረጃ በደረጃ ሥርዓተ ትምህርት",
     "listTitle": "የትምህርት ዝርዝር",
     "listDescription": "በሥርዓት በተደራጁ ትምህርቶች አማካኝነት ኮሪያኛን ደረጃ በደረጃ ይማሩ። ቪዲዮዎችን፣ ጥያቄዎችን እና ሥራዎችን ያካተቱ የተቀናጁ ትምህርቶችን እናቀርባለን።",
-    "totalLessons": "በአጠቃላይ {{count}} ትምህርቶች",
     "emptyTitle": "ምንም ትምህርት አልተመዘገበም",
     "emptyDescription": "አዳዲስ ትምህርቶች በቅርቡ ይጨመራሉ።",
     "accessPaid": "በክፍያ",
@@ -512,19 +517,21 @@
     "completeLesson": "ትምህርቱን ይጨርሱ",
     "lessonCompleted": "ትምህርቱ ተጠናቋል",
     "learningItems": "የመማሪያ ይዘቶች",
-    "itemCount": "{{count}} ይዘቶች",
     "emptyItemsTitle": "ምንም የመማሪያ ይዘት አልተመዘገበም",
     "emptyItemsDescription": "ለዚህ ትምህርት እስካሁን ምንም የመማሪያ ይዘት አልተመዘገበም።",
     "notFoundTitle": "ትምህርቱ አልተገኘም",
     "notFoundDescription": "ይህ ትምህርት የለም ወይም ተሰርዟል።",
     "videoId": "ቪዲዮ ቁጥር {{id}}",
-    "taskId": "ጥያቄ ቁጥር {{id}}"
+    "taskId": "ጥያቄ ቁጥር {{id}}",
+    "totalLessons_one": "ጠቅላላ {{count}} ትምህርት",
+    "totalLessons_other": "ጠቅላላ {{count}} ትምህርቶች",
+    "itemCount_one": "{{count}} ነገር",
+    "itemCount_other": "{{count}} ነገሮች"
   },
   "video": {
     "heroBadge": "በቪዲዮዎች አማካኝነት ኮሪያኛ ይማሩ",
     "listTitle": "በቪዲዮ መማር",
     "listDescription": "በተለያዩ ርዕሰ ጉዳዮች ላይ ያተኮሩ የኮሪያኛ ቪዲዮዎችን በመመልከት በተፈጥሯዊ መንገድ ይማሩ። ክህሎትዎን ለማሻሻል የአገሬው ተወላጆችን አነጋገር እና አገላለጾችን ይመልከቱ እንዲሁም ያዳምጡ።",
-    "totalVideos": "ጠቅላላ {{count}} ቪዲዮዎች",
     "emptyTitle": "ምንም ቪዲዮ አልተመዘገበም።",
     "notFoundTitle": "ቪዲዮው አልተገኘም",
     "notFoundDescription": "ይህ ቪዲዮ የለም ወይም ተሰርዟል።",
@@ -533,7 +540,9 @@
     "allItemsCompleted": "በ \"{{title}}\" ውስጥ ያሉ ሁሉም ነገሮች ተጠናቀዋል!",
     "nextItem": "ቀጣይ",
     "backToLesson": "ወደ ትምህርቱ ይመለሱ",
-    "backToLessonShort": "ወደ ትምህርቱ"
+    "backToLessonShort": "ወደ ትምህርቱ",
+    "totalVideos_one": "ጠቅላላ {{count}} ቪዲዮ",
+    "totalVideos_other": "ጠቅላላ {{count}} ቪዲዮዎች"
   },
   "payment": {
     "title": "ዕቅድዎን ይምረጡ",
@@ -1508,8 +1517,10 @@
     "slideTags3": "ጊዜያት፣ መስተዋወሻዎች፣ ጥያቄዎች",
     "slideTags4": "500 ዓረፍተ ነገሮች፣ በብዛትነት፣ በአስቸጋሪነት ደረጃ",
     "slideTags5": "ቁጥሮች፣ አሉታዊነት፣ መደበኛ፣ የንግግር እና የጽሁፍ",
-    "specPages": "{{count}} ገጾች",
-    "specLanguages": "{{count}} ቋንቋዎች",
-    "specPrice": "25,000 KRW"
+    "specPrice": "25,000 KRW",
+    "specPages_one": "{{count}} ገጽ",
+    "specPages_other": "{{count}} ገጾች",
+    "specLanguages_one": "{{count}} ቋንቋ",
+    "specLanguages_other": "{{count}} ቋንቋዎች"
   }
 }
