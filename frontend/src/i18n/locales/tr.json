@@ -114,7 +114,6 @@
     "heroBadge": "Videolarla Korece Öğrenin",
     "listTitle": "Video ile Öğrenme",
     "listDescription": "Çeşitli konulardaki Korece videolarla doğal bir şekilde öğrenin. Becerilerinizi geliştirmek için ana dil seviyesindeki telaffuzları ve ifadeleri izleyin ve dinleyin.",
-    "totalVideos": "Toplam {{count}} video",
     "emptyTitle": "Kayıtlı video bulunmuyor.",
     "notFoundTitle": "Video bulunamadı",
     "notFoundDescription": "Bu video mevcut değil veya silinmiş.",
@@ -123,7 +122,9 @@
     "allItemsCompleted": "\"{{title}}\" içindeki tüm öğeler tamamlandı!",
     "nextItem": "Sonraki Öğe",
     "backToLesson": "Derse Dön",
-    "backToLessonShort": "Derse"
+    "backToLessonShort": "Derse",
+    "totalVideos_one": "Toplam {{count}} video",
+    "totalVideos_other": "Toplam {{count}} video"
   },
   "footer": {
     "brandDescription": "Dünya çapındaki Korece öğrenenler için\nen iyi çevrimiçi öğrenme platformu",
@@ -149,7 +150,6 @@
     "heroBadge": "Adım Adım Müfredat",
     "listTitle": "Ders Listesi",
     "listDescription": "Sistematik olarak düzenlenmiş derslerle Koreceyi adım adım öğrenin. Videolar, alıştırmalar ve ödevlerle zenginleştirilmiş entegre dersler sunuyoruz.",
-    "totalLessons": "Toplam {{count}} ders",
     "emptyTitle": "Kayıtlı ders bulunmuyor",
     "emptyDescription": "Yeni dersler yakında eklenecektir.",
     "accessPaid": "Ücretli",
@@ -163,13 +163,16 @@
     "completeLesson": "Dersi Tamamla",
     "lessonCompleted": "Ders Tamamlandı",
     "learningItems": "Öğrenme Öğeleri",
-    "itemCount": "{{count}} öğe",
     "emptyItemsTitle": "Kayıtlı öğrenme öğesi yok",
     "emptyItemsDescription": "Bu ders için henüz hiç öğrenme öğesi kaydedilmedi.",
     "notFoundTitle": "Ders bulunamadı",
     "notFoundDescription": "Bu ders mevcut değil veya silinmiş.",
     "videoId": "Video #{{id}}",
-    "taskId": "Problem #{{id}}"
+    "taskId": "Problem #{{id}}",
+    "totalLessons_one": "Toplam {{count}} ders",
+    "totalLessons_other": "Toplam {{count}} ders",
+    "itemCount_one": "{{count}} öğe",
+    "itemCount_other": "{{count}} öğe"
   },
   "common": {
     "loading": "Yükleniyor",
@@ -227,9 +230,11 @@
     "slideTags3": "Zamanlar, Ekler, Soru Kalıpları",
     "slideTags4": "500 Cümle, Sıklığa Göre, Zorluğa Göre",
     "slideTags5": "Sayılar, Olumsuzluk, Resmi, Günlük ve Yazı Dili",
-    "specPages": "{{count}} Sayfa",
-    "specLanguages": "{{count}} Dil",
-    "specPrice": "25.000 KRW"
+    "specPrice": "25.000 KRW",
+    "specPages_one": "{{count}} sayfa",
+    "specPages_other": "{{count}} sayfa",
+    "specLanguages_one": "{{count}} dil",
+    "specLanguages_other": "{{count}} dil"
   },
   "seo": {
     "home": {
@@ -551,7 +556,6 @@
     "programTopikListen": "TOPIK Dinleme",
     "programTopikWrite": "TOPIK Yazma",
     "programTbc": "Henüz Belirlenmedi",
-    "totalProblems": "Toplam {{count}} soru",
     "emptyTitle": "Kayıtlı soru bulunmuyor",
     "emptyDescription": "Seçilen program için henüz herhangi bir çalışma sorusu bulunmamaktadır.",
     "emptyDetailDescription": "Bu çalışma için henüz hiç soru kaydedilmedi.",
@@ -575,7 +579,6 @@
     "viewExplanation": "Açıklamayı Görüntüle",
     "references": "Kaynaklar",
     "solvedBadge": "Çözüldü",
-    "tryCount": "{{count}} deneme",
     "submitButton": "Gönder",
     "submitting": "Gönderiliyor...",
     "retryButton": "Tekrar Dene",
@@ -645,13 +648,11 @@
       "stats": {
         "pageTitle": "Yazma Pratiği İstatistikleri",
         "pageDescription": "Hangul yazma geçmişinizden doğruluk, hız ve en zayıf olduğunuz karakterleri inceleyin.",
-        "lastDays": "Son {{count}} gün",
         "totalSessions": "Toplam Oturum",
         "avgAccuracy": "Ortalama Doğruluk",
         "avgCpm": "Ortalama CPM",
         "cpmUnit": "Dakika başına karakter",
         "levelTitle": "Seviyeye Göre",
-        "sessionCount": "{{count}} oturum",
         "accuracyLabel": "Doğruluk",
         "cpmLabel": "CPM",
         "noLevelData": "Henüz seviye verisi bulunmuyor.",
@@ -663,13 +664,22 @@
         "noTrendData": "Henüz trend verisi bulunmuyor.",
         "weakTitle": "En Zayıf 10 Karakter",
         "weakSubtitle": "Her bir karakterin ne sıklıkla yanlış yazıldığına göre sıralanmıştır. Bir sonraki oturumunuzda bunlara odaklanın.",
-        "missCount": "{{count}}×",
         "noWeakData": "Henüz zayıf karakter verisi bulunmuyor. Harika iş!",
         "emptyTitle": "Henüz kaydedilmiş bir oturum yok",
         "emptyDescription": "İlk istatistiklerinizi oluşturmak için pratik yapmaya başlayın.",
-        "emptyAction": "Pratik yapmaya başlayın"
+        "emptyAction": "Pratik yapmaya başlayın",
+        "lastDays_one": "Son {{count}} gün",
+        "lastDays_other": "Son {{count}} gün",
+        "sessionCount_one": "{{count}} oturum",
+        "sessionCount_other": "{{count}} oturum",
+        "missCount_one": "{{count}}×",
+        "missCount_other": "{{count}}×"
       }
-    }
+    },
+    "totalProblems_one": "Toplam {{count}} soru",
+    "totalProblems_other": "Toplam {{count}} soru",
+    "tryCount_one": "{{count}} deneme",
+    "tryCount_other": "{{count}} deneme"
   },
   "auth": {
     "loginTitle": "Giriş Yap",
@@ -816,7 +826,6 @@
     "toastTooManyVerifyAttempts": "Çok fazla doğrulama denemesi yapıldı. Lütfen daha sonra tekrar deneyiniz.",
     "toastTooManyResendRequests": "Çok fazla yeniden gönderim isteği yapıldı. Lütfen daha sonra tekrar deneyiniz.",
     "oauthPasswordWarning": "Sosyal giriş (Google vb.) yoluyla oluşturulan hesapların şifresi bulunmamaktadır. Lütfen ilgili sosyal hizmeti kullanarak giriş yapınız.",
-    "remainingAttempts": "Kalan deneme sayısı: {{count}}",
     "noAttemptsRemaining": "Gönderim sınırına ulaştınız. Lütfen daha sonra tekrar deneyiniz.",
     "mfaTitle": "İki Faktörlü Kimlik Doğrulama",
     "mfaDescription": "Google Authenticator uygulamanızdaki kodu giriniz",
@@ -829,7 +838,9 @@
     "mfaInvalidCode": "Geçersiz kimlik doğrulama kodu",
     "mfaBackupPlaceholder": "8 karakterli yedek kod",
     "mfaUseBackupCode": "Yedek kodu kullan",
-    "mfaUseAuthApp": "Kimlik doğrulama uygulamasını kullan"
+    "mfaUseAuthApp": "Kimlik doğrulama uygulamasını kullan",
+    "remainingAttempts_one": "Kalan deneme: {{count}}",
+    "remainingAttempts_other": "Kalan deneme: {{count}}"
   },
   "textbook": {
     "heroBadge": "Amazing Korean Ders Kitapları",

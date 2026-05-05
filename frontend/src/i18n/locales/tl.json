@@ -206,7 +206,6 @@
     "toastTooManyVerifyAttempts": "Masyadong maraming verification attempts. Pakisubukan po muli mamaya.",
     "toastTooManyResendRequests": "Masyadong maraming request para mag-resend. Pakisubukan po muli mamaya.",
     "oauthPasswordWarning": "Ang mga account na ginawa gamit ang social login (Google, atbp.) ay walang password. Mangyaring mag-log in gamit ang social service.",
-    "remainingAttempts": "Natitirang attempts: {{count}}",
     "noAttemptsRemaining": "Naabot na po ang limitasyon sa pagpapadala. Pakisubukan po muli mamaya.",
     "mfaTitle": "Two-Factor Authentication",
     "mfaDescription": "Ipasok po ang code mula sa inyong Google Authenticator app.",
@@ -219,7 +218,9 @@
     "mfaInvalidCode": "Hindi wastong authentication code",
     "mfaBackupPlaceholder": "8-character na backup code",
     "mfaUseBackupCode": "Gamitin ang backup code",
-    "mfaUseAuthApp": "Gamitin ang authenticator app"
+    "mfaUseAuthApp": "Gamitin ang authenticator app",
+    "remainingAttempts_one": "Natitirang subok: {{count}}",
+    "remainingAttempts_other": "Mga natitirang subok: {{count}}"
   },
   "mfa": {
     "title": "Two-Factor Authentication",
@@ -374,7 +375,6 @@
     "programTopikListen": "Pakikinig sa TOPIK",
     "programTopikWrite": "Pagsulat sa TOPIK",
     "programTbc": "Kukumpirmahin pa",
-    "totalProblems": "Kabuuang {{count}} na mga problema",
     "emptyTitle": "Walang nakarehistrong mga problema",
     "emptyDescription": "Wala pang mga problemang nakarekord para sa napiling programa.",
     "emptyDetailDescription": "Wala pang mga tanong na nakarehistro para sa pag-aaral na ito.",
@@ -398,7 +398,6 @@
     "viewExplanation": "Tingnan ang Paliwanag",
     "references": "Mga Sanggunian",
     "solvedBadge": "Nalutas",
-    "tryCount": "{{count}} na pagtatangka",
     "submitButton": "Isumite",
     "submitting": "Nagsusumite...",
     "retryButton": "Subukan muli",
@@ -468,13 +467,11 @@
       "stats": {
         "pageTitle": "Istatistika ng Typing Practice",
         "pageDescription": "Suriin ang accuracy, bilis, at ang mga karakter na pinakamahirap para sa inyo mula sa inyong Hangul typing history.",
-        "lastDays": "Huling {{count}} na araw",
         "totalSessions": "Kabuuang Session",
         "avgAccuracy": "Average na Accuracy",
         "avgCpm": "Average na CPM",
         "cpmUnit": "Karakter bawat minuto",
         "levelTitle": "Ayon sa Level",
-        "sessionCount": "{{count}} na sesyon",
         "accuracyLabel": "Katumpakan",
         "cpmLabel": "CPM",
         "noLevelData": "Wala pang data para sa level.",
@@ -486,19 +483,27 @@
         "noTrendData": "Wala pang datos para sa trend.",
         "weakTitle": "Top 10 na Mahihirap na Karakter",
         "weakSubtitle": "Nakaayos base sa kung gaano kadalas magkamali sa bawat karakter. Pagtuunan po ninyo ng pansin ang mga ito sa susunod ninyong session.",
-        "missCount": "{{count}}×",
         "noWeakData": "Wala pang data para sa mga mahihirap na karakter. Magaling po!",
         "emptyTitle": "Wala pang naitalang session",
         "emptyDescription": "Magsimulang magsanay para makabuo ng inyong unang istatistika.",
-        "emptyAction": "Magsimulang magsanay"
+        "emptyAction": "Magsimulang magsanay",
+        "lastDays_one": "Huling {{count}} araw",
+        "lastDays_other": "Huling {{count}} araw",
+        "sessionCount_one": "{{count}} session",
+        "sessionCount_other": "{{count}} session",
+        "missCount_one": "{{count}}×",
+        "missCount_other": "{{count}}×"
       }
-    }
+    },
+    "totalProblems_one": "Kabuuang {{count}} problema",
+    "totalProblems_other": "Kabuuang {{count}} problema",
+    "tryCount_one": "{{count}} subok",
+    "tryCount_other": "{{count}} subok"
   },
   "lesson": {
     "heroBadge": "Step-by-Step na Kurikulum",
     "listTitle": "Listahan ng mga Aralin",
     "listDescription": "Matuto ng Korean nang step-by-step sa pamamagitan ng mga araling sistematikong nakaayos. Nagbibigay kami ng mga integrated na aralin na may kasamang mga video, pagsasanay, at mga takdang-aralin.",
-    "totalLessons": "Kabuuang {{count}} na aralin",
     "emptyTitle": "Walang nakarehistrong mga aralin",
     "emptyDescription": "Magdadagdag po ng mga bagong lesson sa lalong madaling panahon.",
     "accessPaid": "May bayad",
@@ -512,19 +517,21 @@
     "completeLesson": "Tapusin ang Aralin",
     "lessonCompleted": "Tapos na ang Aralin",
     "learningItems": "Mga Nilalaman",
-    "itemCount": "{{count}} na item",
     "emptyItemsTitle": "Walang nakarehistrong mga nilalaman",
     "emptyItemsDescription": "Wala pang nakarehistrong mga nilalaman para sa lesson na ito.",
     "notFoundTitle": "Hindi mahanap ang leksyon",
     "notFoundDescription": "Ang leksyong ito ay hindi matagpuan o maaaring nabura na.",
     "videoId": "Video #{{id}}",
-    "taskId": "Problema #{{id}}"
+    "taskId": "Problema #{{id}}",
+    "totalLessons_one": "Kabuuang {{count}} aralin",
+    "totalLessons_other": "Kabuuang {{count}} mga aralin",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} mga item"
   },
   "video": {
     "heroBadge": "Matuto ng Korean gamit ang mga Video",
     "listTitle": "Pag-aaral gamit ang Video",
     "listDescription": "Matuto nang natural gamit ang mga Korean video tungkol sa iba't ibang paksa. Manood at makinig sa tamang pagbigkas at mga ekspresyon ng mga native speaker para mapahusay ang inyong kakayahan.",
-    "totalVideos": "Kabuuang {{count}} na video",
     "emptyTitle": "Walang nakarehistrong mga video.",
     "notFoundTitle": "Hindi nahanap ang video",
     "notFoundDescription": "Ang video na ito ay hindi matagpuan o maaaring nabura na.",
@@ -533,7 +540,9 @@
     "allItemsCompleted": "Tapos na ang lahat ng mga item sa \"{{title}}\"!",
     "nextItem": "Susunod na Item",
     "backToLesson": "Balik sa Aralin",
-    "backToLessonShort": "Sa Aralin"
+    "backToLessonShort": "Sa Aralin",
+    "totalVideos_one": "Kabuuang {{count}} video",
+    "totalVideos_other": "Kabuuang {{count}} mga video"
   },
   "payment": {
     "title": "Pumili ng Inyong Plano",
@@ -1508,8 +1517,10 @@
     "slideTags3": "Mga Panahunan, Mga Particle, Mga Pangtanong",
     "slideTags4": "500 na Pangungusap, Ayon sa Dalas, Ayon sa Hirap",
     "slideTags5": "Mga Numero, Negasyon, Pormal, Kolokyal, at Pasulat",
-    "specPages": "{{count}} Pahina",
-    "specLanguages": "{{count}} Wika",
-    "specPrice": "25,000 KRW"
+    "specPrice": "25,000 KRW",
+    "specPages_one": "{{count}} pahina",
+    "specPages_other": "{{count}} mga pahina",
+    "specLanguages_one": "{{count}} wika",
+    "specLanguages_other": "{{count}} mga wika"
   }
 }

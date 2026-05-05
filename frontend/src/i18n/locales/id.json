@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "Terlalu banyak percobaan verifikasi. Silakan coba lagi nanti.",
     "toastTooManyResendRequests": "Terlalu banyak permintaan kirim ulang. Silakan coba lagi nanti.",
     "oauthPasswordWarning": "Akun yang dibuat melalui login sosial (Google, dll.) tidak memiliki kata sandi. Silakan masuk menggunakan layanan sosial.",
-    "remainingAttempts": "Sisa percobaan: {{count}}",
     "noAttemptsRemaining": "Anda telah mencapai batas pengiriman. Silakan coba lagi nanti.",
     "mfaTitle": "Autentikasi Dua Faktor",
     "mfaDescription": "Masukkan kode dari aplikasi Google Authenticator Anda",
@@ -219,7 +218,9 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "Kode cadangan 8 karakter",
     "mfaUseBackupCode": "Gunakan kode cadangan",
-    "mfaUseAuthApp": "Gunakan aplikasi autentikator"
+    "mfaUseAuthApp": "Gunakan aplikasi autentikator",
+    "remainingAttempts_one": "Sisa percobaan: {{count}}",
+    "remainingAttempts_other": "Sisa percobaan: {{count}}"
   },
   "user": {
     "myPageTitle": "Halaman Saya",
@@ -346,7 +347,6 @@
     "programTopikListen": "TOPIK Mendengar",
     "programTopikWrite": "TOPIK Menulis",
     "programTbc": "TBC",
-    "totalProblems": "Total {{count}} soal",
     "emptyTitle": "Belum ada soal terdaftar",
     "emptyDescription": "Belum ada soal latihan untuk program yang dipilih.",
     "emptyDetailDescription": "Belum ada soal yang terdaftar untuk latihan ini.",
@@ -369,7 +369,6 @@
     "viewExplanation": "Lihat Penjelasan",
     "references": "Referensi",
     "solvedBadge": "Terjawab",
-    "tryCount": "{{count}} percobaan",
     "submitButton": "Kirim",
     "submitting": "Mengirim...",
     "retryButton": "Coba Lagi",
@@ -383,13 +382,16 @@
     "toLesson": "Ke Pelajaran",
     "nextItemVideo": "Item Berikutnya (Video)",
     "nextItemTask": "Item Berikutnya (Soal)",
-    "completeLesson": "Selesaikan Pelajaran"
+    "completeLesson": "Selesaikan Pelajaran",
+    "totalProblems_one": "Total {{count}} soal",
+    "totalProblems_other": "Total {{count}} soal",
+    "tryCount_one": "{{count}} percobaan",
+    "tryCount_other": "{{count}} percobaan"
   },
   "lesson": {
     "heroBadge": "Kurikulum Bertahap",
     "listTitle": "Daftar Pelajaran",
     "listDescription": "Pelajari bahasa Korea langkah demi langkah melalui pelajaran yang terorganisir secara sistematis. Kami menyediakan pelajaran terintegrasi dengan video, soal, dan tugas.",
-    "totalLessons": "Total {{count}} pelajaran",
     "emptyTitle": "Belum ada pelajaran terdaftar",
     "emptyDescription": "Pelajaran baru akan segera ditambahkan.",
     "accessPaid": "Berbayar",
@@ -403,19 +405,21 @@
     "completeLesson": "Selesaikan Pelajaran",
     "lessonCompleted": "Pelajaran Selesai",
     "learningItems": "Item Pembelajaran",
-    "itemCount": "{{count}} item",
     "emptyItemsTitle": "Belum ada item pembelajaran terdaftar",
     "emptyItemsDescription": "Belum ada item pembelajaran yang terdaftar untuk pelajaran ini.",
     "notFoundTitle": "Pelajaran tidak ditemukan",
     "notFoundDescription": "Pelajaran ini tidak ada atau telah dihapus.",
     "videoId": "Video #{{id}}",
-    "taskId": "Soal #{{id}}"
+    "taskId": "Soal #{{id}}",
+    "totalLessons_one": "Total {{count}} pelajaran",
+    "totalLessons_other": "Total {{count}} pelajaran",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} item"
   },
   "video": {
     "heroBadge": "Belajar Bahasa Korea melalui Video",
     "listTitle": "Belajar Video",
     "listDescription": "Belajar secara alami melalui video bahasa Korea dengan berbagai topik. Tonton dan dengarkan pengucapan dan ekspresi asli untuk meningkatkan kemampuan Anda.",
-    "totalVideos": "Total {{count}} video",
     "emptyTitle": "Belum ada video terdaftar.",
     "notFoundTitle": "Video tidak ditemukan",
     "notFoundDescription": "Video ini tidak ada atau telah dihapus.",
@@ -424,7 +428,9 @@
     "allItemsCompleted": "Semua item di \"{{title}}\" telah diselesaikan!",
     "nextItem": "Item Berikutnya",
     "backToLesson": "Kembali ke Pelajaran",
-    "backToLessonShort": "Ke Pelajaran"
+    "backToLessonShort": "Ke Pelajaran",
+    "totalVideos_one": "Total {{count}} video",
+    "totalVideos_other": "Total {{count}} video"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +928,13 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_one": "{{count}} halaman",
+    "specPages_other": "{{count}} Halaman",
+    "specLanguages_one": "{{count}} bahasa",
+    "specLanguages_other": "{{count}} bahasa"
   },
   "mfa": {
     "title": "Autentikasi Dua Faktor",

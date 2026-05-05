@@ -206,7 +206,6 @@
     "toastTooManyVerifyAttempts": "تصدیق کی کوششیں حد سے زیادہ ہو گئی ہیں۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں۔",
     "toastTooManyResendRequests": "دوبارہ بھیجنے کی درخواستیں حد سے زیادہ ہو گئی ہیں۔ براہ کرم کچھ دیر بعد دوبارہ کوشش کریں۔",
     "oauthPasswordWarning": "سوشل لاگ ان (گوگل وغیرہ) کے ذریعے بنائے گئے اکاؤنٹس کا کوئی پاس ورڈ نہیں ہوتا۔ براہ کرم اسی سوشل سروس کے ذریعے لاگ ان کریں۔",
-    "remainingAttempts": "باقی کوششیں: {{count}}",
     "noAttemptsRemaining": "آپ بھیجنے کی حد تک پہنچ چکے ہیں۔ براہ کرم بعد میں دوبارہ کوشش کریں۔",
     "mfaTitle": "دو مرحلہ وار تصدیق",
     "mfaDescription": "اپنی گوگل آتھنٹیکیٹر ایپ سے کوڈ درج کریں",
@@ -219,7 +218,9 @@
     "mfaInvalidCode": "غلط تصدیقی کوڈ",
     "mfaBackupPlaceholder": "8 حروف پر مشتمل بیک اپ کوڈ",
     "mfaUseBackupCode": "بیک اپ کوڈ استعمال کریں",
-    "mfaUseAuthApp": "آتھنٹیکیٹر ایپ استعمال کریں"
+    "mfaUseAuthApp": "آتھنٹیکیٹر ایپ استعمال کریں",
+    "remainingAttempts_one": "باقی کوشش: {{count}}",
+    "remainingAttempts_other": "باقی کوششیں: {{count}}"
   },
   "mfa": {
     "title": "دو مرحلہ وار تصدیق",
@@ -374,7 +375,6 @@
     "programTopikListen": "TOPIK سننے کی مہارت",
     "programTopikWrite": "TOPIK رائٹنگ",
     "programTbc": "تصدیق ہونا باقی ہے",
-    "totalProblems": "کل {{count}} سوالات",
     "emptyTitle": "کوئی سوالات رجسٹرڈ نہیں ہیں",
     "emptyDescription": "منتخب کردہ پروگرام کے لیے ابھی تک کوئی سوالات دستیاب نہیں ہیں۔",
     "emptyDetailDescription": "اس اسٹڈی کے لیے ابھی تک کوئی سوالات درج نہیں کیے گئے۔",
@@ -398,7 +398,6 @@
     "viewExplanation": "وضاحت دیکھیں",
     "references": "حوالہ جات",
     "solvedBadge": "حل شدہ",
-    "tryCount": "{{count}} کوششیں",
     "submitButton": "جمع کریں",
     "submitting": "جمع کیا جا رہا ہے...",
     "retryButton": "دوبارہ کوشش کریں",
@@ -468,13 +467,11 @@
       "stats": {
         "pageTitle": "ٹائپنگ پریکٹس کے اعداد و شمار",
         "pageDescription": "اپنی ہنگل ٹائپنگ کی تاریخ سے درستگی، رفتار، اور اپنے کمزور حروف کا جائزہ لیں۔",
-        "lastDays": "گزشتہ {{count}} دن",
         "totalSessions": "کل سیشنز",
         "avgAccuracy": "اوسط درستگی",
         "avgCpm": "اوسط CPM",
         "cpmUnit": "حروف فی منٹ",
         "levelTitle": "سطح کے لحاظ سے",
-        "sessionCount": "{{count}} سیشن",
         "accuracyLabel": "درستگی",
         "cpmLabel": "CPM",
         "noLevelData": "ابھی لیول کا کوئی ڈیٹا موجود نہیں ہے۔",
@@ -486,19 +483,27 @@
         "noTrendData": "ابھی تک کوئی ٹرینڈ ڈیٹا دستیاب نہیں ہے۔",
         "weakTitle": "10 سب سے کمزور حروف",
         "weakSubtitle": "یہ ترتیب ان حروف کی بنیاد پر ہے جو سب سے زیادہ غلط ٹائپ ہوئے۔ اپنی اگلی نشست میں ان پر توجہ دیں۔",
-        "missCount": "{{count}}×",
         "noWeakData": "ابھی تک کوئی کمزور حروف کا ڈیٹا موجود نہیں ہے۔ بہت خوب!",
         "emptyTitle": "ابھی تک کوئی نشست ریکارڈ نہیں کی گئی",
         "emptyDescription": "اپنی پہلی شماریات دیکھنے کے لیے مشق شروع کریں۔",
-        "emptyAction": "مشق شروع کریں"
+        "emptyAction": "مشق شروع کریں",
+        "lastDays_one": "گزشتہ {{count}} دن",
+        "lastDays_other": "گزشتہ {{count}} دن",
+        "sessionCount_one": "{{count}} سیشن",
+        "sessionCount_other": "{{count}} سیشن",
+        "missCount_one": "{{count}}×",
+        "missCount_other": "{{count}}×"
       }
-    }
+    },
+    "totalProblems_one": "کل {{count}} سوال",
+    "totalProblems_other": "کل {{count}} سوال",
+    "tryCount_one": "{{count}} کوشش",
+    "tryCount_other": "{{count}} کوشش"
   },
   "lesson": {
     "heroBadge": "مرحلہ وار نصاب",
     "listTitle": "اسباق کی فہرست",
     "listDescription": "منظم اسباق کے ذریعے مرحلہ وار کوریائی زبان سیکھیں۔ ہم ویڈیوز، مشقوں اور اسائنمنٹس کے ساتھ مربوط اسباق فراہم کرتے ہیں۔",
-    "totalLessons": "کل {{count}} اسباق",
     "emptyTitle": "کوئی اسباق رجسٹرڈ نہیں ہیں",
     "emptyDescription": "نئے اسباق جلد شامل کیے جائیں گے۔",
     "accessPaid": "بامعاوضہ",
@@ -512,19 +517,21 @@
     "completeLesson": "سبق مکمل کریں",
     "lessonCompleted": "سبق مکمل ہو گیا",
     "learningItems": "سیکھنے کے اجزاء",
-    "itemCount": "{{count}} اشیاء",
     "emptyItemsTitle": "کوئی سیکھنے کا مواد رجسٹرڈ نہیں ہے",
     "emptyItemsDescription": "اس سبق کے لیے ابھی تک کوئی سیکھنے کا مواد رجسٹرڈ نہیں کیا گیا ہے۔",
     "notFoundTitle": "سبق نہیں ملا",
     "notFoundDescription": "یہ سبق موجود نہیں ہے یا اسے حذف کر دیا گیا ہے۔",
     "videoId": "ویڈیو نمبر {{id}}",
-    "taskId": "سوال نمبر {{id}}"
+    "taskId": "سوال نمبر {{id}}",
+    "totalLessons_one": "کل {{count}} سبق",
+    "totalLessons_other": "کل {{count}} سبق",
+    "itemCount_one": "{{count}} آئٹم",
+    "itemCount_other": "{{count}} آئٹم"
   },
   "video": {
     "heroBadge": "ویڈیوز کے ذریعے کورین سیکھیں",
     "listTitle": "ویڈیو کے ذریعے سیکھنا",
     "listDescription": "مختلف موضوعات پر کورین ویڈیوز کے ذریعے قدرتی انداز میں سیکھیں۔ اپنی مہارت کو بہتر بنانے کے لیے مقامی تلفظ اور تاثرات کو دیکھیں اور سنیں۔",
-    "totalVideos": "کل {{count}} ویڈیوز",
     "emptyTitle": "کوئی ویڈیو رجسٹرڈ نہیں ہے۔",
     "notFoundTitle": "ویڈیو نہیں ملی",
     "notFoundDescription": "یہ ویڈیو موجود نہیں ہے یا اسے حذف کر دیا گیا ہے۔",
@@ -533,7 +540,9 @@
     "allItemsCompleted": "\"{{title}}\" کے تمام آئٹمز مکمل ہو چکے ہیں!",
     "nextItem": "اگلا آئٹم",
     "backToLesson": "سبق پر واپس جائیں",
-    "backToLessonShort": "سبق پر"
+    "backToLessonShort": "سبق پر",
+    "totalVideos_one": "کل {{count}} ویڈیو",
+    "totalVideos_other": "کل {{count}} ویڈیو"
   },
   "payment": {
     "title": "اپنا پلان منتخب کریں",
@@ -1508,8 +1517,10 @@
     "slideTags3": "زمانے، حروفِ جار، سوالیہ الفاظ",
     "slideTags4": "500 جملے، کثرت کے لحاظ سے، مشکل کے لحاظ سے",
     "slideTags5": "اعداد، نفی، رسمی، بول چال اور تحریری",
-    "specPages": "{{count}} صفحات",
-    "specLanguages": "{{count}} زبانیں",
-    "specPrice": "25,000 KRW"
+    "specPrice": "25,000 KRW",
+    "specPages_one": "{{count}} صفحہ",
+    "specPages_other": "{{count}} صفحہ",
+    "specLanguages_one": "{{count}} زبان",
+    "specLanguages_other": "{{count}} زبانیں"
   }
 }

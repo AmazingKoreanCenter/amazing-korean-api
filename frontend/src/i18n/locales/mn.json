@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "Хэт олон баталгаажуулах оролдлого. Дараа дахин оролдоно уу.",
     "toastTooManyResendRequests": "Хэт олон дахин илгээх хүсэлт. Дараа дахин оролдоно уу.",
     "oauthPasswordWarning": "Нийгмийн сүлжээгээр (Google г.м.) үүсгэсэн бүртгэлд нууц үг байхгүй. Нийгмийн сүлжээний үйлчилгээгээр нэвтэрнэ үү.",
-    "remainingAttempts": "Үлдсэн оролдлого: {{count}}",
     "noAttemptsRemaining": "Илгээх хязгаарт хүрсэн байна. Дараа дахин оролдоно уу.",
     "mfaTitle": "Хоёр хүчин зүйлийн нэвтрэлт",
     "mfaDescription": "Google Authenticator програмаас кодоо оруулна уу",
@@ -219,7 +218,9 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "8 тэмдэгт бүхий нөөц код",
     "mfaUseBackupCode": "Нөөц код ашиглах",
-    "mfaUseAuthApp": "Баталгаажуулах апп ашиглах"
+    "mfaUseAuthApp": "Баталгаажуулах апп ашиглах",
+    "remainingAttempts_one": "Үлдсэн оролдлого: {{count}}",
+    "remainingAttempts_other": "Үлдсэн оролдлого: {{count}}"
   },
   "user": {
     "myPageTitle": "Миний хуудас",
@@ -346,7 +347,6 @@
     "programTopikListen": "TOPIK Сонсох",
     "programTopikWrite": "TOPIK Бичих",
     "programTbc": "TBC",
-    "totalProblems": "Нийт {{count}} даалгавар",
     "emptyTitle": "Бүртгэгдсэн даалгавар байхгүй",
     "emptyDescription": "Сонгосон хөтөлбөрт одоогоор дасгал даалгавар байхгүй байна.",
     "emptyDetailDescription": "Энэ сургалтад одоогоор даалгавар бүртгэгдээгүй байна.",
@@ -369,7 +369,6 @@
     "viewExplanation": "Тайлбар харах",
     "references": "Лавлагаа",
     "solvedBadge": "Шийдсэн",
-    "tryCount": "{{count}} оролдлого",
     "submitButton": "Илгээх",
     "submitting": "Илгээж байна...",
     "retryButton": "Дахин оролдох",
@@ -383,13 +382,16 @@
     "toLesson": "Хичээл рүү",
     "nextItemVideo": "Дараагийн зүйл (Видео)",
     "nextItemTask": "Дараагийн зүйл (Даалгавар)",
-    "completeLesson": "Хичээл дуусгах"
+    "completeLesson": "Хичээл дуусгах",
+    "totalProblems_one": "Нийт {{count}} бодлого",
+    "totalProblems_other": "Нийт {{count}} бодлого",
+    "tryCount_one": "{{count}} оролдлого",
+    "tryCount_other": "{{count}} оролдлого"
   },
   "lesson": {
     "heroBadge": "Алхам алхмаар хөтөлбөр",
     "listTitle": "Хичээлийн жагсаалт",
     "listDescription": "Системтэй зохион байгуулсан хичээлүүдээр алхам алхмаар солонгос хэл суралцаарай. Видео, даалгавар, бие даалт бүхий нэгдсэн хичээлүүдийг санал болгож байна.",
-    "totalLessons": "Нийт {{count}} хичээл",
     "emptyTitle": "Бүртгэгдсэн хичээл байхгүй",
     "emptyDescription": "Шинэ хичээлүүд удахгүй нэмэгдэнэ.",
     "accessPaid": "Төлбөртэй",
@@ -403,19 +405,21 @@
     "completeLesson": "Хичээл дуусгах",
     "lessonCompleted": "Хичээл дууссан",
     "learningItems": "Сургалтын зүйлс",
-    "itemCount": "{{count}} зүйл",
     "emptyItemsTitle": "Бүртгэгдсэн сургалтын зүйл байхгүй",
     "emptyItemsDescription": "Энэ хичээлд одоогоор сургалтын зүйл бүртгэгдээгүй байна.",
     "notFoundTitle": "Хичээл олдсонгүй",
     "notFoundDescription": "Энэ хичээл байхгүй эсвэл устгагдсан байна.",
     "videoId": "Видео #{{id}}",
-    "taskId": "Даалгавар #{{id}}"
+    "taskId": "Даалгавар #{{id}}",
+    "totalLessons_one": "Нийт {{count}} хичээл",
+    "totalLessons_other": "Нийт {{count}} хичээл",
+    "itemCount_one": "{{count}} нэгж",
+    "itemCount_other": "{{count}} нэгж"
   },
   "video": {
     "heroBadge": "Видеогоор солонгос хэл суралцах",
     "listTitle": "Видео сургалт",
     "listDescription": "Олон сэдвийн солонгос хэлний видеогоор байгалийн жамаар суралцаарай. Уугуул хэлтний дуудлага, илэрхийллийг сонсож, харж чадвараа сайжруулаарай.",
-    "totalVideos": "Нийт {{count}} видео",
     "emptyTitle": "Бүртгэгдсэн видео байхгүй.",
     "notFoundTitle": "Видео олдсонгүй",
     "notFoundDescription": "Энэ видео байхгүй эсвэл устгагдсан байна.",
@@ -424,7 +428,9 @@
     "allItemsCompleted": "\"{{title}}\" дахь бүх зүйлс дууссан!",
     "nextItem": "Дараагийн зүйл",
     "backToLesson": "Хичээл рүү буцах",
-    "backToLessonShort": "Хичээл рүү"
+    "backToLessonShort": "Хичээл рүү",
+    "totalVideos_one": "Нийт {{count}} видео",
+    "totalVideos_other": "Нийт {{count}} видео"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +928,13 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_one": "{{count}} хуудас",
+    "specPages_other": "{{count}} хуудас",
+    "specLanguages_one": "{{count}} хэл",
+    "specLanguages_other": "{{count}} хэл"
   },
   "mfa": {
     "title": "Хоёр шатлалт баталгаажуулалт",

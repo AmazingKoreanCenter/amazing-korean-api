@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "වැඩිපුර සත්‍යාපන උත්සාහයන්. කරුණාකර පසුව නැවත උත්සාහ කරන්න.",
     "toastTooManyResendRequests": "වැඩිපුර නැවත යැවීම් ඉල්ලීම්. කරුණාකර පසුව නැවත උත්සාහ කරන්න.",
     "oauthPasswordWarning": "සමාජ පිවිසීම (Google, ආදිය) හරහා සාදන ලද ගිණුම්වල මුරපදයක් නොමැත. කරුණාකර සමාජ සේවාව භාවිතයෙන් පිවිසෙන්න.",
-    "remainingAttempts": "ඉතිරි උත්සාහයන්: {{count}}",
     "noAttemptsRemaining": "ඔබ යැවීමේ සීමාවට ළඟා වී ඇත. කරුණාකර පසුව නැවත උත්සාහ කරන්න.",
     "mfaTitle": "ද්වි-සාධක සත්‍යාපනය",
     "mfaDescription": "ඔබගේ Google Authenticator යෙදුමෙන් කේතය ඇතුළත් කරන්න",
@@ -219,7 +218,9 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "අක්ෂර 8ක උපස්ථ කේතය",
     "mfaUseBackupCode": "උපස්ථ කේතය භාවිතා කරන්න",
-    "mfaUseAuthApp": "Authenticator app එක භාවිතා කරන්න"
+    "mfaUseAuthApp": "Authenticator app එක භාවිතා කරන්න",
+    "remainingAttempts_one": "ඉතිරි උත්සාහය: {{count}}",
+    "remainingAttempts_other": "ඉතිරි උත්සාහයන්: {{count}}"
   },
   "user": {
     "myPageTitle": "මගේ පිටුව",
@@ -346,7 +347,6 @@
     "programTopikListen": "TOPIK සවන්දීම",
     "programTopikWrite": "TOPIK ලිවීම",
     "programTbc": "TBC",
-    "totalProblems": "මුළු ප්‍රශ්න {{count}}",
     "emptyTitle": "ප්‍රශ්න ලියාපදිංචි කර නොමැත",
     "emptyDescription": "තෝරාගත් වැඩසටහන සඳහා තවමත් අධ්‍යයන ප්‍රශ්න නොමැත.",
     "emptyDetailDescription": "මෙම අධ්‍යයනය සඳහා තවමත් ප්‍රශ්න ලියාපදිංචි කර නොමැත.",
@@ -369,7 +369,6 @@
     "viewExplanation": "පැහැදිලි කිරීම බලන්න",
     "references": "යොමු",
     "solvedBadge": "විසඳා ඇත",
-    "tryCount": "උත්සාහයන් {{count}}",
     "submitButton": "ඉදිරිපත් කරන්න",
     "submitting": "ඉදිරිපත් කරමින්...",
     "retryButton": "නැවත උත්සාහ කරන්න",
@@ -383,13 +382,16 @@
     "toLesson": "පාඩමට",
     "nextItemVideo": "ඊළඟ අයිතමය (වීඩියෝ)",
     "nextItemTask": "ඊළඟ අයිතමය (ප්‍රශ්නය)",
-    "completeLesson": "පාඩම සම්පූර්ණ කරන්න"
+    "completeLesson": "පාඩම සම්පූර්ණ කරන්න",
+    "totalProblems_one": "මුළු ගැටලුව: {{count}}",
+    "totalProblems_other": "මුළු ගැටලු: {{count}}",
+    "tryCount_one": "{{count}} උත්සාහය",
+    "tryCount_other": "{{count}} උත්සාහයන්"
   },
   "lesson": {
     "heroBadge": "පියවරෙන් පියවර පාඨ්‍යමාලාව",
     "listTitle": "පාඩම් ලැයිස්තුව",
     "listDescription": "ක්‍රමානුකූලව සංවිධානය කළ පාඩම් හරහා පියවරෙන් පියවර කොරියානු ඉගෙන ගන්න. වීඩියෝ, ප්‍රශ්න සහ පැවරුම් සහිත ඒකාබද්ධ පාඩම් අපි සපයන්නෙමු.",
-    "totalLessons": "මුළු පාඩම් {{count}}",
     "emptyTitle": "පාඩම් ලියාපදිංචි කර නොමැත",
     "emptyDescription": "නව පාඩම් ඉක්මනින් එකතු කෙරේ.",
     "accessPaid": "ගෙවීම්",
@@ -403,19 +405,21 @@
     "completeLesson": "පාඩම සම්පූර්ණ කරන්න",
     "lessonCompleted": "පාඩම සම්පූර්ණයි",
     "learningItems": "ඉගෙනුම් අයිතම",
-    "itemCount": "අයිතම {{count}}",
     "emptyItemsTitle": "ඉගෙනුම් අයිතම ලියාපදිංචි කර නොමැත",
     "emptyItemsDescription": "මෙම පාඩමට තවමත් ඉගෙනුම් අයිතම ලියාපදිංචි කර නොමැත.",
     "notFoundTitle": "පාඩම හමු නොවීය",
     "notFoundDescription": "මෙම පාඩම නොපවතී හෝ මකා දමා ඇත.",
     "videoId": "වීඩියෝ #{{id}}",
-    "taskId": "ප්‍රශ්නය #{{id}}"
+    "taskId": "ප්‍රශ්නය #{{id}}",
+    "totalLessons_one": "මුළු පාඩම {{count}}",
+    "totalLessons_other": "මුළු පාඩම් {{count}}",
+    "itemCount_one": "{{count}} අයිතමය",
+    "itemCount_other": "{{count}} අයිතම"
   },
   "video": {
     "heroBadge": "වීඩියෝ හරහා කොරියානු ඉගෙන ගන්න",
     "listTitle": "වීඩියෝ ඉගෙනීම",
     "listDescription": "විවිධ මාතෘකා පිළිබඳ කොරියානු වීඩියෝ හරහා ස්වාභාවිකව ඉගෙන ගන්න. මව් භාෂාවේ උච්චාරණය සහ ප්‍රකාශන නරඹා ශ්‍රවණය කර ඔබගේ කුසලතා වැඩිදියුණු කරන්න.",
-    "totalVideos": "මුළු වීඩියෝ {{count}}",
     "emptyTitle": "වීඩියෝ ලියාපදිංචි කර නොමැත.",
     "notFoundTitle": "වීඩියෝ හමු නොවීය",
     "notFoundDescription": "මෙම වීඩියෝව නොපවතී හෝ මකා දමා ඇත.",
@@ -424,7 +428,9 @@
     "allItemsCompleted": "\"{{title}}\" හි සියලුම අයිතම සම්පූර්ණ කර ඇත!",
     "nextItem": "ඊළඟ අයිතමය",
     "backToLesson": "පාඩමට ආපසු",
-    "backToLessonShort": "පාඩමට"
+    "backToLessonShort": "පාඩමට",
+    "totalVideos_one": "මුළු වීඩියෝව {{count}}",
+    "totalVideos_other": "මුළු වීඩියෝ {{count}}"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +928,13 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_one": "{{count}} පිටුව",
+    "specPages_other": "{{count}} පිටු",
+    "specLanguages_one": "{{count}} භාෂාව",
+    "specLanguages_other": "{{count}} භාෂාවන්"
   },
   "mfa": {
     "title": "ද්වි-සාධක සත්‍යාපනය",

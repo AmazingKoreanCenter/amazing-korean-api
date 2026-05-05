@@ -206,7 +206,6 @@
     "toastTooManyVerifyAttempts": "ভেরিফিকেশন করার চেষ্টা অনেক বেশি হয়ে গেছে। অনুগ্রহ করে পরে আবার চেষ্টা করুন।",
     "toastTooManyResendRequests": "পুনরায় পাঠানোর অনুরোধ অনেক বেশি হয়ে গেছে। অনুগ্রহ করে পরে আবার চেষ্টা করুন।",
     "oauthPasswordWarning": "সোশ্যাল লগইন (Google, ইত্যাদি) এর মাধ্যমে তৈরি করা অ্যাকাউন্টগুলোতে কোনো পাসওয়ার্ড নেই। অনুগ্রহ করে সোশ্যাল লগইন ব্যবহার করে লগইন করুন।",
-    "remainingAttempts": "অবশিষ্ট চেষ্টা: {{count}}",
     "noAttemptsRemaining": "আপনি পাঠানোর সীমা অতিক্রম করেছেন। অনুগ্রহ করে পরে আবার চেষ্টা করুন।",
     "mfaTitle": "টু-ফ্যাক্টর অথেনটিকেশন",
     "mfaDescription": "আপনার Google Authenticator অ্যাপ থেকে কোডটি লিখুন",
@@ -219,7 +218,9 @@
     "mfaInvalidCode": "ভুল অথেনটিকেশন কোড",
     "mfaBackupPlaceholder": "৮-অক্ষরের ব্যাকআপ কোড",
     "mfaUseBackupCode": "ব্যাকআপ কোড ব্যবহার করুন",
-    "mfaUseAuthApp": "অথেনটিকেটর অ্যাপ ব্যবহার করুন"
+    "mfaUseAuthApp": "অথেনটিকেটর অ্যাপ ব্যবহার করুন",
+    "remainingAttempts_one": "অবশিষ্ট প্রচেষ্টা: {{count}}",
+    "remainingAttempts_other": "অবশিষ্ট প্রচেষ্টা: {{count}}"
   },
   "mfa": {
     "title": "টু-ফ্যাক্টর অথেনটিকেশন",
@@ -374,7 +375,6 @@
     "programTopikListen": "TOPIK লিসেনিং",
     "programTopikWrite": "TOPIK রাইটিং",
     "programTbc": "শীঘ্রই জানানো হবে",
-    "totalProblems": "মোট {{count}}টি সমস্যা",
     "emptyTitle": "কোনো সমস্যা নিবন্ধিত নেই",
     "emptyDescription": "নির্বাচিত প্রোগ্রামের জন্য এখনও কোনো স্টাডি প্রবলেম নেই।",
     "emptyDetailDescription": "এই স্টাডির জন্য এখনও কোনো প্রশ্ন নিবন্ধিত করা হয়নি।",
@@ -398,7 +398,6 @@
     "viewExplanation": "ব্যাখ্যা দেখুন",
     "references": "তথ্যসূত্র",
     "solvedBadge": "সমাধানকৃত",
-    "tryCount": "{{count}} বার চেষ্টা",
     "submitButton": "জমা দিন",
     "submitting": "জমা দেওয়া হচ্ছে...",
     "retryButton": "আবার চেষ্টা করুন",
@@ -468,13 +467,11 @@
       "stats": {
         "pageTitle": "টাইপিং প্র্যাকটিস পরিসংখ্যান",
         "pageDescription": "আপনার হাঙ্গুল টাইপিং ইতিহাস থেকে নির্ভুলতা, গতি এবং আপনার সবচেয়ে দুর্বল বর্ণগুলো পর্যালোচনা করুন।",
-        "lastDays": "গত {{count}} দিন",
         "totalSessions": "মোট সেশন",
         "avgAccuracy": "গড় নির্ভুলতা",
         "avgCpm": "গড় CPM",
         "cpmUnit": "প্রতি মিনিটে অক্ষর",
         "levelTitle": "স্তর অনুযায়ী",
-        "sessionCount": "{{count}}টি সেশন",
         "accuracyLabel": "সঠিকতা",
         "cpmLabel": "CPM",
         "noLevelData": "এখনো কোনো লেভেল ডেটা নেই।",
@@ -486,19 +483,27 @@
         "noTrendData": "এখনও কোনো ট্রেন্ড ডেটা নেই।",
         "weakTitle": "শীর্ষ ১০টি দুর্বল অক্ষর",
         "weakSubtitle": "প্রতিটি অক্ষর কতবার ভুল টাইপ করা হয়েছে তার ভিত্তিতে সাজানো হয়েছে। আপনার পরবর্তী সেশনে এগুলোর ওপর গুরুত্ব দিন।",
-        "missCount": "{{count}} বার",
         "noWeakData": "এখনও কোনো দুর্বল অক্ষরের তথ্য নেই। দারুণ কাজ করেছেন!",
         "emptyTitle": "এখনও কোনো সেশন রেকর্ড করা হয়নি",
         "emptyDescription": "আপনার প্রথম পরিসংখ্যান তৈরি করতে অনুশীলন শুরু করুন।",
-        "emptyAction": "অনুশীলন শুরু করুন"
+        "emptyAction": "অনুশীলন শুরু করুন",
+        "lastDays_one": "গত {{count}} দিন",
+        "lastDays_other": "গত {{count}} দিন",
+        "sessionCount_one": "{{count}}টি সেশন",
+        "sessionCount_other": "{{count}}টি সেশন",
+        "missCount_one": "{{count}}×",
+        "missCount_other": "{{count}}×"
       }
-    }
+    },
+    "totalProblems_one": "মোট {{count}}টি সমস্যা",
+    "totalProblems_other": "মোট {{count}}টি সমস্যা",
+    "tryCount_one": "{{count}}টি প্রচেষ্টা",
+    "tryCount_other": "{{count}}টি প্রচেষ্টা"
   },
   "lesson": {
     "heroBadge": "ধাপে ধাপে কারিকুলাম",
     "listTitle": "পাঠের তালিকা",
     "listDescription": "সুশৃঙ্খলভাবে সাজানো পাঠের মাধ্যমে ধাপে ধাপে কোরিয়ান শিখুন। আমরা ভিডিও, অনুশীলন এবং অ্যাসাইনমেন্টসহ সমন্বিত পাঠ প্রদান করি।",
-    "totalLessons": "মোট {{count}}টি পাঠ",
     "emptyTitle": "কোনো পাঠ নিবন্ধিত নেই",
     "emptyDescription": "নতুন লেসন শীঘ্রই যুক্ত করা হবে।",
     "accessPaid": "পেইড",
@@ -512,19 +517,21 @@
     "completeLesson": "পাঠটি সম্পন্ন করুন",
     "lessonCompleted": "পাঠ সম্পন্ন হয়েছে",
     "learningItems": "শেখার বিষয়সমূহ",
-    "itemCount": "{{count}}টি বিষয়",
     "emptyItemsTitle": "কোনো শেখার বিষয় নিবন্ধিত নেই",
     "emptyItemsDescription": "এই পাঠের জন্য এখনও কোনো শেখার বিষয় নিবন্ধিত করা হয়নি।",
     "notFoundTitle": "লেসন পাওয়া যায়নি",
     "notFoundDescription": "এই লেসনটি নেই অথবা এটি মুছে ফেলা হয়েছে।",
     "videoId": "ভিডিও #{{id}}",
-    "taskId": "সমস্যা #{{id}}"
+    "taskId": "সমস্যা #{{id}}",
+    "totalLessons_one": "মোট {{count}}টি পাঠ",
+    "totalLessons_other": "মোট {{count}}টি পাঠ",
+    "itemCount_one": "{{count}}টি আইটেম",
+    "itemCount_other": "{{count}}টি আইটেম"
   },
   "video": {
     "heroBadge": "ভিডিওর মাধ্যমে কোরিয়ান শিখুন",
     "listTitle": "ভিডিওর মাধ্যমে শেখা",
     "listDescription": "বিভিন্ন বিষয়ের ওপর কোরিয়ান ভিডিওর মাধ্যমে স্বাভাবিকভাবে শিখুন। আপনার দক্ষতা বাড়াতে নেটিভ উচ্চারণ এবং অভিব্যক্তি দেখুন ও শুনুন।",
-    "totalVideos": "মোট {{count}}টি ভিডিও",
     "emptyTitle": "কোনো ভিডিও নিবন্ধিত নেই।",
     "notFoundTitle": "ভিডিও পাওয়া যায়নি",
     "notFoundDescription": "এই ভিডিওটি নেই অথবা মুছে ফেলা হয়েছে।",
@@ -533,7 +540,9 @@
     "allItemsCompleted": "\"{{title}}\"-এর সবকটি আইটেম সম্পন্ন হয়েছে!",
     "nextItem": "পরবর্তী আইটেম",
     "backToLesson": "পাঠে ফিরে যান",
-    "backToLessonShort": "পাঠে যান"
+    "backToLessonShort": "পাঠে যান",
+    "totalVideos_one": "মোট {{count}}টি ভিডিও",
+    "totalVideos_other": "মোট {{count}}টি ভিডিও"
   },
   "payment": {
     "title": "আপনার প্ল্যানটি বেছে নিন",
@@ -1508,8 +1517,10 @@
     "slideTags3": "কাল, বিভক্তি, প্রশ্নবোধক শব্দ",
     "slideTags4": "৫০০টি বাক্য, ব্যবহারের হার অনুযায়ী, কঠিনের মাত্রা অনুযায়ী",
     "slideTags5": "সংখ্যা, না-বোধক, আনুষ্ঠানিক, কথ্য ও লিখিত",
-    "specPages": "{{count}} পৃষ্ঠা",
-    "specLanguages": "{{count}}টি ভাষা",
-    "specPrice": "25,000 KRW"
+    "specPrice": "25,000 KRW",
+    "specPages_one": "{{count}}টি পৃষ্ঠা",
+    "specPages_other": "{{count}}টি পৃষ্ঠা",
+    "specLanguages_one": "{{count}}টি ভাষা",
+    "specLanguages_other": "{{count}}টি ভাষা"
   }
 }

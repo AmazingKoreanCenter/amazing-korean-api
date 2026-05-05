@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "Кӯшишҳои тасдиқ аз ҳад зиёд шуд. Лутфан, баъдтар кӯшиш кунед.",
     "toastTooManyResendRequests": "Дархостҳои такрорӣ аз ҳад зиёд шуд. Лутфан, баъдтар кӯшиш кунед.",
     "oauthPasswordWarning": "Ҳисобҳои тавассути воридшавии иҷтимоӣ (Google ва ғ.) сохташуда рамз надоранд. Лутфан, тавассути хизмати иҷтимоӣ ворид шавед.",
-    "remainingAttempts": "Кӯшишҳои боқимонда: {{count}}",
     "noAttemptsRemaining": "Ба ҳадди фиристодан расидед. Лутфан, баъдтар кӯшиш кунед.",
     "mfaTitle": "Аутентификатсияи ду марҳилагӣ",
     "mfaDescription": "Рамзро аз барномаи Google Authenticator ворид кунед",
@@ -219,7 +218,9 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "Коди эҳтиётӣ аз 8 аломат",
     "mfaUseBackupCode": "Истифодаи коди эҳтиётӣ",
-    "mfaUseAuthApp": "Истифодаи барномаи тасдиқкунанда"
+    "mfaUseAuthApp": "Истифодаи барномаи тасдиқкунанда",
+    "remainingAttempts_one": "Кӯшиши боқимонда: {{count}}",
+    "remainingAttempts_other": "Кӯшишҳои боқимонда: {{count}}"
   },
   "user": {
     "myPageTitle": "Саҳифаи ман",
@@ -346,7 +347,6 @@
     "programTopikListen": "TOPIK Шунавонӣ",
     "programTopikWrite": "TOPIK Навиштан",
     "programTbc": "TBC",
-    "totalProblems": "Ҳамагӣ {{count}} масъала",
     "emptyTitle": "Масъалаҳо бақайд гирифта нашудаанд",
     "emptyDescription": "Барои барномаи интихобшуда ҳоло масъалаҳои омӯзишӣ мавҷуд нестанд.",
     "emptyDetailDescription": "Дар ин омӯзиш ҳоло масъала бақайд гирифта нашудааст.",
@@ -369,7 +369,6 @@
     "viewExplanation": "Дидани шарҳ",
     "references": "Маводи иловагӣ",
     "solvedBadge": "Ҳал шуд",
-    "tryCount": "{{count}} кӯшиш",
     "submitButton": "Фиристодан",
     "submitting": "Фиристодан...",
     "retryButton": "Аз нав кӯшиш кардан",
@@ -383,13 +382,16 @@
     "toLesson": "Ба дарс",
     "nextItemVideo": "Унсури навбатӣ (Видео)",
     "nextItemTask": "Унсури навбатӣ (Масъала)",
-    "completeLesson": "Анҷоми дарс"
+    "completeLesson": "Анҷоми дарс",
+    "totalProblems_one": "Ҷамъ: {{count}} масъала",
+    "totalProblems_other": "Ҷамъ: {{count}} масъала",
+    "tryCount_one": "{{count}} кӯшиш",
+    "tryCount_other": "{{count}} кӯшиш"
   },
   "lesson": {
     "heroBadge": "Барномаи зинадорӣ",
     "listTitle": "Рӯйхати дарсҳо",
     "listDescription": "Тавассути дарсҳои ба таври мунтазам ташкилшуда забони кореягиро қадам ба қадам омӯзед. Мо дарсҳои муттаҳидро бо видео, масъалаҳо ва вазифаҳо пешниҳод мекунем.",
-    "totalLessons": "Ҳамагӣ {{count}} дарс",
     "emptyTitle": "Дарсҳо бақайд гирифта нашудаанд",
     "emptyDescription": "Дарсҳои нав ба наздикӣ илова мешаванд.",
     "accessPaid": "Пулакӣ",
@@ -403,19 +405,21 @@
     "completeLesson": "Анҷоми дарс",
     "lessonCompleted": "Дарс анҷом ёфт",
     "learningItems": "Унсурҳои омӯзишӣ",
-    "itemCount": "{{count}} унсур",
     "emptyItemsTitle": "Унсурҳои омӯзишӣ бақайд гирифта нашудаанд",
     "emptyItemsDescription": "Дар ин дарс ҳоло унсурҳои омӯзишӣ мавҷуд нестанд.",
     "notFoundTitle": "Дарс ёфт нашуд",
     "notFoundDescription": "Ин дарс мавҷуд нест ё нест карда шудааст.",
     "videoId": "Видео #{{id}}",
-    "taskId": "Масъала #{{id}}"
+    "taskId": "Масъала #{{id}}",
+    "totalLessons_one": "Ҳамагӣ {{count}} дарс",
+    "totalLessons_other": "Ҳамагӣ {{count}} дарс",
+    "itemCount_one": "{{count}} элемент",
+    "itemCount_other": "{{count}} элемент"
   },
   "video": {
     "heroBadge": "Забони кореягиро тавассути видео омӯзед",
     "listTitle": "Омӯзиши видеоӣ",
     "listDescription": "Тавассути видеоҳои кореягӣ дар мавзӯъҳои гуногун ба таври табиӣ омӯзед. Талаффуз ва ибораҳои забонбарҳоро шунавед ва маҳорати худро такмил диҳед.",
-    "totalVideos": "Ҳамагӣ {{count}} видео",
     "emptyTitle": "Видеоҳо бақайд гирифта нашудаанд.",
     "notFoundTitle": "Видео ёфт нашуд",
     "notFoundDescription": "Ин видео мавҷуд нест ё нест карда шудааст.",
@@ -424,7 +428,9 @@
     "allItemsCompleted": "Ҳамаи унсурҳои \"{{title}}\" анҷом ёфтанд!",
     "nextItem": "Унсури навбатӣ",
     "backToLesson": "Бозгашт ба дарс",
-    "backToLessonShort": "Ба дарс"
+    "backToLessonShort": "Ба дарс",
+    "totalVideos_one": "Ҳамагӣ {{count}} видео",
+    "totalVideos_other": "Ҳамагӣ {{count}} видео"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +928,13 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_one": "{{count}} саҳифа",
+    "specPages_other": "{{count}} саҳифа",
+    "specLanguages_one": "{{count}} забон",
+    "specLanguages_other": "{{count}} забон"
   },
   "mfa": {
     "title": "Аутентификатсияи дуқабата",

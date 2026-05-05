@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "धेरै प्रमाणीकरण प्रयासहरू भए। कृपया पछि फेरि प्रयास गर्नुहोस्।",
     "toastTooManyResendRequests": "धेरै पुनः पठाउने अनुरोधहरू भए। कृपया पछि फेरि प्रयास गर्नुहोस्।",
     "oauthPasswordWarning": "सामाजिक लगइन (Google, आदि) बाट बनाइएका खाताहरूमा पासवर्ड हुँदैन। कृपया सामाजिक सेवाबाट लगइन गर्नुहोस्।",
-    "remainingAttempts": "बाँकी प्रयासहरू: {{count}}",
     "noAttemptsRemaining": "पठाउने सीमा पुगिसक्यो। कृपया पछि फेरि प्रयास गर्नुहोस्।",
     "mfaTitle": "दुई-कारक प्रमाणीकरण",
     "mfaDescription": "तपाईंको Google Authenticator एपबाट कोड प्रविष्ट गर्नुहोस्",
@@ -219,7 +218,9 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "८-अक्षरको ब्याकअप कोड",
     "mfaUseBackupCode": "ब्याकअप कोड प्रयोग गर्नुहोस्",
-    "mfaUseAuthApp": "अथेन्टिकेटर एप प्रयोग गर्नुहोस्"
+    "mfaUseAuthApp": "अथेन्टिकेटर एप प्रयोग गर्नुहोस्",
+    "remainingAttempts_one": "बाँकी प्रयास: {{count}}",
+    "remainingAttempts_other": "बाँकी प्रयासहरू: {{count}}"
   },
   "user": {
     "myPageTitle": "मेरो पृष्ठ",
@@ -346,7 +347,6 @@
     "programTopikListen": "TOPIK श्रवण",
     "programTopikWrite": "TOPIK लेखन",
     "programTbc": "TBC",
-    "totalProblems": "कुल {{count}} प्रश्नहरू",
     "emptyTitle": "कुनै प्रश्न दर्ता छैन",
     "emptyDescription": "चयन गरिएको कार्यक्रमका अध्ययन प्रश्नहरू अझै छैनन्।",
     "emptyDetailDescription": "यो अध्ययनमा अझै कुनै प्रश्न दर्ता गरिएको छैन।",
@@ -369,7 +369,6 @@
     "viewExplanation": "व्याख्या हेर्नुहोस्",
     "references": "सन्दर्भ सामग्री",
     "solvedBadge": "समाधान भयो",
-    "tryCount": "{{count}} प्रयास",
     "submitButton": "पेश गर्नुहोस्",
     "submitting": "पेश गर्दैछ...",
     "retryButton": "पुनः प्रयास",
@@ -383,13 +382,16 @@
     "toLesson": "पाठमा",
     "nextItemVideo": "अर्को आइटम (भिडियो)",
     "nextItemTask": "अर्को आइटम (प्रश्न)",
-    "completeLesson": "पाठ पूरा गर्नुहोस्"
+    "completeLesson": "पाठ पूरा गर्नुहोस्",
+    "totalProblems_one": "जम्मा {{count}} समस्या",
+    "totalProblems_other": "जम्मा {{count}} समस्याहरू",
+    "tryCount_one": "{{count}} प्रयास",
+    "tryCount_other": "{{count}} प्रयासहरू"
   },
   "lesson": {
     "heroBadge": "चरणबद्ध पाठ्यक्रम",
     "listTitle": "पाठ सूची",
     "listDescription": "व्यवस्थित रूपमा तयार गरिएका पाठहरूमार्फत चरणबद्ध रूपमा कोरियन भाषा सिक्नुहोस्। भिडियो, प्रश्न, र कार्यहरू एकीकृत पाठ प्रदान गर्छौं।",
-    "totalLessons": "कुल {{count}} पाठ",
     "emptyTitle": "कुनै पाठ दर्ता छैन",
     "emptyDescription": "नयाँ पाठहरू छिट्टै थपिनेछन्।",
     "accessPaid": "सशुल्क",
@@ -403,19 +405,21 @@
     "completeLesson": "पाठ पूरा गर्नुहोस्",
     "lessonCompleted": "पाठ पूरा भयो",
     "learningItems": "शिक्षा आइटमहरू",
-    "itemCount": "{{count}} आइटम",
     "emptyItemsTitle": "कुनै शिक्षा आइटम दर्ता छैन",
     "emptyItemsDescription": "यो पाठमा अझै कुनै शिक्षा आइटम दर्ता गरिएको छैन।",
     "notFoundTitle": "पाठ भेटिएन",
     "notFoundDescription": "यो पाठ अवस्थित छैन वा मेटाइएको छ।",
     "videoId": "भिडियो #{{id}}",
-    "taskId": "प्रश्न #{{id}}"
+    "taskId": "प्रश्न #{{id}}",
+    "totalLessons_one": "कुल {{count}} पाठ",
+    "totalLessons_other": "कुल {{count}} पाठहरू",
+    "itemCount_one": "{{count}} वस्तु",
+    "itemCount_other": "{{count}} वस्तुहरू"
   },
   "video": {
     "heroBadge": "भिडियोबाट कोरियन भाषा सिक्नुहोस्",
     "listTitle": "भिडियो शिक्षा",
     "listDescription": "विभिन्न विषयका कोरियन भिडियोमार्फत स्वाभाविक रूपमा सिक्नुहोस्। मूल वक्ताको उच्चारण र अभिव्यक्ति हेर्दै र सुन्दै आफ्नो सीप सुधार गर्नुहोस्।",
-    "totalVideos": "कुल {{count}} भिडियो",
     "emptyTitle": "कुनै भिडियो दर्ता छैन।",
     "notFoundTitle": "भिडियो भेटिएन",
     "notFoundDescription": "यो भिडियो अवस्थित छैन वा मेटाइएको छ।",
@@ -424,7 +428,9 @@
     "allItemsCompleted": "\"{{title}}\" का सबै आइटमहरू पूरा भए!",
     "nextItem": "अर्को आइटम",
     "backToLesson": "पाठमा फर्कनुहोस्",
-    "backToLessonShort": "पाठमा"
+    "backToLessonShort": "पाठमा",
+    "totalVideos_one": "कुल {{count}} भिडियो",
+    "totalVideos_other": "कुल {{count}} भिडियोहरू"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +928,13 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_one": "{{count}} पृष्ठ",
+    "specPages_other": "{{count}} पृष्ठहरू",
+    "specLanguages_one": "{{count}} भाषा",
+    "specLanguages_other": "{{count}} भाषाहरू"
   },
   "mfa": {
     "title": "दुई-चरण प्रमाणीकरण",

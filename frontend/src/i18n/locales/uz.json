@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "Juda ko'p tasdiqlash urinishi. Keyinroq qayta urinib ko'ring.",
     "toastTooManyResendRequests": "Juda ko'p qayta yuborish so'rovi. Keyinroq qayta urinib ko'ring.",
     "oauthPasswordWarning": "Ijtimoiy tarmoq (Google va boshqalar) orqali yaratilgan hisobda parol yo'q. Ijtimoiy xizmat orqali kiring.",
-    "remainingAttempts": "Qolgan urinishlar: {{count}}",
     "noAttemptsRemaining": "Yuborish chegarasiga yetdingiz. Keyinroq qayta urinib ko'ring.",
     "mfaTitle": "Ikki bosqichli autentifikatsiya",
     "mfaDescription": "Google Authenticator ilovasidagi kodni kiriting",
@@ -219,7 +218,9 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "8 belgili zaxira kodi",
     "mfaUseBackupCode": "Zaxira kodidan foydalanish",
-    "mfaUseAuthApp": "Autentifikator ilovasidan foydalanish"
+    "mfaUseAuthApp": "Autentifikator ilovasidan foydalanish",
+    "remainingAttempts_one": "Qolgan urinish: {{count}}",
+    "remainingAttempts_other": "Qolgan urinish: {{count}}"
   },
   "user": {
     "myPageTitle": "Mening sahifam",
@@ -346,7 +347,6 @@
     "programTopikListen": "TOPIK Tinglash",
     "programTopikWrite": "TOPIK Yozish",
     "programTbc": "TBC",
-    "totalProblems": "Jami {{count}} ta topshiriq",
     "emptyTitle": "Topshiriqlar ro'yxatdan o'tmagan",
     "emptyDescription": "Tanlangan dastur uchun hali o'quv topshiriqlari yo'q.",
     "emptyDetailDescription": "Bu o'quv uchun hali topshiriqlar ro'yxatdan o'tmagan.",
@@ -369,7 +369,6 @@
     "viewExplanation": "Tushuntirishni ko'rish",
     "references": "Manbalar",
     "solvedBadge": "Yechilgan",
-    "tryCount": "{{count}} ta urinish",
     "submitButton": "Yuborish",
     "submitting": "Yuborilmoqda...",
     "retryButton": "Qayta urinish",
@@ -383,13 +382,16 @@
     "toLesson": "Darsga",
     "nextItemVideo": "Keyingi element (Video)",
     "nextItemTask": "Keyingi element (Topshiriq)",
-    "completeLesson": "Darsni yakunlash"
+    "completeLesson": "Darsni yakunlash",
+    "totalProblems_one": "Jami {{count}} ta masala",
+    "totalProblems_other": "Jami {{count}} ta masala",
+    "tryCount_one": "{{count}} urinish",
+    "tryCount_other": "{{count}} urinish"
   },
   "lesson": {
     "heroBadge": "Bosqichma-bosqich o'quv dasturi",
     "listTitle": "Darslar ro'yxati",
     "listDescription": "Tizimli tashkil etilgan darslar orqali koreys tilini bosqichma-bosqich o'rganing. Videolar, topshiriqlar va vazifalarni o'z ichiga olgan integratsiyalashgan darslarni taqdim etamiz.",
-    "totalLessons": "Jami {{count}} ta dars",
     "emptyTitle": "Darslar ro'yxatdan o'tmagan",
     "emptyDescription": "Tez orada yangi darslar qo'shiladi.",
     "accessPaid": "Pullik",
@@ -403,19 +405,21 @@
     "completeLesson": "Darsni yakunlash",
     "lessonCompleted": "Dars yakunlandi",
     "learningItems": "O'quv elementlari",
-    "itemCount": "{{count}} ta element",
     "emptyItemsTitle": "O'quv elementlari ro'yxatdan o'tmagan",
     "emptyItemsDescription": "Bu dars uchun hali o'quv elementlari ro'yxatdan o'tmagan.",
     "notFoundTitle": "Dars topilmadi",
     "notFoundDescription": "Bu dars mavjud emas yoki o'chirilgan.",
     "videoId": "Video #{{id}}",
-    "taskId": "Topshiriq #{{id}}"
+    "taskId": "Topshiriq #{{id}}",
+    "totalLessons_one": "Jami {{count}} dars",
+    "totalLessons_other": "Jami {{count}} dars",
+    "itemCount_one": "{{count}} element",
+    "itemCount_other": "{{count}} element"
   },
   "video": {
     "heroBadge": "Videolar orqali koreys tilini o'rganing",
     "listTitle": "Video orqali o'rganish",
     "listDescription": "Turli mavzulardagi koreys videolari orqali tabiiy ravishda o'rganing. Ona tili talaffuzi va iboralarini eshitib, ko'nikmalaringizni oshiring.",
-    "totalVideos": "Jami {{count}} ta video",
     "emptyTitle": "Videolar ro'yxatdan o'tmagan.",
     "notFoundTitle": "Video topilmadi",
     "notFoundDescription": "Bu video mavjud emas yoki o'chirilgan.",
@@ -424,7 +428,9 @@
     "allItemsCompleted": "\"{{title}}\" ning barcha elementlari yakunlandi!",
     "nextItem": "Keyingi element",
     "backToLesson": "Darsga qaytish",
-    "backToLessonShort": "Darsga"
+    "backToLessonShort": "Darsga",
+    "totalVideos_one": "Jami {{count}} video",
+    "totalVideos_other": "Jami {{count}} video"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +928,13 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_one": "{{count}} sahifa",
+    "specPages_other": "{{count}} sahifa",
+    "specLanguages_one": "{{count}} til",
+    "specLanguages_other": "{{count}} til"
   },
   "mfa": {
     "title": "Ikki bosqichli autentifikatsiya",
