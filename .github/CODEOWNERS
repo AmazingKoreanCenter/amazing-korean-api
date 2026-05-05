@@ -1,0 +1,31 @@
+# G13: CODEOWNERS — PR 자동 reviewer 지정
+# 1인 프로젝트 (HYMN Co., Ltd. / Amazing Korean Center).
+# Owner = repo org @AmazingKoreanCenter (GitHub 자동 reviewer 요청).
+# 공식 문서: https://docs.github.com/repositories/managing-your-repositorys-settings-and-security/customizing-your-repository/about-code-owners
+
+# Default: 모든 파일
+*                           @AmazingKoreanCenter
+
+# 백엔드 (Rust)
+/src/                       @AmazingKoreanCenter
+/crates/                    @AmazingKoreanCenter
+/migrations/                @AmazingKoreanCenter
+Cargo.toml                  @AmazingKoreanCenter
+Cargo.lock                  @AmazingKoreanCenter
+
+# 프론트엔드
+/frontend/                  @AmazingKoreanCenter
+
+# 인프라
+/Dockerfile                 @AmazingKoreanCenter
+/docker-compose.prod.yml    @AmazingKoreanCenter
+/nginx/                     @AmazingKoreanCenter
+
+# CI/CD
+/.github/                   @AmazingKoreanCenter
+
+# 문서 / SSoT
+/docs/                      @AmazingKoreanCenter
+/CLAUDE.md                  @AmazingKoreanCenter
+/README.md                  @AmazingKoreanCenter
+/LICENSE                    @AmazingKoreanCenter
