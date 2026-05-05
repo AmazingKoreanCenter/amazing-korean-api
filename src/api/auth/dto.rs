@@ -239,11 +239,13 @@ pub struct FindPasswordReq {
 #[serde(rename_all = "snake_case")]
 #[schema(example = json!({
     "message": "If the information matches, a verification code has been sent.",
-    "remaining_attempts": 4
+    "remaining_attempts": 1
 }))]
 pub struct FindPasswordRes {
     pub message: String,
-    pub remaining_attempts: i64,
+    /// N-35: rate limit 정보 노출 최소화. 마지막 시도 직전 (1회 남음) 시만 Some, 그 외 None (필드 생략).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remaining_attempts: Option<i64>,
 }
 
 // =====================================================================
@@ -266,11 +268,13 @@ pub struct RequestResetReq {
 #[serde(rename_all = "snake_case")]
 #[schema(example = json!({
     "message": "If the email exists, a verification code has been sent.",
-    "remaining_attempts": 4
+    "remaining_attempts": 1
 }))]
 pub struct RequestResetRes {
     pub message: String,
-    pub remaining_attempts: i64,
+    /// N-35: rate limit 정보 노출 최소화. 마지막 시도 직전 (1회 남음) 시만 Some, 그 외 None (필드 생략).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remaining_attempts: Option<i64>,
 }
 
 /// 인증코드 검증 요청
@@ -345,11 +349,13 @@ pub struct ResendVerificationReq {
 #[serde(rename_all = "snake_case")]
 #[schema(example = json!({
     "message": "If the email needs verification, a new code has been sent.",
-    "remaining_attempts": 4
+    "remaining_attempts": 1
 }))]
 pub struct ResendVerificationRes {
     pub message: String,
-    pub remaining_attempts: i64,
+    /// N-35: rate limit 정보 노출 최소화. 마지막 시도 직전 (1회 남음) 시만 Some, 그 외 None (필드 생략).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remaining_attempts: Option<i64>,
 }
 
 // =====================================================================

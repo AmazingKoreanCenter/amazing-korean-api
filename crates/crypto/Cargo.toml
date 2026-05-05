@@ -3,6 +3,11 @@ name = "amazing-korean-crypto"
 version = "0.1.0"
 edition = "2021"
 description = "AES-256-GCM encryption + HMAC-SHA256 blind index for Amazing Korean"
+license = "UNLICENSED"  # N-16: private repo (단일 프로젝트 내부 crate)
+publish = false
+
+[lints]
+workspace = true
 
 [dependencies]
 aes-gcm = "0.10"

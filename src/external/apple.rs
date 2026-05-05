@@ -57,7 +57,11 @@ pub struct AppleIdTokenClaims {
 impl AppleOAuthClient {
     pub fn new(client_id: String) -> Self {
         Self {
-            client: Client::new(),
+            // N-10: 외부 서비스 hang 방지 (timeout 15초)
+            client: Client::builder()
+                .timeout(std::time::Duration::from_secs(15))
+                .build()
+                .expect("reqwest client builder must succeed"),
             client_id,
             jwks_cache: Arc::new(RwLock::new(HashMap::new())),
         }

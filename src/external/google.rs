@@ -83,7 +83,11 @@ impl GoogleOAuthClient {
     /// 새 Google OAuth 클라이언트 생성
     pub fn new(client_id: String, client_secret: String, redirect_uri: String) -> Self {
         Self {
-            client: Client::new(),
+            // N-10: 외부 서비스 hang 방지 (timeout 15초)
+            client: Client::builder()
+                .timeout(std::time::Duration::from_secs(15))
+                .build()
+                .expect("reqwest client builder must succeed"),
             client_id,
             client_secret,
             redirect_uri,

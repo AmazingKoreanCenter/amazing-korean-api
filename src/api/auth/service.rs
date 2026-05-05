@@ -346,10 +346,9 @@ impl AuthService {
         // [Step 1] Input Validation
         let email = req.email.trim().to_lowercase();
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!(
-                "AUTH_400_INVALID_INPUT: {}",
-                e
-            )));
+            // N-36: 인증 endpoint = generic 메시지 (룰/필드명 미노출). 내부 진단만 debug 로깅.
+            tracing::debug!(error = %e, "Validation failed (auth endpoint)");
+            return Err(AppError::ValidationGeneric);
         }
 
         // [Step 2] Rate Limiting (blind index 사용 — Redis에 평문 이메일 저장 방지)
@@ -863,10 +862,9 @@ impl AuthService {
     /// 아이디 찾기 (이름 + 생년월일 → 마스킹된 이메일 반환)
     pub async fn find_id(st: &AppState, req: FindIdReq, client_ip: String) -> AppResult<FindIdRes> {
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!(
-                "AUTH_400_INVALID_INPUT: {}",
-                e
-            )));
+            // N-36: 인증 endpoint = generic 메시지 (룰/필드명 미노출). 내부 진단만 debug 로깅.
+            tracing::debug!(error = %e, "Validation failed (auth endpoint)");
+            return Err(AppError::ValidationGeneric);
         }
 
         // Rate Limiting
@@ -939,10 +937,9 @@ impl AuthService {
         client_ip: String,
     ) -> AppResult<FindPasswordRes> {
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!(
-                "AUTH_400_INVALID_INPUT: {}",
-                e
-            )));
+            // N-36: 인증 endpoint = generic 메시지 (룰/필드명 미노출). 내부 진단만 debug 로깅.
+            tracing::debug!(error = %e, "Validation failed (auth endpoint)");
+            return Err(AppError::ValidationGeneric);
         }
 
         let email = req.email.trim().to_lowercase();
@@ -996,7 +993,7 @@ impl AuthService {
             info!("Find password: no matching user found");
             return Ok(FindPasswordRes {
                 message: generic_msg,
-                remaining_attempts: remaining,
+                remaining_attempts: if remaining == 1 { Some(1) } else { None },
             });
         };
 
@@ -1008,7 +1005,7 @@ impl AuthService {
             );
             return Ok(FindPasswordRes {
                 message: generic_msg,
-                remaining_attempts: remaining,
+                remaining_attempts: if remaining == 1 { Some(1) } else { None },
             });
         }
 
@@ -1058,7 +1055,7 @@ impl AuthService {
 
         Ok(FindPasswordRes {
             message: generic_msg,
-            remaining_attempts: remaining,
+            remaining_attempts: if remaining == 1 { Some(1) } else { None },
         })
     }
 
@@ -1069,10 +1066,9 @@ impl AuthService {
         client_ip: String,
     ) -> AppResult<ResetPwRes> {
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!(
-                "AUTH_400_INVALID_INPUT: {}",
-                e
-            )));
+            // N-36: 인증 endpoint = generic 메시지 (룰/필드명 미노출). 내부 진단만 debug 로깅.
+            tracing::debug!(error = %e, "Validation failed (auth endpoint)");
+            return Err(AppError::ValidationGeneric);
         }
         if !Self::validate_password_policy(&req.new_password) {
             return Err(AppError::Unprocessable("password policy violation".into()));
@@ -1394,7 +1390,7 @@ impl AuthService {
             info!("Password reset requested for non-existent email");
             return Ok(RequestResetRes {
                 message: "If the email exists, a verification code has been sent.".to_string(),
-                remaining_attempts: remaining,
+                remaining_attempts: if remaining == 1 { Some(1) } else { None },
             });
         }
 
@@ -1409,7 +1405,7 @@ impl AuthService {
             );
             return Ok(RequestResetRes {
                 message: "If the email exists, a verification code has been sent.".to_string(),
-                remaining_attempts: remaining,
+                remaining_attempts: if remaining == 1 { Some(1) } else { None },
             });
         }
 
@@ -1458,7 +1454,7 @@ impl AuthService {
 
         Ok(RequestResetRes {
             message: "If the email exists, a verification code has been sent.".to_string(),
-            remaining_attempts: remaining,
+            remaining_attempts: if remaining == 1 { Some(1) } else { None },
         })
     }
 
@@ -1685,10 +1681,9 @@ impl AuthService {
     ) -> AppResult<VerifyEmailRes> {
         let email = req.email.trim().to_lowercase();
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!(
-                "AUTH_400_INVALID_INPUT: {}",
-                e
-            )));
+            // N-36: 인증 endpoint = generic 메시지 (룰/필드명 미노출). 내부 진단만 debug 로깅.
+            tracing::debug!(error = %e, "Validation failed (auth endpoint)");
+            return Err(AppError::ValidationGeneric);
         }
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
@@ -1768,10 +1763,9 @@ impl AuthService {
     ) -> AppResult<ResendVerificationRes> {
         let email = req.email.trim().to_lowercase();
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(format!(
-                "AUTH_400_INVALID_INPUT: {}",
-                e
-            )));
+            // N-36: 인증 endpoint = generic 메시지 (룰/필드명 미노출). 내부 진단만 debug 로깅.
+            tracing::debug!(error = %e, "Validation failed (auth endpoint)");
+            return Err(AppError::ValidationGeneric);
         }
 
         let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
@@ -1802,7 +1796,7 @@ impl AuthService {
 
         let success_msg = ResendVerificationRes {
             message: "If the email needs verification, a new code has been sent.".to_string(),
-            remaining_attempts: remaining,
+            remaining_attempts: if remaining == 1 { Some(1) } else { None },
         };
 
         let Some((_user_id, check_email)) = user_row else {
@@ -1853,7 +1847,7 @@ impl AuthService {
 
         Ok(ResendVerificationRes {
             message: "If the email needs verification, a new code has been sent.".to_string(),
-            remaining_attempts: remaining,
+            remaining_attempts: if remaining == 1 { Some(1) } else { None },
         })
     }
 

@@ -203,7 +203,7 @@ function FindPasswordTab() {
     setIsSending(true);
     try {
       const res = await findPassword(values);
-      setRemainingAttempts(res.remaining_attempts);
+      setRemainingAttempts(res.remaining_attempts ?? null);
       setSubmittedData(values);
       setStep("verification");
       toast.success(t("auth.toastCodeSent", { email: values.email }));
@@ -246,7 +246,7 @@ function FindPasswordTab() {
     setIsSending(true);
     try {
       const res = await findPassword(submittedData);
-      setRemainingAttempts(res.remaining_attempts);
+      setRemainingAttempts(res.remaining_attempts ?? null);
       toast.success(t("auth.toastCodeResent"));
     } catch (error) {
       if (error instanceof ApiError && error.status === 429) {

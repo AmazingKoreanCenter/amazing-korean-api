@@ -78,7 +78,11 @@ pub struct RevenueCatApiClient {
 impl RevenueCatApiClient {
     pub fn new(api_key: String) -> Self {
         Self {
-            client: Client::new(),
+            // N-10: 외부 서비스 hang 방지 (timeout 15초)
+            client: Client::builder()
+                .timeout(std::time::Duration::from_secs(15))
+                .build()
+                .expect("reqwest client builder must succeed"),
             api_key,
         }
     }

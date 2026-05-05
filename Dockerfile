@@ -41,10 +41,11 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Install runtime dependencies
+# Install runtime dependencies (curl = HEALTHCHECK 용, N-20)
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy binary from builder
@@ -65,6 +66,10 @@ USER appuser
 
 # Expose port
 EXPOSE 3000
+
+# N-20: HEALTHCHECK — docker compose 의 service health 자동 검사 활성
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl --fail --silent --max-time 3 http://localhost:3000/health || exit 1
 
 # Run the binary
 CMD ["./amazing-korean-api"]

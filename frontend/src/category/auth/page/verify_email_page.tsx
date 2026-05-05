@@ -95,7 +95,7 @@ export function VerifyEmailPage() {
     setIsResending(true);
     try {
       const res = await resendVerification({ email });
-      setRemainingAttempts(res.remaining_attempts);
+      setRemainingAttempts(res.remaining_attempts ?? null);
       toast.success(t("auth.toastCodeResent"));
     } catch (error) {
       if (error instanceof ApiError && error.status === 429) {

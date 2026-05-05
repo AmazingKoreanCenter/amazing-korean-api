@@ -97,7 +97,7 @@ export function RequestResetPasswordPage() {
     setIsSending(true);
     try {
       const res = await requestPasswordReset({ email: values.email });
-      setRemainingAttempts(res.remaining_attempts);
+      setRemainingAttempts(res.remaining_attempts ?? null);
       setSubmittedEmail(values.email);
       setStep("verification");
       toast.success(t("auth.toastCodeSent", { email: values.email }));
@@ -135,7 +135,7 @@ export function RequestResetPasswordPage() {
     setIsSending(true);
     try {
       const res = await requestPasswordReset({ email: submittedEmail });
-      setRemainingAttempts(res.remaining_attempts);
+      setRemainingAttempts(res.remaining_attempts ?? null);
       toast.success(t("auth.toastCodeResent"));
     } catch (error) {
       if (error instanceof ApiError && error.status === 429) {

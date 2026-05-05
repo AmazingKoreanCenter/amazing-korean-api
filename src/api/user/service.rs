@@ -64,8 +64,10 @@ impl UserService {
         req.email = req.email.trim().to_lowercase();
 
         // 1-1. Basic Validation (Format)
+        // N-36: signup = 비밀번호 입력 endpoint = generic 메시지 (룰/필드명 미노출).
         if let Err(e) = req.validate() {
-            return Err(AppError::BadRequest(e.to_string()));
+            tracing::debug!(error = %e, "Validation failed (signup)");
+            return Err(AppError::ValidationGeneric);
         }
 
         // 1-2. Business Validation (Terms, Password, Birthday, Language)

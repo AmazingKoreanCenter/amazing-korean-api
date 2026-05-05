@@ -42,6 +42,10 @@ pub enum AppError {
     Jsonwebtoken(#[from] jsonwebtoken::errors::Error),
     #[error(transparent)]
     Validation(#[from] validator::ValidationErrors),
+    /// N-36: 인증/비밀번호 endpoint 용 validation 에러. 룰/필드명 미노출 (anti-enumeration).
+    /// service 에서 명시적 변환 필요: `req.validate().map_err(|_| AppError::ValidationGeneric)?`.
+    #[error("Invalid input")]
+    ValidationGeneric,
 }
 
 impl From<std::convert::Infallible> for AppError {
@@ -197,6 +201,15 @@ impl IntoResponse for AppError {
                 "VALIDATION_ERROR".to_string(),
                 "Validation failed".to_string(),
                 Some(serde_json::json!({ "errors": e.to_string() })),
+                None,
+            ),
+            // N-36: 인증/비밀번호 endpoint validation 실패 — 룰/필드명 미노출.
+            // 내부 진단은 호출자 service 에서 tracing::debug 으로 별도 처리.
+            AppError::ValidationGeneric => (
+                StatusCode::BAD_REQUEST,
+                "VALIDATION_ERROR".to_string(),
+                "Invalid input".to_string(),
+                None,
                 None,
             ),
         };
