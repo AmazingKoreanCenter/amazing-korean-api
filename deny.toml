@@ -1,0 +1,100 @@
+# G11: cargo-deny 정책 — 라이선스 호환성 + 의존성 advisory + 다중 버전 검증
+#
+# 사용:
+#   cargo install cargo-deny  # 1회
+#   cargo deny check          # 모든 정책 검사
+#   cargo deny check advisories  # 보안 advisory 만
+#   cargo deny check licenses    # 라이선스 만
+#   cargo deny check bans        # 다중 버전 / wildcard 만
+#
+# 공식 문서: https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+targets = []
+all-features = false
+no-default-features = false
+
+# =============================================================================
+# 보안 Advisory (RUSTSEC)
+# =============================================================================
+
+[advisories]
+version = 2
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+yanked = "deny"
+
+# 본 프로젝트의 알려진 advisory ignore (audit 결과 영향 평가 후)
+# 신규 advisory 발견 시 = 즉시 fail (deny). ignore 추가는 사용자 결정.
+ignore = [
+  "RUSTSEC-2023-0071", # rsa Marvin Attack — no fixed upgrade, B1 (영향 = timing sidechannel, 결제/인증 흐름 영향 검토 별도)
+  "RUSTSEC-2024-0436", # paste unmaintained — transitive (simba/nalgebra → imageproc)
+  "RUSTSEC-2026-0105", # core2 yanked — transitive (image stack)
+  "RUSTSEC-2026-0115", # imageproc unsound (sampling)
+  "RUSTSEC-2026-0116", # imageproc unsound (bounds check)
+  "RUSTSEC-2026-0117", # imageproc unsound (sampling)
+  "RUSTSEC-2026-0097", # rand unsound — custom logger interaction (미사용)
+]
+
+# =============================================================================
+# 라이선스 정책
+# =============================================================================
+
+[licenses]
+version = 2
+confidence-threshold = 0.8
+
+# 허용 라이선스 (OSI approved + commercially permissive)
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "ISC",
+  "MPL-2.0",
+  "OpenSSL",
+  "Unicode-3.0",
+  "Unicode-DFS-2016",
+  "Zlib",
+]
+
+# 본 프로젝트는 private (UNLICENSED) = 외부 배포 X (N-16)
+
+# 특수 케이스 (private repo 자체 + crates/crypto)
+[[licenses.exceptions]]
+allow = ["UNLICENSED"]
+crate = "amazing-korean-api"
+
+[[licenses.exceptions]]
+allow = ["UNLICENSED"]
+crate = "amazing-korean-crypto"
+
+# OpenSSL 명시 (ring crate 가 사용)
+[[licenses.clarify]]
+crate = "ring"
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [
+  { path = "LICENSE", hash = 0xbd0eed23 },
+]
+
+# =============================================================================
+# 의존성 정책 (다중 버전 / wildcard / git)
+# =============================================================================
+
+[bans]
+multiple-versions = "warn"  # N-18 = transitive 자연 결과, deny X (영향 작음)
+wildcards = "deny"          # version = "*" 차단
+highlight = "all"
+
+# =============================================================================
+# 의존성 출처
+# =============================================================================
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
