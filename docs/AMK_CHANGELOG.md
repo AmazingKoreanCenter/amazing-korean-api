@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-04 (Phase 1+2 부채 처리 10건 일괄 + 검증 2/3회차 정정)
+updated: 2026-05-05 (정책 검증 4건 + 부채 처리 11건 = 본 세션 누계 15 부채 처리)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -10,6 +10,54 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 > 마스터 스펙 문서의 변경 이력을 시간 역순으로 기록한다.
 
 ---
+
+- **2026-05-05 — M-008 등재 + 정책 검증 4건 + AMK_AUDIT 부채 처리 11건**
+
+  본 세션 = M-008 등재 + Codex/Gemini CLI 정책 검증 + 정책 결정 3건 (N-32/N-35/N-36) + 작은 묶음 8건 (N-8/N-9/N-10/N-12/N-14/N-20/N-21/N-22) + N-24 동시 해결.
+
+  ## M-008 등재 (commit `11d5801`)
+
+  B4 commit 시 cargo fmt 검증 누락 → CI fail → 추가 fmt commit. M-006 (cargo fmt 결과 의미 잘못 해석) 의 다른 발현 (단계 자체 누락). `docs/AMK_AI_MISTAKES.md` 사고 카탈로그에 등재. 룰 추가 X (사용자 결정 정책 따름).
+
+  ## 정책 검증 (codex GPT-5.2 + gemini 2.0 Flash 독립 검증, commit `48cd3d9`)
+
+  - 4 파일 = `docs/AMK_POLICY_REVIEW_2026-05-05_PROMPT.md` / `_CODEX.md` / `_GEMINI.md` / 통합 `AMK_POLICY_REVIEW_2026-05-05.md`
+  - 4 부채 모두 옵션 일치: N-31 A (HTTPS 선행) / N-32 A (Report-Only) / N-35 D (1회 남음 시) / N-36 D (인증/비밀번호만 generic)
+
+  ## 정책 결정 부채 처리
+
+  - **N-32 CSP** (commit `4ceadc8`) — `frontend/public/_headers` 신규, Report-Only 모드 (위반 차단 X, Cloudflare Reports 로깅). 외부 도메인 화이트리스트 (Paddle/Google OAuth/Vimeo/Pretendard/Google Fonts)
+  - **N-35 remaining_attempts** (commit `dc28492`) — `Option<i64>` + `serde skip_serializing_if`, 1회 남음 시만 노출 (anti-enumeration 정합)
+  - **N-36 Validation** (commit `a8440a9`) — `AppError::ValidationGeneric` 신규 variant + 인증 service 6 위치 + signup 1 위치 명시 사용. 일반 폼 (`update_me`/`update_settings`) = 그대로 유지
+
+  ## 작은 묶음 부채 처리 (8건 + N-24 동시)
+
+  - **N-10 외부 timeout** (commit `b567f62`) — 5 외부 서비스 (Resend/RevenueCat/Google/Apple/Vimeo) `Client::builder().timeout(15s)` 적용. ip-api.com 은 기존 5초 유지. production hang 차단 (HIGH 위험)
+  - **N-8 + N-9 RevenueCat 보안** (commit `fcfaaf2`) — constant-time 비교 (subtle 2.6 의존성 추가, 타이밍 공격 차단) + event_timestamp_ms 5분 variance 검증 (replay 차단)
+  - **N-12 EBOOK_PAGE_IMAGES_DIR** (commit `18f5682`) — `.env.example` + `deploy.yml` 명시 추가
+  - **N-14 textbook migration stale** (commit `9fa6f14`) — AMK_API_TEXTBOOK.md:13 4 → 7 직접 + 1 supported_language 분리 표기
+  - **N-20 Dockerfile HEALTHCHECK** (commit `254a5e1`) — `curl --fail http://localhost:3000/health` (interval 30s / timeout 5s / start-period 15s / retries 3)
+  - **N-21 nginx 버전 핀** (commit `46ad698`) — `nginx:alpine` → `nginx:1.27-alpine`
+  - **N-22 dev 도구** — `.gitattributes` (LF 강제) + `.editorconfig` (Rust 4 / 기본 2 스페이스)
+  - **N-24 index.html CSP 메타** = N-32 _headers 처리로 동시 해결 (헤더 > 메타 강도)
+
+  ## SSoT 갱신
+
+  - AMK_AUDIT 신규 미해결 30 → 27 → 18 (정책 결정 + 작은 묶음 후)
+  - 남은 18건 카테고리: frontend N-1~N-7 (Q16) / 인프라 N-11/N-13/N-31 (HTTPS 트랙) / Cargo N-16/N-17/N-18 / 문서 N-23 / dev N-25 / 큰 작업 N-26/N-27 / 보안 헤더 N-34 (무해)
+
+  ## 학습
+
+  - **M-008 패턴 회피 정착**: 이번 세션 모든 부채 처리 시 cargo check + cargo fmt + cargo clippy 3단계 검증 명시. CI fail 재발 0건
+  - **정책 검증 cross-check 효과**: 사용자 권고 + 2 LLM 만장일치 = 결정 신뢰도 상승. 4 부채 모두 동일 옵션
+  - **외부 타이밍 검증**: Paddle 패턴 (HMAC + 5분 variance) 을 RevenueCat 에 동일 적용 = defense-in-depth 정합
+
+  ## 다음 세션 진입점
+
+  1. **A4-1/A4-2 + N-31 묶음** = HTTPS + certbot + HSTS (인프라 트랙, 1일+, production 영향 큼)
+  2. **N-1~N-7 frontend Q16** baseline cleanup 트랙
+  3. **N-26 + N-27** 큰 작업 (i18n / OpenAPI 43건)
+  4. **잔여 작은 부채** = N-11/N-16/N-17/N-23/N-25/N-34
 
 - **2026-05-04 (밤, 후속 3) — Phase 1+2 부채 처리 10건 일괄 + 검증 2/3회차 정정**
 
