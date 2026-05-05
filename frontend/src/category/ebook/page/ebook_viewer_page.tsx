@@ -553,9 +553,13 @@ export function EbookViewerPage() {
   // ─── 풀스크린 ───
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.warn("[ebook] requestFullscreen failed:", err);
+      });
     } else {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch((err) => {
+        console.warn("[ebook] exitFullscreen failed:", err);
+      });
     }
   }, []);
 

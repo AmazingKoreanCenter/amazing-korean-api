@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-05 (정책 검증 4건 + 부채 처리 11건 = 본 세션 누계 15 부채 처리)
+updated: 2026-05-05 (PR #212 머지 후 추가 부채 처리 — N-18/N-23/N-1~N-7 frontend Q16 묶음. 본 세션 누계 23 부채 처리)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -52,12 +52,71 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - **정책 검증 cross-check 효과**: 사용자 권고 + 2 LLM 만장일치 = 결정 신뢰도 상승. 4 부채 모두 동일 옵션
   - **외부 타이밍 검증**: Paddle 패턴 (HMAC + 5분 variance) 을 RevenueCat 에 동일 적용 = defense-in-depth 정합
 
+  ## 추가 작업 (본 세션 후속, 토큰 여유)
+
+  - **N-16 Cargo license** (commit `2211aaa`) — `license = "UNLICENSED"` + `publish = false` (workspace + crates/crypto)
+  - **N-17 [workspace.lints]** (commit `327a89c`) — `unsafe_code = "deny"` + clippy `dbg_macro/todo/unimplemented = "warn"` (사전 검증 anti-pattern 0건)
+  - **N-11 / N-25 / N-34 🟡 수용 결정** (commit `51f810c`):
+    - N-11 (postgres dev 호스트 포트) = `docker-compose.yml` `.gitignore` 정책 + 1인 dev 환경
+    - N-25 (skipLibCheck=true) = false 변경 시 빌드 시간 + lib 타입 에러 다수, 비용 큼
+    - N-34 (X-XSS-Protection 0) = legacy 호환 무해, CSP 가 대체
+
+  ## 머지 전 검증 (옵션 A 채택, codex/gemini 합치 후 frontend 호환성 점검)
+
+  - 🔴 **N-35 frontend 위험 발견**: `types.ts` 의 3 Zod schema = `remaining_attempts: z.number()` 필수. 백엔드 Option<i64> + skip_serializing_if 단독 머지 시 frontend Zod parse 실패 → 인증 흐름 ALL FAIL 위험.
+  - **fix (commit `33edc22`)**: `z.number().optional()` + `setRemainingAttempts(res.remaining_attempts ?? null)` 3 페이지 5 위치
+  - ✅ N-9 RevenueCat: 코드 구조 (`payload.get("event")`) = RevenueCat 표준 webhook = `event_timestamp_ms` 표준 필드 = 안전 추정
+  - ✅ N-36: frontend 가 인증 422 message 파싱 안 함 (status code 만 사용)
+
+  ## 머지 + 배포 + 검증 (PR #212, commit `33edc22`)
+
+  - PR #212 머지, deploy workflow `25360295173` 1m3s, 모든 단계 통과
+  - **외부 검증 (https://api.amazingkorean.net/health)**:
+    - status 200, 0.81s
+    - 보안 헤더 모두 적용 (referrer-policy / x-content-type-options / x-frame / x-xss-protection / x-robots-tag / permissions-policy)
+    - 🟢 **`strict-transport-security: max-age=15552000; includeSubDomains` 발견** = Cloudflare edge 자동 HSTS 적용 중 (origin code 변경 X)
+  - **외부 검증 (https://amazingkorean.net, Cloudflare Pages)**:
+    - ✅ `content-security-policy-report-only` 헤더 production 적용 (N-32 정확 반영)
+    - 정책 화이트리스트 (Paddle / Google OAuth / Vimeo / Pretendard / Google Fonts) 모두 명시
+    - frame-ancestors 'none' / form-action 'self' / upgrade-insecure-requests
+
+  ## N-31 발견 = Cloudflare edge 사실상 활성
+
+  Cloudflare 통과 트래픽 = 모두 HSTS 적용 = 일반 사용자 보호 활성. Origin layer (`src/main.rs` 또는 nginx) 미추가 = Cloudflare 우회 (직접 EC2 접근) 시 미보호. EC2 직접 접근 = 기본 차단 대상이라 우선순위 낮음. AMK_AUDIT 의 N-31 = 🟢 발견 표기로 갱신 (수용 X, origin layer 추가 다음 세션 결정).
+
+  ## PR #212 머지 후속 작업 (본 세션 후반)
+
+  ### N-18 / N-23 처리 (commit `0bb3d16`)
+
+  - **N-18 🟡 수용**: `cargo tree -d` 검증 = 9+ 그룹 모두 transitive 의존 (rand/getrandom/darling/itertools/socket2/hashbrown/indexmap/schemars/redox_syscall/webpki-roots). 통합 = 의존 라이브러리 자체 업데이트 대기 필요 = 작업 비용 vs 가치 (영향 작음) trade-off
+  - **N-23 ✅ 해결** (commit 직전): `LICENSE` (proprietary, HYMN Co., Ltd.) + `README.md` (스택/구조/문서 포인터/개발 가이드) 신규 작성
+
+  ### N-1~N-7 frontend Q16 묶음 (commit `04e74f3` + `56f1f39`)
+
+  ✅ **해결 3건 (1 commit 묶음)**:
+  - **N-1** window.open rel: audit 4건 표기 → 실측 5건 (admin_video_detail external + textbook 4 internal). 모두 `"noopener,noreferrer"` 추가
+  - **N-4** non-null assertion 3 위치: `params.page!` → `(params.page ?? 1)`, `choiceCorrectValue!` → nullish guard
+  - **N-7** fullscreen catch 무음 2건: `.catch(() => {})` → `console.warn(err)` (진단 보존)
+
+  🟡 **수용 4건**:
+  - **N-2** admin 한국어 정책 (영역 전체 한국어 일관, 1 줄만 t() 변환 시 일관성 깨짐)
+  - **N-3** ebook DRM 의도 (`window.createImageBitmap` readonly override = `as any` 필수)
+  - **N-5** 9 인라인 회피 = 각 의도된 사용 (mount-once / DRM / devtools_detect)
+  - **N-6** Tailwind blue/yellow = 디자인 토큰 결정 대기
+
+  ## SSoT 갱신 누계
+
+  - 본 세션 신규 미해결 27 → 4건 (-23)
+  - 처리 ✅ 16건 / 수용 🟡 7건 / 발견 🟢 1건 / 사고 등재 1건
+  - 남은 4건: N-13 (nginx HTTPS, A4-1 묶음) / N-26 (i18n) / N-27 (OpenAPI) / N-31 origin
+
   ## 다음 세션 진입점
 
-  1. **A4-1/A4-2 + N-31 묶음** = HTTPS + certbot + HSTS (인프라 트랙, 1일+, production 영향 큼)
-  2. **N-1~N-7 frontend Q16** baseline cleanup 트랙
-  3. **N-26 + N-27** 큰 작업 (i18n / OpenAPI 43건)
-  4. **잔여 작은 부채** = N-11/N-16/N-17/N-23/N-25/N-34
+  1. **N-26 i18n 21언어 legal/admin** (ai 측 번역 의존, ai 세션 트리거 후 진행)
+  2. **N-27 OpenAPI ~43건** (도메인별 PR 분할 — auth 10 / payment 4 / textbook 4 / ebook 7 등)
+  3. **A4-1/A4-2 + N-13 + N-31 origin 인프라 묶음** = HTTPS + certbot + nginx HTTPS 활성 + origin HSTS layer (1일+, production 영향)
+  4. **A4 잔여 인프라**: A4-3 (디스크 모니터링) / A4-4 (DB/Redis 백업) / A4-6 (Cloudflare DNS 운영 정책) / A4-7 (nginx rate limit 모니터링) / A4-8 (base image 자동 업데이트 정책)
+  5. **AMK_DEBTS 잔여**: B 보안 (rsa Marvin 의존성 회피 / unsound 7건 / expect 48건) / C 코드 품질 (ESLint Q16 / lint:ui Q16 / 룰 회피 카운트) / J Secrets (J3/J4 자동 도구)
 
 - **2026-05-04 (밤, 후속 3) — Phase 1+2 부채 처리 10건 일괄 + 검증 2/3회차 정정**
 

@@ -373,6 +373,7 @@ export function TextbookOrderPage() {
                       window.open(
                         `/book/textbook/order/${orderResult.order_code}/print?type=quote`,
                         "_blank",
+                        "noopener,noreferrer",
                       )
                     }
                   >
