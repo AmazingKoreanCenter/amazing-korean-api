@@ -16,7 +16,7 @@
 
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
-| A. 운영/배포 부채 | **14** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4 + **신규 7** (SSL/HTTPS, 백업, 디스크 모니터링 등). ~~A4-5 log 로테이션~~ ✅ 해결 (2026-05-04, commit `7e86592`) |
+| A. 운영/배포 부채 | **11** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4. ~~A4-5/A4-6/A4-7/A4-8~~ ✅ 해결 (2026-05-04~05). 잔여 신규 4 (A4-1 SSL/HTTPS / A4-2 certbot 자동 갱신 / A4-3 디스크 모니터링 / A4-4 DB·Redis 백업) |
 | B. 보안 부채 (취약점) | **1** | Rust **1** (rsa Marvin Attack, no upgrade). ~~npm 3건~~ ✅ 해결 (2026-05-04, commit `ee68c7c`). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | B. 보안 부채 (unsound/unmaintained) | 7 | core2 yanked + paste + imageproc 3 + rand 2 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
@@ -25,7 +25,7 @@
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
 | E. 기능 부채 (보류/조건부) | **11** | 9 (보류 8 + STATUS #11 이메일 수신 ✅) + **신규 3** (콘텐츠 시딩, SpeechSuper, 번들 최적화) |
 | F. 모바일/데스크탑 앱 부채 | 5 | 외부 리포 SSoT |
-| G. 자동 검증 부재 (CI 부채) | **13** | 기존 8 + **신규 5** (CODEOWNERS/PR template/cargo-deny/cargo-geiger/src 테스트 부족) |
+| G. 자동 검증 부재 (CI 부채) | **12** | 기존 8 + 신규 5 (CODEOWNERS/PR template/cargo-deny/cargo-geiger/src 테스트 부족). ~~G6 dependabot~~ ✅ 해결 (2026-05-05, commit `9367f72`) |
 | H. 문서/메모리 부채 | 2 | H1 메모리 stale (`user_profile.md` 72일) + H2 docs↔코드 검증 자동 X |
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
 | J. 환경변수/Secrets 정합성 | **4** | 신규 — APPLE_*/RATE_LIMIT_TEXTBOOK_* 미동기화 + INC-001 패턴 위험 |
@@ -75,9 +75,9 @@
 | A4-3 | EC2 디스크 모니터링 자동화 부재 | `df -h` 임계값 / 자동 정리 / 알림 X. UptimeRobot 은 HTTP 만 (#71) | MEDIUM |
 | A4-4 | DB / Redis 백업 정책 부재 (DR 0) | `docker-compose.prod.yml` volume-only. EC2 스냅샷 / pg_dump 자동화 X | HIGH |
 | ~~A4-5~~ | ~~Docker log 로테이션 미설정~~ ✅ 해결 (2026-05-04, commit `7e86592`) | YAML anchor `x-logging` + 5 서비스 (api/db/redis/nginx/certbot) 일괄 적용 (max-size 10m × max-file 3 = 서비스당 최대 30MB) | — |
-| A4-6 | Cloudflare DNS / Email Routing 운영 정책 미문서화 | 변경 시 수동 작업, SSoT 위치 명확화 X | MEDIUM |
-| A4-7 | nginx Rate Limiting 모니터링 부재 | `nginx.conf:31` 정의만, 실 위반 로그 / 대시보드 X | MEDIUM |
-| A4-8 | Docker base image 자동 업데이트 정책 부재 | postgres:16 / redis:7 / nginx:alpine 보안 패치 자동 모니터링 X | MEDIUM |
+| ~~A4-6~~ | ~~Cloudflare DNS / Email Routing 운영 정책 미문서화~~ ✅ 해결 (2026-05-05, commit `6e7b006`) | `AMK_DEPLOY_OPS.md §7.6` 통합 SSoT 신규 (DNS/Pages/SSL/WAF/Email Routing + 변경 절차 + 비상 시 절차) | — |
+| ~~A4-7~~ | ~~nginx Rate Limiting 모니터링 부재~~ ✅ 해결 (2026-05-05, commit `f82dd0d`) | `AMK_DEPLOY_OPS.md §6` 안에 모니터링 절차 (docker logs grep + 대응 정책) 추가 | — |
+| ~~A4-8~~ | ~~Docker base image 자동 업데이트 정책 부재~~ ✅ 해결 (2026-05-05, commit `9367f72`) | `.github/dependabot.yml` 신규 (Cargo/npm/Docker/GitHub Actions 자동 PR, 주간/월간 스케줄). G6 동시 해결 | — |
 
 ---
 
@@ -297,7 +297,7 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 | G3 | `cargo audit` 자동 실행 | ❌ 미설정. 2026-05-04 수동 실행 = B1 4건 + B2 7건 발견 |
 | G4 | `npm audit` 자동 실행 | ❌ 미설정. 2026-05-04 수동 = B3 3건 |
 | G5 | `cargo outdated` / `npm outdated` | ❌ 미실행 |
-| G6 | dependabot 자동 PR | ❌ `.github/dependabot.yml` 미존재 |
+| ~~G6~~ | ~~dependabot 자동 PR~~ ✅ 해결 (2026-05-05, commit `9367f72`) | `.github/dependabot.yml` 신규 (Cargo/npm/Docker/Actions). A4-8 동시 해결 |
 | G7 | secret scanning / GitHub Advanced Security | ❌ 미확인 (repo 설정 점검 필요) |
 | G8 | main branch protection | ❌ 명시 보류 (1인 환경 force push 자유도 우선) |
 
@@ -375,7 +375,7 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 | 3 | **J1 RATE_LIMIT_TEXTBOOK_* 동기화** | INC-001 패턴 잠재. deploy.yml + .env.example 동시 추가 |
 | ~~4~~ | ~~**B4 unwrap 위험 2건 (auth/service.rs:397, 1396)**~~ | ✅ 해결 2026-05-04 (commit `ad239ed`) |
 | 5 | **C3+C4 rustfmt baseline** | 본 PR 결정 대기 |
-| 6 | **G6 dependabot 도입** | `.github/dependabot.yml` 1 파일 |
+| ~~6~~ | ~~**G6 dependabot 도입**~~ | ✅ 해결 2026-05-05 (commit `9367f72`, A4-8 동시) |
 | 7 | **A4-1, A4-2 SSL/HTTPS + certbot 자동 갱신** | 90일 만료 대비 (외부 트리거 없으면 잊기 쉬움) |
 | 8 | **A4-4 DB/Redis 백업 정책** | DR 0 = 데이터 손실 위험 큼 |
 
