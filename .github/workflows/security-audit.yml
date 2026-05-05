@@ -1,0 +1,45 @@
+# G3 + G4: 보안 advisory 자동 검사 (Rust + npm)
+# 매주 월요일 09:00 KST + 수동 실행 가능. dependabot 과 별개 (advisory = 즉시 fail).
+# G3: cargo-deny (deny.toml 정책 + RUSTSEC advisory 검사)
+# G4: npm audit (high 이상 fail)
+
+name: Security Audit
+
+on:
+  schedule:
+    # 매주 월요일 00:00 UTC = 09:00 KST
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+  # PR 시점에는 미실행 (속도 + dependabot 의 PR 과 중복 회피)
+
+jobs:
+  cargo-deny:
+    name: cargo-deny (Rust advisories + licenses + bans)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          # deny.toml 의 정책 사용. 모든 check (advisories + licenses + bans + sources)
+          command: check
+          arguments: --all-features
+
+  npm-audit:
+    name: npm audit (frontend, high+)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run npm audit
+        # high + critical 만 fail. moderate = warning (별도 처리)
+        run: npm audit --audit-level=high
