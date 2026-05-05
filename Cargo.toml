@@ -1,6 +1,15 @@
 [workspace]
 members = [".", "crates/crypto"]
 
+# N-17: 명시 lint 룰 (workspace 전체). 보수적 시작 = anti-pattern 만 (현재 코드 위반 0건 확인).
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+
 [package]
 name = "amazing-korean-api"
 version = "1.0.0"
@@ -8,6 +17,9 @@ edition = "2021"
 license = "UNLICENSED"  # N-16: private repo, 외부 배포 차단 (Cargo publish block)
 publish = false         # crates.io 게시 의도 X (private)
 default-run = "amazing-korean-api"
+
+[lints]
+workspace = true
 
 [dependencies]
 amazing-korean-crypto = { path = "crates/crypto" }
