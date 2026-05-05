@@ -25,12 +25,12 @@
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
 | E. 기능 부채 (보류/조건부) | **11** | 9 (보류 8 + STATUS #11 이메일 수신 ✅) + **신규 3** (콘텐츠 시딩, SpeechSuper, 번들 최적화) |
 | F. 모바일/데스크탑 앱 부채 | 5 | 외부 리포 SSoT |
-| G. 자동 검증 부재 (CI 부채) | **12** | 기존 8 + 신규 5 (CODEOWNERS/PR template/cargo-deny/cargo-geiger/src 테스트 부족). ~~G6 dependabot~~ ✅ 해결 (2026-05-05, commit `9367f72`) |
+| G. 자동 검증 부재 (CI 부채) | **9** | ~~G6 dependabot~~ + ~~G11 cargo-deny~~ + ~~G13 CODEOWNERS~~ + ~~G14 PR/issue template~~ ✅ 해결 (2026-05-05). 잔여 = G1/G2 (보류 cargo test/playwright) + G3 cargo audit / G4 npm audit / G5 outdated / G7 secret scanning / G8 branch protection (보류) / G10 src 테스트 / G12 cargo-geiger (보류) |
 | H. 문서/메모리 부채 | 2 | H1 메모리 stale (`user_profile.md` 72일) + H2 docs↔코드 검증 자동 X |
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
 | J. 환경변수/Secrets 정합성 | **4** | 신규 — APPLE_*/RATE_LIMIT_TEXTBOOK_* 미동기화 + INC-001 패턴 위험 |
 
-**총 미해결 부채 = 약 81건** (B3/B4/B7/N-19/N-28~30/N-33/N-37/N-38/A4-5/A4-6/A4-7/A4-8/G6 처리 완료, 2026-05-04 ~ 2026-05-05. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 약 78건** (B3/B4/B7/N-19/N-28~30/N-33/N-37/N-38/A4-5/A4-6/A4-7/A4-8/G6/G11/G13/G14 처리 완료, 2026-05-04 ~ 2026-05-05. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -318,10 +318,10 @@ vite-bundle-analyzer 미설정. bundle 비대화 자동 감지 X. (참고 = AMK_
 | ID | 항목 | 사실 |
 |:--:|------|------|
 | G10 | src/ 테스트 부족 — 본체 테스트 4건만 (`crates/crypto` 46건 OK) | `grep -rn '#\[test\]' src` 4건 |
-| G11 | `cargo-deny` 미설치 (라이선스 호환성 / 의존성 정책 검증) | `deny.toml` 미존재 |
+| ~~G11~~ | ~~`cargo-deny` 미설치 (라이선스 호환성 / 의존성 정책 검증)~~ ✅ 해결 (2026-05-05, commit `ced50c4`) | `deny.toml` 신규 (advisory ignore 7건 / 라이선스 13종 허용 / multi-version warn / sources 정책). `cargo install cargo-deny` 후 `cargo deny check` 사용. CI 자동 통합 = 후속 |
 | G12 | `cargo-geiger` 미설치 (unsafe 코드 분석) | unsafe 0건이라 우선순위 낮음 |
-| G13 | `.github/CODEOWNERS` 미존재 | PR 자동 reviewer 지정 불가 |
-| G14 | PR template / issue template 미존재 | 일관된 이슈 추적 불가 |
+| ~~G13~~ | ~~`.github/CODEOWNERS` 미존재~~ ✅ 해결 (2026-05-05, commit 본 세션) | `.github/CODEOWNERS` 신규 (도메인별 owner = `@AmazingKoreanCenter`) |
+| ~~G14~~ | ~~PR template / issue template 미존재~~ ✅ 해결 (2026-05-05, commit 본 세션) | `.github/PULL_REQUEST_TEMPLATE.md` (변경/부채/검증/SSoT/모니터링 체크리스트) + `.github/ISSUE_TEMPLATE/bug_report.md` + `feature_request.md` 신규 |
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-05 (PR #213 머지 후 A4-6/A4-7/A4-8 + G6 처리. 본 세션 누계 27 부채 처리)
+updated: 2026-05-05 (PR #214 머지 후 G11/G13/G14 처리. 본 세션 누계 30 부채 처리)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -133,13 +133,37 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - 처리 ✅ **20건** (정책 결정 3 + 작은 묶음 8 + frontend Q16 3 + N-16/N-17 + N-23 + A4-6/A4-7/A4-8/G6 + N-24 동시)
   - 수용 🟡 7건 / 발견 🟢 1건 / 사고 등재 1건 = **본 세션 누계 29 작업** (commits 36+)
 
+  ## PR #214 머지 후속 G 카테고리 묶음 (commit `본 세션` + `ced50c4`)
+
+  ### G13 ✅ CODEOWNERS
+
+  `.github/CODEOWNERS` 신규 — 도메인별 owner = `@AmazingKoreanCenter`. PR 자동 reviewer 요청 활성.
+
+  ### G14 ✅ PR template + issue template
+
+  - `.github/PULL_REQUEST_TEMPLATE.md` = 변경/부채(N-NNN/X-N)/검증(cargo check+fmt+clippy 3단계 = M-006/M-008 회피 룰 정착)/SSoT/모니터링 체크리스트
+  - `.github/ISSUE_TEMPLATE/bug_report.md` = 증상/재현/환경/우선순위
+  - `.github/ISSUE_TEMPLATE/feature_request.md` = 배경/제안/영향/부채 연결
+
+  ### G11 ✅ deny.toml (commit `ced50c4`)
+
+  `cargo-deny` 정책 정의 — advisory (RUSTSEC ignore 7건, yanked deny) + 라이선스 (13종 허용, UNLICENSED 예외) + bans (multi-version warn = N-18 정합, wildcards deny) + sources (crates.io only). `cargo install cargo-deny` + `cargo deny check` 수동 사용. CI 자동 통합 = 후속 (G3/G4 와 함께 별도 workflow 권장).
+
+  ## SSoT 갱신 누계
+
+  - 본 세션 누계 30 부채 처리 (23 ✅ + 7 🟡 + 1 🟢 + 1 M-008 = 32 작업)
+  - AMK_DEBTS 합계 92 → 78 (-14)
+  - G 자동 검증 13 → 9 (G6/G11/G13/G14 처리)
+  - A 운영 14 → 11 (A4-5/A4-6/A4-7/A4-8 처리)
+
   ## 다음 세션 진입점
 
   1. **N-26 i18n 21언어 legal/admin** (ai 측 번역 의존, ai 세션 트리거 후 진행)
   2. **N-27 OpenAPI ~43건** (도메인별 PR 분할 — auth 10 / payment 4 / textbook 4 / ebook 7 등)
   3. **A4-1/A4-2 + N-13 + N-31 origin 인프라 묶음** = HTTPS + certbot + nginx HTTPS + origin HSTS layer (1일+, production 영향)
-  4. **A4 잔여 인프라** (A4-1/A4-2/A4-3/A4-4)
-  5. **AMK_DEBTS 잔여**: B 보안 (rsa Marvin / unsound 7건 / expect 48건) / C 코드 품질 (ESLint Q16 / lint:ui Q16) / J Secrets (J3/J4 자동 도구) / G 자동 검증 잔여 (G3/G4/G5/G7/G8/G10~14)
+  4. **A4-3/A4-4** (디스크 모니터링 / DB·Redis 백업)
+  5. **G 잔여**: G3 cargo audit / G4 npm audit / G5 outdated / G7 secret scanning / G10 src 테스트 부족
+  6. **AMK_DEBTS 잔여**: B 보안 (rsa Marvin / unsound 7건 / expect 48건) / C 코드 품질 (ESLint Q16 / lint:ui Q16) / J Secrets (J3/J4)
 
 - **2026-05-04 (밤, 후속 3) — Phase 1+2 부채 처리 10건 일괄 + 검증 2/3회차 정정**
 
