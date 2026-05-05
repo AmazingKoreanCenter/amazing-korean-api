@@ -241,7 +241,7 @@ export function AdminVideoDetail() {
                       type="button"
                       variant="outline"
                       size="icon"
-                      onClick={() => window.open(video.url!, "_blank")}
+                      onClick={() => window.open(video.url!, "_blank", "noopener,noreferrer")}
                     >
                       <ExternalLink className="h-4 w-4" />
                     </Button>

@@ -354,6 +354,7 @@ export function TextbookOrderStatusPage() {
                       window.open(
                         `/book/textbook/order/${order.order_code}/print?type=quote`,
                         "_blank",
+                        "noopener,noreferrer",
                       )
                     }
                   >
@@ -367,6 +368,7 @@ export function TextbookOrderStatusPage() {
                       window.open(
                         `/book/textbook/order/${order.order_code}/print?type=confirmation`,
                         "_blank",
+                        "noopener,noreferrer",
                       )
                     }
                   >
@@ -381,6 +383,7 @@ export function TextbookOrderStatusPage() {
                         window.open(
                           `/book/textbook/order/${order.order_code}/print?type=receipt`,
                           "_blank",
+                          "noopener,noreferrer",
                         )
                       }
                     >

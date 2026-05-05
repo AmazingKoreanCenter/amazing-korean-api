@@ -336,7 +336,7 @@ export function AdminStudyCreate() {
         choice_2: choice2Idx !== -1 ? values[choice2Idx] || undefined : undefined,
         choice_3: choice3Idx !== -1 ? values[choice3Idx] || undefined : undefined,
         choice_4: choice4Idx !== -1 ? values[choice4Idx] || undefined : undefined,
-        choice_correct: !isNaN(choiceCorrectValue!) && choiceCorrectValue! >= 1 && choiceCorrectValue! <= 4
+        choice_correct: choiceCorrectValue != null && !isNaN(choiceCorrectValue) && choiceCorrectValue >= 1 && choiceCorrectValue <= 4
           ? choiceCorrectValue
           : undefined,
         writing_level: validWritingLevels.includes(writingLevelValue as WritingLevel)

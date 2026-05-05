@@ -425,7 +425,7 @@ export function AdminStudiesPage() {
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious
-                onClick={() => handlePageChange(Math.max(1, params.page! - 1))}
+                onClick={() => handlePageChange(Math.max(1, (params.page ?? 1) - 1))}
                 className={
                   params.page === 1
                     ? "pointer-events-none opacity-50"
@@ -452,7 +452,7 @@ export function AdminStudiesPage() {
             <PaginationItem>
               <PaginationNext
                 onClick={() =>
-                  handlePageChange(Math.min(data.total_pages, params.page! + 1))
+                  handlePageChange(Math.min(data.total_pages, (params.page ?? 1) + 1))
                 }
                 className={
                   params.page === data.total_pages
