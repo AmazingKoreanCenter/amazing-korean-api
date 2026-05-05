@@ -206,7 +206,6 @@
     "toastTooManyVerifyAttempts": "Текшерүү аракеттери өтө көп болду. Сураныч, бир аздан кийин кайра аракет кылып көрүңүз.",
     "toastTooManyResendRequests": "Кайра жөнөтүү суроолору өтө көп болду. Сураныч, бир аздан кийин кайра аракет кылып көрүңүз.",
     "oauthPasswordWarning": "Социалдык тармактар (Google ж.б.) аркылуу түзүлгөн аккаунттарда пароль жок. Сураныч, социалдык кызмат аркылуу кирүүңүздү суранабыз.",
-    "remainingAttempts": "Калган аракеттердин саны: {{count}}",
     "noAttemptsRemaining": "Жөнөтүү чеги жетти. Сураныч, кийинчерээк кайра аракет кылып көрүңүз.",
     "mfaTitle": "Эки факторлуу аутентификация",
     "mfaDescription": "Google Authenticator тиркемесиндеги кодду киргизиңиз",
@@ -219,7 +218,9 @@
     "mfaInvalidCode": "Аутентификациялоо коду туура эмес",
     "mfaBackupPlaceholder": "8 белгиден турган резервдик код",
     "mfaUseBackupCode": "Резервдик кодду колдонуу",
-    "mfaUseAuthApp": "Аутентификатор тиркемесин колдонуу"
+    "mfaUseAuthApp": "Аутентификатор тиркемесин колдонуу",
+    "remainingAttempts_one": "Калган аракет: {{count}}",
+    "remainingAttempts_other": "Калган аракеттер: {{count}}"
   },
   "mfa": {
     "title": "Эки факторлуу автентификация",
@@ -374,7 +375,6 @@
     "programTopikListen": "TOPIK угуу",
     "programTopikWrite": "TOPIK Жазуу",
     "programTbc": "Ырастоо күтүлүүдө",
-    "totalProblems": "Жалпы {{count}} суроо",
     "emptyTitle": "Суроолор катталган эмес",
     "emptyDescription": "Тандалган программа үчүн суроолор али жок.",
     "emptyDetailDescription": "Бул окуу үчүн азырынча эч кандай суроолор катталган жок.",
@@ -398,7 +398,6 @@
     "viewExplanation": "Түшүндүрмөнү көрүү",
     "references": "Булактар",
     "solvedBadge": "Чыгарылды",
-    "tryCount": "{{count}} аракет",
     "submitButton": "Жиберүү",
     "submitting": "Жиберилип жатат...",
     "retryButton": "Кайра аракет кылуу",
@@ -468,13 +467,11 @@
       "stats": {
         "pageTitle": "Жазуу машыгуунун статистикасы",
         "pageDescription": "Hangul тез жазуу тарыхыңыздагы тактыкты, ылдамдыкты жана эң кыйын тамгаларды карап чыгыңыз.",
-        "lastDays": "Акыркы {{count}} күн",
         "totalSessions": "Жалпы сессиялар",
         "avgAccuracy": "Орточо тактык",
         "avgCpm": "Орточо CPM",
         "cpmUnit": "Мүнөтүнө белгилердин саны",
         "levelTitle": "Деңгээлдер боюнча",
-        "sessionCount": "{{count}} сессия",
         "accuracyLabel": "Тактык",
         "cpmLabel": "CPM",
         "noLevelData": "Деңгээл боюнча маалымат али жок.",
@@ -486,19 +483,27 @@
         "noTrendData": "Тренддер боюнча маалымат али жок.",
         "weakTitle": "Эң көп ката жазылган 10 символ",
         "weakSubtitle": "Ар бир символдун канча жолу ката жазылганына карап иреттелген. Кийинки сессияда ушуларга көбүрөөк көңүл буруңуз.",
-        "missCount": "{{count}}×",
         "noWeakData": "Ката жазылган символдор боюнча маалымат жок. Азаматсыз!",
         "emptyTitle": "Эч бир сессия катталган жок",
         "emptyDescription": "Алгыч статистикаңызды түзүү үчүн машыгууну баштаңыз.",
-        "emptyAction": "Машыгууну баштаңыз"
+        "emptyAction": "Машыгууну баштаңыз",
+        "lastDays_one": "Акыркы {{count}} күн",
+        "lastDays_other": "Акыркы {{count}} күн",
+        "sessionCount_one": "{{count}} сессия",
+        "sessionCount_other": "{{count}} сессия",
+        "missCount_one": "{{count}}×",
+        "missCount_other": "{{count}}×"
       }
-    }
+    },
+    "totalProblems_one": "Жалпы {{count}} маселе",
+    "totalProblems_other": "Жалпы {{count}} маселе",
+    "tryCount_one": "{{count}} аракет",
+    "tryCount_other": "{{count}} аракет"
   },
   "lesson": {
     "heroBadge": "Кадам-кадам менен окуу программасы",
     "listTitle": "Сабактардын тизмеси",
     "listDescription": "Системалуу түрдө түзүлгөн сабактар аркылуу корей тилин кадам-кадам менен үйрөнүңүз. Биз видеолор, көнүгүүлөр жана тапшырмалар камтылган комплекстүү сабактарды сунуштайбыз.",
-    "totalLessons": "Жалпы {{count}} сабак",
     "emptyTitle": "Сабактар катталган эмес",
     "emptyDescription": "Жакында жаңы сабактар кошулат.",
     "accessPaid": "Акы төлөнүүчү",
@@ -512,19 +517,21 @@
     "completeLesson": "Сабакты аяктоо",
     "lessonCompleted": "Сабак аяктады",
     "learningItems": "Окуу материалдары",
-    "itemCount": "{{count}} элемент",
     "emptyItemsTitle": "Окуу материалдары катталган эмес",
     "emptyItemsDescription": "Бул сабак үчүн азырынча окуу материалдары катталган жок.",
     "notFoundTitle": "Сабак табылган жок",
     "notFoundDescription": "Бул сабак жок же өчүрүлүп калган.",
     "videoId": "Видео №{{id}}",
-    "taskId": "Маселе №{{id}}"
+    "taskId": "Маселе №{{id}}",
+    "totalLessons_one": "Жалпы {{count}} сабак",
+    "totalLessons_other": "Жалпы {{count}} сабак",
+    "itemCount_one": "{{count}} элемент",
+    "itemCount_other": "{{count}} элемент"
   },
   "video": {
     "heroBadge": "Видеолор аркылуу корей тилин үйрөнүңүз",
     "listTitle": "Видео менен үйрөнүү",
     "listDescription": "Ар кандай темалардагы корей видеолору аркылуу тилди табигый түрдө үйрөнүңүз. Коөндүмдөрүңүздү жогорулатуу үчүн жергиликтүү айтууларды жана сөз айтууларды угуп, көрүңүз.",
-    "totalVideos": "Бардыгы {{count}} видео",
     "emptyTitle": "Видеолор табылган жок",
     "notFoundTitle": "Видео табылган жок",
     "notFoundDescription": "Бул видео жок же өчүрүп салынган.",
@@ -533,7 +540,9 @@
     "allItemsCompleted": "\"{{title}}\" ичиндеги бардык элементтер аяктады!",
     "nextItem": "Кийинки элемент",
     "backToLesson": "Сабакка кайтуу",
-    "backToLessonShort": "Сабакка"
+    "backToLessonShort": "Сабакка",
+    "totalVideos_one": "Жалпы {{count}} видео",
+    "totalVideos_other": "Жалпы {{count}} видео"
   },
   "payment": {
     "title": "Планыңызды тандаңыз",
@@ -1508,8 +1517,10 @@
     "slideTags3": "Чакаттар, Мүчөлөр, Суроолуу сөздөр",
     "slideTags4": "500 сүйлөм, Көп колдонулушу боюнча, Татаалдыгы боюнча",
     "slideTags5": "Сандар, Терс тартип, Расмий, Сүйлөшүү жана Жазуу",
-    "specPages": "{{count}} бет",
-    "specLanguages": "{{count}} тил",
-    "specPrice": "25,000 KRW"
+    "specPrice": "25,000 KRW",
+    "specPages_one": "{{count}} бет",
+    "specPages_other": "{{count}} бет",
+    "specLanguages_one": "{{count}} тил",
+    "specLanguages_other": "{{count}} тил"
   }
 }

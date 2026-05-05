@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "Тым көп растау әрекеті. Кейінірек қайталаңыз.",
     "toastTooManyResendRequests": "Тым көп қайта жіберу сұрауы. Кейінірек қайталаңыз.",
     "oauthPasswordWarning": "Әлеуметтік кіру (Google, т.б.) арқылы жасалған тіркелгілерде құпия сөз жоқ. Әлеуметтік қызмет арқылы кіріңіз.",
-    "remainingAttempts": "Қалған әрекеттер: {{count}}",
     "noAttemptsRemaining": "Жіберу лимитіне жеттіңіз. Кейінірек қайталаңыз.",
     "mfaTitle": "Екі факторлы аутентификация",
     "mfaDescription": "Google Authenticator қолданбасынан кодты енгізіңіз",
@@ -219,7 +218,9 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "8 таңбалы резервтік код",
     "mfaUseBackupCode": "Резервтік кодты пайдалану",
-    "mfaUseAuthApp": "Аутентификатор қосымшасын пайдалану"
+    "mfaUseAuthApp": "Аутентификатор қосымшасын пайдалану",
+    "remainingAttempts_one": "Қалған әрекет: {{count}}",
+    "remainingAttempts_other": "Қалған әрекет: {{count}}"
   },
   "user": {
     "myPageTitle": "Менің бетім",
@@ -346,7 +347,6 @@
     "programTopikListen": "TOPIK Тыңдау",
     "programTopikWrite": "TOPIK Жазу",
     "programTbc": "TBC",
-    "totalProblems": "Барлығы {{count}} тапсырма",
     "emptyTitle": "Тапсырмалар тіркелмеген",
     "emptyDescription": "Таңдалған бағдарлама бойынша оқу тапсырмалары әлі жоқ.",
     "emptyDetailDescription": "Бұл оқу бойынша тапсырмалар тіркелмеген.",
@@ -369,7 +369,6 @@
     "viewExplanation": "Түсіндірмені көру",
     "references": "Сілтемелер",
     "solvedBadge": "Шешілген",
-    "tryCount": "{{count}} әрекет",
     "submitButton": "Жіберу",
     "submitting": "Жіберілуде...",
     "retryButton": "Қайталау",
@@ -383,13 +382,16 @@
     "toLesson": "Сабаққа",
     "nextItemVideo": "Келесі элемент (Бейне)",
     "nextItemTask": "Келесі элемент (Тапсырма)",
-    "completeLesson": "Сабақты аяқтау"
+    "completeLesson": "Сабақты аяқтау",
+    "totalProblems_one": "Барлығы {{count}} есеп",
+    "totalProblems_other": "Барлығы {{count}} есеп",
+    "tryCount_one": "{{count}} әрекет",
+    "tryCount_other": "{{count}} әрекет"
   },
   "lesson": {
     "heroBadge": "Кезеңді оқу бағдарламасы",
     "listTitle": "Сабақтар тізімі",
     "listDescription": "Жүйелі түрде ұйымдастырылған сабақтар арқылы корей тілін кезең-кезеңімен үйреніңіз. Бейнелер, тапсырмалар мен тағайындамалардан тұратын кешенді сабақтарды ұсынамыз.",
-    "totalLessons": "Барлығы {{count}} сабақ",
     "emptyTitle": "Сабақтар тіркелмеген",
     "emptyDescription": "Жаңа сабақтар жақында қосылады.",
     "accessPaid": "Ақылы",
@@ -403,19 +405,21 @@
     "completeLesson": "Сабақты аяқтау",
     "lessonCompleted": "Сабақ аяқталды",
     "learningItems": "Оқу элементтері",
-    "itemCount": "{{count}} элемент",
     "emptyItemsTitle": "Оқу элементтері тіркелмеген",
     "emptyItemsDescription": "Бұл сабаққа оқу элементтері әлі тіркелмеген.",
     "notFoundTitle": "Сабақ табылмады",
     "notFoundDescription": "Бұл сабақ жоқ немесе жойылған.",
     "videoId": "Бейне #{{id}}",
-    "taskId": "Тапсырма #{{id}}"
+    "taskId": "Тапсырма #{{id}}",
+    "totalLessons_one": "Барлығы {{count}} сабақ",
+    "totalLessons_other": "Барлығы {{count}} сабақ",
+    "itemCount_one": "{{count}} элемент",
+    "itemCount_other": "{{count}} элемент"
   },
   "video": {
     "heroBadge": "Бейнелер арқылы корей тілін үйреніңіз",
     "listTitle": "Бейне арқылы оқу",
     "listDescription": "Әр түрлі тақырыптардағы корей бейнелері арқылы табиғи түрде үйреніңіз. Ана тілінде сөйлеушілердің айтылымы мен тіркестерін тыңдап, дағдыларыңызды жақсартыңыз.",
-    "totalVideos": "Барлығы {{count}} бейне",
     "emptyTitle": "Бейнелер тіркелмеген.",
     "notFoundTitle": "Бейне табылмады",
     "notFoundDescription": "Бұл бейне жоқ немесе жойылған.",
@@ -424,7 +428,9 @@
     "allItemsCompleted": "\"{{title}}\" ішіндегі барлық элементтер аяқталды!",
     "nextItem": "Келесі элемент",
     "backToLesson": "Сабаққа оралу",
-    "backToLessonShort": "Сабаққа"
+    "backToLessonShort": "Сабаққа",
+    "totalVideos_one": "Барлығы {{count}} видео",
+    "totalVideos_other": "Барлығы {{count}} видео"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +928,13 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_one": "{{count}} бет",
+    "specPages_other": "{{count}} бет",
+    "specLanguages_one": "{{count}} тіл",
+    "specLanguages_other": "{{count}} тіл"
   },
   "mfa": {
     "title": "Екі факторлы аутентификация",
