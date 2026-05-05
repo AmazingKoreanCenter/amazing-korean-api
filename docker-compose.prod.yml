@@ -122,7 +122,7 @@ services:
     logging: *default-logging
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.27-alpine
     container_name: amk-nginx
     restart: always
     ports:
