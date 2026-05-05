@@ -206,7 +206,6 @@
     "toastTooManyVerifyAttempts": "Troppi tentativi di verifica. Riprova più tardi.",
     "toastTooManyResendRequests": "Troppe richieste di reinvio. Riprova più tardi.",
     "oauthPasswordWarning": "Gli account creati tramite social login (Google, ecc.) non hanno una password. Accedi tramite il servizio social.",
-    "remainingAttempts": "Tentativi rimasti: {{count}}",
     "noAttemptsRemaining": "Hai raggiunto il limite di invio. Riprova più tardi.",
     "mfaTitle": "Autenticazione a due fattori",
     "mfaDescription": "Inserisci il codice dell'app Google Authenticator",
@@ -219,7 +218,9 @@
     "mfaInvalidCode": "Codice di autenticazione non valido",
     "mfaBackupPlaceholder": "Codice di backup di 8 caratteri",
     "mfaUseBackupCode": "Usa il codice di backup",
-    "mfaUseAuthApp": "Usa l'app di autenticazione"
+    "mfaUseAuthApp": "Usa l'app di autenticazione",
+    "remainingAttempts_one": "Tentativo rimanente: {{count}}",
+    "remainingAttempts_other": "Tentativi rimanenti: {{count}}"
   },
   "mfa": {
     "title": "Autenticazione a due fattori",
@@ -374,7 +375,6 @@
     "programTopikListen": "Ascolto TOPIK",
     "programTopikWrite": "TOPIK Scrittura",
     "programTbc": "Da confermare",
-    "totalProblems": "Totale {{count}} problemi",
     "emptyTitle": "Nessun problema registrato",
     "emptyDescription": "Non ci sono ancora problemi di studio per il programma selezionato.",
     "emptyDetailDescription": "Non sono ancora stati registrati problemi per questo studio.",
@@ -398,7 +398,6 @@
     "viewExplanation": "Visualizza spiegazione",
     "references": "Riferimenti",
     "solvedBadge": "Risolto",
-    "tryCount": "{{count}} tentativi",
     "submitButton": "Invia",
     "submitting": "Invio in corso...",
     "retryButton": "Riprova",
@@ -468,13 +467,11 @@
       "stats": {
         "pageTitle": "Statistiche pratica di digitazione",
         "pageDescription": "Controlla precisione, velocità e i caratteri più difficili nella tua cronologia di digitazione Hangul.",
-        "lastDays": "Ultimi {{count}} giorni",
         "totalSessions": "Sessioni totali",
         "avgAccuracy": "Accuratezza media",
         "avgCpm": "CPM medio",
         "cpmUnit": "Caratteri al minuto",
         "levelTitle": "Per livello",
-        "sessionCount": "{{count}} sessioni",
         "accuracyLabel": "Accuratezza",
         "cpmLabel": "CPM",
         "noLevelData": "Nessun dato sul livello disponibile.",
@@ -486,19 +483,27 @@
         "noTrendData": "Ancora nessun dato sull'andamento.",
         "weakTitle": "I 10 caratteri più deboli",
         "weakSubtitle": "Ordinati in base alla frequenza di errore per ogni carattere. Concentrati su questi nella tua prossima sessione.",
-        "missCount": "{{count}}×",
         "noWeakData": "Ancora nessun dato sui caratteri deboli. Ottimo lavoro!",
         "emptyTitle": "Nessuna sessione registrata",
         "emptyDescription": "Inizia a esercitarti per visualizzare le tue prime statistiche.",
-        "emptyAction": "Inizia a esercitarti"
+        "emptyAction": "Inizia a esercitarti",
+        "lastDays_one": "Ultimo {{count}} giorno",
+        "lastDays_other": "Ultimi {{count}} giorni",
+        "sessionCount_one": "{{count}} sessione",
+        "sessionCount_other": "{{count}} sessioni",
+        "missCount_one": "{{count}}×",
+        "missCount_other": "{{count}}×"
       }
-    }
+    },
+    "totalProblems_one": "Totale {{count}} problema",
+    "totalProblems_other": "Totale {{count}} problemi",
+    "tryCount_one": "{{count}} tentativo",
+    "tryCount_other": "{{count}} tentativi"
   },
   "lesson": {
     "heroBadge": "Programma passo dopo passo",
     "listTitle": "Elenco lezioni",
     "listDescription": "Impara il coreano passo dopo passo grazie a lezioni organizzate in modo sistematico. Offriamo lezioni complete che includono video, esercizi e compiti.",
-    "totalLessons": "{{count}} lezioni in totale",
     "emptyTitle": "Nessuna lezione registrata",
     "emptyDescription": "Nuove lezioni saranno aggiunte a breve.",
     "accessPaid": "A pagamento",
@@ -512,19 +517,21 @@
     "completeLesson": "Completa la lezione",
     "lessonCompleted": "Lezione completata",
     "learningItems": "Elementi da imparare",
-    "itemCount": "{{count}} elementi",
     "emptyItemsTitle": "Nessun elemento di apprendimento registrato",
     "emptyItemsDescription": "Non sono ancora stati registrati elementi di apprendimento per questa lezione.",
     "notFoundTitle": "Lezione non trovata",
     "notFoundDescription": "Questa lezione non esiste o è stata eliminata.",
     "videoId": "Video #{{id}}",
-    "taskId": "Esercizio #{{id}}"
+    "taskId": "Esercizio #{{id}}",
+    "totalLessons_one": "Totale {{count}} lezione",
+    "totalLessons_other": "Totale {{count}} lezioni",
+    "itemCount_one": "{{count}} elemento",
+    "itemCount_other": "{{count}} elementi"
   },
   "video": {
     "heroBadge": "Impara il coreano con i video",
     "listTitle": "Apprendimento tramite video",
     "listDescription": "Impara in modo naturale con video in coreano su vari argomenti. Guarda e ascolta la pronuncia e le espressioni dei madrelingua per migliorare le tue abilità.",
-    "totalVideos": "Totale {{count}} video",
     "emptyTitle": "Nessun video registrato.",
     "notFoundTitle": "Video non trovato",
     "notFoundDescription": "Questo video non esiste o è stato eliminato.",
@@ -533,7 +540,9 @@
     "allItemsCompleted": "Tutti gli elementi in \"{{title}}\" sono stati completati!",
     "nextItem": "Prossimo elemento",
     "backToLesson": "Torna alla lezione",
-    "backToLessonShort": "Alla lezione"
+    "backToLessonShort": "Alla lezione",
+    "totalVideos_one": "Totale {{count}} video",
+    "totalVideos_other": "Totale {{count}} video"
   },
   "payment": {
     "title": "Scegli il tuo piano",
@@ -1513,8 +1522,10 @@
     "slideTags3": "Tempi verbali, Particelle, Interrogativi",
     "slideTags4": "500 Frasi, Per frequenza, Per difficoltà",
     "slideTags5": "Numeri, Negazione, Formale, Colloquiale e Scritto",
-    "specPages": "{{count}} pagine",
-    "specLanguages": "{{count}} lingue",
-    "specPrice": "25.000 KRW"
+    "specPrice": "25.000 KRW",
+    "specPages_one": "{{count}} pagina",
+    "specPages_other": "{{count}} pagine",
+    "specLanguages_one": "{{count}} lingua",
+    "specLanguages_other": "{{count}} lingue"
   }
 }

@@ -196,7 +196,6 @@
     "toastTooManyVerifyAttempts": "Muitas tentativas de verificação. Por favor, tente novamente mais tarde.",
     "toastTooManyResendRequests": "Muitas solicitações de reenvio. Por favor, tente novamente mais tarde.",
     "oauthPasswordWarning": "Contas criadas via login social (Google, etc.) não possuem senha. Por favor, faça login usando o serviço social.",
-    "remainingAttempts": "Tentativas restantes: {{count}}",
     "noAttemptsRemaining": "Você atingiu o limite de envios. Por favor, tente novamente mais tarde.",
     "mfaTitle": "Autenticação de dois fatores",
     "mfaDescription": "Insira o código do seu aplicativo Google Authenticator",
@@ -219,7 +218,9 @@
     "validationPasswordMax": "Password must be 72 characters or less.",
     "mfaBackupPlaceholder": "Código de backup de 8 caracteres",
     "mfaUseBackupCode": "Usar código de backup",
-    "mfaUseAuthApp": "Usar aplicativo de autenticação"
+    "mfaUseAuthApp": "Usar aplicativo de autenticação",
+    "remainingAttempts_one": "Tentativa restante: {{count}}",
+    "remainingAttempts_other": "Tentativas restantes: {{count}}"
   },
   "user": {
     "myPageTitle": "Minha Página",
@@ -346,7 +347,6 @@
     "programTopikListen": "TOPIK Compreensão Auditiva",
     "programTopikWrite": "TOPIK Escrita",
     "programTbc": "TBC",
-    "totalProblems": "Total {{count}} exercícios",
     "emptyTitle": "Nenhum exercício registrado",
     "emptyDescription": "Ainda não há exercícios de estudo para o programa selecionado.",
     "emptyDetailDescription": "Nenhum exercício foi registrado para este estudo ainda.",
@@ -369,7 +369,6 @@
     "viewExplanation": "Ver Explicação",
     "references": "Referências",
     "solvedBadge": "Resolvido",
-    "tryCount": "{{count}} tentativas",
     "submitButton": "Enviar",
     "submitting": "Enviando...",
     "retryButton": "Tentar Novamente",
@@ -383,13 +382,16 @@
     "toLesson": "Ir para a Aula",
     "nextItemVideo": "Próximo Item (Vídeo)",
     "nextItemTask": "Próximo Item (Exercício)",
-    "completeLesson": "Concluir Aula"
+    "completeLesson": "Concluir Aula",
+    "totalProblems_one": "Total de {{count}} problema",
+    "totalProblems_other": "Total de {{count}} problemas",
+    "tryCount_one": "{{count}} tentativa",
+    "tryCount_other": "{{count}} tentativas"
   },
   "lesson": {
     "heroBadge": "Currículo Passo a Passo",
     "listTitle": "Lista de Aulas",
     "listDescription": "Aprenda coreano passo a passo através de aulas organizadas sistematicamente. Oferecemos aulas integradas com vídeos, exercícios e atividades.",
-    "totalLessons": "Total {{count}} aulas",
     "emptyTitle": "Nenhuma aula registrada",
     "emptyDescription": "Novas aulas serão adicionadas em breve.",
     "accessPaid": "Pago",
@@ -403,19 +405,21 @@
     "completeLesson": "Concluir Aula",
     "lessonCompleted": "Aula Concluída",
     "learningItems": "Itens de Aprendizado",
-    "itemCount": "{{count}} itens",
     "emptyItemsTitle": "Nenhum item de aprendizado registrado",
     "emptyItemsDescription": "Nenhum item de aprendizado foi registrado para esta aula ainda.",
     "notFoundTitle": "Aula não encontrada",
     "notFoundDescription": "Esta aula não existe ou foi excluída.",
     "videoId": "Vídeo #{{id}}",
-    "taskId": "Exercício #{{id}}"
+    "taskId": "Exercício #{{id}}",
+    "totalLessons_one": "Total de {{count}} lição",
+    "totalLessons_other": "Total de {{count}} lições",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} itens"
   },
   "video": {
     "heroBadge": "Aprenda Coreano por Vídeos",
     "listTitle": "Aprendizado por Vídeo",
     "listDescription": "Aprenda naturalmente através de vídeos em coreano sobre diversos temas. Assista e ouça a pronúncia e expressões nativas para melhorar suas habilidades.",
-    "totalVideos": "Total {{count}} vídeos",
     "emptyTitle": "Nenhum vídeo registrado.",
     "notFoundTitle": "Vídeo não encontrado",
     "notFoundDescription": "Este vídeo não existe ou foi excluído.",
@@ -424,7 +428,9 @@
     "allItemsCompleted": "Todos os itens de \"{{title}}\" foram concluídos!",
     "nextItem": "Próximo Item",
     "backToLesson": "Voltar para a Aula",
-    "backToLessonShort": "Para a Aula"
+    "backToLessonShort": "Para a Aula",
+    "totalVideos_one": "Total de {{count}} vídeo",
+    "totalVideos_other": "Total de {{count}} vídeos"
   },
   "comingSoon": {
     "badge": "Coming Soon",
@@ -922,11 +928,13 @@
     "slideTags3": "Tenses,Particles,Interrogatives",
     "slideTags4": "500 Sentences,By Frequency,By Difficulty",
     "slideTags5": "Numbers,Negation,Formal & Colloquial & Written",
-    "specPages": "{{count}} Pages",
-    "specLanguages": "{{count}} Languages",
     "specPrice": "₩25,000",
     "tabTextbook": "Textbook",
-    "tabEbook": "E-book"
+    "tabEbook": "E-book",
+    "specPages_one": "{{count}} página",
+    "specPages_other": "{{count}} páginas",
+    "specLanguages_one": "{{count}} idioma",
+    "specLanguages_other": "{{count}} idiomas"
   },
   "mfa": {
     "title": "Autenticação de Dois Fatores",
