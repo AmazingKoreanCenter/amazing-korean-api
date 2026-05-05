@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-05 (PR #215 머지 후 G3/G4/A4-3/J3 + G5/G7 수용. 본 세션 누계 36 부채 처리)
+updated: 2026-05-05 (PR #217 머지 후 단계 1+2 = 12 부채 추가 처리/수용. 본 세션 누계 48 부채 처리)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
@@ -190,16 +190,48 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - G 자동 검증 13 → 5 (G3/G4/G5/G6/G7/G11/G13/G14 처리/수용)
   - J Secrets 4 → 3 (J3 처리)
 
-  ## 다음 세션 진입점
+  ## PR #217 머지 후속 단계 1+2 (commit `24a3624` + `7aae36a` + `2641766`)
+
+  ### 단계 1 — 즉시 수용 7건 (commit `24a3624`)
+
+  audit 갱신만 (코드 변경 X):
+  - C6 🟡 TODO 주석 (Phase 3 트리거 마커)
+  - C8/C9/C10/C11 🟡 Rust `#[allow(*)]` 카운트 (의도된 사용)
+  - C12 🟡 TS `as any` (N-3 동일 ebook DRM)
+  - C13 🟡 TS `eslint-disable` (N-5 동일 정책)
+  - H1 🟡 메모리 stale (정책상 수동)
+  - H2 🟡 docs↔코드 자동 검증 (M-007 grep 패턴 정착)
+  - J4 🟡 panic 게이트 룰 (사용자 결정 룰 추가 X)
+
+  ### 단계 2 — 작은 처리 4건 + J3 도구 발견 처리
+
+  - **J1 ✅** RATE_LIMIT_TEXTBOOK_* (commit `7aae36a`) — `.env.example` + `deploy.yml` 추가. config.rs default ("3600"/"5") 명시
+  - **J2 ✅** APPLE_CLIENT_ID/TEAM_ID — `.env.example` 추가 (Option, 미설정 시 비활성)
+  - **J3 도구 발견 차원 1** (RESET_TOKEN_TTL_SEC / VERIFICATION_CODE_TTL_SEC) → `deploy.yml` 추가
+  - **J3 도구 발견 차원 2** 14건 → `.env.example` 추가 (GOOGLE_MOBILE_CLIENT_ID / MAX_SESSIONS_* / REVENUECAT_* / EBOOK_IMAGES_ENCRYPTED / EBOOK_IMAGE_ENCRYPTION_KEY / ENCRYPTION_KEY 주석)
+  - **C7 ✅** bundle 모니터링 (commit `2641766`) — `rollup-plugin-visualizer` + `dist/bundle-stats.html` 자동 생성
+
+  J3 도구 재실행 결과 = false positive 잔존 (REFRESH_* docker-compose.prod.yml 안, ENCRYPTION_KEY 주석, SKIP_DB dev only). 도구 보강 (docker-compose union + 주석 인식) = 별도 후속.
+
+  ## SSoT 갱신 누계
+
+  - 본 세션 누계 48 부채 처리 (32 ✅ + 16 🟡 + 1 🟢 + 1 M-008 등재 = 50 작업)
+  - AMK_DEBTS 합계 92 → 57 (-35)
+  - C 13 → 2 (C1/C2 만 잔존)
+  - H 2 → 0
+  - J 4 → 0
+
+  ## 다음 세션 진입점 (잔여 ~57건)
 
   1. **N-26 i18n 21언어 legal/admin** (ai 측 번역 의존)
   2. **N-27 OpenAPI ~43건** (도메인별 PR 분할)
   3. **A4-1/A4-2 + N-13 + N-31 origin 인프라 묶음** (HTTPS + certbot, 1일+, production 영향)
   4. **A4-4** DB·Redis 백업
   5. **G10** src 테스트 부족 (큰 작업)
-  6. **AMK_DEBTS B 보안** (rsa Marvin / unsound 7건 / expect 48건 전수 점검)
-  7. **AMK_DEBTS C 코드 품질** (ESLint Q16 / lint:ui Q16)
-  8. **J1/J2 환경변수 처리** + J3 검증 도구 발견 신규 차이 14건+ (별도 트랙)
+  6. **C1 ESLint 27 / C2 lint:ui 9** (Q16 baseline)
+  7. **B 보안** (rsa Marvin / unsound 7건 / expect 48건 전수 점검 / B6 ipgeo)
+  8. **A1 Paddle KYB / A2 RDS / A3 Q14~Q17 / E1~E3 / F1~F5** (트리거 대기 / 외부 리포)
+  9. **J3 도구 보강** (docker-compose union + 주석 인식)
 
 - **2026-05-04 (밤, 후속 3) — Phase 1+2 부채 처리 10건 일괄 + 검증 2/3회차 정정**
 
