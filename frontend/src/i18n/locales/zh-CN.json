@@ -399,7 +399,7 @@
         "trendTitle": "每日趋势",
         "trendDay": "日期",
         "trendSessions": "学习次数",
-        "trendAccuracy": "准确率",
+        "trendAccuracy": "正确率",
         "trendCpm": "CPM",
         "noTrendData": "暂无趋势数据。",
         "weakTitle": "最常出错的 10 个字符",
