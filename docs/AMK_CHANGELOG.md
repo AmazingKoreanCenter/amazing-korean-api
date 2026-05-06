@@ -1,8 +1,42 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-06 정합성 cross-check 정정 (N-14 stale 마킹 / §0 53건 / N-27 76 schema + 7 tag)
+updated: 2026-05-06 작은 부채 3건 처리 (B1 / B2 7건 수용 + A4-4 백업 docs 부분 해결, §0 53→44)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-06 (오후 늦게) — 작은 부채 3건 처리 (B1 / B2 7건 / A4-4)**
+
+  본 세션 (N-27 종결 후) 잔여 작은 부채 일괄 처리.
+
+  ## 처리 결과
+
+  | 부채 | 처리 방식 | 사유 |
+  |------|----------|------|
+  | **B1** rsa Marvin (RUSTSEC-2023-0071) | 🟡 수용 | `cargo audit` 명시 "No fixed upgrade". 의존 트리 = `rsa → sqlx-mysql → sqlx-macros` (compile-time only). PostgreSQL only 사용 (Cargo.toml line 33) = production 영향 0 |
+  | **B2 core2** (RUSTSEC-2026-0105) | 🟡 수용 | unmaintained, transitive (image → ravif → core2). upstream image fix 대기 |
+  | **B2 paste** (RUSTSEC-2024-0436) | 🟡 수용 | unmaintained 만, 보안 X. macro 라이브러리 |
+  | **B2 imageproc 3건** (RUSTSEC-2026-0115/0116/0117) | 🟡 수용 | unsound but 텍스트 오버레이 영향 낮음 (검증 명시) |
+  | **B2 rand 2건** (RUSTSEC-2026-0097) | 🟡 수용 | "custom logger using `rand::rng()`" 영향. 검증: `grep set_logger src/` = 결과 0 (`tracing-subscriber` 사용) → 영향 0 |
+  | **A4-4** DB/Redis 백업 정책 | 🟡 부분 해결 | `AMK_DEPLOY_OPS §6` 안에 수동 백업·복구 절차 추가 (PostgreSQL pg_dump + Redis BGSAVE/RDB cp + 권장 정책 + 자동화 후속). 자동화는 사용자 정책 결정 후 별도 후속 |
+
+  ## A4-4 신규 docs 내용
+
+  - **PostgreSQL 백업/복구**: `docker exec amk-pg pg_dump` (논리/압축/cluster 옵션) + 복구 절차 (DB drop → recreate → import → API 재시작)
+  - **Redis 백업/복구**: `docker exec amk-redis redis-cli BGSAVE` + `docker cp` + alpine container 로 volume 복구
+  - **권장 정책 표**: 주기 (일 1회 KST 03:00) / 보관 (일 7 + 주 4 + 월 3) / 저장 (S3 vs EC2) / 암호화 / RTO·RPO — 사용자 결정 컬럼 명시
+  - **자동화 후속**: cron + S3 + 검증 + lifecycle policy (현재 미구성, A4-1/A4-2 후 또는 RDS 이전 시점)
+  - **데이터 손실 우려 표**: EBS 손상 / EC2 종료 / volume rm 실수 / RDS 이전 시점
+
+  ## 카운트 영향
+
+  - AMK_DEBTS §0 = 53건 → **44건** (-9: A4-4 부분 해결 1 + B1 1 + B2 7)
+  - B 보안 카테고리 = 9건 → **1건** (B6 ipgeo 만 잔여)
+  - A 운영/배포 카테고리 = 10건 → **9건** (A4-4 부분 해결)
+
+  ## 변경 파일
+
+  - `docs/AMK_DEBTS.md` — B1/B2/A4-4 처리 마킹 + §0 표 합산 (53 → 44)
+  - `docs/AMK_DEPLOY_OPS.md` — §6 안에 백업 절차 섹션 신규 추가 (~120줄)
 
 - **2026-05-06 (정합성 cross-check) — docs/메모리 stale 정정 3건**
 
