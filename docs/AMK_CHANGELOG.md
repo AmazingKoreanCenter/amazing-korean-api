@@ -1,8 +1,39 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-06 (B5 expect 52건 위험도 분류 종결 — 🟢 45 / 🟡 7 / 🔴 0)
+updated: 2026-05-06 (N-27 auth 도메인 OpenAPI 10 endpoint + 13 schema 등록)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-06 (저녁) — N-27 auth 도메인 OpenAPI 등록 (10 endpoint + 13 schema)**
+
+  AMK_AUDIT N-27 (≈43건 누락) 중 auth 도메인 10건 완료. 잔여 ≈ 33건 (8 도메인).
+
+  ## 등록한 path 10건
+
+  login_mobile / refresh_mobile / find_password / verify_email / resend_verification / google_auth_start / google_auth_callback / google_mobile_login / apple_mobile_login / mfa_login_mobile.
+
+  → handler.rs 의 `#[utoipa::path]` annotation 은 모두 작성되어 있던 상태. `src/docs.rs` paths(...) 에만 미등록 = swagger UI 미노출 상태였음. 단순 등록만 필요.
+
+  ## 등록한 schema 13건
+
+  - **사용 DTO 11건**: LoginMobileRes / RefreshReq / FindPasswordReq / FindPasswordRes / VerifyEmailReq / VerifyEmailRes / ResendVerificationReq / ResendVerificationRes / GoogleAuthUrlRes / GoogleMobileLoginReq / AppleMobileLoginReq
+  - **사이드 발견 2건**: LogoutAllReq / LogoutRes — 기존 등록 endpoint 가 사용 중인데 components 미등록 상태였음
+
+  모두 dto.rs 에 `ToSchema` derive 이미 적용. 등록만 추가.
+
+  ## 검증
+
+  - `cargo check --all-targets` ✅
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --all-targets -- -D warnings` ✅
+
+  ## 변경 파일
+
+  - `src/docs.rs` — auth paths 12 → 22, auth schemas 18 → 31
+
+  ## 다음 진입점 (N-27 잔여)
+
+  payment 4 / textbook 4 / ebook 7 / admin/email 1 / admin/payment 4 / admin/textbook 6 / admin/ebook 5 = ≈ 31건 + α. auth 도메인 패턴 (paths 등록 + DTO ToSchema 확인 + components 등록) 동일 적용 가능.
 
 - **2026-05-06 (오후) — B5 `expect()` 위험도 분류 종결**
 
