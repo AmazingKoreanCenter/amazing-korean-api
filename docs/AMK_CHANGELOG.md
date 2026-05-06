@@ -1,8 +1,61 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-06 (N-27 admin/email + payment 4 endpoint + 8 schema + webhook 의도 제외 정책 정착)
+updated: 2026-05-06 (N-27 PR-A "등록만" 묶음 — textbook + admin/payment + admin/textbook 19 endpoint + 34 schema)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-06 (밤2) — N-27 PR-A "등록만" 묶음 처리 (textbook + admin/payment + admin/textbook = 19 endpoint + 34 schema)**
+
+  AMK_AUDIT N-27 ≈28 → ~~약 16건~~. 잔여 도메인 6개 중 **handler annotation 이미 작성된 3개 도메인 일괄 등록**. PR-A 라 명명한 "등록만" 묶음.
+
+  ## 등록한 path 19건
+
+  - **textbook 4건**: get_catalog / create_order / get_order_by_code / get_my_orders
+  - **admin/payment 7건**: list_subscriptions / get_subscription / cancel_subscription / list_transactions / create_grant / list_grants / revoke_grant
+  - **admin/textbook 8건**: list_orders / get_order / update_status / update_discount / update_tracking / admin_create_order / delete_order / list_admin_logs
+
+  ## 등록한 schema 34건
+
+  - **textbook 7건**: CatalogItem / CatalogRes / CreateOrderItemReq / CreateOrderReq / OrderItemRes / MyOrdersRes / OrderRes
+  - **admin/payment 16건**: AdminPaymentMeta / AdminSubListReq / AdminSubSummary / AdminSubListRes / AdminSubDetailRes / AdminSubDetail / AdminSubUser / AdminTxnListReq / AdminTxnSummary / AdminTxnListRes / AdminGrantReq / AdminGrantRes / AdminGrantListReq / AdminGrantSummary / AdminGrantListRes / AdminCancelSubReq
+  - **admin/textbook 11건**: AdminTextbookListReq / AdminTextbookMeta / AdminTextbookListRes / AdminTextbookLogQuery / AdminTextbookLogItem / AdminTextbookLogMeta / AdminTextbookLogListRes / AdminUpdateStatusReq / AdminUpdateDiscountReq / AdminUpdateTrackingReq / AdminCreateOrderReq
+
+  모든 DTO 가 dto.rs 에 ToSchema derive 100% 적용 = 등록만 추가.
+
+  ## 추가한 OpenAPI tags 3개
+
+  - `Textbook` — Textbook catalog and orders (user-facing)
+  - `admin_payment` — Admin subscription/transaction/grant management
+  - `Admin Textbook` — Admin textbook order management
+
+  ## 사이드 정정 (실측 vs N-27 표 stale 4건)
+
+  - payment endpoint 4 → 5 (revenuecat webhook 누락이었음, 2026-05-06 (밤1) 발견)
+  - ebook endpoint 7 → 9 (검증 3회차 stale)
+  - admin/payment endpoint 4 → 7 (실측 7)
+  - admin/textbook endpoint 6 → 8 (실측 8)
+
+  ## 검증
+
+  - `cargo check --all-targets` ✅
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --all-targets -- -D warnings` ✅
+
+  ## N-27 누계 진행률
+
+  | 시점 | 처리 | 잔여 |
+  |------|:--:|:--:|
+  | 시작 (2026-05-04) | 0 | ~43 |
+  | (저녁) auth | 10 | ~33 |
+  | (밤1) admin/email + payment | 14 | ~28 |
+  | (밤2) PR-A | **33** + webhook 2 제외 | **16** |
+
+  ## 다음 진입점 (PR-B / PR-C)
+
+  잔여 16건 = 모두 handler annotation 미작성 + DTO 등록. 작업 부담 ↑.
+
+  - **PR-B 소형**: course 2 + admin/ebook 5 = 7건 (30-60분)
+  - **PR-C 대형**: ebook 9건 (40-60분, mobile/desktop 핵심 도메인)
 
 - **2026-05-06 (밤) — N-27 admin/email + payment 도메인 OpenAPI 등록 (4 endpoint + 8 schema) + webhook 의도 제외 정책 정착**
 
