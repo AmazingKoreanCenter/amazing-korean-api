@@ -1,8 +1,16 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-05 (본 세션 종료 — PR #212~#218 모두 머지 + 외부 검증 완료. 누계 50 작업 / 부채 92→57)
+updated: 2026-05-06 (KKRYOUN rebase + force push = origin/main sync. 작업 진입 X = 토큰 75% 새 세션 권장)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-06 — KKRYOUN ↔ origin/main 분기 sync (rebase only)**
+
+  어제 PR #218 머지 후 잔존 commit `38408e4` (CHANGELOG 종료 표기, PR 미머지) + 그 사이 ai 측 PR #219 (i18n plural step3) 머지로 KKRYOUN ↔ origin/main 분기 발생.
+
+  처리: `git rebase origin/main` + `git push --force-with-lease`. 어제 commit 이 origin/main 의 최신 위로 rebase = 일직선 history 정착. KKRYOUN HEAD `38408e4` → `9aab0b9` (rebase 시 hash 변경).
+
+  본 세션 = 코드/docs 변경 X (sync only). 토큰 75% 도달 = 큰 작업 진입 X = 새 세션 권장 (사용자 결정). 다음 진입점 = 어제 메모리 명시 (N-27 / B5 / A4-4 / C1+C2 / 인프라 묶음 / 트리거 대기).
 
 # AMK_CHANGELOG — 변경 이력
 
