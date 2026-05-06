@@ -1,12 +1,38 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-06 ✅ N-27 OpenAPI 부채 완전 종결 — 단일 세션 5 PR 누계 50 endpoint + 85 schema + 6 tag
+updated: 2026-05-06 정합성 cross-check 정정 (N-14 stale 마킹 / §0 53건 / N-27 76 schema + 7 tag)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
+- **2026-05-06 (정합성 cross-check) — docs/메모리 stale 정정 3건**
+
+  본 세션 작업 후 docs ↔ 메모리 cross-check 결과 stale 3건 발견 → 사실 기반 정정.
+
+  ## 정정 사항
+
+  | 위치 | 이전 | 정정 후 | 사실 출처 |
+  |------|------|---------|----------|
+  | `AMK_AUDIT_2026-05-04.md:262` (N-14) | 미해결 표시 | `~~취소선~~` + ✅ 2026-05-05 commit `9fa6f14` 마킹 | git show `9fa6f14` = commit msg "(N-14)" 명시 |
+  | `AMK_DEBTS.md:34` (§0 합계) | "약 57건" | **53건** | 본문 카테고리 합산: A 10 + B 9 + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 7 + J 0 |
+  | `AMK_AUDIT_2026-05-04.md:45` (신규 미해결) | "4건 → 3건" | "4건 → 3건 → **2건**" | N-27 종결 + N-14 stale 정정 후 |
+  | `AMK_CHANGELOG.md` 본 세션 N-27 종결 entry (schema/tag) | "85 schema + 6 tag" | **76 schema + 7 tag** | PR 별 합산: 13 + 8 + 34 + 9 + 12 = 76 schema / 0 + 1 + 3 + 2 + 1 = 7 tag |
+  | 메모리 `project_status.md` frontmatter | "AMK_DEBTS 92→56" / "AMK_AUDIT 신규 4 → 3" | **AMK_DEBTS §0 = 53 / AMK_AUDIT 신규 = 2** | 위 sources |
+
+  ## 잔여 부채 (정정 후 사실)
+
+  - **AMK_AUDIT 신규 미해결** = **2건** (N-13 nginx HTTPS / N-26 i18n)
+  - **AMK_DEBTS §0** = **53건** (카테고리 중복 미배제 카운트)
+
+  ## 변경 파일
+
+  - `docs/AMK_AUDIT_2026-05-04.md` — N-14 마킹 + line 45 카운트
+  - `docs/AMK_DEBTS.md` — §0 line 34 합계
+  - `docs/AMK_CHANGELOG.md` — N-27 종결 entry schema/tag 카운트 + 본 정정 entry
+  - 메모리 `project_status.md` frontmatter description
+
 - **2026-05-06 (새벽) — ✅ N-27 PR-C ebook 종결 (9 endpoint + 12 schema + 1 tag = N-27 부채 완전 해결)**
 
-  AMK_AUDIT N-27 (OpenAPI 스펙 누락) **완전 종결**. 단일 세션 5 PR 누계 50 endpoint + 85 schema + 6 tag 등록 + webhook 2 의도 제외 정책 정착.
+  AMK_AUDIT N-27 (OpenAPI 스펙 누락) **완전 종결**. 단일 세션 5 PR 누계 50 endpoint + 76 schema + 7 tag 등록 + webhook 2 의도 제외 정책 정착. (schema/tag 합산 = PR 별 13+8+34+9+12 = 76 schema, 0+1+3+2+1 = 7 tag. 2026-05-06 정합성 cross-check 정정, 이전 표기 "85 schema + 6 tag" 부정확.)
 
   ## 등록한 path 9건 (annotation 신규 작성, 단일 도메인)
 
