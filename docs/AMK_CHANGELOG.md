@@ -1,16 +1,46 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-06 (KKRYOUN rebase + force push = origin/main sync. 작업 진입 X = 토큰 75% 새 세션 권장)
+updated: 2026-05-06 (B5 expect 52건 위험도 분류 종결 — 🟢 45 / 🟡 7 / 🔴 0)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
-- **2026-05-06 — KKRYOUN ↔ origin/main 분기 sync (rebase only)**
+- **2026-05-06 (오후) — B5 `expect()` 위험도 분류 종결**
+
+  어제 메모리 명시 진입점 중 가장 작은 단위 (B5) 처리. 처리 = 분류 라벨링만, 코드 수정 0.
+
+  ## 카운트 정정
+
+  실측 grep `\.expect(` src/ = **52건** (이전 stale 48 → 정정, PR #212~#218 기간 4건 추가분).
+
+  ## 분류 결과
+
+  | 분류 | 건수 | 의미 |
+  |------|:--:|------|
+  | 🟢 안전 | 45 | 부팅 시 fail-fast 또는 타입/정적 invariant. config.rs 37 + main.rs 6 + auth dummy 1 + user HMAC (타입 보장) 1 |
+  | 🟡 회색 | 7 | external/* reqwest builder 6 (cold init) + auth/service.rs:447 invariant 의존 1 |
+  | 🔴 위험 | 0 | hot path runtime panic 가능 expect = 0 |
+
+  ## 처리 권고
+
+  - 🟢 45건 = 처리 불요 (의도된 fail-fast / 타입 보장)
+  - 🟡 reqwest builder 6건 = 수용 권고 (panic 트리거 사실상 불가능, OnceCell 화 비용 ≫ 효용)
+  - 🟡 auth:447 1건 = `let-else` 리팩터 권고 (defense-in-depth, 5m, 우선순위 낮음)
+
+  ## 결론
+
+  production 운영 중 unexpected panic 위험 expect 호출 = 0건 → B5 = 위험도 분류 종결. 후속 처리는 우선순위 낮음 (선택적).
+
+  ## 변경 파일
+
+  - `docs/AMK_DEBTS.md` — B5 항목 분류표 + 검증 3회차 line 추가
+
+- **2026-05-06 (오전) — KKRYOUN ↔ origin/main 분기 sync (rebase only)**
 
   어제 PR #218 머지 후 잔존 commit `38408e4` (CHANGELOG 종료 표기, PR 미머지) + 그 사이 ai 측 PR #219 (i18n plural step3) 머지로 KKRYOUN ↔ origin/main 분기 발생.
 
   처리: `git rebase origin/main` + `git push --force-with-lease`. 어제 commit 이 origin/main 의 최신 위로 rebase = 일직선 history 정착. KKRYOUN HEAD `38408e4` → `9aab0b9` (rebase 시 hash 변경).
 
-  본 세션 = 코드/docs 변경 X (sync only). 토큰 75% 도달 = 큰 작업 진입 X = 새 세션 권장 (사용자 결정). 다음 진입점 = 어제 메모리 명시 (N-27 / B5 / A4-4 / C1+C2 / 인프라 묶음 / 트리거 대기).
+  추가 (오후 본 세션): PR #220 머지 후 발생한 두번째 분기 (`4197329` changelog rebase sync entry 가 main 에 미반영) 도 동일 패턴으로 정리. 어제 commit `9aab0b9` → `b2059c5` (PR #220 merge commit) → `70ce1f3` (rebase 후 새 hash) 일직선 정착.
 
 # AMK_CHANGELOG — 변경 이력
 
