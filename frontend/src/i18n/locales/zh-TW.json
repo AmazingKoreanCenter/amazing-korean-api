@@ -383,7 +383,39 @@
     "nextItemTask": "下一項（題目）",
     "completeLesson": "完成課程",
     "totalProblems_other": "共 {{count}} 道題",
-    "tryCount_other": "嘗試 {{count}} 次"
+    "tryCount_other": "嘗試 {{count}} 次",
+    "writing": {
+      "stats": {
+        "pageTitle": "打字練習統計",
+        "pageDescription": "透過韓文字母打字紀錄，回顧您的準確度、速度以及最容易出錯的字元。",
+        "totalSessions": "總練習次數",
+        "avgAccuracy": "平均準確度",
+        "avgCpm": "平均 CPM",
+        "cpmUnit": "每分鐘字數",
+        "levelTitle": "按等級",
+        "accuracyLabel": "正確率",
+        "cpmLabel": "CPM",
+        "noLevelData": "尚無等級數據。",
+        "trendTitle": "每日趨勢",
+        "trendDay": "日期",
+        "trendSessions": "次數",
+        "trendAccuracy": "正確率",
+        "trendCpm": "CPM",
+        "noTrendData": "尚無趨勢數據。",
+        "weakTitle": "前 10 名易錯字元",
+        "weakSubtitle": "依字元輸入錯誤的頻率排序。請在下次練習時重點關注這些字元。",
+        "noWeakData": "尚無易錯字元數據。做得好！",
+        "emptyTitle": "尚未有練習紀錄",
+        "emptyDescription": "開始練習以建立您的首份統計數據。",
+        "emptyAction": "開始練習",
+        "lastDays_other": "最近 {{count}} 天",
+        "lastDays_one": "最近 {{count}} 天",
+        "sessionCount_other": "{{count}} 次練習",
+        "sessionCount_one": "{{count}} 次練習",
+        "missCount_other": "{{count}} 次",
+        "missCount_one": "{{count}} 次"
+      }
+    }
   },
   "lesson": {
     "heroBadge": "階梯式課程",

@@ -383,7 +383,39 @@
     "nextItemTask": "รายการถัดไป (แบบฝึกหัด)",
     "completeLesson": "เรียนบทเรียนจบ",
     "totalProblems_other": "ทั้งหมด {{count}} ข้อ",
-    "tryCount_other": "{{count}} ครั้ง"
+    "tryCount_other": "{{count}} ครั้ง",
+    "writing": {
+      "stats": {
+        "pageTitle": "สถิติการฝึกพิมพ์",
+        "pageDescription": "ตรวจสอบความแม่นยำ ความเร็ว และตัวอักษรที่คุณทำได้ยากที่สุดจากประวัติการพิมพ์ฮันกึลของคุณ",
+        "totalSessions": "จำนวนเซสชันทั้งหมด",
+        "avgAccuracy": "ความแม่นยำเฉลี่ย",
+        "avgCpm": "CPM เฉลี่ย",
+        "cpmUnit": "ตัวอักษรต่อนาที",
+        "levelTitle": "ตามระดับ",
+        "accuracyLabel": "ความแม่นยำ",
+        "cpmLabel": "CPM",
+        "noLevelData": "ยังไม่มีข้อมูลระดับ",
+        "trendTitle": "แนวโน้มรายวัน",
+        "trendDay": "วันที่",
+        "trendSessions": "จำนวนครั้ง",
+        "trendAccuracy": "ความแม่นยำ",
+        "trendCpm": "CPM",
+        "noTrendData": "ยังไม่มีข้อมูลแนวโน้ม",
+        "weakTitle": "10 อันดับตัวอักษรที่พิมพ์ผิดบ่อย",
+        "weakSubtitle": "เรียงลำดับตามความถี่ในการพิมพ์ผิด ควรเน้นฝึกฝนตัวอักษรเหล่านี้ในการเรียนครั้งต่อไป",
+        "noWeakData": "ยังไม่มีข้อมูลตัวอักษรที่พิมพ์ผิดบ่อย เก่งมาก!",
+        "emptyTitle": "ยังไม่มีประวัติการเรียน",
+        "emptyDescription": "เริ่มฝึกฝนเพื่อสร้างสถิติแรกของคุณ",
+        "emptyAction": "เริ่มฝึกฝน",
+        "lastDays_other": "{{count}} วันที่ผ่านมา",
+        "lastDays_one": "{{count}} วันที่ผ่านมา",
+        "sessionCount_other": "{{count}} เซสชัน",
+        "sessionCount_one": "{{count}} เซสชัน",
+        "missCount_other": "{{count}} ครั้ง",
+        "missCount_one": "{{count}} ครั้ง"
+      }
+    }
   },
   "lesson": {
     "heroBadge": "หลักสูตรเป็นขั้นตอน",
