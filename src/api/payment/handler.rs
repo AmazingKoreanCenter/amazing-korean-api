@@ -81,6 +81,9 @@ pub async fn cancel_subscription(
 /// Paddle Webhook 수신 엔드포인트.
 /// Paddle-Signature 헤더로 서명 검증 후 이벤트 처리.
 /// 인증 미들웨어 없이 공개 — 서명 검증으로 보안.
+///
+/// **OpenAPI 노출 제외 (의도적)**: webhook 은 외부 (Paddle) 가 호출하며 API 클라이언트
+/// 코드 생성 대상이 아님. swagger UI 노출은 보안적으로 비권장 (URL/스펙 공개).
 pub async fn handle_webhook(
     State(st): State<AppState>,
     headers: HeaderMap,
@@ -146,6 +149,9 @@ pub async fn handle_webhook(
 /// RevenueCat Webhook 수신 엔드포인트.
 /// Authorization: Bearer {token} 헤더로 인증.
 /// Apple ASN V2 / Google RTDN을 직접 구현하지 않고 RevenueCat 단일 웹훅으로 통합.
+///
+/// **OpenAPI 노출 제외 (의도적)**: webhook 은 외부 (RevenueCat) 가 호출하며 API 클라이언트
+/// 코드 생성 대상이 아님. swagger UI 노출은 보안적으로 비권장.
 pub async fn handle_revenuecat_webhook(
     State(st): State<AppState>,
     headers: HeaderMap,

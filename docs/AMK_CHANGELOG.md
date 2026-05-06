@@ -1,8 +1,52 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-06 (N-27 auth 도메인 OpenAPI 10 endpoint + 13 schema 등록)
+updated: 2026-05-06 (N-27 admin/email + payment 4 endpoint + 8 schema + webhook 의도 제외 정책 정착)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-06 (밤) — N-27 admin/email + payment 도메인 OpenAPI 등록 (4 endpoint + 8 schema) + webhook 의도 제외 정책 정착**
+
+  AMK_AUDIT N-27 ≈43 → ≈28 (auth 10 + payment 3 + admin/email 1 = 14건 처리, webhook 2 의도 제외).
+
+  ## 등록한 path 4건
+
+  - **payment user-facing 3건**: get_plans / get_subscription / cancel_subscription (handler annotation 이미 있던 상태)
+  - **admin/email 1건**: send_test_email (handler annotation 이미 있던 상태)
+
+  ## 등록한 schema 8건
+
+  - **payment 5건**: PlanInfo / PlansRes / SubscriptionInfo / SubscriptionRes / CancelSubscriptionReq
+  - **admin/email 3건**: TestEmailReq / TestEmailRes / EmailTemplateType (enum)
+
+  모두 dto.rs 에 `ToSchema` derive 이미 적용. 등록만 추가.
+
+  ## Webhook 의도 제외 정책 (정착)
+
+  payment webhook 2건 (`/payment/webhook` Paddle, `/payment/webhook/revenuecat` RevenueCat) = OpenAPI 노출 X.
+
+  - **이유**: webhook 은 외부 (Paddle/RevenueCat) 가 호출 = API 클라이언트 코드 생성 대상이 아님. swagger UI 노출은 보안적 비권장 (URL/스펙 공개)
+  - **명시 방법**: handler 함수 doc comment 에 "OpenAPI 노출 제외 (의도적)" 명시. 향후 발견 webhook 도 동일 정책 적용.
+  - **N-27 표 정정**: payment router 4 → **5** (실측, revenuecat webhook 누락이었음). 등록 = user-facing 3 + 의도 제외 2.
+
+  ## 사이드 정정
+
+  - 새 OpenAPI tag `Payment` 추가 (handler 의 `tag = "Payment"` 와 정합)
+
+  ## 검증
+
+  - `cargo check --all-targets` ✅
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --all-targets -- -D warnings` ✅
+
+  ## 변경 파일
+
+  - `src/docs.rs` — paths +4 / schemas +8 / tags +1
+  - `src/api/payment/handler.rs` — webhook 2건 doc comment 에 의도 제외 표시
+  - `docs/AMK_AUDIT_2026-05-04.md` — N-27 표 갱신 (auth/payment/admin/email 처리 마킹 + webhook 정책)
+
+  ## 다음 진입점 (N-27 잔여 ≈ 28건)
+
+  textbook 4 / ebook 7 / admin/payment 4 / admin/textbook 6 / admin/ebook 5 / course 2. handler annotation **자체가 없을 가능성**이 큼 = 작성 부담 어 + ToSchema derive 점검 + components 등록 = 3단계.
 
 - **2026-05-06 (저녁) — N-27 auth 도메인 OpenAPI 등록 (10 endpoint + 13 schema)**
 

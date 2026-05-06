@@ -162,6 +162,16 @@ impl Modify for SecurityAddon {
         crate::api::admin::upgrade::handler::create_invite,
         crate::api::admin::upgrade::handler::verify_invite,
         crate::api::admin::upgrade::handler::accept_invite,
+
+        // admin - email (테스트 이메일)
+        crate::api::admin::email::handler::send_test_email,
+
+        // payment (user-facing)
+        // 주의: /payment/webhook (Paddle) 와 /payment/webhook/revenuecat 는 외부 webhook
+        // 호출 전용이며 OpenAPI 노출에서 의도적으로 제외함 (handler 의 doc comment 참조).
+        crate::api::payment::handler::get_plans,
+        crate::api::payment::handler::get_subscription,
+        crate::api::payment::handler::cancel_subscription,
     ),
     components(
         schemas(
@@ -434,6 +444,18 @@ impl Modify for SecurityAddon {
             crate::api::admin::upgrade::dto::UpgradeVerifyRes,
             crate::api::admin::upgrade::dto::UpgradeAcceptReq,
             crate::api::admin::upgrade::dto::UpgradeAcceptRes,
+
+            // admin - email dto
+            crate::api::admin::email::dto::TestEmailReq,
+            crate::api::admin::email::dto::TestEmailRes,
+            crate::api::admin::email::dto::EmailTemplateType,
+
+            // payment dto
+            crate::api::payment::dto::PlanInfo,
+            crate::api::payment::dto::PlansRes,
+            crate::api::payment::dto::SubscriptionInfo,
+            crate::api::payment::dto::SubscriptionRes,
+            crate::api::payment::dto::CancelSubscriptionReq,
         )
     ),
     modifiers(&SecurityAddon),
@@ -445,7 +467,8 @@ impl Modify for SecurityAddon {
         (name = "study", description = "Study APIs"),
         (name = "lesson", description = "Lesson APIs"),
         (name = "admin", description = "Admin user & content management"),
-        (name = "admin_translation", description = "Admin translation management")
+        (name = "admin_translation", description = "Admin translation management"),
+        (name = "Payment", description = "Subscription and payment APIs (webhooks intentionally excluded)")
     )
 )]
 pub struct ApiDoc;
