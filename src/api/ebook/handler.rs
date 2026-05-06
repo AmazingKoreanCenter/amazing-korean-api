@@ -19,6 +19,14 @@ use super::service::EbookService;
 /// GET /ebook/catalog
 ///
 /// E-book 카탈로그. 인증 불필요.
+#[utoipa::path(
+    get,
+    path = "/ebook/catalog",
+    tag = "Ebook",
+    responses(
+        (status = 200, description = "Ebook catalog (editions per language)", body = EbookCatalogRes)
+    )
+)]
 pub async fn get_catalog(State(st): State<AppState>) -> AppResult<Json<EbookCatalogRes>> {
     let res = EbookService::get_catalog(&st).await?;
     Ok(Json(res))
@@ -27,6 +35,18 @@ pub async fn get_catalog(State(st): State<AppState>) -> AppResult<Json<EbookCata
 /// POST /ebook/purchase
 ///
 /// E-book 구매 생성. 로그인 필수.
+#[utoipa::path(
+    post,
+    path = "/ebook/purchase",
+    tag = "Ebook",
+    security(("bearerAuth" = [])),
+    request_body = CreatePurchaseReq,
+    responses(
+        (status = 200, description = "Purchase created (status=pending)", body = super::dto::PurchaseRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 429, description = "Rate limited", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn create_purchase(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
@@ -60,6 +80,19 @@ pub async fn create_purchase(
 /// POST /ebook/purchase/iap
 ///
 /// 모바일 IAP 구매 확정. 로그인 필수. RevenueCat 영수증 검증 후 구매 생성 (status=completed).
+#[utoipa::path(
+    post,
+    path = "/ebook/purchase/iap",
+    tag = "Ebook",
+    security(("bearerAuth" = [])),
+    request_body = CreateIapPurchaseReq,
+    responses(
+        (status = 200, description = "IAP purchase created (status=completed)", body = super::dto::PurchaseRes),
+        (status = 400, description = "Receipt validation failed", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 429, description = "Rate limited", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn create_iap_purchase(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
@@ -92,6 +125,16 @@ pub async fn create_iap_purchase(
 /// GET /ebook/my
 ///
 /// 내 구매 목록. 로그인 필수.
+#[utoipa::path(
+    get,
+    path = "/ebook/my",
+    tag = "Ebook",
+    security(("bearerAuth" = [])),
+    responses(
+        (status = 200, description = "My purchase list", body = MyPurchasesRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn get_my_purchases(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
@@ -103,6 +146,21 @@ pub async fn get_my_purchases(
 /// DELETE /ebook/purchase/:code
 ///
 /// 대기 중인 구매 취소 (soft delete). 로그인 + 본인 소유만 가능.
+#[utoipa::path(
+    delete,
+    path = "/ebook/purchase/{code}",
+    tag = "Ebook",
+    security(("bearerAuth" = [])),
+    params(
+        ("code" = String, Path, description = "Purchase code")
+    ),
+    responses(
+        (status = 204, description = "Purchase cancelled (soft-deleted)"),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Not owner", body = crate::error::ErrorBody),
+        (status = 404, description = "Purchase not found", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn cancel_purchase(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
@@ -115,6 +173,21 @@ pub async fn cancel_purchase(
 /// GET /ebook/viewer/:code/meta
 ///
 /// 뷰어 메타 정보 (TOC, 총 페이지 수). 로그인 + 소유 확인.
+#[utoipa::path(
+    get,
+    path = "/ebook/viewer/{code}/meta",
+    tag = "Ebook",
+    security(("bearerAuth" = [])),
+    params(
+        ("code" = String, Path, description = "Purchase code")
+    ),
+    responses(
+        (status = 200, description = "Viewer metadata (TOC + session_id + hmac_secret)", body = ViewerMetaRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Not owner", body = crate::error::ErrorBody),
+        (status = 404, description = "Purchase not found or not completed", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn get_viewer_meta(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
@@ -130,6 +203,17 @@ pub async fn get_viewer_meta(
 /// POST /ebook/viewer/heartbeat
 ///
 /// 뷰어 세션 heartbeat. 세션 유효 시 TTL 갱신, 무효 시 valid=false 반환.
+#[utoipa::path(
+    post,
+    path = "/ebook/viewer/heartbeat",
+    tag = "Ebook",
+    security(("bearerAuth" = [])),
+    request_body = HeartbeatReq,
+    responses(
+        (status = 200, description = "Heartbeat result (valid=true → TTL refreshed)", body = HeartbeatRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn heartbeat(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
@@ -142,6 +226,25 @@ pub async fn heartbeat(
 /// GET /ebook/viewer/:code/pages/:page_num
 ///
 /// 워터마크 적용된 페이지 이미지 반환. 로그인 + 소유 확인 + 레이트 리밋.
+///
+/// 요청 헤더 필수: `x-ebook-viewer: 1` / `x-ebook-session` / `x-ebook-signature` / `x-ebook-timestamp`
+/// (직접 URL 접근 차단 + HMAC 무결성 + 리플레이 방지)
+#[utoipa::path(
+    get,
+    path = "/ebook/viewer/{code}/pages/{page_num}",
+    tag = "Ebook",
+    security(("bearerAuth" = [])),
+    params(
+        ("code" = String, Path, description = "Purchase code"),
+        ("page_num" = i32, Path, description = "Page number (1-indexed)")
+    ),
+    responses(
+        (status = 200, description = "Watermarked page image (image/webp binary)", content_type = "image/webp"),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Direct access denied / missing or invalid headers / session expired", body = crate::error::ErrorBody),
+        (status = 429, description = "Page rate limited", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn get_page_image(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
@@ -232,6 +335,26 @@ pub async fn get_page_image(
 /// GET /ebook/viewer/:code/pages/:page_num/tiles/:row/:col
 ///
 /// 타일 분할 이미지 반환. 로그인 + 소유 확인 + 세션 검증 + 레이트 리밋.
+///
+/// 요청 헤더 필수: `x-ebook-viewer: 1` / `x-ebook-session` / `x-ebook-signature` / `x-ebook-timestamp`
+#[utoipa::path(
+    get,
+    path = "/ebook/viewer/{code}/pages/{page_num}/tiles/{row}/{col}",
+    tag = "Ebook",
+    security(("bearerAuth" = [])),
+    params(
+        ("code" = String, Path, description = "Purchase code"),
+        ("page_num" = i32, Path, description = "Page number (1-indexed)"),
+        ("row" = u32, Path, description = "Tile row (0-indexed)"),
+        ("col" = u32, Path, description = "Tile column (0-indexed)")
+    ),
+    responses(
+        (status = 200, description = "Watermarked page tile (image/webp binary)", content_type = "image/webp"),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 403, description = "Direct access denied / missing or invalid headers / session expired", body = crate::error::ErrorBody),
+        (status = 429, description = "Tile rate limited", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn get_page_tile(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,

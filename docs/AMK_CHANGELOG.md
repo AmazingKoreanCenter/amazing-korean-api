@@ -1,8 +1,58 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-06 (N-27 PR-B 소형 — course + admin/ebook 8 endpoint + 9 schema + 2 typed res)
+updated: 2026-05-06 ✅ N-27 OpenAPI 부채 완전 종결 — 단일 세션 5 PR 누계 50 endpoint + 85 schema + 6 tag
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-06 (새벽) — ✅ N-27 PR-C ebook 종결 (9 endpoint + 12 schema + 1 tag = N-27 부채 완전 해결)**
+
+  AMK_AUDIT N-27 (OpenAPI 스펙 누락) **완전 종결**. 단일 세션 5 PR 누계 50 endpoint + 85 schema + 6 tag 등록 + webhook 2 의도 제외 정책 정착.
+
+  ## 등록한 path 9건 (annotation 신규 작성, 단일 도메인)
+
+  - **ebook 9건**: get_catalog / create_purchase / create_iap_purchase / cancel_purchase / get_my_purchases / heartbeat / get_viewer_meta / get_page_image / get_page_tile
+
+  ## 등록한 schema 12건
+
+  EbookEditionInfo / EbookCatalogItem / EbookCatalogRes / CreatePurchaseReq / PurchaseRes / MyPurchasesRes / IapPlatform (enum) / CreateIapPurchaseReq / TocEntry / ViewerMetaRes / HeartbeatReq / HeartbeatRes
+
+  모두 dto.rs 에 ToSchema derive 100% 적용 = annotation 작성 + 등록만 추가.
+
+  ## 추가한 OpenAPI tag 1개
+
+  - `Ebook` — Ebook catalog, purchase (Paddle/IAP), and DRM-protected viewer (user-facing)
+
+  ## 특수 응답 처리 패턴 정착
+
+  - **204 NO_CONTENT**: cancel_purchase = body 없음. `responses((status = 204, description = "..."))` 만.
+  - **binary image/webp**: get_page_image / get_page_tile = `Response<Body>` binary. `(status = 200, content_type = "image/webp", description = "...")` 형식. body schema 없음.
+  - **header-required endpoints**: get_page_image / get_page_tile 의 doc comment 에 필수 헤더 (`x-ebook-viewer` / `x-ebook-session` / `x-ebook-signature` / `x-ebook-timestamp`) 명시.
+
+  ## 검증
+
+  - `cargo check --all-targets` ✅
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --all-targets -- -D warnings` ✅
+
+  ## N-27 종결 통계
+
+  | 시점 | 처리 누계 | 잔여 | PR |
+  |------|:--:|:--:|------|
+  | 시작 (2026-05-04 audit) | 0 | ~43 | — |
+  | (저녁) auth | 10 | ~33 | #223 |
+  | (밤1) admin/email + payment | 14 | ~28 | #224 |
+  | (밤2) PR-A | 33 | 16 | #228 |
+  | (심야) PR-B | 41 | 9 | #229 |
+  | (새벽) PR-C ✅ | **50** | **0** | 본 PR |
+
+  - **8 도메인 전수 처리** (auth / payment / textbook / ebook / admin/email / admin/payment / admin/textbook / admin/ebook + course 추가)
+  - **webhook 2건 의도 제외** = 보안 정책 (Paddle / RevenueCat)
+  - **typed response 도입** = 2건 (course::create / admin/ebook::delete_purchase)
+  - **stale endpoint 카운트 정정** = 6건 (payment 4→5 / ebook 7→9 / admin_payment 4→7 / admin_textbook 6→8 / course 2→3 / admin_ebook 5→5 OK)
+
+  ## 부채 누계 영향
+
+  AMK_AUDIT 신규 미해결 4건 → **3건** (N-27 종결, 잔여 = N-13 nginx HTTPS / N-26 i18n / N-31 HSTS origin layer = 모두 인프라 묶음).
 
 - **2026-05-06 (심야) — N-27 PR-B 소형 묶음 처리 (course + admin/ebook = 8 endpoint + 9 schema + 2 typed res)**
 

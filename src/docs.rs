@@ -209,6 +209,17 @@ impl Modify for SecurityAddon {
         crate::api::admin::ebook::handler::update_status,
         crate::api::admin::ebook::handler::verify_watermark,
         crate::api::admin::ebook::handler::delete_purchase,
+
+        // ebook (user-facing + viewer)
+        crate::api::ebook::handler::get_catalog,
+        crate::api::ebook::handler::create_purchase,
+        crate::api::ebook::handler::create_iap_purchase,
+        crate::api::ebook::handler::cancel_purchase,
+        crate::api::ebook::handler::get_my_purchases,
+        crate::api::ebook::handler::heartbeat,
+        crate::api::ebook::handler::get_viewer_meta,
+        crate::api::ebook::handler::get_page_image,
+        crate::api::ebook::handler::get_page_tile,
     ),
     components(
         schemas(
@@ -544,6 +555,20 @@ impl Modify for SecurityAddon {
             crate::api::admin::ebook::dto::AdminUpdateEbookStatusReq,
             crate::api::admin::ebook::dto::WatermarkVerifyRes,
             crate::api::admin::ebook::dto::AdminEbookDeleteRes,
+
+            // ebook dto
+            crate::api::ebook::dto::EbookEditionInfo,
+            crate::api::ebook::dto::EbookCatalogItem,
+            crate::api::ebook::dto::EbookCatalogRes,
+            crate::api::ebook::dto::CreatePurchaseReq,
+            crate::api::ebook::dto::PurchaseRes,
+            crate::api::ebook::dto::MyPurchasesRes,
+            crate::api::ebook::dto::IapPlatform,
+            crate::api::ebook::dto::CreateIapPurchaseReq,
+            crate::api::ebook::dto::TocEntry,
+            crate::api::ebook::dto::ViewerMetaRes,
+            crate::api::ebook::dto::HeartbeatReq,
+            crate::api::ebook::dto::HeartbeatRes,
         )
     ),
     modifiers(&SecurityAddon),
@@ -561,7 +586,8 @@ impl Modify for SecurityAddon {
         (name = "admin_payment", description = "Admin subscription/transaction/grant management"),
         (name = "Admin Textbook", description = "Admin textbook order management"),
         (name = "Course", description = "Course catalog (user-facing)"),
-        (name = "Admin Ebook", description = "Admin ebook purchase management + watermark verification")
+        (name = "Admin Ebook", description = "Admin ebook purchase management + watermark verification"),
+        (name = "Ebook", description = "Ebook catalog, purchase (Paddle/IAP), and DRM-protected viewer (user-facing)")
     )
 )]
 pub struct ApiDoc;
