@@ -13,7 +13,7 @@ import {
 import ko from "./locales/ko.json";
 import en from "./locales/en.json";
 
-// ── 지원 언어 목록 (33개, RTL 3개 ar/fa/ur 제외) ─────────────────────
+// ── 지원 언어 목록 (36개, RTL 3개 ar/fa/ur 포함) ─────────────────────
 export const SUPPORTED_LANGUAGES = [
   // Tier 1: 핵심
   { code: "ko", name: "Korean", nativeName: "한국어", flag: "🇰🇷" },
@@ -51,12 +51,16 @@ export const SUPPORTED_LANGUAGES = [
   { code: "tg", name: "Tajik", nativeName: "Тоҷикӣ", flag: "🇹🇯" },
   { code: "sw", name: "Swahili", nativeName: "Kiswahili", flag: "🇰🇪" },
   { code: "am", name: "Amharic", nativeName: "አማርኛ", flag: "🇪🇹" },
+  // Tier 4: RTL (우→좌 어순, dir="rtl" 자동 토글 + lang-rtl class 적용)
+  { code: "ar", name: "Arabic", nativeName: "العربية", flag: "🇸🇦" },
+  { code: "fa", name: "Persian", nativeName: "فارسی", flag: "🇮🇷" },
+  { code: "ur", name: "Urdu", nativeName: "اردو", flag: "🇵🇰" },
 ] as const;
 
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]["code"];
 
 // Tier 구분 인덱스 (UI 구분선용)
-export const TIER_BREAK_INDICES = [5, 13] as const; // Tier1 후, Tier2 후
+export const TIER_BREAK_INDICES = [5, 13, 33] as const; // Tier1 후, Tier2 후, Tier3 후
 
 // ── 상수 ─────────────────────────────────────────────────────────────
 const LANGUAGE_KEY = "language";
@@ -110,8 +114,8 @@ function applyLangClasses(lang: string): void {
   if (isTallScript(lang)) root.add("lang-tall-script");
   if (needsRelaxedTracking(lang)) root.add("lang-relaxed-tracking");
   if (isRTL(lang)) root.add("lang-rtl");
-  // RTL 활성 시 dir="rtl", 그 외 dir="ltr". SUPPORTED_LANGUAGES 에 RTL 미포함
-  // (PR-B / S5 활성) 이라 현재는 항상 ltr 분기, 인프라 dormant 상태.
+  // RTL 활성 시 dir="rtl", 그 외 dir="ltr".
+  // SUPPORTED_LANGUAGES 에 ar/fa/ur 등록됨 (2026-05-06) → RTL 인프라 활성.
   document.documentElement.dir = isRTL(lang) ? "rtl" : "ltr";
 }
 
