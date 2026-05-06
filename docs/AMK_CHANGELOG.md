@@ -1,8 +1,40 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-06 N-27 OpenAPI spec final verification — unit test 5건 통과 (paths=121 / schemas=334 / tags=15)
+updated: 2026-05-06 본 세션 학습 정착 (M-009 사고 등재 + AMK_CODE_PATTERNS §1.7 OpenAPI 등록 패턴 신규)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-06 (밤 늦게) — 본 세션 학습 정착 (M-009 등재 + AMK_CODE_PATTERNS §1.7 OpenAPI 등록 패턴)**
+
+  본 세션에 발견한 사고 + 정착한 패턴 영구 기록.
+
+  ## M-009 사고 등재 (`docs/AMK_AI_MISTAKES.md`)
+
+  **부채 처리 commit 후 SSoT 본문 마킹 누락** — N-14 처리 commit `9fa6f14` (2026-05-05) 이 `docs/AMK_API_TEXTBOOK.md` 만 갱신하고 `docs/AMK_AUDIT_2026-05-04.md:262` 의 `### N-14.` 헤더 마킹 누락. 1일 후 cross-check 시점에 발견.
+
+  부수 발견:
+  - `AMK_DEBTS.md:34` §0 합계 표기 "약 57건" 이 본문 합산 (53건) 과 stale
+  - 메모리 frontmatter "AMK_DEBTS 92→56" 의 "92" 출처 불명, §0 표와 불일치
+  - AI 가 메모리 표기를 그대로 인용하면서 SSoT cross-check 미실시
+
+  카테고리 = M-007 (다른 문서 라인 번호 직접 검증 X) 와 같은 "추정을 사실로 단정" — SSoT 표기 신뢰 + 직접 검증 누락의 다른 발현.
+
+  ## AMK_CODE_PATTERNS §1.7 OpenAPI 등록 패턴 (신규)
+
+  본 세션 N-27 (50 endpoint 8 도메인) 작업으로 정착한 패턴 영구 기록:
+
+  - **endpoint 등록 3단계**: dto.rs ToSchema → handler.rs `#[utoipa::path]` → docs.rs paths/components.schemas/tags
+  - **🚫 webhook 의도 제외 정책**: 외부 호출 webhook (Paddle/RevenueCat) 은 OpenAPI 노출 X. handler doc comment 에 명시
+  - **💎 typed response 도입**: `Json<serde_json::Value>` 안티패턴 → typed struct + ToSchema. 직렬화 결과 동일 = backward compatible
+  - **🎨 특수 응답 패턴 3건**: 204 NO_CONTENT (body 없음) / binary content_type / 필수 헤더 doc 명시
+  - **🧪 회귀 방지 unit test**: `src/docs.rs #[cfg(test)]` — paths/tags/schemas 등록 + webhook 제외 + sanity. CI 단계에서 도메인 추가 시 누락 차단
+
+  본 §1.7 = 향후 도메인 신규 추가 시 단일 진입점.
+
+  ## 변경 파일
+
+  - `docs/AMK_AI_MISTAKES.md` — M-009 신규 + 카테고리 분포 표 갱신 (M-001~M-008 → M-001~M-009)
+  - `docs/AMK_CODE_PATTERNS.md` — §1.7 OpenAPI 등록 패턴 섹션 신규 (~140줄)
 
 - **2026-05-06 (저녁 늦게) — N-27 OpenAPI spec final verification (unit test 5건 통과)**
 

@@ -3339,6 +3339,202 @@ pub fn generate_refresh_cookie_value() -> (String, [u8; 32]) {
 
 ---
 
+### 1.7 OpenAPI 등록 패턴 (`src/docs.rs` + `#[utoipa::path]`)
+
+> **2026-05-06 N-27 작업으로 정착**. 50 endpoint 8 도메인 일괄 등록 + unit test 회귀 방지.
+
+#### 📁 핵심 파일
+
+- [src/docs.rs](src/docs.rs) — `ApiDoc` (`#[derive(OpenApi)]`) + `paths(...)` + `components.schemas(...)` + `tags(...)` SSoT
+- [src/api/{domain}/handler.rs](src/api/) — 각 endpoint 의 `#[utoipa::path]` annotation
+- [src/api/{domain}/dto.rs](src/api/) — 각 DTO 의 `#[derive(ToSchema)]` (Query 파라미터 = `IntoParams`)
+
+#### 🚦 endpoint 등록 3단계
+
+**1. dto.rs**: 사용 DTO 에 `ToSchema` derive
+
+```rust
+#[derive(Serialize, ToSchema)]
+pub struct PurchaseRes { /* ... */ }
+
+// Query<...> 파라미터로 사용되는 DTO 는 IntoParams
+#[derive(Deserialize, IntoParams)]
+pub struct ListReq { /* ... */ }
+```
+
+**2. handler.rs**: `#[utoipa::path]` annotation 작성
+
+```rust
+#[utoipa::path(
+    post,
+    path = "/ebook/purchase",
+    tag = "Ebook",
+    security(("bearerAuth" = [])),
+    request_body = CreatePurchaseReq,
+    responses(
+        (status = 200, description = "Purchase created", body = PurchaseRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 429, description = "Rate limited", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn create_purchase(/* ... */) -> AppResult<Json<PurchaseRes>> { /* ... */ }
+```
+
+**3. docs.rs**: `paths(...)` 와 `components.schemas(...)` 에 등록
+
+```rust
+#[openapi(
+    paths(
+        // ... 기존 ...
+        crate::api::ebook::handler::create_purchase,
+    ),
+    components(schemas(
+        // ... 기존 ...
+        crate::api::ebook::dto::CreatePurchaseReq,
+        crate::api::ebook::dto::PurchaseRes,
+    )),
+    tags(
+        (name = "Ebook", description = "..."),
+    )
+)]
+```
+
+#### 🚫 webhook 의도 제외 정책 (2026-05-06 정착)
+
+외부 시스템 (Paddle / RevenueCat 등) 이 호출하는 webhook 은 **OpenAPI 노출 X**:
+
+- **사유**: API 클라이언트 코드 생성 대상이 아님. swagger UI 노출은 보안적 비권장 (URL/스펙 공개)
+- **명시**: handler 함수 doc comment 에 `**OpenAPI 노출 제외 (의도적)**` 명시
+
+```rust
+/// POST /payment/webhook
+///
+/// Paddle Webhook 수신 엔드포인트.
+///
+/// **OpenAPI 노출 제외 (의도적)**: webhook 은 외부 (Paddle) 가 호출하며 API 클라이언트
+/// 코드 생성 대상이 아님. swagger UI 노출은 보안적으로 비권장.
+pub async fn handle_webhook(/* ... */) -> StatusCode { /* ... */ }
+```
+
+→ `#[utoipa::path]` annotation 미작성 + `docs.rs` paths(...) 미등록.
+
+#### 💎 typed response 도입 (inline JSON 제거)
+
+**❌ 안티패턴**: `Json<serde_json::Value>` + `serde_json::json!({"key": value})` — schema 정확도 손실
+
+```rust
+// 안 됨 — OpenAPI schema 가 generic Value 로 노출, 클라이언트 코드 생성 X
+pub async fn create(/* ... */) -> AppResult<Json<serde_json::Value>> {
+    Ok(Json(serde_json::json!({ "course_id": id })))
+}
+```
+
+**✅ 권장 패턴**: typed struct + ToSchema
+
+```rust
+// dto.rs
+#[derive(Serialize, ToSchema)]
+pub struct CreateCourseRes {
+    pub course_id: i64,
+}
+
+// handler.rs
+pub async fn create(/* ... */) -> AppResult<Json<CreateCourseRes>> {
+    Ok(Json(CreateCourseRes { course_id: id }))
+}
+```
+
+→ 직렬화 결과 동일 (`{"course_id": 42}`) = backward compatible. schema 정확도 ↑.
+
+#### 🎨 특수 응답 패턴
+
+**1. 204 NO_CONTENT** (body 없음):
+
+```rust
+#[utoipa::path(
+    delete,
+    path = "/ebook/purchase/{code}",
+    /* ... */
+    responses(
+        (status = 204, description = "Cancelled (soft-deleted)"),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn cancel_purchase(/* ... */) -> AppResult<StatusCode> {
+    Ok(StatusCode::NO_CONTENT)
+}
+```
+
+**2. binary 응답 (image/webp 등)**:
+
+```rust
+#[utoipa::path(
+    get,
+    path = "/ebook/viewer/{code}/pages/{page_num}",
+    /* ... */
+    responses(
+        (status = 200, description = "Page image (image/webp binary)", content_type = "image/webp"),
+        (status = 403, description = "...", body = crate::error::ErrorBody)
+    )
+)]
+pub async fn get_page_image(/* ... */) -> AppResult<Response<Body>> { /* ... */ }
+```
+
+→ `body` 미지정 + `content_type` 명시.
+
+**3. 필수 헤더 endpoint**: handler doc comment 에 헤더 명시
+
+```rust
+/// GET /ebook/viewer/:code/pages/:page_num
+///
+/// 워터마크 적용된 페이지 이미지 반환.
+///
+/// 요청 헤더 필수: `x-ebook-viewer: 1` / `x-ebook-session` / `x-ebook-signature` / `x-ebook-timestamp`
+/// (직접 URL 접근 차단 + HMAC 무결성 + 리플레이 방지)
+```
+
+#### 🧪 회귀 방지 unit test (`src/docs.rs` `#[cfg(test)]`)
+
+cargo check / clippy 통과 ≠ swagger spec 정상. 실제 spec 생성 결과 검증 필요.
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use utoipa::OpenApi;
+
+    #[test]
+    fn openapi_spec_includes_n27_paths() {
+        let openapi = ApiDoc::openapi();
+        let paths = &openapi.paths.paths;
+        let expected = ["/ebook/catalog", /* ... */];
+        for path in &expected {
+            assert!(paths.contains_key(*path), "missing path: {path}");
+        }
+    }
+
+    #[test]
+    fn openapi_spec_excludes_webhooks_by_policy() {
+        let openapi = ApiDoc::openapi();
+        let paths = &openapi.paths.paths;
+        let must_be_excluded = ["/payment/webhook", "/payment/webhook/revenuecat"];
+        for path in &must_be_excluded {
+            assert!(!paths.contains_key(*path), "webhook leaked: {path}");
+        }
+    }
+}
+```
+
+→ docs.rs paths/schemas 누락 / webhook 실수 등록 / handler annotation 누락 시 본 test 가 fail. CI 단계에서 차단.
+
+#### 📊 production swagger UI 정책
+
+- production = `ENABLE_DOCS=false` (default) → swagger UI 비활성 (보안)
+- 로컬/dev = `ENABLE_DOCS=true` 설정 시 `/docs` 에 swagger UI, `/api-docs/openapi.json` 에 spec
+- 위 unit test 는 환경변수와 무관하게 spec 자체 검증 = 가장 신뢰
+
+---
+
 ## 2. 프론트엔드 패턴 (React/TypeScript)
 
 백엔드 레이어(`dto.rs`, `repo.rs`, `service.rs`, `handler.rs`)와 1:1로 대응되는 **Category-First** 아키텍처를 따른다.
