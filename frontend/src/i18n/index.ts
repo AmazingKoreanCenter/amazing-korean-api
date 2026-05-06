@@ -13,7 +13,7 @@ import {
 import ko from "./locales/ko.json";
 import en from "./locales/en.json";
 
-// ── 지원 언어 목록 (23개, 아랍어 RTL 제외) ──────────────────────────
+// ── 지원 언어 목록 (33개, RTL 3개 ar/fa/ur 제외) ─────────────────────
 export const SUPPORTED_LANGUAGES = [
   // Tier 1: 핵심
   { code: "ko", name: "Korean", nativeName: "한국어", flag: "🇰🇷" },
@@ -28,25 +28,35 @@ export const SUPPORTED_LANGUAGES = [
   { code: "my", name: "Myanmar", nativeName: "မြန်မာဘာသာ", flag: "🇲🇲" },
   { code: "mn", name: "Mongolian", nativeName: "Монгол хэл", flag: "🇲🇳" },
   { code: "ru", name: "Russian", nativeName: "Русский", flag: "🇷🇺" },
-  // Tier 3: 중앙아시아 + 남아시아 + 유럽
+  { code: "lo", name: "Lao", nativeName: "ລາວ", flag: "🇱🇦" },
+  { code: "tl", name: "Tagalog", nativeName: "Tagalog", flag: "🇵🇭" },
+  // Tier 3: 중앙아시아 + 남아시아 + 유럽 + 아프리카
   { code: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
   { code: "pt", name: "Portuguese", nativeName: "Português", flag: "🇧🇷" },
   { code: "pt-PT", name: "Portuguese (Portugal)", nativeName: "Português (Portugal)", flag: "🇵🇹" },
   { code: "fr", name: "French", nativeName: "Français", flag: "🇫🇷" },
   { code: "de", name: "German", nativeName: "Deutsch", flag: "🇩🇪" },
+  { code: "it", name: "Italian", nativeName: "Italiano", flag: "🇮🇹" },
+  { code: "pl", name: "Polish", nativeName: "Polski", flag: "🇵🇱" },
+  { code: "uk", name: "Ukrainian", nativeName: "Українська", flag: "🇺🇦" },
+  { code: "tr", name: "Turkish", nativeName: "Türkçe", flag: "🇹🇷" },
   { code: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳" },
   { code: "ne", name: "Nepali", nativeName: "नेपाली", flag: "🇳🇵" },
   { code: "si", name: "Sinhala", nativeName: "සිංහල", flag: "🇱🇰" },
+  { code: "bn", name: "Bengali", nativeName: "বাংলা", flag: "🇧🇩" },
   { code: "km", name: "Khmer", nativeName: "ភាសាខ្មែរ", flag: "🇰🇭" },
   { code: "uz", name: "Uzbek", nativeName: "Oʻzbekcha", flag: "🇺🇿" },
   { code: "kk", name: "Kazakh", nativeName: "Қазақ тілі", flag: "🇰🇿" },
+  { code: "ky", name: "Kyrgyz", nativeName: "Кыргызча", flag: "🇰🇬" },
   { code: "tg", name: "Tajik", nativeName: "Тоҷикӣ", flag: "🇹🇯" },
+  { code: "sw", name: "Swahili", nativeName: "Kiswahili", flag: "🇰🇪" },
+  { code: "am", name: "Amharic", nativeName: "አማርኛ", flag: "🇪🇹" },
 ] as const;
 
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]["code"];
 
 // Tier 구분 인덱스 (UI 구분선용)
-export const TIER_BREAK_INDICES = [5, 11] as const; // Tier1 후, Tier2 후
+export const TIER_BREAK_INDICES = [5, 13] as const; // Tier1 후, Tier2 후
 
 // ── 상수 ─────────────────────────────────────────────────────────────
 const LANGUAGE_KEY = "language";
