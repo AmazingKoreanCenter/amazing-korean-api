@@ -1,8 +1,60 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-06 (N-27 PR-A "등록만" 묶음 — textbook + admin/payment + admin/textbook 19 endpoint + 34 schema)
+updated: 2026-05-06 (N-27 PR-B 소형 — course + admin/ebook 8 endpoint + 9 schema + 2 typed res)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-06 (심야) — N-27 PR-B 소형 묶음 처리 (course + admin/ebook = 8 endpoint + 9 schema + 2 typed res)**
+
+  AMK_AUDIT N-27 ≈16 → ~~약 9건~~. handler annotation 미작성 도메인 2개 처리. 최초 PR-B = 7건 추정 → 실측 8 (course 3 endpoint 정정).
+
+  ## 등록한 path 8건 (annotation 신규 작성)
+
+  - **course 3건**: list / create / get_by_id (실측 endpoint 3, N-27 표 stale 2 → 3 정정)
+  - **admin/ebook 5건**: list_purchases / get_purchase / update_status / verify_watermark / delete_purchase
+
+  ## 등록한 schema 9건
+
+  - **course 5건**: CourseListItem (이미 등록) → CourseListRes / CourseDetailRes / CreateCourseReq (이미 등록) / CreateCourseRes 신규
+  - **admin/ebook 6건**: AdminEbookMeta / AdminEbookPurchaseItem / AdminEbookListRes / AdminUpdateEbookStatusReq / WatermarkVerifyRes / AdminEbookDeleteRes 신규
+
+  ## 추가한 OpenAPI tags 2개
+
+  - `Course` — Course catalog (user-facing)
+  - `Admin Ebook` — Admin ebook purchase management + watermark verification
+
+  ## Typed Response 도입 (inline JSON 제거)
+
+  검증 + mobile/desktop 클라이언트 코드 생성 정확도 위해 inline JSON 응답 2건을 typed struct 로 교체.
+
+  - `course::handler::create` — `Json<serde_json::Value>` → `Json<CreateCourseRes>` (`{ course_id: i64 }`)
+  - `admin::ebook::handler::delete_purchase` — `Json<serde_json::Value>` → `Json<AdminEbookDeleteRes>` (`{ message: String }`)
+
+  직렬화 결과는 동일 = backward compatible.
+
+  ## IntoParams derive 추가
+
+  - `admin::ebook::dto::AdminEbookListReq` — Query<...> 로 사용되므로 IntoParams derive 추가 (course::dto::CourseListQuery 와 동일 패턴)
+
+  ## 검증
+
+  - `cargo check --all-targets` ✅
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --all-targets -- -D warnings` ✅
+
+  ## N-27 누계 진행률
+
+  | 시점 | 처리 누계 | 잔여 |
+  |------|:--:|:--:|
+  | 시작 (2026-05-04) | 0 | ~43 |
+  | (저녁) auth | 10 | ~33 |
+  | (밤1) admin/email + payment | 14 | ~28 |
+  | (밤2) PR-A | 33 + webhook 2 제외 | 16 |
+  | (심야) PR-B | **41** + webhook 2 제외 | **9** (ebook 단일 도메인) |
+
+  ## 다음 진입점 (PR-C)
+
+  ebook 9건 = 단일 도메인. mobile/desktop 핵심. 작업 = annotation 작성 + DTO 등록 (기존 ToSchema 적용 점검 필요). 40-60분 예상.
 
 - **2026-05-06 (밤2) — N-27 PR-A "등록만" 묶음 처리 (textbook + admin/payment + admin/textbook = 19 endpoint + 34 schema)**
 

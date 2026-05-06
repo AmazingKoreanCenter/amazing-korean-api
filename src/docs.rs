@@ -197,6 +197,18 @@ impl Modify for SecurityAddon {
         crate::api::admin::textbook::handler::admin_create_order,
         crate::api::admin::textbook::handler::delete_order,
         crate::api::admin::textbook::handler::list_admin_logs,
+
+        // course (user-facing)
+        crate::api::course::handler::list,
+        crate::api::course::handler::create,
+        crate::api::course::handler::get_by_id,
+
+        // admin - ebook
+        crate::api::admin::ebook::handler::list_purchases,
+        crate::api::admin::ebook::handler::get_purchase,
+        crate::api::admin::ebook::handler::update_status,
+        crate::api::admin::ebook::handler::verify_watermark,
+        crate::api::admin::ebook::handler::delete_purchase,
     ),
     components(
         schemas(
@@ -258,7 +270,10 @@ impl Modify for SecurityAddon {
 
             // course dto
             crate::api::course::dto::CourseListItem,
+            crate::api::course::dto::CourseListRes,
+            crate::api::course::dto::CourseDetailRes,
             crate::api::course::dto::CreateCourseReq,
+            crate::api::course::dto::CreateCourseRes,
 
             // videos dto
             crate::api::video::dto::VideoListReq,
@@ -521,6 +536,14 @@ impl Modify for SecurityAddon {
             crate::api::admin::textbook::dto::AdminUpdateDiscountReq,
             crate::api::admin::textbook::dto::AdminUpdateTrackingReq,
             crate::api::admin::textbook::dto::AdminCreateOrderReq,
+
+            // admin - ebook dto
+            crate::api::admin::ebook::dto::AdminEbookMeta,
+            crate::api::admin::ebook::dto::AdminEbookPurchaseItem,
+            crate::api::admin::ebook::dto::AdminEbookListRes,
+            crate::api::admin::ebook::dto::AdminUpdateEbookStatusReq,
+            crate::api::admin::ebook::dto::WatermarkVerifyRes,
+            crate::api::admin::ebook::dto::AdminEbookDeleteRes,
         )
     ),
     modifiers(&SecurityAddon),
@@ -536,7 +559,9 @@ impl Modify for SecurityAddon {
         (name = "Payment", description = "Subscription and payment APIs (webhooks intentionally excluded)"),
         (name = "Textbook", description = "Textbook catalog and orders (user-facing)"),
         (name = "admin_payment", description = "Admin subscription/transaction/grant management"),
-        (name = "Admin Textbook", description = "Admin textbook order management")
+        (name = "Admin Textbook", description = "Admin textbook order management"),
+        (name = "Course", description = "Course catalog (user-facing)"),
+        (name = "Admin Ebook", description = "Admin ebook purchase management + watermark verification")
     )
 )]
 pub struct ApiDoc;
