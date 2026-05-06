@@ -383,7 +383,39 @@
     "nextItemTask": "Mục tiếp theo (Bài tập)",
     "completeLesson": "Hoàn thành bài học",
     "totalProblems_other": "Tổng {{count}} câu hỏi",
-    "tryCount_other": "{{count}} lần thử"
+    "tryCount_other": "{{count}} lần thử",
+    "writing": {
+      "stats": {
+        "pageTitle": "Thống kê luyện đánh máy",
+        "pageDescription": "Xem lại độ chính xác, tốc độ và các ký tự bạn hay viết sai từ lịch sử luyện đánh máy Hangul.",
+        "totalSessions": "Tổng số phiên",
+        "avgAccuracy": "Độ chính xác trung bình",
+        "avgCpm": "CPM trung bình",
+        "cpmUnit": "Ký tự mỗi phút",
+        "levelTitle": "Theo cấp độ",
+        "accuracyLabel": "Độ chính xác",
+        "cpmLabel": "CPM",
+        "noLevelData": "Chưa có dữ liệu cấp độ.",
+        "trendTitle": "Xu hướng hàng ngày",
+        "trendDay": "Ngày",
+        "trendSessions": "Số buổi",
+        "trendAccuracy": "Độ chính xác",
+        "trendCpm": "CPM",
+        "noTrendData": "Chưa có dữ liệu xu hướng.",
+        "weakTitle": "Top 10 ký tự hay viết sai",
+        "weakSubtitle": "Được sắp xếp theo tần suất viết sai mỗi ký tự. Hãy tập trung vào chúng trong buổi học tới.",
+        "noWeakData": "Chưa có dữ liệu về ký tự hay viết sai. Làm tốt lắm!",
+        "emptyTitle": "Chưa có phiên học nào được ghi lại",
+        "emptyDescription": "Hãy bắt đầu luyện tập để tạo nên những số liệu thống kê đầu tiên của bạn.",
+        "emptyAction": "Bắt đầu luyện tập",
+        "lastDays_other": "{{count}} ngày qua",
+        "lastDays_one": "{{count}} ngày qua",
+        "sessionCount_other": "{{count}} buổi học",
+        "sessionCount_one": "{{count}} buổi",
+        "missCount_other": "{{count}} lần",
+        "missCount_one": "{{count}} lần"
+      }
+    }
   },
   "lesson": {
     "heroBadge": "Chương trình theo từng bước",

@@ -383,7 +383,39 @@
     "nextItemTask": "ធាតុបន្ទាប់ (កិច្ចការ)",
     "completeLesson": "បញ្ចប់មេរៀន",
     "totalProblems_other": "សរុប {{count}} កិច្ចការ",
-    "tryCount_other": "{{count}} ការព្យាយាម"
+    "tryCount_other": "{{count}} ការព្យាយាម",
+    "writing": {
+      "stats": {
+        "pageTitle": "ស្ថិតិការអនុវត្តការវាយអក្សរ",
+        "pageDescription": "ពិនិត្យមើលភាពត្រឹមត្រូវ ល្បឿន និងអក្សរដែលអ្នកពិបាកវាយបំផុត ពីប្រវត្តិការវាយអក្សរ Hangul របស់អ្នក។",
+        "totalSessions": "ចំនួនវគ្គសរុប",
+        "avgAccuracy": "ភាពត្រឹមត្រូវមធ្យម",
+        "avgCpm": "CPM មធ្យម",
+        "cpmUnit": "តួអក្សរក្នុងមួយនាទី",
+        "levelTitle": "តាមកម្រិត",
+        "accuracyLabel": "ភាពត្រឹមត្រូវ",
+        "cpmLabel": "CPM",
+        "noLevelData": "មិនទាន់មានទិន្នន័យតាមកម្រិតនៅឡើយទេ។",
+        "trendTitle": "និន្នាការប្រចាំថ្ងៃ",
+        "trendDay": "កាលបរិច្ឆេទ",
+        "trendSessions": "ចំនួនវគ្គ",
+        "trendAccuracy": "ភាពត្រឹមត្រូវ",
+        "trendCpm": "ចំនួនអក្សរក្នុងមួយនាទី",
+        "noTrendData": "មិនទាន់មានទិន្នន័យនិន្នាការនៅឡើយទេ។",
+        "weakTitle": "តួអក្សរដែលខ្សោយបំផុត ១០",
+        "weakSubtitle": "រៀបតាមចំនួនដងដែលតួអក្សរនីមួយៗត្រូវបានវាយខុស។ សូមផ្តោតលើតួអក្សរទាំងនេះនៅក្នុងការសិក្សាបន្ទាប់របស់អ្នក។",
+        "noWeakData": "មិនទាន់មានទិន្នន័យតួអក្សរដែលខ្សោយនៅឡើយទេ។ ពូកែណាស់!",
+        "emptyTitle": "មិនទាន់មានការកត់ត្រាការសិក្សានៅឡើយទេ។",
+        "emptyDescription": "ចាប់ផ្តើមអនុវត្តដើម្បីបង្កើតស្ថិតិដំបូងរបស់អ្នក។",
+        "emptyAction": "ចាប់ផ្តើមអនុវត្ត",
+        "lastDays_other": "{{count}} ថ្ងៃចុងក្រោយ",
+        "lastDays_one": "{{count}} ថ្ងៃចុងក្រោយ",
+        "sessionCount_other": "{{count}} វគ្គ",
+        "sessionCount_one": "{{count}} វគ្គ",
+        "missCount_other": "{{count}} ដង",
+        "missCount_one": "{{count}} ដង"
+      }
+    }
   },
   "lesson": {
     "heroBadge": "កម្មវិធីសិក្សាជាជំហានៗ",

@@ -383,7 +383,39 @@
     "nextItemTask": "下一项（题目）",
     "completeLesson": "完成课程",
     "totalProblems_other": "共 {{count}} 道题",
-    "tryCount_other": "尝试 {{count}} 次"
+    "tryCount_other": "尝试 {{count}} 次",
+    "writing": {
+      "stats": {
+        "pageTitle": "打字练习统计",
+        "pageDescription": "回顾您的韩文打字历史，查看准确率、速度以及您最薄弱的字符。",
+        "totalSessions": "总练习次数",
+        "avgAccuracy": "平均准确率",
+        "avgCpm": "平均每分钟字符数",
+        "cpmUnit": "字符/分钟",
+        "levelTitle": "按等级",
+        "accuracyLabel": "正确率",
+        "cpmLabel": "CPM",
+        "noLevelData": "暂无等级数据。",
+        "trendTitle": "每日趋势",
+        "trendDay": "日期",
+        "trendSessions": "学习次数",
+        "trendAccuracy": "准确率",
+        "trendCpm": "CPM",
+        "noTrendData": "暂无趋势数据。",
+        "weakTitle": "最常出错的 10 个字符",
+        "weakSubtitle": "按字符输入错误的频率排序。请在下次练习中重点关注这些字符。",
+        "noWeakData": "暂无错误字符数据。做得好！",
+        "emptyTitle": "暂无练习记录",
+        "emptyDescription": "开始练习，生成您的首份统计数据。",
+        "emptyAction": "开始练习",
+        "lastDays_other": "最近 {{count}} 天",
+        "lastDays_one": "最近 {{count}} 天",
+        "sessionCount_other": "{{count}} 次练习",
+        "sessionCount_one": "{{count}} 次",
+        "missCount_other": "{{count}} 次",
+        "missCount_one": "{{count}} 次"
+      }
+    }
   },
   "lesson": {
     "heroBadge": "阶梯式课程",

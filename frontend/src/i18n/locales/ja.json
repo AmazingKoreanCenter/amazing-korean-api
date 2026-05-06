@@ -383,7 +383,39 @@
     "nextItemTask": "次の項目へ（問題）",
     "completeLesson": "レッスンを完了する",
     "totalProblems_other": "合計 {{count}}問",
-    "tryCount_other": "{{count}}回挑戦"
+    "tryCount_other": "{{count}}回挑戦",
+    "writing": {
+      "stats": {
+        "pageTitle": "タイピング練習の統計",
+        "pageDescription": "ハングルタイピングの履歴から、正確性、速度、苦手な文字を確認できます。",
+        "totalSessions": "合計セッション数",
+        "avgAccuracy": "平均正確性",
+        "avgCpm": "平均CPM",
+        "cpmUnit": "文字/分",
+        "levelTitle": "レベル別",
+        "accuracyLabel": "正解率",
+        "cpmLabel": "CPM",
+        "noLevelData": "レベルのデータがまだありません。",
+        "trendTitle": "日次トレンド",
+        "trendDay": "日付",
+        "trendSessions": "セッション数",
+        "trendAccuracy": "正解率",
+        "trendCpm": "CPM",
+        "noTrendData": "まだトレンドデータがありません。",
+        "weakTitle": "苦手な文字 TOP10",
+        "weakSubtitle": "文字の打ち間違い回数順に表示しています。次回の学習では、これらの文字に重点を置いて練習しましょう。",
+        "noWeakData": "まだ苦手な文字のデータがありません。素晴らしいです！",
+        "emptyTitle": "まだセッションが記録されていません。",
+        "emptyDescription": "統計データを蓄積するために、練習を始めましょう。",
+        "emptyAction": "練習を開始する",
+        "lastDays_other": "直近の{{count}}日間",
+        "lastDays_one": "直近の{{count}}日間",
+        "sessionCount_other": "{{count}}回のセッション",
+        "sessionCount_one": "{{count}}セッション",
+        "missCount_other": "{{count}}回",
+        "missCount_one": "{{count}}回"
+      }
+    }
   },
   "lesson": {
     "heroBadge": "段階的カリキュラム",
