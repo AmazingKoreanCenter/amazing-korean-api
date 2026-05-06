@@ -17,9 +17,9 @@
 
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
-| A. 운영/배포 부채 | **10** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4. ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ 해결 (2026-05-04~05). 잔여 신규 3 (A4-1 SSL/HTTPS / A4-2 certbot / A4-4 DB·Redis 백업) |
-| B. 보안 부채 (취약점) | **1** | Rust **1** (rsa Marvin Attack, no upgrade). ~~npm 3건~~ ✅ 해결 (2026-05-04, commit `ee68c7c`). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
-| B. 보안 부채 (unsound/unmaintained) | 7 | core2 yanked + paste + imageproc 3 + rand 2 |
+| A. 운영/배포 부채 | ~~10~~ → **9** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4. ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ 해결 (2026-05-04~05) + ~~A4-4~~ 🟡 부분 해결 (2026-05-06, 수동 절차 docs). 잔여 = A4-1 SSL/HTTPS + A4-2 certbot |
+| 🟡 B. 보안 부채 (취약점) | ~~1~~ → **0** | Rust **1** (rsa Marvin Attack, no upgrade) — 🟡 수용 결정 (2026-05-06, compile-time only + PostgreSQL only = production 영향 0). ~~npm 3건~~ ✅ 해결 (2026-05-04). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
+| 🟡 B. 보안 부채 (unsound/unmaintained) | ~~7~~ → **0** | 🟡 모두 수용 결정 (2026-05-06). core2/paste = unmaintained warning 만 + transitive. imageproc 3 = 텍스트 오버레이 영향 낮음. rand 2 = custom logger 미사용으로 영향 0 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
 | B. 보안 부채 (외부 통신) | **1** | B6 ipgeo HTTP-only. ~~B7 Paddle amount~~ ✅ 해결 (2026-05-04, commit `c744efc`) |
 | C. 코드 품질 부채 | **2** | C1 ESLint 27 + C2 lint:ui 9. ~~C3/C4/C5/C6/C7/C8~C13~~ 처리/수용 (2026-05-04~05). C7 ✅ commit `2641766` (bundle 모니터링). B5/B6 = B 카테고리로 재분류 |
@@ -31,7 +31,7 @@
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 약 57건** (본 세션 누계 처리 ✅ + 수용 🟡 = ~35건. 단계 2 추가 = J1/J2/C7 처리 + J3 도구 발견 차원 1/2 처리. 2026-05-04 ~ 2026-05-05. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 44건** (카테고리 합산 사실 기반: A 9 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 7 + J 0. 2026-05-06 본 세션 추가 처리/수용 9건 = A4-4 부분 해결 + B1 수용 + B2 7건 수용. 이전 53건 → 44건. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -74,7 +74,7 @@
 | A4-1 | nginx HTTPS 미활성 (HTTP-only) | `nginx/nginx.conf` 의 SSL 블록 주석 처리 상태. HSTS 미설정 | HIGH |
 | A4-2 | Let's Encrypt + certbot 자동 갱신 정책 부재 | `docker-compose.prod.yml` 에 `amk-certbot` 컨테이너 존재하나 갱신 cron / 자동화 미명시 | HIGH (90일 만료 시 다운) |
 | ~~A4-3~~ | ~~EC2 디스크 모니터링 자동화 부재~~ ✅ 해결 (2026-05-05, commit `693dc2a`) | `AMK_DEPLOY_OPS §6` 안에 모니터링 절차 (df -h / docker system df / 임계 70/85/95% / 정리 명령) 추가. 향후 자동화 후속 (GitHub Action SSH) | — |
-| A4-4 | DB / Redis 백업 정책 부재 (DR 0) | `docker-compose.prod.yml` volume-only. EC2 스냅샷 / pg_dump 자동화 X | HIGH |
+| ~~A4-4~~ | ~~DB / Redis 백업 정책 부재 (DR 0)~~ 🟡 **부분 해결 (2026-05-06)** | `AMK_DEPLOY_OPS §6` 안에 수동 백업·복구 절차 추가 (PostgreSQL pg_dump + Redis BGSAVE/RDB cp + 권장 정책 표 + 자동화 후속). 자동화는 사용자 정책 결정 후 별도 후속 (cron / S3 / 보관 기간) | — |
 | ~~A4-5~~ | ~~Docker log 로테이션 미설정~~ ✅ 해결 (2026-05-04, commit `7e86592`) | YAML anchor `x-logging` + 5 서비스 (api/db/redis/nginx/certbot) 일괄 적용 (max-size 10m × max-file 3 = 서비스당 최대 30MB) | — |
 | ~~A4-6~~ | ~~Cloudflare DNS / Email Routing 운영 정책 미문서화~~ ✅ 해결 (2026-05-05, commit `6e7b006`) | `AMK_DEPLOY_OPS.md §7.6` 통합 SSoT 신규 (DNS/Pages/SSL/WAF/Email Routing + 변경 절차 + 비상 시 절차) | — |
 | ~~A4-7~~ | ~~nginx Rate Limiting 모니터링 부재~~ ✅ 해결 (2026-05-05, commit `f82dd0d`) | `AMK_DEPLOY_OPS.md §6` 안에 모니터링 절차 (docker logs grep + 대응 정책) 추가 | — |
@@ -84,30 +84,40 @@
 
 ## B. 보안 부채
 
-### B1. Rust 의존성 보안 취약점 (4 vulnerabilities, cargo audit 2026-05-04)
+### 🟡 B1. Rust 의존성 보안 취약점 (4 vulnerabilities, cargo audit 2026-05-04) — 잔여 1건 수용 결정 (2026-05-06)
 
 | ID | Crate | Version | Severity | Title | 처리 가능성 |
 |:--:|:-----:|:-------:|:--------:|-------|----------|
-| RUSTSEC-2023-0071 | rsa | 0.9.10 | medium 5.9 | Marvin Attack: timing sidechannel key recovery | **No fixed upgrade — 의존성 회피 검토 필요** |
+| 🟡 RUSTSEC-2023-0071 | rsa | 0.9.10 | medium 5.9 | Marvin Attack: timing sidechannel key recovery | **수용 (2026-05-06)** — 사유 아래 |
 | ~~RUSTSEC-2026-0099~~ | ~~rustls-webpki~~ | ~~0.103.10~~ | — | ~~Name constraints accepted for wildcard certificates~~ | ✅ **2026-05-04 해결** (rustls-webpki 0.103.10 → 0.103.13, `cargo update`) |
 | ~~RUSTSEC-2026-0104~~ | ~~rustls-webpki~~ | ~~0.103.10~~ | — | ~~Reachable panic in CRL parsing~~ | ✅ **2026-05-04 해결** (동일) |
 | ~~RUSTSEC-2026-0098~~ | ~~rustls-webpki~~ | ~~0.103.10~~ | — | ~~Name constraints for URI names incorrectly accepted~~ | ✅ **2026-05-04 해결** (동일) |
 
-> rustls-webpki 3건 = 한 번 cargo update 로 처리 가능.
+**B1 rsa 수용 사유 (2026-05-06)**:
+- `cargo audit` 결과 = "No fixed upgrade is available!" (RustSec 명시)
+- 의존 트리: `rsa → sqlx-mysql → sqlx-macros → sqlx → amazing-korean-api`
+- sqlx-macros = **컴파일 타임 macro 라이브러리** (모든 DB driver 컴파일). 런타임 binary 에 mysql 코드 미포함.
+- 우리 시스템 = PostgreSQL only (Cargo.toml line 33 = `features = ["postgres", ...]`, mysql feature X)
+- → **production runtime 영향 = 0** (rsa 코드 자체가 binary 에 포함되지 X)
+- upstream sqlx 가 sqlx-macros 의 mysql driver 를 분리할 때까지 대기 (현재 의존성 구조상 회피 불가)
 
-### B2. Rust 의존성 unsound/unmaintained (7건, 2026-05-04 검증 후 7건으로 정정)
+### 🟡 B2. Rust 의존성 unsound/unmaintained (7건) — 모두 수용 결정 (2026-05-06)
 
-| ID | Crate | Version | Warning |
-|:--:|:-----:|:-------:|---------|
-| RUSTSEC-2026-0105 | core2 | 0.4.0 | unmaintained, **all versions yanked** |
-| RUSTSEC-2024-0436 | paste | 1.0.15 | no longer maintained |
-| RUSTSEC-2026-0116 | imageproc | 0.25.0 | unsound — improper invariant check |
-| RUSTSEC-2026-0117 | imageproc | 0.25.0 | unsound — fragile bounds check (sampling) |
-| RUSTSEC-2026-0115 | imageproc | 0.25.0 | unsound — fragile bounds check (sampling) |
-| RUSTSEC-2026-0097 | rand 0.8.5 | unsound — custom logger interaction |
-| RUSTSEC-2026-0097 | rand 0.9.2 | 동일 |
+| ID | Crate | Version | Warning | 영향 분석 |
+|:--:|:-----:|:-------:|---------|----------|
+| 🟡 RUSTSEC-2026-0105 | core2 | 0.4.0 | unmaintained, all versions yanked | transitive 의존 (image → ravif → rav1e → bitstream-io → core2). upstream image crate fix 대기 |
+| 🟡 RUSTSEC-2024-0436 | paste | 1.0.15 | no longer maintained (보안 X) | macro 라이브러리, unmaintained 만, 보안 취약점 X. transitive (imageproc/rav1e 경유) |
+| 🟡 RUSTSEC-2026-0116 | imageproc | 0.25.0 | unsound — improper invariant check | 우리 사용 = `src/api/ebook/watermark.rs` 텍스트 오버레이 경로. unsound 3건 모두 기하학 변환/샘플링 = 텍스트 오버레이 영향 낮음 (검증 명시) |
+| 🟡 RUSTSEC-2026-0117 | imageproc | 0.25.0 | unsound — fragile bounds check (sampling) | 동일 |
+| 🟡 RUSTSEC-2026-0115 | imageproc | 0.25.0 | unsound — fragile bounds check (sampling) | 동일 |
+| 🟡 RUSTSEC-2026-0097 | rand 0.8.5 | unsound — custom logger using `rand::rng()` | 우리 시스템 = `tracing-subscriber` 사용 (custom logger 미사용, `grep set_logger src/` = 결과 0). 영향 = 0 |
+| 🟡 RUSTSEC-2026-0097 | rand 0.9.2 | 동일 | 동일 (transitive: totp-rs / rav1e) |
 
-> imageproc = `src/api/ebook/watermark.rs:2,44,106` 사용 (텍스트 오버레이). agent 검증 = 3건 unsound 모두 기하학 변환/샘플링 관련, 텍스트 오버레이 경로 영향 낮음. rand = 우리 시스템 custom logger 미사용으로 영향 낮음.
+**B2 7건 수용 사유 (2026-05-06)**:
+- 4건 (imageproc 3 + rand 2 = 5건) = unsound but 영향 분석 결과 production 영향 낮음 / 0
+- 2건 (paste / core2) = unmaintained warning 만, 보안 취약점 X
+- 처리 옵션 = upstream image / imageproc / rav1e 의 fix 또는 fork. 현재 본 리포 직접 회피 불가.
+- 재평가 트리거 = upstream fix release 또는 새 unsound advisory 시.
 
 ### ~~B3. npm 의존성 보안 취약점~~ ✅ 해결 (2026-05-04, commit `ee68c7c`)
 

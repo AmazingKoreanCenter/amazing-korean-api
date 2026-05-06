@@ -909,6 +909,116 @@ docker logs --since 24h amk-nginx 2>&1 | grep 'limiting requests' \
 
 **향후 자동화 후속**: cron + 위반 카운트 임계 초과 시 알림 (현재 수동 조회).
 
+##### DB·Redis 백업 절차 (A4-4, 2026-05-06 신규)
+
+> 정기 백업 절차. 데이터 마이그레이션 (§4-3 dev→prod 이전) 과 별개.
+> **현재 상태 (2026-05-06)**: 자동 백업 미구성. 본 docs = 수동 절차 SSoT. 자동화는 사용자 정책 결정 후 별도 후속.
+
+###### PostgreSQL 백업
+
+**컨테이너**: `amk-pg` / **DB**: `amazing_korean_db` / **Volume**: `amazing-korean-api_postgres_data`
+
+```bash
+# 백업 디렉터리 준비
+mkdir -p ~/backup
+
+# 논리 백업 (권장 — 마이그레이션 호환성 ↑)
+docker exec amk-pg pg_dump -U postgres -d amazing_korean_db \
+  --exclude-table=_sqlx_migrations \
+  > ~/backup/db-$(date +%Y%m%d-%H%M%S).sql
+
+# 압축 백업 (디스크 절약)
+docker exec amk-pg pg_dump -U postgres -d amazing_korean_db \
+  --exclude-table=_sqlx_migrations \
+  | gzip > ~/backup/db-$(date +%Y%m%d-%H%M%S).sql.gz
+
+# 전체 cluster 백업 (모든 DB + role + 권한, 신규 EC2 마이그 시 유용)
+docker exec amk-pg pg_dumpall -U postgres > ~/backup/cluster-$(date +%Y%m%d).sql
+```
+
+###### PostgreSQL 복구
+
+```bash
+# 1. API 중지 (DB 연결 종료)
+docker stop amk-api
+
+# 2. 기존 연결 강제 종료 + DB 리셋
+docker exec -it amk-pg psql -U postgres -c \
+  "SELECT pg_terminate_backend(pid) FROM pg_stat_activity \
+   WHERE datname = 'amazing_korean_db' AND pid <> pg_backend_pid();"
+docker exec -it amk-pg psql -U postgres -c "DROP DATABASE amazing_korean_db;"
+docker exec -it amk-pg psql -U postgres -c "CREATE DATABASE amazing_korean_db;"
+
+# 3. 백업 파일 import (압축본은 zcat)
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db < ~/backup/db-YYYYMMDD-HHMMSS.sql
+# 또는: zcat ~/backup/db-YYYYMMDD-HHMMSS.sql.gz | docker exec -i amk-pg psql -U postgres -d amazing_korean_db
+
+# 4. API 재시작
+docker start amk-api
+docker logs -f amk-api  # 마이그레이션 자동 실행 확인
+```
+
+###### Redis 백업
+
+**컨테이너**: `amk-redis` / **Volume**: `redis_data` (full: `amazing-korean-api_redis_data`) / **인증**: `REDIS_PASSWORD` 필수
+
+```bash
+# 1. RDB snapshot 강제 생성 (BGSAVE = non-blocking)
+docker exec amk-redis redis-cli -a "$REDIS_PASSWORD" BGSAVE
+
+# 2. 마지막 SAVE 시각 확인 (BGSAVE 완료 polling)
+docker exec amk-redis redis-cli -a "$REDIS_PASSWORD" LASTSAVE
+
+# 3. RDB 파일 호스트로 복사 (volume 내 위치 = /data/dump.rdb)
+docker cp amk-redis:/data/dump.rdb ~/backup/redis-$(date +%Y%m%d-%H%M%S).rdb
+```
+
+###### Redis 복구
+
+```bash
+# 1. API + Redis 중지
+docker stop amk-api amk-redis
+
+# 2. RDB 파일을 redis_data volume 으로 복사
+docker run --rm \
+  -v amazing-korean-api_redis_data:/data \
+  -v ~/backup:/backup \
+  alpine cp /backup/redis-YYYYMMDD-HHMMSS.rdb /data/dump.rdb
+
+# 3. Redis 먼저 시작 → API 시작
+docker start amk-redis
+sleep 3
+docker start amk-api
+```
+
+###### 백업 정책 (권장, 사용자 결정 후 확정)
+
+| 항목 | 권장 | 사용자 결정 |
+|------|------|------------|
+| 주기 | DB 일 1회 (KST 03:00 권장 = 트래픽 최저) / Redis 일 1회 | cron 시간대 |
+| 보관 기간 | 일 7개 (1주) + 주 4개 (1개월) + 월 3개 (분기) | 기간 |
+| 저장 위치 | S3 (multi-region 권장) **또는** EC2 + 외부 sync | S3 vs EC2 — 미정 |
+| 암호화 | DB dump + Redis RDB 모두 SSE-S3 또는 GPG | 키 관리 |
+| 복구 RTO/RPO | RTO < 1h / RPO < 24h (일 1회 기준) | 수치 |
+
+###### 자동화 후속 (현재 미구성, 사용자 결정 후)
+
+- cron + pg_dump → S3 (`aws s3 cp`)
+- cron + Redis BGSAVE + `docker cp` + S3
+- 백업 검증 (월 1회 복구 테스트)
+- 보관 기간 만료 자동 삭제 (S3 lifecycle policy)
+
+> **자동화 미구성 사유**: A4 인프라 묶음 (A4-1 SSL/HTTPS + A4-2 certbot) 우선순위 이후. 또는 A2 RDS/ElastiCache 이전 시점에 AWS 관리형 백업 (RDS automated backups + ElastiCache snapshots) 으로 자연 전환.
+
+###### 데이터 손실 우려 시점
+
+| 상황 | 영향 | 대응 |
+|------|------|------|
+| EBS 볼륨 손상 | postgres_data + redis_data 모두 손실 | 마지막 백업으로 복구 (RPO = 백업 주기) |
+| EC2 인스턴스 종료/재시작 | volume 분리 시 영향, 통상 재시작 시 무영향 | volume 무결성 확인 (`docker volume inspect`) |
+| `docker volume rm` 실수 (§4-2 클린 배포) | 전체 데이터 초기화 | 백업 복구 필수 — 본 절차 |
+| RDS 이전 시 (Q9, A2 묶음) | 일회성, 기존 데이터 신규 RDS 로 마이그 | dev→prod 이전 패턴 (§4-3) 응용 + RDS native restore |
+
 ## 7. 품질 보증 (QA) & 스모크 체크
 
 - **CI Gate — `pr-check.yml` 자동 실행 (KKRYOUN push 시점, 2026-05-04 도입)**
