@@ -591,3 +591,219 @@ impl Modify for SecurityAddon {
     )
 )]
 pub struct ApiDoc;
+
+// ─────────────────────── Tests ───────────────────────
+//
+// N-27 OpenAPI 등록 검증 (2026-05-06).
+// `cargo test --lib openapi_spec` 으로 실행.
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use utoipa::OpenApi;
+
+    /// 본 세션 N-27 등록한 50 endpoint 의 path string 모두 포함됐는지 검증.
+    #[test]
+    fn openapi_spec_includes_n27_paths() {
+        let openapi = ApiDoc::openapi();
+        let paths = &openapi.paths.paths;
+
+        let expected_n27_paths = [
+            // auth (10)
+            "/auth/login-mobile",
+            "/auth/refresh-mobile",
+            "/auth/find-password",
+            "/auth/verify-email",
+            "/auth/resend-verification",
+            "/auth/google",
+            "/auth/google/callback",
+            "/auth/google-mobile",
+            "/auth/apple-mobile",
+            "/auth/mfa/login-mobile",
+            // payment user-facing (3)
+            "/payment/plans",
+            "/payment/subscription",
+            "/payment/subscription/cancel",
+            // admin/email (1)
+            "/admin/email/test",
+            // textbook (4)
+            "/textbook/catalog",
+            "/textbook/orders",
+            "/textbook/orders/{code}",
+            "/textbook/my",
+            // admin/payment (7 endpoint, 6 unique path)
+            "/admin/payment/subscriptions",
+            "/admin/payment/subscriptions/{id}",
+            "/admin/payment/subscriptions/{id}/cancel",
+            "/admin/payment/transactions",
+            "/admin/payment/grants",
+            "/admin/payment/grants/{user_id}",
+            // admin/textbook (8 endpoint, 6 unique path)
+            "/admin/textbook/orders",
+            "/admin/textbook/orders/{id}",
+            "/admin/textbook/orders/{id}/status",
+            "/admin/textbook/orders/{id}/discount",
+            "/admin/textbook/orders/{id}/tracking",
+            "/admin/textbook/logs",
+            // course (3 endpoint, 2 unique path)
+            "/courses",
+            "/courses/{id}",
+            // admin/ebook (5 endpoint, 4 unique path)
+            "/admin/ebook/purchases",
+            "/admin/ebook/purchases/{id}",
+            "/admin/ebook/purchases/{id}/status",
+            "/admin/ebook/verify/{watermark_id}",
+            // ebook (9 endpoint, 9 unique path)
+            "/ebook/catalog",
+            "/ebook/purchase",
+            "/ebook/purchase/iap",
+            "/ebook/purchase/{code}",
+            "/ebook/my",
+            "/ebook/viewer/heartbeat",
+            "/ebook/viewer/{code}/meta",
+            "/ebook/viewer/{code}/pages/{page_num}",
+            "/ebook/viewer/{code}/pages/{page_num}/tiles/{row}/{col}",
+        ];
+
+        let mut missing: Vec<&str> = Vec::new();
+        for path in &expected_n27_paths {
+            if !paths.contains_key(*path) {
+                missing.push(*path);
+            }
+        }
+        assert!(
+            missing.is_empty(),
+            "N-27 paths missing from OpenAPI spec: {:?}",
+            missing
+        );
+    }
+
+    /// 본 세션 N-27 추가한 7 tag 모두 등록됐는지 검증.
+    #[test]
+    fn openapi_spec_includes_n27_tags() {
+        let openapi = ApiDoc::openapi();
+        let tags = openapi.tags.unwrap_or_default();
+        let tag_names: Vec<&str> = tags.iter().map(|t| t.name.as_str()).collect();
+
+        let expected_n27_tags = [
+            "Payment",
+            "Textbook",
+            "admin_payment",
+            "Admin Textbook",
+            "Course",
+            "Admin Ebook",
+            "Ebook",
+        ];
+
+        let mut missing: Vec<&str> = Vec::new();
+        for tag in &expected_n27_tags {
+            if !tag_names.contains(tag) {
+                missing.push(*tag);
+            }
+        }
+        assert!(
+            missing.is_empty(),
+            "N-27 tags missing: {:?} (registered: {:?})",
+            missing,
+            tag_names
+        );
+    }
+
+    /// 본 세션 N-27 추가한 schema 표본 검증 (각 도메인 핵심 1-2건).
+    #[test]
+    fn openapi_spec_includes_n27_schemas() {
+        let openapi = ApiDoc::openapi();
+        let components = openapi
+            .components
+            .expect("components must exist (SecurityAddon registers schemes)");
+        let schemas = &components.schemas;
+
+        let sample_n27_schemas = [
+            // auth
+            "LoginMobileRes",
+            "GoogleAuthUrlRes",
+            "GoogleMobileLoginReq",
+            "AppleMobileLoginReq",
+            // payment
+            "PlansRes",
+            "SubscriptionRes",
+            "CancelSubscriptionReq",
+            // admin/email
+            "TestEmailReq",
+            "EmailTemplateType",
+            // textbook
+            "CatalogRes",
+            "OrderRes",
+            // admin/payment
+            "AdminSubListRes",
+            "AdminGrantRes",
+            // admin/textbook
+            "AdminTextbookListRes",
+            "AdminCreateOrderReq",
+            // course
+            "CourseListRes",
+            "CreateCourseRes",
+            // admin/ebook
+            "AdminEbookListRes",
+            "AdminEbookDeleteRes",
+            "WatermarkVerifyRes",
+            // ebook
+            "EbookCatalogRes",
+            "PurchaseRes",
+            "ViewerMetaRes",
+            "HeartbeatRes",
+            "IapPlatform",
+        ];
+
+        let mut missing: Vec<&str> = Vec::new();
+        for schema in &sample_n27_schemas {
+            if !schemas.contains_key(*schema) {
+                missing.push(*schema);
+            }
+        }
+        assert!(missing.is_empty(), "N-27 schemas missing: {:?}", missing);
+    }
+
+    /// webhook 의도 제외 정책 검증 — Paddle/RevenueCat webhook 은 OpenAPI 노출 X.
+    #[test]
+    fn openapi_spec_excludes_webhooks_by_policy() {
+        let openapi = ApiDoc::openapi();
+        let paths = &openapi.paths.paths;
+
+        let must_be_excluded = ["/payment/webhook", "/payment/webhook/revenuecat"];
+        let mut leaked: Vec<&str> = Vec::new();
+        for path in &must_be_excluded {
+            if paths.contains_key(*path) {
+                leaked.push(*path);
+            }
+        }
+        assert!(
+            leaked.is_empty(),
+            "webhook paths leaked into OpenAPI spec: {:?}",
+            leaked
+        );
+    }
+
+    /// 전체 spec 카운트 sanity check (정확한 수치는 N-27 외 도메인 변경 시 변동 가능).
+    #[test]
+    fn openapi_spec_summary_sanity() {
+        let openapi = ApiDoc::openapi();
+        let path_count = openapi.paths.paths.len();
+        let schema_count = openapi
+            .components
+            .as_ref()
+            .map(|c| c.schemas.len())
+            .unwrap_or(0);
+        let tag_count = openapi.tags.as_ref().map(|t| t.len()).unwrap_or(0);
+
+        eprintln!(
+            "OpenAPI spec summary (2026-05-06 N-27 후): paths={path_count}, schemas={schema_count}, tags={tag_count}"
+        );
+
+        // 본 세션 N-27 50 endpoint 등록 후 최소 baseline.
+        // (정확한 카운트는 도메인 추가 시 변동, 너무 적으면 회귀 의심).
+        assert!(path_count >= 100, "paths too few: {path_count}");
+        assert!(schema_count >= 130, "schemas too few: {schema_count}");
+        assert!(tag_count >= 14, "tags too few: {tag_count}");
+    }
+}
