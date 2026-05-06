@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 
 use crate::types::{EbookEdition, EbookPaymentMethod, EbookPurchaseStatus, TextbookLanguage};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, IntoParams)]
 pub struct AdminEbookListReq {
     pub page: Option<i64>,
     pub per_page: Option<i64>,
@@ -58,4 +58,10 @@ pub struct WatermarkVerifyRes {
     pub ip_address: Option<String>,
     pub user_agent: Option<String>,
     pub created_at: DateTime<Utc>,
+}
+
+/// 삭제 응답
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AdminEbookDeleteRes {
+    pub message: String,
 }

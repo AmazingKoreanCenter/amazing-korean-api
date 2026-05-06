@@ -47,3 +47,8 @@ pub struct CreateCourseReq {
     pub course_type: String,
     pub subtitle: Option<String>,
 }
+
+#[derive(Serialize, ToSchema)]
+pub struct CreateCourseRes {
+    pub course_id: i64,
+}

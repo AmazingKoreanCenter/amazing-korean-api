@@ -7,12 +7,23 @@ use crate::error::AppResult;
 use crate::state::AppState;
 
 use super::dto::{
-    AdminEbookListReq, AdminEbookListRes, AdminEbookPurchaseItem, AdminUpdateEbookStatusReq,
-    WatermarkVerifyRes,
+    AdminEbookDeleteRes, AdminEbookListReq, AdminEbookListRes, AdminEbookPurchaseItem,
+    AdminUpdateEbookStatusReq, WatermarkVerifyRes,
 };
 use super::service::AdminEbookService;
 
 /// GET /admin/ebook/purchases
+#[utoipa::path(
+    get,
+    path = "/admin/ebook/purchases",
+    tag = "Admin Ebook",
+    security(("bearerAuth" = [])),
+    params(AdminEbookListReq),
+    responses(
+        (status = 200, description = "Ebook purchase list", body = AdminEbookListRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn list_purchases(
     State(st): State<AppState>,
     AuthUser(_claims): AuthUser,
@@ -23,6 +34,20 @@ pub async fn list_purchases(
 }
 
 /// GET /admin/ebook/purchases/:id
+#[utoipa::path(
+    get,
+    path = "/admin/ebook/purchases/{id}",
+    tag = "Admin Ebook",
+    security(("bearerAuth" = [])),
+    params(
+        ("id" = i64, Path, description = "Purchase ID")
+    ),
+    responses(
+        (status = 200, description = "Ebook purchase detail", body = AdminEbookPurchaseItem),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 404, description = "Purchase not found", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn get_purchase(
     State(st): State<AppState>,
     AuthUser(_claims): AuthUser,
@@ -33,6 +58,21 @@ pub async fn get_purchase(
 }
 
 /// PATCH /admin/ebook/purchases/:id/status
+#[utoipa::path(
+    patch,
+    path = "/admin/ebook/purchases/{id}/status",
+    tag = "Admin Ebook",
+    security(("bearerAuth" = [])),
+    params(
+        ("id" = i64, Path, description = "Purchase ID")
+    ),
+    request_body = AdminUpdateEbookStatusReq,
+    responses(
+        (status = 200, description = "Status updated", body = AdminEbookPurchaseItem),
+        (status = 400, description = "Invalid status transition", body = crate::error::ErrorBody),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn update_status(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
@@ -46,6 +86,20 @@ pub async fn update_status(
 /// GET /admin/ebook/verify/:watermark_id
 ///
 /// 워터마크 진위확인 — 유출된 이미지에서 추출한 watermark_id로 구매자 정보 조회.
+#[utoipa::path(
+    get,
+    path = "/admin/ebook/verify/{watermark_id}",
+    tag = "Admin Ebook",
+    security(("bearerAuth" = [])),
+    params(
+        ("watermark_id" = String, Path, description = "Watermark ID extracted from leaked image")
+    ),
+    responses(
+        (status = 200, description = "Watermark verified", body = WatermarkVerifyRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 404, description = "Watermark not found", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn verify_watermark(
     State(st): State<AppState>,
     AuthUser(_claims): AuthUser,
@@ -56,11 +110,27 @@ pub async fn verify_watermark(
 }
 
 /// DELETE /admin/ebook/purchases/:id
+#[utoipa::path(
+    delete,
+    path = "/admin/ebook/purchases/{id}",
+    tag = "Admin Ebook",
+    security(("bearerAuth" = [])),
+    params(
+        ("id" = i64, Path, description = "Purchase ID")
+    ),
+    responses(
+        (status = 200, description = "Purchase deleted", body = AdminEbookDeleteRes),
+        (status = 401, description = "Unauthorized", body = crate::error::ErrorBody),
+        (status = 404, description = "Purchase not found", body = crate::error::ErrorBody)
+    )
+)]
 pub async fn delete_purchase(
     State(st): State<AppState>,
     AuthUser(claims): AuthUser,
     Path(id): Path<i64>,
-) -> AppResult<Json<serde_json::Value>> {
+) -> AppResult<Json<AdminEbookDeleteRes>> {
     AdminEbookService::delete_purchase(&st, claims.sub, id).await?;
-    Ok(Json(serde_json::json!({ "message": "deleted" })))
+    Ok(Json(AdminEbookDeleteRes {
+        message: "deleted".to_string(),
+    }))
 }
