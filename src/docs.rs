@@ -172,6 +172,31 @@ impl Modify for SecurityAddon {
         crate::api::payment::handler::get_plans,
         crate::api::payment::handler::get_subscription,
         crate::api::payment::handler::cancel_subscription,
+
+        // textbook (user-facing)
+        crate::api::textbook::handler::get_catalog,
+        crate::api::textbook::handler::create_order,
+        crate::api::textbook::handler::get_order_by_code,
+        crate::api::textbook::handler::get_my_orders,
+
+        // admin - payment
+        crate::api::admin::payment::handler::list_subscriptions,
+        crate::api::admin::payment::handler::get_subscription,
+        crate::api::admin::payment::handler::cancel_subscription,
+        crate::api::admin::payment::handler::list_transactions,
+        crate::api::admin::payment::handler::create_grant,
+        crate::api::admin::payment::handler::list_grants,
+        crate::api::admin::payment::handler::revoke_grant,
+
+        // admin - textbook
+        crate::api::admin::textbook::handler::list_orders,
+        crate::api::admin::textbook::handler::get_order,
+        crate::api::admin::textbook::handler::update_status,
+        crate::api::admin::textbook::handler::update_discount,
+        crate::api::admin::textbook::handler::update_tracking,
+        crate::api::admin::textbook::handler::admin_create_order,
+        crate::api::admin::textbook::handler::delete_order,
+        crate::api::admin::textbook::handler::list_admin_logs,
     ),
     components(
         schemas(
@@ -456,6 +481,46 @@ impl Modify for SecurityAddon {
             crate::api::payment::dto::SubscriptionInfo,
             crate::api::payment::dto::SubscriptionRes,
             crate::api::payment::dto::CancelSubscriptionReq,
+
+            // textbook dto
+            crate::api::textbook::dto::CatalogItem,
+            crate::api::textbook::dto::CatalogRes,
+            crate::api::textbook::dto::CreateOrderItemReq,
+            crate::api::textbook::dto::CreateOrderReq,
+            crate::api::textbook::dto::OrderItemRes,
+            crate::api::textbook::dto::MyOrdersRes,
+            crate::api::textbook::dto::OrderRes,
+
+            // admin - payment dto
+            crate::api::admin::payment::dto::AdminPaymentMeta,
+            crate::api::admin::payment::dto::AdminSubListReq,
+            crate::api::admin::payment::dto::AdminSubSummary,
+            crate::api::admin::payment::dto::AdminSubListRes,
+            crate::api::admin::payment::dto::AdminSubDetailRes,
+            crate::api::admin::payment::dto::AdminSubDetail,
+            crate::api::admin::payment::dto::AdminSubUser,
+            crate::api::admin::payment::dto::AdminTxnListReq,
+            crate::api::admin::payment::dto::AdminTxnSummary,
+            crate::api::admin::payment::dto::AdminTxnListRes,
+            crate::api::admin::payment::dto::AdminGrantReq,
+            crate::api::admin::payment::dto::AdminGrantRes,
+            crate::api::admin::payment::dto::AdminGrantListReq,
+            crate::api::admin::payment::dto::AdminGrantSummary,
+            crate::api::admin::payment::dto::AdminGrantListRes,
+            crate::api::admin::payment::dto::AdminCancelSubReq,
+
+            // admin - textbook dto
+            crate::api::admin::textbook::dto::AdminTextbookListReq,
+            crate::api::admin::textbook::dto::AdminTextbookMeta,
+            crate::api::admin::textbook::dto::AdminTextbookListRes,
+            crate::api::admin::textbook::dto::AdminTextbookLogQuery,
+            crate::api::admin::textbook::dto::AdminTextbookLogItem,
+            crate::api::admin::textbook::dto::AdminTextbookLogMeta,
+            crate::api::admin::textbook::dto::AdminTextbookLogListRes,
+            crate::api::admin::textbook::dto::AdminUpdateStatusReq,
+            crate::api::admin::textbook::dto::AdminUpdateDiscountReq,
+            crate::api::admin::textbook::dto::AdminUpdateTrackingReq,
+            crate::api::admin::textbook::dto::AdminCreateOrderReq,
         )
     ),
     modifiers(&SecurityAddon),
@@ -468,7 +533,10 @@ impl Modify for SecurityAddon {
         (name = "lesson", description = "Lesson APIs"),
         (name = "admin", description = "Admin user & content management"),
         (name = "admin_translation", description = "Admin translation management"),
-        (name = "Payment", description = "Subscription and payment APIs (webhooks intentionally excluded)")
+        (name = "Payment", description = "Subscription and payment APIs (webhooks intentionally excluded)"),
+        (name = "Textbook", description = "Textbook catalog and orders (user-facing)"),
+        (name = "admin_payment", description = "Admin subscription/transaction/grant management"),
+        (name = "Admin Textbook", description = "Admin textbook order management")
     )
 )]
 pub struct ApiDoc;
