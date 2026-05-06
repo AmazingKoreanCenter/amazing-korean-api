@@ -4,6 +4,7 @@
 > **작성 원칙**: 사실 기반. 가정·해석 배제. 위치(파일:줄/명령어/공식 ID) + 영향 범위 + 처리 시점 명시. **라인 번호는 작성 시점 (HEAD) 기준 — commit 후 stale 가능, 사용 시 grep 재확인**.
 > **작성일**: 2026-05-04 (PR #205 진행 중 일괄 조사 + 5 agent 정합성 검증 + 경로 2 추가 조사 통합)
 > **검증 2회차**: 2026-05-04 (저녁, HEAD `3cad9a3`) — 6 agent 분담 병렬, M-007 사고 후 라인/카운트 stale 정정. A2-1 라인 9곳 / B4 unwrap 358→397, 1123→1396 / B5 47→48 / B6 11~12→50 / C6 233→237 / H1 72→41 / J 카운트 3건 정정.
+> **검증 3회차**: 2026-05-06 — B5 카운트 48 → 52 정정 (PR #212~#218 기간 추가) + 위험도 분류 종결 (🟢 45 / 🟡 7 / 🔴 0). 처리 우선순위 낮음 확정.
 > **갱신 규칙**: 부채 신규 발생 시 해당 카테고리에 추가. 처리 완료 시 행 시작에 `~~취소선~~` + 완료일/PR 명시. 본 문서 직접 갱신 (메모리 미동기화 — 메모리는 본 문서 참조 포인터만).
 > **참조 SSoT**:
 > - production 인시던트 (INC-NNN): `AMK_CHANGELOG.md` + `feedback_deploy_env_sync.md`
@@ -131,9 +132,49 @@
 
 **처리 완료**: 위험 잠재 2건 모두 `AppError::Internal` 명시 매핑으로 교체 (commit `ad239ed`). anti-enumeration 유지.
 
-### B5. `expect()` 48건 (전수 점검 미실행)
+### B5. `expect()` 52건 — 위험도 분류 완료 (2026-05-06)
 
-> 카운트만 정확. 위험도 평가 = 별도 트랙. config.rs 의 panic 게이트 = 의도된 fail-fast (정상). 데이터 처리 흐름의 expect 만 검토 대상.
+> 처리는 별도 트랙. 본 항목 = 위험도 라벨링 + 처리 우선순위 판단.
+>
+> **카운트 정정**: 48 → 52 (PR #212~#218 기간 코드 추가분 4건 반영, 실측 grep `\.expect(`).
+
+**파일별 카운트**
+
+| 파일 | 건수 | 분류 |
+|------|:--:|------|
+| `src/config.rs` | 37 | 🟢 안전 (부팅 시 환경변수 파싱 panic = production safety gate) |
+| `src/main.rs` | 6 | 🟢 안전 (부팅 시 Redis pool / API key / Paddle client 초기화) |
+| `src/api/auth/service.rs` | 2 | 🟢 1 (dummy hash, 정적 입력) + 🟡 1 (line 447 invariant 의존) |
+| `src/api/user/service.rs` | 1 | 🟢 안전 (`hmac_key: &[u8; 32]` 타입 보장) |
+| `src/external/email.rs` | 1 | 🟡 cold init (reqwest builder, ResendEmailSender::new) |
+| `src/external/apple.rs` | 1 | 🟡 cold init (reqwest builder) |
+| `src/external/google.rs` | 1 | 🟡 cold init (reqwest builder) |
+| `src/external/vimeo.rs` | 1 | 🟡 cold init (reqwest builder) |
+| `src/external/revenuecat.rs` | 1 | 🟡 cold init (reqwest builder) |
+| `src/external/ipgeo.rs` | 1 | 🟡 cold init (reqwest builder) |
+
+**분류 합계**
+
+| 분류 | 건수 | 의미 |
+|------|:--:|------|
+| 🟢 안전 | 45 | 부팅 시점 fail-fast 또는 타입/정적 invariant 로 panic 불가능 |
+| 🟡 회색 | 7 | cold init (reqwest builder 6) + 논리 invariant 1 (auth:447) |
+| 🔴 위험 | 0 | hot path runtime panic 가능 expect 없음 |
+
+**🟡 회색 7건 상세**
+
+| 위치 | 패턴 | panic 트리거 가능성 |
+|------|------|-----|
+| `src/external/{apple,email,google,ipgeo,revenuecat,vimeo}.rs` | `reqwest::Client::builder()…build().expect("…")` | 극히 드묾 (TLS native roots 로드 실패 등). reqwest builder API 가 사실상 무결. 객체 생성 1회성 |
+| `src/api/auth/service.rs:447` | `user_info.expect("checked above")` 로그인 hot path | 위 분기 (`if user_info.is_none() return Err`) 깨지면 panic. 코드 구조 변경 시 invariant 깨질 위험 |
+
+**처리 권고 (별도 트랙)**
+
+- **🟢 안전 45건** = 처리 불요. 의도된 fail-fast 또는 타입 보장.
+- **🟡 reqwest builder 6건** = 수용 권고. `unwrap_or_else` 로 fallback 만들기 어려움 (Client 가 있어야 외부 호출 가능). OnceCell 화 검토 가치 ≪ 비용.
+- **🟡 auth:447 1건** = `let-else` 또는 `match` 리팩터 권고 (defense-in-depth, 시간 5m). hot path 이지만 현재 invariant 안전. 우선순위 낮음.
+
+**결론**: 🔴 0건 = production 운영 중 unexpected panic 위험 expect 호출은 0. B5 = 위험도 분류 종결, 후속 처리는 우선순위 낮음 (선택적).
 
 ### B6. ipgeo HTTP-only (2026-05-04 신규 발견)
 
