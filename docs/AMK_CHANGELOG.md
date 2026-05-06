@@ -1,8 +1,50 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-06 작은 부채 3건 처리 (B1 / B2 7건 수용 + A4-4 백업 docs 부분 해결, §0 53→44)
+updated: 2026-05-06 N-27 OpenAPI spec final verification — unit test 5건 통과 (paths=121 / schemas=334 / tags=15)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-06 (저녁 늦게) — N-27 OpenAPI spec final verification (unit test 5건 통과)**
+
+  본 세션 N-27 작업의 회귀 검증. cargo check/fmt/clippy 통과 ≠ swagger spec 정상 의미 → 실제 spec 생성 결과 확인.
+
+  ## 추가한 unit test (`src/docs.rs` `#[cfg(test)] mod tests`)
+
+  | 테스트 | 검증 내용 |
+  |--------|----------|
+  | `openapi_spec_includes_n27_paths` | 본 세션 N-27 등록 50 endpoint 의 path string 모두 포함 (45개 unique path) |
+  | `openapi_spec_includes_n27_tags` | 본 세션 추가 7 tag 모두 등록 (Payment / Textbook / admin_payment / Admin Textbook / Course / Admin Ebook / Ebook) |
+  | `openapi_spec_includes_n27_schemas` | 본 세션 추가 schema 표본 25건 (각 도메인 핵심 1-3건) 모두 등록 |
+  | `openapi_spec_excludes_webhooks_by_policy` | Paddle/RevenueCat webhook 2건 OpenAPI 의도 제외 정착 검증 |
+  | `openapi_spec_summary_sanity` | 전체 spec 카운트 baseline (paths ≥ 100 / schemas ≥ 130 / tags ≥ 14) |
+
+  ## 검증 결과 (실측)
+
+  ```
+  OpenAPI spec summary (2026-05-06 N-27 후): paths=121, schemas=334, tags=15
+  test result: ok. 5 passed; 0 failed; 0 ignored
+  ```
+
+  - **paths = 121** (전체 unique path string)
+  - **schemas = 334**
+  - **tags = 15** (기존 8 + 본 세션 추가 7)
+
+  ## 의의
+
+  - cargo build/check 통과 = utoipa macro 컴파일 통과만 보장
+  - 본 unit test = 실제 spec 생성 결과 = swagger UI 가 본 세션 작업한 50 endpoint 모두 노출 정합 검증
+  - 향후 회귀 방지: 누군가 docs.rs paths/schemas 항목을 실수로 제거 / handler annotation 변경 시 본 5 test 가 fail
+  - webhook 정책 (Paddle/RevenueCat 의도 제외) 의 enforcement 도 test 로 정착 → 실수로 paths(...) 에 webhook 등록 시 fail
+
+  ## 검증
+
+  - `cargo test --lib openapi_spec` ✅ (5/5 passed)
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --lib --tests -- -D warnings` ✅
+
+  ## 변경 파일
+
+  - `src/docs.rs` — `#[cfg(test)] mod tests` 신규 (~190줄)
 
 - **2026-05-06 (오후 늦게) — 작은 부채 3건 처리 (B1 / B2 7건 / A4-4)**
 
