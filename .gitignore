@@ -677,6 +677,9 @@ docs/pdf_check/
 scripts/*
 !scripts/bootstrap_sqlx_migrations.sql
 !scripts/check_env_consistency.sh
+!scripts/backup.sh
+!scripts/dev_preflight.sh
+!scripts/mk-support-bundle.sh
 
 # 루트 node_modules (교재 puppeteer용, frontend와 별도)
 /node_modules/
