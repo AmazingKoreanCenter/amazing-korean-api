@@ -71,8 +71,8 @@
 
 | ID | 항목 | 위치 / 사실 | 심각도 |
 |:--:|------|-------------|:--:|
-| A4-1 | nginx HTTPS 미활성 (HTTP-only) | `nginx/nginx.conf` 의 SSL 블록 주석 처리 상태. HSTS 미설정 | HIGH |
-| A4-2 | Let's Encrypt + certbot 자동 갱신 정책 부재 | `docker-compose.prod.yml` 에 `amk-certbot` 컨테이너 존재하나 갱신 cron / 자동화 미명시 | HIGH (90일 만료 시 다운) |
+| 🟡 A4-1 | ~~nginx HTTPS 미활성 (HTTP-only)~~ Phase A 완료 (2026-05-07) | `nginx/nginx.conf` HTTPS 블록 정교화 (TLS 1.2+1.3 / Mozilla Intermediate cipher / OCSP stapling / HSTS / SSL session cache). 주석 유지 = Phase B 사용자 트리거 대기 (`AMK_DEPLOY_OPS §3 Phase B` 단계별 절차 정착) | HIGH (Phase B 활성 시 해결) |
+| 🟡 A4-2 | ~~Let's Encrypt + certbot 자동 갱신 정책 부재~~ Phase A 완료 (2026-05-07) | `docker-compose.prod.yml` certbot entrypoint = 12h renew + `--quiet --deploy-hook` 추가. nginx reload 자동화 = host crontab 권장 (docker socket mount 비권장). 절차 = `AMK_DEPLOY_OPS §3 자동 갱신 검증` | HIGH (Phase B 활성 시 해결) |
 | ~~A4-3~~ | ~~EC2 디스크 모니터링 자동화 부재~~ ✅ 해결 (2026-05-05, commit `693dc2a`) | `AMK_DEPLOY_OPS §6` 안에 모니터링 절차 (df -h / docker system df / 임계 70/85/95% / 정리 명령) 추가. 향후 자동화 후속 (GitHub Action SSH) | — |
 | ~~A4-4~~ | ~~DB / Redis 백업 정책 부재 (DR 0)~~ 🟡 **부분 해결 (2026-05-06)** | `AMK_DEPLOY_OPS §6` 안에 수동 백업·복구 절차 추가 (PostgreSQL pg_dump + Redis BGSAVE/RDB cp + 권장 정책 표 + 자동화 후속). 자동화는 사용자 정책 결정 후 별도 후속 (cron / S3 / 보관 기간) | — |
 | ~~A4-5~~ | ~~Docker log 로테이션 미설정~~ ✅ 해결 (2026-05-04, commit `7e86592`) | YAML anchor `x-logging` + 5 서비스 (api/db/redis/nginx/certbot) 일괄 적용 (max-size 10m × max-file 3 = 서비스당 최대 30MB) | — |

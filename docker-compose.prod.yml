@@ -145,7 +145,13 @@ services:
     volumes:
       - ./certbot/www:/var/www/certbot
       - ./certbot/conf:/etc/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    # 12시간마다 renew 시도. --quiet = 갱신 불필요 시 출력 X (로그 깔끔). --deploy-hook
+    # = 갱신 성공 시에만 실행되는 hook (renew 가 no-op 이면 hook 미실행). hook 안에서
+    # nginx reload 하려면 docker socket mount 또는 별도 sidecar 필요 (보안적 비권장).
+    # 현재는 갱신 시각 로깅만. nginx 신규 cert 적용은 host 측 수동 또는 deploy.yml 의
+    # post-renew step 에서 `docker exec amk-nginx nginx -s reload` 실행 (zero-downtime).
+    # 절차 = AMK_DEPLOY_OPS §3 SSL 갱신 가이드 참조.
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet --deploy-hook \"echo Certificate renewed at $$(date -u +%FT%TZ)\"; sleep 12h & wait $${!}; done;'"
     logging: *default-logging
 
 networks:

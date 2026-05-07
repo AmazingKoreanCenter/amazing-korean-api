@@ -1,8 +1,77 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-07 textbook/ebook 영어 (en) 추가 — 사용자 보고 (관리자 주문 생성 영어 누락) 36언어 동기화
+updated: 2026-05-07 인프라 묶음 Phase A 완료 (A4-1 + A4-2 + N-13 — nginx.conf 정교화 + certbot 보강 + Phase B 절차 정착)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-07 (오후) — 인프라 묶음 Phase A 완료 (A4-1 + A4-2 + N-13)**
+
+  사용자 결정으로 인프라 묶음 (HTTPS + certbot + nginx HTTPS) 진입. **Phase A = 코드/docs/compose 정비 (production 영향 0)** + **Phase B = 사용자 트리거 대기 (production 영향 큼)** 분할.
+
+  ## 현재 상태 (2026-05-07 시작 시점)
+
+  - origin nginx = **HTTP-only** (port 80, Let's Encrypt 챌린지 webroot 만 활성)
+  - HTTPS server 블록 = 완전 주석 (인증서 / TLS / 보안 헤더 / rate limit 모두 비활성)
+  - Cloudflare SSL 모드 = **Flexible** (사용자 ↔ CF HTTPS, CF ↔ origin HTTP = 보안 갭)
+  - certbot 컨테이너 = 12h renew loop, 초기 발급 명령 / nginx reload hook 없음
+
+  ## Phase A — 본 세션 완료
+
+  ### 1. nginx.conf 정교화 (활성화 시 안전한 default)
+
+  - **TLS 1.2+1.3** (TLS 1.0/1.1 PCI-DSS 비권장 = 제외)
+  - **Mozilla Intermediate 2025 cipher** (TLS 1.3 자동 + TLS 1.2 ECDHE/DHE)
+  - **HSTS origin layer**: `max-age=31536000; includeSubDomains` (preload OFF, 영구적 = 사용자 결정)
+  - **OCSP stapling** + Cloudflare DNS resolver (1.1.1.1)
+  - **SSL session cache** + tickets off
+  - **추가 보안 헤더**: Referrer-Policy, X-Frame-Options, X-Content-Type-Options
+  - **Rate limit** (`api_limit zone, burst=20 nodelay`) HTTPS 블록 안 유지
+  - **Health route 분리** (gzip off 정책 #71 정합)
+  - 주석 유지 = Phase B 활성 시 주석 해제 1 단계로 가능
+
+  ### 2. docker-compose certbot 보강
+
+  - `--quiet` (no-op 시 출력 X = 로그 깔끔)
+  - `--deploy-hook` (갱신 성공 시에만 실행, 현재는 시각 로깅만)
+  - nginx reload 자동화 = host crontab 권장 (docker socket mount 비권장 = 보안)
+
+  ### 3. AMK_DEPLOY_OPS §3 Phase B 단계별 절차 정착
+
+  - **B-1 인증서 발급**: Cloudflare DNS grey-cloud 임시 → certbot certonly --dry-run → 실제 발급 → orange-cloud 복귀
+  - **B-2 nginx HTTPS 활성**: nginx.conf 주석 해제 (3 곳) → `nginx -t` 검증 → `nginx -s reload` (zero-downtime)
+  - **B-3 Cloudflare 전환**: Flexible → Full → Full Strict (단계별, 502 위험)
+  - **B-4 HTTP→HTTPS redirect** (선택, Cloudflare 가 이미 강제)
+  - **검증**: curl HTTPS / 인증서 만료일 / SSL Labs 등급
+  - **자동 갱신 검증**: certbot renew --dry-run + host crontab nginx reload 패턴
+  - **롤백 시나리오 3건**: nginx 재주석 / Cloudflare 모드 복귀 / Let's Encrypt rate limit 대응
+
+  ### 4. AMK_DEPLOY_OPS §9 Cloudflare 정책 정정
+
+  - 기존 = Flexible 모드 가이드 (2026-02-10 시점)
+  - 정정 = "Flexible = origin 평문 = 보안 갭" 명시 + Full Strict 전환 권장 + §3 Phase B 참조
+
+  ## Phase B — 사용자 트리거 대기
+
+  - EC2 SSH 접근 + certbot certonly 실행 (인증서 발급)
+  - nginx.conf 주석 해제 + nginx -s reload
+  - Cloudflare 대시보드 SSL 모드 변경 (Flexible → Full → Full Strict)
+  - host crontab nginx reload 추가 (자동 갱신 후)
+
+  Production 영향 큼 = 사용자 직접 작업 권고. 본 세션 = 절차 정착만.
+
+  ## 카운트 영향
+
+  - AMK_DEBTS A 카테고리 (잠정): A4-1 / A4-2 = 🟡 Phase A 완료 (Phase B 미실행 = 카운트 X 유지)
+  - AMK_AUDIT N-13 = 🟡 Phase A 완료 (동일)
+  - 실제 부채 카운트 변화 = Phase B 완료 후 (사용자 작업)
+
+  ## 변경 파일
+
+  - `nginx/nginx.conf` — HTTPS 블록 정교화 (~60줄), ssl_session_cache + ssl_stapling 추가
+  - `docker-compose.prod.yml` — certbot entrypoint --quiet --deploy-hook
+  - `docs/AMK_DEPLOY_OPS.md` — §3 Phase B 단계별 절차 (~120줄), §9 Cloudflare 정책 정정
+  - `docs/AMK_DEBTS.md` — A4-1 / A4-2 🟡 Phase A 완료 마킹
+  - `docs/AMK_AUDIT_2026-05-04.md` — N-13 🟡 Phase A 완료 마킹
 
 - **2026-05-07 — textbook/ebook 영어 (`en`) 추가 (사용자 보고: 관리자 주문 생성 UI 영어 누락)**
 
