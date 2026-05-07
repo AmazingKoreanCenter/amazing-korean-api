@@ -658,6 +658,10 @@ CREATE TYPE textbook_language_enum AS ENUM (
   'ja','zh_cn','zh_tw','vi','th','id','my','mn',
   'ru','es','pt','fr','de','hi','ne','si','km','uz','kk','tg'
 );
+-- ALTER 추가 (2026-03-10 ~ 2026-05-07, 16개):
+--   tl (20260310) / am, ar, bn, es_es, fa, it, ky, lo, pl, pt_pt, sw, tr, uk, ur (20260503)
+--   / en (20260507, 사용자 보고 = 관리자 주문 생성 UI 영어 누락)
+-- 합계 36 언어. ebook 도메인도 본 enum 재활용 (20260311_ebook.sql L15).
 CREATE TYPE textbook_type_enum AS ENUM ('student', 'teacher');
 CREATE TYPE textbook_order_status_enum AS ENUM (
   'pending', 'confirmed', 'paid', 'printing', 'shipped', 'delivered', 'canceled'
