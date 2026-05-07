@@ -1,8 +1,31 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-07 부채 묶음 처리 (A4-4 ✅ 백업 자동화 + A1-4 SPF 가이드 + G8 branch protection 가이드 + B6/E2 결정 정착 + §7.6 SSL stale 정정)
+updated: 2026-05-07 CLAUDE.md "AI 작업 원칙 (Karpathy 4원칙)" 섹션 정착. 본 세션 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-07 (새벽 종결) — CLAUDE.md "AI 작업 원칙 (Karpathy 4원칙)" 정착**
+
+  사용자 공유 외부 리포 ([forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills), ⭐117K, Andrej Karpathy 의 LLM 코딩 함정 관찰 기반 단일 CLAUDE.md) 비교 결과, 4원칙 중 3개 (Think Before Coding / Surgical Changes / Goal-Driven Execution) 는 본 리포 메모리/feedback 에 이미 더 자세히 정착됨. 갭 = "Simplicity First" 명시적 룰 부재 (시스템 프롬프트만 보장).
+
+  ## 결정 (2026-05-07)
+
+  옵션 A 채택 = `CLAUDE.md` 에 4원칙 압축 5줄 추가. 사유:
+  - 매 작업마다 자동 로드 (CLAUDE.md = 매 세션 컨텍스트)
+  - 메모리 feedback 추가는 description 매칭 못 하면 미적용 위험
+  - 시스템 프롬프트와 일관 + 우리 메모리/feedback cross-link
+
+  ## 변경 (`CLAUDE.md`)
+
+  `## AI 작업 원칙 (Karpathy 4원칙, 2026-05-07 정착)` 섹션 신규 — `## 핵심 규칙` 섹션 위에 배치. 각 원칙 끝에 본 리포 정착 위치 cross-link (`feedback_decision_templates.md` / `feedback_tier_based_delegation.md` / `feedback_sed_migration_lessons.md` / 7단계 검증 흐름).
+
+  ## 효과
+
+  외부 검증 (외부 리포 117K stars 룰의 80% 이상이 본 리포 메모리/feedback 에 이미 정착됨) + 갭 1건 명시적 정착 = AI 협업 일관성 추가 보강.
+
+  ## 변경 파일
+
+  - `CLAUDE.md` — `## AI 작업 원칙` 섹션 신규 (5줄 + 출처 인용 1줄)
 
 - **2026-05-07 (새벽) — 부채 묶음 처리: A4-4 ✅ + A1-4/G8 가이드 정착 + B6/E2 결정 정착 + SSL stale 정정**
 
