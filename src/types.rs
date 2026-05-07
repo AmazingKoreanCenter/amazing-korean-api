@@ -562,6 +562,7 @@ pub enum TextbookLanguage {
     Ur,
     Sw,
     Am,
+    En,
 }
 
 impl TextbookLanguage {
@@ -603,6 +604,7 @@ impl TextbookLanguage {
             Self::Ur => "UR",
             Self::Sw => "SW",
             Self::Am => "AM",
+            Self::En => "EN",
         }
     }
 }
@@ -645,6 +647,7 @@ impl fmt::Display for TextbookLanguage {
             Self::Ur => write!(f, "ur"),
             Self::Sw => write!(f, "sw"),
             Self::Am => write!(f, "am"),
+            Self::En => write!(f, "en"),
         }
     }
 }

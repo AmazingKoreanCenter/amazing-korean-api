@@ -895,6 +895,7 @@ impl LanguageCode for TextbookLanguage {
             TextbookLanguage::Ur => "ur",
             TextbookLanguage::Sw => "sw",
             TextbookLanguage::Am => "am",
+            TextbookLanguage::En => "en",
         }
     }
 }
@@ -987,6 +988,7 @@ fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str)> {
         (TextbookLanguage::Ur, "우르두어", "Urdu"),
         (TextbookLanguage::Sw, "스와힐리어", "Swahili"),
         (TextbookLanguage::Am, "암하라어", "Amharic"),
+        (TextbookLanguage::En, "영어", "English"),
     ]
 }
 

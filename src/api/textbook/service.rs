@@ -344,6 +344,7 @@ fn language_display_name(lang: &TextbookLanguage) -> String {
         TextbookLanguage::Ur => "우르두어",
         TextbookLanguage::Sw => "스와힐리어",
         TextbookLanguage::Am => "암하라어",
+        TextbookLanguage::En => "영어",
     }
     .to_string()
 }
@@ -351,6 +352,7 @@ fn language_display_name(lang: &TextbookLanguage) -> String {
 /// 교재 카탈로그 언어 목록 (language, 한국어명, 영어명, 사용가능여부, isbn_ready)
 /// ISBN 발급 완료 9개: ja, zh_cn, vi, th, ne, ru, km, tl, id
 /// 신규 14 (2026-05-03, books-api-bridge §3 #1): 모두 available=false (출판본 미준비)
+/// 신규 1 (2026-05-07, 영어 누락 보고): en — available=true / isbn_ready 추후 정정
 pub(crate) fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str, bool, bool)>
 {
     vec![
@@ -431,5 +433,8 @@ pub(crate) fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'stat
         (TextbookLanguage::Ur, "우르두어", "Urdu", false, false),
         (TextbookLanguage::Sw, "스와힐리어", "Swahili", false, false),
         (TextbookLanguage::Am, "암하라어", "Amharic", false, false),
+        // 2026-05-07 영어 누락 보고 추가. available=true (admin 주문 생성 가능),
+        // isbn_ready 는 추후 사용자 정정. 영어 출판본 ISBN 발급 여부에 따라.
+        (TextbookLanguage::En, "영어", "English", true, true),
     ]
 }

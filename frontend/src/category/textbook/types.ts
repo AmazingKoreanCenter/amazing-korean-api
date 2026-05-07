@@ -4,9 +4,15 @@ import { z } from "zod";
 // Enums
 // =============================================================================
 
+// DB textbook_language_enum 동기화 (initial 21 + 20260310 tl + 20260503 14 expand
+// + 20260507 en = 36 언어). 신규 추가 시 본 enum + Rust TextbookLanguage 동시 갱신.
 export const textbookLanguageSchema = z.enum([
   "ja", "zh_cn", "zh_tw", "vi", "th", "id", "my", "mn",
   "ru", "es", "pt", "fr", "de", "hi", "ne", "si", "km", "uz", "kk", "tg", "tl",
+  // 20260503 expand (14)
+  "am", "ar", "bn", "es_es", "fa", "it", "ky", "lo", "pl", "pt_pt", "sw", "tr", "uk", "ur",
+  // 20260507 (1) — 영어 누락 보고
+  "en",
 ]);
 export type TextbookLanguage = z.infer<typeof textbookLanguageSchema>;
 

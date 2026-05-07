@@ -1,6 +1,6 @@
 # AMK_API_TEXTBOOK — 교재 주문 API 스펙
 
-> 비회원/회원 교재 주문 시스템 (계좌이체, 35언어 × 2종, 신규 14언어는 출판본 미준비로 `available=false`).
+> 비회원/회원 교재 주문 시스템 (계좌이체, 36언어 × 2종, 신규 14언어는 출판본 미준비로 `available=false`).
 > 공통 규칙(인증, 에러, 페이징): [AMK_API_MASTER.md §3](./AMK_API_MASTER.md)
 > DB 스키마: [AMK_SCHEMA_PATCHED.md](./AMK_SCHEMA_PATCHED.md)
 > 코드 패턴: [AMK_CODE_PATTERNS.md](./AMK_CODE_PATTERNS.md)
@@ -9,8 +9,8 @@
 
 ### 5.12 Phase 12 — 교재 주문 (Textbook Ordering)
 
-> 교재 주문 시스템. 계좌이체 기반, 35개 언어 × 2종(학생용/교사용), ₩25,000/권, 최소 10권. 신규 14언어 (am/ar/bn/es_es/fa/it/ky/lo/pl/pt_pt/sw/tr/uk/ur, 2026-05-03 추가) 는 출판본 미준비로 `catalog.available=false` (주문 불가, 향후 활성화).
-> 마이그레이션 (textbook 직접, 7개): `20260226_textbook.sql`, `20260303_textbook_improvements.sql`, `20260323_textbook_tax_fields.sql`, `20260324_textbook_user_id.sql`, `20260423_textbook_order_discount.sql`, `20260424_textbook_orderer_email_optional.sql`, `20260503_textbook_language_expand.sql`
+> 교재 주문 시스템. 계좌이체 기반, 36개 언어 × 2종(학생용/교사용), ₩25,000/권, 최소 10권. 신규 14언어 (am/ar/bn/es_es/fa/it/ky/lo/pl/pt_pt/sw/tr/uk/ur, 2026-05-03 추가) 는 출판본 미준비로 `catalog.available=false` (주문 불가, 향후 활성화). 영어 (en, 2026-05-07 추가) = `available=true` (사용자 보고: 관리자 주문 생성 UI 영어 누락).
+> 마이그레이션 (textbook 직접, 8개): `20260226_textbook.sql`, `20260303_textbook_improvements.sql`, `20260323_textbook_tax_fields.sql`, `20260324_textbook_user_id.sql`, `20260423_textbook_order_discount.sql`, `20260424_textbook_orderer_email_optional.sql`, `20260503_textbook_language_expand.sql`, `20260507_textbook_add_english.sql`
 > 관련 마이그레이션 (supported_language): `20260310_add_tl_language.sql` (textbook 직접 X — supported_language enum tl 변형 추가)
 
 <details>

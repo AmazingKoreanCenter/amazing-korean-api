@@ -1,8 +1,43 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-06 본 세션 학습 정착 (M-009 사고 등재 + AMK_CODE_PATTERNS §1.7 OpenAPI 등록 패턴 신규)
+updated: 2026-05-07 textbook/ebook 영어 (en) 추가 — 사용자 보고 (관리자 주문 생성 영어 누락) 36언어 동기화
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-07 — textbook/ebook 영어 (`en`) 추가 (사용자 보고: 관리자 주문 생성 UI 영어 누락)**
+
+  사용자 보고 = 관리자 textbook 주문 생성 페이지에서 "영어 학생용/교사용" 선택지 부재. 원인 = `textbook_language_enum` 이 initial 21 + 20260310 tl + 20260503 14 expand = 36 언어 모두 영어 누락. Amazing Korean = 한국어 학습 서비스, 외국어 화자 대상 → 영어 화자 학습자가 가장 흔한 글로벌 사용자임에도 enum 누락.
+
+  ## 수정 사항
+
+  - **신규 마이그**: `migrations/20260507_textbook_add_english.sql` — `ALTER TYPE textbook_language_enum ADD VALUE IF NOT EXISTS 'en'`
+  - **Rust enum**: `src/types.rs` `TextbookLanguage::En` variant + `to_purchase_code` ("EN") + `Display` ("en") 매핑
+  - **textbook service**: `language_display_name` (영어) + `catalog_languages` (`(En, "영어", "English", true, true)`) — `available=true` (admin 주문 가능), `isbn_ready=true` (사용자 추후 정정 가능)
+  - **ebook service**: textbook_language_enum 재활용 도메인이라 동일 처리. `to_code` ("en") + `catalog_languages` 영어 항목 추가
+  - **frontend zod schema**: `textbookLanguageSchema` = 21언어 stale → **36언어 동기화** (14 expand + en). 주석으로 마이그 추적 명시
+
+  ## 영향
+
+  - `GET /textbook/catalog` 응답에 영어 항목 포함 → 관리자 admin_textbook_order_create 의 SelectItem 에 "영어 (English)" 표시
+  - `GET /ebook/catalog` 응답에도 동일 영향
+  - 기존 textbook_orders / ebook_purchase 행 안전 (enum ADD 만, 변경 X)
+
+  ## 검증
+
+  - `cargo check --all-targets` ✅
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --all-targets -- -D warnings` ✅
+  - `cd frontend && npm run build` ✅
+
+  ## 변경 파일
+
+  - `migrations/20260507_textbook_add_english.sql` (신규)
+  - `src/types.rs` (TextbookLanguage::En 3곳)
+  - `src/api/textbook/service.rs` (language_display_name + catalog_languages)
+  - `src/api/ebook/service.rs` (LanguageCode::to_code + catalog_languages)
+  - `frontend/src/category/textbook/types.ts` (zod schema 21 → 36 동기화)
+  - `docs/AMK_API_TEXTBOOK.md` (35 → 36 언어 + 마이그 7 → 8개)
+  - `docs/AMK_SCHEMA_PATCHED.md` (textbook_language_enum 후속 ALTER 명시)
 
 - **2026-05-06 (밤 늦게) — 본 세션 학습 정착 (M-009 등재 + AMK_CODE_PATTERNS §1.7 OpenAPI 등록 패턴)**
 
