@@ -1,8 +1,57 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-07 B5 auth:447 hot path expect 제거 (let-else 리팩터). 회색 7→6 / hot path 위험 완전 제거
+updated: 2026-05-07 부채 묶음 처리 (A4-4 ✅ 백업 자동화 + A1-4 SPF 가이드 + G8 branch protection 가이드 + B6/E2 결정 정착 + §7.6 SSL stale 정정)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-07 (새벽) — 부채 묶음 처리: A4-4 ✅ + A1-4/G8 가이드 정착 + B6/E2 결정 정착 + SSL stale 정정**
+
+  사용자 결정 5건 정착 + 본 리포 능동 작업 묶음 처리.
+
+  ## A4-4 ✅ DB/Redis 백업 자동화 (옵션 A 수동 정기)
+
+  - `scripts/backup.sh` 신규 — `pg_dump --exclude-table=_sqlx_migrations` (gzip) + Redis BGSAVE/LASTSAVE polling (60초) + `dump.rdb` 복사 + tar.gz 통합 archive + `BACKUP_RETENTION_DAYS=7` 자동 회전 + 로그 출력
+  - 환경변수: `BACKUP_DIR` (기본 `$HOME/backup`) / `BACKUP_RETENTION_DAYS` (기본 7) / `ENV_FILE` (기본 `$HOME/amazing-korean-api/.env`, REDIS_PASSWORD 로드)
+  - `AMK_DEPLOY_OPS.md §6` 갱신 — EC2 cron 등록 가이드 + 사용자 PC scp pull 가이드 (Windows + WSL + `D:\amk-backup`)
+  - 정책 정착: EC2 일 1회 KST 03:00 + 사용자 PC 주 1-2회 수동 pull + 사용자 PC `D:\` 14일+4주 회전 (재량)
+  - 한계 명시: 사용자 PC 의존 / 수동 pull / 암호화 미적용. RDS 이전 (A2 트리거) 시 AWS 관리형 자동 전환
+
+  ## A1-4 🟡 SPF 레코드 병합 가이드 (DNS 작업 = 사용자, KYB 후)
+
+  - `AMK_DEPLOY_OPS.md §7.6` 신규 섹션 "이메일 발송 SPF 정책"
+  - 병합 레코드 = `v=spf1 include:_spf.resend.com include:_spf.paddle.com ~all` (Cloudflare DNS 1개 TXT 통합)
+  - 검증 절차 (`dig +short TXT` / 외부 SPF 검증 도구) + 함정 회피 (TXT 분리 무효 / include 한도 10 / `~all` vs `-all`)
+  - Paddle 활성 시점 작업 흐름 (KYB → Paddle SPF 호스트명 확인 → DNS 수정 → 검증 → 테스트 메일)
+
+  ## G8 🟡 main + KKRYOUN branch protection 가이드 (적용 = 사용자 GitHub 웹 UI)
+
+  - `AMK_DEPLOY_OPS.md §7.6` 신규 섹션 "Branch Protection 정책"
+  - main 룰 = PR 강제 (review 0 허용) + linear history + force push/deletion 차단 + admin 우회 허용
+  - KKRYOUN 룰 = direct push 자유 + force push 허용 + deletion 차단
+  - 적용 = GitHub 웹 UI (Settings → Branches → Add rule)
+  - Claude 측 `gh api PUT` = security 권한 차단 → 사용자 GitHub 웹 UI 직접 적용 필수
+
+  ## B6 🟡 ipgeo HTTP-only 결정 정착 (수익 발생 후 유료 전환)
+
+  - `AMK_DEBTS.md B6` 결정 정착 — 수익 발생 후 ip-api 유료 또는 MaxMind GeoLite2 전환
+  - 사유: GeoIP 영향 작음 (인증/결제 영향 X) + 평문 노출 정보 작음 (IP + 대략적 지역)
+  - 대안 MaxMind = 별도 트랙 (E-9 통합, 트래픽 증가 시점 재검토)
+
+  ## E2 🟡 콘텐츠 시딩 트리거 정착 (books 리포 분류 후)
+
+  - `AMK_DEBTS.md E2` 트리거 정착 — books 리포에서 콘텐츠 분류/수정 완료 후 본 리포 작업 진입
+  - 본 리포 능동 작업 0 (외부 트리거)
+
+  ## §7.6 SSL/TLS stale 정정 (Phase B 완료 미반영)
+
+  - `AMK_DEPLOY_OPS.md §7.6 사용 영역 표`: SSL 행 = "Flexible 모드" → **"Full (Strict) 모드 (Phase B 완료 2026-05-07)"** 정정
+  - 비상 시 절차 SSL 부분 = "SSL 미작동, Flexible 모드 의존" → "Phase B 완료로 origin Let's Encrypt cert 활성 = HTTPS 정상 동작" 정정
+
+  ## 변경 파일
+
+  - `scripts/backup.sh` 신규 (87 라인)
+  - `docs/AMK_DEPLOY_OPS.md` (§6 백업 + §7.6 SSL/SPF/Branch Protection)
+  - `docs/AMK_DEBTS.md` (A4-4 ✅ / A1-4 가이드 / G8 가이드 / B6 결정 / E2 트리거 / §0 카운트 비고)
 
 - **2026-05-07 (심야) — B5 회색 1건 처리: `auth/service.rs:447` hot path expect 제거**
 

@@ -17,7 +17,7 @@
 
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
-| A. 운영/배포 부채 | ~~10~~ → ~~9~~ → **7** | KYB 의존 4 + 인프라 이전 3. ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ + ~~A4-4~~ 🟡 부분 (2026-05-06) + ~~A4-1/A4-2~~ ✅ **Phase B 완료 (2026-05-07: HTTPS + Let's Encrypt + Cloudflare Full Strict + 자동 갱신)** |
+| A. 운영/배포 부채 | ~~10~~ → ~~9~~ → **7** | KYB 의존 4 + 인프라 이전 3. ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ + ~~A4-4~~ ✅ **해결 (2026-05-07 옵션 A 수동 정기 정착)** + ~~A4-1/A4-2~~ ✅ **Phase B 완료 (2026-05-07: HTTPS + Let's Encrypt + Cloudflare Full Strict + 자동 갱신)** |
 | 🟡 B. 보안 부채 (취약점) | ~~1~~ → **0** | Rust **1** (rsa Marvin Attack, no upgrade) — 🟡 수용 결정 (2026-05-06, compile-time only + PostgreSQL only = production 영향 0). ~~npm 3건~~ ✅ 해결 (2026-05-04). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | 🟡 B. 보안 부채 (unsound/unmaintained) | ~~7~~ → **0** | 🟡 모두 수용 결정 (2026-05-06). core2/paste = unmaintained warning 만 + transitive. imageproc 3 = 텍스트 오버레이 영향 낮음. rand 2 = custom logger 미사용으로 영향 0 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
@@ -44,7 +44,7 @@
 | A1-1 | 12개 PADDLE_* Secret 일괄 교체 | `.github/workflows/deploy.yml:92-103` | CRITICAL | KYB 완료 후 |
 | A1-2 | Webhook Secret 1회성 (재발급 필요) | `docs/AMK_DEPLOY_OPS.md:985` | CRITICAL | 동일 |
 | A1-3 | KYB/Onfido 인증 지연 가능 | `docs/AMK_DEPLOY_OPS.md:947` (§8.5) | HIGH | 외부 처리 대기 |
-| A1-4 | SPF 레코드 병합 (Resend + Cloudflare) | `docs/AMK_DEPLOY_OPS.md:1023` | MEDIUM | DNS 작업 |
+| A1-4 | SPF 레코드 병합 (Resend + Paddle) | `docs/AMK_DEPLOY_OPS.md §7.6` (가이드 정착 2026-05-07) | MEDIUM | KYB 인증 완료 후 DNS 작업 (사용자 5-10m) |
 
 > SSoT: `AMK_STATUS.md §8.5` 체크리스트.
 
@@ -74,7 +74,7 @@
 | ~~A4-1~~ | ~~nginx HTTPS 미활성 (HTTP-only)~~ ✅ **해결 (2026-05-07 Phase B)** | nginx HTTPS 블록 활성 (TLS 1.2+1.3 / Mozilla Intermediate cipher / OCSP stapling / HSTS / SSL session cache). Cloudflare SSL 모드 = **Full (Strict)** = end-to-end 암호화. origin Let's Encrypt cert (만료 2026-08-05) | — |
 | ~~A4-2~~ | ~~Let's Encrypt + certbot 자동 갱신 정책 부재~~ ✅ **해결 (2026-05-07 Phase B)** | certbot 12h renew loop + host crontab 매일 03:00 nginx reload. `renew --dry-run` 통과 검증. 자동 갱신 정착 | — |
 | ~~A4-3~~ | ~~EC2 디스크 모니터링 자동화 부재~~ ✅ 해결 (2026-05-05, commit `693dc2a`) | `AMK_DEPLOY_OPS §6` 안에 모니터링 절차 (df -h / docker system df / 임계 70/85/95% / 정리 명령) 추가. 향후 자동화 후속 (GitHub Action SSH) | — |
-| ~~A4-4~~ | ~~DB / Redis 백업 정책 부재 (DR 0)~~ 🟡 **부분 해결 (2026-05-06)** | `AMK_DEPLOY_OPS §6` 안에 수동 백업·복구 절차 추가 (PostgreSQL pg_dump + Redis BGSAVE/RDB cp + 권장 정책 표 + 자동화 후속). 자동화는 사용자 정책 결정 후 별도 후속 (cron / S3 / 보관 기간) | — |
+| ~~A4-4~~ | ~~DB / Redis 백업 정책 부재 (DR 0)~~ ✅ **해결 (2026-05-07)** | **옵션 A 수동 정기 결정 정착**: `scripts/backup.sh` 신규 (pg_dump + Redis BGSAVE/LASTSAVE polling + tar.gz archive + 7일 회전) + `AMK_DEPLOY_OPS §6` EC2 cron 등록 가이드 + 사용자 PC scp pull 가이드 (WSL + D:\). RDS 이전 시 (A2 트리거) AWS 관리형 자동 전환 | — |
 | ~~A4-5~~ | ~~Docker log 로테이션 미설정~~ ✅ 해결 (2026-05-04, commit `7e86592`) | YAML anchor `x-logging` + 5 서비스 (api/db/redis/nginx/certbot) 일괄 적용 (max-size 10m × max-file 3 = 서비스당 최대 30MB) | — |
 | ~~A4-6~~ | ~~Cloudflare DNS / Email Routing 운영 정책 미문서화~~ ✅ 해결 (2026-05-05, commit `6e7b006`) | `AMK_DEPLOY_OPS.md §7.6` 통합 SSoT 신규 (DNS/Pages/SSL/WAF/Email Routing + 변경 절차 + 비상 시 절차) | — |
 | ~~A4-7~~ | ~~nginx Rate Limiting 모니터링 부재~~ ✅ 해결 (2026-05-05, commit `f82dd0d`) | `AMK_DEPLOY_OPS.md §6` 안에 모니터링 절차 (docker logs grep + 대응 정책) 추가 | — |
@@ -199,13 +199,18 @@
 
 A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3). A+ 강화는 추가 위험 대비 효용 낮아 **A- 에서 종결**.
 
-### B6. ipgeo HTTP-only (2026-05-04 신규 발견)
+### B6. ipgeo HTTP-only (2026-05-04 신규 발견, 2026-05-07 결정 정착)
 
 | 위치 | 사실 |
 |------|------|
 | `src/external/ipgeo.rs:50` | ip-api.com 무료 이용권 = HTTP only (HTTPS 는 유료). IP 기반 위치 조회 시 평문 전송 → 중간자 공격 위험 |
 
-**처리**: ip-api 유료 전환 또는 MaxMind GeoLite2 로컬 DB 전환 (E-9 와 통합 가능).
+**결정 (2026-05-07)**: **수익 발생 후 유료 전환**. 그때까지 HTTP-only 수용. 사유:
+- 현재 ip-api 무료 = 비즈니스 영향 작음 (GeoIP 는 로그인 위치 표시 + admin 분석용, 인증/결제 로직 영향 X)
+- 평문 노출 정보 = IP + 대략적 지역 (개인정보 영향 작음)
+- 유료 전환 비용 ($13/월~) = 사용자 1K+ 기반 수익 발생 후 정당화
+
+**대안**: MaxMind GeoLite2 로컬 DB (무료 + HTTPS 불필요, 네트워크 X). EC2 디스크 70MB + 월 1회 갱신 cron 필요. **별도 트랙으로 보류** (E-9 와 통합, 트래픽 증가 시점에 재검토).
 
 ### ~~B7. Paddle 웹훅 amount defense-in-depth 결여~~ ✅ 해결 (2026-05-04, commit `c744efc`)
 
@@ -322,12 +327,12 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 | E-18 | OAuth 중복 통합 | 세 번째 OAuth 추가 시 |
 | E-19 | manager 역할 구현 | class 테이블 구현 후 |
 
-### E2. AMK_API_FUTURE.md 미구현 (2026-05-04 신규)
+### E2. AMK_API_FUTURE.md 미구현 (2026-05-04 신규, 2026-05-07 트리거 정착)
 
-| ID | 항목 | 위치 |
-|:--:|------|------|
-| E-FUTURE-1 | 콘텐츠 시딩 Phase 2/3 | `docs/AMK_API_FUTURE.md` |
-| E-FUTURE-2 | 발음/조음/TTS 평가 (3건) | 동일 |
+| ID | 항목 | 위치 | 트리거 |
+|:--:|------|------|------|
+| E-FUTURE-1 | 콘텐츠 시딩 Phase 2/3 | `docs/AMK_API_FUTURE.md` | **books 리포에서 콘텐츠 분류/수정 완료 후 본 리포 작업 진입** (2026-05-07 결정). 본 리포 능동 작업 0 |
+| E-FUTURE-2 | 발음/조음/TTS 평가 (3건) | 동일 | amazing-korean-ai 측 발음 모듈 (`AMK_AI_PRONUNCIATION.md`) 진행 후 통합 |
 
 ### E3. AMK_API_TEXTBOOK.md 미구현 (2026-05-04 신규)
 
@@ -369,7 +374,7 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 | ~~G5~~ | ~~`cargo outdated` / `npm outdated`~~ 🟡 수용 (2026-05-05) | dependabot 자동 PR (commit `9367f72`) 과 중복 = 별도 outdated 검사 불필요 |
 | ~~G6~~ | ~~dependabot 자동 PR~~ ✅ 해결 (2026-05-05, commit `9367f72`) | `.github/dependabot.yml` 신규 (Cargo/npm/Docker/Actions). A4-8 동시 해결 |
 | 🟡 G7 | secret scanning / GitHub Advanced Security 🟡 수용 (2026-05-05) | private repo + GHAS 라이선스 비용 평가 별도. 1인 환경 + 기존 anti-pattern (config.rs hardcoded secret 0건) = 위험 작음. 향후 plan 결정 시 활성 |
-| G8 | main branch protection | ❌ 명시 보류 (1인 환경 force push 자유도 우선) |
+| G8 | main + KKRYOUN branch protection | 🟡 **가이드 정착 (2026-05-07, `AMK_DEPLOY_OPS.md §7.6`)**. main = PR 강제 + force push/deletion 차단 / KKRYOUN = force push 허용 + deletion 차단. **사용자 GitHub 웹 UI 직접 적용 대기** (Claude 측 gh api PUT 은 security 권한 차단됨) |
 
 ### G9. PR 검사 워크플로 한계
 
@@ -447,7 +452,7 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 | 5 | **C3+C4 rustfmt baseline** | 본 PR 결정 대기 |
 | ~~6~~ | ~~**G6 dependabot 도입**~~ | ✅ 해결 2026-05-05 (commit `9367f72`, A4-8 동시) |
 | 7 | **A4-1, A4-2 SSL/HTTPS + certbot 자동 갱신** | 90일 만료 대비 (외부 트리거 없으면 잊기 쉬움) |
-| 8 | **A4-4 DB/Redis 백업 정책** | DR 0 = 데이터 손실 위험 큼 |
+| ~~8~~ | ~~**A4-4 DB/Redis 백업 정책**~~ | ✅ 해결 2026-05-07 (옵션 A 수동 정기, `scripts/backup.sh`) |
 
 ### 중기 (1-2주 내)
 
@@ -465,9 +470,9 @@ A1 Paddle Live (KYB), A2 RDS 이전 (앱 개발 후), E 기능 부채 (트리거
 
 ### 보류 명시
 
-- G8 branch protection (1인 환경 force push 자유도 우선)
+- ~~G8 branch protection~~ 🟡 가이드 정착 (2026-05-07) — 사용자 GitHub 웹 UI 적용 대기
 - B1 rsa Marvin Attack (No fixed upgrade — 대안 검토 필요)
-- C12 cargo-geiger (unsafe 0건이라 우선순위 낮음)
+- G12 cargo-geiger (unsafe 0건이라 우선순위 낮음)
 
 ---
 
