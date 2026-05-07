@@ -318,24 +318,138 @@ docker compose -f docker-compose.prod.yml logs -f
 
 > **주의**: `.sqlx` 폴더가 없으면 빌드 실패합니다. "Step 0. SQLx 오프라인 모드 준비" 참조.
 
-##### 3. SSL 인증서 발급 (Let's Encrypt)
+##### 3. SSL 인증서 발급 (Let's Encrypt) — Phase B 단계별 가이드 (2026-05-07 보강)
+
+> **현재 상태 (2026-05-07)**: Phase A (코드/docs/compose 정비) 완료. Phase B (production 활성) 미실행. 본 절차 = Phase B 단계별 가이드. **production 영향 큼 = 단계별 검증 + 롤백 가능 상태 유지**.
+>
+> **선행 조건**:
+> 1. Cloudflare DNS 의 `api.amazingkorean.net` A 레코드 = grey-cloud (proxy off) 임시 전환 필요 (HTTP-01 챌린지가 origin 까지 도달해야). 발급 완료 후 다시 orange-cloud (proxy on).
+> 2. 현재 Cloudflare SSL 모드 = **Flexible** (`§9` 참조). Phase B 완료 후 **Full Strict** 전환.
 
 ```bash
-# 1. 초기 인증서 발급 (HTTP 모드로 nginx 실행 중인 상태에서)
-docker compose -f docker-compose.prod.yml run --rm certbot certonly \
-  --webroot \
-  --webroot-path=/var/www/certbot \
-  -d api.yourdomain.com \
-  --email your-email@example.com \
-  --agree-tos \
-  --no-eff-email
+# === Phase B-1: 인증서 초기 발급 (origin 영향 0, 실패해도 안전) ===
 
-# 2. nginx.conf HTTPS 섹션 활성화 (주석 해제)
+# 1.1 Cloudflare DNS: api.amazingkorean.net A 레코드 = grey-cloud 임시 전환 (orange → grey).
+#     EC2 public IP 가 직접 노출되므로 발급 직후 즉시 orange 복귀.
+
+# 1.2 EC2 SSH 접속 후 작업 디렉터리 이동
+cd ~/amazing-korean-api
+
+# 1.3 인증서 발급 (--dry-run 으로 먼저 검증)
+docker compose -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot --webroot-path=/var/www/certbot \
+  -d api.amazingkorean.net \
+  --email kkryoun300@gmail.com \
+  --agree-tos --no-eff-email \
+  --dry-run
+
+# dry-run 성공 확인 후 실제 발급
+docker compose -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot --webroot-path=/var/www/certbot \
+  -d api.amazingkorean.net \
+  --email kkryoun300@gmail.com \
+  --agree-tos --no-eff-email
+
+# 1.4 발급 결과 확인
+ls -la certbot/conf/live/api.amazingkorean.net/
+# 예상: cert.pem / chain.pem / fullchain.pem / privkey.pem
+
+# 1.5 Cloudflare DNS: A 레코드 = orange-cloud 복귀 (grey → orange)
+#     이 시점까지 origin nginx = HTTP only = 사용자 영향 0 (Cloudflare 가 HTTPS 종단)
+
+# === Phase B-2: nginx HTTPS 블록 활성 (origin 영향 작음, reload 시 < 1초 다운) ===
+
+# 2.1 nginx.conf 의 HTTPS server 블록 + ssl_stapling 블록 + HTTP→HTTPS redirect = 모두 주석 해제
+#     주석 해제 위치 (3 곳):
+#       - http { ... ssl_stapling on; ... } (HTTPS 활성 후 effect)
+#       - HTTP server 안 redirect location / { return 301 https... } (Phase B-3 와 함께 활성)
+#       - HTTPS server { listen 443 ssl; ... } 블록 전체
 nano nginx/nginx.conf
 
-# 3. Nginx 재시작
-docker compose -f docker-compose.prod.yml restart nginx
+# 2.2 nginx 설정 검증 (컨테이너 내에서 nginx -t)
+docker exec amk-nginx nginx -t
+# 예상: "syntax is ok" + "test is successful"
+
+# 2.3 nginx reload (zero-downtime, master 프로세스 유지)
+docker exec amk-nginx nginx -s reload
+
+# 2.4 HTTPS 응답 검증 (origin 직접, Cloudflare 우회)
+#     Phase B-1 에서 grey-cloud 잠시 전환 또는 EC2 public IP 직접 SNI 검증
+curl -v https://api.amazingkorean.net/health --resolve api.amazingkorean.net:443:<EC2_PUBLIC_IP>
+# 예상: TLS handshake 성공 + 200 + {"status":"ok",...}
+
+# === Phase B-3: Cloudflare SSL 모드 전환 (Flexible → Full Strict) ===
+#     ⚠️ 가장 위험. origin HTTPS 검증 안 되면 502 = production down.
+
+# 3.1 Cloudflare 대시보드 → SSL/TLS → Overview
+#     모드 = Flexible → Full (먼저 Full 으로, Strict 는 마지막)
+# 3.2 사용자 페이지 정상 동작 확인 (curl + 브라우저)
+# 3.3 모드 = Full → Full Strict 전환
+#     Strict = origin cert valid + CA 신뢰 검증. Let's Encrypt = 자동 OK.
+# 3.4 페이지 정상 동작 재확인. 502 발생 시 즉시 Full 또는 Flexible 로 롤백.
+
+# === Phase B-4: HTTP→HTTPS redirect 활성 (선택, Cloudflare 가 이미 HTTPS 강제하므로 보조) ===
+#     nginx HTTP server 블록의 location / { return 301 ... } 주석 해제
+#     이미 Phase B-2 에서 동시에 주석 해제 가능.
 ```
+
+**검증 절차 (Phase B 완료 후)**:
+
+```bash
+# 1. 외부 HTTPS 응답 (Cloudflare edge)
+curl -sI https://api.amazingkorean.net/health | grep -E "HTTP|server|cf-"
+# 예상: HTTP/2 200 / server: cloudflare / cf-ray: ...
+
+# 2. 인증서 만료일 확인
+echo | openssl s_client -connect api.amazingkorean.net:443 -servername api.amazingkorean.net 2>/dev/null \
+  | openssl x509 -noout -dates
+# 예상: notBefore = 발급 직전 / notAfter = +90일
+
+# 3. SSL Labs 등급 (외부)
+# https://www.ssllabs.com/ssltest/analyze.html?d=api.amazingkorean.net
+# 목표: A 또는 A+ (TLS 1.2+1.3, OCSP stapling, HSTS)
+
+# 4. nginx 컨테이너 안에서 cert 무결성
+docker exec amk-nginx test -f /etc/letsencrypt/live/api.amazingkorean.net/fullchain.pem && echo "cert OK"
+```
+
+**자동 갱신 검증 (90일 주기)**:
+
+```bash
+# certbot 컨테이너 = 12시간마다 renew 시도 (docker-compose.prod.yml certbot.entrypoint).
+# 갱신 30일 전부터 실제 갱신 trigger.
+
+# renew dry-run 으로 갱신 가능 여부 검증
+docker compose -f docker-compose.prod.yml run --rm certbot renew --dry-run
+# 예상: "Congratulations, all simulated renewals succeeded"
+
+# nginx reload hook (현재 미자동, 수동 또는 host crontab 권장)
+# 갱신 후 nginx 가 신규 cert 자동 로드 X = reload 필수.
+# host 측 crontab 예시 (매일 03:00):
+#   0 3 * * * docker exec amk-nginx nginx -s reload >> /var/log/nginx-reload.log 2>&1
+```
+
+**롤백 절차 (Phase B 실패 시)**:
+
+```bash
+# 시나리오 1: nginx HTTPS 활성 후 origin 502 / 5xx 빈발
+# → nginx.conf HTTPS 블록 재주석 + reload + Cloudflare 모드 = Flexible 복귀
+nano nginx/nginx.conf  # HTTPS server { ... } 다시 주석
+docker exec amk-nginx nginx -s reload
+# Cloudflare 대시보드 → SSL/TLS → Overview → Flexible
+
+# 시나리오 2: Cloudflare Full Strict 전환 후 502 빈발
+# → 즉시 Full 또는 Flexible 로 롤백 (Cloudflare 대시보드 1 클릭)
+
+# 시나리오 3: 인증서 발급 실패 (Let's Encrypt rate limit 또는 챌린지 실패)
+# → Cloudflare DNS A 레코드 = grey-cloud 확인. 80 port 외부 도달 가능 확인.
+# rate limit (50/주, 5/시간 per domain)
+docker compose -f docker-compose.prod.yml logs certbot --tail 50
+```
+
+**관련 부채 마킹** (본 docs 갱신과 동기화):
+- `AMK_DEBTS.md` A4-1 SSL/HTTPS / A4-2 certbot 자동 갱신 = Phase A 완료, Phase B 사용자 트리거 대기
+- `AMK_AUDIT_2026-05-04.md` N-13 nginx HTTPS = 동일
 
 ##### 4. 데이터베이스 마이그레이션 (자동)
 
@@ -543,13 +657,17 @@ docker stats
 
 ##### 9. Cloudflare SSL & 보안 설정
 
+> **2026-05-07 정정**: 본 §9 = 초기 운영 시점 (2026-02-10) 기준 Flexible 모드 가이드. 본 docs §3 Phase B 절차로 **Full Strict 전환 권장 (보안 갭 해결)**. 본 §9 는 이력 + Cloudflare 정책 SSoT.
+
 Cloudflare 프록시 사용 시 Let's Encrypt 없이 SSL 적용 가능:
 
 1. Cloudflare 대시보드 → `amazingkorean.net` → **DNS**
 2. `api` A 레코드의 프록시 상태를 **주황색 구름** (Proxied)으로 설정
-3. **SSL/TLS** → **Overview** → 모드를 **Flexible**로 설정
+3. **SSL/TLS** → **Overview** → 모드 = **Flexible** (초기) → **Full Strict** (Phase B 권장)
 
-> **참고**: Flexible 모드는 Cloudflare ↔ 사용자 간 HTTPS, Cloudflare ↔ EC2 간 HTTP를 사용합니다.
+> **참고 (Flexible)**: Cloudflare ↔ 사용자 간 HTTPS, Cloudflare ↔ EC2 간 HTTP. **Cloudflare ↔ origin 사이 = 평문 = 보안 갭**. 중간자 공격 가능 (Cloudflare 인프라 신뢰 가정에 의존).
+>
+> **권장 (Full Strict)**: origin 도 HTTPS + valid CA 검증 (Let's Encrypt 자동 OK). end-to-end 암호화. 전환 절차 = `§3 Phase B` 참조.
 
 **HTTPS 강제 & HSTS (2026-02-10 적용)**
 
