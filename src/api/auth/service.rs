@@ -407,44 +407,45 @@ impl AuthService {
             .verify_password(req.password.as_bytes(), &parsed_hash)
             .is_ok();
 
-        if user_info.is_none() || !password_ok {
-            // 로그인 실패 로그 (사용자가 존재하는 경우만 기록)
-            if let Some(ref user) = user_info {
-                let login_ip_log_enc_fail = crypto.encrypt(&login_ip, "login_log.login_ip_log")?;
-                let fail_session = Uuid::new_v4().to_string();
-                let mut tx = st.db.begin().await?;
-                if let Err(e) = AuthRepo::insert_login_log_tx(
-                    &mut tx,
-                    user.user_id,
-                    "login",
-                    false,
-                    &fail_session,
-                    "",
-                    &login_ip_log_enc_fail,
-                    Some(parsed_ua.device.as_str()),
-                    parsed_ua.browser.as_deref(),
-                    parsed_ua.os.as_deref(),
-                    user_agent.as_deref(),
-                    None,
-                    None,
-                    None,
-                    None,
-                    None,
-                    Some("invalid_credentials"),
-                    None,
-                )
-                .await
-                {
-                    warn!(error = %e, "Failed to insert login failure log");
-                }
-                if let Err(e) = tx.commit().await {
-                    warn!(error = %e, "Failed to commit login failure log transaction");
-                }
+        // user 없음 = anti-enumeration 응답만 (timing 보호는 dummy hash verify 로 이미 수행됨)
+        let Some(user_info) = user_info else {
+            return Err(AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()));
+        };
+
+        if !password_ok {
+            // user 존재 + password 불일치 = 실패 로그 + 동일 응답
+            let login_ip_log_enc_fail = crypto.encrypt(&login_ip, "login_log.login_ip_log")?;
+            let fail_session = Uuid::new_v4().to_string();
+            let mut tx = st.db.begin().await?;
+            if let Err(e) = AuthRepo::insert_login_log_tx(
+                &mut tx,
+                user_info.user_id,
+                "login",
+                false,
+                &fail_session,
+                "",
+                &login_ip_log_enc_fail,
+                Some(parsed_ua.device.as_str()),
+                parsed_ua.browser.as_deref(),
+                parsed_ua.os.as_deref(),
+                user_agent.as_deref(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some("invalid_credentials"),
+                None,
+            )
+            .await
+            {
+                warn!(error = %e, "Failed to insert login failure log");
+            }
+            if let Err(e) = tx.commit().await {
+                warn!(error = %e, "Failed to commit login failure log transaction");
             }
             return Err(AppError::Unauthorized("AUTH_401_BAD_CREDENTIALS".into()));
         }
-
-        let user_info = user_info.expect("checked above");
 
         if !user_info.user_state {
             // 비활성 계정 실패 로그

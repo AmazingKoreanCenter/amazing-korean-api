@@ -31,7 +31,7 @@
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 42건** (카테고리 합산: A 7 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 7 + J 0. 2026-05-07 Phase B 완료로 A4-1/A4-2 ✅ → -2건 = 44 → 42. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 42건** (카테고리 합산: A 7 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 7 + J 0. 2026-05-07: Phase B 완료로 A4-1/A4-2 ✅ → 44 → 42. B8 신규 등재 + 즉시 해결 (당일 일과성, §0 카운트 변화 X). 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -67,7 +67,7 @@
 
 > SSoT: `AMK_STATUS.md §8.2`.
 
-### A4. 운영 인프라 신규 부채 (2026-05-04 정합성 검증 발견, AMK_STATUS 미등재)
+### A4. 운영 인프라 신규 부채 (2026-05-04 정합성 검증 발견, AMK_STATUS #76 등재 2026-05-07)
 
 | ID | 항목 | 위치 / 사실 | 심각도 |
 |:--:|------|-------------|:--:|
@@ -142,11 +142,11 @@
 
 **처리 완료**: 위험 잠재 2건 모두 `AppError::Internal` 명시 매핑으로 교체 (commit `ad239ed`). anti-enumeration 유지.
 
-### B5. `expect()` 52건 — 위험도 분류 완료 (2026-05-06)
+### B5. `expect()` 51건 — 위험도 분류 완료 (2026-05-06) + auth:447 hot path 제거 (2026-05-07)
 
 > 처리는 별도 트랙. 본 항목 = 위험도 라벨링 + 처리 우선순위 판단.
 >
-> **카운트 정정**: 48 → 52 (PR #212~#218 기간 코드 추가분 4건 반영, 실측 grep `\.expect(`).
+> **카운트 정정**: 48 → 52 (2026-05-06, PR #212~#218 기간 코드 추가분 4건) → 51 (2026-05-07, auth:447 let-else 리팩터로 hot path expect 1건 제거).
 
 **파일별 카운트**
 
@@ -154,7 +154,7 @@
 |------|:--:|------|
 | `src/config.rs` | 37 | 🟢 안전 (부팅 시 환경변수 파싱 panic = production safety gate) |
 | `src/main.rs` | 6 | 🟢 안전 (부팅 시 Redis pool / API key / Paddle client 초기화) |
-| `src/api/auth/service.rs` | 2 | 🟢 1 (dummy hash, 정적 입력) + 🟡 1 (line 447 invariant 의존) |
+| `src/api/auth/service.rs` | 1 | 🟢 안전 (line 99 dummy hash, 정적 입력 = panic 불가능). ~~line 447 invariant~~ ✅ 제거 (2026-05-07, let-else 리팩터) |
 | `src/api/user/service.rs` | 1 | 🟢 안전 (`hmac_key: &[u8; 32]` 타입 보장) |
 | `src/external/email.rs` | 1 | 🟡 cold init (reqwest builder, ResendEmailSender::new) |
 | `src/external/apple.rs` | 1 | 🟡 cold init (reqwest builder) |
@@ -168,36 +168,36 @@
 | 분류 | 건수 | 의미 |
 |------|:--:|------|
 | 🟢 안전 | 45 | 부팅 시점 fail-fast 또는 타입/정적 invariant 로 panic 불가능 |
-| 🟡 회색 | 7 | cold init (reqwest builder 6) + 논리 invariant 1 (auth:447) |
+| 🟡 회색 | 6 | cold init (reqwest builder 6). ~~논리 invariant 1 (auth:447)~~ ✅ 제거 (2026-05-07) |
 | 🔴 위험 | 0 | hot path runtime panic 가능 expect 없음 |
 
-**🟡 회색 7건 상세**
+**🟡 회색 6건 상세**
 
 | 위치 | 패턴 | panic 트리거 가능성 |
 |------|------|-----|
 | `src/external/{apple,email,google,ipgeo,revenuecat,vimeo}.rs` | `reqwest::Client::builder()…build().expect("…")` | 극히 드묾 (TLS native roots 로드 실패 등). reqwest builder API 가 사실상 무결. 객체 생성 1회성 |
-| `src/api/auth/service.rs:447` | `user_info.expect("checked above")` 로그인 hot path | 위 분기 (`if user_info.is_none() return Err`) 깨지면 panic. 코드 구조 변경 시 invariant 깨질 위험 |
 
 **처리 권고 (별도 트랙)**
 
 - **🟢 안전 45건** = 처리 불요. 의도된 fail-fast 또는 타입 보장.
 - **🟡 reqwest builder 6건** = 수용 권고. `unwrap_or_else` 로 fallback 만들기 어려움 (Client 가 있어야 외부 호출 가능). OnceCell 화 검토 가치 ≪ 비용.
-- **🟡 auth:447 1건** = `let-else` 또는 `match` 리팩터 권고 (defense-in-depth, 시간 5m). hot path 이지만 현재 invariant 안전. 우선순위 낮음.
+- ~~🟡 auth:447 1건~~ ✅ **해결 (2026-05-07)**: `if user_info.is_none() || !password_ok` 분기를 `let Some(user_info) = user_info else { ... }` + `if !password_ok { ... }` 두 단계로 분리. expect 제거 = invariant 가 코드로 표현됨. 동작 동등 (anti-enumeration + timing protection 보존).
 
-**결론**: 🔴 0건 = production 운영 중 unexpected panic 위험 expect 호출은 0. B5 = 위험도 분류 종결, 후속 처리는 우선순위 낮음 (선택적).
+**결론**: 🔴 0건 + 🟡 hot path 0건 = production 운영 중 unexpected panic 위험 expect 호출은 0. B5 = 위험도 분류 종결 + auth:447 리팩터로 hot path 회색까지 완전 제거.
 
-### 🟡 B8. SSL Labs B → A+ 강화 (2026-05-07 신규 발견)
+### ~~B8. SSL Labs B → A+ 강화~~ ✅ **B → A- 해결 (2026-05-07)**
 
 | 위치 | 사실 |
 |------|------|
-| https://www.ssllabs.com/ssltest/analyze.html?d=api.amazingkorean.net | **B 등급** (4 IP 모두). Cloudflare edge default 영향 |
-| origin nginx | 자체 A+ 수준 설정 (TLS 1.2+1.3 / Mozilla Intermediate / HSTS / OCSP). origin 측 영향 X |
-| 원인 | Cloudflare edge 가 구식 클라이언트 호환성 위해 weak cipher 일부 활성 |
+| https://www.ssllabs.com/ssltest/analyze.html?d=api.amazingkorean.net | ~~B 등급~~ → **A- 등급** (4 IP 모두) |
+| 처리 | Cloudflare 대시보드 → SSL/TLS → Edge Certificates → **Minimum TLS Version = TLS 1.2** 변경 |
+| 효과 | TLS 1.0/1.1 weak cipher 차단. 5-10분 edge 전파 후 SSL Labs B → A- 재검증 확인 |
 
-**처리 옵션 (사용자 결정)**:
-- Cloudflare 대시보드 → SSL/TLS → Edge Certificates → Minimum TLS Version = 1.2 이상 + TLS 1.3 활성 (Free 플랜 가능)
-- Cloudflare Pro+ 플랜 = Modern cipher suite 옵션 (월 비용 발생)
-- 우선순위 = 낮음 (보안 갭 X, 사용자 인증서 정상 동작. 외부 grade 만 영향)
+**A+ 미달 잔여 차감 (선택, 처리 안 함 결정)**:
+- HSTS preload 미설정 — preload 리스트 등재 = 영구적, 도메인 변경 시 어려움 = 위험 대비 효용 낮음
+- DNS CAA record 미설정 — Let's Encrypt + Cloudflare 제한, 실효성 낮음
+
+A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3). A+ 강화는 추가 위험 대비 효용 낮아 **A- 에서 종결**.
 
 ### B6. ipgeo HTTP-only (2026-05-04 신규 발견)
 
