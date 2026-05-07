@@ -142,11 +142,11 @@
 
 **처리 완료**: 위험 잠재 2건 모두 `AppError::Internal` 명시 매핑으로 교체 (commit `ad239ed`). anti-enumeration 유지.
 
-### B5. `expect()` 52건 — 위험도 분류 완료 (2026-05-06)
+### B5. `expect()` 51건 — 위험도 분류 완료 (2026-05-06) + auth:447 hot path 제거 (2026-05-07)
 
 > 처리는 별도 트랙. 본 항목 = 위험도 라벨링 + 처리 우선순위 판단.
 >
-> **카운트 정정**: 48 → 52 (PR #212~#218 기간 코드 추가분 4건 반영, 실측 grep `\.expect(`).
+> **카운트 정정**: 48 → 52 (2026-05-06, PR #212~#218 기간 코드 추가분 4건) → 51 (2026-05-07, auth:447 let-else 리팩터로 hot path expect 1건 제거).
 
 **파일별 카운트**
 
@@ -154,7 +154,7 @@
 |------|:--:|------|
 | `src/config.rs` | 37 | 🟢 안전 (부팅 시 환경변수 파싱 panic = production safety gate) |
 | `src/main.rs` | 6 | 🟢 안전 (부팅 시 Redis pool / API key / Paddle client 초기화) |
-| `src/api/auth/service.rs` | 2 | 🟢 1 (dummy hash, 정적 입력) + 🟡 1 (line 447 invariant 의존) |
+| `src/api/auth/service.rs` | 1 | 🟢 안전 (line 99 dummy hash, 정적 입력 = panic 불가능). ~~line 447 invariant~~ ✅ 제거 (2026-05-07, let-else 리팩터) |
 | `src/api/user/service.rs` | 1 | 🟢 안전 (`hmac_key: &[u8; 32]` 타입 보장) |
 | `src/external/email.rs` | 1 | 🟡 cold init (reqwest builder, ResendEmailSender::new) |
 | `src/external/apple.rs` | 1 | 🟡 cold init (reqwest builder) |
@@ -168,23 +168,22 @@
 | 분류 | 건수 | 의미 |
 |------|:--:|------|
 | 🟢 안전 | 45 | 부팅 시점 fail-fast 또는 타입/정적 invariant 로 panic 불가능 |
-| 🟡 회색 | 7 | cold init (reqwest builder 6) + 논리 invariant 1 (auth:447) |
+| 🟡 회색 | 6 | cold init (reqwest builder 6). ~~논리 invariant 1 (auth:447)~~ ✅ 제거 (2026-05-07) |
 | 🔴 위험 | 0 | hot path runtime panic 가능 expect 없음 |
 
-**🟡 회색 7건 상세**
+**🟡 회색 6건 상세**
 
 | 위치 | 패턴 | panic 트리거 가능성 |
 |------|------|-----|
 | `src/external/{apple,email,google,ipgeo,revenuecat,vimeo}.rs` | `reqwest::Client::builder()…build().expect("…")` | 극히 드묾 (TLS native roots 로드 실패 등). reqwest builder API 가 사실상 무결. 객체 생성 1회성 |
-| `src/api/auth/service.rs:447` | `user_info.expect("checked above")` 로그인 hot path | 위 분기 (`if user_info.is_none() return Err`) 깨지면 panic. 코드 구조 변경 시 invariant 깨질 위험 |
 
 **처리 권고 (별도 트랙)**
 
 - **🟢 안전 45건** = 처리 불요. 의도된 fail-fast 또는 타입 보장.
 - **🟡 reqwest builder 6건** = 수용 권고. `unwrap_or_else` 로 fallback 만들기 어려움 (Client 가 있어야 외부 호출 가능). OnceCell 화 검토 가치 ≪ 비용.
-- **🟡 auth:447 1건** = `let-else` 또는 `match` 리팩터 권고 (defense-in-depth, 시간 5m). hot path 이지만 현재 invariant 안전. 우선순위 낮음.
+- ~~🟡 auth:447 1건~~ ✅ **해결 (2026-05-07)**: `if user_info.is_none() || !password_ok` 분기를 `let Some(user_info) = user_info else { ... }` + `if !password_ok { ... }` 두 단계로 분리. expect 제거 = invariant 가 코드로 표현됨. 동작 동등 (anti-enumeration + timing protection 보존).
 
-**결론**: 🔴 0건 = production 운영 중 unexpected panic 위험 expect 호출은 0. B5 = 위험도 분류 종결, 후속 처리는 우선순위 낮음 (선택적).
+**결론**: 🔴 0건 + 🟡 hot path 0건 = production 운영 중 unexpected panic 위험 expect 호출은 0. B5 = 위험도 분류 종결 + auth:447 리팩터로 hot path 회색까지 완전 제거.
 
 ### ~~B8. SSL Labs B → A+ 강화~~ ✅ **B → A- 해결 (2026-05-07)**
 

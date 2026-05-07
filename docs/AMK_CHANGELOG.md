@@ -1,8 +1,41 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-07 B8 SSL Labs B → A- (Cloudflare Minimum TLS Version 1.2). Phase B + B8 완료로 인프라 보안 종결
+updated: 2026-05-07 B5 auth:447 hot path expect 제거 (let-else 리팩터). 회색 7→6 / hot path 위험 완전 제거
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-07 (심야) — B5 회색 1건 처리: `auth/service.rs:447` hot path expect 제거**
+
+  B5 위험도 분류 (2026-05-06) 시 식별한 🟡 회색 7건 중 유일한 hot path 항목 (`src/api/auth/service.rs:447 user_info.expect("checked above")`) 을 `let-else` 패턴으로 리팩터.
+
+  ## 변경 (`src/api/auth/service.rs`)
+
+  - 기존: `if user_info.is_none() || !password_ok { ... }` + `let user_info = user_info.expect("checked above");` (invariant 의존)
+  - 신규: `let Some(user_info) = user_info else { return Err(Unauthorized) };` + `if !password_ok { ... return Err(Unauthorized) }` 2단 분리
+
+  ## 동작 보존
+
+  - **anti-enumeration**: user 부재 / password 불일치 둘 다 동일한 `AUTH_401_BAD_CREDENTIALS` 응답 (변경 없음)
+  - **timing attack 보호**: dummy hash verify (line 403, 406-408) 는 user 부재 시에도 그대로 수행 (변경 없음)
+  - **실패 로그**: user 존재 + password 불일치 시에만 `invalid_credentials` 로그 (변경 없음)
+
+  ## 효과
+
+  - hot path expect 제거 = 코드 변경으로 invariant 가 깨질 위험 차단 (defense-in-depth)
+  - 전체 backend expect 카운트: 52 → 51 (회색 7 → 6)
+  - 🔴 0건 + 🟡 hot path 0건 = production 운영 중 unexpected panic 가능 expect 완전 제거
+
+  ## 검증
+
+  - `cargo check --lib --bins --locked` ✅
+  - `cargo fmt --check --all` ✅
+  - `cargo clippy --lib --bins --locked -- -D warnings` ✅
+  - `grep 'expect(' src/api/auth/service.rs` = 1건 (line 99 dummy hash, 정적 입력 = 안전)
+
+  ## 변경 파일
+
+  - `src/api/auth/service.rs` — 라인 410~447 부근 리팩터 (1줄 expect 제거 + 분기 분리)
+  - `docs/AMK_DEBTS.md` — B5 헤더 / 카운트 / 분류 표 / 결론 갱신
 
 - **2026-05-07 (밤) — B8 SSL Labs B → A- 강화 (Cloudflare Minimum TLS Version 1.2)**
 
