@@ -31,7 +31,7 @@
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 42건** (카테고리 합산: A 7 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 7 + J 0. 2026-05-07 Phase B 완료로 A4-1/A4-2 ✅ → -2건 = 44 → 42. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 42건** (카테고리 합산: A 7 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 7 + J 0. 2026-05-07: Phase B 완료로 A4-1/A4-2 ✅ → 44 → 42. B8 신규 등재 + 즉시 해결 (당일 일과성, §0 카운트 변화 X). 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -186,18 +186,19 @@
 
 **결론**: 🔴 0건 = production 운영 중 unexpected panic 위험 expect 호출은 0. B5 = 위험도 분류 종결, 후속 처리는 우선순위 낮음 (선택적).
 
-### 🟡 B8. SSL Labs B → A+ 강화 (2026-05-07 신규 발견)
+### ~~B8. SSL Labs B → A+ 강화~~ ✅ **B → A- 해결 (2026-05-07)**
 
 | 위치 | 사실 |
 |------|------|
-| https://www.ssllabs.com/ssltest/analyze.html?d=api.amazingkorean.net | **B 등급** (4 IP 모두). Cloudflare edge default 영향 |
-| origin nginx | 자체 A+ 수준 설정 (TLS 1.2+1.3 / Mozilla Intermediate / HSTS / OCSP). origin 측 영향 X |
-| 원인 | Cloudflare edge 가 구식 클라이언트 호환성 위해 weak cipher 일부 활성 |
+| https://www.ssllabs.com/ssltest/analyze.html?d=api.amazingkorean.net | ~~B 등급~~ → **A- 등급** (4 IP 모두) |
+| 처리 | Cloudflare 대시보드 → SSL/TLS → Edge Certificates → **Minimum TLS Version = TLS 1.2** 변경 |
+| 효과 | TLS 1.0/1.1 weak cipher 차단. 5-10분 edge 전파 후 SSL Labs B → A- 재검증 확인 |
 
-**처리 옵션 (사용자 결정)**:
-- Cloudflare 대시보드 → SSL/TLS → Edge Certificates → Minimum TLS Version = 1.2 이상 + TLS 1.3 활성 (Free 플랜 가능)
-- Cloudflare Pro+ 플랜 = Modern cipher suite 옵션 (월 비용 발생)
-- 우선순위 = 낮음 (보안 갭 X, 사용자 인증서 정상 동작. 외부 grade 만 영향)
+**A+ 미달 잔여 차감 (선택, 처리 안 함 결정)**:
+- HSTS preload 미설정 — preload 리스트 등재 = 영구적, 도메인 변경 시 어려움 = 위험 대비 효용 낮음
+- DNS CAA record 미설정 — Let's Encrypt + Cloudflare 제한, 실효성 낮음
+
+A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3). A+ 강화는 추가 위험 대비 효용 낮아 **A- 에서 종결**.
 
 ### B6. ipgeo HTTP-only (2026-05-04 신규 발견)
 

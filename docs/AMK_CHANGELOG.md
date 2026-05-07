@@ -1,8 +1,31 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-07 ✅ 인프라 묶음 Phase B 완료 — HTTPS end-to-end 정착 (Cloudflare Full Strict + Let's Encrypt + 자동 갱신)
+updated: 2026-05-07 B8 SSL Labs B → A- (Cloudflare Minimum TLS Version 1.2). Phase B + B8 완료로 인프라 보안 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-07 (밤) — B8 SSL Labs B → A- 강화 (Cloudflare Minimum TLS Version 1.2)**
+
+  Phase B 완료 직후 발견한 SSL Labs B 등급 (Cloudflare edge default 영향) 처리.
+
+  ## 처리
+
+  Cloudflare 대시보드 → SSL/TLS → Edge Certificates → **Minimum TLS Version = TLS 1.2** 변경. TLS 1.0/1.1 weak cipher 차단.
+
+  ## 검증
+
+  SSL Labs 재검증 (cache clear): 4개 Cloudflare anycast IP (IPv6 2 + IPv4 2) 모두 **B → A- 등급**. 5-10분 edge 전파 후 적용.
+
+  ## A+ 미달 잔여 (처리 안 함 결정)
+
+  - HSTS preload 미설정 = 영구적 (브라우저 preload 리스트 등재 시 도메인 변경 어려움) → 위험 대비 효용 낮음
+  - DNS CAA record 미설정 = Let's Encrypt + Cloudflare 제한 → 실효성 낮음
+
+  A- 등급 = 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3). **A- 에서 종결**.
+
+  ## 변경 파일
+
+  - `docs/AMK_DEBTS.md` — B8 = ✅ 해결 마킹 + §0 카운트 비고 갱신
 
 - **2026-05-07 (저녁) — ✅ 인프라 묶음 Phase B 완료 (A4-1 + A4-2 + N-13 = HTTPS end-to-end 정착)**
 
