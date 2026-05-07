@@ -447,9 +447,94 @@ docker exec amk-nginx nginx -s reload
 docker compose -f docker-compose.prod.yml logs certbot --tail 50
 ```
 
-**관련 부채 마킹** (본 docs 갱신과 동기화):
-- `AMK_DEBTS.md` A4-1 SSL/HTTPS / A4-2 certbot 자동 갱신 = Phase A 완료, Phase B 사용자 트리거 대기
-- `AMK_AUDIT_2026-05-04.md` N-13 nginx HTTPS = 동일
+**관련 부채 마킹** (2026-05-07 갱신):
+- `AMK_DEBTS.md` A4-1 SSL/HTTPS / A4-2 certbot = ✅ **Phase B 완료** (2026-05-07)
+- `AMK_AUDIT_2026-05-04.md` N-13 nginx HTTPS = ✅ **Phase B 완료**
+- 신규 부채 등재: `AMK_DEBTS.md` B8 SSL Labs B → A+ 강화 (Cloudflare SSL/TLS, 사용자 결정)
+
+##### 3.1 Phase B 운영 학습 (2026-05-07 실측 정착)
+
+> Phase B 실제 실행 시 발견한 운영 함정 + 해결 패턴. 향후 동일 작업 (다른 도메인 / 다른 EC2 / 인증서 재발급 등) 시 참조.
+
+###### 함정 1: Docker bind mount stale (가장 큰 함정)
+
+**증상**: host 측에서 `cp nginx-https-enabled.conf nginx.conf` 후 nginx 컨테이너 안에서 `nginx -t` 통과 (옛 config 가 syntax OK 라 그냥 통과) + `nginx -s reload` 성공 메시지. 그러나 실제로는 컨테이너 안 nginx.conf 가 **옛 버전 그대로**. TLS handshake 실패 (Connection refused / reset by peer).
+
+**진단**:
+```bash
+# host vs 컨테이너 nginx.conf md5 비교 = 다르면 mount stale
+md5sum nginx/nginx.conf
+docker exec amk-nginx md5sum /etc/nginx/nginx.conf
+```
+
+**해결**: `docker restart amk-nginx` (mount 새로 attach + nginx fresh start). reload 로 안 되는 케이스 = restart.
+
+**원인 추정**: docker bind mount 가 host file 의 inode 추적 시 일부 캐시 또는 docker engine 버그로 즉시 반영 안 되는 케이스. 흔하지 않으나 발생 가능.
+
+**예방**: nginx config 변경 시 항상 md5 검증 후 reload, 다르면 restart.
+
+###### 함정 2: Amazon Linux 2023 = cron 미설치
+
+**증상**: `crontab -e` → "command not found".
+
+**해결**:
+```bash
+sudo dnf install -y cronie
+sudo systemctl enable --now crond
+```
+
+**근거**: Amazon Linux 2023 default = systemd timers 권장, cronie 미포함. 단순 cron 패턴은 cronie 가 더 직관적.
+
+###### 함정 3: vim editor 입력 실수
+
+**증상**: `crontab -e` 가 default editor (vim) 열림 → 입력 모드 / 명령 모드 혼란 / Ctrl+X 자동완성 모드 진입 등.
+
+**우회 (가장 안전)**:
+```bash
+# editor 우회, file 로 직접 install
+echo "0 3 * * * docker exec amk-nginx nginx -s reload >> /var/log/nginx-reload.log 2>&1" > /tmp/mycron
+crontab /tmp/mycron
+crontab -l  # 확인
+rm /tmp/mycron
+```
+
+###### 함정 4: docker compose run --rm 멈춤
+
+**증상**: `docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm certbot certonly ...` 가 "Container Created" 후 5분 넘게 멈춤. stdout buffering 또는 기존 amk-certbot 컨테이너 lock.
+
+**해결**: `docker run` 직접 사용 (compose 우회):
+```bash
+docker run --rm \
+  -v /home/ec2-user/amazing-korean-api/certbot/www:/var/www/certbot \
+  -v /home/ec2-user/amazing-korean-api/certbot/conf:/etc/letsencrypt \
+  certbot/certbot certonly --webroot --webroot-path=/var/www/certbot \
+  -d api.amazingkorean.net --email <admin@email> --agree-tos --no-eff-email
+```
+
+compose 의 env 검증 + service 디펜던시 우회 = 즉시 진행 (보통 30초-1분).
+
+###### 함정 5: cert permission denied (host 측 ec2-user)
+
+**증상**: `ls /home/ec2-user/.../certbot/conf/live/api.amazingkorean.net/` → "Permission denied".
+
+**원인**: certbot 이 root 권한으로 cert 생성 (보안적 정상). nginx container 는 root 라 read 가능.
+
+**해결 (확인 목적)**:
+```bash
+sudo ls /home/ec2-user/.../certbot/conf/live/api.amazingkorean.net/
+# 또는
+docker exec amk-nginx ls /etc/letsencrypt/live/api.amazingkorean.net/
+```
+
+###### 함정 6: SSL Labs B 등급 = Cloudflare edge default
+
+**증상**: 모든 설정 정상인데 SSL Labs A+ 가 아닌 B 등급.
+
+**원인**: Cloudflare edge 가 구식 클라이언트 호환 위해 일부 weak cipher 활성. origin nginx 와 무관.
+
+**해결 옵션** (선택, B8 부채):
+- Cloudflare → SSL/TLS → Edge Certificates → Minimum TLS Version = 1.2 + TLS 1.3 활성 (Free 가능)
+- Pro+ 플랜 = Modern cipher suite
 
 ##### 4. 데이터베이스 마이그레이션 (자동)
 
