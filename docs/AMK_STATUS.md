@@ -212,7 +212,9 @@
 | 19 | manager 역할 구현 | 기능 | class 기반 접근 권한 부여 | 담당 학습자 범위 내 관리 | class 테이블 구현 후 |
 | ~~20~~ | ~~JsonRejection → AppError 통합~~ | ~~코드 품질~~ | ~~`Json<T>` extractor 실패 시 Axum 기본 `text/plain` 응답을 커스텀 추출기로 가로채 AppError 로 매핑~~ | ~~에러 응답 envelope + `trace_id` 전 경로 통일~~ | ✅ #70 완료 (2026-04-16) |
 
-#### 다국어 UI 참고 (21개 언어, LTR 전용)
+#### 다국어 UI 참고 (21 → 36 언어 확장 진행 중, RTL 인프라 dormant)
+
+> **2026-04-30 정정**: PR #191 (`0f803fa`) 로 RTL 인프라 정착 (font_loader 6 lang ar/fa/ur/bn/am/lo + RTL Set + isRTL + lang-rtl class + i18n applyLangClasses dir 토글). 단 `SUPPORTED_LANGUAGES` 활성은 ai 측 Phase 2 결과 머지 후 (S5 단계). 현재 dormant.
 
 | 항목 | 설명 |
 |------|------|
