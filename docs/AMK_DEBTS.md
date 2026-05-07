@@ -17,7 +17,7 @@
 
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
-| A. 운영/배포 부채 | ~~10~~ → **9** | KYB 의존 4 + 인프라 이전 3 + 진행 예정 큐 4. ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ 해결 (2026-05-04~05) + ~~A4-4~~ 🟡 부분 해결 (2026-05-06, 수동 절차 docs). 잔여 = A4-1 SSL/HTTPS + A4-2 certbot |
+| A. 운영/배포 부채 | ~~10~~ → ~~9~~ → **7** | KYB 의존 4 + 인프라 이전 3. ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ + ~~A4-4~~ 🟡 부분 (2026-05-06) + ~~A4-1/A4-2~~ ✅ **Phase B 완료 (2026-05-07: HTTPS + Let's Encrypt + Cloudflare Full Strict + 자동 갱신)** |
 | 🟡 B. 보안 부채 (취약점) | ~~1~~ → **0** | Rust **1** (rsa Marvin Attack, no upgrade) — 🟡 수용 결정 (2026-05-06, compile-time only + PostgreSQL only = production 영향 0). ~~npm 3건~~ ✅ 해결 (2026-05-04). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | 🟡 B. 보안 부채 (unsound/unmaintained) | ~~7~~ → **0** | 🟡 모두 수용 결정 (2026-05-06). core2/paste = unmaintained warning 만 + transitive. imageproc 3 = 텍스트 오버레이 영향 낮음. rand 2 = custom logger 미사용으로 영향 0 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
@@ -31,7 +31,7 @@
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 44건** (카테고리 합산 사실 기반: A 9 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 7 + J 0. 2026-05-06 본 세션 추가 처리/수용 9건 = A4-4 부분 해결 + B1 수용 + B2 7건 수용. 이전 53건 → 44건. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 42건** (카테고리 합산: A 7 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 7 + J 0. 2026-05-07 Phase B 완료로 A4-1/A4-2 ✅ → -2건 = 44 → 42. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -71,8 +71,8 @@
 
 | ID | 항목 | 위치 / 사실 | 심각도 |
 |:--:|------|-------------|:--:|
-| 🟡 A4-1 | ~~nginx HTTPS 미활성 (HTTP-only)~~ Phase A 완료 (2026-05-07) | `nginx/nginx.conf` HTTPS 블록 정교화 (TLS 1.2+1.3 / Mozilla Intermediate cipher / OCSP stapling / HSTS / SSL session cache). 주석 유지 = Phase B 사용자 트리거 대기 (`AMK_DEPLOY_OPS §3 Phase B` 단계별 절차 정착) | HIGH (Phase B 활성 시 해결) |
-| 🟡 A4-2 | ~~Let's Encrypt + certbot 자동 갱신 정책 부재~~ Phase A 완료 (2026-05-07) | `docker-compose.prod.yml` certbot entrypoint = 12h renew + `--quiet --deploy-hook` 추가. nginx reload 자동화 = host crontab 권장 (docker socket mount 비권장). 절차 = `AMK_DEPLOY_OPS §3 자동 갱신 검증` | HIGH (Phase B 활성 시 해결) |
+| ~~A4-1~~ | ~~nginx HTTPS 미활성 (HTTP-only)~~ ✅ **해결 (2026-05-07 Phase B)** | nginx HTTPS 블록 활성 (TLS 1.2+1.3 / Mozilla Intermediate cipher / OCSP stapling / HSTS / SSL session cache). Cloudflare SSL 모드 = **Full (Strict)** = end-to-end 암호화. origin Let's Encrypt cert (만료 2026-08-05) | — |
+| ~~A4-2~~ | ~~Let's Encrypt + certbot 자동 갱신 정책 부재~~ ✅ **해결 (2026-05-07 Phase B)** | certbot 12h renew loop + host crontab 매일 03:00 nginx reload. `renew --dry-run` 통과 검증. 자동 갱신 정착 | — |
 | ~~A4-3~~ | ~~EC2 디스크 모니터링 자동화 부재~~ ✅ 해결 (2026-05-05, commit `693dc2a`) | `AMK_DEPLOY_OPS §6` 안에 모니터링 절차 (df -h / docker system df / 임계 70/85/95% / 정리 명령) 추가. 향후 자동화 후속 (GitHub Action SSH) | — |
 | ~~A4-4~~ | ~~DB / Redis 백업 정책 부재 (DR 0)~~ 🟡 **부분 해결 (2026-05-06)** | `AMK_DEPLOY_OPS §6` 안에 수동 백업·복구 절차 추가 (PostgreSQL pg_dump + Redis BGSAVE/RDB cp + 권장 정책 표 + 자동화 후속). 자동화는 사용자 정책 결정 후 별도 후속 (cron / S3 / 보관 기간) | — |
 | ~~A4-5~~ | ~~Docker log 로테이션 미설정~~ ✅ 해결 (2026-05-04, commit `7e86592`) | YAML anchor `x-logging` + 5 서비스 (api/db/redis/nginx/certbot) 일괄 적용 (max-size 10m × max-file 3 = 서비스당 최대 30MB) | — |
@@ -185,6 +185,19 @@
 - **🟡 auth:447 1건** = `let-else` 또는 `match` 리팩터 권고 (defense-in-depth, 시간 5m). hot path 이지만 현재 invariant 안전. 우선순위 낮음.
 
 **결론**: 🔴 0건 = production 운영 중 unexpected panic 위험 expect 호출은 0. B5 = 위험도 분류 종결, 후속 처리는 우선순위 낮음 (선택적).
+
+### 🟡 B8. SSL Labs B → A+ 강화 (2026-05-07 신규 발견)
+
+| 위치 | 사실 |
+|------|------|
+| https://www.ssllabs.com/ssltest/analyze.html?d=api.amazingkorean.net | **B 등급** (4 IP 모두). Cloudflare edge default 영향 |
+| origin nginx | 자체 A+ 수준 설정 (TLS 1.2+1.3 / Mozilla Intermediate / HSTS / OCSP). origin 측 영향 X |
+| 원인 | Cloudflare edge 가 구식 클라이언트 호환성 위해 weak cipher 일부 활성 |
+
+**처리 옵션 (사용자 결정)**:
+- Cloudflare 대시보드 → SSL/TLS → Edge Certificates → Minimum TLS Version = 1.2 이상 + TLS 1.3 활성 (Free 플랜 가능)
+- Cloudflare Pro+ 플랜 = Modern cipher suite 옵션 (월 비용 발생)
+- 우선순위 = 낮음 (보안 갭 X, 사용자 인증서 정상 동작. 외부 grade 만 영향)
 
 ### B6. ipgeo HTTP-only (2026-05-04 신규 발견)
 

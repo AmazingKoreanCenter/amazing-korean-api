@@ -1,8 +1,59 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-07 인프라 묶음 Phase A 완료 (A4-1 + A4-2 + N-13 — nginx.conf 정교화 + certbot 보강 + Phase B 절차 정착)
+updated: 2026-05-07 ✅ 인프라 묶음 Phase B 완료 — HTTPS end-to-end 정착 (Cloudflare Full Strict + Let's Encrypt + 자동 갱신)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-07 (저녁) — ✅ 인프라 묶음 Phase B 완료 (A4-1 + A4-2 + N-13 = HTTPS end-to-end 정착)**
+
+  사용자 EC2 SSH 작업 + Cloudflare 대시보드 작업으로 Phase B 단계별 실행. **Cloudflare ↔ origin HTTPS = 보안 갭 해소**.
+
+  ## 실행 단계 (사용자 EC2)
+
+  | # | 단계 | 결과 |
+  |:--:|------|:--:|
+  | B-1 | EC2 SSH + git pull | ✅ |
+  | B-2 | Cloudflare DNS api A 레코드 grey-cloud 임시 전환 | ✅ |
+  | B-3 | certbot --dry-run | ✅ |
+  | B-4 | certbot 실제 발급 | ✅ (만료 2026-08-05) |
+  | B-5 | DNS orange-cloud 복귀 | ✅ |
+  | B-6 | nginx-https-enabled.conf → nginx.conf 교체 + nginx -t | ✅ |
+  | B-7 | docker restart amk-nginx (mount stale 발견 → restart) | ✅ |
+  | B-8 | Cloudflare SSL Flexible → **Full (Strict)** | ✅ |
+  | B-9 | crontab 매일 03:00 nginx reload + cronie 설치 | ✅ |
+  | B-10 | renew --dry-run + SSL Labs 검증 | ✅ B 등급 |
+
+  ## 본 세션 발견 + 학습
+
+  - **mount stale 문제**: docker bind mount 가 host cp 후에도 컨테이너 안에서 옛 config. `docker restart amk-nginx` 로 해결. (향후 EC2 운영 시 nginx config 변경 = restart 또는 reload 후 md5 검증 권장)
+  - **Cloudflare 첫 cp 가 안 들어간 이유**: 사용자가 두 번째 cp 후에 host nginx.conf 가 활성 버전으로 변경됨. 첫 시도가 의도치 않게 실패한 듯 (정확한 원인 불명).
+  - **Amazon Linux 2023 cron 미설치**: `sudo dnf install -y cronie && sudo systemctl enable --now crond` 필요.
+  - **cron editor (vim) 우회**: `echo "..." > /tmp/mycron && crontab /tmp/mycron` = 입력 실수 회피.
+
+  ## SSL Labs B 등급 발견
+
+  4개 Cloudflare anycast IP 모두 **B 등급**. Cloudflare edge default (구식 클라이언트 호환 위해 weak cipher 일부 활성) 영향. origin nginx 자체는 A+ 수준 설정. **본 Phase B 목표 (보안 갭 해소) 와 무관 = 별도 부채 (B8) 로 등재**.
+
+  ## 변경 파일
+
+  - `nginx/nginx.conf` — Phase B 활성 버전으로 자체 통합 (HTTPS 블록 활성, OCSP/HSTS/cipher 적용)
+  - `nginx/nginx-https-enabled.conf` — 삭제 (Phase B-6 임시 cp 대상, 통합 후 불필요)
+  - `docs/AMK_DEBTS.md` — A4-1/A4-2 = ✅ 해결 마킹, B8 신규 (SSL Labs B→A+ 강화), §0 카운트 44 → 42
+  - `docs/AMK_AUDIT_2026-05-04.md` — N-13 = ✅ 해결 마킹, 신규 미해결 2 → 1 (N-26 만 남음)
+
+  ## 보안 갭 변화
+
+  | 항목 | Before (2026-05-07 아침) | After (2026-05-07 저녁) |
+  |------|:--:|:--:|
+  | 사용자 ↔ Cloudflare | HTTPS ✅ | HTTPS ✅ |
+  | Cloudflare ↔ origin | **HTTP (평문) ⚠️** | **HTTPS (Let's Encrypt cert + Full Strict 검증) ✅** |
+  | 인증서 자동 갱신 | 미구성 ⚠️ | 12h renew + crontab nginx reload ✅ |
+  | origin 보안 헤더 (HSTS/X-Frame/Referrer) | 비활성 ⚠️ | 활성 ✅ |
+
+  ## 잔여 부채
+
+  - **AMK_AUDIT 신규 미해결 = 1건** (N-26 i18n, ai 측 트리거 대기)
+  - **AMK_DEBTS = 42건** (그 중 본 리포 능동 처리 = B8 SSL Labs A+ 강화 등 매우 적음. 대부분 외부 의존 / 보류 / 카탈로그)
 
 - **2026-05-07 (오후) — 인프라 묶음 Phase A 완료 (A4-1 + A4-2 + N-13)**
 
