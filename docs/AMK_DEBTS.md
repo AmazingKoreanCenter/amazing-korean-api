@@ -22,7 +22,7 @@
 | 🟡 B. 보안 부채 (unsound/unmaintained) | ~~7~~ → **0** | 🟡 모두 수용 결정 (2026-05-06). core2/paste = unmaintained warning 만 + transitive. imageproc 3 = 텍스트 오버레이 영향 낮음. rand 2 = custom logger 미사용으로 영향 0 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
 | B. 보안 부채 (외부 통신) | **1** | B6 ipgeo HTTP-only. ~~B7 Paddle amount~~ ✅ 해결 (2026-05-04, commit `c744efc`) |
-| C. 코드 품질 부채 | ~~2~~ → **1** | C1 🟡 ESLint 부분 처리 (2026-05-08 12건 cleanup, 잔여 28 = 새 세션 코드 구조 변경). ~~C2~~ ✅ lint:ui (2026-05-08 신규 토큰). ~~C3/C4/C5/C6/C7/C8~C13~~ 처리/수용. B5/B6 = B 카테고리 재분류 |
+| C. 코드 품질 부채 | ~~2~~ → ~~1~~ → **0** | ~~C1~~ ✅ ESLint baseline 종결 (2026-05-08 후속 — static-components 9 / refs 5 / set-state-in-effect 2 / warnings 12 모두 처리). ~~C2~~ ✅ lint:ui (2026-05-08 신규 토큰). ~~C3/C4/C5/C6/C7/C8~C13~~ 처리/수용. B5/B6 = B 카테고리 재분류 |
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
 | E. 기능 부채 (보류/조건부) | **11** | 9 (보류 8 + STATUS #11 이메일 수신 ✅) + **신규 3** (콘텐츠 시딩, SpeechSuper, 번들 최적화) |
 | F. 모바일/데스크탑 앱 부채 | ~~5~~ → **1** | 외부 리포 SSoT. 2026-05-08 stale 정정 = ~~F1/F2/F3~~ ✅ (mobile 리포 Phase 1~3 완료 사실 반영) + ~~F4~~ ✅ (TTL 90→300 본 리포 적용). F5 만 수용 잔존 |
@@ -31,7 +31,7 @@
 | I. AI 작업 사고 | **8** | `AMK_AI_MISTAKES.md` SSoT (2026-05-08 M-010 신규 = stale 정정 부분만 + 권고 전 외부 검증 누락) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 33건** (카테고리 합산: A 3 + B 1 (B6) + C 1 + D 4 + E 11 + F 1 + G 4 + H 0 + I 8 + J 0. 2026-05-08 (오후 후속 6) ~~C2~~ ✅ lint:ui (신규 토큰 highlight + level-1~5 정착, 검증 0 errors) → C 2→1, 34 → **33**. 2026-05-08 (오후 후속 5) ~~G8~~ ✅ branch protection → G 5→4, 35 → 34. 2026-05-08 (오후 후속 4) F 카테고리 stale 정정 = F1/F2/F3 ✅ + F4 ✅ → F 5→1, 39 → 35. 2026-05-08 (오후) A1-4 ✅ SPF → A 4→3, 40 → 39. 2026-05-08 (오전 후속) M-010 정정 = A1-1 ✅ + I +1 = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 → 41 → 40. 2026-05-08 A1 stale 정정 → 42 → 41. 2026-05-07 Phase B → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 32건** (카테고리 합산: A 3 + B 1 (B6) + C 0 + D 4 + E 11 + F 1 + G 4 + H 0 + I 8 + J 0. 2026-05-09 ~~C1~~ ✅ ESLint baseline 종결 (28 → 0 problems, static-components 9 + refs 5 + set-state-in-effect 2 + warnings 12 = 컴포넌트 외부 추출 / useState 변환 / key prop 재마운트 / inline disable 의도 명시) → C 1→0, 33 → **32**. 2026-05-08 (오후 후속 6) ~~C2~~ ✅ lint:ui (신규 토큰 highlight + level-1~5 정착, 검증 0 errors) → C 2→1, 34 → 33. 2026-05-08 (오후 후속 5) ~~G8~~ ✅ branch protection → G 5→4, 35 → 34. 2026-05-08 (오후 후속 4) F 카테고리 stale 정정 = F1/F2/F3 ✅ + F4 ✅ → F 5→1, 39 → 35. 2026-05-08 (오후) A1-4 ✅ SPF → A 4→3, 40 → 39. 2026-05-08 (오전 후속) M-010 정정 = A1-1 ✅ + I +1 = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 → 41 → 40. 2026-05-08 A1 stale 정정 → 42 → 41. 2026-05-07 Phase B → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -228,24 +228,24 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 
 ## C. 코드 품질 부채
 
-### C1. Frontend ESLint baseline (Q16) — 🟡 **부분 처리 (2026-05-08): 40 → 28 problems**
+### ~~C1. Frontend ESLint baseline (Q16)~~ ✅ **종결 (2026-05-09): 40 → 0 problems**
 
-> **2026-05-08 본 세션 처리 12건**:
+> **2026-05-08 1차 처리 12건**:
 > - 자동 fix 2건 (`prefer-const` 1 + 1 더)
 > - `react-refresh/only-export-components` 7건 = `eslint-disable` inline (shadcn 패턴 의도 = 컴포넌트 + variants 동일 파일, C8-C13 정책 정합)
 > - `no-empty` 1건 (admin_translation_edit.tsx:136 빈 블록 = 의도 코멘트 추가)
 > - `@typescript-eslint/no-unused-vars` 1건 (signup_page.tsx:123 `_` → `_confirmPassword + void`)
 > - `react-hooks/use-memo` 1건 (devtools_detect.ts:62 useCallback inline function)
 >
-> **잔여 28 problems (16 errors + 12 warnings)** = 코드 구조 변경 필요 = **새 세션 권장**:
-> - `react-hooks/static-components` **9건** (Cannot create components during render — 컴포넌트 안에 컴포넌트 정의 = 외부 추출 필요)
-> - `react-hooks/refs` **6건** (Cannot access refs during render — `if (ref.current == null) { ... }` 패턴 변경)
-> - `react-hooks/set-state-in-effect` **2건** (study_task_page:346 / writing_practice_page:117 = 부모에서 key prop 재마운트 패턴)
-> - warnings 12건 = `react-hooks/incompatible-library` (useForm watch 등 외부 라이브러리 호환) + `react-hooks/exhaustive-deps` (의존성 추가 또는 명시적 disable) + 기타
+> **2026-05-09 후속 처리 28건 (0 problems 종결)**:
+> - `react-hooks/static-components` **9건** = `SortIcon` 외부 추출 + `currentField`/`order` props 추가 (`admin_subscriptions_page` 5 + `admin_transactions_page` 4)
+> - `react-hooks/refs` **5건** = useState 변환 + render 중 ref.current mutation/read 제거 (`use_paddle.ts` 3 = `setIsReady` state + `onCheckoutCompleteRef` 동기화 useEffect 분리, `use_oauth_callback.ts` 2 = `isProcessing` state 추가, return 시 ref 직접 노출 제거)
+> - `react-hooks/set-state-in-effect` **2건** = parent key prop 재마운트 패턴 (`study_task_page` = `StudyTaskPage` wrapper + `StudyTaskPageInner key={taskId}` / `writing_practice_page` = `<FreePracticeRunner key={`${level}/${type}`} />`). useEffect [id] reset 블록 제거
+> - warnings **12건** = inline `eslint-disable-next-line` 의도 명시 (use_paddle exhaustive-deps email = mount-once Paddle 초기화, use_oauth_callback set-state-in-effect = mount-once OAuth flow + setSearchParams race condition 회피, admin_*_page incompatible-library 9건 + textbook_order_page 1건 = react-hook-form watch() 메모이제이션 불가 라이브러리 한계)
 
-**검증 (2026-05-08 본 세션)**: `npm run lint` = 28 problems (16 errors + 12 warnings) / `npm run build` = 16.82s 클린.
+**검증 (2026-05-09 종결)**: `npm run lint` = **0 problems** / `npm run build` = 17.04s 클린 / `cargo check --lib --bins --locked` = 1.48s 클린 / `npm run lint:ui` = 0 errors.
 
-**다음 진입점**: 새 세션에서 (a) static-components 9건 = 컴포넌트 외부 추출 / (b) refs 6건 = `ref.current` 접근 패턴 변경 / (c) set-state-in-effect 2건 = parent key prop 재마운트. 시간 0.5-1일 추정.
+**변경 파일 12개**: admin_subscriptions_page.tsx, admin_transactions_page.tsx, use_paddle.ts, use_oauth_callback.ts, study_task_page.tsx, writing_practice_page.tsx, admin_email_test.tsx, admin_lesson_create.tsx, admin_lesson_detail.tsx, admin_study_create.tsx, admin_study_detail.tsx, admin_user_create.tsx, admin_user_detail.tsx, admin_video_create.tsx, admin_video_detail.tsx, textbook_order_page.tsx.
 
 ### ~~C2. Frontend lint:ui baseline~~ ✅ **해결 (2026-05-08)**
 

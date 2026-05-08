@@ -58,6 +58,7 @@ export function AdminEmailTest() {
   };
 
   const selectedTemplate = templateOptions.find(
+    // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() 메모이제이션 불가, 라이브러리 한계
     (opt) => opt.value === form.watch("template")
   );
 

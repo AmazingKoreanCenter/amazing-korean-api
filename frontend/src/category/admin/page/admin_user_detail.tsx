@@ -241,6 +241,7 @@ export function AdminUserDetail() {
               <div className="space-y-2">
                 <Label>Gender</Label>
                 <Select
+                  // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() 메모이제이션 불가, 라이브러리 한계
                   value={form.watch("gender") ?? "none"}
                   onValueChange={(value) =>
                     form.setValue("gender", value as AdminUpdateUserReq["gender"])

@@ -1,8 +1,50 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 종결 (12 commit) — Paddle Live 인프라 100% 활성 + 부채 9건 종결 (42→33). AMK_STATUS §8.1 #78 등재
+updated: 2026-05-09 — C1 ESLint baseline 종결 (28 → 0 problems, 부채 33 → 32). AMK_STATUS §8.1 #79 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-09 — C1 ✅ ESLint baseline 종결 (28 → 0 problems)**
+
+  세션 진입 = 부채 잔여 처리 요청. 메모리/STATUS 잔여 항목 = C1 28 (새 세션 명시) / G10 ai 세션 / N-26 i18n 결정 → C1 만 본 리포 즉시 처리 가능 = 본 세션 진입.
+
+  ## 처리 28건 (errors 16 + warnings 12)
+
+  | 룰 | 카운트 | 처리 방식 |
+  |---|:--:|---|
+  | `react-hooks/static-components` | 9 | `SortIcon` 외부 추출 + `currentField`/`order` props 추가 (admin_subscriptions/transactions) |
+  | `react-hooks/refs` | 5 | useState 변환 (`isReady`/`isProcessing`) + render 중 ref mutation 을 useEffect 로 이동 (use_paddle 3 / use_oauth_callback 2) |
+  | `react-hooks/set-state-in-effect` | 2 | parent key prop 재마운트 패턴 (`StudyTaskPage` wrapper + Inner / `<FreePracticeRunner key=...>`) + useEffect [id] reset 블록 제거 |
+  | warnings (`incompatible-library` + `exhaustive-deps` + `set-state-in-effect`) | 12 | inline `eslint-disable-next-line` + 의도 명시 코멘트 (라이브러리 한계 / mount-once / setSearchParams race condition 회피) |
+
+  ## 핵심 변경
+
+  **use_paddle.ts**: `setIsReady` state 추가 (initializePaddle.then 안에서 호출) + `onCheckoutCompleteRef` 동기화 useEffect 분리 + `isReady: !!paddleRef.current` → `isReady` (state) 반환. mount-once Paddle 초기화 의도 명시.
+
+  **use_oauth_callback.ts**: `isProcessing` state 추가. `processedRef.current = true` 호출 3곳에 `setIsProcessing(true)` 동기화. catch 분기에서 `setIsProcessing(false)` 추가. return 시 ref 직접 노출 제거. setSearchParams({}) → navigate("/") race condition 회피용 reactive flag 의도 명시.
+
+  **study_task_page.tsx**: `export function StudyTaskPage()` = wrapper, `function StudyTaskPageInner()` = 본문. wrapper 가 useParams() → `<StudyTaskPageInner key={taskId} />` 마운트. 내부 `useEffect [id]` 12개 setState reset 블록 제거 = key 변경 시 자동 unmount/remount 으로 모든 state 초기값 보장.
+
+  **writing_practice_page.tsx**: `<FreePracticeRunner key={`${validLevel}/${parsedType.data}`} ... />` 추가. 내부 `useEffect [level, practiceType]` reset 블록 + useEffect import 제거.
+
+  **admin_subscriptions/transactions_page.tsx**: `SortIcon` 함수형 컴포넌트를 컴포넌트 안에서 외부로 이동. `field` + `currentField: SortField` + `order: SortOrder` props 로 변경. 사용처 9곳 (5+4) 모두 `currentField={sortField} order={sortOrder}` 추가.
+
+  ## 검증
+
+  - `npm run lint` = **0 problems** (28 → 0)
+  - `npm run build` = 17.04s 클린
+  - `cargo check --lib --bins --locked` = 1.48s 클린
+  - `npm run lint:ui` = 0 errors
+
+  ## 변경 파일 16개
+
+  admin_subscriptions_page.tsx / admin_transactions_page.tsx / use_paddle.ts / use_oauth_callback.ts / study_task_page.tsx / writing_practice_page.tsx / admin_email_test.tsx / admin_lesson_create.tsx / admin_lesson_detail.tsx / admin_study_create.tsx / admin_study_detail.tsx / admin_user_create.tsx / admin_user_detail.tsx / admin_video_create.tsx / admin_video_detail.tsx / textbook_order_page.tsx.
+
+  ## 부채 영향
+
+  `AMK_DEBTS §0` 카운트 = **33 → 32** (-1건 C1). C 카테고리 = **0건** (~~C1~~ + ~~C2~~ + ~~C3~C13~~ 모두 종결/수용). 잔여 = G10 (ai 세션) / N-26 (i18n 결정) / 외부 트리거 대기 (A2/D RDS / E1 9건 / E2 books / E3 SpeechSuper / I AI 사고 별도 SSoT).
+
+  C13 카운트 (TS eslint-disable 인라인) = 11 → ~22 (warnings 12 처리 시 inline disable 추가). 모두 의도 명시.
 
 - **2026-05-08 (오후 후속 7) — C1 🟡 ESLint baseline 부분 처리 (12/40 cleanup)**
 

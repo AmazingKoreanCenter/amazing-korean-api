@@ -264,6 +264,7 @@ export function AdminLessonDetail() {
                   <div className="space-y-2">
                     <Label>State</Label>
                     <Select
+                      // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() 메모이제이션 불가, 라이브러리 한계
                       value={form.watch("lesson_state") ?? "ready"}
                       onValueChange={(value) =>
                         form.setValue("lesson_state", value as LessonState)

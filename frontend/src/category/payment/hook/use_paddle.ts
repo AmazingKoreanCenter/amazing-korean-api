@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { initializePaddle, type Paddle, type CheckoutEventNames } from "@paddle/paddle-js";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -17,7 +17,11 @@ export const usePaddle = ({ clientToken, sandbox, email, onCheckoutComplete }: U
   const paddleRef = useRef<Paddle | null>(null);
   const initializedRef = useRef(false);
   const onCheckoutCompleteRef = useRef(onCheckoutComplete);
-  onCheckoutCompleteRef.current = onCheckoutComplete;
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    onCheckoutCompleteRef.current = onCheckoutComplete;
+  });
 
   useEffect(() => {
     if (initializedRef.current || !clientToken) return;
@@ -36,8 +40,11 @@ export const usePaddle = ({ clientToken, sandbox, email, onCheckoutComplete }: U
     }).then((paddle) => {
       if (paddle) {
         paddleRef.current = paddle;
+        setIsReady(true);
       }
     });
+    // mount-once Paddle 초기화. email 은 별도 useEffect 에서 Update() 처리. 의도된 dep 누락
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientToken, sandbox, t]);
 
   // Retain용: 이메일이 초기화 후 로드되면 pwCustomer 업데이트
@@ -93,5 +100,5 @@ export const usePaddle = ({ clientToken, sandbox, email, onCheckoutComplete }: U
     [t]
   );
 
-  return { openCheckout, openEbookCheckout, isReady: !!paddleRef.current };
+  return { openCheckout, openEbookCheckout, isReady };
 };

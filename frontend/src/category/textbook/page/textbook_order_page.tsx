@@ -183,6 +183,7 @@ export function TextbookOrderPage() {
     }
   }, [userMe]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() 메모이제이션 불가, 라이브러리 한계
   const watchItems = form.watch("items");
   const watchTaxInvoice = form.watch("tax_invoice");
 

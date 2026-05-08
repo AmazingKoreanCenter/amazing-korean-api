@@ -237,6 +237,11 @@ function StatusBadge({ tryCount, isSolved }: { tryCount: number; isSolved: boole
 }
 
 export function StudyTaskPage() {
+  const { taskId } = useParams();
+  return <StudyTaskPageInner key={taskId ?? "no-id"} />;
+}
+
+function StudyTaskPageInner() {
   const { t } = useTranslation();
   const { taskId } = useParams();
   const [searchParams] = useSearchParams();
@@ -340,22 +345,6 @@ export function StudyTaskPage() {
       navigate("/studies", { replace: true });
     }
   }, [isValidId, navigate]);
-
-  // Reset form when task changes — id 변경 시 1회 form 전체 reset (cascading render 위험 X)
-  // TODO: 정석 fix = key prop 재마운트 패턴 (parent 에서 <StudyTaskPage key={id} /> 전달). 새 세션 처리.
-  useEffect(() => {
-    setSelectedChoice(null);
-    setTypingText("");
-    setVoiceText("");
-    setWritingText("");
-    setWritingStats({ total_chars: 0, correct_chars: 0, mistakes: [], duration_ms: 0 });
-    setWritingSessionId(null);
-    setWritingResult(null);
-    setWritingAttempt(0);
-    setShowExplain(false);
-    setShowCompletion(false);
-    submitMutation.reset();
-  }, [id]);
 
   const handleSubmit = () => {
     if (!data) return;

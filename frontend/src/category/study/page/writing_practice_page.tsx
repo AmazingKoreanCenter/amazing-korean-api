@@ -1,5 +1,5 @@
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams, Navigate } from "react-router-dom";
 
@@ -88,6 +88,7 @@ export function WritingPracticePage() {
 
   return (
     <FreePracticeRunner
+      key={`${validLevel}/${parsedType.data}`}
       level={validLevel}
       practiceType={parsedType.data}
     />
@@ -111,17 +112,6 @@ function FreePracticeRunner({ level, practiceType }: FreePracticeRunnerProps) {
   const [finishedSession, setFinishedSession] = useState<WritingSessionRes | null>(null);
 
   const finishMutation = useFinishWritingSession();
-
-  // 레벨/유형 변경 시 완전 초기화 — 1회 reset (cascading render 위험 X)
-  // TODO: 정석 fix = key prop 재마운트 패턴 (parent 에서 key 전달). 새 세션 처리.
-  useEffect(() => {
-    setCurrentIndex(0);
-    setAttempt(0);
-    setText("");
-    setStats(INITIAL_STATS);
-    setSessionId(null);
-    setFinishedSession(null);
-  }, [level, practiceType]);
 
   const items = data?.items ?? [];
   const totalItems = items.length;
