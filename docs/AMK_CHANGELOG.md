@@ -1,8 +1,49 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 M-010 사고 정정 = A1-1 Live Secrets 이미 적용 (2026-03-18) 미인지. Step 3/4 ✅ + M-010 신규 등재
+updated: 2026-05-08 §7.6 SPF 가이드 정정 (외부 검증 후) — _spf.resend.com (NXDOMAIN) → send.resend.com / Paddle include 제거
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오후) — §7.6 SPF 가이드 외부 검증 후 정정 (어제 작성 시 호스트명/필요성 추측)**
+
+  사용자 지적 = "어제 정착한 4원칙 (CLAUDE.md) 본인이 무시 + 사고 등재만 하고 행동 변화 없음 = 무책임". 수용. 룰 추가 제안 철회. 본 작업 = 외부 사실 검증 후 §7.6 정정만 진행 (M-011 별도 등재 X = `룰 추가 무한 루프 회피` 정책 준수).
+
+  ## 외부 검증 결과
+
+  - **현재 실 SPF**: `v=spf1 include:_spf.mx.cloudflare.net ~all` (Cloudflare Email Routing 만, Resend 미포함)
+  - **현재 DKIM**: `resend._domainkey.amazingkorean.net` ✅ 등록됨
+  - **현재 DMARC**: `v=DMARC1; p=quarantine; rua=mailto:noreply@amazingkorean.net; pct=100`
+  - **`_spf.resend.com`**: NXDOMAIN (Status 3, **존재하지 않음**)
+  - **`send.resend.com`**: ✅ 존재 = `v=spf1 include:amazonses.com ~all` (Resend = AWS SES 위에 빌드)
+  - **Paddle Customer Emails**: `@paddle.com` 자체 도메인 발송 (`AMK_DEPLOY_OPS §8.5 1689 참고` 명시) → `amazingkorean.net` SPF 영향 없음
+
+  ## 어제 §7.6 가이드 오류 3건
+
+  | 어제 표기 | 사실 |
+  |---|---|
+  | `include:_spf.resend.com` | NXDOMAIN, **존재하지 않음**. 정확 = `send.resend.com` |
+  | `include:_spf.paddle.com` | Paddle Custom email domain 미사용 → **불필요** |
+  | (누락) `include:_spf.mx.cloudflare.net` | Cloudflare Email Routing 활성, **유지 필수** |
+
+  ## 정확한 SPF 변경
+
+  ```
+  Before: v=spf1 include:_spf.mx.cloudflare.net ~all
+  After:  v=spf1 include:send.resend.com include:_spf.mx.cloudflare.net ~all
+  ```
+
+  ## DKIM Pass 보완 효과
+
+  현재 = SPF fail 이지만 DKIM pass 로 DMARC `quarantine` 정책 통과 중 (relaxed alignment). 즉 **현재도 메일 발송 정상**. 본 SPF 추가 = 일부 엄격한 받는 측 (enterprise filter) 까지 완전 정착 + 보안 모범 사례 준수.
+
+  ## 정정 파일
+
+  - `docs/AMK_DEPLOY_OPS.md §7.6` 전면 정정 (현재 실 DNS 상태 / 발송 서비스별 SPF 필요성 / 정확한 SPF 변경 / 검증 절차 = curl + Google DNS / 함정 회피 / 작업 흐름)
+  - `docs/AMK_DEBTS.md A1-4` 비고 = 정확한 SPF 변경 명시
+
+  ## 본 사고에서의 학습 (룰 추가 X, 행동 변화 O)
+
+  CLAUDE.md "AI 작업 원칙 4원칙" (어제 정착) = **본 세션에서 본인이 직접 무시**. 룰 부재가 아니라 룰 적용 절차의 문제. 본 commit 부터 = (1) 외부 사실 검증을 권고 출력 전 강제 / (2) 부분 정정 패턴 회피 (카테고리 stale = 전체 검증) / (3) 사용자 인지도 stale 가능성 항상 의심.
 
 - **2026-05-08 (오전 추가) — M-010 사고 정정: A1-1 GitHub Secrets 12개 = 이미 Live 적용 (2026-03-18 추정) 미인지**
 
