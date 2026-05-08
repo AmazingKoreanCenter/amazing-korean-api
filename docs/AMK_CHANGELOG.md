@@ -1,8 +1,76 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 A1-4 ✅ SPF 병합 적용 완료 (사용자 Cloudflare DNS + propagation 검증). A1 카테고리 모두 해결 (§0 39건)
+updated: 2026-05-08 Paddle Dashboard Payout Settings ✅ 검증 (스크린샷 2장). A1 + Step 6 모두 종결, 잔여 = Step 5 E2E 검증
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오후 후속 2) — Paddle Dashboard Payout Settings ✅ 검증 (스크린샷 2장)**
+
+  사용자 Paddle Dashboard 측 Payout Settings 스크린샷 2장 공유 → 본 리포에서 검증.
+
+  ## Payout Settings 정착 내용
+
+  ### 기본 (스크린샷 1)
+
+  | 영역 | 필드 | 값 |
+  |---|---|---|
+  | Country | | South Korea |
+  | Business Details | Account Type | Corporation |
+  | | Legal Name | `HYMN Co., Ltd.` |
+  | | VAT Number | (Optional, 비움 — 한국 VAT registered 아님) |
+  | | Business Address | 350 Hannuri-daero / 30121 / Sejong-si |
+  | Company Representative | Your Name | `Kyoung Ryun Kim` |
+  | Payment Method | | Wire transfer |
+  | Minimum Threshold | | $100 |
+
+  ### Wire transfer details (스크린샷 2)
+
+  | 필드 | 값 |
+  |---|---|
+  | Bank Country / Currency | South Korea / USD |
+  | Bank Name | `KEB Hana Bank` |
+  | Bank Address | `35 Eulji ro Jung gu Seoul South Korea` (본점 주소) |
+  | **Account Holder Name** | **`HYMN CO.,LTD.`** (통장 표기 정확 일치) |
+  | BIC / SWIFT | `KOEXKRSE` |
+  | Account Number | `91591001863238` (통장의 `915-910018-63238` 하이픈 제거) |
+
+  ## 검증 노트
+
+  ### Bank Address = 본점 주소 사용 = 정확 ✅
+
+  - 통장 표기 = `275 Hannuri-daero Sejong` (Sejong Jungang Banking Center 지점)
+  - Paddle 입력 = `35 Eulji-ro Jung-gu Seoul` (KEB Hana Bank 본점)
+  - SWIFT 코드 `KOEXKRSE` = KEB Hana Bank 전체 (지점 무관) → wire transfer 표준 = 본점 주소 사용 = ✅
+
+  ### Legal Name vs Account Holder Name 차이 = 의도된 것 ✅
+
+  - Legal Name = `HYMN Co., Ltd.` (사업자등록증 표기) = Paddle 계정 운영 법인
+  - Account Holder Name = `HYMN CO.,LTD.` (통장 표기) = 송금받는 계좌 명의 정확 일치
+  - 두 필드 의미 다름, 표기 일치 불필요. Account Holder Name 만 통장과 일치하면 송금 정상
+
+  ## 효과
+
+  **A1 카테고리 + Step 6 = 모두 종결**. Live 결제 매출 수령 채널 활성. 본 리포 docs `AMK_STATUS §8.5 Step 6` 두 번째 항목 ~~취소선~~ + ✅ 마킹.
+
+  ## 잔여 (Live 활성 후)
+
+  **Step 5 E2E 검증 11개 시나리오만**:
+  1. API Health (curl /health 200 OK)
+  2. Plans API (sandbox: false 확인)
+  3. E-book Catalog (Live Price ID)
+  4. Webhook Simulator (Dashboard 테스트 이벤트)
+  5. 구독 실결제 (1개월 $10)
+  6. 구독 Discount (3개월 $25)
+  7. 구독 환불 (Dashboard refund)
+  8. E-book 실결제
+  9. E-book 환불
+  10. Retain URL 검증
+  11. 프론트 UX (/pricing /ebook /ebook/my)
+
+  ## 변경 파일
+
+  - `docs/AMK_STATUS.md §8.5 Step 6` ~~취소선~~ + Paddle Dashboard 입력 내역 정착 + 검증 노트 (Bank Address / Legal Name vs Account Holder Name)
+  - `docs/AMK_STATUS.md Q7` 잔여 갱신 (Step 5 E2E 검증만)
 
 - **2026-05-08 (오후 후속) — A1-4 ✅ SPF 병합 적용 완료 (사용자 Cloudflare DNS + propagation 검증)**
 

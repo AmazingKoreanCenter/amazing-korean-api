@@ -152,7 +152,7 @@
 | Q4 | 중간 | 기타 locale 영수증 번역 개별 추가 — 현재 20개 locale 은 영어 fallback. 일본어/중국어 우선 번역 권장. | 반나절 | 동일 |
 | ~~Q5~~ | ✅ 완료 | ~~사용자 검색 UI~~ — `admin_textbook_order_create.tsx` 의 user_id 수동 입력을 검색 콤보박스로 대체. 신규 `UserSearchCombobox` 컴포넌트 (Input + 300ms debounce + 드롭다운). 백엔드 `useAdminUsers({q})` 재사용 (이메일 blind index exact match / 닉네임 LIKE). 수동 입력 토글 폴백 유지. **2026-04-22 완료** (프론트만, `npm run build` 9.09s 성공). | 반나절 | #75 "후속 작업" (AMK_CHANGELOG 2026-04-19) |
 | ~~Q6~~ | ✅ 완료 | ~~`admin_textbook_log` Create 액션 조회 UI~~ — 신규 엔드포인트 `GET /admin/textbook/logs` + action/order_id/admin_user_id 필터 + 페이지네이션. 프론트: `/admin/textbook/logs` 페이지 + orders 페이지 상단 "감사 로그" 버튼. 관리자 이메일은 서비스 레이어에서 `CryptoService.decrypt` 복호화. **2026-04-22 완료** (cargo check + clippy 클린, frontend build 8.04s 성공). | 반나절 | 동일 |
-| Q7 | 낮음 | **Paddle Live 전환** — 사실상 활성 (sandbox=false, Live IDs 사용) | E2E 검증 1-2h | §8.2 #1 + §8.5. KYB ✅ (2026-02) + GitHub Secrets ✅ (2026-03-18 Live) + 배포 ✅ + 통장 ✅ (2026-05-08) + **SPF ✅ (2026-05-08)**. **잔여 = (a) Paddle Dashboard Payout Account Holder Name 입력 (`HYMN CO.,LTD.`) / (b) Step 5 E2E 검증 11개 시나리오** |
+| Q7 | 낮음 | **Paddle Live 전환** — 활성 (sandbox=false, Live IDs, SPF + DKIM + Payout 정착) | E2E 검증 1-2h | §8.2 #1 + §8.5. KYB ✅ (2026-02) + GitHub Secrets ✅ (2026-03-18 Live) + 배포 ✅ + 통장 ✅ (2026-05-08) + SPF ✅ (2026-05-08) + **Paddle Dashboard Payout ✅ (2026-05-08, 스크린샷 검증)**. **잔여 = Step 5 E2E 검증 11개 시나리오** (실 transaction / Webhook / 환불 흐름 확인) |
 | Q8 | 낮음 | **K6 성능 테스트 실행** — `k6/` 디렉터리 세팅은 완료. 테스트 계정 생성 후 smoke + load 시나리오 실행 | 0.5일 | §8.2 #12. **블록: 테스트 계정 생성 필요** |
 | Q9 | 낮음 | **E-book 로컬 파일시스템 의존 해소** — `ebook/service.rs` 9곳 `fs::read` 를 S3/CDN 으로 전환. RDS 이전 선행 작업. | 3~5일 | §8.2 #6 검증된 리스크 CRITICAL. 앱 개발 이후 공식 로드맵에 있음 |
 | ~~Q10~~ | ✅ 완료 | ~~QA run 2026-04-22 프론트 수정 3건 묶음~~ — 2.1 ebook subtitle 공백 + 2.2 textbook subtitle 공백 + 2.4 `/book` 캐러셀 dot `aria-label`. `<br className="hidden sm:block" />` 패턴 **전수 6곳** (ebook/textbook 카탈로그 + coming_soon + error 3종) 모두 `<>{" "}<br.../></>` 로 교체 (모바일 공백 보존). 캐러셀 dot 은 전수 **3곳** (book_hub + ebook_detail_modal + textbook_detail_modal) 에 `aria-label={t("common.goToSlide", { n })}` + `aria-current` 추가. i18n 키 `common.goToSlide` 신규 (ko/en). **2026-04-22 완료** (`npm run build` 9.74s 성공). | 30분 | `docs/QA_결과.md` 2.1/2.2/2.4 |
@@ -438,15 +438,30 @@ Paddle Dashboard → **Catalog → Discounts** 에서 3개 생성:
 
 > ⚠️ Live 모드 = 실제 결제. 테스트 후 반드시 Dashboard에서 환불 처리.
 
-##### Step 6: 은행 — 유저
+##### ~~Step 6: 은행 — 유저~~ ✅ **2026-05-08 완료**
 
-- ~~하나은행 세종중앙금융센터(044-867-1111)에 USD 계좌 영문 예금주명 등록 요청~~ ✅ **2026-05-08 완료 (사용자 통보, 통장 사진 확인)**
+- ~~하나은행 세종중앙금융센터(044-867-1111)에 USD 계좌 영문 예금주명 등록 요청~~ ✅ **2026-05-08 (통장 개설)**
   - 계좌 종류 = **Multi-Foreign Currency Savings Account** (USD 포함 다중 외화 입금 가능)
   - 예금주명 = **`HYMN CO.,LTD.`** (법인 명의, 대문자 + 콤마 + 마침표)
   - 개설일 = 2026.03.16
   - 지점 = KEB Hana Bank Sejong Jungang Banking Center (275, Hannuri-daero, Sejong, 30127, South Korea)
   - SWIFT/BIC = `KOEXKRSE`
-- **잔여**: Paddle Dashboard → Payout Settings → Account Holder Name 입력 = **`HYMN CO.,LTD.`** (통장 표기와 정확히 일치 필수, 대소문자 + 공백 + 콤마 + 마침표 모두 동일하게. 불일치 시 송금 reject). 한국은 IBAN/Routing Number 사용 X (해당 필드 비워둠)
+- ~~Paddle Dashboard → Payout Settings 입력~~ ✅ **2026-05-08 완료 (스크린샷 확인)**
+  - **Country**: South Korea
+  - **Business Details**: Account Type = Corporation / Legal Name = `HYMN Co., Ltd.` / VAT = Optional 비움 / Address = 350 Hannuri-daero, 30121 Sejong-si
+  - **Company Representative**: `Kyoung Ryun Kim` / DOB
+  - **Payment Method**: Wire transfer / Minimum Threshold = $100
+  - **Wire transfer details**:
+    - Bank Country = South Korea / Transfer Currency = USD
+    - Bank Name = `KEB Hana Bank`
+    - Bank Address = `35 Eulji ro Jung gu Seoul South Korea` (KEB Hana Bank 본점 주소 = wire transfer 표준)
+    - **Account Holder Name = `HYMN CO.,LTD.`** (통장 표기와 정확히 일치)
+    - BIC/SWIFT = `KOEXKRSE`
+    - Account Number = `91591001863238` (통장의 `915-910018-63238` 하이픈 제거)
+
+> **Bank Address 정합 노트**: 통장 표기 (`275 Hannuri-daero Sejong`, 지점 주소) ≠ Paddle 입력 (`35 Eulji-ro Jung-gu Seoul`, 본점 주소). Wire transfer 표준 = SWIFT 코드 보유 본점 주소 사용 → Paddle 입력이 정확.
+>
+> **Legal Name vs Account Holder Name 차이 노트**: Legal Name = `HYMN Co., Ltd.` (사업자등록증 표기) / Account Holder Name = `HYMN CO.,LTD.` (통장 표기 정확 일치). 두 필드 의미 다름, 일치 불필요.
 
 #### 가격 구조
 
