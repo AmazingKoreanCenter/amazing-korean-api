@@ -179,7 +179,7 @@
 | ~~Paddle Live~~ | ~~Webhook Secret 1회성 (재확인 불가)~~ | — | ✅ **해결 (2026-02 추정)**. `AMK_STATUS §8.5 #7` Secret Key 확보 완료 → A1-1 의 `PADDLE_WEBHOOK_SECRET` 항목으로 업데이트 시 재사용 |
 | ~~Paddle Live~~ | ~~KYB/Onfido 인증 지연 가능~~ | — | ✅ **해결 (2026-02-21~25 추정 승인)**. `AMK_STATUS §8.5 #1 = ✅` |
 | Paddle Live | SPF 레코드 병합 (Resend + Paddle) | MEDIUM | `AMK_DEPLOY_OPS §7.6` (가이드 정착 2026-05-07). **즉시 가능** (KYB 완료, 사용자 5-10m) |
-| Paddle Live | 하나은행 USD 계좌 영문 예금주명 등록 (Payout) | HIGH | `AMK_STATUS §8.5 Step 6`. Live 활성 후 매출 수령 채널 (사용자 외부 작업) |
+| ~~Paddle Live~~ | ~~하나은행 USD 계좌 영문 예금주명 등록 (Payout)~~ | — | ✅ **해결 (2026-05-08, 사용자 통보)** 통장 개설 완료. 잔여 = Paddle Dashboard Payout Settings 입력 (A1-1 GitHub Secrets 업데이트와 같은 시점) |
 | RDS 이전 | E-book 로컬 파일시스템 의존 (9곳 fs read) | CRITICAL | ebook/service.rs:63,381,627,641,650,731,746,755 + watermark.rs:13 (HEAD 2026-05-04) |
 | RDS 이전 | SSL 연결 필수 (현재 미사용) | HIGH | config.rs:109-110 (DATABASE_URL localhost 기본값) |
 | RDS 이전 | ElastiCache AUTH 토큰 필요 (현재 인증 없음) | HIGH | config.rs:113 (redis://127.0.0.1:6379) |
@@ -436,8 +436,8 @@ Paddle Dashboard → **Catalog → Discounts** 에서 3개 생성:
 
 ##### Step 6: 은행 — 유저
 
-- 하나은행 세종중앙금융센터(044-867-1111)에 USD 계좌 영문 예금주명 등록 요청
-- 등록 후 Paddle Dashboard → Payout Settings → Account Holder Name 입력
+- ~~하나은행 세종중앙금융센터(044-867-1111)에 USD 계좌 영문 예금주명 등록 요청~~ ✅ **2026-05-08 완료 (사용자 통보)**
+- **잔여**: Paddle Dashboard → Payout Settings → Account Holder Name 입력 (하나은행 등록명과 정확히 일치 필수, 불일치 시 송금 reject)
 
 #### 가격 구조
 

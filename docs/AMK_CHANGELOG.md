@@ -1,8 +1,33 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 A1 Paddle KYB stale 정정 9곳 (KYB 이미 완료 확인, AMK_DEBTS §0 42→41, A1-2/A1-3 ✅ + A1-5 신규)
+updated: 2026-05-08 A1-5 ✅ 하나은행 USD 통장 개설 완료 (사용자 통보). AMK_DEBTS §0 41→40
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오전 후속) — A1-5 ✅ 하나은행 USD 통장 개설 완료 (사용자 통보)**
+
+  사용자 통보 = 하나은행 USD 계좌 영문 예금주명 등록 완료. Live 결제 활성 후 매출 수령 채널 확보.
+
+  ## 처리
+
+  - `AMK_DEBTS A1-5` ~~취소선~~ + ✅ 해결 마킹
+  - `AMK_DEBTS §0` 카운트 갱신 (A 6 → 5, 총 미해결 41 → **40**)
+  - `AMK_STATUS` 검증된 리스크 표 은행 행 ~~취소선~~ + ✅
+  - `AMK_STATUS §8.5 Step 6` 첫 줄 ~~취소선~~ ✅, 두 번째 줄 = "Paddle Dashboard Payout Settings 입력" 잔여 명시
+
+  ## 잔여 (사용자 작업)
+
+  Paddle Dashboard → Payout Settings → Account Holder Name 입력. **하나은행 등록명과 정확히 일치 필수** (불일치 시 송금 reject). A1-1 GitHub Secrets 업데이트 + Step 4 자동 배포 + Step 5 E2E 검증과 같은 시점에 묶어서 처리 권장.
+
+  ## A1 카테고리 잔여 (2건)
+
+  - **A1-1** GitHub Secrets 12개 일괄 교체 (CRITICAL, 사용자 작업)
+  - **A1-4** SPF 레코드 병합 (Resend + Paddle, MEDIUM, 사용자 Cloudflare DNS 5-10m)
+
+  ## 변경 파일
+
+  - `docs/AMK_DEBTS.md` — A1-5 ✅ 마킹 + §0 카운트 (A 6→5, 총 41→40)
+  - `docs/AMK_STATUS.md` — 검증된 리스크 표 은행 행 + §8.5 Step 6
 
 - **2026-05-08 (오전) — A1 Paddle KYB stale 정정 9곳 (KYB 이미 완료 사실 확인)**
 
