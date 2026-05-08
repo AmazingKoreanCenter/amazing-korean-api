@@ -59,6 +59,15 @@
 - `src/api/{domain}/` — 백엔드 도메인별 모듈 (dto → repo → service → handler → router)
 - `frontend/src/category/{domain}/` — 프론트엔드 도메인별 모듈 (types → api → hook → page)
 
+## AI 작업 원칙 (Karpathy 4원칙, 2026-05-07 정착)
+
+> 출처: [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) (⭐117K, Andrej Karpathy 의 LLM 코딩 함정 관찰 기반).
+
+1. **모르면 물어봐** — 가정 명시. 모호하면 옵션+비용 형식으로 에스컬레이션 (`feedback_decision_templates.md` / `feedback_tier_based_delegation.md`)
+2. **단순하게 짜** — 시킨 것만. 추측성 추상 / 불가능 시나리오 에러 처리 / "혹시 모를" 옵션 추가 X. 200줄 → 50줄 가능하면 줄여
+3. **시킨 것만 고쳐** — 인접 코드 / 스타일 / 무관 리팩터 X. 변경한 코드의 orphans 만 정리 (`feedback_sed_migration_lessons.md`)
+4. **성공 기준 정해 반복** — "X 추가" → "X 검증 테스트 통과" 형식. 본 리포 = 작업 흐름 7단계 검증 강제 (cargo check → npm build → docs → STATUS → CHANGELOG → 메모리)
+
 ## 핵심 규칙
 
 ### 코드 변경 시

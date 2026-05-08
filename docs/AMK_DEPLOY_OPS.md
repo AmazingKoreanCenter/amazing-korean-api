@@ -1504,59 +1504,87 @@ main 룰 우회 필요 시 (예: 긴급 hotfix):
 1. Settings → Branches → main 룰 → "Do not allow bypassing" OFF (이미 default)
 2. 또는 임시 룰 비활성: "Branch matches" 체크 해제 → 작업 → 원복
 
-### 이메일 발송 SPF 정책 (A1-4, 2026-05-07 가이드 정착)
+### 이메일 발송 SPF 정책 (A1-4, 2026-05-08 외부 검증 후 정정)
 
+> **2026-05-08 정정**: 어제 (2026-05-07) 신설 본 섹션 = 호스트명 외부 검증 없이 작성 → 잘못된 SPF 호스트명 (`_spf.resend.com` = NXDOMAIN). 본 정정 = 실 DNS lookup + Resend SPF chain 추적 검증 후 정확한 표기.
 > 한 도메인에 여러 메일 발송 서비스가 있을 때 **SPF TXT 레코드 1개에 모든 서비스 include 통합**. 표준상 SPF TXT 가 여러 개면 모두 무효 처리되므로 병합 필수.
 
-#### 현재 상태
+#### 현재 실 DNS 상태 (2026-05-08 검증)
 
-- **Resend** (`amazingkorean.net` 발신, 인증/구독/이메일 인증코드) = SPF include 활성
-- **Paddle Live** (영수증/구독 알림) = **KYB 인증 후 활성 예정** = include 추가 필요
+```
+SPF:   v=spf1 include:_spf.mx.cloudflare.net ~all   (Cloudflare Email Routing 만)
+MX:    route1/2/3.mx.cloudflare.net (Cloudflare Email Routing 활성)
+DKIM:  resend._domainkey.amazingkorean.net ✅ 등록됨 (Resend 측)
+DMARC: v=DMARC1; p=quarantine; rua=mailto:noreply@amazingkorean.net; pct=100
+```
 
-#### 병합된 SPF 레코드 (Paddle Live 활성 시)
+→ **현재 Resend 발송 메일 = SPF fail 이지만 DKIM pass 로 DMARC 통과 중** (relaxed alignment). 일부 엄격한 받는 측은 spam 처리 가능 → SPF 추가로 완전 정착 권장.
 
-Cloudflare DNS → Records → 기존 `amazingkorean.net` SPF TXT 레코드 편집:
+#### 발송 서비스별 SPF 필요성
+
+| 서비스 | SPF 필요 | 사유 |
+|---|:--:|---|
+| **Resend** (인증/구독/이메일 인증코드, `@amazingkorean.net` From) | ✅ 필수 | Custom domain From 발송 = SPF + DKIM 둘 다 필요 |
+| **Cloudflare Email Routing** (현재 active) | ✅ 필수 | 현재 정착 (`_spf.mx.cloudflare.net`) |
+| **Paddle Customer Emails** (영수증/구독 알림) | ❌ 불필요 | Paddle 자체 도메인 (`@paddle.com`) 발송 = `amazingkorean.net` SPF 영향 없음 (Custom email domain 사용 시만 필요, 우리는 미사용) |
+
+#### 정확한 SPF 변경 (실 작업)
+
+| 상태 | 값 |
+|---|---|
+| **현재** | `v=spf1 include:_spf.mx.cloudflare.net ~all` |
+| **변경 후** | `v=spf1 include:send.resend.com include:_spf.mx.cloudflare.net ~all` |
+
+> Resend 공식 호스트명 = **`send.resend.com`** (실 DNS lookup 검증 = `v=spf1 include:amazonses.com ~all`. Resend = AWS SES 위에 빌드).
+
+Cloudflare DNS → Records → 기존 SPF TXT 레코드 편집:
 
 ```
 Type: TXT
 Name: amazingkorean.net (또는 @)
-Value: v=spf1 include:_spf.resend.com include:_spf.paddle.com ~all
+Value: v=spf1 include:send.resend.com include:_spf.mx.cloudflare.net ~all
 TTL: Auto
 ```
 
 #### 검증 절차
 
+본 리포 환경 (dig 미설치) = curl + Google DNS over HTTPS 사용:
+
 ```bash
 # 1) DNS 적용 확인 (1-5분 propagation)
-dig +short TXT amazingkorean.net | grep spf
-# 기대: "v=spf1 include:_spf.resend.com include:_spf.paddle.com ~all"
+curl -s 'https://dns.google/resolve?name=amazingkorean.net&type=TXT' | python3 -c "import sys, json; [print(a['data']) for a in json.load(sys.stdin).get('Answer', []) if 'spf' in a.get('data', '').lower()]"
+# 기대: v=spf1 include:send.resend.com include:_spf.mx.cloudflare.net ~all
 
-# 2) SPF 레코드 1개 만 존재 확인 (여러 개면 모두 무효)
-dig +short TXT amazingkorean.net | grep -c spf
-# 기대: 1
-
-# 3) 외부 SPF 검증 도구
+# 2) 외부 SPF 검증 도구
+# https://mxtoolbox.com/spf.aspx → SPF Valid + 0 errors
 # https://www.kitterman.com/spf/validate.html → SPF Record Lookup
-# https://mxtoolbox.com/spf.aspx → SPF check
+
+# 3) 실 메일 헤더 확인 (Resend 발송 → Gmail 수신)
+# Authentication-Results 라인:
+#   spf=pass smtp.mailfrom=amazingkorean.net   (이전: fail → 변경 후: pass)
+#   dkim=pass header.d=amazingkorean.net       (이미 pass, 변경 없음)
+#   dmarc=pass
 ```
 
 #### 함정 / 사고 회피
 
 | 패턴 | 영향 | 회피 |
 |------|------|------|
-| SPF TXT 레코드 2개 분리 (Resend 1개 + Paddle 1개) | RFC 7208 상 둘 다 invalid → Gmail/Outlook 스팸 처리 | **반드시 1개로 병합** |
-| `include:` 한도 10개 초과 | DNS lookup 한계 (RFC 7208) → permerror | 본 케이스 = 2개라 안전. 향후 추가 시 한도 체크 |
-| `~all` (soft fail) → `-all` (hard fail) 변경 | 강한 보호이지만 잘못 설정 시 정상 메일도 차단 | 현재 `~all` 권장. `-all` 은 검증 후 |
-| Cloudflare Email Routing 추가 활성 시 | Email Routing 은 receive 만, send 영향 없음 (별개) | SPF 영향 없음 |
+| SPF TXT 레코드 2개 분리 (Resend 1개 + Cloudflare 1개) | RFC 7208 상 둘 다 invalid → 모든 메일 SPF fail | **반드시 1개로 병합** |
+| `include:` 한도 10개 초과 | DNS lookup 한계 (RFC 7208) → permerror | 본 케이스 = `send.resend.com` (1) → `amazonses.com` (1) + `_spf.mx.cloudflare.net` (1-2) = ~3-4회. 안전 범위 |
+| `~all` (soft fail) → `-all` (hard fail) 변경 | 강한 보호이지만 잘못 설정 시 정상 메일도 차단 | 현재 `~all` 권장 (DMARC `quarantine` 정책으로 보완). `-all` 은 검증 후 |
+| Resend 호스트명 추측 (`_spf.resend.com` = NXDOMAIN) | SPF resolve 실패 → fail | 정확한 표기 = `send.resend.com` (실 DNS 검증됨, AWS SES chain) |
+| Paddle SPF 추가 시도 (불필요) | 추가 lookup 비용만 발생 | Paddle Customer Emails = `@paddle.com` 발송 → SPF 영향 없음 |
 
-#### Paddle 활성 시점 작업 흐름
+#### 작업 흐름 (사용자, 5-10분)
 
-1. KYB 인증 완료 (Paddle 측, 외부 처리)
-2. Paddle Dashboard → Notifications → SPF 안내 확인 (`_spf.paddle.com` 정확한 호스트명 확인)
-3. Cloudflare DNS → 위 레코드 추가/수정
-4. 1-5분 propagation 대기 → 위 검증 절차
-5. Paddle 측 테스트 메일 발송 → 도착 + 스팸 미처리 확인
-6. AMK_DEBTS A1-4 ✅ 해결 마킹
+1. Cloudflare 대시보드 → `amazingkorean.net` zone → DNS → Records
+2. 기존 `v=spf1 include:_spf.mx.cloudflare.net ~all` SPF TXT 레코드 (Name = `amazingkorean.net` 또는 `@`) → Edit
+3. Value = `v=spf1 include:send.resend.com include:_spf.mx.cloudflare.net ~all` → Save
+4. 1-5분 propagation → 위 검증 절차 #1 실행
+5. 외부 도구 검증 (mxtoolbox / kitterman) → SPF Valid
+6. 실 메일 테스트 (선택, 효과 확인)
+7. AMK_DEBTS A1-4 ✅ 해결 마킹
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 
@@ -1579,7 +1607,7 @@ dig +short TXT amazingkorean.net | grep -c spf
 
 ## 8.5. Paddle Live 전환 가이드
 
-> Sandbox → Production 전환 체크리스트. KYB/Onfido 승인 완료 후 실행.
+> Sandbox → Production 전환 체크리스트. **KYB/Onfido 승인 ✅ 완료 (2026-02-21~25 추정)**. 본 가이드는 §8.5 표 (18개 항목 모두 ✅) + "남은 작업" Step 3~6 (사용자 작업) 으로 구성.
 > Sandbox ↔ Live는 완전 별도 환경 — 상품, 가격, API 키, 웹훅 모두 재생성 필요.
 > 공식 문서: [Go-live checklist](https://developer.paddle.com/build/onboarding/go-live-checklist) · [Setup checklist](https://developer.paddle.com/build/onboarding/set-up-checklist)
 
