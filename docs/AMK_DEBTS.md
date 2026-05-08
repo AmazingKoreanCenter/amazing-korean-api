@@ -24,7 +24,7 @@
 | B. 보안 부채 (외부 통신) | **1** | B6 ipgeo HTTP-only. ~~B7 Paddle amount~~ ✅ 해결 (2026-05-04, commit `c744efc`) |
 | C. 코드 품질 부채 | ~~2~~ → ~~1~~ → **0** | ~~C1~~ ✅ ESLint baseline 종결 (2026-05-08 후속 — static-components 9 / refs 5 / set-state-in-effect 2 / warnings 12 모두 처리). ~~C2~~ ✅ lint:ui (2026-05-08 신규 토큰). ~~C3/C4/C5/C6/C7/C8~C13~~ 처리/수용. B5/B6 = B 카테고리 재분류 |
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
-| E. 기능 부채 (보류/조건부) | **11** | 9 (보류 8 + STATUS #11 이메일 수신 ✅) + **신규 3** (콘텐츠 시딩, SpeechSuper, 번들 최적화) |
+| E. 기능 부채 (보류/조건부) | **11** | 9 (E-9~E-19 보류 9건, ~~번들 최적화~~ ✅ C7 해결 2026-05-05) + **신규 2** (콘텐츠 시딩 E-FUTURE-1, SpeechSuper E-TEXTBOOK-1). E-FUTURE-2 발음/조음/TTS 3건 = ai 측 작업 트랙 (`AMK_AI_PRONUNCIATION.md`), 본 리포 능동 작업 0 = 카운트 외 |
 | F. 모바일/데스크탑 앱 부채 | ~~5~~ → **1** | 외부 리포 SSoT. 2026-05-08 stale 정정 = ~~F1/F2/F3~~ ✅ (mobile 리포 Phase 1~3 완료 사실 반영) + ~~F4~~ ✅ (TTL 90→300 본 리포 적용). F5 만 수용 잔존 |
 | G. 자동 검증 부재 (CI 부채) | ~~5~~ → **4** | ~~G3/G4/G5/G6/G7/G11/G13/G14~~ ✅ 해결 또는 🟡 수용 (2026-05-05) + ~~G8~~ ✅ 해결 (2026-05-08 사용자 GitHub UI 적용 + gh api 검증). 잔여 = G1/G2 (보류 cargo test/playwright) + G10 src 테스트 부족 + G12 cargo-geiger (보류) |
 | H. 문서/메모리 부채 | **0** | ~~H1 메모리 stale~~ 🟡 + ~~H2 docs↔코드 자동 도구~~ 🟡 = 수용 결정 (2026-05-05) |
@@ -458,40 +458,41 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 
 ---
 
-## 우선순위 매트릭스 (2026-05-04 정정)
+## 우선순위 매트릭스 (2026-05-09 재구성 — 잔여 32건 기준)
 
-### 즉시 처리 권장 (위험 vs 비용 = 위험 우세)
+> **이전 매트릭스 (2026-05-04~05) 8+5+5건 모두 stale 처리됨**: 즉시 권장 8건 (B1 webpki / B3 npm / J1 / B4 / C3+C4 / G6 / A4-1+A4-2 / A4-4) ✅ + 중기 5건 (Q16 ESLint+lint:ui = C1+C2 / B2 imageproc 수용 / A4-3+A4-5+A4-7 / C5 / C8-C13 수용) ✅ 모두 종결 또는 수용. 본 매트릭스 = 잔여 32건 기준 새로 작성.
 
-| 우선 | 항목 | 사유 |
-|:-:|------|------|
-| 1 | **B1 rustls-webpki 3건 upgrade** | `cargo update` 1 명령 |
-| ~~2~~ | ~~**B3 npm postcss + follow-redirects + basic-ftp HIGH**~~ | ✅ 해결 2026-05-04 (commit `ee68c7c`) |
-| ~~3~~ | ~~**J1 RATE_LIMIT_TEXTBOOK_* 동기화**~~ | ✅ 해결 2026-05-05 (commit `7aae36a`) |
-| ~~4~~ | ~~**B4 unwrap 위험 2건 (auth/service.rs:397, 1396)**~~ | ✅ 해결 2026-05-04 (commit `ad239ed`) |
-| 5 | **C3+C4 rustfmt baseline** | 본 PR 결정 대기 |
-| ~~6~~ | ~~**G6 dependabot 도입**~~ | ✅ 해결 2026-05-05 (commit `9367f72`, A4-8 동시) |
-| 7 | **A4-1, A4-2 SSL/HTTPS + certbot 자동 갱신** | 90일 만료 대비 (외부 트리거 없으면 잊기 쉬움) |
-| ~~8~~ | ~~**A4-4 DB/Redis 백업 정책**~~ | ✅ 해결 2026-05-07 (옵션 A 수동 정기, `scripts/backup.sh`) |
-
-### 중기 (1-2주 내)
+### 🟢 능동 처리 가능 (사용자 결정 대기)
 
 | 우선 | 항목 | 사유 |
 |:-:|------|------|
-| 9 | **Q16 ESLint + lint:ui baseline (36 errors)** | 디자인 토큰 결정 + 1-2일 |
-| 10 | **B2 imageproc unsound 3건** | watermark 영향 점검 |
-| 11 | **A4-3, A4-5, A4-7 디스크 모니터링 + log 로테이션 + nginx rate limit 모니터링** | 무한 누적 방지 |
-| 12 | **C5 STATUS §8.2 #13 정정 (이미 해결)** | 문서 갱신 |
-| 13 | **C8-C13 룰 회피 카운트 점검** | 죽은 코드 / clippy allow 정리 |
+| 1 | **G10** 백엔드 src/ 테스트 부족 (`#[test]` 4건만) | 시작 도메인 결정 = auth 권장 (anti-enumeration / argon2 / Blind Index 핵심 경로). G1/G2 보류 별개로 본 리포 단위 테스트 추가 |
 
-### 장기 (트리거 조건 충족 시)
+### 🟡 외부 트리거 대기 (능동 처리 X)
 
-A1 Paddle Live (사용자 GitHub Secrets + 은행 등록, KYB 완료 = 즉시 가능), A2 RDS 이전 (앱 개발 후), E 기능 부채 (트리거 조건), F 앱 부채 (앱 개발 시).
+| 우선 | 항목 | 트리거 |
+|:-:|------|--------|
+| 2 | **A2 / D 묶음 (4건)** RDS 이전 = E-book fs::read 9곳 → S3 / PostgreSQL SSL / Redis AUTH / WebP S3 | 앱 개발 완료 (~1.5개월) |
+| 3 | **E1 (9건)** GeoIP / step-up MFA / 토큰 Redis / Keyset 페이징 / Lesson stats / 동적 생성 / 통계 비동기 / OAuth 통합 / manager 역할 | 트래픽 / 데이터 / 결제 트리거별 |
+| 4 | **E2 (1건)** 콘텐츠 시딩 Phase 2/3 | books 리포 분류/수정 완료 후 본 리포 진입 (2026-05-07 결정) |
+| 5 | **E3 (1건)** SpeechSuper API 프로토타이핑 | textbook Phase 2 |
+| 6 | **B6** ipgeo HTTP-only | 수익 발생 후 유료 전환 (ip-api $13/월) 또는 MaxMind 별도 트랙. E-9 (E1) 와 통합 가능 |
+| 7 | **N-26** i18n 결정 | 사용자 결정 (ai 측 4월 14일 stale, 재가동 vs 본 리포 직접 vs 영어 fallback) |
 
-### 보류 명시
+### 🔴 수용 결정 (처리 X, 재평가 트리거 시)
 
-- ~~G8 branch protection~~ ✅ **해결 (2026-05-08 사용자 GitHub UI 적용)** — main = PR 강제 + linear history + force push/deletion 차단 / KKRYOUN = force push 허용 + deletion 차단
-- B1 rsa Marvin Attack (No fixed upgrade — 대안 검토 필요)
-- G12 cargo-geiger (unsafe 0건이라 우선순위 낮음)
+- **B1** rsa Marvin Attack — No fixed upgrade. sqlx-macros compile-time only + PostgreSQL only = production runtime 영향 0. upstream sqlx fix 대기
+- **B2** Rust 의존성 unsound/unmaintained 7건 (imageproc 3 / rand 2 / core2 / paste) — 영향 분석 결과 production 영향 낮음 / 0. upstream fix 대기
+- **F5** Tauri macOS 캡처 방지 불가 — Apple 정책 수용. 워터마크 + 법적 억제력으로 대체
+- **G1/G2** cargo test / playwright e2e CI 실행 (Q17, 명시 보류)
+- **G7** secret scanning / GHAS — private repo + 1인 환경 + config.rs hardcoded secret 0건 = 위험 작음
+- **G12** cargo-geiger — unsafe 0건이라 우선순위 낮음
+- **H1/H2** 메모리 stale / docs↔코드 자동 도구 — 사용자 결정 (룰 추가 X 의도)
+- **J4** panic 게이트 동기화 룰 강제 X — feedback_deploy_env_sync.md 인라인 룰 / M-008 사고 기록만
+
+### 📋 별도 SSoT
+
+- **I (8건)** AI 작업 사고 (M-001 ~ M-010, 2026-05-08 누적). `docs/AMK_AI_MISTAKES.md` SSoT. 사고 기록 + 회피 룰 정착 = 능동 처리 대상 X (룰 추가 무한 루프 회피 정책)
 
 ---
 
