@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+// shadcn 패턴: 컴포넌트 + variants 동일 파일 export (정책: docs/AMK_DEBTS C8-C13 의도 수용 정착)
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"

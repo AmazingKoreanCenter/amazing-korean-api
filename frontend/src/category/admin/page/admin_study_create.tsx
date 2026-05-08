@@ -867,6 +867,7 @@ export function AdminStudyCreate() {
                     {fields.map((field, index) => (
                       <div key={field.id} className="rounded-lg border p-4">
                         <div className="mb-3 flex items-center justify-between">
+                          {/* eslint-disable-next-line react-hooks/incompatible-library -- react-hook-form watch() 메모이제이션 불가, 라이브러리 한계 */}
                           <Badge variant={getTaskKindBadgeVariant(bulkTaskForm.watch(`items.${index}.study_task_kind`))}>
                             Task #{index + 1}
                           </Badge>

@@ -120,7 +120,8 @@ export function SignupPage() {
   });
 
   const onSubmit = (values: SignupFormValues) => {
-    const { confirm_password: _, ...apiData } = values;
+    const { confirm_password: _confirmPassword, ...apiData } = values;
+    void _confirmPassword;
     signupMutation.mutate(apiData, {
       onSuccess: (data) => {
         if (data.requires_verification) {

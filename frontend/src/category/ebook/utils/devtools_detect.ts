@@ -28,7 +28,7 @@ function setupConsoleDetection(): void {
 
   consoleIntervalId = setInterval(() => {
     consoleDetected = false;
-    // eslint-disable-next-line no-console
+     
     console.log("%c", element);
   }, 3000);
 }
@@ -59,7 +59,7 @@ export function useDevToolsDetection(onDetected: () => void, onCleared?: () => v
   const detectedRef = useRef(false);
   const graceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const stableOnDetected = useCallback(onDetected, [onDetected]);
+  const stableOnDetected = useCallback(() => onDetected(), [onDetected]);
   const stableOnCleared = useCallback(() => onCleared?.(), [onCleared]);
 
   useEffect(() => {

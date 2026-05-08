@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+// 영수증 컴포넌트 + helpers 동일 파일 export (정책: docs/AMK_DEBTS C8-C13 의도 수용 정착)
 // 교재 영수증 전용 공통 파트 컴포넌트 모음.
 // 사용자 인쇄 페이지(textbook_order_print.tsx)와 관리자 인쇄 페이지
 // (admin_textbook_order_print.tsx)에서 공통 사용. VAT 율과 통화별 소수점
@@ -164,7 +166,7 @@ export function ReceiptTotalBreakdown({
               {formatReceiptAmount(grossAmount, currency)} {currency}
             </span>
           </div>
-          <div className="flex justify-between px-4 py-2 text-sm text-destructive print:text-red-700">
+          <div className="flex justify-between px-4 py-2 text-sm text-destructive print:text-destructive">
             <span className="flex-1">
               − {t(`${ns}.discount`)}
               {discountReason && (

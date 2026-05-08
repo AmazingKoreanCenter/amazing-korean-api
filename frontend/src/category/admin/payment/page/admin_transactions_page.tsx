@@ -31,6 +31,21 @@ type SortOrder = "asc" | "desc";
 
 const formatCents = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
+type SortIconProps = {
+  field: SortField;
+  currentField: SortField;
+  order: SortOrder;
+};
+
+const SortIcon = ({ field, currentField, order }: SortIconProps) => {
+  if (currentField !== field) return null;
+  return order === "asc" ? (
+    <ChevronUp className="ms-1 h-4 w-4 inline" />
+  ) : (
+    <ChevronDown className="ms-1 h-4 w-4 inline" />
+  );
+};
+
 export function AdminTransactionsPage() {
   const { t } = useTranslation();
   const [params, setParams] = useState<AdminTxnListReq>({ page: 1, size: 20 });
@@ -62,15 +77,6 @@ export function AdminTransactionsPage() {
 
   const handlePageChange = (page: number) => {
     setParams((prev) => ({ ...prev, page }));
-  };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return null;
-    return sortOrder === "asc" ? (
-      <ChevronUp className="ms-1 h-4 w-4 inline" />
-    ) : (
-      <ChevronDown className="ms-1 h-4 w-4 inline" />
-    );
   };
 
   return (
@@ -127,23 +133,23 @@ export function AdminTransactionsPage() {
             <tr>
               <th className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("id")}>
-                {t("admin.payment.colId")}<SortIcon field="id" />
+                {t("admin.payment.colId")}<SortIcon field="id" currentField={sortField} order={sortOrder} />
               </th>
               <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colEmail")}</th>
               <th className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("status")}>
-                {t("admin.payment.colStatus")}<SortIcon field="status" />
+                {t("admin.payment.colStatus")}<SortIcon field="status" currentField={sortField} order={sortOrder} />
               </th>
               <th className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("amount")}>
-                {t("admin.payment.colAmount")}<SortIcon field="amount" />
+                {t("admin.payment.colAmount")}<SortIcon field="amount" currentField={sortField} order={sortOrder} />
               </th>
               <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colTax")}</th>
               <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colCurrency")}</th>
               <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colInterval")}</th>
               <th className="px-4 py-3 text-start font-semibold text-secondary-foreground cursor-pointer hover:bg-secondary/80"
                   onClick={() => handleSort("occurred_at")}>
-                {t("admin.payment.colDate")}<SortIcon field="occurred_at" />
+                {t("admin.payment.colDate")}<SortIcon field="occurred_at" currentField={sortField} order={sortOrder} />
               </th>
               <th className="px-4 py-3 text-start font-semibold text-secondary-foreground">{t("admin.payment.colSub")}</th>
             </tr>

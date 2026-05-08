@@ -41,6 +41,15 @@ theme: {
         DEFAULT: 'hsl(var(--destructive))',
         foreground: 'hsl(var(--destructive-foreground))'
       },
+      highlight: {
+        DEFAULT: 'hsl(var(--highlight))',
+        foreground: 'hsl(var(--highlight-foreground))'
+      },
+      'level-1': 'hsl(var(--level-1))',
+      'level-2': 'hsl(var(--level-2))',
+      'level-3': 'hsl(var(--level-3))',
+      'level-4': 'hsl(var(--level-4))',
+      'level-5': 'hsl(var(--level-5))',
       border: 'hsl(var(--border))',
       input: 'hsl(var(--input))',
       ring: 'hsl(var(--ring))',

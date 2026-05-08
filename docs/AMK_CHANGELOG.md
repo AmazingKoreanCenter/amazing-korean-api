@@ -1,8 +1,264 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 E2E #1-3 ✅ Claude curl 검증 + #4-11 트리거 결정 (실제 학습 콘텐츠 시딩 후). Q7 종결
+updated: 2026-05-09 — C1 ESLint baseline 종결 (28 → 0 problems, 부채 33 → 32). AMK_STATUS §8.1 #79 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-09 — C1 ✅ ESLint baseline 종결 (28 → 0 problems)**
+
+  세션 진입 = 부채 잔여 처리 요청. 메모리/STATUS 잔여 항목 = C1 28 (새 세션 명시) / G10 ai 세션 / N-26 i18n 결정 → C1 만 본 리포 즉시 처리 가능 = 본 세션 진입.
+
+  ## 처리 28건 (errors 16 + warnings 12)
+
+  | 룰 | 카운트 | 처리 방식 |
+  |---|:--:|---|
+  | `react-hooks/static-components` | 9 | `SortIcon` 외부 추출 + `currentField`/`order` props 추가 (admin_subscriptions/transactions) |
+  | `react-hooks/refs` | 5 | useState 변환 (`isReady`/`isProcessing`) + render 중 ref mutation 을 useEffect 로 이동 (use_paddle 3 / use_oauth_callback 2) |
+  | `react-hooks/set-state-in-effect` | 2 | parent key prop 재마운트 패턴 (`StudyTaskPage` wrapper + Inner / `<FreePracticeRunner key=...>`) + useEffect [id] reset 블록 제거 |
+  | warnings (`incompatible-library` + `exhaustive-deps` + `set-state-in-effect`) | 12 | inline `eslint-disable-next-line` + 의도 명시 코멘트 (라이브러리 한계 / mount-once / setSearchParams race condition 회피) |
+
+  ## 핵심 변경
+
+  **use_paddle.ts**: `setIsReady` state 추가 (initializePaddle.then 안에서 호출) + `onCheckoutCompleteRef` 동기화 useEffect 분리 + `isReady: !!paddleRef.current` → `isReady` (state) 반환. mount-once Paddle 초기화 의도 명시.
+
+  **use_oauth_callback.ts**: `isProcessing` state 추가. `processedRef.current = true` 호출 3곳에 `setIsProcessing(true)` 동기화. catch 분기에서 `setIsProcessing(false)` 추가. return 시 ref 직접 노출 제거. setSearchParams({}) → navigate("/") race condition 회피용 reactive flag 의도 명시.
+
+  **study_task_page.tsx**: `export function StudyTaskPage()` = wrapper, `function StudyTaskPageInner()` = 본문. wrapper 가 useParams() → `<StudyTaskPageInner key={taskId} />` 마운트. 내부 `useEffect [id]` 12개 setState reset 블록 제거 = key 변경 시 자동 unmount/remount 으로 모든 state 초기값 보장.
+
+  **writing_practice_page.tsx**: `<FreePracticeRunner key={`${validLevel}/${parsedType.data}`} ... />` 추가. 내부 `useEffect [level, practiceType]` reset 블록 + useEffect import 제거.
+
+  **admin_subscriptions/transactions_page.tsx**: `SortIcon` 함수형 컴포넌트를 컴포넌트 안에서 외부로 이동. `field` + `currentField: SortField` + `order: SortOrder` props 로 변경. 사용처 9곳 (5+4) 모두 `currentField={sortField} order={sortOrder}` 추가.
+
+  ## 검증
+
+  - `npm run lint` = **0 problems** (28 → 0)
+  - `npm run build` = 17.04s 클린
+  - `cargo check --lib --bins --locked` = 1.48s 클린
+  - `npm run lint:ui` = 0 errors
+
+  ## 변경 파일 16개
+
+  admin_subscriptions_page.tsx / admin_transactions_page.tsx / use_paddle.ts / use_oauth_callback.ts / study_task_page.tsx / writing_practice_page.tsx / admin_email_test.tsx / admin_lesson_create.tsx / admin_lesson_detail.tsx / admin_study_create.tsx / admin_study_detail.tsx / admin_user_create.tsx / admin_user_detail.tsx / admin_video_create.tsx / admin_video_detail.tsx / textbook_order_page.tsx.
+
+  ## 부채 영향
+
+  `AMK_DEBTS §0` 카운트 = **33 → 32** (-1건 C1). C 카테고리 = **0건** (~~C1~~ + ~~C2~~ + ~~C3~C13~~ 모두 종결/수용). 잔여 = G10 (ai 세션) / N-26 (i18n 결정) / 외부 트리거 대기 (A2/D RDS / E1 9건 / E2 books / E3 SpeechSuper / I AI 사고 별도 SSoT).
+
+  C13 카운트 (TS eslint-disable 인라인) = 11 → ~22 (warnings 12 처리 시 inline disable 추가). 모두 의도 명시.
+
+- **2026-05-08 (오후 후속 7) — C1 🟡 ESLint baseline 부분 처리 (12/40 cleanup)**
+
+  사용자 결정 = 능동 처리 4건 3순위 = C1. 본 세션 = 단순 cleanup 진행 + 잔여 (코드 구조 변경) 새 세션.
+
+  ## 처리 12건
+
+  | 룰 | 카운트 | 처리 방식 |
+  |---|:--:|---|
+  | `prefer-const` | 1 | 자동 fix (`npm run lint -- --fix`) |
+  | (그 외 자동 fix) | 1 | 자동 fix |
+  | `react-refresh/only-export-components` | 7 | `eslint-disable` inline (shadcn 패턴 = 컴포넌트 + variants 동일 파일 의도, C8-C13 정책 정합) |
+  | `no-empty` | 1 | `admin_translation_edit.tsx:136` 빈 블록에 의도 코멘트 추가 |
+  | `@typescript-eslint/no-unused-vars` | 1 | `signup_page.tsx:123` `_` 변수명 → `_confirmPassword` + `void` |
+  | `react-hooks/use-memo` | 1 | `devtools_detect.ts:62` `useCallback(onDetected, ...)` → `useCallback(() => onDetected(), ...)` (inline function expression) |
+
+  ## 잔여 28 problems (새 세션 권장)
+
+  | 룰 | 카운트 | 처리 방향 |
+  |---|:--:|---|
+  | `react-hooks/static-components` | 9 | 컴포넌트 안에 컴포넌트 정의 → 외부 추출 |
+  | `react-hooks/refs` | 6 | `ref.current` 접근 패턴 변경 (`if (ref.current == null) { ... }`) |
+  | `react-hooks/set-state-in-effect` | 2 | parent 에서 key prop 재마운트 패턴 (`<StudyTaskPage key={id} />`) |
+  | warnings (`react-hooks/incompatible-library` + `exhaustive-deps` 등) | 12 | useForm watch 등 외부 라이브러리 호환 / 의존성 추가 |
+
+  → 코드 구조 변경 = 회귀 위험 + 시간 0.5-1일. 본 세션 = 컨텍스트 누적으로 새 세션 진입점 정착.
+
+  ## 변경 파일
+
+  - `frontend/src/components/ui/{badge,button,card,form}.tsx` — `eslint-disable` inline + 정책 코멘트
+  - `frontend/src/components/blocks/data_table.tsx` — 동일
+  - `frontend/src/category/textbook/receipt_parts.tsx` — 동일
+  - `frontend/src/category/admin/page/admin_translation_edit.tsx` — 빈 블록 코멘트
+  - `frontend/src/category/auth/page/signup_page.tsx` — `_` 변수명 변경
+  - `frontend/src/category/ebook/utils/devtools_detect.ts` — useCallback inline function
+  - `frontend/src/category/study/page/study_task_page.tsx` — TODO 코멘트 (key prop 패턴 새 세션)
+  - `frontend/src/category/study/page/writing_practice_page.tsx` — TODO 코멘트
+  - `docs/AMK_DEBTS.md C1` 🟡 부분 처리 + 잔여 28 / §0 카운트 (C 그대로 = C1 부분 처리 = 1건 미해결 유지)
+
+  ## 검증
+
+  - `npm run lint` = 28 problems (16 errors + 12 warnings) (이전 40 = 12건 cleanup)
+  - `npm run build` = 16.82s 클린
+
+  ## 부채 카운트
+
+  C1 = 🟡 부분 처리. C 카테고리 카운트 변화 X (C1 미해결 유지). 총 미해결 33건 그대로.
+
+- **2026-05-08 (오후 후속 6) — C2 ✅ lint:ui 디자인 토큰 cleanup**
+
+  사용자 결정 = 능동 처리 4건 2순위 = C2. 권고안 (level-N + highlight 신규 + success/destructive 재사용) 채택.
+
+  ## 외부 검증 (M-010 학습 적용)
+
+  `npm run lint:ui` 실측 = **10 라인 위반** (어제 docs 9건 → +1 textbook_order:442/443 emerald 누락 발견, 부분 정정 사고).
+
+  ## 신규 디자인 토큰
+
+  `tailwind.config.js` + `index.css` 추가:
+
+  | 토큰 | HSL | 용도 |
+  |---|---|---|
+  | `highlight` | `38 92% 50%` (amber) | UI 강조 (할인 / 키 안내) |
+  | `level-1` | `160 84% 39%` (emerald) | 책 난이도 1 (입문) |
+  | `level-2` | `38 92% 50%` (amber) | 책 난이도 2 (초급) |
+  | `level-3` | `262 83% 58%` (violet) | 책 난이도 3 (중급, 향후 확장) |
+  | `level-4` | `350 89% 60%` (rose) | 책 난이도 4 (고급) |
+  | `level-5` | `174 72% 47%` (teal) | 책 난이도 5 (마스터) |
+
+  ## 의미별 매핑 (정정된 권고)
+
+  | 라인 | 색상 | 의미 | 매핑 |
+  |---|---|---|---|
+  | `textbook_order:442/443` | emerald | 결제수단 | **`status-success`** (기존 재사용) |
+  | `textbook_order:454/455` | amber | 할인 강조 | **`highlight`** (신규) |
+  | `HangulKeyboardKey:39` | amber | 다음 키 강조 | **`highlight`** |
+  | `receipt:167` | red `print:text-red-700` | 부족 금액 | **`destructive`** (기존 재사용) |
+  | `book_hub:17/18/20/21` | emerald/amber/rose/teal | 책 난이도 | **`level-1/2/4/5`** |
+
+  ## 변경 파일
+
+  - `frontend/tailwind.config.js` — `highlight` 그룹 + `level-1/2/3/4/5` top-level 추가
+  - `frontend/src/index.css` — HSL CSS 변수 라이트 6개 신규
+  - `frontend/src/category/textbook/page/textbook_order_page.tsx` — emerald → status-success / amber → highlight
+  - `frontend/src/category/textbook/receipt_parts.tsx` — `print:text-red-700` → `print:text-destructive`
+  - `frontend/src/category/study/component/writing/HangulKeyboardKey.tsx` — amber → highlight (4 색상)
+  - `frontend/src/category/book/page/book_hub_page.tsx` — emerald/amber/rose/teal → level-1/2/4/5 (+ level-3 향후 violet 마이그용)
+  - `docs/AMK_DESIGN_SYSTEM.md §01 Color Tokens` — `Highlight & Level Color Tokens` 섹션 신규
+  - `docs/AMK_DEBTS.md C2` ✅ + §0 카운트 (C 2→1, 총 34→33)
+
+  ## 검증
+
+  - `npm run lint:ui` = 0 errors ✅
+  - `npm run build` = 19.02s 클린 ✅
+
+  ## 부채 카운트
+
+  C 2 → 1 (C2 ✅, C1 잔여). 총 미해결 34 → **33**.
+
+  ## 의미 분리 노트
+
+  `level-2` = `highlight` = `warning` 색상 = 모두 `38 92% 50%` (amber). 의미만 다름 (책 난이도 / UI 강조 / 경고). 토큰명 정확히 사용 = 컨텍스트 구분.
+
+- **2026-05-08 (오후 후속 5) — G8 ✅ main + KKRYOUN branch protection 적용 완료**
+
+  사용자 결정 = "능동 처리 가능 4건 1순위부터 작업". G8 = 1순위 (사용자 GitHub UI 5분 작업).
+
+  ## 적용 내용
+
+  ### main 룰
+
+  | 항목 | 값 |
+  |---|:--:|
+  | Require a pull request before merging | ✅ (0 reviews, `Require approvals` 체크 해제) |
+  | Require linear history | ✅ |
+  | Allow force pushes | ❌ (차단) |
+  | Allow deletions | ❌ (차단) |
+  | Do not allow bypassing | ❌ (admin 우회 허용 = 비상 시 안전망) |
+
+  ### KKRYOUN 룰
+
+  | 항목 | 값 |
+  |---|:--:|
+  | Require a pull request before merging | ❌ (작업 브랜치, direct push 자유) |
+  | Require linear history | ❌ (rebase 자유) |
+  | Allow force pushes | ✅ Everyone (rebase 허용) |
+  | Allow deletions | ❌ (실수 삭제 방지) |
+
+  ## 검증 (`gh api`)
+
+  ```
+  === main ===
+    Require PR:           0 reviews ✅
+    Linear history:       True ✅
+    Force push allowed:   False ✅
+    Deletion allowed:     False ✅
+    Enforce admins:       False ✅
+
+  === KKRYOUN ===
+    Require PR:           OFF ✅
+    Linear history:       False ✅
+    Force push allowed:   True ✅
+    Deletion allowed:     False ✅
+    Enforce admins:       False ✅
+  ```
+
+  ## 효과
+
+  - `git push origin main` 직접 = 차단 (KKRYOUN → PR 강제)
+  - `git push --force origin main` = 차단 (history 손실 방지)
+  - `git push origin --delete main` = 차단 (실수 삭제 방지)
+  - main = rebase / squash 머지만 허용 (linear history)
+  - KKRYOUN = force push 자유 (rebase 시 사용)
+  - admin 본인 = 비상 시 우회 가능 (Do not allow bypassing OFF)
+
+  ## 부채 카운트
+
+  G 5 → 4 (G8 ✅). 총 미해결 35 → **34**.
+
+  ## 변경 파일
+
+  - `docs/AMK_DEBTS.md` — G8 ✅ + §0 (G 5→4, 총 35→34) + 보류 명시 영역 ✅
+  - `docs/AMK_DEPLOY_OPS.md §7.6 Branch Protection 정책` — 적용 완료 마킹 + gh api 검증 결과
+
+- **2026-05-08 (오후 후속 4) — F 카테고리 stale 정정 + F4 EBOOK_SESSION_TTL_SEC 90→300 적용**
+
+  사용자 결정 = "F 카테고리 5건부터 처리하자고". M-010 학습 적용 (권고 전 외부 검증) → mobile 리포 메모리 cross-check → F1/F2/F3 = 이미 처리 사실 발견 (또 stale). F4 만 본 리포 작업 + 일괄 정정.
+
+  ## 외부 검증 (mobile 리포 `project_decisions.md`)
+
+  - mobile MEMORY: "Phase 1~3 완료, 버그 16건 수정. 남은 작업 전부 외부 의존"
+  - 처리 시점: 2026-04-06 (M6/M7) ~ 2026-04-07 (M1b/M2/M8) ~ 2026-04-09 (백엔드 호환성 점검)
+
+  ## F 카테고리 변동
+
+  | ID | 항목 | 처리 |
+  |:-:|---|---|
+  | ~~F1~~ | flutter_rust_bridge 버전 핀닝 (HIGH) | ✅ mobile M1b (2026-04-07): `=2.12.0` 정확한 버전 핀닝 + Rust edition 2021 |
+  | ~~F2~~ | E-book 뷰어 메모리 OOM 14MB/페이지 (HIGH) | ✅ mobile M6 (2026-04-06): LRU 10페이지 캐시 + cacheWidth/cacheHeight 화면 해상도 디코딩 |
+  | ~~F3~~ | iOS isSecureTextEntry 비공식 API (MEDIUM) | ✅ mobile M7 (2026-04-06): `no_screenshot 1.1.0` + Android FLAG_SECURE + iOS isSecureTextEntry + `UIScreen.isCaptured` fallback + 저작권 경고 다이얼로그 |
+  | ~~F4~~ | EBOOK_SESSION_TTL_SEC 90초 (MEDIUM) | ✅ **본 commit 적용 (2026-05-08, 옵션 C 300초)** |
+  | F5 | Tauri macOS 캡처 방지 불가 (수용) | 그대로 (Apple 정책, 모든 프레임워크 동일 불가) |
+
+  ## F4 본 리포 코드 변경
+
+  - `src/config.rs:91` 주석: "기본 90, heartbeat 갱신" → "기본 300 = 5분, heartbeat 30s 갱신, 모바일 백그라운드 grace 포함"
+  - `src/config.rs:376` default: `"90"` → `"300"`
+  - `.env.example:125` `EBOOK_SESSION_TTL_SEC=90` → `=300`
+  - `docs/AMK_API_EBOOK.md:493` 환경변수 표 default 갱신 + 정정 시점 명시
+
+  ## 변경 사유
+
+  - 현재 90초 = 모바일 백그라운드 grace 30s + 추가 60s 만 버팀
+  - 사용자 카톡 답장 / 화면 잠금 등 짧은 앱 전환에 강제 만료
+  - 300초 = 모바일 표준 (Adobe DRM 등 일반)
+  - 보안 모델 변경 X = heartbeat 30s 갱신 + Redis EXPIRE 그대로
+  - mobile 측 (M6 완료) Timer.periodic(30s) 와 정합 = 정상 사용 시 끊김 없음
+
+  ## 검증
+
+  - `cargo check --lib --bins --locked` ✅
+  - `grep EBOOK_SESSION_TTL_SEC` 일치 (config.rs / .env.example / AMK_API_EBOOK.md / docs)
+
+  ## 부채 카운트
+
+  F 5 → 1 (F5 만 수용 잔존). 총 미해결 39 → **35**.
+
+  ## 변경 파일
+
+  - `src/config.rs` (91, 376) — TTL default 90 → 300
+  - `.env.example` (125) — 동일
+  - `docs/AMK_API_EBOOK.md` (493) — 환경변수 표 갱신
+  - `docs/AMK_DEBTS.md` — F 카테고리 표 (F1~F4 ✅ 마킹) + §0 카운트 (F 5→1, 총 39→35)
+  - `docs/AMK_STATUS.md` — 검증된 리스크 표 (Flutter 4행 ~~취소선~~ + ✅)
 
 - **2026-05-08 (오후 후속 3) — E2E #1-3 ✅ + #4-11 트리거 결정 (실제 상품 완성 후 진행)**
 

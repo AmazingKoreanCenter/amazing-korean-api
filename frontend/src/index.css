@@ -45,6 +45,17 @@
     --info: 217 91% 53%;
     --info-foreground: 0 0% 100%;
 
+    /* Highlight (UI 강조 — 할인 / 키 안내 등, amber 계열) */
+    --highlight: 38 92% 50%;
+    --highlight-foreground: 20 14% 4%;
+
+    /* Book level colors (책 난이도 5단계, book_hub_page) */
+    --level-1: 160 84% 39%;
+    --level-2: 38 92% 50%;
+    --level-3: 262 83% 58%;
+    --level-4: 350 89% 60%;
+    --level-5: 174 72% 47%;
+
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 222 90% 18%;

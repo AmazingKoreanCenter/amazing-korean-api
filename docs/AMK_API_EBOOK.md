@@ -490,7 +490,7 @@ frontend/src/category/admin/ebook/page/
 | `RATE_LIMIT_EBOOK_PAGE_WINDOW_SEC` | 60 | 페이지 제한 윈도우 (초) |
 | `RATE_LIMIT_EBOOK_PURCHASE_MAX` | 5 | 구매 요청 제한 (회/윈도우) |
 | `RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC` | 3600 | 구매 제한 윈도우 (초) |
-| `EBOOK_SESSION_TTL_SEC` | 90 | 뷰어 세션 TTL (초, heartbeat 갱신) |
+| `EBOOK_SESSION_TTL_SEC` | 300 | 뷰어 세션 TTL (초, heartbeat 30s 갱신, 모바일 백그라운드 grace 포함). 2026-05-08 90→300 (모바일 표준) |
 | `EBOOK_TILE_MODE` | false | 타일 분할 전송 활성화 |
 | `EBOOK_TILE_GRID_ROWS` | 3 | 타일 그리드 행 수 |
 | `EBOOK_TILE_GRID_COLS` | 3 | 타일 그리드 열 수 |

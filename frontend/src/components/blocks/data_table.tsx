@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+// 컴포넌트 + helpers 동일 파일 export (정책: docs/AMK_DEBTS C8-C13 의도 수용 정착)
 import { useState, type ReactNode } from "react";
 import { Search, ChevronUp, ChevronDown } from "lucide-react";
 
@@ -293,7 +295,7 @@ export function DataTable<T>({
             {(() => {
               const maxVisible = 5;
               let start = Math.max(1, page - Math.floor(maxVisible / 2));
-              let end = Math.min(totalPages, start + maxVisible - 1);
+              const end = Math.min(totalPages, start + maxVisible - 1);
               if (end - start + 1 < maxVisible) {
                 start = Math.max(1, end - maxVisible + 1);
               }

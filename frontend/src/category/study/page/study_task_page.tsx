@@ -237,6 +237,11 @@ function StatusBadge({ tryCount, isSolved }: { tryCount: number; isSolved: boole
 }
 
 export function StudyTaskPage() {
+  const { taskId } = useParams();
+  return <StudyTaskPageInner key={taskId ?? "no-id"} />;
+}
+
+function StudyTaskPageInner() {
   const { t } = useTranslation();
   const { taskId } = useParams();
   const [searchParams] = useSearchParams();
@@ -340,21 +345,6 @@ export function StudyTaskPage() {
       navigate("/studies", { replace: true });
     }
   }, [isValidId, navigate]);
-
-  // Reset form when task changes
-  useEffect(() => {
-    setSelectedChoice(null);
-    setTypingText("");
-    setVoiceText("");
-    setWritingText("");
-    setWritingStats({ total_chars: 0, correct_chars: 0, mistakes: [], duration_ms: 0 });
-    setWritingSessionId(null);
-    setWritingResult(null);
-    setWritingAttempt(0);
-    setShowExplain(false);
-    setShowCompletion(false);
-    submitMutation.reset();
-  }, [id]);
 
   const handleSubmit = () => {
     if (!data) return;

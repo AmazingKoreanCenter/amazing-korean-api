@@ -58,6 +58,7 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [oauthMfaPending, setOauthMfaPending] = useState<MfaPending | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // ─────────────────────────────────────────────────────────────────────────
   // 중복 처리 방지용 Ref
@@ -93,6 +94,8 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
     // ───────────────────────────────────────────────────────────────────────
     if (mfaRequired === "true" && mfaToken && mfaUserId) {
       processedRef.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-once OAuth flow, setSearchParams race condition 회피용 isProcessing flag
+      setIsProcessing(true);
       setOauthMfaPending({
         mfa_token: mfaToken,
         user_id: Number(mfaUserId),
@@ -108,6 +111,7 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
     // ───────────────────────────────────────────────────────────────────────
     if (error) {
       processedRef.current = true;
+      setIsProcessing(true);
       const message = errorDescription
         ? decodeURIComponent(errorDescription)
         : i18n.t("auth.toastGoogleLoginFailed");
@@ -122,6 +126,7 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
     // ───────────────────────────────────────────────────────────────────────
     if (loginSuccess === "success") {
       processedRef.current = true;
+      setIsProcessing(true);
 
       // ─────────────────────────────────────────────────────────────────────
       // Step 3-1: 리다이렉트 목적지 결정 함수
@@ -165,6 +170,7 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
             // 실제 실패: 에러 메시지 표시
             toast.error(i18n.t("auth.toastSessionFailed"));
             processedRef.current = false; // 재시도 허용
+            setIsProcessing(false);
             setSearchParams({});
           }
         });
@@ -182,7 +188,7 @@ export function useOAuthCallback(): UseOAuthCallbackReturn {
   ]);
 
   return {
-    isProcessing: processedRef.current,
+    isProcessing,
     hasOAuthParams,
     oauthMfaPending,
   };

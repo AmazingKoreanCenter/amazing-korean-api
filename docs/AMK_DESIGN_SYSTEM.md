@@ -132,6 +132,30 @@ Footer, CTA 섹션 등 항상 어두운 배경이 필요한 곳에 사용. `bg-p
 | chart-5 | `340 75% 55%` | `#E23670` | `340 75% 55%` | `#E23670` | Pink |
 | chart-6 | `280 65% 60%` | `#AF57DB` | `280 65% 65%` | `#B96CE0` | Purple |
 
+### Highlight & Level Color Tokens (2026-05-08 신규, C2 lint:ui cleanup)
+
+| 토큰 | 라이트 HSL | 용도 | 사용 예 |
+|------|-----------|------|---------|
+| `highlight` | `38 92% 50%` | UI 강조 (할인 BadgePercent / 키 안내 / amber 의미) | `bg-highlight/10 text-highlight ring-highlight` |
+| `level-1` | `160 84% 39%` | 책 난이도 1 (입문, emerald) | `bg-level-1/10 text-level-1 border-level-1/20` |
+| `level-2` | `38 92% 50%` | 책 난이도 2 (초급, amber) | 동일 패턴 |
+| `level-3` | `262 83% 58%` | 책 난이도 3 (중급, violet) | 동일 |
+| `level-4` | `350 89% 60%` | 책 난이도 4 (고급, rose) | 동일 |
+| `level-5` | `174 72% 47%` | 책 난이도 5 (마스터, teal) | 동일 |
+
+**의미 분리**:
+- `level-2` = `highlight` 색상 동일 (amber `38 92% 50%`) 이지만 컨텍스트 다름 (책 난이도 vs UI 강조). 토큰명으로 구분.
+- `warning` (`38 92% 50%`) 와도 색상 동일 = 의미 분리 (경고 vs 강조 vs 난이도). 사용 시 토큰명 정확히.
+
+```tsx
+// 책 난이도 (book_hub_page)
+<div className="bg-level-1/10 text-level-1 border-level-1/20">입문</div>
+
+// UI 강조 (할인 / 키 안내)
+<BadgePercent className="text-highlight" />
+<div className="border-highlight bg-highlight/10 text-highlight ring-highlight" />
+```
+
 ### Status Color 사용 패턴
 
 ```tsx
