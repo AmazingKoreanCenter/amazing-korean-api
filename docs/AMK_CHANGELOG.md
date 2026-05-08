@@ -1,8 +1,150 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 §7.6 SPF 가이드 정정 (외부 검증 후) — _spf.resend.com (NXDOMAIN) → send.resend.com / Paddle include 제거
+updated: 2026-05-08 E2E #1-3 ✅ Claude curl 검증 + #4-11 트리거 결정 (실제 학습 콘텐츠 시딩 후). Q7 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오후 후속 3) — E2E #1-3 ✅ + #4-11 트리거 결정 (실제 상품 완성 후 진행)**
+
+  Step 5 E2E 검증 11개 시나리오 분리 처리.
+
+  ## E2E #1-3 ✅ Claude curl 검증 완료 (2026-05-08)
+
+  | # | 시나리오 | 결과 |
+  |:-:|---|---|
+  | 1 | API Health | `HTTP/2 200` + `{"status":"live","uptime_ms":79680901}` (약 22h 가동, Cloudflare edge 통과) |
+  | 2 | Plans API | `sandbox: false` + `client_token: live_*` + Live Price IDs |
+  | 3 | E-book Catalog | `sandbox: false` + Live `paddle_ebook_price_id` |
+
+  ## E2E #4-11 = 실제 학습 콘텐츠 시딩 완료 후 진행 (사용자 결정)
+
+  사용자 결정: "결제 관련 테스트는 나중에 실제 상품이 만들어지고 하자고."
+
+  사유:
+  - 빈 시스템에서 실 카드 결제 + 환불 처리 = 비용 + 실 가치 검증 어려움
+  - 실제 상품 가치 정착 후 검증 = 운영 환경 정합 ↑
+  - Webhook / Retain / UX = 실 사용자 시나리오로 검증해야 의미 있음
+
+  트리거 = `AMK_STATUS §8.2 #3 학습 콘텐츠 시딩` 완료 시점.
+
+  ## Q7 = 종결 처리
+
+  Q7 = ~~취소선~~ + ✅ 종결. Live 결제 인프라 측 = 모두 활성 (KYB / Live Secrets / 배포 / SPF / DKIM / Payout / E2E #1-3 ✅). E2E #4-11 = 별도 트랙 (`AMK_STATUS §8.2 #3` 시딩 트리거).
+
+  ## 변경 파일
+
+  - `docs/AMK_STATUS.md Q7` ~~취소선~~ + ✅ 종결 + E2E #1-3 / #4-11 트랙 분리 명시
+  - `docs/AMK_STATUS.md §8.5 Step 5` 표 = #1-3 ✅ + #4-11 🟡 (트리거 + 사유 명시)
+  - 메모리 `project_decisions.md` "Paddle Live E2E 검증 시점" 결정 신규 등재
+
+- **2026-05-08 (오후 후속 2) — Paddle Dashboard Payout Settings ✅ 검증 (스크린샷 2장)**
+
+  사용자 Paddle Dashboard 측 Payout Settings 스크린샷 2장 공유 → 본 리포에서 검증.
+
+  ## Payout Settings 정착 내용
+
+  ### 기본 (스크린샷 1)
+
+  | 영역 | 필드 | 값 |
+  |---|---|---|
+  | Country | | South Korea |
+  | Business Details | Account Type | Corporation |
+  | | Legal Name | `HYMN Co., Ltd.` |
+  | | VAT Number | (Optional, 비움 — 한국 VAT registered 아님) |
+  | | Business Address | 350 Hannuri-daero / 30121 / Sejong-si |
+  | Company Representative | Your Name | `Kyoung Ryun Kim` |
+  | Payment Method | | Wire transfer |
+  | Minimum Threshold | | $100 |
+
+  ### Wire transfer details (스크린샷 2)
+
+  | 필드 | 값 |
+  |---|---|
+  | Bank Country / Currency | South Korea / USD |
+  | Bank Name | `KEB Hana Bank` |
+  | Bank Address | `35 Eulji ro Jung gu Seoul South Korea` (본점 주소) |
+  | **Account Holder Name** | **`HYMN CO.,LTD.`** (통장 표기 정확 일치) |
+  | BIC / SWIFT | `KOEXKRSE` |
+  | Account Number | `91591001863238` (통장의 `915-910018-63238` 하이픈 제거) |
+
+  ## 검증 노트
+
+  ### Bank Address = 본점 주소 사용 = 정확 ✅
+
+  - 통장 표기 = `275 Hannuri-daero Sejong` (Sejong Jungang Banking Center 지점)
+  - Paddle 입력 = `35 Eulji-ro Jung-gu Seoul` (KEB Hana Bank 본점)
+  - SWIFT 코드 `KOEXKRSE` = KEB Hana Bank 전체 (지점 무관) → wire transfer 표준 = 본점 주소 사용 = ✅
+
+  ### Legal Name vs Account Holder Name 차이 = 의도된 것 ✅
+
+  - Legal Name = `HYMN Co., Ltd.` (사업자등록증 표기) = Paddle 계정 운영 법인
+  - Account Holder Name = `HYMN CO.,LTD.` (통장 표기) = 송금받는 계좌 명의 정확 일치
+  - 두 필드 의미 다름, 표기 일치 불필요. Account Holder Name 만 통장과 일치하면 송금 정상
+
+  ## 효과
+
+  **A1 카테고리 + Step 6 = 모두 종결**. Live 결제 매출 수령 채널 활성. 본 리포 docs `AMK_STATUS §8.5 Step 6` 두 번째 항목 ~~취소선~~ + ✅ 마킹.
+
+  ## 잔여 (Live 활성 후)
+
+  **Step 5 E2E 검증 11개 시나리오만**:
+  1. API Health (curl /health 200 OK)
+  2. Plans API (sandbox: false 확인)
+  3. E-book Catalog (Live Price ID)
+  4. Webhook Simulator (Dashboard 테스트 이벤트)
+  5. 구독 실결제 (1개월 $10)
+  6. 구독 Discount (3개월 $25)
+  7. 구독 환불 (Dashboard refund)
+  8. E-book 실결제
+  9. E-book 환불
+  10. Retain URL 검증
+  11. 프론트 UX (/pricing /ebook /ebook/my)
+
+  ## 변경 파일
+
+  - `docs/AMK_STATUS.md §8.5 Step 6` ~~취소선~~ + Paddle Dashboard 입력 내역 정착 + 검증 노트 (Bank Address / Legal Name vs Account Holder Name)
+  - `docs/AMK_STATUS.md Q7` 잔여 갱신 (Step 5 E2E 검증만)
+
+- **2026-05-08 (오후 후속) — A1-4 ✅ SPF 병합 적용 완료 (사용자 Cloudflare DNS + propagation 검증)**
+
+  사용자 Cloudflare DNS 대시보드에서 SPF TXT 레코드 변경 → Google DNS polling 으로 propagation 감지 즉시 검증.
+
+  ## 검증 결과
+
+  - **새 SPF 레코드**: `v=spf1 include:send.resend.com include:_spf.mx.cloudflare.net ~all`
+  - **SPF TXT 레코드 1개** (병합 무효 X, google-site-verification 은 SPF 아님)
+  - **SPF chain**: `send.resend.com` → `include:amazonses.com` (Resend = AWS SES, 정상)
+  - **DNS lookup 카운트**: ~3-4회 (RFC 7208 한도 10 이내, 안전)
+
+  ## 효과
+
+  - 이전 = SPF fail + DKIM pass = DMARC `quarantine` 통과 (relaxed alignment)
+  - 이후 = **SPF pass + DKIM pass = DMARC pass** (엄격한 받는 측 enterprise filter 까지 완전 정착)
+
+  ## A1 카테고리 = 모두 해결 ✅
+
+  | ID | 작업 | 시점 |
+  |:-:|---|---|
+  | ~~A1-1~~ | ~~12개 PADDLE_* Secret 일괄 교체~~ | 2026-03-18 추정 |
+  | ~~A1-2~~ | ~~Webhook Secret 1회성~~ | 2026-02 추정 |
+  | ~~A1-3~~ | ~~KYB/Onfido 인증~~ | 2026-02-21~25 추정 승인 |
+  | ~~A1-4~~ | ~~SPF 레코드 병합~~ | **2026-05-08 오후 적용 완료** |
+  | ~~A1-5~~ | ~~하나은행 USD 계좌~~ | 2026-05-08 (통장 사진 확인) |
+
+  ## §0 카운트
+
+  A 4 → 3 (A1 1 → 0). 총 미해결 40 → **39**.
+
+  ## Live 결제 활성 후 잔여 (A1 외, 사용자)
+
+  - Paddle Dashboard → Payout Settings → Account Holder Name = `HYMN CO.,LTD.` 입력 (통장 표기 정확 일치)
+  - Step 5: E2E 검증 11개 시나리오
+
+  ## 변경 파일
+
+  - `docs/AMK_DEBTS.md` — A1-4 ✅ 마킹 + §0 카운트 (A 4→3, 총 40→39)
+  - `docs/AMK_STATUS.md` — 검증된 리스크 표 SPF 행 + Q7 잔여 갱신
+  - `docs/AMK_DEPLOY_OPS.md §7.6` 작업 흐름 ✅ 마킹
 
 - **2026-05-08 (오후) — §7.6 SPF 가이드 외부 검증 후 정정 (어제 작성 시 호스트명/필요성 추측)**
 
