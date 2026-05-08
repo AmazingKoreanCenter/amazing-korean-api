@@ -1,6 +1,6 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 C1 🟡 ESLint 부분 처리 (12/40 cleanup, 잔여 28 = 새 세션 코드 구조 변경)
+updated: 2026-05-08 종결 (12 commit) — Paddle Live 인프라 100% 활성 + 부채 9건 종결 (42→33). AMK_STATUS §8.1 #78 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
