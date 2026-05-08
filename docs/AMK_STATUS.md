@@ -152,7 +152,7 @@
 | Q4 | 중간 | 기타 locale 영수증 번역 개별 추가 — 현재 20개 locale 은 영어 fallback. 일본어/중국어 우선 번역 권장. | 반나절 | 동일 |
 | ~~Q5~~ | ✅ 완료 | ~~사용자 검색 UI~~ — `admin_textbook_order_create.tsx` 의 user_id 수동 입력을 검색 콤보박스로 대체. 신규 `UserSearchCombobox` 컴포넌트 (Input + 300ms debounce + 드롭다운). 백엔드 `useAdminUsers({q})` 재사용 (이메일 blind index exact match / 닉네임 LIKE). 수동 입력 토글 폴백 유지. **2026-04-22 완료** (프론트만, `npm run build` 9.09s 성공). | 반나절 | #75 "후속 작업" (AMK_CHANGELOG 2026-04-19) |
 | ~~Q6~~ | ✅ 완료 | ~~`admin_textbook_log` Create 액션 조회 UI~~ — 신규 엔드포인트 `GET /admin/textbook/logs` + action/order_id/admin_user_id 필터 + 페이지네이션. 프론트: `/admin/textbook/logs` 페이지 + orders 페이지 상단 "감사 로그" 버튼. 관리자 이메일은 서비스 레이어에서 `CryptoService.decrypt` 복호화. **2026-04-22 완료** (cargo check + clippy 클린, frontend build 8.04s 성공). | 반나절 | 동일 |
-| Q7 | 낮음 | **Paddle Live 전환** — 활성 (sandbox=false, Live IDs, SPF + DKIM + Payout 정착) | E2E 검증 1-2h | §8.2 #1 + §8.5. KYB ✅ (2026-02) + GitHub Secrets ✅ (2026-03-18 Live) + 배포 ✅ + 통장 ✅ (2026-05-08) + SPF ✅ (2026-05-08) + **Paddle Dashboard Payout ✅ (2026-05-08, 스크린샷 검증)**. **잔여 = Step 5 E2E 검증 11개 시나리오** (실 transaction / Webhook / 환불 흐름 확인) |
+| ~~Q7~~ | ✅ 종결 | ~~**Paddle Live 전환**~~ — 인프라 측 모두 ✅ 활성 (sandbox=false, Live IDs, SPF + DKIM + Payout 정착) | — | §8.2 #1 + §8.5. KYB ✅ (2026-02) + GitHub Secrets ✅ (2026-03-18 Live) + 배포 ✅ + 통장 ✅ (2026-05-08) + SPF ✅ (2026-05-08) + Paddle Dashboard Payout ✅ (2026-05-08) + **E2E #1-3 ✅ (Claude 검증)**. **E2E #4-11 (실 transaction / Webhook / 환불 / Retain / 프론트 UX) = 실제 상품 완성 후 진행 결정 (사용자 2026-05-08)** = 별도 트랙, 시딩 (#3) 트리거 후 |
 | Q8 | 낮음 | **K6 성능 테스트 실행** — `k6/` 디렉터리 세팅은 완료. 테스트 계정 생성 후 smoke + load 시나리오 실행 | 0.5일 | §8.2 #12. **블록: 테스트 계정 생성 필요** |
 | Q9 | 낮음 | **E-book 로컬 파일시스템 의존 해소** — `ebook/service.rs` 9곳 `fs::read` 를 S3/CDN 으로 전환. RDS 이전 선행 작업. | 3~5일 | §8.2 #6 검증된 리스크 CRITICAL. 앱 개발 이후 공식 로드맵에 있음 |
 | ~~Q10~~ | ✅ 완료 | ~~QA run 2026-04-22 프론트 수정 3건 묶음~~ — 2.1 ebook subtitle 공백 + 2.2 textbook subtitle 공백 + 2.4 `/book` 캐러셀 dot `aria-label`. `<br className="hidden sm:block" />` 패턴 **전수 6곳** (ebook/textbook 카탈로그 + coming_soon + error 3종) 모두 `<>{" "}<br.../></>` 로 교체 (모바일 공백 보존). 캐러셀 dot 은 전수 **3곳** (book_hub + ebook_detail_modal + textbook_detail_modal) 에 `aria-label={t("common.goToSlide", { n })}` + `aria-current` 추가. i18n 키 `common.goToSlide` 신규 (ko/en). **2026-04-22 완료** (`npm run build` 9.74s 성공). | 30분 | `docs/QA_결과.md` 2.1/2.2/2.4 |
@@ -420,22 +420,23 @@ Paddle Dashboard → **Catalog → Discounts** 에서 3개 생성:
 1. ~~커밋 → push → GitHub Actions 자동 배포~~ ✅
 2. ~~서버 로그 확인: `💳 Payment provider enabled: Paddle Billing (Production)`~~ ✅
 
-##### Step 5: E2E 검증 — 유저
+##### Step 5: E2E 검증 — 유저 (#1-3 ✅ Claude / #4-11 = 실제 상품 완성 후 사용자 진행 결정 2026-05-08)
 
-| # | 검증 항목 | 방법 | 기대 결과 |
-|:-:|----------|------|----------|
-| 1 | API Health | `curl https://api.amazingkorean.net/health` | 200 OK |
-| 2 | Plans API | `curl https://api.amazingkorean.net/payment/plans` | `sandbox: false`, Live Price ID |
-| 3 | E-book Catalog | `curl https://api.amazingkorean.net/ebook/catalog` | `sandbox: false`, Live Price ID |
-| 4 | Webhook Simulator | Dashboard → Notifications → Webhook Simulator | 200 OK |
-| 5 | 구독 실결제 | `/pricing` → 1개월 $10 → 카드 결제 | DB subscription + transaction 생성 |
-| 6 | 구독 Discount | `/pricing` → 3개월 → 체크아웃에서 ~~$30~~ $25 표시 | Discount 자동 적용 |
-| 7 | 구독 환불 | Dashboard에서 환불 | `adjustment.created` → transaction `refunded` |
-| 8 | E-book 실결제 | `/ebook` → Paddle overlay | `ebook_purchase` 상태 `completed` |
-| 9 | E-book 환불 | Dashboard에서 환불 | `ebook_purchase` 상태 `refunded` |
-| 10 | Retain URL 검증 | Paddle Retain → Check URL `https://amazingkorean.net` | Paddle.js 감지 |
-| 11 | 프론트 UX | `/pricing`, `/ebook`, `/ebook/my` 페이지 | 정상 로딩 + checkout 동작 |
+| # | 검증 항목 | 방법 | 기대 결과 | 상태 |
+|:-:|----------|------|----------|:--:|
+| 1 | API Health | `curl https://api.amazingkorean.net/health` | 200 OK + `status: live` | ✅ **2026-05-08 Claude 검증** |
+| 2 | Plans API | `curl https://api.amazingkorean.net/payment/plans` | `sandbox: false`, Live Price ID | ✅ **2026-05-08 Claude 검증** |
+| 3 | E-book Catalog | `curl https://api.amazingkorean.net/ebook/catalog` | `sandbox: false`, Live Price ID | ✅ **2026-05-08 Claude 검증** |
+| 4 | Webhook Simulator | Dashboard → Notifications → Webhook Simulator | 200 OK | 🟡 **실제 상품 완성 후** |
+| 5 | 구독 실결제 | `/pricing` → 1개월 $10 → 카드 결제 | DB subscription + transaction 생성 | 🟡 동일 |
+| 6 | 구독 Discount | `/pricing` → 3개월 → 체크아웃에서 ~~$30~~ $25 표시 | Discount 자동 적용 | 🟡 동일 |
+| 7 | 구독 환불 | Dashboard에서 환불 | `adjustment.created` → transaction `refunded` | 🟡 동일 |
+| 8 | E-book 실결제 | `/ebook` → Paddle overlay | `ebook_purchase` 상태 `completed` | 🟡 동일 |
+| 9 | E-book 환불 | Dashboard에서 환불 | `ebook_purchase` 상태 `refunded` | 🟡 동일 |
+| 10 | Retain URL 검증 | Paddle Retain → Check URL `https://amazingkorean.net` | Paddle.js 감지 | 🟡 동일 |
+| 11 | 프론트 UX | `/pricing`, `/ebook`, `/ebook/my` 페이지 | 정상 로딩 + checkout 동작 | 🟡 동일 |
 
+> **E2E #4-11 트리거 결정 (2026-05-08, 사용자)**: 실제 학습 콘텐츠 시딩 완료 (`AMK_STATUS §8.2 #3` 학습 콘텐츠 시딩) + 실 상품 가치 정착 후 진행. 사유: 빈 시스템에서 실 카드 결제 + 환불 처리 비용 회피 + 실제 운영 환경에서 검증 가치 ↑.
 > ⚠️ Live 모드 = 실제 결제. 테스트 후 반드시 Dashboard에서 환불 처리.
 
 ##### ~~Step 6: 은행 — 유저~~ ✅ **2026-05-08 완료**

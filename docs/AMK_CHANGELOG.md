@@ -1,8 +1,41 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 Paddle Dashboard Payout Settings ✅ 검증 (스크린샷 2장). A1 + Step 6 모두 종결, 잔여 = Step 5 E2E 검증
+updated: 2026-05-08 E2E #1-3 ✅ Claude curl 검증 + #4-11 트리거 결정 (실제 학습 콘텐츠 시딩 후). Q7 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오후 후속 3) — E2E #1-3 ✅ + #4-11 트리거 결정 (실제 상품 완성 후 진행)**
+
+  Step 5 E2E 검증 11개 시나리오 분리 처리.
+
+  ## E2E #1-3 ✅ Claude curl 검증 완료 (2026-05-08)
+
+  | # | 시나리오 | 결과 |
+  |:-:|---|---|
+  | 1 | API Health | `HTTP/2 200` + `{"status":"live","uptime_ms":79680901}` (약 22h 가동, Cloudflare edge 통과) |
+  | 2 | Plans API | `sandbox: false` + `client_token: live_*` + Live Price IDs |
+  | 3 | E-book Catalog | `sandbox: false` + Live `paddle_ebook_price_id` |
+
+  ## E2E #4-11 = 실제 학습 콘텐츠 시딩 완료 후 진행 (사용자 결정)
+
+  사용자 결정: "결제 관련 테스트는 나중에 실제 상품이 만들어지고 하자고."
+
+  사유:
+  - 빈 시스템에서 실 카드 결제 + 환불 처리 = 비용 + 실 가치 검증 어려움
+  - 실제 상품 가치 정착 후 검증 = 운영 환경 정합 ↑
+  - Webhook / Retain / UX = 실 사용자 시나리오로 검증해야 의미 있음
+
+  트리거 = `AMK_STATUS §8.2 #3 학습 콘텐츠 시딩` 완료 시점.
+
+  ## Q7 = 종결 처리
+
+  Q7 = ~~취소선~~ + ✅ 종결. Live 결제 인프라 측 = 모두 활성 (KYB / Live Secrets / 배포 / SPF / DKIM / Payout / E2E #1-3 ✅). E2E #4-11 = 별도 트랙 (`AMK_STATUS §8.2 #3` 시딩 트리거).
+
+  ## 변경 파일
+
+  - `docs/AMK_STATUS.md Q7` ~~취소선~~ + ✅ 종결 + E2E #1-3 / #4-11 트랙 분리 명시
+  - `docs/AMK_STATUS.md §8.5 Step 5` 표 = #1-3 ✅ + #4-11 🟡 (트리거 + 사유 명시)
+  - 메모리 `project_decisions.md` "Paddle Live E2E 검증 시점" 결정 신규 등재
 
 - **2026-05-08 (오후 후속 2) — Paddle Dashboard Payout Settings ✅ 검증 (스크린샷 2장)**
 
