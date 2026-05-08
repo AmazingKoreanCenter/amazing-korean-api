@@ -36,7 +36,7 @@ export function HangulKeyboardKey({
         isHighlighted && "border-primary bg-primary/10 text-primary ring-2 ring-primary",
         isShiftHighlighted &&
           !isHighlighted &&
-          "border-amber-500 bg-amber-500/10 text-amber-700 ring-2 ring-amber-500",
+          "border-highlight bg-highlight/10 text-highlight ring-2 ring-highlight",
       )}
     >
       <span className="text-base font-semibold leading-none sm:text-lg">{cap.base}</span>

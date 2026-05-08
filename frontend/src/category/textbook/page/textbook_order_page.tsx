@@ -439,8 +439,8 @@ export function TextbookOrderPage() {
               <p className="text-sm text-muted-foreground text-center whitespace-pre-line">{t("textbook.catalog.orderGuideMinQty")}</p>
             </div>
             <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-card shadow-card border">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <CreditCard className="h-6 w-6 text-emerald-600" />
+              <div className="w-12 h-12 rounded-xl bg-status-success/10 flex items-center justify-center">
+                <CreditCard className="h-6 w-6 text-status-success" />
               </div>
               <p className="text-sm text-muted-foreground text-center whitespace-pre-line">{t("textbook.catalog.orderGuidePayment")}</p>
             </div>
@@ -451,8 +451,8 @@ export function TextbookOrderPage() {
               <p className="text-sm text-muted-foreground text-center whitespace-pre-line">{t("textbook.catalog.orderGuideBulk")}</p>
             </div>
             <div className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-card shadow-card border">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                <BadgePercent className="h-6 w-6 text-amber-600" />
+              <div className="w-12 h-12 rounded-xl bg-highlight/10 flex items-center justify-center">
+                <BadgePercent className="h-6 w-6 text-highlight" />
               </div>
               <p className="text-sm text-muted-foreground text-center whitespace-pre-line">{t("textbook.catalog.orderGuideDiscount")}</p>
             </div>

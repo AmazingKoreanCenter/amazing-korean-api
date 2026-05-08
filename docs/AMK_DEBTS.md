@@ -22,7 +22,7 @@
 | 🟡 B. 보안 부채 (unsound/unmaintained) | ~~7~~ → **0** | 🟡 모두 수용 결정 (2026-05-06). core2/paste = unmaintained warning 만 + transitive. imageproc 3 = 텍스트 오버레이 영향 낮음. rand 2 = custom logger 미사용으로 영향 0 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
 | B. 보안 부채 (외부 통신) | **1** | B6 ipgeo HTTP-only. ~~B7 Paddle amount~~ ✅ 해결 (2026-05-04, commit `c744efc`) |
-| C. 코드 품질 부채 | **2** | C1 ESLint 27 + C2 lint:ui 9. ~~C3/C4/C5/C6/C7/C8~C13~~ 처리/수용 (2026-05-04~05). C7 ✅ commit `2641766` (bundle 모니터링). B5/B6 = B 카테고리로 재분류 |
+| C. 코드 품질 부채 | ~~2~~ → **1** | C1 ESLint 27+13 잔여. ~~C2 lint:ui~~ ✅ 해결 (2026-05-08, 신규 토큰 highlight + level-1~5 정착). ~~C3/C4/C5/C6/C7/C8~C13~~ 처리/수용. B5/B6 = B 카테고리 재분류 |
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
 | E. 기능 부채 (보류/조건부) | **11** | 9 (보류 8 + STATUS #11 이메일 수신 ✅) + **신규 3** (콘텐츠 시딩, SpeechSuper, 번들 최적화) |
 | F. 모바일/데스크탑 앱 부채 | ~~5~~ → **1** | 외부 리포 SSoT. 2026-05-08 stale 정정 = ~~F1/F2/F3~~ ✅ (mobile 리포 Phase 1~3 완료 사실 반영) + ~~F4~~ ✅ (TTL 90→300 본 리포 적용). F5 만 수용 잔존 |
@@ -31,7 +31,7 @@
 | I. AI 작업 사고 | **8** | `AMK_AI_MISTAKES.md` SSoT (2026-05-08 M-010 신규 = stale 정정 부분만 + 권고 전 외부 검증 누락) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 34건** (카테고리 합산: A 3 + B 1 (B6) + C 2 + D 4 + E 11 + F 1 + G 4 + H 0 + I 8 + J 0. 2026-05-08 (오후 후속 5) ~~G8~~ ✅ branch protection 적용 (사용자 GitHub UI + gh api 검증) → G 5→4, 35 → **34**. 2026-05-08 (오후 후속 4) F 카테고리 stale 정정 = F1/F2/F3 ✅ + F4 ✅ → F 5→1, 39 → 35. 2026-05-08 (오후) A1-4 ✅ SPF → A 4→3, 40 → 39. 2026-05-08 (오전 후속) M-010 정정 = A1-1 ✅ + I +1 = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 → 41 → 40. 2026-05-08 A1 stale 정정 → 42 → 41. 2026-05-07 Phase B → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 33건** (카테고리 합산: A 3 + B 1 (B6) + C 1 + D 4 + E 11 + F 1 + G 4 + H 0 + I 8 + J 0. 2026-05-08 (오후 후속 6) ~~C2~~ ✅ lint:ui (신규 토큰 highlight + level-1~5 정착, 검증 0 errors) → C 2→1, 34 → **33**. 2026-05-08 (오후 후속 5) ~~G8~~ ✅ branch protection → G 5→4, 35 → 34. 2026-05-08 (오후 후속 4) F 카테고리 stale 정정 = F1/F2/F3 ✅ + F4 ✅ → F 5→1, 39 → 35. 2026-05-08 (오후) A1-4 ✅ SPF → A 4→3, 40 → 39. 2026-05-08 (오전 후속) M-010 정정 = A1-1 ✅ + I +1 = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 → 41 → 40. 2026-05-08 A1 stale 정정 → 42 → 41. 2026-05-07 Phase B → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -239,18 +239,25 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 
 **처리**: shadcn 컴포넌트 파일 분할 + react-hooks 위반 fix + prefer-const fix. 시간 1-2일.
 
-### C2. Frontend lint:ui baseline (Q16) — 9 errors
+### ~~C2. Frontend lint:ui baseline~~ ✅ **해결 (2026-05-08)**
 
-| 위치 | 카운트 | 색상 |
-|------|:--:|------|
-| `frontend/src/category/textbook/page/textbook_order_page.tsx` | 2 | emerald, amber (정정: 이전 4 → 2) |
-| `frontend/src/category/textbook/receipt_parts.tsx` | 1 | red |
-| `frontend/src/category/book/page/book_hub_page.tsx` | 4 | emerald, amber, rose, teal |
-| `frontend/src/category/study/component/writing/HangulKeyboardKey.tsx` | 1 | amber |
+| 위치 | 처리 |
+|------|------|
+| ~~`textbook_order_page.tsx:442/443`~~ emerald (결제수단) | ✅ `bg-status-success/10 text-status-success` (기존 토큰 재사용) |
+| ~~`textbook_order_page.tsx:454/455`~~ amber (할인 강조) | ✅ `bg-highlight/10 text-highlight` (신규 토큰) |
+| ~~`receipt_parts.tsx:167`~~ red (`print:text-red-700`) | ✅ `print:text-destructive` (기존 토큰) |
+| ~~`HangulKeyboardKey.tsx:39`~~ amber (다음 키 강조) | ✅ `border-highlight bg-highlight/10 text-highlight ring-highlight` (신규) |
+| ~~`book_hub_page.tsx:17/18/20/21`~~ emerald/amber/rose/teal (책 난이도) | ✅ `bg-level-N/10 text-level-N border-level-N/20` (신규 level-1/2/4/5) |
 
-**합계**: 9 (검증 2회차 = 표 합산 2+1+4+1=8 vs 실측 9. lint:ui 출력 카운트 9 정확).
+**신규 토큰** (`tailwind.config.js` + `index.css` + `AMK_DESIGN_SYSTEM.md` 등재):
+- `highlight` (`38 92% 50%` = amber) — UI 강조
+- `level-1` (`160 84% 39%` = emerald) — 책 난이도 1
+- `level-2` (`38 92% 50%` = amber) — 책 난이도 2
+- `level-3` (`262 83% 58%` = violet) — 책 난이도 3 (향후 확장 대비, book_hub:19 violet hardcode 마이그용)
+- `level-4` (`350 89% 60%` = rose) — 책 난이도 4
+- `level-5` (`174 72% 47%` = teal) — 책 난이도 5
 
-**처리**: 디자인 토큰 결정 + 9곳 교체. 시간 0.5-1일.
+**검증**: `npm run lint:ui` 0 errors + `npm run build` 19.02s 클린.
 
 ### ~~C3. Rust rustfmt baseline~~ ✅ 해결 (2026-05-04 밤, commit 후속)
 

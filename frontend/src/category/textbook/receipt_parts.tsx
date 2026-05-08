@@ -164,7 +164,7 @@ export function ReceiptTotalBreakdown({
               {formatReceiptAmount(grossAmount, currency)} {currency}
             </span>
           </div>
-          <div className="flex justify-between px-4 py-2 text-sm text-destructive print:text-red-700">
+          <div className="flex justify-between px-4 py-2 text-sm text-destructive print:text-destructive">
             <span className="flex-1">
               − {t(`${ns}.discount`)}
               {discountReason && (

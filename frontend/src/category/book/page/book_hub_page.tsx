@@ -14,11 +14,11 @@ const SLIDE_COUNT = 6; // cover + 5 sample pages
 
 const SLIDE_COLORS: Record<number, { bg: string; text: string; border: string }> = {
   0: { bg: "bg-blue-500/10", text: "text-blue-600", border: "border-blue-500/20" },
-  1: { bg: "bg-emerald-500/10", text: "text-emerald-600", border: "border-emerald-500/20" },
-  2: { bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/20" },
-  3: { bg: "bg-violet-500/10", text: "text-violet-600", border: "border-violet-500/20" },
-  4: { bg: "bg-rose-500/10", text: "text-rose-600", border: "border-rose-500/20" },
-  5: { bg: "bg-teal-500/10", text: "text-teal-600", border: "border-teal-500/20" },
+  1: { bg: "bg-level-1/10", text: "text-level-1", border: "border-level-1/20" },
+  2: { bg: "bg-level-2/10", text: "text-level-2", border: "border-level-2/20" },
+  3: { bg: "bg-level-3/10", text: "text-level-3", border: "border-level-3/20" },
+  4: { bg: "bg-level-4/10", text: "text-level-4", border: "border-level-4/20" },
+  5: { bg: "bg-level-5/10", text: "text-level-5", border: "border-level-5/20" },
 };
 
 function getSlideImage(langKey: string, index: number): string {

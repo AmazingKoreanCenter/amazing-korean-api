@@ -1,8 +1,63 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 G8 ✅ main + KKRYOUN branch protection 적용 (사용자 GitHub UI + gh api 검증). 1순위 작업 종결
+updated: 2026-05-08 C2 ✅ lint:ui 디자인 토큰 cleanup (신규 highlight + level-1~5 정착). §0 33건
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오후 후속 6) — C2 ✅ lint:ui 디자인 토큰 cleanup**
+
+  사용자 결정 = 능동 처리 4건 2순위 = C2. 권고안 (level-N + highlight 신규 + success/destructive 재사용) 채택.
+
+  ## 외부 검증 (M-010 학습 적용)
+
+  `npm run lint:ui` 실측 = **10 라인 위반** (어제 docs 9건 → +1 textbook_order:442/443 emerald 누락 발견, 부분 정정 사고).
+
+  ## 신규 디자인 토큰
+
+  `tailwind.config.js` + `index.css` 추가:
+
+  | 토큰 | HSL | 용도 |
+  |---|---|---|
+  | `highlight` | `38 92% 50%` (amber) | UI 강조 (할인 / 키 안내) |
+  | `level-1` | `160 84% 39%` (emerald) | 책 난이도 1 (입문) |
+  | `level-2` | `38 92% 50%` (amber) | 책 난이도 2 (초급) |
+  | `level-3` | `262 83% 58%` (violet) | 책 난이도 3 (중급, 향후 확장) |
+  | `level-4` | `350 89% 60%` (rose) | 책 난이도 4 (고급) |
+  | `level-5` | `174 72% 47%` (teal) | 책 난이도 5 (마스터) |
+
+  ## 의미별 매핑 (정정된 권고)
+
+  | 라인 | 색상 | 의미 | 매핑 |
+  |---|---|---|---|
+  | `textbook_order:442/443` | emerald | 결제수단 | **`status-success`** (기존 재사용) |
+  | `textbook_order:454/455` | amber | 할인 강조 | **`highlight`** (신규) |
+  | `HangulKeyboardKey:39` | amber | 다음 키 강조 | **`highlight`** |
+  | `receipt:167` | red `print:text-red-700` | 부족 금액 | **`destructive`** (기존 재사용) |
+  | `book_hub:17/18/20/21` | emerald/amber/rose/teal | 책 난이도 | **`level-1/2/4/5`** |
+
+  ## 변경 파일
+
+  - `frontend/tailwind.config.js` — `highlight` 그룹 + `level-1/2/3/4/5` top-level 추가
+  - `frontend/src/index.css` — HSL CSS 변수 라이트 6개 신규
+  - `frontend/src/category/textbook/page/textbook_order_page.tsx` — emerald → status-success / amber → highlight
+  - `frontend/src/category/textbook/receipt_parts.tsx` — `print:text-red-700` → `print:text-destructive`
+  - `frontend/src/category/study/component/writing/HangulKeyboardKey.tsx` — amber → highlight (4 색상)
+  - `frontend/src/category/book/page/book_hub_page.tsx` — emerald/amber/rose/teal → level-1/2/4/5 (+ level-3 향후 violet 마이그용)
+  - `docs/AMK_DESIGN_SYSTEM.md §01 Color Tokens` — `Highlight & Level Color Tokens` 섹션 신규
+  - `docs/AMK_DEBTS.md C2` ✅ + §0 카운트 (C 2→1, 총 34→33)
+
+  ## 검증
+
+  - `npm run lint:ui` = 0 errors ✅
+  - `npm run build` = 19.02s 클린 ✅
+
+  ## 부채 카운트
+
+  C 2 → 1 (C2 ✅, C1 잔여). 총 미해결 34 → **33**.
+
+  ## 의미 분리 노트
+
+  `level-2` = `highlight` = `warning` 색상 = 모두 `38 92% 50%` (amber). 의미만 다름 (책 난이도 / UI 강조 / 경고). 토큰명 정확히 사용 = 컨텍스트 구분.
 
 - **2026-05-08 (오후 후속 5) — G8 ✅ main + KKRYOUN branch protection 적용 완료**
 
