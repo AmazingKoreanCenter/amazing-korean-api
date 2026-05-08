@@ -152,7 +152,7 @@
 | Q4 | 중간 | 기타 locale 영수증 번역 개별 추가 — 현재 20개 locale 은 영어 fallback. 일본어/중국어 우선 번역 권장. | 반나절 | 동일 |
 | ~~Q5~~ | ✅ 완료 | ~~사용자 검색 UI~~ — `admin_textbook_order_create.tsx` 의 user_id 수동 입력을 검색 콤보박스로 대체. 신규 `UserSearchCombobox` 컴포넌트 (Input + 300ms debounce + 드롭다운). 백엔드 `useAdminUsers({q})` 재사용 (이메일 blind index exact match / 닉네임 LIKE). 수동 입력 토글 폴백 유지. **2026-04-22 완료** (프론트만, `npm run build` 9.09s 성공). | 반나절 | #75 "후속 작업" (AMK_CHANGELOG 2026-04-19) |
 | ~~Q6~~ | ✅ 완료 | ~~`admin_textbook_log` Create 액션 조회 UI~~ — 신규 엔드포인트 `GET /admin/textbook/logs` + action/order_id/admin_user_id 필터 + 페이지네이션. 프론트: `/admin/textbook/logs` 페이지 + orders 페이지 상단 "감사 로그" 버튼. 관리자 이메일은 서비스 레이어에서 `CryptoService.decrypt` 복호화. **2026-04-22 완료** (cargo check + clippy 클린, frontend build 8.04s 성공). | 반나절 | 동일 |
-| Q7 | 낮음 | **Paddle Live 전환** — GitHub Secrets 12개 일괄 교체 + 배포 + E2E 검증 + 하나은행 USD 계좌 영문 예금주명 등록 | 1일 | §8.2 #1 + §8.5 Step 3+6. **블록 (2026-05-08 정정): KYB/Onfido 이미 완료 ✅ (2026-02). 잔여 = 사용자 GitHub Secrets 업데이트 + 은행 등록 (외부)** |
+| Q7 | 낮음 | **Paddle Live 전환** — 사실상 활성 (sandbox=false, Live IDs 사용) | 검증 1-2h | §8.2 #1 + §8.5. **2026-05-08 M-010 사고 정정**: KYB ✅ (2026-02) + GitHub Secrets ✅ (2026-03-18 Live 적용) + 배포 ✅ + 통장 ✅ (2026-05-08). **잔여 = (a) A1-4 SPF 레코드 병합 / (b) Paddle Dashboard Payout Account Holder Name 입력 / (c) Step 5 E2E 검증 11개 시나리오** |
 | Q8 | 낮음 | **K6 성능 테스트 실행** — `k6/` 디렉터리 세팅은 완료. 테스트 계정 생성 후 smoke + load 시나리오 실행 | 0.5일 | §8.2 #12. **블록: 테스트 계정 생성 필요** |
 | Q9 | 낮음 | **E-book 로컬 파일시스템 의존 해소** — `ebook/service.rs` 9곳 `fs::read` 를 S3/CDN 으로 전환. RDS 이전 선행 작업. | 3~5일 | §8.2 #6 검증된 리스크 CRITICAL. 앱 개발 이후 공식 로드맵에 있음 |
 | ~~Q10~~ | ✅ 완료 | ~~QA run 2026-04-22 프론트 수정 3건 묶음~~ — 2.1 ebook subtitle 공백 + 2.2 textbook subtitle 공백 + 2.4 `/book` 캐러셀 dot `aria-label`. `<br className="hidden sm:block" />` 패턴 **전수 6곳** (ebook/textbook 카탈로그 + coming_soon + error 3종) 모두 `<>{" "}<br.../></>` 로 교체 (모바일 공백 보존). 캐러셀 dot 은 전수 **3곳** (book_hub + ebook_detail_modal + textbook_detail_modal) 에 `aria-label={t("common.goToSlide", { n })}` + `aria-current` 추가. i18n 키 `common.goToSlide` 신규 (ko/en). **2026-04-22 완료** (`npm run build` 9.74s 성공). | 30분 | `docs/QA_결과.md` 2.1/2.2/2.4 |
@@ -175,7 +175,7 @@
 
 | 작업 | 리스크 | 심각도 | 근거 |
 |------|--------|:------:|------|
-| Paddle Live | 12개 PADDLE_* Secret 일괄 교체 (누락 시 결제 실패) | CRITICAL | deploy.yml:92-103 (HEAD 2026-05-04). **사용자 GitHub Secrets 업데이트 = 즉시 가능** (KYB 완료) |
+| ~~Paddle Live~~ | ~~12개 PADDLE_* Secret 일괄 교체~~ | — | ✅ **해결 (2026-03-18 추정)**. `gh secret list` 13개 등록 + `curl /payment/plans` `sandbox=false` + Live IDs 검증 (2026-05-08 M-010 사고 정정) |
 | ~~Paddle Live~~ | ~~Webhook Secret 1회성 (재확인 불가)~~ | — | ✅ **해결 (2026-02 추정)**. `AMK_STATUS §8.5 #7` Secret Key 확보 완료 → A1-1 의 `PADDLE_WEBHOOK_SECRET` 항목으로 업데이트 시 재사용 |
 | ~~Paddle Live~~ | ~~KYB/Onfido 인증 지연 가능~~ | — | ✅ **해결 (2026-02-21~25 추정 승인)**. `AMK_STATUS §8.5 #1 = ✅` |
 | Paddle Live | SPF 레코드 병합 (Resend + Paddle) | MEDIUM | `AMK_DEPLOY_OPS §7.6` (가이드 정착 2026-05-07). **즉시 가능** (KYB 완료, 사용자 5-10m) |
@@ -393,7 +393,9 @@ Paddle Dashboard → **Catalog → Discounts** 에서 3개 생성:
 | `src/api/payment/service.rs` | Plans API 응답에 `discount_id` 포함 |
 | `frontend/src/category/payment/` | checkout 시 `discountId` 자동 적용 |
 
-##### Step 3: GitHub Secrets 업데이트 — 유저
+##### ~~Step 3: GitHub Secrets 업데이트 — 유저~~ ✅ **2026-03-18 추정 완료 (2026-05-08 M-010 사고 정정)**
+
+> 검증: `gh secret list` 결과 13개 Secret 모두 등록 (2026-02-18 ~ 03-19) + `curl https://api.amazingkorean.net/payment/plans` 응답 = `sandbox: false` + `client_token: live_*` + Live Price IDs (`pri_01k...`) + Live Discount IDs (`dsc_01km2c...`).
 
 | Secret | 값 |
 |--------|-----|
@@ -411,10 +413,12 @@ Paddle Dashboard → **Catalog → Discounts** 에서 3개 생성:
 | `PADDLE_DISCOUNT_MONTH_12` | Discount ID (`dsc_...`) |
 | `PAYMENT_PROVIDER` | `paddle` |
 
-##### Step 4: 배포 — 유저
+##### ~~Step 4: 배포 — 유저~~ ✅ **2026-03-18 추정 완료 (Step 3 완료와 동일 시점)**
 
-1. 커밋 → push → GitHub Actions 자동 배포
-2. 서버 로그 확인: `💳 Payment provider enabled: Paddle Billing (Production)`
+> 검증: production API `/payment/plans` Live 모드 응답 + `AMK_CHANGELOG 2026-03-18` "Paddle Live 전환 + E-book Paddle Checkout 연동" 명시.
+
+1. ~~커밋 → push → GitHub Actions 자동 배포~~ ✅
+2. ~~서버 로그 확인: `💳 Payment provider enabled: Paddle Billing (Production)`~~ ✅
 
 ##### Step 5: E2E 검증 — 유저
 

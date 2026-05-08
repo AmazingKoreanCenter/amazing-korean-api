@@ -17,7 +17,7 @@
 
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
-| A. 운영/배포 부채 | ~~10~~ → ~~9~~ → ~~7~~ → ~~6~~ → **5** | **A1 = 2** (잔여 = A1-1 사용자 GitHub Secrets 12개 + A1-4 SPF 병합. ~~A1-2/A1-3~~ ✅ KYB 완료 2026-02 + ~~A1-5~~ ✅ 통장 개설 완료 2026-05-08, Paddle Dashboard 입력만 잔여) + **A2 = 3** (인프라 이전). ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ + ~~A4-4~~ ✅ (2026-05-07 옵션 A 수동 정기) + ~~A4-1/A4-2~~ ✅ Phase B 완료 (2026-05-07 HTTPS + Let's Encrypt + Full Strict + 자동 갱신) |
+| A. 운영/배포 부채 | ~~10~~ → ~~9~~ → ~~7~~ → ~~6~~ → ~~5~~ → **4** | **A1 = 1** (잔여 = A1-4 SPF 병합 만. ~~A1-1~~ ✅ Live Secrets 이미 적용됨 2026-03-18 추정 + ~~A1-2/A1-3~~ ✅ KYB 완료 2026-02 + ~~A1-5~~ ✅ 통장 개설 2026-05-08. M-010 사고 학습 정착) + **A2 = 3** (인프라 이전). ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ + ~~A4-4~~ ✅ (2026-05-07 옵션 A 수동 정기) + ~~A4-1/A4-2~~ ✅ Phase B 완료 (2026-05-07 HTTPS + Let's Encrypt + Full Strict + 자동 갱신) |
 | 🟡 B. 보안 부채 (취약점) | ~~1~~ → **0** | Rust **1** (rsa Marvin Attack, no upgrade) — 🟡 수용 결정 (2026-05-06, compile-time only + PostgreSQL only = production 영향 0). ~~npm 3건~~ ✅ 해결 (2026-05-04). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | 🟡 B. 보안 부채 (unsound/unmaintained) | ~~7~~ → **0** | 🟡 모두 수용 결정 (2026-05-06). core2/paste = unmaintained warning 만 + transitive. imageproc 3 = 텍스트 오버레이 영향 낮음. rand 2 = custom logger 미사용으로 영향 0 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
@@ -28,10 +28,10 @@
 | F. 모바일/데스크탑 앱 부채 | 5 | 외부 리포 SSoT |
 | G. 자동 검증 부재 (CI 부채) | **5** | ~~G3/G4/G5/G6/G7/G11/G13/G14~~ ✅ 해결 또는 🟡 수용 (2026-05-05). 잔여 = G1/G2 (보류 cargo test/playwright) + G8 branch protection (보류) + G10 src 테스트 부족 + G12 cargo-geiger (보류) |
 | H. 문서/메모리 부채 | **0** | ~~H1 메모리 stale~~ 🟡 + ~~H2 docs↔코드 자동 도구~~ 🟡 = 수용 결정 (2026-05-05) |
-| I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
+| I. AI 작업 사고 | **8** | `AMK_AI_MISTAKES.md` SSoT (2026-05-08 M-010 신규 = stale 정정 부분만 + 권고 전 외부 검증 누락) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 40건** (카테고리 합산: A 5 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 7 + J 0. 2026-05-08 A1-5 ✅ 해결 (통장 개설 완료, 사용자 통보) → 41 → 40. 2026-05-08 A1 stale 정정 = ~~A1-2/A1-3~~ ✅ (KYB 이미 완료) + A1-5 신규/즉시 해결 → 42 → 41 → 40. 2026-05-07 Phase B 완료로 A4-1/A4-2 ✅ → 44 → 42. B8 신규 등재 + 즉시 해결 (당일 일과성, §0 카운트 변화 X). 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 40건** (카테고리 합산: A 4 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 8 + J 0. 2026-05-08 (오전 후속) M-010 사고 정정 = ~~A1-1~~ ✅ Live Secrets 이미 적용됨 (2026-03-18 추정, `curl /payment/plans` 검증으로 확인) → A 5→4 + I 7→8 (M-010 신규) = 순 변화 0, **40건 그대로**. 2026-05-08 A1-5 ✅ 해결 (통장 개설 완료) → 41 → 40. 2026-05-08 A1 stale 정정 = ~~A1-2/A1-3~~ ✅ (KYB 이미 완료) + A1-5 신규/즉시 해결 → 42 → 41 → 40. 2026-05-07 Phase B 완료로 A4-1/A4-2 ✅ → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -43,7 +43,7 @@
 
 | 항목 | 위치 (HEAD) | 심각도 | 처리 시점 |
 |------|------|:--:|----------|
-| A1-1 | 12개 PADDLE_* Secret 일괄 교체 | `.github/workflows/deploy.yml:92-103` + `AMK_STATUS §8.5 Step 3` | CRITICAL | **사용자 작업 (즉시 가능)**. GitHub Secrets 12개 (`PADDLE_SANDBOX=false` / `PADDLE_API_KEY` / `PADDLE_CLIENT_TOKEN` / `PADDLE_WEBHOOK_SECRET` / `PADDLE_PRICE_MONTH_1/3/6/12` / `PADDLE_PRICE_EBOOK` / `PADDLE_DISCOUNT_MONTH_3/6/12` / `PAYMENT_PROVIDER=paddle`) 업데이트 → 자동 배포 |
+| ~~A1-1~~ | ~~12개 PADDLE_* Secret 일괄 교체~~ ✅ **해결 (2026-03-18 추정)** | `.github/workflows/deploy.yml:92-103` + `AMK_STATUS §8.5 Step 3` | — | **이미 완료 (M-010 정정 2026-05-08)**. 검증: `gh secret list` 13개 모두 등록 (2026-02-18 ~ 03-19) + `curl /payment/plans` 응답 = `sandbox: false` + `client_token: live_*` + Live Price IDs (`pri_01k...`) + `AMK_CHANGELOG 2026-03-18` "Paddle Live 전환" 명시. 어제/오늘 stale 정정 시 부분 검증 누락 = M-010 사고 |
 | ~~A1-2~~ | ~~Webhook Secret 1회성 (재발급 필요)~~ | `docs/AMK_DEPLOY_OPS.md:985` | — | ✅ **해결 (2026-02 추정)**. `AMK_STATUS §8.5 #7` = "Webhook Destination (11개 이벤트, Secret Key 확보) ✅". Secret 사용자 보관 중 → A1-1 의 `PADDLE_WEBHOOK_SECRET` 항목으로 업데이트 시 재사용 |
 | ~~A1-3~~ | ~~KYB/Onfido 인증 지연 가능~~ | `docs/AMK_DEPLOY_OPS.md:947` (§8.5) | — | ✅ **해결 (2026-02-21~25 추정 승인)**. `AMK_STATUS §8.5 #1` = "계정 인증 (KYB + Onfido) ✅". 2026-02-19 서류 제출 (사업자등록증 한/영 + 주주명세서 한/영) → 2~4 영업일 심사 → 승인 |
 | A1-4 | SPF 레코드 병합 (Resend + Paddle) | `docs/AMK_DEPLOY_OPS.md §7.6` (가이드 정착 2026-05-07) | MEDIUM | **즉시 가능** (KYB 완료, 사용자 Cloudflare DNS 5-10m). A1-1 GitHub Secrets 업데이트와 같은 시점에 진행 권장 |

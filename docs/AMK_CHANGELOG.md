@@ -1,8 +1,64 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 A1-5 ✅ 하나은행 USD 통장 개설 완료 (사용자 통보). AMK_DEBTS §0 41→40
+updated: 2026-05-08 M-010 사고 정정 = A1-1 Live Secrets 이미 적용 (2026-03-18) 미인지. Step 3/4 ✅ + M-010 신규 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오전 추가) — M-010 사고 정정: A1-1 GitHub Secrets 12개 = 이미 Live 적용 (2026-03-18 추정) 미인지**
+
+  사용자가 A1-1 시작 결정 후 검증 단계에서 비로소 Live 활성 사실 발견. 사용자 응답 = "아니 너가 제시해서 한거잖아? 의도는 없고 너가 하자고 해서 한건데, 그렇게 나오면 너가 잘못파악한거지!".
+
+  ## 사실 검증
+
+  - `gh secret list` = 13개 Secret 모두 등록 (2026-02-18 PAYMENT_PROVIDER + 2026-03-18 PADDLE 11개 + 2026-03-19 Discount 3개)
+  - `curl https://api.amazingkorean.net/payment/plans` 응답 = `sandbox: false` + `client_token: live_c2c046d9828c318a02a7d648437` + Live Price IDs (`pri_01kkzxnanr...`) + Live Discount IDs (`dsc_01km2cy8...`)
+  - `curl /ebook/catalog` 응답도 `sandbox: false` + 같은 Live IDs
+  - `AMK_CHANGELOG 2026-03-18` = "Paddle Live 전환 + E-book Paddle Checkout 연동" 명시
+
+  ## 결론
+
+  **A1-1 = 2026-03-18 추정 시점에 이미 ✅ 해결**. 본 리포 docs (AMK_DEBTS A1-1 / AMK_STATUS §8.5 Step 3/4) 가 stale 표시로 잔존.
+
+  ## M-010 사고 패턴 분석
+
+  | 단계 | AI 행위 | 했어야 할 것 |
+  |---|---|---|
+  | 어제 (2026-05-07) | 사용자 의문 ("이미 신청 다 완료") = KYB 만 의심 | KYB stale = **A1 카테고리 전체** 의심 신호 |
+  | 오늘 오전 stale 정정 | KYB (A1-3) + Webhook (A1-2) 만 ✅ 마킹 | Step 3/4 (GitHub Secrets + 배포) 도 같은 시점 검증 |
+  | A1-1 권고 | "사용자 GitHub Secrets 업데이트 = 즉시 가능" | 권고 전 `/payment/plans` API 응답 확인 (5초 작업) |
+  | 검증 단계 | 사용자가 시작 결정 후 비로소 검증 | 정정 시점에 검증 |
+  | 실패 답변 | 사용자에게 "의도가 뭐냐 / 옵션 A/B/C/D" 책임 전가 | 즉시 인정 + 정정 |
+
+  ## 회피 룰 (M-010 등재)
+
+  1. 카테고리 stale 발견 시 = 카테고리 모든 항목 즉시 동일 검증
+  2. 사용자에게 작업 권고 출력 전 = 외부 상태 확인 (API 응답 / git log / `gh secret list` 등) 5초 투자 필수
+  3. "사용자가 X 라고 함 → X 가 사실" 단정 회피 = 사용자 인지도 stale 가능 (어제 사용자 의문 자체가 stale 신호였음)
+
+  ## 정정
+
+  - `AMK_AI_MISTAKES.md` M-010 신규 등재 (M-009 위에 배치, 카테고리 분포 표 갱신)
+  - `AMK_DEBTS A1-1` ~~취소선~~ + ✅ 해결 마킹 (검증 명시)
+  - `AMK_DEBTS §0` 카운트 = A 5→4, I 7→8, **순 변화 0 = 40건 그대로**
+  - `AMK_DEBTS` I 카테고리 카운트 7→8 (M-010 신규)
+  - `AMK_STATUS §8.5 "남은 작업"` Step 3 ~~취소선~~ + ✅ + 검증 근거 / Step 4 ~~취소선~~ + ✅
+  - `AMK_STATUS` 검증된 리스크 표 Paddle Live Secret 행 ~~취소선~~ + ✅
+  - `AMK_STATUS Q7` = "사실상 활성" + 잔여 = SPF + Paddle Dashboard Payout + E2E 검증
+
+  ## A1 진짜 잔여 (1건)
+
+  - **A1-4** SPF 레코드 병합 (Resend + Paddle, MEDIUM, 사용자 Cloudflare DNS 5-10m)
+
+  ## Live 활성 후 잔여 작업 (사용자, A1 카테고리 외)
+
+  - Paddle Dashboard → Payout Settings → Account Holder Name = `HYMN CO.,LTD.` 입력 (통장 표기 정확 일치)
+  - Step 5: E2E 검증 11개 시나리오 (실 transaction / Webhook / 환불 흐름 확인)
+
+  ## 변경 파일
+
+  - `docs/AMK_AI_MISTAKES.md` — M-010 신규 + 카테고리 분포 표
+  - `docs/AMK_DEBTS.md` — A1-1 ✅ + §0 + I 카운트
+  - `docs/AMK_STATUS.md` — Q7 + 검증된 리스크 표 Secret 행 + §8.5 Step 3/4
 
 - **2026-05-08 (오전 후속) — A1-5 ✅ 하나은행 USD 통장 개설 완료 (사용자 통보 + 통장 사진 확인)**
 
