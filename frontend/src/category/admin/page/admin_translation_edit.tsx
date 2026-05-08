@@ -134,6 +134,7 @@ function TranslationCreateWizard() {
       setSelectedFields(new Set());
     }
     if (fromStep <= 4) {
+      // step 4 (Translation) 변경 시점 = 추가 reset 불필요 (현재 구현). 향후 확장 hook
     }
   };
 

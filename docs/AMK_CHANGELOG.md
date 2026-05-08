@@ -1,8 +1,55 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 C2 ✅ lint:ui 디자인 토큰 cleanup (신규 highlight + level-1~5 정착). §0 33건
+updated: 2026-05-08 C1 🟡 ESLint 부분 처리 (12/40 cleanup, 잔여 28 = 새 세션 코드 구조 변경)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오후 후속 7) — C1 🟡 ESLint baseline 부분 처리 (12/40 cleanup)**
+
+  사용자 결정 = 능동 처리 4건 3순위 = C1. 본 세션 = 단순 cleanup 진행 + 잔여 (코드 구조 변경) 새 세션.
+
+  ## 처리 12건
+
+  | 룰 | 카운트 | 처리 방식 |
+  |---|:--:|---|
+  | `prefer-const` | 1 | 자동 fix (`npm run lint -- --fix`) |
+  | (그 외 자동 fix) | 1 | 자동 fix |
+  | `react-refresh/only-export-components` | 7 | `eslint-disable` inline (shadcn 패턴 = 컴포넌트 + variants 동일 파일 의도, C8-C13 정책 정합) |
+  | `no-empty` | 1 | `admin_translation_edit.tsx:136` 빈 블록에 의도 코멘트 추가 |
+  | `@typescript-eslint/no-unused-vars` | 1 | `signup_page.tsx:123` `_` 변수명 → `_confirmPassword` + `void` |
+  | `react-hooks/use-memo` | 1 | `devtools_detect.ts:62` `useCallback(onDetected, ...)` → `useCallback(() => onDetected(), ...)` (inline function expression) |
+
+  ## 잔여 28 problems (새 세션 권장)
+
+  | 룰 | 카운트 | 처리 방향 |
+  |---|:--:|---|
+  | `react-hooks/static-components` | 9 | 컴포넌트 안에 컴포넌트 정의 → 외부 추출 |
+  | `react-hooks/refs` | 6 | `ref.current` 접근 패턴 변경 (`if (ref.current == null) { ... }`) |
+  | `react-hooks/set-state-in-effect` | 2 | parent 에서 key prop 재마운트 패턴 (`<StudyTaskPage key={id} />`) |
+  | warnings (`react-hooks/incompatible-library` + `exhaustive-deps` 등) | 12 | useForm watch 등 외부 라이브러리 호환 / 의존성 추가 |
+
+  → 코드 구조 변경 = 회귀 위험 + 시간 0.5-1일. 본 세션 = 컨텍스트 누적으로 새 세션 진입점 정착.
+
+  ## 변경 파일
+
+  - `frontend/src/components/ui/{badge,button,card,form}.tsx` — `eslint-disable` inline + 정책 코멘트
+  - `frontend/src/components/blocks/data_table.tsx` — 동일
+  - `frontend/src/category/textbook/receipt_parts.tsx` — 동일
+  - `frontend/src/category/admin/page/admin_translation_edit.tsx` — 빈 블록 코멘트
+  - `frontend/src/category/auth/page/signup_page.tsx` — `_` 변수명 변경
+  - `frontend/src/category/ebook/utils/devtools_detect.ts` — useCallback inline function
+  - `frontend/src/category/study/page/study_task_page.tsx` — TODO 코멘트 (key prop 패턴 새 세션)
+  - `frontend/src/category/study/page/writing_practice_page.tsx` — TODO 코멘트
+  - `docs/AMK_DEBTS.md C1` 🟡 부분 처리 + 잔여 28 / §0 카운트 (C 그대로 = C1 부분 처리 = 1건 미해결 유지)
+
+  ## 검증
+
+  - `npm run lint` = 28 problems (16 errors + 12 warnings) (이전 40 = 12건 cleanup)
+  - `npm run build` = 16.82s 클린
+
+  ## 부채 카운트
+
+  C1 = 🟡 부분 처리. C 카테고리 카운트 변화 X (C1 미해결 유지). 총 미해결 33건 그대로.
 
 - **2026-05-08 (오후 후속 6) — C2 ✅ lint:ui 디자인 토큰 cleanup**
 

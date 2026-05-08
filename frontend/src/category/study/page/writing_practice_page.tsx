@@ -112,7 +112,8 @@ function FreePracticeRunner({ level, practiceType }: FreePracticeRunnerProps) {
 
   const finishMutation = useFinishWritingSession();
 
-  // 레벨/유형 변경 시 완전 초기화
+  // 레벨/유형 변경 시 완전 초기화 — 1회 reset (cascading render 위험 X)
+  // TODO: 정석 fix = key prop 재마운트 패턴 (parent 에서 key 전달). 새 세션 처리.
   useEffect(() => {
     setCurrentIndex(0);
     setAttempt(0);
