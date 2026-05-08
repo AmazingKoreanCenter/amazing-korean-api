@@ -1,8 +1,49 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 §7.6 SPF 가이드 정정 (외부 검증 후) — _spf.resend.com (NXDOMAIN) → send.resend.com / Paddle include 제거
+updated: 2026-05-08 A1-4 ✅ SPF 병합 적용 완료 (사용자 Cloudflare DNS + propagation 검증). A1 카테고리 모두 해결 (§0 39건)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오후 후속) — A1-4 ✅ SPF 병합 적용 완료 (사용자 Cloudflare DNS + propagation 검증)**
+
+  사용자 Cloudflare DNS 대시보드에서 SPF TXT 레코드 변경 → Google DNS polling 으로 propagation 감지 즉시 검증.
+
+  ## 검증 결과
+
+  - **새 SPF 레코드**: `v=spf1 include:send.resend.com include:_spf.mx.cloudflare.net ~all`
+  - **SPF TXT 레코드 1개** (병합 무효 X, google-site-verification 은 SPF 아님)
+  - **SPF chain**: `send.resend.com` → `include:amazonses.com` (Resend = AWS SES, 정상)
+  - **DNS lookup 카운트**: ~3-4회 (RFC 7208 한도 10 이내, 안전)
+
+  ## 효과
+
+  - 이전 = SPF fail + DKIM pass = DMARC `quarantine` 통과 (relaxed alignment)
+  - 이후 = **SPF pass + DKIM pass = DMARC pass** (엄격한 받는 측 enterprise filter 까지 완전 정착)
+
+  ## A1 카테고리 = 모두 해결 ✅
+
+  | ID | 작업 | 시점 |
+  |:-:|---|---|
+  | ~~A1-1~~ | ~~12개 PADDLE_* Secret 일괄 교체~~ | 2026-03-18 추정 |
+  | ~~A1-2~~ | ~~Webhook Secret 1회성~~ | 2026-02 추정 |
+  | ~~A1-3~~ | ~~KYB/Onfido 인증~~ | 2026-02-21~25 추정 승인 |
+  | ~~A1-4~~ | ~~SPF 레코드 병합~~ | **2026-05-08 오후 적용 완료** |
+  | ~~A1-5~~ | ~~하나은행 USD 계좌~~ | 2026-05-08 (통장 사진 확인) |
+
+  ## §0 카운트
+
+  A 4 → 3 (A1 1 → 0). 총 미해결 40 → **39**.
+
+  ## Live 결제 활성 후 잔여 (A1 외, 사용자)
+
+  - Paddle Dashboard → Payout Settings → Account Holder Name = `HYMN CO.,LTD.` 입력 (통장 표기 정확 일치)
+  - Step 5: E2E 검증 11개 시나리오
+
+  ## 변경 파일
+
+  - `docs/AMK_DEBTS.md` — A1-4 ✅ 마킹 + §0 카운트 (A 4→3, 총 40→39)
+  - `docs/AMK_STATUS.md` — 검증된 리스크 표 SPF 행 + Q7 잔여 갱신
+  - `docs/AMK_DEPLOY_OPS.md §7.6` 작업 흐름 ✅ 마킹
 
 - **2026-05-08 (오후) — §7.6 SPF 가이드 외부 검증 후 정정 (어제 작성 시 호스트명/필요성 추측)**
 

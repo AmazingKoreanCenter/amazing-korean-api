@@ -1576,15 +1576,15 @@ curl -s 'https://dns.google/resolve?name=amazingkorean.net&type=TXT' | python3 -
 | Resend 호스트명 추측 (`_spf.resend.com` = NXDOMAIN) | SPF resolve 실패 → fail | 정확한 표기 = `send.resend.com` (실 DNS 검증됨, AWS SES chain) |
 | Paddle SPF 추가 시도 (불필요) | 추가 lookup 비용만 발생 | Paddle Customer Emails = `@paddle.com` 발송 → SPF 영향 없음 |
 
-#### 작업 흐름 (사용자, 5-10분)
+#### 작업 흐름 (사용자, 5-10분) — 2026-05-08 ✅ 적용 완료
 
-1. Cloudflare 대시보드 → `amazingkorean.net` zone → DNS → Records
-2. 기존 `v=spf1 include:_spf.mx.cloudflare.net ~all` SPF TXT 레코드 (Name = `amazingkorean.net` 또는 `@`) → Edit
-3. Value = `v=spf1 include:send.resend.com include:_spf.mx.cloudflare.net ~all` → Save
-4. 1-5분 propagation → 위 검증 절차 #1 실행
-5. 외부 도구 검증 (mxtoolbox / kitterman) → SPF Valid
+1. ~~Cloudflare 대시보드 → `amazingkorean.net` zone → DNS → Records~~ ✅
+2. ~~기존 `v=spf1 include:_spf.mx.cloudflare.net ~all` SPF TXT 레코드 → Edit~~ ✅
+3. ~~Value = `v=spf1 include:send.resend.com include:_spf.mx.cloudflare.net ~all` → Save~~ ✅
+4. ~~1-5분 propagation → 검증~~ ✅ (Google DNS polling 으로 propagation 감지 + chain 검증 통과)
+5. 외부 도구 검증 (mxtoolbox / kitterman) — 권장, 사용자 재량
 6. 실 메일 테스트 (선택, 효과 확인)
-7. AMK_DEBTS A1-4 ✅ 해결 마킹
+7. ~~AMK_DEBTS A1-4 ✅ 해결 마킹~~ ✅
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
 

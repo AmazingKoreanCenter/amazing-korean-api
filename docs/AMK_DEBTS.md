@@ -17,7 +17,7 @@
 
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
-| A. 운영/배포 부채 | ~~10~~ → ~~9~~ → ~~7~~ → ~~6~~ → ~~5~~ → **4** | **A1 = 1** (잔여 = A1-4 SPF 병합 만. ~~A1-1~~ ✅ Live Secrets 이미 적용됨 2026-03-18 추정 + ~~A1-2/A1-3~~ ✅ KYB 완료 2026-02 + ~~A1-5~~ ✅ 통장 개설 2026-05-08. M-010 사고 학습 정착) + **A2 = 3** (인프라 이전). ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ + ~~A4-4~~ ✅ (2026-05-07 옵션 A 수동 정기) + ~~A4-1/A4-2~~ ✅ Phase B 완료 (2026-05-07 HTTPS + Let's Encrypt + Full Strict + 자동 갱신) |
+| A. 운영/배포 부채 | ~~10~~ → ~~9~~ → ~~7~~ → ~~6~~ → ~~5~~ → ~~4~~ → **3** | **A1 = 0** (모두 ✅ 해결. ~~A1-1~~ Live Secrets 2026-03-18 + ~~A1-2/A1-3~~ KYB 2026-02 + ~~A1-4~~ SPF 2026-05-08 propagation 검증 + ~~A1-5~~ 통장 2026-05-08) + **A2 = 3** (인프라 이전). ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ + ~~A4-4~~ ✅ (2026-05-07 옵션 A 수동 정기) + ~~A4-1/A4-2~~ ✅ Phase B 완료 (2026-05-07 HTTPS + Let's Encrypt + Full Strict + 자동 갱신) |
 | 🟡 B. 보안 부채 (취약점) | ~~1~~ → **0** | Rust **1** (rsa Marvin Attack, no upgrade) — 🟡 수용 결정 (2026-05-06, compile-time only + PostgreSQL only = production 영향 0). ~~npm 3건~~ ✅ 해결 (2026-05-04). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | 🟡 B. 보안 부채 (unsound/unmaintained) | ~~7~~ → **0** | 🟡 모두 수용 결정 (2026-05-06). core2/paste = unmaintained warning 만 + transitive. imageproc 3 = 텍스트 오버레이 영향 낮음. rand 2 = custom logger 미사용으로 영향 0 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
@@ -31,7 +31,7 @@
 | I. AI 작업 사고 | **8** | `AMK_AI_MISTAKES.md` SSoT (2026-05-08 M-010 신규 = stale 정정 부분만 + 권고 전 외부 검증 누락) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 40건** (카테고리 합산: A 4 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 8 + J 0. 2026-05-08 (오전 후속) M-010 사고 정정 = ~~A1-1~~ ✅ Live Secrets 이미 적용됨 (2026-03-18 추정, `curl /payment/plans` 검증으로 확인) → A 5→4 + I 7→8 (M-010 신규) = 순 변화 0, **40건 그대로**. 2026-05-08 A1-5 ✅ 해결 (통장 개설 완료) → 41 → 40. 2026-05-08 A1 stale 정정 = ~~A1-2/A1-3~~ ✅ (KYB 이미 완료) + A1-5 신규/즉시 해결 → 42 → 41 → 40. 2026-05-07 Phase B 완료로 A4-1/A4-2 ✅ → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 39건** (카테고리 합산: A 3 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 8 + J 0. 2026-05-08 (오후) ~~A1-4~~ ✅ SPF 병합 완료 (사용자 Cloudflare DNS 작업 + propagation 검증) → A 4→3, 40 → 39. **A1 카테고리 = 모두 해결** (Live 결제 운영 인프라 측 부채 0). 2026-05-08 (오전 후속) M-010 사고 정정 = ~~A1-1~~ ✅ Live Secrets 이미 적용됨 → A 5→4 + I 7→8 (M-010) = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 개설 → 41 → 40. 2026-05-08 A1 stale 정정 = ~~A1-2/A1-3~~ ✅ + A1-5 신규/즉시 해결 → 42 → 41. 2026-05-07 Phase B 완료로 A4-1/A4-2 ✅ → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -46,7 +46,7 @@
 | ~~A1-1~~ | ~~12개 PADDLE_* Secret 일괄 교체~~ ✅ **해결 (2026-03-18 추정)** | `.github/workflows/deploy.yml:92-103` + `AMK_STATUS §8.5 Step 3` | — | **이미 완료 (M-010 정정 2026-05-08)**. 검증: `gh secret list` 13개 모두 등록 (2026-02-18 ~ 03-19) + `curl /payment/plans` 응답 = `sandbox: false` + `client_token: live_*` + Live Price IDs (`pri_01k...`) + `AMK_CHANGELOG 2026-03-18` "Paddle Live 전환" 명시. 어제/오늘 stale 정정 시 부분 검증 누락 = M-010 사고 |
 | ~~A1-2~~ | ~~Webhook Secret 1회성 (재발급 필요)~~ | `docs/AMK_DEPLOY_OPS.md:985` | — | ✅ **해결 (2026-02 추정)**. `AMK_STATUS §8.5 #7` = "Webhook Destination (11개 이벤트, Secret Key 확보) ✅". Secret 사용자 보관 중 → A1-1 의 `PADDLE_WEBHOOK_SECRET` 항목으로 업데이트 시 재사용 |
 | ~~A1-3~~ | ~~KYB/Onfido 인증 지연 가능~~ | `docs/AMK_DEPLOY_OPS.md:947` (§8.5) | — | ✅ **해결 (2026-02-21~25 추정 승인)**. `AMK_STATUS §8.5 #1` = "계정 인증 (KYB + Onfido) ✅". 2026-02-19 서류 제출 (사업자등록증 한/영 + 주주명세서 한/영) → 2~4 영업일 심사 → 승인 |
-| A1-4 | SPF 레코드 병합 (Resend + Cloudflare Email Routing) | `docs/AMK_DEPLOY_OPS.md §7.6` (2026-05-08 외부 검증 후 정정) | MEDIUM | **즉시 가능**. 변경 = `v=spf1 include:_spf.mx.cloudflare.net ~all` → `v=spf1 include:send.resend.com include:_spf.mx.cloudflare.net ~all`. Paddle SPF = 불필요 (`@paddle.com` 자체 발송) |
+| ~~A1-4~~ | ~~SPF 레코드 병합 (Resend + Cloudflare Email Routing)~~ ✅ **해결 (2026-05-08 오후, 사용자 Cloudflare DNS 작업 + propagation 검증 통과)** | `docs/AMK_DEPLOY_OPS.md §7.6` | — | 변경 적용 완료: `v=spf1 include:send.resend.com include:_spf.mx.cloudflare.net ~all`. DNS propagation + SPF chain (Resend → AWS SES) + lookup 카운트 (~3-4회, 한도 10 이내) 모두 검증 ✅ |
 | ~~A1-5~~ | ~~하나은행 USD 계좌 영문 예금주명 등록 (Payout)~~ ✅ **해결 (2026-05-08)** | `AMK_STATUS §8.5 Step 6` | — | 사용자 통장 사진 확인 = **법인 명의 `HYMN CO.,LTD.`** (Multi-Foreign Currency Savings Account, KEB Hana Bank Sejong Jungang, SWIFT `KOEXKRSE`, 개설일 2026.03.16). **잔여 = Paddle Dashboard → Payout Settings → Account Holder Name = `HYMN CO.,LTD.`** (통장 표기 정확히 일치, A1-1 + A1-4 와 같은 시점 5분) |
 
 > SSoT: `AMK_STATUS.md §8.5` 체크리스트. 잔여 = A1-1 (Secrets 12개) + A1-4 (SPF) + A1-5 (은행 등록) = **3건** (KYB 완료로 A1-2, A1-3 = ✅).
