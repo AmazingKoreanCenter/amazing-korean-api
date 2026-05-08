@@ -1,8 +1,69 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 F 카테고리 stale 정정 + F4 EBOOK_SESSION_TTL_SEC 90→300 (모바일 표준). 5건 → 1건 (F5 수용 잔존)
+updated: 2026-05-08 G8 ✅ main + KKRYOUN branch protection 적용 (사용자 GitHub UI + gh api 검증). 1순위 작업 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오후 후속 5) — G8 ✅ main + KKRYOUN branch protection 적용 완료**
+
+  사용자 결정 = "능동 처리 가능 4건 1순위부터 작업". G8 = 1순위 (사용자 GitHub UI 5분 작업).
+
+  ## 적용 내용
+
+  ### main 룰
+
+  | 항목 | 값 |
+  |---|:--:|
+  | Require a pull request before merging | ✅ (0 reviews, `Require approvals` 체크 해제) |
+  | Require linear history | ✅ |
+  | Allow force pushes | ❌ (차단) |
+  | Allow deletions | ❌ (차단) |
+  | Do not allow bypassing | ❌ (admin 우회 허용 = 비상 시 안전망) |
+
+  ### KKRYOUN 룰
+
+  | 항목 | 값 |
+  |---|:--:|
+  | Require a pull request before merging | ❌ (작업 브랜치, direct push 자유) |
+  | Require linear history | ❌ (rebase 자유) |
+  | Allow force pushes | ✅ Everyone (rebase 허용) |
+  | Allow deletions | ❌ (실수 삭제 방지) |
+
+  ## 검증 (`gh api`)
+
+  ```
+  === main ===
+    Require PR:           0 reviews ✅
+    Linear history:       True ✅
+    Force push allowed:   False ✅
+    Deletion allowed:     False ✅
+    Enforce admins:       False ✅
+
+  === KKRYOUN ===
+    Require PR:           OFF ✅
+    Linear history:       False ✅
+    Force push allowed:   True ✅
+    Deletion allowed:     False ✅
+    Enforce admins:       False ✅
+  ```
+
+  ## 효과
+
+  - `git push origin main` 직접 = 차단 (KKRYOUN → PR 강제)
+  - `git push --force origin main` = 차단 (history 손실 방지)
+  - `git push origin --delete main` = 차단 (실수 삭제 방지)
+  - main = rebase / squash 머지만 허용 (linear history)
+  - KKRYOUN = force push 자유 (rebase 시 사용)
+  - admin 본인 = 비상 시 우회 가능 (Do not allow bypassing OFF)
+
+  ## 부채 카운트
+
+  G 5 → 4 (G8 ✅). 총 미해결 35 → **34**.
+
+  ## 변경 파일
+
+  - `docs/AMK_DEBTS.md` — G8 ✅ + §0 (G 5→4, 총 35→34) + 보류 명시 영역 ✅
+  - `docs/AMK_DEPLOY_OPS.md §7.6 Branch Protection 정책` — 적용 완료 마킹 + gh api 검증 결과
 
 - **2026-05-08 (오후 후속 4) — F 카테고리 stale 정정 + F4 EBOOK_SESSION_TTL_SEC 90→300 적용**
 
