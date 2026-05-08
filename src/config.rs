@@ -88,7 +88,7 @@ pub struct Config {
     pub rate_limit_ebook_page_window_sec: i64, // RATE_LIMIT_EBOOK_PAGE_WINDOW_SEC (기본 60)
     pub rate_limit_ebook_purchase_max: i64, // RATE_LIMIT_EBOOK_PURCHASE_MAX (기본 5/시간)
     pub rate_limit_ebook_purchase_window_sec: i64, // RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC (기본 3600)
-    pub ebook_session_ttl_sec: i64, // EBOOK_SESSION_TTL_SEC (기본 90, heartbeat 갱신)
+    pub ebook_session_ttl_sec: i64, // EBOOK_SESSION_TTL_SEC (기본 300 = 5분, heartbeat 30s 갱신, 모바일 백그라운드 grace 포함)
     pub ebook_tile_enabled: bool,   // EBOOK_TILE_MODE (기본 false, 타일 분할 활성화)
     pub ebook_tile_grid_rows: u32,  // EBOOK_TILE_GRID_ROWS (기본 3)
     pub ebook_tile_grid_cols: u32,  // EBOOK_TILE_GRID_COLS (기본 3)
@@ -373,7 +373,7 @@ impl Config {
             .parse::<i64>()
             .expect("RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC must be a number");
         let ebook_session_ttl_sec = env::var("EBOOK_SESSION_TTL_SEC")
-            .unwrap_or_else(|_| "90".into())
+            .unwrap_or_else(|_| "300".into())
             .parse::<i64>()
             .expect("EBOOK_SESSION_TTL_SEC must be a number");
         let ebook_tile_enabled = env::var("EBOOK_TILE_MODE")

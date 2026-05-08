@@ -25,13 +25,13 @@
 | C. 코드 품질 부채 | **2** | C1 ESLint 27 + C2 lint:ui 9. ~~C3/C4/C5/C6/C7/C8~C13~~ 처리/수용 (2026-05-04~05). C7 ✅ commit `2641766` (bundle 모니터링). B5/B6 = B 카테고리로 재분류 |
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
 | E. 기능 부채 (보류/조건부) | **11** | 9 (보류 8 + STATUS #11 이메일 수신 ✅) + **신규 3** (콘텐츠 시딩, SpeechSuper, 번들 최적화) |
-| F. 모바일/데스크탑 앱 부채 | 5 | 외부 리포 SSoT |
+| F. 모바일/데스크탑 앱 부채 | ~~5~~ → **1** | 외부 리포 SSoT. 2026-05-08 stale 정정 = ~~F1/F2/F3~~ ✅ (mobile 리포 Phase 1~3 완료 사실 반영) + ~~F4~~ ✅ (TTL 90→300 본 리포 적용). F5 만 수용 잔존 |
 | G. 자동 검증 부재 (CI 부채) | **5** | ~~G3/G4/G5/G6/G7/G11/G13/G14~~ ✅ 해결 또는 🟡 수용 (2026-05-05). 잔여 = G1/G2 (보류 cargo test/playwright) + G8 branch protection (보류) + G10 src 테스트 부족 + G12 cargo-geiger (보류) |
 | H. 문서/메모리 부채 | **0** | ~~H1 메모리 stale~~ 🟡 + ~~H2 docs↔코드 자동 도구~~ 🟡 = 수용 결정 (2026-05-05) |
 | I. AI 작업 사고 | **8** | `AMK_AI_MISTAKES.md` SSoT (2026-05-08 M-010 신규 = stale 정정 부분만 + 권고 전 외부 검증 누락) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 39건** (카테고리 합산: A 3 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 8 + J 0. 2026-05-08 (오후) ~~A1-4~~ ✅ SPF 병합 완료 (사용자 Cloudflare DNS 작업 + propagation 검증) → A 4→3, 40 → 39. **A1 카테고리 = 모두 해결** (Live 결제 운영 인프라 측 부채 0). 2026-05-08 (오전 후속) M-010 사고 정정 = ~~A1-1~~ ✅ Live Secrets 이미 적용됨 → A 5→4 + I 7→8 (M-010) = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 개설 → 41 → 40. 2026-05-08 A1 stale 정정 = ~~A1-2/A1-3~~ ✅ + A1-5 신규/즉시 해결 → 42 → 41. 2026-05-07 Phase B 완료로 A4-1/A4-2 ✅ → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 35건** (카테고리 합산: A 3 + B 1 (B6) + C 2 + D 4 + E 11 + F 1 + G 5 + H 0 + I 8 + J 0. 2026-05-08 (오후 후속 4) F 카테고리 stale 정정 = ~~F1/F2/F3~~ ✅ mobile 리포 Phase 1~3 완료 (2026-04-06~07) 사실 반영 + ~~F4~~ ✅ EBOOK_SESSION_TTL_SEC 90→300 본 리포 적용 → F 5→1, 39 → **35**. F5 만 수용 잔존. 2026-05-08 (오후) ~~A1-4~~ ✅ SPF 병합 → A 4→3, 40 → 39. 2026-05-08 (오전 후속) M-010 정정 = ~~A1-1~~ ✅ + I +1 = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 → 41 → 40. 2026-05-08 A1 stale 정정 → 42 → 41. 2026-05-07 Phase B → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -345,17 +345,18 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 
 ---
 
-## F. 모바일/데스크탑 앱 부채
+## F. 모바일/데스크탑 앱 부채 (2026-05-08 stale 정정 — 외부 리포 진행 미반영)
 
 > 외부 리포 SSoT: `docs/AMK_APP_ROADMAP.md`. 본 문서는 api 측 영향 항목만 추적.
+> **2026-05-08 검증**: `amazing-korean-mobile` 메모리 (`project_decisions.md`) cross-check 결과 F1/F2/F3 = 이미 처리됨 (Phase 1~3 완료, M1a~M8 + 보강 7건 + 버그 16건). 본 표 = stale 일괄 정정.
 
-| ID | 항목 | 심각도 | 위치 |
+| ID | 항목 | 심각도 | 위치 / 처리 |
 |:--:|------|:--:|------|
-| F1 | Flutter `flutter_rust_bridge` 버전 핀닝 필수 | HIGH | AMK_APP_ROADMAP.md R1 |
-| F2 | Flutter E-book 뷰어 메모리 OOM (14MB/페이지) | HIGH | AMK_APP_ROADMAP.md R7 |
-| F3 | Flutter iOS isSecureTextEntry 비공식 API | MEDIUM | AMK_APP_ROADMAP.md R2 |
-| F4 | Flutter 앱 백그라운드 시 세션 만료 (TTL 90초) | MEDIUM | `src/config.rs:91, 375-378` (`EBOOK_SESSION_TTL_SEC`) |
-| F5 | Tauri macOS 캡처 방지 불가 (Apple 정책) | MEDIUM (수용) | AMK_APP_ROADMAP.md R5 |
+| ~~F1~~ | ~~Flutter `flutter_rust_bridge` 버전 핀닝 필수~~ ✅ **해결 (2026-04-07, mobile 리포 M1b)** | — | `pubspec.yaml` `flutter_rust_bridge: =2.12.0` (정확한 버전 핀닝, caret 금지) + Rust edition 2021 유지. `AMK_APP_ROADMAP.md R1` |
+| ~~F2~~ | ~~Flutter E-book 뷰어 메모리 OOM (14MB/페이지)~~ ✅ **해결 (2026-04-06, mobile 리포 M6)** | — | LRU 10페이지 캐시 + `cacheWidth`/`cacheHeight` 화면 해상도 디코딩. `AMK_APP_ROADMAP.md R7` |
+| ~~F3~~ | ~~Flutter iOS isSecureTextEntry 비공식 API~~ ✅ **해결 (2026-04-06, mobile 리포 M7)** | — | `no_screenshot 1.1.0` 핀닝 + Android FLAG_SECURE + iOS isSecureTextEntry + `UIScreen.isCaptured` fallback + 저작권 경고 다이얼로그. `AMK_APP_ROADMAP.md R2` |
+| ~~F4~~ | ~~Flutter 앱 백그라운드 시 세션 만료 (TTL 90초)~~ ✅ **해결 (2026-05-08, 옵션 C 300초 적용)** | `src/config.rs:91, 375-376` + `.env.example:125` + `docs/AMK_API_EBOOK.md:493` | `EBOOK_SESSION_TTL_SEC = 90 → 300` (모바일 표준 5분). 모바일 측 30s heartbeat (M6 완료) + 300s TTL = 백그라운드 4분 30초 grace. 보안 모델 동일 (heartbeat 갱신 + Redis EXPIRE). `cargo check --lib --bins --locked` ✅ |
+| F5 | Tauri macOS 캡처 방지 불가 (Apple 정책) | MEDIUM (수용) | `AMK_APP_ROADMAP.md R5`. macOS 15+ Apple 의도적 변경, 모든 프레임워크 동일 불가. 워터마크 + 법적 억제력으로 대체 |
 
 ---
 

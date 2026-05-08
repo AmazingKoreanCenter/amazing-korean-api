@@ -187,11 +187,11 @@
 | ~~모바일 인증~~ | ~~login-mobile/refresh-mobile~~ ✅ 구현 완료 | — | auth/router.rs, handler.rs |
 | ~~모바일 인증~~ | ~~X-Platform 헤더 검증~~ ✅ refresh-mobile에 적용 | — | auth/handler.rs:refresh_mobile |
 | ~~Rust 크레이트~~ | ~~amazing-korean-crypto~~ ✅ 추출 완료 | — | crates/crypto/, Cargo.toml 워크스페이스 |
-| Flutter | flutter_rust_bridge 버전 핀닝 필수 | HIGH | AMK_APP_ROADMAP.md R1 |
-| Flutter | E-book 뷰어 메모리 OOM (14MB/페이지) | HIGH | AMK_APP_ROADMAP.md R7 |
+| ~~Flutter~~ | ~~flutter_rust_bridge 버전 핀닝 필수~~ | — | ✅ **해결 (2026-04-07, mobile M1b)**. `pubspec.yaml` `=2.12.0` 핀닝 + Rust edition 2021 |
+| ~~Flutter~~ | ~~E-book 뷰어 메모리 OOM (14MB/페이지)~~ | — | ✅ **해결 (2026-04-06, mobile M6)**. LRU 10페이지 + cacheWidth/cacheHeight 화면 해상도 디코딩 |
 | ~~Flutter~~ | ~~IAP receipt 검증 엔드포인트~~ ✅ 구현 완료 | — | POST /ebook/purchase/iap + POST /payment/webhook/revenuecat |
-| Flutter | iOS isSecureTextEntry 비공식 API | MEDIUM | AMK_APP_ROADMAP.md R2 |
-| Flutter | 앱 백그라운드 시 세션 만료 (TTL 90초) | MEDIUM | config.rs:91 (선언) + 375-378 (env 파싱) — `EBOOK_SESSION_TTL_SEC` |
+| ~~Flutter~~ | ~~iOS isSecureTextEntry 비공식 API~~ | — | ✅ **해결 (2026-04-06, mobile M7)**. `no_screenshot 1.1.0` + Android FLAG_SECURE + iOS isSecureTextEntry + UIScreen.isCaptured fallback |
+| ~~Flutter~~ | ~~앱 백그라운드 시 세션 만료 (TTL 90초)~~ | — | ✅ **해결 (2026-05-08, EBOOK_SESSION_TTL_SEC 90→300)**. config.rs:91, 376 + .env.example:125 + AMK_API_EBOOK.md:493. mobile 30s heartbeat (M6) + 300s TTL = 백그라운드 4분 30초 grace |
 | Tauri | macOS 캡처 방지 불가 (Apple 정책) | MEDIUM | AMK_APP_ROADMAP.md R5 (수용) |
 
 > **팩트체크 방법**: 코드베이스 전수 grep + 파일별 라인 검증. 총 32개 주장 중 31개 확인, 1개 수정 (Secret 13→12개).

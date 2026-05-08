@@ -1,8 +1,59 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-08 E2E #1-3 ✅ Claude curl 검증 + #4-11 트리거 결정 (실제 학습 콘텐츠 시딩 후). Q7 종결
+updated: 2026-05-08 F 카테고리 stale 정정 + F4 EBOOK_SESSION_TTL_SEC 90→300 (모바일 표준). 5건 → 1건 (F5 수용 잔존)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오후 후속 4) — F 카테고리 stale 정정 + F4 EBOOK_SESSION_TTL_SEC 90→300 적용**
+
+  사용자 결정 = "F 카테고리 5건부터 처리하자고". M-010 학습 적용 (권고 전 외부 검증) → mobile 리포 메모리 cross-check → F1/F2/F3 = 이미 처리 사실 발견 (또 stale). F4 만 본 리포 작업 + 일괄 정정.
+
+  ## 외부 검증 (mobile 리포 `project_decisions.md`)
+
+  - mobile MEMORY: "Phase 1~3 완료, 버그 16건 수정. 남은 작업 전부 외부 의존"
+  - 처리 시점: 2026-04-06 (M6/M7) ~ 2026-04-07 (M1b/M2/M8) ~ 2026-04-09 (백엔드 호환성 점검)
+
+  ## F 카테고리 변동
+
+  | ID | 항목 | 처리 |
+  |:-:|---|---|
+  | ~~F1~~ | flutter_rust_bridge 버전 핀닝 (HIGH) | ✅ mobile M1b (2026-04-07): `=2.12.0` 정확한 버전 핀닝 + Rust edition 2021 |
+  | ~~F2~~ | E-book 뷰어 메모리 OOM 14MB/페이지 (HIGH) | ✅ mobile M6 (2026-04-06): LRU 10페이지 캐시 + cacheWidth/cacheHeight 화면 해상도 디코딩 |
+  | ~~F3~~ | iOS isSecureTextEntry 비공식 API (MEDIUM) | ✅ mobile M7 (2026-04-06): `no_screenshot 1.1.0` + Android FLAG_SECURE + iOS isSecureTextEntry + `UIScreen.isCaptured` fallback + 저작권 경고 다이얼로그 |
+  | ~~F4~~ | EBOOK_SESSION_TTL_SEC 90초 (MEDIUM) | ✅ **본 commit 적용 (2026-05-08, 옵션 C 300초)** |
+  | F5 | Tauri macOS 캡처 방지 불가 (수용) | 그대로 (Apple 정책, 모든 프레임워크 동일 불가) |
+
+  ## F4 본 리포 코드 변경
+
+  - `src/config.rs:91` 주석: "기본 90, heartbeat 갱신" → "기본 300 = 5분, heartbeat 30s 갱신, 모바일 백그라운드 grace 포함"
+  - `src/config.rs:376` default: `"90"` → `"300"`
+  - `.env.example:125` `EBOOK_SESSION_TTL_SEC=90` → `=300`
+  - `docs/AMK_API_EBOOK.md:493` 환경변수 표 default 갱신 + 정정 시점 명시
+
+  ## 변경 사유
+
+  - 현재 90초 = 모바일 백그라운드 grace 30s + 추가 60s 만 버팀
+  - 사용자 카톡 답장 / 화면 잠금 등 짧은 앱 전환에 강제 만료
+  - 300초 = 모바일 표준 (Adobe DRM 등 일반)
+  - 보안 모델 변경 X = heartbeat 30s 갱신 + Redis EXPIRE 그대로
+  - mobile 측 (M6 완료) Timer.periodic(30s) 와 정합 = 정상 사용 시 끊김 없음
+
+  ## 검증
+
+  - `cargo check --lib --bins --locked` ✅
+  - `grep EBOOK_SESSION_TTL_SEC` 일치 (config.rs / .env.example / AMK_API_EBOOK.md / docs)
+
+  ## 부채 카운트
+
+  F 5 → 1 (F5 만 수용 잔존). 총 미해결 39 → **35**.
+
+  ## 변경 파일
+
+  - `src/config.rs` (91, 376) — TTL default 90 → 300
+  - `.env.example` (125) — 동일
+  - `docs/AMK_API_EBOOK.md` (493) — 환경변수 표 갱신
+  - `docs/AMK_DEBTS.md` — F 카테고리 표 (F1~F4 ✅ 마킹) + §0 카운트 (F 5→1, 총 39→35)
+  - `docs/AMK_STATUS.md` — 검증된 리스크 표 (Flutter 4행 ~~취소선~~ + ✅)
 
 - **2026-05-08 (오후 후속 3) — E2E #1-3 ✅ + #4-11 트리거 결정 (실제 상품 완성 후 진행)**
 
