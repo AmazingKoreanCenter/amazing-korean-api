@@ -436,8 +436,13 @@ Paddle Dashboard → **Catalog → Discounts** 에서 3개 생성:
 
 ##### Step 6: 은행 — 유저
 
-- ~~하나은행 세종중앙금융센터(044-867-1111)에 USD 계좌 영문 예금주명 등록 요청~~ ✅ **2026-05-08 완료 (사용자 통보)**
-- **잔여**: Paddle Dashboard → Payout Settings → Account Holder Name 입력 (하나은행 등록명과 정확히 일치 필수, 불일치 시 송금 reject)
+- ~~하나은행 세종중앙금융센터(044-867-1111)에 USD 계좌 영문 예금주명 등록 요청~~ ✅ **2026-05-08 완료 (사용자 통보, 통장 사진 확인)**
+  - 계좌 종류 = **Multi-Foreign Currency Savings Account** (USD 포함 다중 외화 입금 가능)
+  - 예금주명 = **`HYMN CO.,LTD.`** (법인 명의, 대문자 + 콤마 + 마침표)
+  - 개설일 = 2026.03.16
+  - 지점 = KEB Hana Bank Sejong Jungang Banking Center (275, Hannuri-daero, Sejong, 30127, South Korea)
+  - SWIFT/BIC = `KOEXKRSE`
+- **잔여**: Paddle Dashboard → Payout Settings → Account Holder Name 입력 = **`HYMN CO.,LTD.`** (통장 표기와 정확히 일치 필수, 대소문자 + 공백 + 콤마 + 마침표 모두 동일하게. 불일치 시 송금 reject). 한국은 IBAN/Routing Number 사용 X (해당 필드 비워둠)
 
 #### 가격 구조
 
