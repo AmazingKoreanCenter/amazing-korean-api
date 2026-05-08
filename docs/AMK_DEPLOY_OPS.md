@@ -1508,10 +1508,10 @@ main 룰 우회 필요 시 (예: 긴급 hotfix):
 
 > 한 도메인에 여러 메일 발송 서비스가 있을 때 **SPF TXT 레코드 1개에 모든 서비스 include 통합**. 표준상 SPF TXT 가 여러 개면 모두 무효 처리되므로 병합 필수.
 
-#### 현재 상태
+#### 현재 상태 (2026-05-08 정정)
 
 - **Resend** (`amazingkorean.net` 발신, 인증/구독/이메일 인증코드) = SPF include 활성
-- **Paddle Live** (영수증/구독 알림) = **KYB 인증 후 활성 예정** = include 추가 필요
+- **Paddle Live** (영수증/구독 알림) = **KYB 인증 ✅ 완료 (2026-02). 사용자 GitHub Secrets 업데이트 시점에 활성** → include 추가 필수 (그 전 추가도 무방, 정상 메일 발송에 영향 없음)
 
 #### 병합된 SPF 레코드 (Paddle Live 활성 시)
 
@@ -1551,11 +1551,11 @@ dig +short TXT amazingkorean.net | grep -c spf
 
 #### Paddle 활성 시점 작업 흐름
 
-1. KYB 인증 완료 (Paddle 측, 외부 처리)
+1. ~~KYB 인증 완료 (Paddle 측, 외부 처리)~~ ✅ **이미 완료 (2026-02 추정 승인)**
 2. Paddle Dashboard → Notifications → SPF 안내 확인 (`_spf.paddle.com` 정확한 호스트명 확인)
 3. Cloudflare DNS → 위 레코드 추가/수정
 4. 1-5분 propagation 대기 → 위 검증 절차
-5. Paddle 측 테스트 메일 발송 → 도착 + 스팸 미처리 확인
+5. Paddle 측 테스트 메일 발송 → 도착 + 스팸 미처리 확인 (Live 활성 후)
 6. AMK_DEBTS A1-4 ✅ 해결 마킹
 
 [⬆️ 목차로 돌아가기](#-목차-table-of-contents)
@@ -1579,7 +1579,7 @@ dig +short TXT amazingkorean.net | grep -c spf
 
 ## 8.5. Paddle Live 전환 가이드
 
-> Sandbox → Production 전환 체크리스트. KYB/Onfido 승인 완료 후 실행.
+> Sandbox → Production 전환 체크리스트. **KYB/Onfido 승인 ✅ 완료 (2026-02-21~25 추정)**. 본 가이드는 §8.5 표 (18개 항목 모두 ✅) + "남은 작업" Step 3~6 (사용자 작업) 으로 구성.
 > Sandbox ↔ Live는 완전 별도 환경 — 상품, 가격, API 키, 웹훅 모두 재생성 필요.
 > 공식 문서: [Go-live checklist](https://developer.paddle.com/build/onboarding/go-live-checklist) · [Setup checklist](https://developer.paddle.com/build/onboarding/set-up-checklist)
 

@@ -1,8 +1,69 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-07 CLAUDE.md "AI 작업 원칙 (Karpathy 4원칙)" 섹션 정착. 본 세션 종결
+updated: 2026-05-08 A1 Paddle KYB stale 정정 9곳 (KYB 이미 완료 확인, AMK_DEBTS §0 42→41, A1-2/A1-3 ✅ + A1-5 신규)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-08 (오전) — A1 Paddle KYB stale 정정 9곳 (KYB 이미 완료 사실 확인)**
+
+  사용자 어제 의문 ("이미 신청 다 완료된 상태인데??", 2026-05-07) 의 정확한 의미 파악 위해 KYB 관련 docs/메모리 전수 grep. **결과**: KYB 인증 = ✅ **이미 완료 (2026-02-21~25 추정 승인)**. 본 리포에 stale 표시 9곳 잔존 발견 → 일괄 정정.
+
+  ## 사실 확인 (시간순)
+
+  | 시점 | 작업 | 출처 |
+  |---|---|---|
+  | 2026-02-18 | Paddle Account Verification 신청 + 심사 대기 통보 | `AMK_CHANGELOG:3363` |
+  | 2026-02-19 | KYB 서류 (사업자등록증 한/영 + 주주명세서 한/영 + UBO 명시 + 주민번호 마스킹) Paddle Dashboard 업로드 | `AMK_CHANGELOG:3308` + `AMK_STATUS §8.1 #14` |
+  | 2026-02-19 | Paddle 도메인 검토 대응 (환불 정책 30일 무조건 / 사업자명 통일 / SPA `<noscript>` 추가) | `AMK_CHANGELOG:3315` |
+  | 2026-02-19 | 사업자등록증 영문 이름 = `KIM KYEONGRYUN` / 일반 표기 `Kyoung Ryun KIM` 정착 | `AMK_CHANGELOG:3302-3304` |
+  | ~2026-02-21~25 | KYB 승인 (2~4 영업일 심사 후 추정) | 명시 기록 X, `AMK_STATUS §8.5 #1 ✅` 표시로 확인 |
+  | 2026-03-18 | Paddle Live 전환 + E-book Paddle Checkout 연동 | `AMK_CHANGELOG:3149` |
+
+  ## 현재 실제 상태
+
+  `AMK_STATUS §8.5` Paddle Live 전환 체크리스트 = **18개 항목 모두 ✅** (KYB / Domain / Products / Prices / API Key `pdl_apikey_live_` / Client Token `live_` / Webhook Destination + Secret / Payment Methods / Balance Currency / Default Link / Retain / pwCustomer / Email Routing / 환경변수 정리 / Discount 3개 / GitHub Secrets Discount ID 3개).
+
+  **남은 작업** (`AMK_STATUS §8.5` "남은 작업" Step 3~6, 모두 사용자 작업):
+  - Step 3: GitHub Secrets 12개 업데이트 (`PADDLE_SANDBOX=false` / `PADDLE_API_KEY` / `PADDLE_CLIENT_TOKEN` / `PADDLE_WEBHOOK_SECRET` / `PADDLE_PRICE_MONTH_1/3/6/12` / `PADDLE_PRICE_EBOOK` / `PADDLE_DISCOUNT_MONTH_3/6/12` / `PAYMENT_PROVIDER=paddle`)
+  - Step 4: 자동 배포 (Step 3 후 GitHub Actions)
+  - Step 5: E2E 검증 11개 시나리오
+  - Step 6: 하나은행 USD 계좌 영문 예금주명 등록 (외부)
+
+  ## stale 정정 9곳
+
+  | # | 위치 | 정정 |
+  |:-:|---|---|
+  | 1 | `AMK_DEBTS A1` 헤더 + 표 | "(KYB/Onfido 인증 의존)" → "(사용자 GitHub Secrets + 은행 등록 의존, 2026-05-08 stale 정정)". A1-2 ✅ + A1-3 ✅ + A1-4 트리거 정정 + **A1-5 신규** (은행 USD 계좌 HIGH) |
+  | 2 | `AMK_DEBTS §0` 카운트 | A 7 → 6 (A1 4 → 3, A1-2/A1-3 ✅ + A1-5 신규). 총 미해결 42 → **41** |
+  | 3 | `AMK_DEBTS` 처리 트리거 | "KYB 인증 완료" → "KYB 완료 ✅. 사용자 GitHub Secrets + 은행 등록 잔여" |
+  | 4 | `AMK_DEBTS` 장기 보류 명시 | "A1 Paddle Live (KYB)" → "A1 Paddle Live (사용자 GitHub Secrets + 은행, KYB 완료 = 즉시 가능)" |
+  | 5 | `AMK_STATUS Q7` | "블록: KYB/Onfido 대기" → "KYB ✅ + 잔여 = GitHub Secrets + 은행 등록" |
+  | 6 | `AMK_STATUS` 검증된 리스크 표 (Paddle Live 4행) | KYB / Webhook 행 ~~취소선~~ ✅. SPF + 은행 행 갱신 |
+  | 7 | `AMK_DEPLOY_OPS §7.6 SPF` | "KYB 인증 후 활성 예정" → "KYB ✅ 완료, GitHub Secrets 업데이트 시점 활성" |
+  | 8 | `AMK_DEPLOY_OPS §8.5` 인트로 | "KYB/Onfido 승인 완료 후 실행" → "KYB/Onfido 승인 ✅ 완료 (2026-02-21~25 추정)" |
+  | 9 | 메모리 `project_status.md` 다수 (Q7 행 + 외부 의존 #1 + 결정 대기 #1 + description) | KYB 대기 → KYB 완료 + 잔여 작업 명시 |
+
+  ## 신규 부채 등재
+
+  **A1-5 하나은행 USD 계좌 영문 예금주명 등록** (HIGH) — `AMK_STATUS §8.5 Step 6`. 사용자 외부 작업 (하나은행 세종중앙금융센터 044-867-1111 → USD 계좌 영문 예금주명 등록 → Paddle Dashboard Payout Settings 입력). Live 결제 활성 후 매출 수령 채널.
+
+  ## 사용자 결정 대기 갱신 (5 → 4건)
+
+  - ✅ #1 A1-3 KYB 상태 = 본 정정으로 해소
+  - #2 F 의도 (F1/F2 외부 리포 vs F4 본 리포)
+  - #3 F4 TTL (옵션 C 300s 권장)
+  - #4 G10 auth 도메인 권장
+  - #5 N-26 i18n 방향
+
+  ## 학습
+
+  **stale 정정 패턴** = 큰 외부 사건 (KYB 승인) 후 본 리포 docs/메모리 갱신이 누락되면 `시간 = 부채 = 누적`. 어제 사용자 의문 ("이미 신청 다 완료된 상태인데??") = stale 발견 신호. 이런 발견 시 **즉시 전수 grep 후 일괄 정정** 권장. 본 정정 = 9곳 같은 PR / 같은 시점 정착 = 향후 재발 위험 0.
+
+  ## 변경 파일
+
+  - `docs/AMK_DEBTS.md` — A1 헤더 + 표 + §0 카운트 + 처리 트리거 + 장기 보류
+  - `docs/AMK_STATUS.md` — Q7 + 검증된 리스크 표
+  - `docs/AMK_DEPLOY_OPS.md` — §7.6 SPF 현재 상태 + Paddle 활성 시점 + §8.5 인트로
 
 - **2026-05-07 (새벽 종결) — CLAUDE.md "AI 작업 원칙 (Karpathy 4원칙)" 정착**
 

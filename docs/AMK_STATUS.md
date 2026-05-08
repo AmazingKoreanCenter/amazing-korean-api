@@ -152,7 +152,7 @@
 | Q4 | 중간 | 기타 locale 영수증 번역 개별 추가 — 현재 20개 locale 은 영어 fallback. 일본어/중국어 우선 번역 권장. | 반나절 | 동일 |
 | ~~Q5~~ | ✅ 완료 | ~~사용자 검색 UI~~ — `admin_textbook_order_create.tsx` 의 user_id 수동 입력을 검색 콤보박스로 대체. 신규 `UserSearchCombobox` 컴포넌트 (Input + 300ms debounce + 드롭다운). 백엔드 `useAdminUsers({q})` 재사용 (이메일 blind index exact match / 닉네임 LIKE). 수동 입력 토글 폴백 유지. **2026-04-22 완료** (프론트만, `npm run build` 9.09s 성공). | 반나절 | #75 "후속 작업" (AMK_CHANGELOG 2026-04-19) |
 | ~~Q6~~ | ✅ 완료 | ~~`admin_textbook_log` Create 액션 조회 UI~~ — 신규 엔드포인트 `GET /admin/textbook/logs` + action/order_id/admin_user_id 필터 + 페이지네이션. 프론트: `/admin/textbook/logs` 페이지 + orders 페이지 상단 "감사 로그" 버튼. 관리자 이메일은 서비스 레이어에서 `CryptoService.decrypt` 복호화. **2026-04-22 완료** (cargo check + clippy 클린, frontend build 8.04s 성공). | 반나절 | 동일 |
-| Q7 | 낮음 | **Paddle Live 전환** — GitHub Secrets 12개 일괄 교체 + 배포 + E2E 검증 | 1일 | §8.2 #1. **블록: KYB/Onfido 인증 대기** (외부 의존) |
+| Q7 | 낮음 | **Paddle Live 전환** — GitHub Secrets 12개 일괄 교체 + 배포 + E2E 검증 + 하나은행 USD 계좌 영문 예금주명 등록 | 1일 | §8.2 #1 + §8.5 Step 3+6. **블록 (2026-05-08 정정): KYB/Onfido 이미 완료 ✅ (2026-02). 잔여 = 사용자 GitHub Secrets 업데이트 + 은행 등록 (외부)** |
 | Q8 | 낮음 | **K6 성능 테스트 실행** — `k6/` 디렉터리 세팅은 완료. 테스트 계정 생성 후 smoke + load 시나리오 실행 | 0.5일 | §8.2 #12. **블록: 테스트 계정 생성 필요** |
 | Q9 | 낮음 | **E-book 로컬 파일시스템 의존 해소** — `ebook/service.rs` 9곳 `fs::read` 를 S3/CDN 으로 전환. RDS 이전 선행 작업. | 3~5일 | §8.2 #6 검증된 리스크 CRITICAL. 앱 개발 이후 공식 로드맵에 있음 |
 | ~~Q10~~ | ✅ 완료 | ~~QA run 2026-04-22 프론트 수정 3건 묶음~~ — 2.1 ebook subtitle 공백 + 2.2 textbook subtitle 공백 + 2.4 `/book` 캐러셀 dot `aria-label`. `<br className="hidden sm:block" />` 패턴 **전수 6곳** (ebook/textbook 카탈로그 + coming_soon + error 3종) 모두 `<>{" "}<br.../></>` 로 교체 (모바일 공백 보존). 캐러셀 dot 은 전수 **3곳** (book_hub + ebook_detail_modal + textbook_detail_modal) 에 `aria-label={t("common.goToSlide", { n })}` + `aria-current` 추가. i18n 키 `common.goToSlide` 신규 (ko/en). **2026-04-22 완료** (`npm run build` 9.74s 성공). | 30분 | `docs/QA_결과.md` 2.1/2.2/2.4 |
@@ -175,10 +175,11 @@
 
 | 작업 | 리스크 | 심각도 | 근거 |
 |------|--------|:------:|------|
-| Paddle Live | 12개 PADDLE_* Secret 일괄 교체 (누락 시 결제 실패) | CRITICAL | deploy.yml:92-103 (HEAD 2026-05-04) |
-| Paddle Live | Webhook Secret 1회성 (재확인 불가) | CRITICAL | AMK_DEPLOY_OPS.md:985 |
-| Paddle Live | KYB/Onfido 인증 지연 가능 | HIGH | AMK_DEPLOY_OPS.md:947 |
-| Paddle Live | SPF 레코드 병합 (Resend + Cloudflare) | MEDIUM | AMK_DEPLOY_OPS.md:1023 |
+| Paddle Live | 12개 PADDLE_* Secret 일괄 교체 (누락 시 결제 실패) | CRITICAL | deploy.yml:92-103 (HEAD 2026-05-04). **사용자 GitHub Secrets 업데이트 = 즉시 가능** (KYB 완료) |
+| ~~Paddle Live~~ | ~~Webhook Secret 1회성 (재확인 불가)~~ | — | ✅ **해결 (2026-02 추정)**. `AMK_STATUS §8.5 #7` Secret Key 확보 완료 → A1-1 의 `PADDLE_WEBHOOK_SECRET` 항목으로 업데이트 시 재사용 |
+| ~~Paddle Live~~ | ~~KYB/Onfido 인증 지연 가능~~ | — | ✅ **해결 (2026-02-21~25 추정 승인)**. `AMK_STATUS §8.5 #1 = ✅` |
+| Paddle Live | SPF 레코드 병합 (Resend + Paddle) | MEDIUM | `AMK_DEPLOY_OPS §7.6` (가이드 정착 2026-05-07). **즉시 가능** (KYB 완료, 사용자 5-10m) |
+| Paddle Live | 하나은행 USD 계좌 영문 예금주명 등록 (Payout) | HIGH | `AMK_STATUS §8.5 Step 6`. Live 활성 후 매출 수령 채널 (사용자 외부 작업) |
 | RDS 이전 | E-book 로컬 파일시스템 의존 (9곳 fs read) | CRITICAL | ebook/service.rs:63,381,627,641,650,731,746,755 + watermark.rs:13 (HEAD 2026-05-04) |
 | RDS 이전 | SSL 연결 필수 (현재 미사용) | HIGH | config.rs:109-110 (DATABASE_URL localhost 기본값) |
 | RDS 이전 | ElastiCache AUTH 토큰 필요 (현재 인증 없음) | HIGH | config.rs:113 (redis://127.0.0.1:6379) |

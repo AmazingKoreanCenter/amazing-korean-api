@@ -17,7 +17,7 @@
 
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
-| A. 운영/배포 부채 | ~~10~~ → ~~9~~ → **7** | KYB 의존 4 + 인프라 이전 3. ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ + ~~A4-4~~ ✅ **해결 (2026-05-07 옵션 A 수동 정기 정착)** + ~~A4-1/A4-2~~ ✅ **Phase B 완료 (2026-05-07: HTTPS + Let's Encrypt + Cloudflare Full Strict + 자동 갱신)** |
+| A. 운영/배포 부채 | ~~10~~ → ~~9~~ → ~~7~~ → **6** | **A1 = 3** (KYB 의존 4건 → 3건 정정 2026-05-08: ~~A1-2/A1-3~~ ✅ KYB 완료, A1-5 신규 = 은행 USD 계좌 등록) + **A2 = 3** (인프라 이전). ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ + ~~A4-4~~ ✅ (2026-05-07 옵션 A 수동 정기) + ~~A4-1/A4-2~~ ✅ Phase B 완료 (2026-05-07 HTTPS + Let's Encrypt + Full Strict + 자동 갱신) |
 | 🟡 B. 보안 부채 (취약점) | ~~1~~ → **0** | Rust **1** (rsa Marvin Attack, no upgrade) — 🟡 수용 결정 (2026-05-06, compile-time only + PostgreSQL only = production 영향 0). ~~npm 3건~~ ✅ 해결 (2026-05-04). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
 | 🟡 B. 보안 부채 (unsound/unmaintained) | ~~7~~ → **0** | 🟡 모두 수용 결정 (2026-05-06). core2/paste = unmaintained warning 만 + transitive. imageproc 3 = 텍스트 오버레이 영향 낮음. rand 2 = custom logger 미사용으로 영향 0 |
 | ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
@@ -31,22 +31,25 @@
 | I. AI 작업 사고 | **7** | `AMK_AI_MISTAKES.md` SSoT (M-006 → 신규 M-007 = 라인 번호 복사 시 미검증) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 42건** (카테고리 합산: A 7 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 7 + J 0. 2026-05-07: Phase B 완료로 A4-1/A4-2 ✅ → 44 → 42. B8 신규 등재 + 즉시 해결 (당일 일과성, §0 카운트 변화 X). 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 41건** (카테고리 합산: A 6 + B 1 (B6) + C 2 + D 4 + E 11 + F 5 + G 5 + H 0 + I 7 + J 0. 2026-05-08: A1 stale 정정 = ~~A1-2/A1-3~~ ✅ (KYB 이미 완료) + A1-5 신규 (은행 USD 계좌 등록) → 42 → 41. 2026-05-07 Phase B 완료로 A4-1/A4-2 ✅ → 44 → 42. B8 신규 등재 + 즉시 해결 (당일 일과성, §0 카운트 변화 X). 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
 ## A. 운영/배포 부채
 
-### A1. Paddle Live 전환 (KYB/Onfido 인증 의존)
+### A1. Paddle Live 전환 (사용자 GitHub Secrets 업데이트 + 은행 등록 의존, 2026-05-08 stale 정정)
 
-| 항목 | 위치 (HEAD 2026-05-04) | 심각도 | 처리 시점 |
+> **2026-05-08 stale 정정**: KYB 인증 = ✅ **이미 완료** (2026-02-19 서류 제출 → 2026-02-21~25 추정 승인 → `AMK_STATUS §8.5` 18개 항목 모두 ✅). 본 표는 사용자 어제 의문 ("이미 신청 다 완료된 상태인데??", 2026-05-07) 의 정확한 의미 = stale 표시 다수.
+
+| 항목 | 위치 (HEAD) | 심각도 | 처리 시점 |
 |------|------|:--:|----------|
-| A1-1 | 12개 PADDLE_* Secret 일괄 교체 | `.github/workflows/deploy.yml:92-103` | CRITICAL | KYB 완료 후 |
-| A1-2 | Webhook Secret 1회성 (재발급 필요) | `docs/AMK_DEPLOY_OPS.md:985` | CRITICAL | 동일 |
-| A1-3 | KYB/Onfido 인증 지연 가능 | `docs/AMK_DEPLOY_OPS.md:947` (§8.5) | HIGH | 외부 처리 대기 |
-| A1-4 | SPF 레코드 병합 (Resend + Paddle) | `docs/AMK_DEPLOY_OPS.md §7.6` (가이드 정착 2026-05-07) | MEDIUM | KYB 인증 완료 후 DNS 작업 (사용자 5-10m) |
+| A1-1 | 12개 PADDLE_* Secret 일괄 교체 | `.github/workflows/deploy.yml:92-103` + `AMK_STATUS §8.5 Step 3` | CRITICAL | **사용자 작업 (즉시 가능)**. GitHub Secrets 12개 (`PADDLE_SANDBOX=false` / `PADDLE_API_KEY` / `PADDLE_CLIENT_TOKEN` / `PADDLE_WEBHOOK_SECRET` / `PADDLE_PRICE_MONTH_1/3/6/12` / `PADDLE_PRICE_EBOOK` / `PADDLE_DISCOUNT_MONTH_3/6/12` / `PAYMENT_PROVIDER=paddle`) 업데이트 → 자동 배포 |
+| ~~A1-2~~ | ~~Webhook Secret 1회성 (재발급 필요)~~ | `docs/AMK_DEPLOY_OPS.md:985` | — | ✅ **해결 (2026-02 추정)**. `AMK_STATUS §8.5 #7` = "Webhook Destination (11개 이벤트, Secret Key 확보) ✅". Secret 사용자 보관 중 → A1-1 의 `PADDLE_WEBHOOK_SECRET` 항목으로 업데이트 시 재사용 |
+| ~~A1-3~~ | ~~KYB/Onfido 인증 지연 가능~~ | `docs/AMK_DEPLOY_OPS.md:947` (§8.5) | — | ✅ **해결 (2026-02-21~25 추정 승인)**. `AMK_STATUS §8.5 #1` = "계정 인증 (KYB + Onfido) ✅". 2026-02-19 서류 제출 (사업자등록증 한/영 + 주주명세서 한/영) → 2~4 영업일 심사 → 승인 |
+| A1-4 | SPF 레코드 병합 (Resend + Paddle) | `docs/AMK_DEPLOY_OPS.md §7.6` (가이드 정착 2026-05-07) | MEDIUM | **즉시 가능** (KYB 완료, 사용자 Cloudflare DNS 5-10m). A1-1 GitHub Secrets 업데이트와 같은 시점에 진행 권장 |
+| A1-5 | 하나은행 USD 계좌 영문 예금주명 등록 (Payout) | `AMK_STATUS §8.5 Step 6` | HIGH | **사용자 (외부 작업)**. 하나은행 세종중앙금융센터(044-867-1111) → USD 계좌 영문 예금주명 등록 → Paddle Dashboard Payout Settings 입력. Live 결제 활성 후 매출 수령 채널 |
 
-> SSoT: `AMK_STATUS.md §8.5` 체크리스트.
+> SSoT: `AMK_STATUS.md §8.5` 체크리스트. 잔여 = A1-1 (Secrets 12개) + A1-4 (SPF) + A1-5 (은행 등록) = **3건** (KYB 완료로 A1-2, A1-3 = ✅).
 
 ### A2. RDS/ElastiCache 이전
 
@@ -466,7 +469,7 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 
 ### 장기 (트리거 조건 충족 시)
 
-A1 Paddle Live (KYB), A2 RDS 이전 (앱 개발 후), E 기능 부채 (트리거 조건), F 앱 부채 (앱 개발 시).
+A1 Paddle Live (사용자 GitHub Secrets + 은행 등록, KYB 완료 = 즉시 가능), A2 RDS 이전 (앱 개발 후), E 기능 부채 (트리거 조건), F 앱 부채 (앱 개발 시).
 
 ### 보류 명시
 
@@ -480,7 +483,7 @@ A1 Paddle Live (KYB), A2 RDS 이전 (앱 개발 후), E 기능 부채 (트리거
 
 | 카테고리 | 진입점 | 작업 위치 |
 |---------|--------|----------|
-| A1 Paddle | KYB 인증 완료 | `AMK_DEPLOY_OPS.md §8.5` |
+| A1 Paddle | **KYB 완료 ✅ (2026-02 추정 승인). 사용자 GitHub Secrets 12개 업데이트 + 은행 USD 계좌 등록만 남음** | `AMK_DEPLOY_OPS.md §8.5` Step 3 + Step 6 |
 | A2 RDS 이전 | 앱 개발 완료 (~1.5개월) | `AMK_DEPLOY_OPS.md §8` |
 | A3 Q14/Q15/Q16/Q17 | 사용자 트리거 | `AMK_STATUS.md §8.2` |
 | A4 운영 인프라 | 본 문서 직접 진입 | nginx / docker-compose / EC2 운영 |
