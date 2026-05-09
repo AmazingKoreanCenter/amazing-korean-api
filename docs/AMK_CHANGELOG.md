@@ -1,8 +1,77 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹², 일일 종결) — G10 Phase 2 추가 5 tests (8 통합 누적). AMK_STATUS §8.1 #92 등재
+updated: 2026-05-09 — G10 Phase 3 진입 + EmailSender mock + 6 tests passed. AMK_STATUS §8.1 #93 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-09 — G10 Phase 3 진입 + EmailSender mock 인프라 + 6 tests passed**
+
+  세션 진입 = 사용자 결정 = Phase 3 트랙 (signup/login/oauth/mfa = EmailSender mock 의존) 진입.
+
+  ## EmailSender mock 인프라 (`tests/common/mod.rs` 확장)
+
+  - `CapturedEmail { to, subject, html, text }` — 발송 1건 캡처 구조체 (Clone, Debug)
+  - `CapturingEmailSender { sent: Arc<Mutex<Vec<CapturedEmail>>> }` — Mutex 누적, `Ok(())` 반환 (성공 path 검증)
+  - `FailingEmailSender` — 항상 `External("test: forced email failure")` 반환 (rate-limit DECR 롤백 path 검증용)
+  - `make_test_state_with_capturing_email() -> (AppState, Arc<Mutex<Vec<CapturedEmail>>>)` — 캡처 핸들 함께 반환
+  - `make_test_state_with_failing_email() -> AppState` — 에러 path 검증용
+
+  ## Phase 3 첫 진입 함수 3개 (6 tests, anti-enumeration + validation + rate limit)
+
+  모두 DB user 생성 불필요 — anti-enumeration 정책 검증 우선 (존재하지 않는 user 로 generic 200 응답 + 이메일 발송 0건).
+
+  ### `AuthService::request_password_reset` (2 tests)
+
+  - 존재하지 않는 이메일 → `Ok(RequestResetRes)` + 이메일 발송 0건 (anti-enumeration) + cleanup
+  - 11번째 호출 → `TooManyRequests` + 이메일 발송 0건 + cleanup
+
+  ### `AuthService::resend_verification` (2 tests)
+
+  - 존재하지 않는 이메일 → `Ok(ResendVerificationRes)` + 이메일 발송 0건 + cleanup
+  - 잘못된 email 형식 → `ValidationGeneric` (rate-limit INCR 전 차단, cleanup 불필요)
+
+  ### `AuthService::find_password` (2 tests)
+
+  - 잘못된 birthday → `ValidationGeneric` (validation 실패, rate-limit 미진입)
+  - 일치자 없음 (random name+birthday+email) → `Ok(FindPasswordRes)` + 이메일 발송 0건 + IP 기반 cleanup
+
+  ## 검증
+
+  ```
+  $ DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/amazing_korean_db \
+    REDIS_URL=redis://:redis_dev_password@127.0.0.1:16379 \
+    JWT_SECRET=test_jwt_secret_must_be_at_least_32_bytes_long \
+    HMAC_KEY=$(openssl rand -base64 32) \
+    ENCRYPTION_KEY_V1=$(openssl rand -base64 32) \
+    cargo test --test auth_email_integration -- --ignored
+  test test_find_password_validation_rejects_invalid_birthday ... ok
+  test test_find_password_no_email_for_non_matching_user ... ok
+  test test_request_password_reset_anti_enumeration_for_non_existent_user ... ok
+  test test_request_password_reset_rate_limit_429 ... ok
+  test test_resend_verification_anti_enumeration_for_non_existent_user ... ok
+  test test_resend_verification_validation_rejects_invalid_email ... ok
+
+  test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+  ```
+
+  - cargo test --lib = 166 passed
+  - cargo clippy --tests --no-deps = clean
+  - cargo fmt --check = clean
+  - default `cargo test` = 166 passed / 21 ignored (Phase 1 + Phase 2 + Phase 3) / 0 failed
+
+  ## G10 누계 (2026-05-09)
+
+  - **단위 테스트**: 157 신규 / 166 passed
+  - **통합 Phase 1** (repo, Postgres only): 7 passed
+  - **통합 Phase 2** (service Redis 의존, EmailSender 미사용): 8 passed
+  - **통합 Phase 3** (EmailSender mock 의존): 6 passed (anti-enumeration + validation + rate limit)
+  - **총 178 신규 / 187 passed**
+
+  ## 잔여 트랙 (Phase 3 happy path / login·oauth·mfa)
+
+  - happy path (실제 user 생성 + 이메일 캡처 검증) = DB user 생성 헬퍼 필요 (별도 진입점)
+  - login flow (mfa challenge) = MFA secret 주입 헬퍼 필요
+  - Google OAuth = `wiremock` 도입 검토 (HTTP mock)
 
 - **2026-05-10 (후속¹², 일일 종결) — G10 Phase 2 추가 5 tests (8 통합 누적)**
 
