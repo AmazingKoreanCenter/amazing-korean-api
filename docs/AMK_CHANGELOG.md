@@ -1,8 +1,113 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁸) — G10/G1 통합 테스트 Phase 1 인프라 정착 (8 ignored tests, sqlx::test). AMK_STATUS §8.1 #88 등재
+updated: 2026-05-10 (후속⁹) — G10/G1 통합 테스트 Phase 1 실 실행 7 passed + G16 신규 (migration 정렬). AMK_STATUS §8.1 #89 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁹) — G10/G1 통합 테스트 Phase 1 실 실행 7 passed + G16 신규 부채 등재**
+
+  세션 진입 = 사용자 결정 = 로컬 DB 셋업 후 Phase 1 실 실행 검증.
+
+  ## 셋업 발견
+
+  Docker 컨테이너 이미 동작 중 (사용자 dev 환경):
+  - `amk-pg` (PostgreSQL 16, port 5432:5432, postgres/postgres)
+  - `amk-redis` (Redis 7)
+  - `docker-compose.yml` dev profile
+
+  → DATABASE_URL 설정만으로 통합 테스트 실행 가능.
+
+  ## 첫 시도 = `sqlx::test` 매크로 fail
+
+  ```
+  thread 'test_lesson_find_by_id_returns_none_for_missing' panicked at sqlx-core/src/testing/mod.rs:261:14:
+  failed to apply migrations: ExecuteMigration(Database(PgDatabaseError {
+    severity: Error, code: "42704", message: "type \"content_type_enum\" does not exist"
+  }), 20260210)
+  ```
+
+  ### 원인 분석 (G16 신규 부채)
+
+  sqlx 의 numeric version 정렬:
+  - `20260208_AMK_V1.sql` (v=20260208) — base schema, content_type_enum 정의 없음
+  - `20260210_i18n_add_video_content_type.sql` (v=**20260210**) — ALTER TYPE
+  - `20260210000001_i18n_content_translations.sql` (v=**20260210000001**) — CREATE TYPE
+
+  `20260210 < 20260210000001` → ALTER 가 CREATE 보다 먼저 실행 → fail.
+
+  production 에서는 점진 적용으로 우회됨 (CREATE 먼저 추가 후 ALTER 별도 시점).
+
+  **file rename = `_sqlx_migrations` checksum 깨짐 위험 = 금지**.
+
+  ## 해결: 매크로 변경 + 기존 DB 사용
+
+  ```rust
+  // Before:
+  #[sqlx::test]  // 자동 임시 DB + migration → fail
+  async fn ...(pool: PgPool) { ... }
+
+  // After:
+  #[tokio::test]
+  async fn ... {
+      let pool = pool().await;  // 수동 PgPool, 기존 amk-pg DB
+      ...
+  }
+
+  async fn pool() -> PgPool {
+      let url = env::var("DATABASE_URL").expect("...");
+      PgPool::connect(&url).await.expect("...")
+  }
+  ```
+
+  ### Negative cases 가 production data 와 무관
+
+  - `999_999` ID = 존재 가능성 매우 낮음
+  - "nonexistent_*" 닉네임/email_idx = production data 충돌 X
+  - `lesson_state='open'` 데이터 존재 가능성 → `count_all` test 1 제거
+  - 7 tests 유지 (lesson 2 + user 5)
+
+  ## 실 실행 결과
+
+  ```
+  $ DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/amazing_korean_db \
+      cargo test --test repo_integration -- --ignored
+
+  running 7 tests
+  test test_find_user_id_and_check_email_by_email_idx_returns_none_for_missing ... ok
+  test test_find_user_id_by_email_idx_returns_none_for_missing ... ok
+  test test_find_user_returns_none_for_missing_id ... ok
+  test test_find_user_by_nickname_returns_none_for_missing ... ok
+  test test_find_users_setting_returns_none_for_missing_user ... ok
+  test test_lesson_find_by_id_returns_none_for_missing ... ok
+  test test_lesson_count_items_returns_zero_for_missing_lesson ... ok
+
+  test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+  ```
+
+  **7 tests 실 PostgreSQL DB 에서 SQL 컴파일 + 빈 결과 반환 검증 성공**.
+
+  ## G16 신규 부채 등재
+
+  `AMK_DEBTS §G10-G14` 표에 G16 추가:
+  - **사실**: sqlx numeric version 정렬 vs production 점진 적용 history 불일치
+  - **영향**: fresh DB 셋업 시만 (CI service container, 신규 dev 환경)
+  - **현재 우회**: `#[tokio::test]` + 수동 PgPool + 기존 DB
+  - **처리 옵션**: (a) 향후 timestamp 길이 통일 / (b) fresh DB 셋업 시 sqlx Migrator 정렬 옵션 변경 / (c) Phase 2/3 통합 테스트 = 기존 DB + transaction rollback 패턴
+
+  ## 검증
+
+  - `cargo test --test repo_integration -- --ignored` = **7 passed** (실 DB)
+  - `cargo test --lib` = **166 passed** (단위 테스트 그대로)
+  - `cargo clippy --all-targets --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  단위 테스트 = 157 신규 / 166 passed. 통합 테스트 = 7 신규 / 실 PostgreSQL 통과. **총 164 신규** test (단위 + 통합 합계).
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (Phase 1 실 실행 검증 완료). G16 = 🟡 신규 등재. **부채 §0 = 32 → 33** (G16 +1).
 
 - **2026-05-10 (후속⁸) — G10/G1 통합 테스트 Phase 1 인프라 정착 (8 ignored tests, sqlx::test)**
 
