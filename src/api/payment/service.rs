@@ -781,10 +781,17 @@ impl PaymentService {
 // 헬퍼 함수
 // =============================================================================
 
-/// Subscription의 custom_data에서 user_id 추출
+/// Subscription의 custom_data에서 user_id 추출 (paddle SDK 의존 wrapper)
 fn extract_user_id(sub: &PaddleSubscription) -> Option<i64> {
-    sub.custom_data
-        .as_ref()?
+    extract_user_id_from_custom_data(sub.custom_data.as_ref())
+}
+
+/// custom_data JSON 에서 `user_id` 문자열 추출 → i64 파싱 (pure helper, paddle SDK 비의존).
+///
+/// 분리 이유: `PaddleSubscription` struct 25 fields nested types mock 비용 ↑.
+/// 본 inner helper 는 `serde_json::Value` 만 의존 = `serde_json::json!({...})` 으로 단위 테스트.
+fn extract_user_id_from_custom_data(data: Option<&serde_json::Value>) -> Option<i64> {
+    data?
         .get("user_id")?
         .as_str()
         .and_then(|s| s.parse::<i64>().ok())
@@ -876,5 +883,81 @@ mod tests {
             paddle_status_to_internal(&PaddleStatus::Canceled),
             SubscriptionStatus::Canceled
         );
+    }
+
+    // ------------------------------------------------------------------------
+    // extract_user_id_from_custom_data: paddle Subscription custom_data 파싱
+    // (pure helper, paddle SDK 비의존 — serde_json::json! 으로 단위 테스트)
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_extract_user_id_valid_string() {
+        // checkout 시 frontend 에서 customData={user_id: String(userId)} 형태로 전달
+        let data = serde_json::json!({"user_id": "42"});
+        assert_eq!(extract_user_id_from_custom_data(Some(&data)), Some(42));
+    }
+
+    #[test]
+    fn test_extract_user_id_returns_none_when_data_missing() {
+        // Paddle Subscription 에 custom_data 없는 경우
+        assert_eq!(extract_user_id_from_custom_data(None), None);
+    }
+
+    #[test]
+    fn test_extract_user_id_returns_none_when_key_missing() {
+        // custom_data 에 다른 키만 있고 user_id 없음
+        let data = serde_json::json!({"other_key": "value"});
+        assert_eq!(extract_user_id_from_custom_data(Some(&data)), None);
+    }
+
+    #[test]
+    fn test_extract_user_id_returns_none_for_non_string_value() {
+        // user_id 가 number/object/array/null 일 때 = as_str() None
+        assert_eq!(
+            extract_user_id_from_custom_data(Some(&serde_json::json!({"user_id": 42}))),
+            None,
+            "number 거부"
+        );
+        assert_eq!(
+            extract_user_id_from_custom_data(Some(&serde_json::json!({"user_id": null}))),
+            None,
+            "null 거부"
+        );
+        assert_eq!(
+            extract_user_id_from_custom_data(Some(&serde_json::json!({"user_id": []}))),
+            None,
+            "array 거부"
+        );
+    }
+
+    #[test]
+    fn test_extract_user_id_returns_none_for_non_numeric_string() {
+        let data = serde_json::json!({"user_id": "not-a-number"});
+        assert_eq!(extract_user_id_from_custom_data(Some(&data)), None);
+    }
+
+    #[test]
+    fn test_extract_user_id_handles_negative_number() {
+        // i64 는 음수 허용 (실 user_id 는 양수지만 parse 자체는 통과)
+        let data = serde_json::json!({"user_id": "-1"});
+        assert_eq!(extract_user_id_from_custom_data(Some(&data)), Some(-1));
+    }
+
+    #[test]
+    fn test_extract_user_id_handles_large_number() {
+        // i64::MAX 까지 허용
+        let max = i64::MAX.to_string();
+        let data = serde_json::json!({"user_id": max});
+        assert_eq!(
+            extract_user_id_from_custom_data(Some(&data)),
+            Some(i64::MAX)
+        );
+    }
+
+    #[test]
+    fn test_extract_user_id_returns_none_for_overflow() {
+        // i64 범위 초과 = parse 실패
+        let data = serde_json::json!({"user_id": "99999999999999999999"});
+        assert_eq!(extract_user_id_from_custom_data(Some(&data)), None);
     }
 }

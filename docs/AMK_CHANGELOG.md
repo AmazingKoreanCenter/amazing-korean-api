@@ -1,8 +1,66 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁵) — G10 auth/service helpers 10 + 공통 header_utils 추출 (150 tests). AMK_STATUS §8.1 #85 등재
+updated: 2026-05-10 (후속⁶) — G10 paddle extract_user_id refactor + pure helper (158 tests). AMK_STATUS §8.1 #86 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁶) — G10 paddle extract_user_id refactor + pure helper (158 tests)**
+
+  세션 진입 = 사용자 결정 옵션 B (extract_user_id refactor). paddle SDK mock 시도 평가 결과 = struct 직접 mock = brittle + 비용 ↑ (25 fields nested), refactor + pure helper 분리가 가장 효율.
+
+  ## 배경
+
+  paddle SDK 의 `PaddleSubscription` struct (paddle-rust-sdk-types 0.2.0 `entities.rs:1185`) = 25 fields nested types (SubscriptionStatus / CustomerID / DateTime / Vec<SubscriptionItem> / Option<serde_json::Value> 등). `Serialize + Deserialize` derive 됨 = JSON deserialize 가능하나 sample JSON 작성 비용 큼 + SDK 0.17 → 0.18 upgrade 시 깨질 위험.
+
+  사용자 명시 = "결제는 막아놨다" 확인 = frontend `/pricing` 라우트가 ComingSoonPage 로 우회 (`frontend/src/app/routes.tsx:154`). backend 코드는 활성 = paddle webhook 도착 시 service.rs 함수 호출됨 = test 추가 의미 있음.
+
+  ## 해결: 함수 분리 (옵션 B)
+
+  ```rust
+  // 기존: paddle SDK 의존
+  fn extract_user_id(sub: &PaddleSubscription) -> Option<i64> { ... }
+
+  // 변경: wrapper + pure inner helper
+  fn extract_user_id(sub: &PaddleSubscription) -> Option<i64> {
+      extract_user_id_from_custom_data(sub.custom_data.as_ref())
+  }
+
+  fn extract_user_id_from_custom_data(data: Option<&serde_json::Value>) -> Option<i64> {
+      data?.get("user_id")?.as_str().and_then(|s| s.parse::<i64>().ok())
+  }
+  ```
+
+  inner helper = `serde_json::Value` 만 의존 = `serde_json::json!({...})` 으로 단위 테스트.
+
+  ## test 8건
+
+  - valid string = `{"user_id": "42"}` → Some(42)
+  - data missing = None → None
+  - key missing = `{"other_key": "value"}` → None
+  - non-string value = number / null / array 거부 (3 케이스)
+  - non-numeric string = `{"user_id": "not-a-number"}` → None
+  - negative = `{"user_id": "-1"}` → Some(-1)
+  - i64::MAX boundary
+  - overflow = `{"user_id": "99999999999999999999"}` → None
+
+  ## 잔여 (동일 패턴 적용 가능, 별도 트랙)
+
+  - `event_data_type_name(data: &EventData)` — EventData enum 16+ variants × inner data = mock 비용 큼
+  - `extract_billing_interval(st: &AppState, sub: &PaddleSubscription)` — AppState 추가 의존, Config struct 별도 mock 필요
+
+  ## 검증
+
+  - `cargo test --lib` = **158 passed** (이전 150 + 신규 8)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  auth 34 + types 5 + payment 13 (paddle_status 5 + extract_user_id_from_custom_data 8) + user 14 + ebook 11 + study 5 + textbook 5 + video 6 + lesson 10 + admin 47 = **149 신규** / 158 tests 합계.
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (paddle SDK 의존성 일부 분리). 부채 카운트 변동 없음.
 
 - **2026-05-10 (후속⁵) — G10 auth/service helpers 10 + 공통 header_utils 추출 (150 tests)**
 
