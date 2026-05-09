@@ -1,8 +1,72 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁴) — G10 admin normalize_*_action + extract_client_ip/user_agent 17 신규 (137 tests). AMK_STATUS §8.1 #84 등재
+updated: 2026-05-10 (후속⁵) — G10 auth/service helpers 10 + 공통 header_utils 추출 (150 tests). AMK_STATUS §8.1 #85 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁵) — G10 auth/service helpers 10 + 공통 header_utils 추출 (150 tests)**
+
+  세션 진입 = 사용자 결정 service.rs 추가 helper / 공통 helper 추출 순서.
+
+  ## (1) auth/service.rs 추가 helper test (10건)
+
+  ### `mask_email` (5)
+  - 정상 = `test@example.com` → `te***@example.com`
+  - short local 1글자 = 1글자만 노출 (PII 최소화)
+  - no @ = `not-an-email` → `"***"` (형식 비정상 시 완전 마스킹)
+  - long local 2글자 truncate (`verylongname` → `ve***`)
+  - subdomain 보존 (`mail.amazingkorean.net`)
+
+  ### `generate_verification_code` (3)
+  - 6자리 길이 (leading zero 포함)
+  - all digits
+  - 100000-999999 range (50회 반복으로 distribution 검증)
+
+  ### `dummy_password_hash` (2)
+  - `$argon2` prefix (timing attack 방지용 anti-enumeration)
+  - OnceLock 캐시 = 두 번 호출해도 같은 hash
+
+  **메모**: `constant_time_eq` (auth/service) 와 `validate_password_policy` (auth/service) 는 ebook/service / user/service 의 동일 함수와 **중복** = skip (테스트 중복 회피).
+
+  ## (2) 공통 helper 추출 (header_utils)
+
+  4 handler (lesson/study/payment/user) 가 거의 동일한 `extract_client_ip` + `extract_user_agent` 를 inline 보유. 통합:
+
+  ### `src/api/admin/header_utils.rs` 신규 모듈
+  - `pub fn extract_client_ip(headers: &HeaderMap) -> Option<IpAddr>`
+  - `pub fn extract_user_agent(headers: &HeaderMap) -> Option<String>`
+  - **payment 스타일 채택** (가장 robust): trim() 양쪽 헤더 + `USER_AGENT` 상수 + `?` operator
+  - `src/api/admin/mod.rs` 에 `pub mod header_utils;` 등록
+
+  ### 4 handler 교체 (코드 정리)
+  - lesson/handler: inline 함수 제거 + `use header_utils::{extract_client_ip, extract_user_agent}`
+  - study/handler: 동일 (추가로 `IpAddr` import 제거)
+  - payment/handler: 동일 (`USER_AGENT` import 제거)
+  - user/handler: 동일
+
+  ### test 10 (header_utils.rs)
+  - extract_client_ip 8: x-forwarded-for first / forwarded trim / x-real-ip fallback / x-real-ip trim / 우선순위 / missing / invalid format / **ipv6** (신규)
+  - extract_user_agent 2: 정상 / missing
+  - lesson handler 의 기존 7 tests 는 header_utils 로 이동 + 보강 (trim x-forwarded / trim x-real-ip / ipv6 = 3 신규)
+
+  ## 검증
+
+  - `cargo test --lib` = **150 passed** (이전 137 + auth 10 + header_utils 10 - lesson handler 7 이동)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  auth 34 + types 5 + payment 5 + user 14 + ebook 11 + study 5 + textbook 5 + video 6 + lesson 10 + admin 47 = **141 신규** / 150 tests 합계. 2026-05-10 일일 누계 (단일 세션).
+
+  ## 잔여 미테스트 (별도 트랙)
+
+  - paddle SDK mock: extract_user_id / event_data_type_name (struct mock 비용 ↑)
+  - service.rs main 비즈니스 함수 (signup / login / oauth / mfa) — DB/Redis 의존 = **G1/G2 통합 테스트 트랙** (보류)
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (대규모 처리). 부채 카운트 변동 없음 (G10 미해결 유지). header_utils 모듈 신규 = 코드 품질 ↑ (4 도메인 코드 중복 제거).
 
 - **2026-05-10 (후속⁴) — G10 admin normalize_*_action + extract_client_ip/user_agent 17 신규 (137 tests)**
 
