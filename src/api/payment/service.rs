@@ -832,3 +832,49 @@ fn event_data_type_name(data: &EventData) -> String {
     }
     .to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use paddle_rust_sdk::enums::SubscriptionStatus as PaddleStatus;
+
+    #[test]
+    fn test_paddle_status_active_maps_to_internal_active() {
+        assert_eq!(
+            paddle_status_to_internal(&PaddleStatus::Active),
+            SubscriptionStatus::Active
+        );
+    }
+
+    #[test]
+    fn test_paddle_status_trialing_maps_to_internal_trialing() {
+        assert_eq!(
+            paddle_status_to_internal(&PaddleStatus::Trialing),
+            SubscriptionStatus::Trialing
+        );
+    }
+
+    #[test]
+    fn test_paddle_status_past_due_maps_to_internal_past_due() {
+        assert_eq!(
+            paddle_status_to_internal(&PaddleStatus::PastDue),
+            SubscriptionStatus::PastDue
+        );
+    }
+
+    #[test]
+    fn test_paddle_status_paused_maps_to_internal_paused() {
+        assert_eq!(
+            paddle_status_to_internal(&PaddleStatus::Paused),
+            SubscriptionStatus::Paused
+        );
+    }
+
+    #[test]
+    fn test_paddle_status_canceled_maps_to_internal_canceled() {
+        assert_eq!(
+            paddle_status_to_internal(&PaddleStatus::Canceled),
+            SubscriptionStatus::Canceled
+        );
+    }
+}

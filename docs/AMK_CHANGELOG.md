@@ -1,8 +1,44 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 — G10 auth 단위 테스트 24 신규 (33 tests, 부분 처리) + G15 dead code 발견 (token_utils.rs). 부채 32 → 33. AMK_STATUS §8.1 #80 등재
+updated: 2026-05-10 (후속) — G10 payment + types 단위 테스트 10 신규 (43 tests) + G15 ✅ 종결 (token_utils.rs 삭제). 부채 33 → 32. AMK_STATUS §8.1 #81 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속) — G10 payment+types 단위 테스트 10 신규 (43 tests) + G15 ✅ 종결**
+
+  세션 진입 = 사용자 결정 G10 다음 도메인 = payment.
+
+  ## payment 도메인 + types.rs 단위 테스트 10건 신규
+
+  ### `src/types.rs` `BillingInterval` (5건)
+  - `test_billing_interval_months_matches_variant` — 4 variant → 1/3/6/12
+  - `test_billing_interval_price_cents_matches_pricing_table` — SSoT (AMK_API_PAYMENT.md / Paddle Live Catalog) 정가 = 1000/3000/6000/12000 cents
+  - `test_billing_interval_display_uses_snake_case` — DB enum + JSON serde 일치 (`month_N`)
+  - `test_billing_interval_price_cents_increases_monotonically` — 가격 단조성 회귀
+  - `test_billing_interval_per_month_price_decreases_with_term` — 정가 기준 월 단가 = $10 일정 (Discount 별도)
+
+  ### `src/api/payment/service.rs` `paddle_status_to_internal` (5건)
+  - Active / Trialing / PastDue / Paused / Canceled 5 variant → 내부 SubscriptionStatus 매핑
+
+  ## G15 ✅ 종결 (token_utils.rs 삭제)
+
+  사용자 결정 = 삭제 (옵션 A). `src/api/auth/token_utils.rs` (43 lines, `parse_refresh_token_bytes` + `generate_refresh_cookie_value`) 삭제. mod.rs 미선언 + 사용처 0 = 빌드 영향 없음 (cargo check + cargo test --lib 33 passed 그대로). service.rs 가 자체 `parse_refresh_token` 유지.
+
+  ## 잔여 미테스트 (paddle SDK mock 필요)
+
+  payment/service.rs 의 `extract_user_id` (PaddleSubscription struct mock 필요), `extract_billing_interval` (AppState 의존), `event_data_type_name` (EventData 16+ variants 모두 inner data 필요) = 외부 SDK mock 비용 ↑. 별도 트랙.
+
+  config.rs `billing_interval_for_price` = Config struct 큼, mock 비용 vs 가치 평가 필요. 별도 트랙.
+
+  ## 검증
+
+  - `cargo test --lib` = **43 passed** (auth 24 + types 5 + payment 5 + 기존 docs/external 9)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## 부채 영향
+
+  `AMK_DEBTS §0` = 33 → **32** (G 5→4, G15 종결). G10 = 🟡 부분 (auth 24 + types 5 + payment 5 = 34 신규, 43 tests). 잔여 도메인 = user / ebook / video / study / lesson / textbook + payment 비-pure 함수.
 
 - **2026-05-10 — G10 🟡 auth 단위 테스트 24 신규 (33 tests, 부분 처리) + G15 dead code 발견**
 
