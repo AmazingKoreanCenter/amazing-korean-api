@@ -26,12 +26,12 @@
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
 | E. 기능 부채 (보류/조건부) | **11** | 9 (E-9~E-19 보류 9건, ~~번들 최적화~~ ✅ C7 해결 2026-05-05) + **신규 2** (콘텐츠 시딩 E-FUTURE-1, SpeechSuper E-TEXTBOOK-1). E-FUTURE-2 발음/조음/TTS 3건 = ai 측 작업 트랙 (`AMK_AI_PRONUNCIATION.md`), 본 리포 능동 작업 0 = 카운트 외 |
 | F. 모바일/데스크탑 앱 부채 | ~~5~~ → **1** | 외부 리포 SSoT. 2026-05-08 stale 정정 = ~~F1/F2/F3~~ ✅ (mobile 리포 Phase 1~3 완료 사실 반영) + ~~F4~~ ✅ (TTL 90→300 본 리포 적용). F5 만 수용 잔존 |
-| G. 자동 검증 부재 (CI 부채) | ~~5~~ → **4** | ~~G3/G4/G5/G6/G7/G11/G13/G14~~ ✅ 해결 또는 🟡 수용 (2026-05-05) + ~~G8~~ ✅ 해결 (2026-05-08 사용자 GitHub UI 적용 + gh api 검증). 잔여 = G1/G2 (보류 cargo test/playwright) + G10 src 테스트 부족 + G12 cargo-geiger (보류) |
+| G. 자동 검증 부재 (CI 부채) | ~~5~~ → ~~4~~ → ~~5~~ → **4** | ~~G3/G4/G5/G6/G7/G11/G13/G14~~ ✅ 해결 또는 🟡 수용 (2026-05-05) + ~~G8~~ ✅ 해결 (2026-05-08) + ~~G15~~ ✅ 해결 (2026-05-10 token_utils.rs 삭제). 잔여 = G1/G2 (보류 cargo test/playwright) + 🟡 G10 src 테스트 부족 (2026-05-10 auth 24 신규 부분 처리, 33 tests) + G12 cargo-geiger (보류) |
 | H. 문서/메모리 부채 | **0** | ~~H1 메모리 stale~~ 🟡 + ~~H2 docs↔코드 자동 도구~~ 🟡 = 수용 결정 (2026-05-05) |
 | I. AI 작업 사고 | **8** | `AMK_AI_MISTAKES.md` SSoT (2026-05-08 M-010 신규 = stale 정정 부분만 + 권고 전 외부 검증 누락) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 32건** (카테고리 합산: A 3 + B 1 (B6) + C 0 + D 4 + E 11 + F 1 + G 4 + H 0 + I 8 + J 0. 2026-05-09 ~~C1~~ ✅ ESLint baseline 종결 (28 → 0 problems, static-components 9 + refs 5 + set-state-in-effect 2 + warnings 12 = 컴포넌트 외부 추출 / useState 변환 / key prop 재마운트 / inline disable 의도 명시) → C 1→0, 33 → **32**. 2026-05-08 (오후 후속 6) ~~C2~~ ✅ lint:ui (신규 토큰 highlight + level-1~5 정착, 검증 0 errors) → C 2→1, 34 → 33. 2026-05-08 (오후 후속 5) ~~G8~~ ✅ branch protection → G 5→4, 35 → 34. 2026-05-08 (오후 후속 4) F 카테고리 stale 정정 = F1/F2/F3 ✅ + F4 ✅ → F 5→1, 39 → 35. 2026-05-08 (오후) A1-4 ✅ SPF → A 4→3, 40 → 39. 2026-05-08 (오전 후속) M-010 정정 = A1-1 ✅ + I +1 = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 → 41 → 40. 2026-05-08 A1 stale 정정 → 42 → 41. 2026-05-07 Phase B → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 32건** (카테고리 합산: A 3 + B 1 (B6) + C 0 + D 4 + E 11 + F 1 + G 4 + H 0 + I 8 + J 0. 2026-05-10 ~~G15~~ ✅ 해결 (token_utils.rs 삭제, dead code 정리, 사용처 0 = 빌드 영향 없음) → G 5→4, 33 → **32**. 2026-05-10 G15 신규 (dead code 발견, G10 작업 중) → G 4→5, 32 → 33. 2026-05-10 G10 부분 처리 (auth 24 신규 단위 테스트, 33 tests, 메모리 "4건" stale 정정) = 카운트 변동 X (미해결 유지). 2026-05-09 ~~C1~~ ✅ ESLint baseline 종결 (28 → 0 problems, static-components 9 + refs 5 + set-state-in-effect 2 + warnings 12 = 컴포넌트 외부 추출 / useState 변환 / key prop 재마운트 / inline disable 의도 명시) → C 1→0, 33 → 32. 2026-05-08 (오후 후속 6) ~~C2~~ ✅ lint:ui (신규 토큰 highlight + level-1~5 정착, 검증 0 errors) → C 2→1, 34 → 33. 2026-05-08 (오후 후속 5) ~~G8~~ ✅ branch protection → G 5→4, 35 → 34. 2026-05-08 (오후 후속 4) F 카테고리 stale 정정 = F1/F2/F3 ✅ + F4 ✅ → F 5→1, 39 → 35. 2026-05-08 (오후) A1-4 ✅ SPF → A 4→3, 40 → 39. 2026-05-08 (오전 후속) M-010 정정 = A1-1 ✅ + I +1 = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 → 41 → 40. 2026-05-08 A1 stale 정정 → 42 → 41. 2026-05-07 Phase B → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -411,11 +411,12 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 
 | ID | 항목 | 사실 |
 |:--:|------|------|
-| G10 | src/ 테스트 부족 — 본체 테스트 4건만 (`crates/crypto` 46건 OK) | `grep -rn '#\[test\]' src` 4건 |
+| 🟡 G10 | src/ 테스트 부족 — **부분 처리 (2026-05-10): auth 24 신규** | 2026-05-10 = `src/api/auth/{password,jwt,service}.rs` 24 신규 (password 6 = argon2id 형식 / unique salt / round-trip / unicode / wrong password / malformed hash + jwt 7 = create-decode roundtrip / wrong secret / malformed / expired / unique jti / ttl→expires_in / RFC3339 + service 11 = refresh token generate-decode / unique per call / hash 일치 / parse 추출 / invalid base64 / missing colon / non-UUID session/random / empty session / invalid UTF-8). `cargo test --lib` = **33 passed** (api::auth 24 + 기존 docs/external/* 9). 잔여 = 다른 도메인 (user / payment / ebook / video / study / lesson / textbook), service.rs 의 비-pure 함수 (Redis/DB 의존). 메모리 "4건" stale 정정 (실제 기존 9건 + 신규 24 = 33). G1/G2 (cargo test CI) 보류 별개 |
 | ~~G11~~ | ~~`cargo-deny` 미설치 (라이선스 호환성 / 의존성 정책 검증)~~ ✅ 해결 (2026-05-05, commit `ced50c4`) | `deny.toml` 신규 (advisory ignore 7건 / 라이선스 13종 허용 / multi-version warn / sources 정책). `cargo install cargo-deny` 후 `cargo deny check` 사용. CI 자동 통합 = 후속 |
 | G12 | `cargo-geiger` 미설치 (unsafe 코드 분석) | unsafe 0건이라 우선순위 낮음 |
 | ~~G13~~ | ~~`.github/CODEOWNERS` 미존재~~ ✅ 해결 (2026-05-05, commit 본 세션) | `.github/CODEOWNERS` 신규 (도메인별 owner = `@AmazingKoreanCenter`) |
 | ~~G14~~ | ~~PR template / issue template 미존재~~ ✅ 해결 (2026-05-05, commit 본 세션) | `.github/PULL_REQUEST_TEMPLATE.md` (변경/부채/검증/SSoT/모니터링 체크리스트) + `.github/ISSUE_TEMPLATE/bug_report.md` + `feature_request.md` 신규 |
+| ~~G15~~ | ~~dead code 발견~~ ✅ **해결 (2026-05-10, 사용자 결정 = 삭제)** | `src/api/auth/token_utils.rs` (43 lines) 삭제. 사용처 0 = 빌드 영향 없음 (`cargo check --lib --bins --locked` ✅ + `cargo test --lib` 33 passed 그대로). service.rs 가 자체 `parse_refresh_token` 유지 |
 
 ---
 
@@ -458,15 +459,15 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 
 ---
 
-## 우선순위 매트릭스 (2026-05-09 재구성 — 잔여 32건 기준)
+## 우선순위 매트릭스 (2026-05-10 갱신 — 잔여 32건 기준)
 
-> **이전 매트릭스 (2026-05-04~05) 8+5+5건 모두 stale 처리됨**: 즉시 권장 8건 (B1 webpki / B3 npm / J1 / B4 / C3+C4 / G6 / A4-1+A4-2 / A4-4) ✅ + 중기 5건 (Q16 ESLint+lint:ui = C1+C2 / B2 imageproc 수용 / A4-3+A4-5+A4-7 / C5 / C8-C13 수용) ✅ 모두 종결 또는 수용. 본 매트릭스 = 잔여 32건 기준 새로 작성.
+> **이전 매트릭스 (2026-05-04~05) 8+5+5건 모두 stale 처리됨**: 즉시 권장 8건 (B1 webpki / B3 npm / J1 / B4 / C3+C4 / G6 / A4-1+A4-2 / A4-4) ✅ + 중기 5건 (Q16 ESLint+lint:ui = C1+C2 / B2 imageproc 수용 / A4-3+A4-5+A4-7 / C5 / C8-C13 수용) ✅ 모두 종결 또는 수용. 본 매트릭스 = 2026-05-10 G10 부분 처리 + G15 ✅ 해결 (token_utils.rs 삭제) 반영.
 
 ### 🟢 능동 처리 가능 (사용자 결정 대기)
 
 | 우선 | 항목 | 사유 |
 |:-:|------|------|
-| 1 | **G10** 백엔드 src/ 테스트 부족 (`#[test]` 4건만) | 시작 도메인 결정 = auth 권장 (anti-enumeration / argon2 / Blind Index 핵심 경로). G1/G2 보류 별개로 본 리포 단위 테스트 추가 |
+| 1 | 🟡 **G10** 백엔드 단위 테스트 부족 — auth 24 신규 부분 처리 (2026-05-10, 33 tests). 잔여 도메인 = user / payment / ebook / video / study / lesson / textbook | 다음 도메인 결정 = payment (Paddle 웹훅 검증 / 가격 계산) 또는 user (CRUD / 암호화 / Blind Index) 권장 |
 
 ### 🟡 외부 트리거 대기 (능동 처리 X)
 

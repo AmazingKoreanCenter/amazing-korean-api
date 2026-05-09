@@ -1,8 +1,62 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-09 — C1 ESLint baseline 종결 (28 → 0 problems, 부채 33 → 32). AMK_STATUS §8.1 #79 등재
+updated: 2026-05-10 — G10 auth 단위 테스트 24 신규 (33 tests, 부분 처리) + G15 dead code 발견 (token_utils.rs). 부채 32 → 33. AMK_STATUS §8.1 #80 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 — G10 🟡 auth 단위 테스트 24 신규 (33 tests, 부분 처리) + G15 dead code 발견**
+
+  세션 진입 = 사용자 결정 G10 auth 도메인 시작. anti-enumeration / argon2 / Blind Index 핵심 경로 우선 커버.
+
+  ## auth 도메인 단위 테스트 24건 신규
+
+  ### `src/api/auth/password.rs` (6건)
+  - `test_hash_password_returns_argon2id_format` — `$argon2id$v=19$` 프리픽스 검증
+  - `test_hash_password_uses_unique_salt_per_call` — 동일 비밀번호 2회 hash 시 다른 결과 (salt 우니크)
+  - `test_verify_password_returns_true_for_correct_password` — round-trip
+  - `test_verify_password_returns_false_for_wrong_password` — incorrect password rejection
+  - `test_verify_password_errors_on_malformed_hash` — invalid hash format → AppError
+  - `test_hash_and_verify_roundtrip_with_unicode_password` — 한글 + emoji 비밀번호 round-trip
+
+  ### `src/api/auth/jwt.rs` (7건)
+  - `test_create_decode_roundtrip_preserves_claims` — sub / session_id / role / jti / iss / exp>iat
+  - `test_decode_token_rejects_wrong_secret` — signature 검증
+  - `test_decode_token_rejects_malformed_input` — invalid token 거부
+  - `test_decode_token_rejects_expired_token` — 음수 ttl_minutes (-120) 로 만료 시뮬, leeway (60s) 우회
+  - `test_create_token_generates_unique_jti_per_call` — UUIDv4 jti uniqueness
+  - `test_create_token_ttl_minutes_matches_expires_in_seconds` — 90 min = 5400 sec
+  - `test_create_token_includes_rfc3339_expires_at` — `T...Z` 형식
+
+  ### `src/api/auth/service.rs` (11건)
+  - `test_generate_refresh_token_returns_decodeable_payload` — base64 decode → `session_id:random_uuid` 포맷
+  - `test_generate_refresh_token_is_unique_per_call` — 동일 session_id 2회 호출 시 다른 token+hash
+  - `test_hash_refresh_token_matches_generate_hash` — generator 와 hasher 일치 검증
+  - `test_hash_refresh_token_rejects_invalid_base64` — Unauthorized variant
+  - `test_parse_refresh_token_extracts_session_id_and_hash` — round-trip
+  - `test_parse_refresh_token_rejects_invalid_base64` — Unauthorized
+  - `test_parse_refresh_token_rejects_missing_colon` — `:` 분리자 누락
+  - `test_parse_refresh_token_rejects_non_uuid_session_id` — UUID 검증
+  - `test_parse_refresh_token_rejects_uuid_session_with_non_uuid_random` — random part UUID 검증
+  - `test_parse_refresh_token_rejects_empty_session_id` — `:random-uuid` 형태
+  - `test_parse_refresh_token_rejects_invalid_utf8` — base64 OK 지만 UTF-8 fail
+
+  ## G15 신규 — dead code 발견
+
+  G10 작업 중 발견. `src/api/auth/token_utils.rs` (43 lines, `parse_refresh_token_bytes` + `generate_refresh_cookie_value`) = `src/api/auth/mod.rs` 미선언 + 사용처 0 (`grep -rn token_utils src/` 빈 결과). 컴파일 안 되는 죽은 파일. service.rs 가 자체 `parse_refresh_token` (다른 시그니처, base64 외에 UUID/percent-decode 안 함) 을 사용 중. 처리 = 사용자 결정 (파일 삭제 또는 mod 활성).
+
+  ## 메모리 stale 정정
+
+  DEBTS G10 의 "src/ 테스트 4건" 이 실제와 안 맞음 (실제 `cargo test --lib` 기존 9건 = vimeo 1 + ipgeo 2 + docs 5 + google 1). 본 세션 신규 24 합쳐 33 tests. DEBTS G10 표 갱신 시 정확한 실측 카운트 명시.
+
+  ## 검증
+
+  - `cargo test --lib` = **33 passed** / 0 failed
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean (1 회 fmt 적용 후)
+
+  ## 부채 영향
+
+  `AMK_DEBTS §0` = 32 → **33** (G 4→5, G15 신규 추가). G10 = 🟡 부분 처리 (잔여 도메인 = user / payment / ebook / video / study / lesson / textbook). 매트릭스 갱신 = 능동 처리 가능 #1 (G10 다음 도메인) + #2 (G15 결정) / 외부 트리거 #3-#8 shift.
 
 - **2026-05-09 — C1 ✅ ESLint baseline 종결 (28 → 0 problems)**
 
