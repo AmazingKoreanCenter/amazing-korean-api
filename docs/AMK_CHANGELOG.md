@@ -1,8 +1,79 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹¹) — G10 Phase 2 통합 테스트 인프라 + verify_email 3 tests passed. AMK_STATUS §8.1 #91 등재
+updated: 2026-05-10 (후속¹², 일일 종결) — G10 Phase 2 추가 5 tests (8 통합 누적). AMK_STATUS §8.1 #92 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹², 일일 종결) — G10 Phase 2 추가 5 tests (8 통합 누적)**
+
+  세션 진입 = 사용자 결정 = 추가 Phase 2 함수 작업 후 세션 종결.
+
+  ## 추가 함수 2개 (5 tests)
+
+  ### `AuthService::verify_reset_code` (2 tests)
+  - stored hash 없음 → `AUTH_401_INVALID_OR_EXPIRED_CODE`
+  - rate limit 11번째 → `TooManyRequests` + cleanup
+
+  ### `AuthService::reset_password_with_token` (3 tests)
+  - weak password (`weak` 4자) → `AUTH_422_PASSWORD_POLICY_VIOLATION` (Redis hit 없음, 즉시 검증)
+  - unknown `ak_reset_*` token → `AUTH_401_INVALID_OR_EXPIRED_TOKEN` (Redis 조회 None) + cleanup
+  - invalid JWT (non-`ak_reset_` prefix) → `AUTH_401_INVALID_RESET_TOKEN` (jwt decode fail) + cleanup
+
+  ## 패턴 재사용
+
+  - `tests/common/mod.rs` 의 `make_test_state()` 그대로 사용 (인프라 정착 효과)
+  - EMAIL_PROVIDER=none / PAYMENT_PROVIDER=none = mock 부재
+  - rate limit + Redis key cleanup 패턴 정착 (다른 테스트와 격리)
+
+  ## 검증
+
+  ```
+  $ ... cargo test --test service_integration -- --ignored
+  test test_reset_password_rejects_invalid_jwt_token ... ok
+  test test_reset_password_rejects_weak_password ... ok
+  test test_reset_password_rejects_unknown_redis_token ... ok
+  test test_verify_email_rate_limit_increments ... ok
+  test test_verify_email_validation_rejects_short_code ... ok
+  test test_verify_email_returns_unauthorized_for_missing_code ... ok
+  test test_verify_reset_code_returns_unauthorized_for_missing_code ... ok
+  test test_verify_reset_code_rate_limit_increments ... ok
+
+  test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+  ```
+
+  ## G10 누계 (2026-05-10 일일 종결)
+
+  - **단위 테스트**: 157 신규 / 166 passed
+  - **통합 Phase 1** (repo, Postgres only): 7 passed
+  - **통합 Phase 2** (service Redis 의존): 8 passed
+  - **총 172 신규 / 181 passed**
+
+  ## 세션 종결 (2026-05-10)
+
+  ### 오늘 commit 14건
+  cb59260 → 24be7ad → de207ad → 69f8c1b → 20998d6 → 51c388f → 6b7d3d3 → b707cbf → 7474536 → d07da6f → dd9fccb → 62b18a7 → 392b79b → (이번 commit)
+
+  ### 오늘 부채 변화
+  - **G15 ✅** 종결 (`token_utils.rs` dead code 삭제)
+  - **G16 ✅** 종결 (`migrations/README.md` 정책 정착)
+  - 부채 §0 = 33 → **32** (-1건)
+
+  ### 오늘 인프라 정착
+  - `header_utils.rs` 공통 모듈 (4 handler 코드 중복 제거)
+  - paddle SDK pure helpers 추출 (`extract_user_id_from_custom_data`, `billing_interval_from_price_id`)
+  - 통합 테스트 Phase 1 (repo) + Phase 2 (service Redis) 인프라
+  - `make_test_state()` test helper
+
+  ### 오늘 발견 + 처리
+  - G16 = sqlx migration 정렬 비호환 (legacy 14자리 2건) → 정책 정착 + 우회 패턴 영구 채택
+
+  ## 잔여 트랙 (Phase 3 별도 세션)
+
+  - signup / login / oauth / mfa = **EmailSender mock 필요**
+  - 후보 인프라:
+    - `wiremock` crate = HTTP mock (Google OAuth / Resend API)
+    - 또는 EmailSender trait 자체를 test impl (단순 in-memory)
+  - 1-2일 작업 추정
 
 - **2026-05-10 (후속¹¹) — G10 Phase 2 통합 테스트 인프라 + verify_email 3 tests passed**
 
