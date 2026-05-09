@@ -1,8 +1,109 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹⁰) — G16 ✅ 정책 정착 (migrations/README.md + AMK_DEPLOY_OPS §3 cross-link). 부채 33 → 32. AMK_STATUS §8.1 #90 등재
+updated: 2026-05-10 (후속¹¹) — G10 Phase 2 통합 테스트 인프라 + verify_email 3 tests passed. AMK_STATUS §8.1 #91 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹¹) — G10 Phase 2 통합 테스트 인프라 + verify_email 3 tests passed**
+
+  세션 진입 = 사용자 결정 = Phase 2 시작 (service.rs Redis 의존 함수 통합 테스트).
+
+  ## 분석 (사전)
+
+  AppState 9 fields:
+  - `db: PgPool`, `redis: RedisPool`, `cfg: Config` (60+ fields), `started_at: Instant` — 필수
+  - `email`, `payment`, `revenuecat`, `apple_oauth` — 모두 Option<Arc<dyn ...>> = **None 채택 시 mock 불필요**
+  - `ipgeo: Arc<IpGeoClient>` — 필수, `IpGeoClient::new()` default
+
+  Config 필수 panic 환경변수:
+  - `JWT_SECRET` (32+ bytes)
+  - `HMAC_KEY` (base64 32 bytes)
+  - `ENCRYPTION_KEY_V1` (base64 32 bytes)
+
+  나머지 = default 또는 `unwrap_or_else` 폴백.
+
+  ## tests/common/mod.rs 신규
+
+  `make_test_state()` async helper:
+
+  ```rust
+  pub async fn make_test_state() -> AppState {
+      let _ = dotenvy::from_filename(".env.test").or_else(|_| dotenvy::dotenv());
+      let cfg = Config::from_env();
+      let db = PgPool::connect(&cfg.database_url).await.expect("...");
+      let redis_cfg = RedisConfig::from_url(&cfg.redis_url);
+      let redis = redis_cfg.create_pool(Some(Runtime::Tokio1)).expect("...");
+      let ipgeo = Arc::new(IpGeoClient::new());
+
+      AppState {
+          db, redis, cfg,
+          started_at: Instant::now(),
+          email: None, ipgeo,
+          payment: None, revenuecat: None, apple_oauth: None,
+      }
+  }
+  ```
+
+  - dotenv 자동 로드 (.env.test 우선 + .env fallback)
+  - 4 trait Option = None (EMAIL_PROVIDER=none / PAYMENT_PROVIDER=none 채택)
+  - mock 불필요 = 작은 인프라
+
+  ## 첫 Redis 의존 함수 = AuthService::verify_email
+
+  선정 이유:
+  - EmailSender 미사용 (`signup` / `request_password_reset` 와 달리)
+  - PaymentProvider 미사용
+  - 외부 API (Google / Apple OAuth) 미사용
+  - Redis = rate limit + email_verify 코드 조회 = 핵심 의존
+  - PostgreSQL = `find_user_id_and_check_email_by_email_idx` 호출 (positive 흐름만)
+
+  ## tests/service_integration.rs (3 tests, all passing)
+
+  ### test 1: `test_verify_email_returns_unauthorized_for_missing_code`
+  Redis 에 `ak:email_verify:*` key 없음 → `AUTH_401_INVALID_OR_EXPIRED_CODE` 반환 검증. UUID 로 unique email = 다른 테스트와 격리.
+
+  ### test 2: `test_verify_email_rate_limit_increments`
+  동일 (email_idx, ip) 조합 11번 호출 → 처음 10번 = Unauthorized (코드 없음), 11번째 = `TooManyRequests` 검증. **cleanup**: blind_index 계산 후 rate limit key 삭제 (다른 테스트 격리).
+
+  ### test 3: `test_verify_email_validation_rejects_short_code`
+  5자리 code → `validator` length(equal=6) 실패 → `ValidationGeneric` 반환 (anti-enumeration).
+
+  ## 검증
+
+  ```
+  $ DATABASE_URL=... REDIS_URL=... JWT_SECRET=... HMAC_KEY=$(openssl rand -base64 32) \
+    ENCRYPTION_KEY_V1=$(openssl rand -base64 32) EMAIL_PROVIDER=none PAYMENT_PROVIDER=none \
+    APP_ENV=development cargo test --test service_integration -- --ignored
+
+  running 3 tests
+  test test_verify_email_validation_rejects_short_code ... ok
+  test test_verify_email_returns_unauthorized_for_missing_code ... ok
+  test test_verify_email_rate_limit_increments ... ok
+
+  test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+  ```
+
+  - `cargo test --lib` = 166 passed (단위 그대로)
+  - `cargo clippy --all-targets --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean (1회 fmt 적용 후)
+
+  ## G10 누계 진척
+
+  - 단위 테스트: 157 신규 / 166 passed
+  - 통합 테스트 Phase 1 (repo): 7 passed
+  - 통합 테스트 Phase 2 (service Redis 의존): 3 passed
+  - **총 167 신규 / 176 passed** (단위 166 + 통합 10)
+
+  ## 잔여 트랙 (Phase 3)
+
+  - signup / login / oauth / mfa = **EmailSender mock 필요**
+  - signup positive flow = email 발송 → mock 으로 가로채기
+  - oauth_callback = Google API mock (reqwest mock 또는 wiremock crate)
+  - 1-2일 추정. 별도 세션 권장
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (광범위 + Phase 1+2 통합 인프라). G1 = 🟡 Phase 1+2 보류 진행 (CI 미설정 유지). 부채 카운트 변동 없음.
 
 - **2026-05-10 (후속¹⁰) — G16 ✅ 정책 정착 (옵션 a 정책 문서)**
 
