@@ -33,6 +33,7 @@ use amazing_korean_api::api::auth::dto::{FindPasswordReq, ResendVerificationReq}
 use amazing_korean_api::api::auth::service::AuthService;
 use amazing_korean_api::crypto::CryptoService;
 use amazing_korean_api::error::AppError;
+use common::{cleanup_test_user, insert_test_user, TestUserSpec};
 
 // =============================================================================
 // AuthService::request_password_reset — 이메일 발송 path
@@ -195,6 +196,208 @@ async fn test_find_password_validation_rejects_invalid_birthday() {
 
     let captured = sent.lock().await;
     assert_eq!(captured.len(), 0, "validation 실패 시 이메일 0건");
+}
+
+// =============================================================================
+// happy path — 실제 user INSERT + 이메일 캡처 검증
+// =============================================================================
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_request_password_reset_sends_email_for_existing_user() {
+    // 존재하는 user (password 있음, check_email=true) → 이메일 1건 캡처.
+    // 캡처 내용 검증: 본인에게 발송 + 6자리 숫자 코드 + 비밀번호 재설정 subject.
+    let (st, sent) = common::make_test_state_with_capturing_email().await;
+
+    let spec = TestUserSpec::random();
+    let user_id = insert_test_user(&st, &spec).await;
+
+    let result =
+        AuthService::request_password_reset(&st, &spec.email, "10.0.0.60".to_string()).await;
+    assert!(result.is_ok(), "happy path → Ok, got: {:?}", result);
+
+    let captured = sent.lock().await;
+    assert_eq!(
+        captured.len(),
+        1,
+        "이메일 1건 발송, got: {}",
+        captured.len()
+    );
+    let mail = &captured[0];
+    assert_eq!(
+        mail.to,
+        spec.email.to_lowercase(),
+        "발송 대상 = 입력 email (lowercase)"
+    );
+    assert!(
+        mail.subject.contains("비밀번호 재설정"),
+        "subject 에 '비밀번호 재설정' 포함, got: {}",
+        mail.subject
+    );
+    // text body 에 6자리 숫자 코드 (Verify code 가 generate_verification_code() = 100000~999999)
+    let has_six_digit = mail
+        .text
+        .chars()
+        .collect::<String>()
+        .split(|c: char| !c.is_ascii_digit())
+        .any(|s| s.len() == 6);
+    assert!(
+        has_six_digit,
+        "text body 에 6자리 숫자 코드 포함, got: {}",
+        mail.text
+    );
+    drop(captured);
+
+    // Cleanup
+    let mut conn = st.redis.get().await.expect("redis conn for cleanup");
+    let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let idx = crypto
+        .blind_index(&spec.email.to_lowercase())
+        .expect("blind_index");
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("rl:request_reset:{}:10.0.0.60", idx))
+        .await
+        .unwrap_or(());
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("ak:reset_code:{}", idx))
+        .await
+        .unwrap_or(());
+    cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_resend_verification_sends_email_for_unverified_user() {
+    // 존재하는 user + check_email=false → 이메일 1건 캡처.
+    let (st, sent) = common::make_test_state_with_capturing_email().await;
+
+    let mut spec = TestUserSpec::random();
+    spec.check_email = false; // 미인증 상태
+    let user_id = insert_test_user(&st, &spec).await;
+
+    let req = ResendVerificationReq {
+        email: spec.email.clone(),
+    };
+    let result = AuthService::resend_verification(&st, req, "10.0.0.61".to_string()).await;
+    assert!(result.is_ok(), "happy path → Ok, got: {:?}", result);
+
+    let captured = sent.lock().await;
+    assert_eq!(
+        captured.len(),
+        1,
+        "미인증 user → 이메일 1건, got: {}",
+        captured.len()
+    );
+    let mail = &captured[0];
+    assert_eq!(mail.to, spec.email.to_lowercase());
+    assert!(
+        mail.subject.contains("이메일 인증"),
+        "subject 에 '이메일 인증' 포함, got: {}",
+        mail.subject
+    );
+    drop(captured);
+
+    // Cleanup
+    let mut conn = st.redis.get().await.expect("redis conn for cleanup");
+    let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let idx = crypto
+        .blind_index(&spec.email.to_lowercase())
+        .expect("blind_index");
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("rl:resend_verify:{}:10.0.0.61", idx))
+        .await
+        .unwrap_or(());
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("ak:email_verify:{}", idx))
+        .await
+        .unwrap_or(());
+    cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_resend_verification_no_email_for_already_verified_user() {
+    // 존재하는 user + check_email=true (이미 인증됨) → generic 200 + 이메일 0건 (anti-enum).
+    let (st, sent) = common::make_test_state_with_capturing_email().await;
+
+    let spec = TestUserSpec::random(); // check_email=true (default)
+    let user_id = insert_test_user(&st, &spec).await;
+
+    let req = ResendVerificationReq {
+        email: spec.email.clone(),
+    };
+    let result = AuthService::resend_verification(&st, req, "10.0.0.62".to_string()).await;
+    assert!(
+        result.is_ok(),
+        "이미 인증된 user → generic Ok, got: {:?}",
+        result
+    );
+
+    let captured = sent.lock().await;
+    assert_eq!(
+        captured.len(),
+        0,
+        "이미 인증된 user → 이메일 0건 (anti-enum), got: {}",
+        captured.len()
+    );
+    drop(captured);
+
+    // Cleanup
+    let mut conn = st.redis.get().await.expect("redis conn for cleanup");
+    let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let idx = crypto
+        .blind_index(&spec.email.to_lowercase())
+        .expect("blind_index");
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("rl:resend_verify:{}:10.0.0.62", idx))
+        .await
+        .unwrap_or(());
+    cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_find_password_sends_email_for_matching_user() {
+    // (name, birthday, email) 모두 일치 → 이메일 1건 캡처.
+    let (st, sent) = common::make_test_state_with_capturing_email().await;
+
+    let spec = TestUserSpec::random();
+    let user_id = insert_test_user(&st, &spec).await;
+
+    let req = FindPasswordReq {
+        name: spec.name.clone(),
+        birthday: spec.birthday.clone(),
+        email: spec.email.clone(),
+    };
+    let ip = "10.0.0.63".to_string();
+
+    let result = AuthService::find_password(&st, req, ip.clone()).await;
+    assert!(result.is_ok(), "matching user → Ok, got: {:?}", result);
+
+    let captured = sent.lock().await;
+    assert_eq!(
+        captured.len(),
+        1,
+        "matching user → 이메일 1건, got: {}",
+        captured.len()
+    );
+    let mail = &captured[0];
+    assert_eq!(mail.to, spec.email.to_lowercase());
+    assert!(
+        mail.subject.contains("비밀번호 재설정"),
+        "subject 에 '비밀번호 재설정' 포함, got: {}",
+        mail.subject
+    );
+    drop(captured);
+
+    // Cleanup
+    let mut conn = st.redis.get().await.expect("redis conn for cleanup");
+    let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let idx = crypto
+        .blind_index(&spec.email.to_lowercase())
+        .expect("blind_index");
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("rl:find_password:{}", ip))
+        .await
+        .unwrap_or(());
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("ak:reset_code:{}", idx))
+        .await
+        .unwrap_or(());
+    cleanup_test_user(&st, user_id).await;
 }
 
 #[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
