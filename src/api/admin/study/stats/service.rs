@@ -106,3 +106,59 @@ pub async fn get_daily_stats(st: &AppState, q: StatsQuery) -> AppResult<DailySta
         items,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_date_range_valid() {
+        let (from, to) = parse_date_range("2026-01-01", "2026-01-31").expect("valid range");
+        assert_eq!(from, NaiveDate::from_ymd_opt(2026, 1, 1).unwrap());
+        assert_eq!(to, NaiveDate::from_ymd_opt(2026, 1, 31).unwrap());
+    }
+
+    #[test]
+    fn test_parse_date_range_trims_whitespace() {
+        let result = parse_date_range("  2026-01-01  ", " 2026-01-31 ");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_date_range_rejects_invalid_format() {
+        assert!(matches!(
+            parse_date_range("2026/01/01", "2026-01-31"),
+            Err(AppError::BadRequest(_))
+        ));
+        assert!(matches!(
+            parse_date_range("2026-01-01", "not-a-date"),
+            Err(AppError::BadRequest(_))
+        ));
+    }
+
+    #[test]
+    fn test_parse_date_range_rejects_from_after_to() {
+        let result = parse_date_range("2026-01-31", "2026-01-01");
+        assert!(matches!(result, Err(AppError::BadRequest(_))));
+    }
+
+    #[test]
+    fn test_parse_date_range_accepts_within_366_days() {
+        // 윤년 = 365 days
+        assert!(parse_date_range("2024-01-01", "2024-12-31").is_ok());
+        // 366 days inclusive boundary
+        assert!(parse_date_range("2024-01-01", "2025-01-01").is_ok());
+    }
+
+    #[test]
+    fn test_parse_date_range_rejects_over_366_days() {
+        let result = parse_date_range("2024-01-01", "2025-01-02"); // 367 days
+        assert!(matches!(result, Err(AppError::BadRequest(_))));
+    }
+
+    #[test]
+    fn test_parse_date_range_same_day_ok() {
+        let (from, to) = parse_date_range("2026-05-10", "2026-05-10").expect("same day ok");
+        assert_eq!(from, to);
+    }
+}

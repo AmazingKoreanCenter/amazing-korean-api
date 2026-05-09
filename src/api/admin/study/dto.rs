@@ -526,3 +526,46 @@ fn validate_optional_study_idx(value: &str) -> Result<(), ValidationError> {
     // 필요한 추가 검증 로직(예: 공백 체크 등)이 있다면 여기에 작성
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_study_idx_accepts_2_or_more_chars() {
+        assert!(validate_study_idx("ab").is_ok());
+        assert!(validate_study_idx("abc").is_ok());
+        assert!(validate_study_idx("study-001").is_ok());
+    }
+
+    #[test]
+    fn test_study_idx_rejects_shorter_than_2() {
+        assert!(validate_study_idx("").is_err());
+        assert!(validate_study_idx("a").is_err());
+    }
+
+    #[test]
+    fn test_study_idx_trims_whitespace_before_length_check() {
+        assert!(validate_study_idx("a ").is_err(), "trim 후 1글자");
+        assert!(validate_study_idx(" ab ").is_ok(), "trim 후 2글자");
+    }
+
+    #[test]
+    fn test_study_idx_error_code() {
+        let err = validate_study_idx("a").unwrap_err();
+        assert_eq!(err.code, "invalid_study_idx");
+    }
+
+    #[test]
+    fn test_optional_study_idx_accepts_valid() {
+        assert!(validate_optional_study_idx("ab").is_ok());
+        assert!(validate_optional_study_idx("study-002").is_ok());
+    }
+
+    #[test]
+    fn test_optional_study_idx_rejects_too_short() {
+        // optional 변형 = trim 안 함, byte length 검사
+        let err = validate_optional_study_idx("a").unwrap_err();
+        assert_eq!(err.code, "length_too_short");
+    }
+}

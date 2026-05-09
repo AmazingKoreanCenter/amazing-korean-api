@@ -1,8 +1,82 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속²) — G10 광범위 단위 테스트 32 신규 (75 tests, 6 도메인). AMK_STATUS §8.1 #82 등재
+updated: 2026-05-10 (후속³) — G10 video/lesson/user-birthday/admin 단위 테스트 46 신규 (120 tests). AMK_STATUS §8.1 #83 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속³) — G10 video/lesson/user-birthday/admin 단위 테스트 46 신규 (120 tests)**
+
+  세션 진입 = 사용자 결정 video apply_tag_translations → lesson 전체 → service.rs main → admin 순서.
+
+  ## video apply_tag_translations (6건)
+
+  struct mock 가능성 검증 = `VideoTagDetail` (id/key/title/subtitle 모두 public) + `TranslatedField` (text/actual_lang/fallback_used 모두 public) + `count_to` 메서드 → unit test 가능.
+
+  - no translations 시 원본 유지 (translated=0, fallback=0, requested=2)
+  - title 매칭 시 replace + translated +1
+  - actual_lang ≠ user_lang 시 fallback +1
+  - tag.title=None 시 requested 카운트 안 함
+  - subtitle 독립적 처리
+  - multiple tags 합산
+
+  ## lesson (10건) — helper 추출 + 4 함수 교체 + test
+
+  4 함수 (`list_lessons` / `get_lesson_detail` / `get_lesson_items` / `update_lesson_progress`) 에서 반복되던 inline 검증 로직을 pure helper 3개로 추출:
+
+  - `validate_pagination(page, per_page) -> AppResult<()>` — page>0 + 0<per_page≤50 검증 (4 tests)
+  - `compute_total_pages(total_count, per_page) -> i64` — ceiling division, total=0 시 0 (3 tests)
+  - `validate_progress_percent(percent) -> AppResult<()>` — 0~100 범위 (3 tests)
+
+  inline → helper 교체 후 동작 검증 = 모든 기존 테스트 통과.
+
+  ## user birthday (3건)
+
+  `signup` 안 inline `1900~today` 범위 검증을 `UserService::is_valid_birthday(birthday, today) -> bool` 헬퍼로 추출. 1900-01-01 boundary / 1900 이전 거부 / 미래 날짜 거부.
+
+  ## admin (27건) — 5 핵심 helper
+
+  ### admin/textbook/service status machine (4)
+  - status_display_label 7 variants (Pending → 주문 접수 등)
+  - 동일 상태 재설정 거부 (2026-04-23 완화 = 동일만 금지)
+  - 모든 다른 쌍 허용 (관리자 사후 정정 위해)
+  - 역방향 (Delivered → Pending) 허용 검증
+
+  ### admin/ebook/service status machine (6)
+  - Pending → Completed (정상 결제)
+  - Pending → Refunded (결제 실패 직접 환불)
+  - Completed → Refunded
+  - Refunded = terminal (rollback 거부)
+  - Completed → Pending rollback 거부
+  - self-loop 거부
+
+  ### admin/study/stats parse_date_range (7)
+  - valid range / trim / invalid format / from>to 거부 / 366 days boundary / 367 days 거부 / same day OK
+
+  ### admin/upgrade validate_invite_role (4)
+  - admin/manager OK / 다른 역할 거부 / case-sensitive (Admin 거부) / error code "invalid_role"
+
+  ### admin/study validate_study_idx (6)
+  - ≥2 chars / <2 거부 / trim 후 길이 / error code / optional 변형 (trim 없음)
+
+  ## 검증
+
+  - `cargo test --lib` = **120 passed** (이전 75 + 신규 46)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean (1회 fmt 적용 후)
+
+  ## G10 누계 진척
+
+  auth 24 + types 5 + payment 5 + user 14 + ebook 11 + study 5 + textbook 5 + video 6 + lesson 10 + admin 27 = **111 신규** / 120 tests 합계.
+
+  ## 잔여 미테스트
+
+  - paddle SDK mock: extract_user_id / event_data_type_name (PaddleSubscription / EventData struct mock 비용 ↑)
+  - service.rs main 비즈니스 함수 (signup/login/oauth/mfa 등) = DB/Redis 의존 = **G1/G2 통합 테스트 트랙** (보류)
+  - 추가 admin pure helpers: extract_client_ip / extract_user_agent (handler 4 도메인) / normalize_*_action (lesson/study/video repo) / 다른 도메인 status_display_label
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (대규모 처리, 핵심 비즈니스 로직 광범위 커버). 부채 카운트 변동 없음 (G10 미해결 유지). 매트릭스 G10 본문만 갱신.
 
 - **2026-05-10 (후속²) — G10 광범위 단위 테스트 32 신규 (75 tests, 6 도메인)**
 

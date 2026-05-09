@@ -47,6 +47,12 @@ impl UserService {
         password.len() >= 8 && has_letter && has_digit
     }
 
+    /// 회원가입 생일 범위 검증 (1900-01-01 ≤ birthday ≤ today)
+    fn is_valid_birthday(birthday: chrono::NaiveDate, today: chrono::NaiveDate) -> bool {
+        let min_birth = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
+        birthday >= min_birth && birthday <= today
+    }
+
     /// 인증 코드를 HMAC-SHA256 해시 (Redis에 평문 저장 금지)
     pub fn hmac_verification_code(hmac_key: &[u8; 32], email: &str, code: &str) -> String {
         let mut mac = HmacSha256::new_from_slice(hmac_key).expect("HMAC key length is always 32");
@@ -81,8 +87,7 @@ impl UserService {
         }
 
         let today = chrono::Utc::now().date_naive();
-        let min_birth = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
-        if req.birthday < min_birth || req.birthday > today {
+        if !Self::is_valid_birthday(req.birthday, today) {
             return Err(AppError::Unprocessable("Invalid birthday".into()));
         }
 
@@ -491,5 +496,41 @@ mod tests {
         let r1 = UserService::hmac_verification_code(&k1, "user@example.com", "123456");
         let r2 = UserService::hmac_verification_code(&k2, "user@example.com", "123456");
         assert_ne!(r1, r2, "different key must produce different hash");
+    }
+
+    // ------------------------------------------------------------------------
+    // is_valid_birthday: 1900-01-01 ≤ birthday ≤ today
+    // ------------------------------------------------------------------------
+
+    fn ymd(y: i32, m: u32, d: u32) -> chrono::NaiveDate {
+        chrono::NaiveDate::from_ymd_opt(y, m, d).unwrap()
+    }
+
+    #[test]
+    fn test_birthday_accepts_valid_dates() {
+        let today = ymd(2026, 5, 10);
+        assert!(UserService::is_valid_birthday(ymd(1990, 1, 1), today));
+        assert!(
+            UserService::is_valid_birthday(ymd(1900, 1, 1), today),
+            "min boundary"
+        );
+        assert!(
+            UserService::is_valid_birthday(today, today),
+            "today (자동 가입 case)"
+        );
+    }
+
+    #[test]
+    fn test_birthday_rejects_before_1900() {
+        let today = ymd(2026, 5, 10);
+        assert!(!UserService::is_valid_birthday(ymd(1899, 12, 31), today));
+        assert!(!UserService::is_valid_birthday(ymd(1800, 1, 1), today));
+    }
+
+    #[test]
+    fn test_birthday_rejects_future_dates() {
+        let today = ymd(2026, 5, 10);
+        assert!(!UserService::is_valid_birthday(ymd(2026, 5, 11), today));
+        assert!(!UserService::is_valid_birthday(ymd(2030, 1, 1), today));
     }
 }

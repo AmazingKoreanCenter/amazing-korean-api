@@ -269,3 +269,184 @@ fn apply_tag_translations(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_tag(id: i64, title: Option<&str>, subtitle: Option<&str>) -> VideoTagDetail {
+        VideoTagDetail {
+            id,
+            key: None,
+            title: title.map(String::from),
+            subtitle: subtitle.map(String::from),
+        }
+    }
+
+    fn make_translation(text: &str, actual_lang: SupportedLanguage) -> TranslatedField {
+        TranslatedField {
+            text: text.to_string(),
+            actual_lang,
+            fallback_used: actual_lang != SupportedLanguage::Ko,
+        }
+    }
+
+    #[test]
+    fn test_apply_tag_translations_no_translations_keeps_originals() {
+        let mut tags = vec![make_tag(1, Some("orig"), Some("orig sub"))];
+        let translations = HashMap::new();
+        let (mut translated, mut fallback, mut requested) = (0, 0, 0);
+
+        apply_tag_translations(
+            &mut tags,
+            &translations,
+            SupportedLanguage::Ja,
+            &mut translated,
+            &mut fallback,
+            &mut requested,
+        );
+
+        assert_eq!(tags[0].title.as_deref(), Some("orig"));
+        assert_eq!(tags[0].subtitle.as_deref(), Some("orig sub"));
+        assert_eq!(translated, 0, "no translations applied");
+        assert_eq!(fallback, 0, "no fallback applied");
+        assert_eq!(requested, 2, "title+subtitle requested but not found");
+    }
+
+    #[test]
+    fn test_apply_tag_translations_replaces_title_when_match() {
+        let mut tags = vec![make_tag(1, Some("orig"), None)];
+        let mut translations = HashMap::new();
+        translations.insert(
+            (1, "video_tag_title".to_string()),
+            make_translation("번역됨", SupportedLanguage::Ja),
+        );
+        let (mut translated, mut fallback, mut requested) = (0, 0, 0);
+
+        apply_tag_translations(
+            &mut tags,
+            &translations,
+            SupportedLanguage::Ja,
+            &mut translated,
+            &mut fallback,
+            &mut requested,
+        );
+
+        assert_eq!(tags[0].title.as_deref(), Some("번역됨"));
+        assert_eq!(translated, 1);
+        assert_eq!(fallback, 0);
+        assert_eq!(requested, 1);
+    }
+
+    #[test]
+    fn test_apply_tag_translations_counts_fallback_when_lang_differs() {
+        let mut tags = vec![make_tag(1, Some("orig"), None)];
+        let mut translations = HashMap::new();
+        // user 는 Ja 요청, 실제 actual_lang = En = fallback
+        translations.insert(
+            (1, "video_tag_title".to_string()),
+            make_translation("English fallback", SupportedLanguage::En),
+        );
+        let (mut translated, mut fallback, mut requested) = (0, 0, 0);
+
+        apply_tag_translations(
+            &mut tags,
+            &translations,
+            SupportedLanguage::Ja,
+            &mut translated,
+            &mut fallback,
+            &mut requested,
+        );
+
+        assert_eq!(tags[0].title.as_deref(), Some("English fallback"));
+        assert_eq!(translated, 0);
+        assert_eq!(fallback, 1);
+        assert_eq!(requested, 1);
+    }
+
+    #[test]
+    fn test_apply_tag_translations_skips_none_fields() {
+        // tag.title = None / subtitle = None → requested 카운트 0
+        let mut tags = vec![make_tag(1, None, None)];
+        let translations = HashMap::new();
+        let (mut translated, mut fallback, mut requested) = (0, 0, 0);
+
+        apply_tag_translations(
+            &mut tags,
+            &translations,
+            SupportedLanguage::Ja,
+            &mut translated,
+            &mut fallback,
+            &mut requested,
+        );
+
+        assert_eq!(translated, 0);
+        assert_eq!(fallback, 0);
+        assert_eq!(requested, 0, "None fields must not be requested");
+    }
+
+    #[test]
+    fn test_apply_tag_translations_handles_subtitle_independently() {
+        // title 만 번역되고 subtitle 은 번역 부재 — subtitle 도 requested 카운트는 됨
+        let mut tags = vec![make_tag(1, Some("orig"), Some("sub"))];
+        let mut translations = HashMap::new();
+        translations.insert(
+            (1, "video_tag_subtitle".to_string()),
+            make_translation("번역 sub", SupportedLanguage::Ja),
+        );
+        let (mut translated, mut fallback, mut requested) = (0, 0, 0);
+
+        apply_tag_translations(
+            &mut tags,
+            &translations,
+            SupportedLanguage::Ja,
+            &mut translated,
+            &mut fallback,
+            &mut requested,
+        );
+
+        assert_eq!(tags[0].title.as_deref(), Some("orig"), "title untouched");
+        assert_eq!(tags[0].subtitle.as_deref(), Some("번역 sub"));
+        assert_eq!(translated, 1);
+        assert_eq!(requested, 2, "both title+subtitle requested");
+    }
+
+    #[test]
+    fn test_apply_tag_translations_aggregates_multiple_tags() {
+        let mut tags = vec![
+            make_tag(1, Some("a"), None),
+            make_tag(2, Some("b"), Some("b sub")),
+        ];
+        let mut translations = HashMap::new();
+        translations.insert(
+            (1, "video_tag_title".to_string()),
+            make_translation("a-ja", SupportedLanguage::Ja),
+        );
+        translations.insert(
+            (2, "video_tag_title".to_string()),
+            make_translation("b-en", SupportedLanguage::En),
+        );
+        // tag 2 subtitle 번역 없음 — requested 만 +1
+        let (mut translated, mut fallback, mut requested) = (0, 0, 0);
+
+        apply_tag_translations(
+            &mut tags,
+            &translations,
+            SupportedLanguage::Ja,
+            &mut translated,
+            &mut fallback,
+            &mut requested,
+        );
+
+        assert_eq!(tags[0].title.as_deref(), Some("a-ja"));
+        assert_eq!(tags[1].title.as_deref(), Some("b-en"));
+        assert_eq!(
+            tags[1].subtitle.as_deref(),
+            Some("b sub"),
+            "subtitle 원본 유지"
+        );
+        assert_eq!(translated, 1, "tag 1 ja 매칭 1건");
+        assert_eq!(fallback, 1, "tag 2 en fallback 1건");
+        assert_eq!(requested, 3, "title 2 + subtitle 1");
+    }
+}
