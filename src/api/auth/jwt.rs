@@ -72,3 +72,78 @@ pub fn decode_token(token: &str, secret: &str) -> Result<Claims, jsonwebtoken::e
     )
     .map(|data| data.claims)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEST_SECRET: &str = "unit-test-secret-do-not-use-in-prod";
+
+    #[test]
+    fn test_create_decode_roundtrip_preserves_claims() {
+        let (token_res, jti) =
+            create_token(42, "sess-abc", UserAuth::Learner, 30, TEST_SECRET).expect("create");
+
+        assert_eq!(token_res.token_type, "Bearer");
+        assert_eq!(token_res.expires_in, 30 * 60);
+        assert!(!token_res.access_token.is_empty());
+
+        let claims = decode_token(&token_res.access_token, TEST_SECRET).expect("decode");
+        assert_eq!(claims.sub, 42);
+        assert_eq!(claims.session_id, "sess-abc");
+        assert_eq!(claims.role, UserAuth::Learner);
+        assert_eq!(claims.jti, jti);
+        assert_eq!(claims.iss, "amk");
+        assert!(claims.exp > claims.iat, "exp must be after iat");
+    }
+
+    #[test]
+    fn test_decode_token_rejects_wrong_secret() {
+        let (token_res, _) =
+            create_token(1, "s", UserAuth::Admin, 30, TEST_SECRET).expect("create");
+        let result = decode_token(&token_res.access_token, "different-secret");
+        assert!(result.is_err(), "wrong secret must fail signature check");
+    }
+
+    #[test]
+    fn test_decode_token_rejects_malformed_input() {
+        let result = decode_token("not.a.jwt", TEST_SECRET);
+        assert!(result.is_err(), "malformed token must error");
+    }
+
+    #[test]
+    fn test_decode_token_rejects_expired_token() {
+        // ttl_minutes=0 = 즉시 만료. jsonwebtoken Validation default leeway=60s 이므로
+        // 충분히 과거로 가야 한다 → 음수 ttl 사용
+        let (token_res, _) =
+            create_token(1, "s", UserAuth::Learner, -120, TEST_SECRET).expect("create");
+        let result = decode_token(&token_res.access_token, TEST_SECRET);
+        assert!(result.is_err(), "expired token must fail validation");
+    }
+
+    #[test]
+    fn test_create_token_generates_unique_jti_per_call() {
+        let (_, jti1) = create_token(1, "s", UserAuth::Learner, 30, TEST_SECRET).expect("create");
+        let (_, jti2) = create_token(1, "s", UserAuth::Learner, 30, TEST_SECRET).expect("create");
+        assert_ne!(jti1, jti2, "jti must be unique per token");
+    }
+
+    #[test]
+    fn test_create_token_ttl_minutes_matches_expires_in_seconds() {
+        let (token_res, _) =
+            create_token(1, "s", UserAuth::Learner, 90, TEST_SECRET).expect("create");
+        assert_eq!(token_res.expires_in, 5400, "90 min = 5400 sec");
+    }
+
+    #[test]
+    fn test_create_token_includes_rfc3339_expires_at() {
+        let (token_res, _) =
+            create_token(1, "s", UserAuth::Learner, 30, TEST_SECRET).expect("create");
+        // RFC3339 = "YYYY-MM-DDTHH:MM:SS...Z" 형식
+        assert!(
+            token_res.expires_at.contains('T') && token_res.expires_at.ends_with('Z'),
+            "expires_at must be RFC3339, got: {}",
+            token_res.expires_at
+        );
+    }
+}

@@ -2862,3 +2862,128 @@ impl AuthService {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_refresh_token_returns_decodeable_payload() {
+        let session_id = Uuid::new_v4().to_string();
+        let (token, _hash) = AuthService::generate_refresh_token_and_hash(&session_id);
+
+        // 토큰 base64 decode 가능
+        let decoded = URL_SAFE_NO_PAD.decode(&token).expect("token must decode");
+        let payload = String::from_utf8(decoded).expect("payload must be utf8");
+
+        // 포맷: session_id:random_uuid
+        assert!(
+            payload.starts_with(&format!("{}:", session_id)),
+            "payload must start with session_id, got: {}",
+            payload
+        );
+        let random_part = payload.strip_prefix(&format!("{}:", session_id)).unwrap();
+        assert!(
+            Uuid::parse_str(random_part).is_ok(),
+            "random part must be UUID, got: {}",
+            random_part
+        );
+    }
+
+    #[test]
+    fn test_generate_refresh_token_is_unique_per_call() {
+        let session_id = Uuid::new_v4().to_string();
+        let (t1, h1) = AuthService::generate_refresh_token_and_hash(&session_id);
+        let (t2, h2) = AuthService::generate_refresh_token_and_hash(&session_id);
+        assert_ne!(t1, t2, "tokens must differ (different random UUID)");
+        assert_ne!(h1, h2, "hashes must differ (different payload)");
+    }
+
+    #[test]
+    fn test_hash_refresh_token_matches_generate_hash() {
+        let session_id = Uuid::new_v4().to_string();
+        let (token, expected_hash) = AuthService::generate_refresh_token_and_hash(&session_id);
+
+        let computed_hash = AuthService::hash_refresh_token(&token).expect("hash must succeed");
+        assert_eq!(computed_hash, expected_hash, "hash must match generator");
+    }
+
+    #[test]
+    fn test_hash_refresh_token_rejects_invalid_base64() {
+        let result = AuthService::hash_refresh_token("not!valid!base64!!!");
+        assert!(matches!(result, Err(AppError::Unauthorized(_))));
+    }
+
+    #[test]
+    fn test_parse_refresh_token_extracts_session_id_and_hash() {
+        let session_id = Uuid::new_v4().to_string();
+        let (token, expected_hash) = AuthService::generate_refresh_token_and_hash(&session_id);
+
+        let (parsed_session, parsed_hash) =
+            AuthService::parse_refresh_token(&token).expect("parse must succeed");
+        assert_eq!(parsed_session, session_id);
+        assert_eq!(parsed_hash, expected_hash);
+    }
+
+    #[test]
+    fn test_parse_refresh_token_rejects_invalid_base64() {
+        let result = AuthService::parse_refresh_token("not!valid!base64!!!");
+        assert!(matches!(result, Err(AppError::Unauthorized(_))));
+    }
+
+    #[test]
+    fn test_parse_refresh_token_rejects_missing_colon() {
+        // base64 of "no-colon-here" (no `:` separator)
+        let payload = URL_SAFE_NO_PAD.encode(b"no-colon-here");
+        let result = AuthService::parse_refresh_token(&payload);
+        assert!(
+            matches!(result, Err(AppError::Unauthorized(_))),
+            "missing colon must be rejected"
+        );
+    }
+
+    #[test]
+    fn test_parse_refresh_token_rejects_non_uuid_session_id() {
+        // "not-a-uuid:also-not-uuid"
+        let payload = URL_SAFE_NO_PAD.encode(b"not-a-uuid:also-not-uuid");
+        let result = AuthService::parse_refresh_token(&payload);
+        assert!(
+            matches!(result, Err(AppError::Unauthorized(_))),
+            "non-UUID session_id must be rejected"
+        );
+    }
+
+    #[test]
+    fn test_parse_refresh_token_rejects_uuid_session_with_non_uuid_random() {
+        // session_id 는 UUID, random_part 는 UUID 아님
+        let payload_str = format!("{}:not-a-uuid", Uuid::new_v4());
+        let payload = URL_SAFE_NO_PAD.encode(payload_str.as_bytes());
+        let result = AuthService::parse_refresh_token(&payload);
+        assert!(
+            matches!(result, Err(AppError::Unauthorized(_))),
+            "non-UUID random part must be rejected"
+        );
+    }
+
+    #[test]
+    fn test_parse_refresh_token_rejects_empty_session_id() {
+        // ":random-uuid" → empty session_id (`splitn` 첫 부분 빈 문자열)
+        let payload = URL_SAFE_NO_PAD.encode(format!(":{}", Uuid::new_v4()).as_bytes());
+        let result = AuthService::parse_refresh_token(&payload);
+        assert!(
+            matches!(result, Err(AppError::Unauthorized(_))),
+            "empty session_id must be rejected"
+        );
+    }
+
+    #[test]
+    fn test_parse_refresh_token_rejects_invalid_utf8() {
+        // base64 of invalid UTF-8 bytes
+        let payload = URL_SAFE_NO_PAD.encode([0xFF, 0xFE, 0xFD]);
+        let result = AuthService::parse_refresh_token(&payload);
+        assert!(
+            matches!(result, Err(AppError::Unauthorized(_))),
+            "invalid UTF-8 must be rejected"
+        );
+    }
+}
