@@ -1,8 +1,84 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁷) — G10 extract_billing_interval refactor + event_data_type_name skip 분석 (166 tests). AMK_STATUS §8.1 #87 등재
+updated: 2026-05-10 (후속⁸) — G10/G1 통합 테스트 Phase 1 인프라 정착 (8 ignored tests, sqlx::test). AMK_STATUS §8.1 #88 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁸) — G10/G1 통합 테스트 Phase 1 인프라 정착 (8 ignored tests, sqlx::test)**
+
+  세션 진입 = 사용자 결정 = service.rs main 비즈니스 통합 테스트 진행. 단계 분석 후 Phase 1 (repo) 시작 결정.
+
+  ## 분석 결과 (단계 보고)
+
+  **service.rs main 함수들 = AppState mock 비용 매우 큼**:
+  - `Config` 60+ fields = `Config::from_env()` 환경변수 60+ 필요 (또는 builder pattern)
+  - `deadpool_redis::Pool` = trait 추상화 부재 = 직접 mock 어려움
+  - `CryptoService` = KeyRing + HMAC 키 (32 bytes)
+  - `Option<Box<dyn EmailSender>>` / `Option<Box<dyn PaymentProvider>>` = trait 이라 mock 가능
+
+  Phase 1 = **repo 통합 테스트** (Postgres only, Redis/Email/외부 API 의존 없음) 부터.
+
+  ## tests/repo_integration.rs 신규 (110 lines)
+
+  sqlx::test 매크로 사용:
+  - 자동 임시 DB 생성 + migration 실행
+  - per-test 격리 (병렬 실행 안전)
+  - `DATABASE_URL` 환경변수 필요 (superuser 권한)
+
+  ### 8 negative-case tests (빈 DB SQL 검증)
+
+  **LessonRepo (3)**:
+  - `count_all` = 0 (빈 DB)
+  - `count_items(999_999)` = 0 (없는 lesson)
+  - `find_lesson_by_id(999_999)` = None
+
+  **user::repo (5)**:
+  - `find_user_id_by_email_idx("nonexistent")` = None (blind index 매칭 X)
+  - `find_user_id_and_check_email_by_email_idx("nonexistent")` = None
+  - `find_user_by_nickname("nonexistent")` = None
+  - `find_user(999_999)` = None
+  - `find_users_setting(999_999)` = None
+
+  ### 가치
+  SQL 스키마 일치 + sqlx prepare 검증 + migration 회귀 캡처. 빈 DB 반환값 검증으로 `query_scalar` / `query_as` 매핑 정상 작동 보장.
+
+  ## #[ignore] 적용
+
+  로컬 PostgreSQL 미실행 환경에서 default `cargo test` panic 회피:
+  ```rust
+  #[ignore = "requires local PostgreSQL with DATABASE_URL set (Phase 1 보류 정책)"]
+  #[sqlx::test]
+  async fn ...
+  ```
+
+  - default `cargo test` = 0 failed / 8 ignored (안전)
+  - 명시적 실행 = `cargo test --test repo_integration -- --ignored` (로컬 DB 필요)
+
+  ## CI 영향 = 0
+
+  G1/G2 보류 정책 유지. `.github/workflows/pr-check.yml` 변경 X. service container 미설정.
+
+  ## 검증
+
+  - `cargo build --tests` = 통과 (sqlx prepare + 모든 import 컴파일 검증)
+  - `cargo test --lib` = **166 passed** (단위 테스트 그대로)
+  - `cargo test` (전체 = lib + integration) = 0 failed / 8 ignored
+  - `cargo clippy --all-targets --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  단위 테스트 = 157 신규 / 166 passed. 통합 테스트 = 8 ignored. 총 174 작성.
+
+  ## 잔여 트랙
+
+  - **Phase 2** (service.rs Redis 의존 함수) — Redis pool mock 또는 trait 추상화. 비용 평가 후 결정
+  - **Phase 3** (signup / login / oauth_callback / mfa / verify_email 전체) — Phase 2 + AppState builder + Email/Payment mock. 1-2일 추정
+  - **CI service container 추가** = G1/G2 보류 해제. PR check 워크플로 + postgres + redis service. 별도 결정
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (광범위 + 통합 테스트 인프라 정착). G1 = 🟡 Phase 1 보류 진행 (CI 미설정 유지). 부채 카운트 변동 없음.
 
 - **2026-05-10 (후속⁷) — G10 extract_billing_interval refactor + event_data_type_name skip 분석 (166 tests)**
 
