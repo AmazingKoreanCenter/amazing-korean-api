@@ -1467,3 +1467,43 @@ pub async fn create_study_log(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_study_action_create_variants() {
+        assert_eq!(normalize_study_action("create"), "create");
+        assert_eq!(normalize_study_action("CREATE"), "create");
+        assert_eq!(normalize_study_action("create_study"), "create");
+        assert_eq!(normalize_study_action("CREATE_STUDY"), "create");
+    }
+
+    #[test]
+    fn test_normalize_study_action_state_transitions() {
+        // study 만의 6 actions: banned / reorder / publish / unpublish
+        assert_eq!(normalize_study_action("banned"), "banned");
+        assert_eq!(normalize_study_action("BANNED"), "banned");
+        assert_eq!(normalize_study_action("reorder"), "reorder");
+        assert_eq!(normalize_study_action("publish"), "publish");
+        assert_eq!(normalize_study_action("unpublish"), "unpublish");
+    }
+
+    #[test]
+    fn test_normalize_study_action_update_default() {
+        assert_eq!(normalize_study_action("update"), "update");
+        assert_eq!(normalize_study_action("UPDATE"), "update");
+    }
+
+    #[test]
+    fn test_normalize_study_action_unknown_falls_back_to_update() {
+        assert_eq!(normalize_study_action("unknown"), "update");
+        assert_eq!(normalize_study_action(""), "update");
+        assert_eq!(
+            normalize_study_action("Reorder"),
+            "update",
+            "mixed case 비매칭"
+        );
+    }
+}

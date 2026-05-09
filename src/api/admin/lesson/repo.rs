@@ -1257,3 +1257,41 @@ pub async fn delete_lesson_item_tx(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_lesson_action_create_variants() {
+        for variant in ["create", "CREATE", "create_lesson", "CREATE_LESSON"] {
+            assert_eq!(normalize_lesson_action(variant), "create", "{}", variant);
+        }
+    }
+
+    #[test]
+    fn test_normalize_lesson_action_update_variants() {
+        for variant in ["update", "UPDATE", "update_lesson", "UPDATE_LESSON"] {
+            assert_eq!(normalize_lesson_action(variant), "update", "{}", variant);
+        }
+    }
+
+    #[test]
+    fn test_normalize_lesson_action_delete_variants() {
+        for variant in ["delete", "DELETE", "delete_lesson", "DELETE_LESSON"] {
+            assert_eq!(normalize_lesson_action(variant), "delete", "{}", variant);
+        }
+    }
+
+    #[test]
+    fn test_normalize_lesson_action_unknown_falls_back_to_update() {
+        // 알 수 없는 action = update 로 정규화 (감사 로그 누락 회피)
+        assert_eq!(normalize_lesson_action("unknown_action"), "update");
+        assert_eq!(normalize_lesson_action(""), "update");
+        assert_eq!(
+            normalize_lesson_action("Create"),
+            "update",
+            "mixed case 비매칭"
+        );
+    }
+}

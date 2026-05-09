@@ -1,11 +1,11 @@
 use crate::extract::AppJson;
 use axum::{
     extract::{Path, Query, State},
-    http::{header::USER_AGENT, HeaderMap, StatusCode},
+    http::{HeaderMap, StatusCode},
     Json,
 };
-use std::net::IpAddr;
 
+use crate::api::admin::header_utils::{extract_client_ip, extract_user_agent};
 use crate::{api::auth::extractor::AuthUser, error::AppResult, state::AppState};
 
 use super::{
@@ -18,29 +18,6 @@ use super::{
 
 #[allow(unused_imports)]
 use serde_json::json;
-
-fn extract_client_ip(headers: &HeaderMap) -> Option<IpAddr> {
-    let forwarded = headers
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.split(',').next())
-        .map(|v| v.trim().to_string());
-
-    let direct = headers
-        .get("x-real-ip")
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.trim().to_string());
-
-    let ip_str = forwarded.or(direct)?;
-    ip_str.parse().ok()
-}
-
-fn extract_user_agent(headers: &HeaderMap) -> Option<String> {
-    headers
-        .get(USER_AGENT)
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.to_string())
-}
 
 // =============================================================================
 // 구독 관리

@@ -682,25 +682,18 @@ impl Config {
         false
     }
 
-    /// Paddle Price ID → BillingInterval 매핑
+    /// Paddle Price ID → BillingInterval 매핑 (Config 의존 wrapper)
     pub fn billing_interval_for_price(
         &self,
         price_id: &str,
     ) -> Option<crate::types::BillingInterval> {
-        use crate::types::BillingInterval;
-        if self.paddle_price_month_1.as_deref() == Some(price_id) {
-            return Some(BillingInterval::Month1);
-        }
-        if self.paddle_price_month_3.as_deref() == Some(price_id) {
-            return Some(BillingInterval::Month3);
-        }
-        if self.paddle_price_month_6.as_deref() == Some(price_id) {
-            return Some(BillingInterval::Month6);
-        }
-        if self.paddle_price_month_12.as_deref() == Some(price_id) {
-            return Some(BillingInterval::Month12);
-        }
-        None
+        billing_interval_from_price_id(
+            price_id,
+            self.paddle_price_month_1.as_deref(),
+            self.paddle_price_month_3.as_deref(),
+            self.paddle_price_month_6.as_deref(),
+            self.paddle_price_month_12.as_deref(),
+        )
     }
 
     /// CIDR 범위 내 IP 확인
@@ -876,5 +869,125 @@ impl fmt::Debug for Config {
             .field("encryption_ring", &self.encryption_ring)
             .field("hmac_key", &"***")
             .finish()
+    }
+}
+
+/// Paddle Price ID 매핑 pure helper (Config 비의존, 단위 테스트 용).
+///
+/// `billing_interval_for_price` 메서드가 본 함수의 wrapper.
+/// 분리 이유: Config struct 60+ fields 인스턴스 mock 비용 회피.
+fn billing_interval_from_price_id(
+    price_id: &str,
+    month_1: Option<&str>,
+    month_3: Option<&str>,
+    month_6: Option<&str>,
+    month_12: Option<&str>,
+) -> Option<crate::types::BillingInterval> {
+    use crate::types::BillingInterval;
+    if month_1 == Some(price_id) {
+        return Some(BillingInterval::Month1);
+    }
+    if month_3 == Some(price_id) {
+        return Some(BillingInterval::Month3);
+    }
+    if month_6 == Some(price_id) {
+        return Some(BillingInterval::Month6);
+    }
+    if month_12 == Some(price_id) {
+        return Some(BillingInterval::Month12);
+    }
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::BillingInterval;
+
+    #[test]
+    fn test_billing_interval_matches_month_1() {
+        let result = billing_interval_from_price_id(
+            "pri_01abc",
+            Some("pri_01abc"),
+            Some("pri_02"),
+            Some("pri_03"),
+            Some("pri_04"),
+        );
+        assert_eq!(result, Some(BillingInterval::Month1));
+    }
+
+    #[test]
+    fn test_billing_interval_matches_month_3() {
+        let result = billing_interval_from_price_id(
+            "pri_3m",
+            Some("pri_1m"),
+            Some("pri_3m"),
+            Some("pri_6m"),
+            Some("pri_12m"),
+        );
+        assert_eq!(result, Some(BillingInterval::Month3));
+    }
+
+    #[test]
+    fn test_billing_interval_matches_month_6() {
+        let result = billing_interval_from_price_id(
+            "pri_6m",
+            Some("pri_1m"),
+            Some("pri_3m"),
+            Some("pri_6m"),
+            Some("pri_12m"),
+        );
+        assert_eq!(result, Some(BillingInterval::Month6));
+    }
+
+    #[test]
+    fn test_billing_interval_matches_month_12() {
+        let result = billing_interval_from_price_id(
+            "pri_12m",
+            Some("pri_1m"),
+            Some("pri_3m"),
+            Some("pri_6m"),
+            Some("pri_12m"),
+        );
+        assert_eq!(result, Some(BillingInterval::Month12));
+    }
+
+    #[test]
+    fn test_billing_interval_returns_none_for_unknown_price() {
+        let result = billing_interval_from_price_id(
+            "pri_unknown",
+            Some("pri_1m"),
+            Some("pri_3m"),
+            Some("pri_6m"),
+            Some("pri_12m"),
+        );
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_billing_interval_returns_none_for_all_unset() {
+        // 4 fields 모두 None (PAYMENT_PROVIDER=none 환경 등)
+        let result = billing_interval_from_price_id("any_id", None, None, None, None);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_billing_interval_first_match_wins_when_duplicate() {
+        // 환경변수 잘못 설정으로 같은 price_id 가 두 fields 에 = m1 우선
+        let result =
+            billing_interval_from_price_id("pri_dup", Some("pri_dup"), Some("pri_dup"), None, None);
+        assert_eq!(
+            result,
+            Some(BillingInterval::Month1),
+            "first match (m1) wins"
+        );
+    }
+
+    #[test]
+    fn test_billing_interval_partial_unset_skips_to_next() {
+        // m1 = None, m3 = None, m6 = match → Month6
+        let result =
+            billing_interval_from_price_id("pri_6m", None, None, Some("pri_6m"), Some("pri_12m"));
+        assert_eq!(result, Some(BillingInterval::Month6));
     }
 }

@@ -2986,4 +2986,104 @@ mod tests {
             "invalid UTF-8 must be rejected"
         );
     }
+
+    // ------------------------------------------------------------------------
+    // mask_email: PII 응답에서 이메일 일부 가림 (te***@example.com)
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_mask_email_normal_address() {
+        assert_eq!(
+            AuthService::mask_email("test@example.com"),
+            "te***@example.com"
+        );
+    }
+
+    #[test]
+    fn test_mask_email_short_local_part() {
+        // local 1글자 = 1글자 노출
+        assert_eq!(AuthService::mask_email("a@example.com"), "a***@example.com");
+    }
+
+    #[test]
+    fn test_mask_email_no_at_returns_full_mask() {
+        // @ 없으면 형식 비정상 = 완전 마스킹 (PII 노출 회피)
+        assert_eq!(AuthService::mask_email("not-an-email"), "***");
+        assert_eq!(AuthService::mask_email(""), "***");
+    }
+
+    #[test]
+    fn test_mask_email_long_local_truncates_to_2_visible() {
+        // local 길어도 2글자만 노출
+        assert_eq!(
+            AuthService::mask_email("verylongname@example.com"),
+            "ve***@example.com"
+        );
+    }
+
+    #[test]
+    fn test_mask_email_preserves_subdomain_and_tld() {
+        assert_eq!(
+            AuthService::mask_email("user@mail.amazingkorean.net"),
+            "us***@mail.amazingkorean.net"
+        );
+    }
+
+    // ------------------------------------------------------------------------
+    // generate_verification_code: 6자리 숫자 코드
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_verification_code_is_6_chars() {
+        let code = AuthService::generate_verification_code();
+        assert_eq!(code.len(), 6, "code must be 6 chars (incl leading zeros)");
+    }
+
+    #[test]
+    fn test_verification_code_is_all_digits() {
+        let code = AuthService::generate_verification_code();
+        assert!(
+            code.chars().all(|c| c.is_ascii_digit()),
+            "all digits, got: {}",
+            code
+        );
+    }
+
+    #[test]
+    fn test_verification_code_in_range_100000_to_999999() {
+        // gen_range(100000..1000000) = 100000-999999 inclusive
+        for _ in 0..50 {
+            let code = AuthService::generate_verification_code();
+            let n: u32 = code.parse().expect("must be numeric");
+            assert!((100000..=999999).contains(&n), "out of range: {}", n);
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // dummy_password_hash: 타이밍 공격 방지 (anti-enumeration)
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_dummy_password_hash_returns_argon2_format() {
+        let hash = AuthService::dummy_password_hash().expect("must succeed");
+        // PasswordHash → Display = $argon2$v=...$
+        let s = hash.to_string();
+        assert!(
+            s.starts_with("$argon2"),
+            "expected argon2 prefix, got: {}",
+            s
+        );
+    }
+
+    #[test]
+    fn test_dummy_password_hash_is_cached_across_calls() {
+        // OnceLock 캐시 검증 = 두 번 호출해도 같은 hash 반환
+        let h1 = AuthService::dummy_password_hash().expect("must succeed");
+        let h2 = AuthService::dummy_password_hash().expect("must succeed");
+        assert_eq!(
+            h1.to_string(),
+            h2.to_string(),
+            "dummy hash must be cached (OnceLock)"
+        );
+    }
 }

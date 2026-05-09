@@ -1,8 +1,668 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속³) — G10 video/lesson/user-birthday/admin 단위 테스트 46 신규 (120 tests). AMK_STATUS §8.1 #83 등재
+updated: 2026-05-10 (후속¹², 일일 종결) — G10 Phase 2 추가 5 tests (8 통합 누적). AMK_STATUS §8.1 #92 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹², 일일 종결) — G10 Phase 2 추가 5 tests (8 통합 누적)**
+
+  세션 진입 = 사용자 결정 = 추가 Phase 2 함수 작업 후 세션 종결.
+
+  ## 추가 함수 2개 (5 tests)
+
+  ### `AuthService::verify_reset_code` (2 tests)
+  - stored hash 없음 → `AUTH_401_INVALID_OR_EXPIRED_CODE`
+  - rate limit 11번째 → `TooManyRequests` + cleanup
+
+  ### `AuthService::reset_password_with_token` (3 tests)
+  - weak password (`weak` 4자) → `AUTH_422_PASSWORD_POLICY_VIOLATION` (Redis hit 없음, 즉시 검증)
+  - unknown `ak_reset_*` token → `AUTH_401_INVALID_OR_EXPIRED_TOKEN` (Redis 조회 None) + cleanup
+  - invalid JWT (non-`ak_reset_` prefix) → `AUTH_401_INVALID_RESET_TOKEN` (jwt decode fail) + cleanup
+
+  ## 패턴 재사용
+
+  - `tests/common/mod.rs` 의 `make_test_state()` 그대로 사용 (인프라 정착 효과)
+  - EMAIL_PROVIDER=none / PAYMENT_PROVIDER=none = mock 부재
+  - rate limit + Redis key cleanup 패턴 정착 (다른 테스트와 격리)
+
+  ## 검증
+
+  ```
+  $ ... cargo test --test service_integration -- --ignored
+  test test_reset_password_rejects_invalid_jwt_token ... ok
+  test test_reset_password_rejects_weak_password ... ok
+  test test_reset_password_rejects_unknown_redis_token ... ok
+  test test_verify_email_rate_limit_increments ... ok
+  test test_verify_email_validation_rejects_short_code ... ok
+  test test_verify_email_returns_unauthorized_for_missing_code ... ok
+  test test_verify_reset_code_returns_unauthorized_for_missing_code ... ok
+  test test_verify_reset_code_rate_limit_increments ... ok
+
+  test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+  ```
+
+  ## G10 누계 (2026-05-10 일일 종결)
+
+  - **단위 테스트**: 157 신규 / 166 passed
+  - **통합 Phase 1** (repo, Postgres only): 7 passed
+  - **통합 Phase 2** (service Redis 의존): 8 passed
+  - **총 172 신규 / 181 passed**
+
+  ## 세션 종결 (2026-05-10)
+
+  ### 오늘 commit 14건
+  cb59260 → 24be7ad → de207ad → 69f8c1b → 20998d6 → 51c388f → 6b7d3d3 → b707cbf → 7474536 → d07da6f → dd9fccb → 62b18a7 → 392b79b → (이번 commit)
+
+  ### 오늘 부채 변화
+  - **G15 ✅** 종결 (`token_utils.rs` dead code 삭제)
+  - **G16 ✅** 종결 (`migrations/README.md` 정책 정착)
+  - 부채 §0 = 33 → **32** (-1건)
+
+  ### 오늘 인프라 정착
+  - `header_utils.rs` 공통 모듈 (4 handler 코드 중복 제거)
+  - paddle SDK pure helpers 추출 (`extract_user_id_from_custom_data`, `billing_interval_from_price_id`)
+  - 통합 테스트 Phase 1 (repo) + Phase 2 (service Redis) 인프라
+  - `make_test_state()` test helper
+
+  ### 오늘 발견 + 처리
+  - G16 = sqlx migration 정렬 비호환 (legacy 14자리 2건) → 정책 정착 + 우회 패턴 영구 채택
+
+  ## 잔여 트랙 (Phase 3 별도 세션)
+
+  - signup / login / oauth / mfa = **EmailSender mock 필요**
+  - 후보 인프라:
+    - `wiremock` crate = HTTP mock (Google OAuth / Resend API)
+    - 또는 EmailSender trait 자체를 test impl (단순 in-memory)
+  - 1-2일 작업 추정
+
+- **2026-05-10 (후속¹¹) — G10 Phase 2 통합 테스트 인프라 + verify_email 3 tests passed**
+
+  세션 진입 = 사용자 결정 = Phase 2 시작 (service.rs Redis 의존 함수 통합 테스트).
+
+  ## 분석 (사전)
+
+  AppState 9 fields:
+  - `db: PgPool`, `redis: RedisPool`, `cfg: Config` (60+ fields), `started_at: Instant` — 필수
+  - `email`, `payment`, `revenuecat`, `apple_oauth` — 모두 Option<Arc<dyn ...>> = **None 채택 시 mock 불필요**
+  - `ipgeo: Arc<IpGeoClient>` — 필수, `IpGeoClient::new()` default
+
+  Config 필수 panic 환경변수:
+  - `JWT_SECRET` (32+ bytes)
+  - `HMAC_KEY` (base64 32 bytes)
+  - `ENCRYPTION_KEY_V1` (base64 32 bytes)
+
+  나머지 = default 또는 `unwrap_or_else` 폴백.
+
+  ## tests/common/mod.rs 신규
+
+  `make_test_state()` async helper:
+
+  ```rust
+  pub async fn make_test_state() -> AppState {
+      let _ = dotenvy::from_filename(".env.test").or_else(|_| dotenvy::dotenv());
+      let cfg = Config::from_env();
+      let db = PgPool::connect(&cfg.database_url).await.expect("...");
+      let redis_cfg = RedisConfig::from_url(&cfg.redis_url);
+      let redis = redis_cfg.create_pool(Some(Runtime::Tokio1)).expect("...");
+      let ipgeo = Arc::new(IpGeoClient::new());
+
+      AppState {
+          db, redis, cfg,
+          started_at: Instant::now(),
+          email: None, ipgeo,
+          payment: None, revenuecat: None, apple_oauth: None,
+      }
+  }
+  ```
+
+  - dotenv 자동 로드 (.env.test 우선 + .env fallback)
+  - 4 trait Option = None (EMAIL_PROVIDER=none / PAYMENT_PROVIDER=none 채택)
+  - mock 불필요 = 작은 인프라
+
+  ## 첫 Redis 의존 함수 = AuthService::verify_email
+
+  선정 이유:
+  - EmailSender 미사용 (`signup` / `request_password_reset` 와 달리)
+  - PaymentProvider 미사용
+  - 외부 API (Google / Apple OAuth) 미사용
+  - Redis = rate limit + email_verify 코드 조회 = 핵심 의존
+  - PostgreSQL = `find_user_id_and_check_email_by_email_idx` 호출 (positive 흐름만)
+
+  ## tests/service_integration.rs (3 tests, all passing)
+
+  ### test 1: `test_verify_email_returns_unauthorized_for_missing_code`
+  Redis 에 `ak:email_verify:*` key 없음 → `AUTH_401_INVALID_OR_EXPIRED_CODE` 반환 검증. UUID 로 unique email = 다른 테스트와 격리.
+
+  ### test 2: `test_verify_email_rate_limit_increments`
+  동일 (email_idx, ip) 조합 11번 호출 → 처음 10번 = Unauthorized (코드 없음), 11번째 = `TooManyRequests` 검증. **cleanup**: blind_index 계산 후 rate limit key 삭제 (다른 테스트 격리).
+
+  ### test 3: `test_verify_email_validation_rejects_short_code`
+  5자리 code → `validator` length(equal=6) 실패 → `ValidationGeneric` 반환 (anti-enumeration).
+
+  ## 검증
+
+  ```
+  $ DATABASE_URL=... REDIS_URL=... JWT_SECRET=... HMAC_KEY=$(openssl rand -base64 32) \
+    ENCRYPTION_KEY_V1=$(openssl rand -base64 32) EMAIL_PROVIDER=none PAYMENT_PROVIDER=none \
+    APP_ENV=development cargo test --test service_integration -- --ignored
+
+  running 3 tests
+  test test_verify_email_validation_rejects_short_code ... ok
+  test test_verify_email_returns_unauthorized_for_missing_code ... ok
+  test test_verify_email_rate_limit_increments ... ok
+
+  test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+  ```
+
+  - `cargo test --lib` = 166 passed (단위 그대로)
+  - `cargo clippy --all-targets --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean (1회 fmt 적용 후)
+
+  ## G10 누계 진척
+
+  - 단위 테스트: 157 신규 / 166 passed
+  - 통합 테스트 Phase 1 (repo): 7 passed
+  - 통합 테스트 Phase 2 (service Redis 의존): 3 passed
+  - **총 167 신규 / 176 passed** (단위 166 + 통합 10)
+
+  ## 잔여 트랙 (Phase 3)
+
+  - signup / login / oauth / mfa = **EmailSender mock 필요**
+  - signup positive flow = email 발송 → mock 으로 가로채기
+  - oauth_callback = Google API mock (reqwest mock 또는 wiremock crate)
+  - 1-2일 추정. 별도 세션 권장
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (광범위 + Phase 1+2 통합 인프라). G1 = 🟡 Phase 1+2 보류 진행 (CI 미설정 유지). 부채 카운트 변동 없음.
+
+- **2026-05-10 (후속¹⁰) — G16 ✅ 정책 정착 (옵션 a 정책 문서)**
+
+  세션 진입 = 사용자 결정 = G16 옵션 (a) 정책 문서 정착.
+
+  ## 발견 (사전 조사)
+
+  `AMK_DEPLOY_OPS.md §3 line 563` 에 **이미 정책 명시되어 있음**:
+
+  > **⚠️ HHMMSS(000001 등) 접미사 사용 금지**: `20260310000001`은 정수 `20,260,310,000,001`이 되어 `20260312`(= `20,260,312`)보다 훨씬 큰 값. sqlx는 정수 기준 오름차순으로 실행하므로 의존성 순서가 뒤집혀 서버 크래시 발생 (2026-03-23 사고).
+
+  → 기존 정책 = **8자리 (`YYYYMMDD`) 통일**. 14자리 2건 = 정책 위반 잔재.
+
+  본 작업 = 정책 본문 정착 (이미 정책 있음) + 디렉터리 진입자용 빠른 참조 + cross-link.
+
+  ## migrations/README.md 신규
+
+  5 섹션:
+  1. **SSoT 안내** = AMK_DEPLOY_OPS §3 (정책 본문) + AMK_DEBTS G16 (부채 추적)
+  2. **8자리 정책** = `YYYYMMDD_<description>.sql`. HHMMSS 금지. 같은 날 충돌 시 다음 날짜
+  3. **legacy 14자리 2건** = 변경 금지 (production `_sqlx_migrations` checksum 보호). production 점진 적용으로 우회. fresh DB 셋업 시 fail
+  4. **Fresh DB 우회 패턴** = `#[tokio::test]` + 수동 PgPool + 기존 DB 사용 (`tests/repo_integration.rs` 채택)
+  5. **신규 migration 작성 절차** = `touch migrations/$(date +"%Y%m%d")_descriptive_name.sql` → cargo run 검증 → PR
+
+  ## AMK_DEPLOY_OPS §3 cross-link 보강
+
+  Line 563 의 HHMMSS 금지 경고에 다음 추가:
+  - "정책 빠른 참조 = `migrations/README.md`"
+  - "부채 추적 = `AMK_DEBTS.md` G16 (legacy 14자리 2건 미해결)"
+
+  ## 효과
+
+  ### 신규 migration 위반 회피 ✅
+  본 정책 정착으로 **향후 신규 14자리 timestamp 추가 시 PR 리뷰에서 거부 가능**. 디렉터리 진입자가 README 즉시 발견.
+
+  ### legacy 잔재 = mitigation
+  - 14자리 2건 file rename = 위험 (production checksum 깨짐) = **그대로 유지**
+  - fresh DB fail = `tests/repo_integration.rs` 의 `#[tokio::test]` + 수동 PgPool + 기존 amk-pg DB 패턴으로 영구 우회
+
+  ## 검증
+
+  코드 변경 0 (정책 문서만):
+  - `cargo test --lib` = 166 passed (단위 테스트 그대로)
+  - `cargo test --test repo_integration -- --ignored` = 7 passed (통합 테스트 그대로)
+  - clippy / fmt clean (영향 없음)
+
+  ## 부채 영향
+
+  G16 = ✅ 해결 (정책 정착으로 신규 발생 회피). 부채 §0 = **33 → 32** (G 5→4).
+
+- **2026-05-10 (후속⁹) — G10/G1 통합 테스트 Phase 1 실 실행 7 passed + G16 신규 부채 등재**
+
+  세션 진입 = 사용자 결정 = 로컬 DB 셋업 후 Phase 1 실 실행 검증.
+
+  ## 셋업 발견
+
+  Docker 컨테이너 이미 동작 중 (사용자 dev 환경):
+  - `amk-pg` (PostgreSQL 16, port 5432:5432, postgres/postgres)
+  - `amk-redis` (Redis 7)
+  - `docker-compose.yml` dev profile
+
+  → DATABASE_URL 설정만으로 통합 테스트 실행 가능.
+
+  ## 첫 시도 = `sqlx::test` 매크로 fail
+
+  ```
+  thread 'test_lesson_find_by_id_returns_none_for_missing' panicked at sqlx-core/src/testing/mod.rs:261:14:
+  failed to apply migrations: ExecuteMigration(Database(PgDatabaseError {
+    severity: Error, code: "42704", message: "type \"content_type_enum\" does not exist"
+  }), 20260210)
+  ```
+
+  ### 원인 분석 (G16 신규 부채)
+
+  sqlx 의 numeric version 정렬:
+  - `20260208_AMK_V1.sql` (v=20260208) — base schema, content_type_enum 정의 없음
+  - `20260210_i18n_add_video_content_type.sql` (v=**20260210**) — ALTER TYPE
+  - `20260210000001_i18n_content_translations.sql` (v=**20260210000001**) — CREATE TYPE
+
+  `20260210 < 20260210000001` → ALTER 가 CREATE 보다 먼저 실행 → fail.
+
+  production 에서는 점진 적용으로 우회됨 (CREATE 먼저 추가 후 ALTER 별도 시점).
+
+  **file rename = `_sqlx_migrations` checksum 깨짐 위험 = 금지**.
+
+  ## 해결: 매크로 변경 + 기존 DB 사용
+
+  ```rust
+  // Before:
+  #[sqlx::test]  // 자동 임시 DB + migration → fail
+  async fn ...(pool: PgPool) { ... }
+
+  // After:
+  #[tokio::test]
+  async fn ... {
+      let pool = pool().await;  // 수동 PgPool, 기존 amk-pg DB
+      ...
+  }
+
+  async fn pool() -> PgPool {
+      let url = env::var("DATABASE_URL").expect("...");
+      PgPool::connect(&url).await.expect("...")
+  }
+  ```
+
+  ### Negative cases 가 production data 와 무관
+
+  - `999_999` ID = 존재 가능성 매우 낮음
+  - "nonexistent_*" 닉네임/email_idx = production data 충돌 X
+  - `lesson_state='open'` 데이터 존재 가능성 → `count_all` test 1 제거
+  - 7 tests 유지 (lesson 2 + user 5)
+
+  ## 실 실행 결과
+
+  ```
+  $ DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/amazing_korean_db \
+      cargo test --test repo_integration -- --ignored
+
+  running 7 tests
+  test test_find_user_id_and_check_email_by_email_idx_returns_none_for_missing ... ok
+  test test_find_user_id_by_email_idx_returns_none_for_missing ... ok
+  test test_find_user_returns_none_for_missing_id ... ok
+  test test_find_user_by_nickname_returns_none_for_missing ... ok
+  test test_find_users_setting_returns_none_for_missing_user ... ok
+  test test_lesson_find_by_id_returns_none_for_missing ... ok
+  test test_lesson_count_items_returns_zero_for_missing_lesson ... ok
+
+  test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+  ```
+
+  **7 tests 실 PostgreSQL DB 에서 SQL 컴파일 + 빈 결과 반환 검증 성공**.
+
+  ## G16 신규 부채 등재
+
+  `AMK_DEBTS §G10-G14` 표에 G16 추가:
+  - **사실**: sqlx numeric version 정렬 vs production 점진 적용 history 불일치
+  - **영향**: fresh DB 셋업 시만 (CI service container, 신규 dev 환경)
+  - **현재 우회**: `#[tokio::test]` + 수동 PgPool + 기존 DB
+  - **처리 옵션**: (a) 향후 timestamp 길이 통일 / (b) fresh DB 셋업 시 sqlx Migrator 정렬 옵션 변경 / (c) Phase 2/3 통합 테스트 = 기존 DB + transaction rollback 패턴
+
+  ## 검증
+
+  - `cargo test --test repo_integration -- --ignored` = **7 passed** (실 DB)
+  - `cargo test --lib` = **166 passed** (단위 테스트 그대로)
+  - `cargo clippy --all-targets --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  단위 테스트 = 157 신규 / 166 passed. 통합 테스트 = 7 신규 / 실 PostgreSQL 통과. **총 164 신규** test (단위 + 통합 합계).
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (Phase 1 실 실행 검증 완료). G16 = 🟡 신규 등재. **부채 §0 = 32 → 33** (G16 +1).
+
+- **2026-05-10 (후속⁸) — G10/G1 통합 테스트 Phase 1 인프라 정착 (8 ignored tests, sqlx::test)**
+
+  세션 진입 = 사용자 결정 = service.rs main 비즈니스 통합 테스트 진행. 단계 분석 후 Phase 1 (repo) 시작 결정.
+
+  ## 분석 결과 (단계 보고)
+
+  **service.rs main 함수들 = AppState mock 비용 매우 큼**:
+  - `Config` 60+ fields = `Config::from_env()` 환경변수 60+ 필요 (또는 builder pattern)
+  - `deadpool_redis::Pool` = trait 추상화 부재 = 직접 mock 어려움
+  - `CryptoService` = KeyRing + HMAC 키 (32 bytes)
+  - `Option<Box<dyn EmailSender>>` / `Option<Box<dyn PaymentProvider>>` = trait 이라 mock 가능
+
+  Phase 1 = **repo 통합 테스트** (Postgres only, Redis/Email/외부 API 의존 없음) 부터.
+
+  ## tests/repo_integration.rs 신규 (110 lines)
+
+  sqlx::test 매크로 사용:
+  - 자동 임시 DB 생성 + migration 실행
+  - per-test 격리 (병렬 실행 안전)
+  - `DATABASE_URL` 환경변수 필요 (superuser 권한)
+
+  ### 8 negative-case tests (빈 DB SQL 검증)
+
+  **LessonRepo (3)**:
+  - `count_all` = 0 (빈 DB)
+  - `count_items(999_999)` = 0 (없는 lesson)
+  - `find_lesson_by_id(999_999)` = None
+
+  **user::repo (5)**:
+  - `find_user_id_by_email_idx("nonexistent")` = None (blind index 매칭 X)
+  - `find_user_id_and_check_email_by_email_idx("nonexistent")` = None
+  - `find_user_by_nickname("nonexistent")` = None
+  - `find_user(999_999)` = None
+  - `find_users_setting(999_999)` = None
+
+  ### 가치
+  SQL 스키마 일치 + sqlx prepare 검증 + migration 회귀 캡처. 빈 DB 반환값 검증으로 `query_scalar` / `query_as` 매핑 정상 작동 보장.
+
+  ## #[ignore] 적용
+
+  로컬 PostgreSQL 미실행 환경에서 default `cargo test` panic 회피:
+  ```rust
+  #[ignore = "requires local PostgreSQL with DATABASE_URL set (Phase 1 보류 정책)"]
+  #[sqlx::test]
+  async fn ...
+  ```
+
+  - default `cargo test` = 0 failed / 8 ignored (안전)
+  - 명시적 실행 = `cargo test --test repo_integration -- --ignored` (로컬 DB 필요)
+
+  ## CI 영향 = 0
+
+  G1/G2 보류 정책 유지. `.github/workflows/pr-check.yml` 변경 X. service container 미설정.
+
+  ## 검증
+
+  - `cargo build --tests` = 통과 (sqlx prepare + 모든 import 컴파일 검증)
+  - `cargo test --lib` = **166 passed** (단위 테스트 그대로)
+  - `cargo test` (전체 = lib + integration) = 0 failed / 8 ignored
+  - `cargo clippy --all-targets --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  단위 테스트 = 157 신규 / 166 passed. 통합 테스트 = 8 ignored. 총 174 작성.
+
+  ## 잔여 트랙
+
+  - **Phase 2** (service.rs Redis 의존 함수) — Redis pool mock 또는 trait 추상화. 비용 평가 후 결정
+  - **Phase 3** (signup / login / oauth_callback / mfa / verify_email 전체) — Phase 2 + AppState builder + Email/Payment mock. 1-2일 추정
+  - **CI service container 추가** = G1/G2 보류 해제. PR check 워크플로 + postgres + redis service. 별도 결정
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (광범위 + 통합 테스트 인프라 정착). G1 = 🟡 Phase 1 보류 진행 (CI 미설정 유지). 부채 카운트 변동 없음.
+
+- **2026-05-10 (후속⁷) — G10 extract_billing_interval refactor + event_data_type_name skip 분석 (166 tests)**
+
+  세션 진입 = 사용자 결정 = "동일 옵션 B 패턴 적용". 두 함수 평가:
+
+  ## (1) extract_billing_interval refactor (✅ 진행)
+
+  `Config::billing_interval_for_price(&self, price_id)` 메서드 → `billing_interval_from_price_id(price_id, m1, m3, m6, m12)` pure helper 분리. Config struct 60+ fields 인스턴스 mock 비용 회피.
+
+  ```rust
+  // 기존: Config 의존
+  pub fn billing_interval_for_price(&self, price_id: &str) -> Option<BillingInterval> {
+      if self.paddle_price_month_1.as_deref() == Some(price_id) { ... }
+      ...
+  }
+
+  // 변경: wrapper + pure helper
+  pub fn billing_interval_for_price(&self, price_id: &str) -> Option<BillingInterval> {
+      billing_interval_from_price_id(
+          price_id,
+          self.paddle_price_month_1.as_deref(),
+          ...
+      )
+  }
+
+  fn billing_interval_from_price_id(
+      price_id: &str,
+      month_1: Option<&str>,
+      ...
+  ) -> Option<BillingInterval> { ... }
+  ```
+
+  ### test 8건
+  - month_1 / month_3 / month_6 / month_12 매칭 4
+  - unknown price → None
+  - 모든 fields None (PAYMENT_PROVIDER=none) → None
+  - first match wins (m1 우선, 환경변수 잘못 설정 시)
+  - partial unset (m1=None, m3=None, m6=match → Month6)
+
+  ## (2) event_data_type_name 옵션 B 분석 = skip
+
+  paddle SDK 의 `EventData` enum:
+  ```rust
+  #[serde(tag = "event_type", content = "data")]
+  pub enum EventData {
+      #[serde(rename = "subscription.created")]
+      SubscriptionCreated(SubscriptionCreatedData),
+      // ... 16+ variants
+  }
+  ```
+
+  ### 옵션 1 (serde 직렬화) = 화이트리스트 의도 손실
+  `serde_json::to_value(&data)` 후 `["event_type"]` 추출 시 = paddle SDK 의 **모든 variants** event_type 노출. 현재 코드 = 16종 처리 + 나머지 "unknown" fallback (= 화이트리스트). serde 방식 = paddle 이 새 webhook 추가 시 자동 매핑 = 의도 변경.
+
+  ### 옵션 2 (input 분리) = 분리 불가
+  input EventData 자체가 paddle SDK enum = inner helper 도 SDK 의존 = pure 분리 의미 없음.
+
+  ### 결론
+  현재 매뉴얼 매칭이 의도된 design (화이트리스트). pure helper 분리 = 의도 변경 위험 + 가치 작음. **skip 합리**.
+
+  ## 검증
+
+  - `cargo test --lib` = **166 passed** (이전 158 + 신규 8)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  auth 34 + types 5 + payment 13 + **config 8** (billing_interval_from_price_id 신규) + user 14 + ebook 11 + study 5 + textbook 5 + video 6 + lesson 10 + admin 47 = **157 신규** / 166 tests 합계. 2026-05-10 일일 누계.
+
+  ## 잔여 미테스트 (별도 트랙)
+
+  - `event_data_type_name` (paddle SDK enum mock 어려움 + 화이트리스트 의도 보존 = skip 명시)
+  - service.rs main 비즈니스 (signup / login / oauth / mfa) — DB/Redis 의존 = **G1/G2 통합 테스트 트랙** (보류)
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (paddle 관련 pure helper 추출 광범위). 부채 카운트 변동 없음.
+
+- **2026-05-10 (후속⁶) — G10 paddle extract_user_id refactor + pure helper (158 tests)**
+
+  세션 진입 = 사용자 결정 옵션 B (extract_user_id refactor). paddle SDK mock 시도 평가 결과 = struct 직접 mock = brittle + 비용 ↑ (25 fields nested), refactor + pure helper 분리가 가장 효율.
+
+  ## 배경
+
+  paddle SDK 의 `PaddleSubscription` struct (paddle-rust-sdk-types 0.2.0 `entities.rs:1185`) = 25 fields nested types (SubscriptionStatus / CustomerID / DateTime / Vec<SubscriptionItem> / Option<serde_json::Value> 등). `Serialize + Deserialize` derive 됨 = JSON deserialize 가능하나 sample JSON 작성 비용 큼 + SDK 0.17 → 0.18 upgrade 시 깨질 위험.
+
+  사용자 명시 = "결제는 막아놨다" 확인 = frontend `/pricing` 라우트가 ComingSoonPage 로 우회 (`frontend/src/app/routes.tsx:154`). backend 코드는 활성 = paddle webhook 도착 시 service.rs 함수 호출됨 = test 추가 의미 있음.
+
+  ## 해결: 함수 분리 (옵션 B)
+
+  ```rust
+  // 기존: paddle SDK 의존
+  fn extract_user_id(sub: &PaddleSubscription) -> Option<i64> { ... }
+
+  // 변경: wrapper + pure inner helper
+  fn extract_user_id(sub: &PaddleSubscription) -> Option<i64> {
+      extract_user_id_from_custom_data(sub.custom_data.as_ref())
+  }
+
+  fn extract_user_id_from_custom_data(data: Option<&serde_json::Value>) -> Option<i64> {
+      data?.get("user_id")?.as_str().and_then(|s| s.parse::<i64>().ok())
+  }
+  ```
+
+  inner helper = `serde_json::Value` 만 의존 = `serde_json::json!({...})` 으로 단위 테스트.
+
+  ## test 8건
+
+  - valid string = `{"user_id": "42"}` → Some(42)
+  - data missing = None → None
+  - key missing = `{"other_key": "value"}` → None
+  - non-string value = number / null / array 거부 (3 케이스)
+  - non-numeric string = `{"user_id": "not-a-number"}` → None
+  - negative = `{"user_id": "-1"}` → Some(-1)
+  - i64::MAX boundary
+  - overflow = `{"user_id": "99999999999999999999"}` → None
+
+  ## 잔여 (동일 패턴 적용 가능, 별도 트랙)
+
+  - `event_data_type_name(data: &EventData)` — EventData enum 16+ variants × inner data = mock 비용 큼
+  - `extract_billing_interval(st: &AppState, sub: &PaddleSubscription)` — AppState 추가 의존, Config struct 별도 mock 필요
+
+  ## 검증
+
+  - `cargo test --lib` = **158 passed** (이전 150 + 신규 8)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  auth 34 + types 5 + payment 13 (paddle_status 5 + extract_user_id_from_custom_data 8) + user 14 + ebook 11 + study 5 + textbook 5 + video 6 + lesson 10 + admin 47 = **149 신규** / 158 tests 합계.
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (paddle SDK 의존성 일부 분리). 부채 카운트 변동 없음.
+
+- **2026-05-10 (후속⁵) — G10 auth/service helpers 10 + 공통 header_utils 추출 (150 tests)**
+
+  세션 진입 = 사용자 결정 service.rs 추가 helper / 공통 helper 추출 순서.
+
+  ## (1) auth/service.rs 추가 helper test (10건)
+
+  ### `mask_email` (5)
+  - 정상 = `test@example.com` → `te***@example.com`
+  - short local 1글자 = 1글자만 노출 (PII 최소화)
+  - no @ = `not-an-email` → `"***"` (형식 비정상 시 완전 마스킹)
+  - long local 2글자 truncate (`verylongname` → `ve***`)
+  - subdomain 보존 (`mail.amazingkorean.net`)
+
+  ### `generate_verification_code` (3)
+  - 6자리 길이 (leading zero 포함)
+  - all digits
+  - 100000-999999 range (50회 반복으로 distribution 검증)
+
+  ### `dummy_password_hash` (2)
+  - `$argon2` prefix (timing attack 방지용 anti-enumeration)
+  - OnceLock 캐시 = 두 번 호출해도 같은 hash
+
+  **메모**: `constant_time_eq` (auth/service) 와 `validate_password_policy` (auth/service) 는 ebook/service / user/service 의 동일 함수와 **중복** = skip (테스트 중복 회피).
+
+  ## (2) 공통 helper 추출 (header_utils)
+
+  4 handler (lesson/study/payment/user) 가 거의 동일한 `extract_client_ip` + `extract_user_agent` 를 inline 보유. 통합:
+
+  ### `src/api/admin/header_utils.rs` 신규 모듈
+  - `pub fn extract_client_ip(headers: &HeaderMap) -> Option<IpAddr>`
+  - `pub fn extract_user_agent(headers: &HeaderMap) -> Option<String>`
+  - **payment 스타일 채택** (가장 robust): trim() 양쪽 헤더 + `USER_AGENT` 상수 + `?` operator
+  - `src/api/admin/mod.rs` 에 `pub mod header_utils;` 등록
+
+  ### 4 handler 교체 (코드 정리)
+  - lesson/handler: inline 함수 제거 + `use header_utils::{extract_client_ip, extract_user_agent}`
+  - study/handler: 동일 (추가로 `IpAddr` import 제거)
+  - payment/handler: 동일 (`USER_AGENT` import 제거)
+  - user/handler: 동일
+
+  ### test 10 (header_utils.rs)
+  - extract_client_ip 8: x-forwarded-for first / forwarded trim / x-real-ip fallback / x-real-ip trim / 우선순위 / missing / invalid format / **ipv6** (신규)
+  - extract_user_agent 2: 정상 / missing
+  - lesson handler 의 기존 7 tests 는 header_utils 로 이동 + 보강 (trim x-forwarded / trim x-real-ip / ipv6 = 3 신규)
+
+  ## 검증
+
+  - `cargo test --lib` = **150 passed** (이전 137 + auth 10 + header_utils 10 - lesson handler 7 이동)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  auth 34 + types 5 + payment 5 + user 14 + ebook 11 + study 5 + textbook 5 + video 6 + lesson 10 + admin 47 = **141 신규** / 150 tests 합계. 2026-05-10 일일 누계 (단일 세션).
+
+  ## 잔여 미테스트 (별도 트랙)
+
+  - paddle SDK mock: extract_user_id / event_data_type_name (struct mock 비용 ↑)
+  - service.rs main 비즈니스 함수 (signup / login / oauth / mfa) — DB/Redis 의존 = **G1/G2 통합 테스트 트랙** (보류)
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (대규모 처리). 부채 카운트 변동 없음 (G10 미해결 유지). header_utils 모듈 신규 = 코드 품질 ↑ (4 도메인 코드 중복 제거).
+
+- **2026-05-10 (후속⁴) — G10 admin normalize_*_action + extract_client_ip/user_agent 17 신규 (137 tests)**
+
+  세션 진입 = 사용자 결정 추가 admin pure helpers.
+
+  ## 도메인별 신규 테스트 (17건)
+
+  ### admin/lesson/repo normalize_lesson_action (4건)
+  - create variants (4 = create / CREATE / create_lesson / CREATE_LESSON)
+  - update variants (4)
+  - delete variants (4)
+  - unknown → update fallback (감사 로그 누락 회피, 빈 문자열 / mixed case 비매칭)
+
+  ### admin/video/repo normalize_video_action (2건)
+  - create + bulk_create variants
+  - 다른 모든 action → update fallback (단순 매핑, lesson 보다 적은 분기)
+
+  ### admin/study/repo normalize_study_action (4건)
+  - create variants
+  - state transitions (study 만의 6 actions = banned / reorder / publish / unpublish + create + update)
+  - update default
+  - unknown fallback (mixed case 비매칭 회귀 캡처)
+
+  ### admin/lesson/handler extract_client_ip (5건)
+  - x-forwarded-for 첫 값 (`"1.2.3.4, 5.6.7.8"` → `1.2.3.4`)
+  - x-real-ip fallback
+  - x-forwarded-for 우선 (둘 다 있을 때)
+  - missing 헤더 → None
+  - 잘못된 형식 → None
+
+  ### admin/lesson/handler extract_user_agent (2건)
+  - 정상 헤더 → Some(value)
+  - missing → None
+
+  ## 메모: 4 도메인 동일 extract_* 함수
+
+  lesson / study / payment / user handler 의 `extract_client_ip` + `extract_user_agent` 가 거의 동일 (조금 다른 변형 = trim / USER_AGENT 상수). lesson 만 대표 test. 공통 helper 추출 (예: `src/api/admin/header_utils.rs`) = 별도 후속 트랙.
+
+  ## 검증
+
+  - `cargo test --lib` = **137 passed** (이전 120 + 신규 17)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  auth 24 + types 5 + payment 5 + user 14 + ebook 11 + study 5 + textbook 5 + video 6 + lesson 10 + admin 44 = **128 신규** / 137 tests 합계.
+
+  ## 잔여 미테스트
+
+  - paddle SDK mock: extract_user_id / event_data_type_name
+  - service.rs main 비즈니스 함수 (signup / login / oauth / mfa) — DB/Redis 의존 = **G1/G2 통합 테스트 트랙** (보류)
+  - service.rs 추가 helper 추출 (auth signup 입력 정규화 / OAuth state / TOTP / MFA backup mask)
+  - extract_client_ip / extract_user_agent 공통 helper 추출 (4 도메인 동일 함수)
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (추가 처리). 부채 카운트 변동 없음 (G10 미해결 유지).
 
 - **2026-05-10 (후속³) — G10 video/lesson/user-birthday/admin 단위 테스트 46 신규 (120 tests)**
 

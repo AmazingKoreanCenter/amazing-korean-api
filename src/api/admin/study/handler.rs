@@ -4,8 +4,8 @@ use axum::{
     http::{HeaderMap, StatusCode},
     Json,
 };
-use std::net::IpAddr;
 
+use crate::api::admin::header_utils::{extract_client_ip, extract_user_agent};
 use crate::api::admin::study::dto::{
     AdminStudyDetailRes, AdminStudyListRes, AdminStudyRes, AdminStudyTaskDetailRes,
     AdminStudyTaskListRes, AdminTaskExplainListRes, AdminTaskExplainRes, AdminTaskStatusListRes,
@@ -20,34 +20,6 @@ use crate::api::admin::study::dto::{
 use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
 use crate::AppState;
-
-// IP 추출 헬퍼 (기존 코드 유지)
-fn extract_client_ip(headers: &HeaderMap) -> Option<IpAddr> {
-    let forwarded = headers
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.split(',').next())
-        .map(|v| v.trim().to_string());
-
-    let direct = headers
-        .get("x-real-ip")
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.to_string());
-
-    if let Some(ip_str) = forwarded.or(direct) {
-        if let Ok(ip) = ip_str.parse::<IpAddr>() {
-            return Some(ip);
-        }
-    }
-    None
-}
-
-fn extract_user_agent(headers: &HeaderMap) -> Option<String> {
-    headers
-        .get("user-agent")
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.to_string())
-}
 
 #[utoipa::path(
     get,
