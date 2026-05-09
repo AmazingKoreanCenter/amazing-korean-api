@@ -1,8 +1,173 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 — G10 auth 단위 테스트 24 신규 (33 tests, 부분 처리) + G15 dead code 발견 (token_utils.rs). 부채 32 → 33. AMK_STATUS §8.1 #80 등재
+updated: 2026-05-10 (후속³) — G10 video/lesson/user-birthday/admin 단위 테스트 46 신규 (120 tests). AMK_STATUS §8.1 #83 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속³) — G10 video/lesson/user-birthday/admin 단위 테스트 46 신규 (120 tests)**
+
+  세션 진입 = 사용자 결정 video apply_tag_translations → lesson 전체 → service.rs main → admin 순서.
+
+  ## video apply_tag_translations (6건)
+
+  struct mock 가능성 검증 = `VideoTagDetail` (id/key/title/subtitle 모두 public) + `TranslatedField` (text/actual_lang/fallback_used 모두 public) + `count_to` 메서드 → unit test 가능.
+
+  - no translations 시 원본 유지 (translated=0, fallback=0, requested=2)
+  - title 매칭 시 replace + translated +1
+  - actual_lang ≠ user_lang 시 fallback +1
+  - tag.title=None 시 requested 카운트 안 함
+  - subtitle 독립적 처리
+  - multiple tags 합산
+
+  ## lesson (10건) — helper 추출 + 4 함수 교체 + test
+
+  4 함수 (`list_lessons` / `get_lesson_detail` / `get_lesson_items` / `update_lesson_progress`) 에서 반복되던 inline 검증 로직을 pure helper 3개로 추출:
+
+  - `validate_pagination(page, per_page) -> AppResult<()>` — page>0 + 0<per_page≤50 검증 (4 tests)
+  - `compute_total_pages(total_count, per_page) -> i64` — ceiling division, total=0 시 0 (3 tests)
+  - `validate_progress_percent(percent) -> AppResult<()>` — 0~100 범위 (3 tests)
+
+  inline → helper 교체 후 동작 검증 = 모든 기존 테스트 통과.
+
+  ## user birthday (3건)
+
+  `signup` 안 inline `1900~today` 범위 검증을 `UserService::is_valid_birthday(birthday, today) -> bool` 헬퍼로 추출. 1900-01-01 boundary / 1900 이전 거부 / 미래 날짜 거부.
+
+  ## admin (27건) — 5 핵심 helper
+
+  ### admin/textbook/service status machine (4)
+  - status_display_label 7 variants (Pending → 주문 접수 등)
+  - 동일 상태 재설정 거부 (2026-04-23 완화 = 동일만 금지)
+  - 모든 다른 쌍 허용 (관리자 사후 정정 위해)
+  - 역방향 (Delivered → Pending) 허용 검증
+
+  ### admin/ebook/service status machine (6)
+  - Pending → Completed (정상 결제)
+  - Pending → Refunded (결제 실패 직접 환불)
+  - Completed → Refunded
+  - Refunded = terminal (rollback 거부)
+  - Completed → Pending rollback 거부
+  - self-loop 거부
+
+  ### admin/study/stats parse_date_range (7)
+  - valid range / trim / invalid format / from>to 거부 / 366 days boundary / 367 days 거부 / same day OK
+
+  ### admin/upgrade validate_invite_role (4)
+  - admin/manager OK / 다른 역할 거부 / case-sensitive (Admin 거부) / error code "invalid_role"
+
+  ### admin/study validate_study_idx (6)
+  - ≥2 chars / <2 거부 / trim 후 길이 / error code / optional 변형 (trim 없음)
+
+  ## 검증
+
+  - `cargo test --lib` = **120 passed** (이전 75 + 신규 46)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean (1회 fmt 적용 후)
+
+  ## G10 누계 진척
+
+  auth 24 + types 5 + payment 5 + user 14 + ebook 11 + study 5 + textbook 5 + video 6 + lesson 10 + admin 27 = **111 신규** / 120 tests 합계.
+
+  ## 잔여 미테스트
+
+  - paddle SDK mock: extract_user_id / event_data_type_name (PaddleSubscription / EventData struct mock 비용 ↑)
+  - service.rs main 비즈니스 함수 (signup/login/oauth/mfa 등) = DB/Redis 의존 = **G1/G2 통합 테스트 트랙** (보류)
+  - 추가 admin pure helpers: extract_client_ip / extract_user_agent (handler 4 도메인) / normalize_*_action (lesson/study/video repo) / 다른 도메인 status_display_label
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (대규모 처리, 핵심 비즈니스 로직 광범위 커버). 부채 카운트 변동 없음 (G10 미해결 유지). 매트릭스 G10 본문만 갱신.
+
+- **2026-05-10 (후속²) — G10 광범위 단위 테스트 32 신규 (75 tests, 6 도메인)**
+
+  세션 진입 = 사용자 결정 user → ebook → video → study → lesson → textbook 순서. payment 비-pure 함수는 나중 트랙.
+
+  ## 도메인별 신규 테스트
+
+  ### user (11건)
+  `src/api/user/service.rs` `validate_password_policy` (6) + `hmac_verification_code` (5)
+  - 비밀번호 정책: 8+chars + letter + digit / 짧음 / 영문만 / 숫자만 / unicode-only 거부 / mixed (한글+숫자+영문) 통과
+  - HMAC: 64 hex chars / 결정성 / 다른 email·code·key → 다른 hash (3건)
+
+  ### ebook (11건)
+  `src/api/ebook/service.rs` `to_korean_title` (5) + `language_name_ko` (1) + `edition_label_ko` (1) + `constant_time_eq` (4)
+  - TOC 매핑: Introduction → 머리말 / Contents → 목차 / Pronunciation N / 단독 prefix / unmapped 그대로
+  - constant_time_eq: equal / different / length 다름 / single-bit 차이 탐지 (XOR fold 검증)
+
+  ### video (skip)
+  `apply_tag_translations` = in-out params + VideoTagDetail/TranslatedField struct mock 비용 ↑. 별도 트랙
+
+  ### study (5건)
+  `src/api/study/service.rs` `content_type_for_task_kind` (1) + `parse_study_program` (3) + invalid messages (2)
+  - StudyTaskKind 4 variants → ContentType 매핑
+  - parse_study_program 7 known + unknown None + case-sensitive
+  - invalid 메시지 = 모든 옵션 포함 검증
+
+  ### lesson (skip)
+  모두 `pub async fn` (DB 의존). pure helper 없음
+
+  ### textbook (5건)
+  `src/api/textbook/service.rs` `language_display_name` (1) + `catalog_languages` (4)
+  - 5 sample 언어명 매핑
+  - catalog row 36 회귀 (enum 35 + en row) / ISBN-ready ≥9 / unavailable 존재 / 이름 nonempty
+
+  ## 검증
+
+  - `cargo test --lib` = **75 passed** (이전 43 + 신규 32)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean (1회 fmt 적용 후)
+
+  ## G10 누계 진척
+
+  auth 24 + types 5 + payment 5 + user 11 + ebook 11 + study 5 + textbook 5 = **66 신규 단위 테스트** / 75 tests 합계. 본 세션 (2026-05-10) 단일 일자에 src/ 비즈니스 로직 pure helper 광범위 커버.
+
+  ## 잔여 미테스트 (별도 트랙)
+
+  - payment 비-pure: extract_user_id / event_data_type_name / extract_billing_interval = paddle SDK mock
+  - video: apply_tag_translations = struct mock
+  - lesson: 모두 async DB
+  - admin 도메인 (별도 평가)
+  - service.rs 의 main 비즈니스 함수 (signup / login / etc.) = DB/Redis/외부 의존 = 통합 테스트 영역 (G1/G2 보류 트랙)
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (광범위 처리, 잔여 = 비-pure 함수 + 외부 mock). 부채 카운트 변동 없음 (G10 미해결 유지). 매트릭스 G10 본문만 갱신.
+
+- **2026-05-10 (후속) — G10 payment+types 단위 테스트 10 신규 (43 tests) + G15 ✅ 종결**
+
+  세션 진입 = 사용자 결정 G10 다음 도메인 = payment.
+
+  ## payment 도메인 + types.rs 단위 테스트 10건 신규
+
+  ### `src/types.rs` `BillingInterval` (5건)
+  - `test_billing_interval_months_matches_variant` — 4 variant → 1/3/6/12
+  - `test_billing_interval_price_cents_matches_pricing_table` — SSoT (AMK_API_PAYMENT.md / Paddle Live Catalog) 정가 = 1000/3000/6000/12000 cents
+  - `test_billing_interval_display_uses_snake_case` — DB enum + JSON serde 일치 (`month_N`)
+  - `test_billing_interval_price_cents_increases_monotonically` — 가격 단조성 회귀
+  - `test_billing_interval_per_month_price_decreases_with_term` — 정가 기준 월 단가 = $10 일정 (Discount 별도)
+
+  ### `src/api/payment/service.rs` `paddle_status_to_internal` (5건)
+  - Active / Trialing / PastDue / Paused / Canceled 5 variant → 내부 SubscriptionStatus 매핑
+
+  ## G15 ✅ 종결 (token_utils.rs 삭제)
+
+  사용자 결정 = 삭제 (옵션 A). `src/api/auth/token_utils.rs` (43 lines, `parse_refresh_token_bytes` + `generate_refresh_cookie_value`) 삭제. mod.rs 미선언 + 사용처 0 = 빌드 영향 없음 (cargo check + cargo test --lib 33 passed 그대로). service.rs 가 자체 `parse_refresh_token` 유지.
+
+  ## 잔여 미테스트 (paddle SDK mock 필요)
+
+  payment/service.rs 의 `extract_user_id` (PaddleSubscription struct mock 필요), `extract_billing_interval` (AppState 의존), `event_data_type_name` (EventData 16+ variants 모두 inner data 필요) = 외부 SDK mock 비용 ↑. 별도 트랙.
+
+  config.rs `billing_interval_for_price` = Config struct 큼, mock 비용 vs 가치 평가 필요. 별도 트랙.
+
+  ## 검증
+
+  - `cargo test --lib` = **43 passed** (auth 24 + types 5 + payment 5 + 기존 docs/external 9)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## 부채 영향
+
+  `AMK_DEBTS §0` = 33 → **32** (G 5→4, G15 종결). G10 = 🟡 부분 (auth 24 + types 5 + payment 5 = 34 신규, 43 tests). 잔여 도메인 = user / ebook / video / study / lesson / textbook + payment 비-pure 함수.
 
 - **2026-05-10 — G10 🟡 auth 단위 테스트 24 신규 (33 tests, 부분 처리) + G15 dead code 발견**
 

@@ -47,6 +47,12 @@ impl UserService {
         password.len() >= 8 && has_letter && has_digit
     }
 
+    /// 회원가입 생일 범위 검증 (1900-01-01 ≤ birthday ≤ today)
+    fn is_valid_birthday(birthday: chrono::NaiveDate, today: chrono::NaiveDate) -> bool {
+        let min_birth = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
+        birthday >= min_birth && birthday <= today
+    }
+
     /// 인증 코드를 HMAC-SHA256 해시 (Redis에 평문 저장 금지)
     pub fn hmac_verification_code(hmac_key: &[u8; 32], email: &str, code: &str) -> String {
         let mut mac = HmacSha256::new_from_slice(hmac_key).expect("HMAC key length is always 32");
@@ -81,8 +87,7 @@ impl UserService {
         }
 
         let today = chrono::Utc::now().date_naive();
-        let min_birth = chrono::NaiveDate::from_ymd_opt(1900, 1, 1).unwrap();
-        if req.birthday < min_birth || req.birthday > today {
+        if !Self::is_valid_birthday(req.birthday, today) {
             return Err(AppError::Unprocessable("Invalid birthday".into()));
         }
 
@@ -397,5 +402,135 @@ impl UserService {
         result.user_set_language =
             crate::types::UserSetLanguage::db_to_frontend(&result.user_set_language);
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ------------------------------------------------------------------------
+    // validate_password_policy: 8+ chars + letter + digit
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_password_policy_accepts_valid_8char_with_letter_and_digit() {
+        assert!(UserService::validate_password_policy("abcd1234"));
+        assert!(UserService::validate_password_policy("Pass1word"));
+    }
+
+    #[test]
+    fn test_password_policy_rejects_too_short() {
+        assert!(!UserService::validate_password_policy("abc1"));
+        assert!(!UserService::validate_password_policy("a1"));
+        assert!(!UserService::validate_password_policy(""));
+    }
+
+    #[test]
+    fn test_password_policy_rejects_letter_only() {
+        assert!(!UserService::validate_password_policy("abcdefgh"));
+        assert!(!UserService::validate_password_policy("OnlyLetters"));
+    }
+
+    #[test]
+    fn test_password_policy_rejects_digit_only() {
+        assert!(!UserService::validate_password_policy("12345678"));
+        assert!(!UserService::validate_password_policy("9999999999"));
+    }
+
+    #[test]
+    fn test_password_policy_rejects_8char_without_ascii_letter_or_digit() {
+        // unicode 문자 / 기호만 = letter/digit 미충족
+        assert!(!UserService::validate_password_policy("한글비밀번호"));
+        assert!(!UserService::validate_password_policy("!!!@@@$$"));
+    }
+
+    #[test]
+    fn test_password_policy_accepts_letter_digit_with_special_chars() {
+        // letter+digit 충족이면 특수문자/한글 mixed 도 통과 (length 충족 시)
+        assert!(UserService::validate_password_policy("a1!@#한글"));
+        assert!(UserService::validate_password_policy("Pass1@한"));
+    }
+
+    // ------------------------------------------------------------------------
+    // hmac_verification_code: HMAC-SHA256 hex (Redis 평문 저장 금지)
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_hmac_verification_code_returns_64_hex_chars() {
+        let key = [0x42u8; 32];
+        let result = UserService::hmac_verification_code(&key, "user@example.com", "123456");
+        // SHA-256 = 32 bytes → hex = 64 chars
+        assert_eq!(result.len(), 64);
+        assert!(result.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_hmac_verification_code_is_deterministic() {
+        let key = [0x42u8; 32];
+        let r1 = UserService::hmac_verification_code(&key, "user@example.com", "123456");
+        let r2 = UserService::hmac_verification_code(&key, "user@example.com", "123456");
+        assert_eq!(r1, r2, "same input must produce same hash");
+    }
+
+    #[test]
+    fn test_hmac_verification_code_differs_for_different_email() {
+        let key = [0x42u8; 32];
+        let r1 = UserService::hmac_verification_code(&key, "a@example.com", "123456");
+        let r2 = UserService::hmac_verification_code(&key, "b@example.com", "123456");
+        assert_ne!(r1, r2, "different email must produce different hash");
+    }
+
+    #[test]
+    fn test_hmac_verification_code_differs_for_different_code() {
+        let key = [0x42u8; 32];
+        let r1 = UserService::hmac_verification_code(&key, "user@example.com", "111111");
+        let r2 = UserService::hmac_verification_code(&key, "user@example.com", "222222");
+        assert_ne!(r1, r2, "different code must produce different hash");
+    }
+
+    #[test]
+    fn test_hmac_verification_code_differs_for_different_key() {
+        let k1 = [0x01u8; 32];
+        let k2 = [0x02u8; 32];
+        let r1 = UserService::hmac_verification_code(&k1, "user@example.com", "123456");
+        let r2 = UserService::hmac_verification_code(&k2, "user@example.com", "123456");
+        assert_ne!(r1, r2, "different key must produce different hash");
+    }
+
+    // ------------------------------------------------------------------------
+    // is_valid_birthday: 1900-01-01 ≤ birthday ≤ today
+    // ------------------------------------------------------------------------
+
+    fn ymd(y: i32, m: u32, d: u32) -> chrono::NaiveDate {
+        chrono::NaiveDate::from_ymd_opt(y, m, d).unwrap()
+    }
+
+    #[test]
+    fn test_birthday_accepts_valid_dates() {
+        let today = ymd(2026, 5, 10);
+        assert!(UserService::is_valid_birthday(ymd(1990, 1, 1), today));
+        assert!(
+            UserService::is_valid_birthday(ymd(1900, 1, 1), today),
+            "min boundary"
+        );
+        assert!(
+            UserService::is_valid_birthday(today, today),
+            "today (자동 가입 case)"
+        );
+    }
+
+    #[test]
+    fn test_birthday_rejects_before_1900() {
+        let today = ymd(2026, 5, 10);
+        assert!(!UserService::is_valid_birthday(ymd(1899, 12, 31), today));
+        assert!(!UserService::is_valid_birthday(ymd(1800, 1, 1), today));
+    }
+
+    #[test]
+    fn test_birthday_rejects_future_dates() {
+        let today = ymd(2026, 5, 10);
+        assert!(!UserService::is_valid_birthday(ymd(2026, 5, 11), today));
+        assert!(!UserService::is_valid_birthday(ymd(2030, 1, 1), today));
     }
 }

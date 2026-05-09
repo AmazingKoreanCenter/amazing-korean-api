@@ -157,3 +157,34 @@ pub struct InviteData {
     pub invited_by_email: String,
     pub created_at: DateTime<Utc>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_invite_role_admin_ok() {
+        assert!(validate_invite_role("admin").is_ok());
+    }
+
+    #[test]
+    fn test_validate_invite_role_manager_ok() {
+        assert!(validate_invite_role("manager").is_ok());
+    }
+
+    #[test]
+    fn test_validate_invite_role_rejects_other_roles() {
+        // HYMN / Learner 같은 역할은 초대 불가
+        assert!(validate_invite_role("hymn").is_err());
+        assert!(validate_invite_role("learner").is_err());
+        assert!(validate_invite_role("Admin").is_err(), "case-sensitive");
+        assert!(validate_invite_role("").is_err());
+        assert!(validate_invite_role("superuser").is_err());
+    }
+
+    #[test]
+    fn test_validate_invite_role_error_has_invalid_role_code() {
+        let err = validate_invite_role("invalid").unwrap_err();
+        assert_eq!(err.code, "invalid_role");
+    }
+}

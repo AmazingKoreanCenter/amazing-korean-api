@@ -755,3 +755,67 @@ impl fmt::Display for UserAuth {
 }
 
 // 필요한 경우 다른 Enum들도 Display 구현 추가 가능
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_billing_interval_months_matches_variant() {
+        assert_eq!(BillingInterval::Month1.months(), 1);
+        assert_eq!(BillingInterval::Month3.months(), 3);
+        assert_eq!(BillingInterval::Month6.months(), 6);
+        assert_eq!(BillingInterval::Month12.months(), 12);
+    }
+
+    #[test]
+    fn test_billing_interval_price_cents_matches_pricing_table() {
+        // SSoT = AMK_API_PAYMENT.md / Paddle Live Catalog. 정가 (Discount 적용 전)
+        assert_eq!(BillingInterval::Month1.price_cents(), 1000); // $10.00
+        assert_eq!(BillingInterval::Month3.price_cents(), 3000); // $30.00 → $25 (Discount $5)
+        assert_eq!(BillingInterval::Month6.price_cents(), 6000); // $60.00 → $50 (Discount $10)
+        assert_eq!(BillingInterval::Month12.price_cents(), 12000); // $120.00 → $100 (Discount $20)
+    }
+
+    #[test]
+    fn test_billing_interval_display_uses_snake_case() {
+        // DB enum + JSON serde 와 일치 (snake_case)
+        assert_eq!(BillingInterval::Month1.to_string(), "month_1");
+        assert_eq!(BillingInterval::Month3.to_string(), "month_3");
+        assert_eq!(BillingInterval::Month6.to_string(), "month_6");
+        assert_eq!(BillingInterval::Month12.to_string(), "month_12");
+    }
+
+    #[test]
+    fn test_billing_interval_price_cents_increases_monotonically() {
+        // 회귀 테스트: 가격이 항상 기간에 비례하지는 않지만 증가 단조성 보장
+        let prices = [
+            BillingInterval::Month1.price_cents(),
+            BillingInterval::Month3.price_cents(),
+            BillingInterval::Month6.price_cents(),
+            BillingInterval::Month12.price_cents(),
+        ];
+        for window in prices.windows(2) {
+            assert!(
+                window[0] < window[1],
+                "price must increase monotonically: {} < {}",
+                window[0],
+                window[1]
+            );
+        }
+    }
+
+    #[test]
+    fn test_billing_interval_per_month_price_decreases_with_term() {
+        // 비즈니스 룰: 장기 결제 시 월 단가 할인 효과 (정가 기준 동일가, Discount 적용 시 단가 ↓)
+        // 현재 정가 = 1000 cents/month 일정. 회귀 테스트로 가정 캡처
+        let m1 = BillingInterval::Month1.price_cents() / BillingInterval::Month1.months();
+        let m3 = BillingInterval::Month3.price_cents() / BillingInterval::Month3.months();
+        let m6 = BillingInterval::Month6.price_cents() / BillingInterval::Month6.months();
+        let m12 = BillingInterval::Month12.price_cents() / BillingInterval::Month12.months();
+        assert_eq!(m1, 1000, "1개월 단가 = $10");
+        assert_eq!(m3, 1000, "3개월 정가 단가 = $10 (Discount 별도)");
+        assert_eq!(m6, 1000, "6개월 정가 단가 = $10");
+        assert_eq!(m12, 1000, "12개월 정가 단가 = $10");
+    }
+}

@@ -617,3 +617,73 @@ fn status_display_label(status: &TextbookOrderStatus) -> &'static str {
 fn is_valid_status_transition(current: &TextbookOrderStatus, next: &TextbookOrderStatus) -> bool {
     current != next
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_status_label_all_variants() {
+        assert_eq!(
+            status_display_label(&TextbookOrderStatus::Pending),
+            "주문 접수"
+        );
+        assert_eq!(
+            status_display_label(&TextbookOrderStatus::Confirmed),
+            "주문 확인"
+        );
+        assert_eq!(
+            status_display_label(&TextbookOrderStatus::Paid),
+            "입금 확인"
+        );
+        assert_eq!(
+            status_display_label(&TextbookOrderStatus::Printing),
+            "인쇄 중"
+        );
+        assert_eq!(
+            status_display_label(&TextbookOrderStatus::Shipped),
+            "발송 완료"
+        );
+        assert_eq!(
+            status_display_label(&TextbookOrderStatus::Delivered),
+            "배송 완료"
+        );
+        assert_eq!(
+            status_display_label(&TextbookOrderStatus::Canceled),
+            "주문 취소"
+        );
+    }
+
+    #[test]
+    fn test_status_transition_rejects_same_state() {
+        // 2026-04-23 완화: 동일 상태 재설정만 금지
+        assert!(!is_valid_status_transition(
+            &TextbookOrderStatus::Pending,
+            &TextbookOrderStatus::Pending
+        ));
+        assert!(!is_valid_status_transition(
+            &TextbookOrderStatus::Delivered,
+            &TextbookOrderStatus::Delivered
+        ));
+    }
+
+    #[test]
+    fn test_status_transition_allows_any_different_pair() {
+        // 관리자 정정 / 사후 보정 위해 모든 쌍 허용
+        assert!(is_valid_status_transition(
+            &TextbookOrderStatus::Pending,
+            &TextbookOrderStatus::Confirmed
+        ));
+        assert!(
+            is_valid_status_transition(
+                &TextbookOrderStatus::Delivered,
+                &TextbookOrderStatus::Pending
+            ),
+            "역방향 정정 허용"
+        );
+        assert!(is_valid_status_transition(
+            &TextbookOrderStatus::Pending,
+            &TextbookOrderStatus::Canceled
+        ));
+    }
+}

@@ -216,3 +216,66 @@ fn is_valid_status_transition(from: EbookPurchaseStatus, to: EbookPurchaseStatus
             )
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ebook_status_allows_pending_to_completed() {
+        assert!(is_valid_status_transition(
+            EbookPurchaseStatus::Pending,
+            EbookPurchaseStatus::Completed
+        ));
+    }
+
+    #[test]
+    fn test_ebook_status_allows_pending_to_refunded() {
+        // 결제 실패 시 직접 환불 처리
+        assert!(is_valid_status_transition(
+            EbookPurchaseStatus::Pending,
+            EbookPurchaseStatus::Refunded
+        ));
+    }
+
+    #[test]
+    fn test_ebook_status_allows_completed_to_refunded() {
+        assert!(is_valid_status_transition(
+            EbookPurchaseStatus::Completed,
+            EbookPurchaseStatus::Refunded
+        ));
+    }
+
+    #[test]
+    fn test_ebook_status_rejects_terminal_state_transitions() {
+        // Refunded 는 종착지 = 다른 상태로 전환 불가
+        assert!(!is_valid_status_transition(
+            EbookPurchaseStatus::Refunded,
+            EbookPurchaseStatus::Completed
+        ));
+        assert!(!is_valid_status_transition(
+            EbookPurchaseStatus::Refunded,
+            EbookPurchaseStatus::Pending
+        ));
+    }
+
+    #[test]
+    fn test_ebook_status_rejects_completed_to_pending_rollback() {
+        assert!(!is_valid_status_transition(
+            EbookPurchaseStatus::Completed,
+            EbookPurchaseStatus::Pending
+        ));
+    }
+
+    #[test]
+    fn test_ebook_status_rejects_same_state_self_loop() {
+        assert!(!is_valid_status_transition(
+            EbookPurchaseStatus::Pending,
+            EbookPurchaseStatus::Pending
+        ));
+        assert!(!is_valid_status_transition(
+            EbookPurchaseStatus::Completed,
+            EbookPurchaseStatus::Completed
+        ));
+    }
+}

@@ -21,26 +21,14 @@ impl LessonService {
         let per_page = req.per_page.unwrap_or(20);
         let sort = req.sort.as_deref().unwrap_or("lesson_idx");
 
-        if page <= 0 || per_page <= 0 {
-            return Err(AppError::BadRequest(
-                "page/per_page must be positive".into(),
-            ));
-        }
-
-        if per_page > 50 {
-            return Err(AppError::Unprocessable("per_page exceeds 50".into()));
-        }
+        validate_pagination(page, per_page)?;
 
         if sort != "lesson_idx" {
             return Err(AppError::Unprocessable("invalid sort".into()));
         }
 
         let total_count = LessonRepo::count_all(pool).await?;
-        let total_pages = if total_count == 0 {
-            0
-        } else {
-            (total_count + per_page - 1) / per_page
-        };
+        let total_pages = compute_total_pages(total_count, per_page);
 
         let offset = (page - 1) * per_page;
         let mut items = LessonRepo::find_all(pool, per_page, offset).await?;
@@ -108,22 +96,10 @@ impl LessonService {
         let page = req.page.unwrap_or(1);
         let per_page = req.per_page.unwrap_or(20);
 
-        if page <= 0 || per_page <= 0 {
-            return Err(AppError::BadRequest(
-                "page/per_page must be positive".into(),
-            ));
-        }
-
-        if per_page > 50 {
-            return Err(AppError::Unprocessable("per_page exceeds 50".into()));
-        }
+        validate_pagination(page, per_page)?;
 
         let total_count = LessonRepo::count_items(pool, lesson_id).await?;
-        let total_pages = if total_count == 0 {
-            0
-        } else {
-            (total_count + per_page - 1) / per_page
-        };
+        let total_pages = compute_total_pages(total_count, per_page);
 
         let offset = (page - 1) * per_page;
         let items = LessonRepo::find_items(pool, lesson_id, per_page, offset).await?;
@@ -235,23 +211,11 @@ impl LessonService {
         let page = req.page.unwrap_or(1);
         let per_page = req.per_page.unwrap_or(20);
 
-        if page <= 0 || per_page <= 0 {
-            return Err(AppError::BadRequest(
-                "page/per_page must be positive".into(),
-            ));
-        }
-
-        if per_page > 50 {
-            return Err(AppError::Unprocessable("per_page exceeds 50".into()));
-        }
+        validate_pagination(page, per_page)?;
 
         // 5. 아이템 조회
         let total_count = LessonRepo::count_items(&st.db, lesson_id).await?;
-        let total_pages = if total_count == 0 {
-            0
-        } else {
-            (total_count + per_page - 1) / per_page
-        };
+        let total_pages = compute_total_pages(total_count, per_page);
 
         let offset = (page - 1) * per_page;
         let items =
@@ -298,11 +262,7 @@ impl LessonService {
             return Err(AppError::NotFound);
         }
 
-        if req.percent < 0 || req.percent > 100 {
-            return Err(AppError::Unprocessable(
-                "percent must be between 0 and 100".into(),
-            ));
-        }
+        validate_progress_percent(req.percent)?;
 
         if let Some(last_seq) = req.last_seq {
             if last_seq <= 0 {
@@ -315,5 +275,132 @@ impl LessonService {
                 .await?;
 
         Ok(progress)
+    }
+}
+
+// =============================================================================
+// Pure helpers (단위 테스트 용 — 함수 4개에서 반복되던 inline 검증 로직 추출)
+// =============================================================================
+
+/// 페이지네이션 검증 = page > 0 + 0 < per_page <= 50
+fn validate_pagination(page: i64, per_page: i64) -> AppResult<()> {
+    if page <= 0 || per_page <= 0 {
+        return Err(AppError::BadRequest(
+            "page/per_page must be positive".into(),
+        ));
+    }
+    if per_page > 50 {
+        return Err(AppError::Unprocessable("per_page exceeds 50".into()));
+    }
+    Ok(())
+}
+
+/// 전체 페이지 수 계산 (ceiling division). total_count = 0 시 0 반환
+fn compute_total_pages(total_count: i64, per_page: i64) -> i64 {
+    if total_count == 0 {
+        0
+    } else {
+        (total_count + per_page - 1) / per_page
+    }
+}
+
+/// 진행률 검증 = 0 <= percent <= 100
+fn validate_progress_percent(percent: i32) -> AppResult<()> {
+    if !(0..=100).contains(&percent) {
+        return Err(AppError::Unprocessable(
+            "percent must be between 0 and 100".into(),
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ------------------------------------------------------------------------
+    // validate_pagination
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_validate_pagination_accepts_valid_input() {
+        assert!(validate_pagination(1, 20).is_ok());
+        assert!(validate_pagination(1, 1).is_ok());
+        assert!(validate_pagination(100, 50).is_ok(), "per_page=50 (max) ok");
+        assert!(validate_pagination(1, 50).is_ok());
+    }
+
+    #[test]
+    fn test_validate_pagination_rejects_zero_or_negative_page() {
+        let r = validate_pagination(0, 20);
+        assert!(matches!(r, Err(AppError::BadRequest(_))));
+        let r = validate_pagination(-1, 20);
+        assert!(matches!(r, Err(AppError::BadRequest(_))));
+    }
+
+    #[test]
+    fn test_validate_pagination_rejects_zero_or_negative_per_page() {
+        let r = validate_pagination(1, 0);
+        assert!(matches!(r, Err(AppError::BadRequest(_))));
+        let r = validate_pagination(1, -5);
+        assert!(matches!(r, Err(AppError::BadRequest(_))));
+    }
+
+    #[test]
+    fn test_validate_pagination_rejects_per_page_over_50() {
+        let r = validate_pagination(1, 51);
+        assert!(matches!(r, Err(AppError::Unprocessable(_))));
+        let r = validate_pagination(1, 1000);
+        assert!(matches!(r, Err(AppError::Unprocessable(_))));
+    }
+
+    // ------------------------------------------------------------------------
+    // compute_total_pages
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_compute_total_pages_zero_total_returns_zero() {
+        assert_eq!(compute_total_pages(0, 20), 0);
+        assert_eq!(compute_total_pages(0, 1), 0);
+    }
+
+    #[test]
+    fn test_compute_total_pages_exact_division() {
+        assert_eq!(compute_total_pages(20, 20), 1);
+        assert_eq!(compute_total_pages(40, 20), 2);
+        assert_eq!(compute_total_pages(100, 20), 5);
+    }
+
+    #[test]
+    fn test_compute_total_pages_ceiling_for_remainder() {
+        assert_eq!(compute_total_pages(21, 20), 2, "21 → 2 페이지");
+        assert_eq!(compute_total_pages(1, 20), 1, "1 → 1 페이지");
+        assert_eq!(compute_total_pages(19, 20), 1);
+        assert_eq!(compute_total_pages(101, 20), 6);
+    }
+
+    // ------------------------------------------------------------------------
+    // validate_progress_percent
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_validate_progress_percent_accepts_valid_range() {
+        assert!(validate_progress_percent(0).is_ok());
+        assert!(validate_progress_percent(50).is_ok());
+        assert!(validate_progress_percent(100).is_ok());
+    }
+
+    #[test]
+    fn test_validate_progress_percent_rejects_negative() {
+        let r = validate_progress_percent(-1);
+        assert!(matches!(r, Err(AppError::Unprocessable(_))));
+    }
+
+    #[test]
+    fn test_validate_progress_percent_rejects_over_100() {
+        let r = validate_progress_percent(101);
+        assert!(matches!(r, Err(AppError::Unprocessable(_))));
+        let r = validate_progress_percent(200);
+        assert!(matches!(r, Err(AppError::Unprocessable(_))));
     }
 }
