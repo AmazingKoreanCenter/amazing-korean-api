@@ -1019,3 +1019,98 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
         .fold(0u8, |acc, (x, y)| acc | (x ^ y))
         == 0
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ------------------------------------------------------------------------
+    // to_korean_title: 영어 TOC → 한국어 매핑
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_korean_title_exact_match_introduction() {
+        assert_eq!(to_korean_title("Introduction"), "머리말");
+    }
+
+    #[test]
+    fn test_korean_title_exact_match_contents() {
+        assert_eq!(to_korean_title("Contents"), "목차");
+    }
+
+    #[test]
+    fn test_korean_title_section_with_number() {
+        assert_eq!(to_korean_title("Pronunciation 1"), "발음 1");
+        assert_eq!(to_korean_title("Grammar Basics 3"), "문법 기초 3");
+        assert_eq!(to_korean_title("Structure 5"), "조사 5");
+        assert_eq!(to_korean_title("Predicate 2"), "용언 활용 2");
+        assert_eq!(to_korean_title("Adverbial 1"), "연결 어미 1");
+        assert_eq!(to_korean_title("Miscellaneous 4"), "기타 4");
+    }
+
+    #[test]
+    fn test_korean_title_section_without_suffix() {
+        assert_eq!(to_korean_title("Pronunciation"), "발음");
+        assert_eq!(to_korean_title("Grammar Basics"), "문법 기초");
+    }
+
+    #[test]
+    fn test_korean_title_unmapped_returns_input() {
+        assert_eq!(to_korean_title("Unknown Section"), "Unknown Section");
+        assert_eq!(to_korean_title(""), "");
+    }
+
+    // ------------------------------------------------------------------------
+    // language_name_ko: TextbookLanguage → 한국어 이름
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_language_name_ko_known_languages() {
+        assert_eq!(language_name_ko(TextbookLanguage::Vi), "베트남어");
+        assert_eq!(language_name_ko(TextbookLanguage::Ru), "러시아어");
+        assert_eq!(language_name_ko(TextbookLanguage::En), "영어");
+        assert_eq!(language_name_ko(TextbookLanguage::ZhCn), "중국어(간체)");
+        assert_eq!(language_name_ko(TextbookLanguage::ZhTw), "중국어(번체)");
+    }
+
+    // ------------------------------------------------------------------------
+    // edition_label_ko: EbookEdition → 한국어 라벨
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_edition_label_ko_teacher_and_student() {
+        assert_eq!(edition_label_ko(EbookEdition::Teacher), "교사용");
+        assert_eq!(edition_label_ko(EbookEdition::Student), "학생용");
+    }
+
+    // ------------------------------------------------------------------------
+    // constant_time_eq: 타이밍 공격 방지 byte 비교
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_constant_time_eq_returns_true_for_equal_slices() {
+        assert!(constant_time_eq(b"hello", b"hello"));
+        assert!(constant_time_eq(b"", b""));
+        assert!(constant_time_eq(&[0x42; 32], &[0x42; 32]));
+    }
+
+    #[test]
+    fn test_constant_time_eq_returns_false_for_different_content() {
+        assert!(!constant_time_eq(b"hello", b"world"));
+        assert!(!constant_time_eq(&[0x00], &[0x01]));
+    }
+
+    #[test]
+    fn test_constant_time_eq_returns_false_for_different_lengths() {
+        assert!(!constant_time_eq(b"hello", b"hello!"));
+        assert!(!constant_time_eq(b"", b"a"));
+        assert!(!constant_time_eq(b"a", b""));
+    }
+
+    #[test]
+    fn test_constant_time_eq_detects_single_bit_difference() {
+        // 단일 비트 차이도 탐지 (XOR fold 검증)
+        assert!(!constant_time_eq(&[0x00], &[0x01]));
+        assert!(!constant_time_eq(&[0xFE], &[0xFF]));
+    }
+}

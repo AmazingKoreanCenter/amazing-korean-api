@@ -1,8 +1,63 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속) — G10 payment + types 단위 테스트 10 신규 (43 tests) + G15 ✅ 종결 (token_utils.rs 삭제). 부채 33 → 32. AMK_STATUS §8.1 #81 등재
+updated: 2026-05-10 (후속²) — G10 광범위 단위 테스트 32 신규 (75 tests, 6 도메인). AMK_STATUS §8.1 #82 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속²) — G10 광범위 단위 테스트 32 신규 (75 tests, 6 도메인)**
+
+  세션 진입 = 사용자 결정 user → ebook → video → study → lesson → textbook 순서. payment 비-pure 함수는 나중 트랙.
+
+  ## 도메인별 신규 테스트
+
+  ### user (11건)
+  `src/api/user/service.rs` `validate_password_policy` (6) + `hmac_verification_code` (5)
+  - 비밀번호 정책: 8+chars + letter + digit / 짧음 / 영문만 / 숫자만 / unicode-only 거부 / mixed (한글+숫자+영문) 통과
+  - HMAC: 64 hex chars / 결정성 / 다른 email·code·key → 다른 hash (3건)
+
+  ### ebook (11건)
+  `src/api/ebook/service.rs` `to_korean_title` (5) + `language_name_ko` (1) + `edition_label_ko` (1) + `constant_time_eq` (4)
+  - TOC 매핑: Introduction → 머리말 / Contents → 목차 / Pronunciation N / 단독 prefix / unmapped 그대로
+  - constant_time_eq: equal / different / length 다름 / single-bit 차이 탐지 (XOR fold 검증)
+
+  ### video (skip)
+  `apply_tag_translations` = in-out params + VideoTagDetail/TranslatedField struct mock 비용 ↑. 별도 트랙
+
+  ### study (5건)
+  `src/api/study/service.rs` `content_type_for_task_kind` (1) + `parse_study_program` (3) + invalid messages (2)
+  - StudyTaskKind 4 variants → ContentType 매핑
+  - parse_study_program 7 known + unknown None + case-sensitive
+  - invalid 메시지 = 모든 옵션 포함 검증
+
+  ### lesson (skip)
+  모두 `pub async fn` (DB 의존). pure helper 없음
+
+  ### textbook (5건)
+  `src/api/textbook/service.rs` `language_display_name` (1) + `catalog_languages` (4)
+  - 5 sample 언어명 매핑
+  - catalog row 36 회귀 (enum 35 + en row) / ISBN-ready ≥9 / unavailable 존재 / 이름 nonempty
+
+  ## 검증
+
+  - `cargo test --lib` = **75 passed** (이전 43 + 신규 32)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean (1회 fmt 적용 후)
+
+  ## G10 누계 진척
+
+  auth 24 + types 5 + payment 5 + user 11 + ebook 11 + study 5 + textbook 5 = **66 신규 단위 테스트** / 75 tests 합계. 본 세션 (2026-05-10) 단일 일자에 src/ 비즈니스 로직 pure helper 광범위 커버.
+
+  ## 잔여 미테스트 (별도 트랙)
+
+  - payment 비-pure: extract_user_id / event_data_type_name / extract_billing_interval = paddle SDK mock
+  - video: apply_tag_translations = struct mock
+  - lesson: 모두 async DB
+  - admin 도메인 (별도 평가)
+  - service.rs 의 main 비즈니스 함수 (signup / login / etc.) = DB/Redis/외부 의존 = 통합 테스트 영역 (G1/G2 보류 트랙)
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (광범위 처리, 잔여 = 비-pure 함수 + 외부 mock). 부채 카운트 변동 없음 (G10 미해결 유지). 매트릭스 G10 본문만 갱신.
 
 - **2026-05-10 (후속) — G10 payment+types 단위 테스트 10 신규 (43 tests) + G15 ✅ 종결**
 

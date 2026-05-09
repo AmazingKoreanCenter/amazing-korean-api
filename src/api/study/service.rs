@@ -846,3 +846,93 @@ fn invalid_program_message() -> String {
 fn invalid_sort_message() -> String {
     "sort must be one of: latest, oldest, alphabetical".into()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_content_type_for_each_task_kind() {
+        assert_eq!(
+            content_type_for_task_kind(StudyTaskKind::Choice),
+            ContentType::StudyTaskChoice
+        );
+        assert_eq!(
+            content_type_for_task_kind(StudyTaskKind::Typing),
+            ContentType::StudyTaskTyping
+        );
+        assert_eq!(
+            content_type_for_task_kind(StudyTaskKind::Voice),
+            ContentType::StudyTaskVoice
+        );
+        assert_eq!(
+            content_type_for_task_kind(StudyTaskKind::Writing),
+            ContentType::StudyTaskWriting
+        );
+    }
+
+    #[test]
+    fn test_parse_study_program_known_values() {
+        assert_eq!(
+            parse_study_program("basic_pronunciation"),
+            Some(StudyProgram::BasicPronunciation)
+        );
+        assert_eq!(
+            parse_study_program("basic_word"),
+            Some(StudyProgram::BasicWord)
+        );
+        assert_eq!(
+            parse_study_program("basic_500"),
+            Some(StudyProgram::Basic500)
+        );
+        assert_eq!(
+            parse_study_program("topik_read"),
+            Some(StudyProgram::TopikRead)
+        );
+        assert_eq!(
+            parse_study_program("topik_listen"),
+            Some(StudyProgram::TopikListen)
+        );
+        assert_eq!(
+            parse_study_program("topik_write"),
+            Some(StudyProgram::TopikWrite)
+        );
+        assert_eq!(parse_study_program("tbc"), Some(StudyProgram::Tbc));
+    }
+
+    #[test]
+    fn test_parse_study_program_unknown_returns_none() {
+        assert_eq!(parse_study_program("unknown"), None);
+        assert_eq!(parse_study_program(""), None);
+        assert_eq!(parse_study_program("BASIC_WORD"), None); // case-sensitive
+    }
+
+    #[test]
+    fn test_invalid_program_message_lists_all_programs() {
+        let msg = invalid_program_message();
+        for program in [
+            "basic_pronunciation",
+            "basic_word",
+            "basic_500",
+            "topik_read",
+            "topik_listen",
+            "topik_write",
+            "tbc",
+        ] {
+            assert!(
+                msg.contains(program),
+                "message must list {} but didn't: {}",
+                program,
+                msg
+            );
+        }
+    }
+
+    #[test]
+    fn test_invalid_sort_message_lists_all_sorts() {
+        let msg = invalid_sort_message();
+        for sort in ["latest", "oldest", "alphabetical"] {
+            assert!(msg.contains(sort), "message must list {}: {}", sort, msg);
+        }
+    }
+}

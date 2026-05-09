@@ -438,3 +438,73 @@ pub(crate) fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'stat
         (TextbookLanguage::En, "영어", "English", true, true),
     ]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_language_display_name_known_languages() {
+        assert_eq!(language_display_name(&TextbookLanguage::Ja), "일본어");
+        assert_eq!(
+            language_display_name(&TextbookLanguage::ZhCn),
+            "중국어(간체)"
+        );
+        assert_eq!(
+            language_display_name(&TextbookLanguage::ZhTw),
+            "중국어(번체)"
+        );
+        assert_eq!(
+            language_display_name(&TextbookLanguage::EsEs),
+            "스페인어(스페인)"
+        );
+        assert_eq!(
+            language_display_name(&TextbookLanguage::PtPt),
+            "포르투갈어(포르투갈)"
+        );
+        assert_eq!(language_display_name(&TextbookLanguage::En), "영어");
+    }
+
+    #[test]
+    fn test_catalog_languages_count_regression() {
+        let langs = catalog_languages();
+        // 2026-05-03 books-api-bridge §3 #1 = 35 (es_es/pt_pt 등 14 신규 포함) + 2026-05-07 en 추가 = 36 row.
+        // TextbookLanguage enum 35 variants 와 1 차이 = en 별도 추가 row (admin 주문용 + ISBN 추후 정정).
+        // 회귀 테스트 = enum 확장/축소 시 catalog 도 동기 갱신 보장
+        assert_eq!(langs.len(), 36, "catalog row count = enum 35 + en row");
+    }
+
+    #[test]
+    fn test_catalog_languages_has_isbn_ready_subset() {
+        let langs = catalog_languages();
+        let isbn_ready: Vec<_> = langs.iter().filter(|(_, _, _, _, isbn)| *isbn).collect();
+        // ISBN 발급 완료 9개 (ja, zh_cn, vi, th, ne, ru, km, tl, id) + en (2026-05-07 추가)
+        assert!(
+            isbn_ready.len() >= 9,
+            "expected at least 9 ISBN-ready languages, got {}",
+            isbn_ready.len()
+        );
+    }
+
+    #[test]
+    fn test_catalog_languages_has_unavailable_entries() {
+        // 신규 14 (2026-05-03) = 모두 available=false. 카탈로그에 unavailable 항목 존재 검증
+        let langs = catalog_languages();
+        let unavailable: Vec<_> = langs
+            .iter()
+            .filter(|(_, _, _, available, _)| !*available)
+            .collect();
+        assert!(
+            !unavailable.is_empty(),
+            "expected unavailable entries (new 14 published 미준비)"
+        );
+    }
+
+    #[test]
+    fn test_catalog_languages_korean_and_english_names_nonempty() {
+        for (lang, ko, en, _, _) in catalog_languages() {
+            assert!(!ko.is_empty(), "ko name empty for {:?}", lang);
+            assert!(!en.is_empty(), "en name empty for {:?}", lang);
+        }
+    }
+}
