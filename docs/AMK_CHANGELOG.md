@@ -1,8 +1,86 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁶) — G10 paddle extract_user_id refactor + pure helper (158 tests). AMK_STATUS §8.1 #86 등재
+updated: 2026-05-10 (후속⁷) — G10 extract_billing_interval refactor + event_data_type_name skip 분석 (166 tests). AMK_STATUS §8.1 #87 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁷) — G10 extract_billing_interval refactor + event_data_type_name skip 분석 (166 tests)**
+
+  세션 진입 = 사용자 결정 = "동일 옵션 B 패턴 적용". 두 함수 평가:
+
+  ## (1) extract_billing_interval refactor (✅ 진행)
+
+  `Config::billing_interval_for_price(&self, price_id)` 메서드 → `billing_interval_from_price_id(price_id, m1, m3, m6, m12)` pure helper 분리. Config struct 60+ fields 인스턴스 mock 비용 회피.
+
+  ```rust
+  // 기존: Config 의존
+  pub fn billing_interval_for_price(&self, price_id: &str) -> Option<BillingInterval> {
+      if self.paddle_price_month_1.as_deref() == Some(price_id) { ... }
+      ...
+  }
+
+  // 변경: wrapper + pure helper
+  pub fn billing_interval_for_price(&self, price_id: &str) -> Option<BillingInterval> {
+      billing_interval_from_price_id(
+          price_id,
+          self.paddle_price_month_1.as_deref(),
+          ...
+      )
+  }
+
+  fn billing_interval_from_price_id(
+      price_id: &str,
+      month_1: Option<&str>,
+      ...
+  ) -> Option<BillingInterval> { ... }
+  ```
+
+  ### test 8건
+  - month_1 / month_3 / month_6 / month_12 매칭 4
+  - unknown price → None
+  - 모든 fields None (PAYMENT_PROVIDER=none) → None
+  - first match wins (m1 우선, 환경변수 잘못 설정 시)
+  - partial unset (m1=None, m3=None, m6=match → Month6)
+
+  ## (2) event_data_type_name 옵션 B 분석 = skip
+
+  paddle SDK 의 `EventData` enum:
+  ```rust
+  #[serde(tag = "event_type", content = "data")]
+  pub enum EventData {
+      #[serde(rename = "subscription.created")]
+      SubscriptionCreated(SubscriptionCreatedData),
+      // ... 16+ variants
+  }
+  ```
+
+  ### 옵션 1 (serde 직렬화) = 화이트리스트 의도 손실
+  `serde_json::to_value(&data)` 후 `["event_type"]` 추출 시 = paddle SDK 의 **모든 variants** event_type 노출. 현재 코드 = 16종 처리 + 나머지 "unknown" fallback (= 화이트리스트). serde 방식 = paddle 이 새 webhook 추가 시 자동 매핑 = 의도 변경.
+
+  ### 옵션 2 (input 분리) = 분리 불가
+  input EventData 자체가 paddle SDK enum = inner helper 도 SDK 의존 = pure 분리 의미 없음.
+
+  ### 결론
+  현재 매뉴얼 매칭이 의도된 design (화이트리스트). pure helper 분리 = 의도 변경 위험 + 가치 작음. **skip 합리**.
+
+  ## 검증
+
+  - `cargo test --lib` = **166 passed** (이전 158 + 신규 8)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  auth 34 + types 5 + payment 13 + **config 8** (billing_interval_from_price_id 신규) + user 14 + ebook 11 + study 5 + textbook 5 + video 6 + lesson 10 + admin 47 = **157 신규** / 166 tests 합계. 2026-05-10 일일 누계.
+
+  ## 잔여 미테스트 (별도 트랙)
+
+  - `event_data_type_name` (paddle SDK enum mock 어려움 + 화이트리스트 의도 보존 = skip 명시)
+  - service.rs main 비즈니스 (signup / login / oauth / mfa) — DB/Redis 의존 = **G1/G2 통합 테스트 트랙** (보류)
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (paddle 관련 pure helper 추출 광범위). 부채 카운트 변동 없음.
 
 - **2026-05-10 (후속⁶) — G10 paddle extract_user_id refactor + pure helper (158 tests)**
 
