@@ -751,3 +751,73 @@ pub async fn admin_delete_lesson_item(
 
     Ok(StatusCode::NO_CONTENT)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::HeaderValue;
+
+    fn make_headers(pairs: &[(&'static str, &str)]) -> HeaderMap {
+        let mut h = HeaderMap::new();
+        for (k, v) in pairs {
+            h.insert(*k, HeaderValue::from_str(v).unwrap());
+        }
+        h
+    }
+
+    // ------------------------------------------------------------------------
+    // extract_client_ip
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_extract_client_ip_uses_x_forwarded_for_first_value() {
+        let headers = make_headers(&[("x-forwarded-for", "1.2.3.4, 5.6.7.8")]);
+        let ip = extract_client_ip(&headers).expect("should parse");
+        assert_eq!(ip.to_string(), "1.2.3.4");
+    }
+
+    #[test]
+    fn test_extract_client_ip_falls_back_to_x_real_ip() {
+        let headers = make_headers(&[("x-real-ip", "10.0.0.1")]);
+        let ip = extract_client_ip(&headers).expect("should parse");
+        assert_eq!(ip.to_string(), "10.0.0.1");
+    }
+
+    #[test]
+    fn test_extract_client_ip_prefers_x_forwarded_over_x_real() {
+        let headers = make_headers(&[("x-forwarded-for", "1.2.3.4"), ("x-real-ip", "10.0.0.1")]);
+        let ip = extract_client_ip(&headers).expect("should parse");
+        assert_eq!(ip.to_string(), "1.2.3.4", "x-forwarded-for 우선");
+    }
+
+    #[test]
+    fn test_extract_client_ip_returns_none_for_missing_headers() {
+        let headers = HeaderMap::new();
+        assert!(extract_client_ip(&headers).is_none());
+    }
+
+    #[test]
+    fn test_extract_client_ip_returns_none_for_invalid_format() {
+        let headers = make_headers(&[("x-forwarded-for", "not-an-ip")]);
+        assert!(extract_client_ip(&headers).is_none());
+    }
+
+    // ------------------------------------------------------------------------
+    // extract_user_agent
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_extract_user_agent_returns_value() {
+        let headers = make_headers(&[("user-agent", "Mozilla/5.0 (Test)")]);
+        assert_eq!(
+            extract_user_agent(&headers),
+            Some("Mozilla/5.0 (Test)".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_user_agent_returns_none_when_missing() {
+        let headers = HeaderMap::new();
+        assert!(extract_user_agent(&headers).is_none());
+    }
+}

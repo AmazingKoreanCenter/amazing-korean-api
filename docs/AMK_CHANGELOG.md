@@ -1,8 +1,66 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속³) — G10 video/lesson/user-birthday/admin 단위 테스트 46 신규 (120 tests). AMK_STATUS §8.1 #83 등재
+updated: 2026-05-10 (후속⁴) — G10 admin normalize_*_action + extract_client_ip/user_agent 17 신규 (137 tests). AMK_STATUS §8.1 #84 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁴) — G10 admin normalize_*_action + extract_client_ip/user_agent 17 신규 (137 tests)**
+
+  세션 진입 = 사용자 결정 추가 admin pure helpers.
+
+  ## 도메인별 신규 테스트 (17건)
+
+  ### admin/lesson/repo normalize_lesson_action (4건)
+  - create variants (4 = create / CREATE / create_lesson / CREATE_LESSON)
+  - update variants (4)
+  - delete variants (4)
+  - unknown → update fallback (감사 로그 누락 회피, 빈 문자열 / mixed case 비매칭)
+
+  ### admin/video/repo normalize_video_action (2건)
+  - create + bulk_create variants
+  - 다른 모든 action → update fallback (단순 매핑, lesson 보다 적은 분기)
+
+  ### admin/study/repo normalize_study_action (4건)
+  - create variants
+  - state transitions (study 만의 6 actions = banned / reorder / publish / unpublish + create + update)
+  - update default
+  - unknown fallback (mixed case 비매칭 회귀 캡처)
+
+  ### admin/lesson/handler extract_client_ip (5건)
+  - x-forwarded-for 첫 값 (`"1.2.3.4, 5.6.7.8"` → `1.2.3.4`)
+  - x-real-ip fallback
+  - x-forwarded-for 우선 (둘 다 있을 때)
+  - missing 헤더 → None
+  - 잘못된 형식 → None
+
+  ### admin/lesson/handler extract_user_agent (2건)
+  - 정상 헤더 → Some(value)
+  - missing → None
+
+  ## 메모: 4 도메인 동일 extract_* 함수
+
+  lesson / study / payment / user handler 의 `extract_client_ip` + `extract_user_agent` 가 거의 동일 (조금 다른 변형 = trim / USER_AGENT 상수). lesson 만 대표 test. 공통 helper 추출 (예: `src/api/admin/header_utils.rs`) = 별도 후속 트랙.
+
+  ## 검증
+
+  - `cargo test --lib` = **137 passed** (이전 120 + 신규 17)
+  - `cargo clippy --lib --bins --locked -- -D warnings` = clean
+  - `cargo fmt --check --all` = clean
+
+  ## G10 누계 진척
+
+  auth 24 + types 5 + payment 5 + user 14 + ebook 11 + study 5 + textbook 5 + video 6 + lesson 10 + admin 44 = **128 신규** / 137 tests 합계.
+
+  ## 잔여 미테스트
+
+  - paddle SDK mock: extract_user_id / event_data_type_name
+  - service.rs main 비즈니스 함수 (signup / login / oauth / mfa) — DB/Redis 의존 = **G1/G2 통합 테스트 트랙** (보류)
+  - service.rs 추가 helper 추출 (auth signup 입력 정규화 / OAuth state / TOTP / MFA backup mask)
+  - extract_client_ip / extract_user_agent 공통 helper 추출 (4 도메인 동일 함수)
+
+  ## 부채 영향
+
+  G10 = 🟡 부분 (추가 처리). 부채 카운트 변동 없음 (G10 미해결 유지).
 
 - **2026-05-10 (후속³) — G10 video/lesson/user-birthday/admin 단위 테스트 46 신규 (120 tests)**
 

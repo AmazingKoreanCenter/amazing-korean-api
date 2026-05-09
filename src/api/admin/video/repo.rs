@@ -729,3 +729,26 @@ pub async fn update_vimeo_meta(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_video_action_create_variants() {
+        // bulk_create 도 create 로 정규화
+        assert_eq!(normalize_video_action("create"), "create");
+        assert_eq!(normalize_video_action("CREATE"), "create");
+        assert_eq!(normalize_video_action("bulk_create"), "create");
+        assert_eq!(normalize_video_action("BULK_CREATE"), "create");
+    }
+
+    #[test]
+    fn test_normalize_video_action_falls_back_to_update() {
+        // create 외 모든 action = update 로 정규화 (lesson 보다 단순)
+        assert_eq!(normalize_video_action("update"), "update");
+        assert_eq!(normalize_video_action("delete"), "update");
+        assert_eq!(normalize_video_action("unknown"), "update");
+        assert_eq!(normalize_video_action(""), "update");
+    }
+}
