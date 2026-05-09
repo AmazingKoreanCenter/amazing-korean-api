@@ -1,8 +1,57 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁹) — G10/G1 통합 테스트 Phase 1 실 실행 7 passed + G16 신규 (migration 정렬). AMK_STATUS §8.1 #89 등재
+updated: 2026-05-10 (후속¹⁰) — G16 ✅ 정책 정착 (migrations/README.md + AMK_DEPLOY_OPS §3 cross-link). 부채 33 → 32. AMK_STATUS §8.1 #90 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹⁰) — G16 ✅ 정책 정착 (옵션 a 정책 문서)**
+
+  세션 진입 = 사용자 결정 = G16 옵션 (a) 정책 문서 정착.
+
+  ## 발견 (사전 조사)
+
+  `AMK_DEPLOY_OPS.md §3 line 563` 에 **이미 정책 명시되어 있음**:
+
+  > **⚠️ HHMMSS(000001 등) 접미사 사용 금지**: `20260310000001`은 정수 `20,260,310,000,001`이 되어 `20260312`(= `20,260,312`)보다 훨씬 큰 값. sqlx는 정수 기준 오름차순으로 실행하므로 의존성 순서가 뒤집혀 서버 크래시 발생 (2026-03-23 사고).
+
+  → 기존 정책 = **8자리 (`YYYYMMDD`) 통일**. 14자리 2건 = 정책 위반 잔재.
+
+  본 작업 = 정책 본문 정착 (이미 정책 있음) + 디렉터리 진입자용 빠른 참조 + cross-link.
+
+  ## migrations/README.md 신규
+
+  5 섹션:
+  1. **SSoT 안내** = AMK_DEPLOY_OPS §3 (정책 본문) + AMK_DEBTS G16 (부채 추적)
+  2. **8자리 정책** = `YYYYMMDD_<description>.sql`. HHMMSS 금지. 같은 날 충돌 시 다음 날짜
+  3. **legacy 14자리 2건** = 변경 금지 (production `_sqlx_migrations` checksum 보호). production 점진 적용으로 우회. fresh DB 셋업 시 fail
+  4. **Fresh DB 우회 패턴** = `#[tokio::test]` + 수동 PgPool + 기존 DB 사용 (`tests/repo_integration.rs` 채택)
+  5. **신규 migration 작성 절차** = `touch migrations/$(date +"%Y%m%d")_descriptive_name.sql` → cargo run 검증 → PR
+
+  ## AMK_DEPLOY_OPS §3 cross-link 보강
+
+  Line 563 의 HHMMSS 금지 경고에 다음 추가:
+  - "정책 빠른 참조 = `migrations/README.md`"
+  - "부채 추적 = `AMK_DEBTS.md` G16 (legacy 14자리 2건 미해결)"
+
+  ## 효과
+
+  ### 신규 migration 위반 회피 ✅
+  본 정책 정착으로 **향후 신규 14자리 timestamp 추가 시 PR 리뷰에서 거부 가능**. 디렉터리 진입자가 README 즉시 발견.
+
+  ### legacy 잔재 = mitigation
+  - 14자리 2건 file rename = 위험 (production checksum 깨짐) = **그대로 유지**
+  - fresh DB fail = `tests/repo_integration.rs` 의 `#[tokio::test]` + 수동 PgPool + 기존 amk-pg DB 패턴으로 영구 우회
+
+  ## 검증
+
+  코드 변경 0 (정책 문서만):
+  - `cargo test --lib` = 166 passed (단위 테스트 그대로)
+  - `cargo test --test repo_integration -- --ignored` = 7 passed (통합 테스트 그대로)
+  - clippy / fmt clean (영향 없음)
+
+  ## 부채 영향
+
+  G16 = ✅ 해결 (정책 정착으로 신규 발생 회피). 부채 §0 = **33 → 32** (G 5→4).
 
 - **2026-05-10 (후속⁹) — G10/G1 통합 테스트 Phase 1 실 실행 7 passed + G16 신규 부채 등재**
 
