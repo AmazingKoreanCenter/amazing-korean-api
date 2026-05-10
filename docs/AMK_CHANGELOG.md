@@ -1,8 +1,303 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹², 일일 종결) — G10 Phase 2 추가 5 tests (8 통합 누적). AMK_STATUS §8.1 #92 등재
+updated: 2026-05-10 — G1 ✅ CI integration job 안정화 (255 passed / 0 failed). 부채 32 → 31. AMK_DEBTS G1 마킹
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 — G1 ✅ pr-check integration job 안정화 (255 passed / 0 failed)**
+
+  세션 진입 = 사용자 결정 = "권장 조치 우선순위 진행" (CI fix 반복 + push + monitor).
+
+  ## 4 commit fix 시퀀스
+
+  1. `e29203a` — `|| true` 제거 + sqlx-cli prebuilt binary (`taiki-e/install-action@v2`)
+  2. `d3a87fe` — psql lex order workaround (G16 의존성 = `_` 0x5F > `0` 0x30 → 14자리 timestamp 가 8자리보다 lexicographically 먼저, production 시간순 일치)
+  3. `cf50338` — `--include-ignored` 위치 fix (cargo flag → test runner 인자)
+  4. `975d427` — `--tests` flag 로 doc-test 제외 (admin_role_guard / admin_ip_guard 의 `#[ignore]` doc-test 가 `--include-ignored` 로 강제 실행되며 컴파일 fail)
+
+  ## CI run 25616239742 (3분27초)
+
+  - backend (cargo check + clippy): ✅
+  - **backend integration (postgres + redis services): ✅**
+  - frontend (build + lint): ✅
+
+  **Total = 255 passed / 0 failed**:
+  - 166 단위 (lib)
+  - 10 auth_email_integration
+  - 10 auth_login_integration
+  - 3 auth_oauth_integration
+  - 7 repo_integration
+  - 8 service_integration
+  - 5 user_signup_integration
+  - 46 추가 (crypto crate / bin 단위 등)
+
+  ## G1 ✅ 종결
+
+  AMK_DEBTS §G1 = `cargo test` CI 실행 보류 → ✅ 해결 마킹.
+
+  잔여 = G2 (playwright e2e CI 실행 — 별도 결정 대기).
+
+  부채 §0 = 32 → **31** (G 4 → 3).
+
+  ## 학습
+
+  - `gh run watch --exit-status` 와 Monitor tool 조합으로 CI 결과 비동기 대기 가능
+  - sqlx migrate 의 numeric version 정렬 vs production 시간순 = 본 리포 G16 영구 이슈. CI 에서는 psql lex order glob 으로 우회 (간결 + 작업자 의도 정확 일치)
+  - `cargo test --include-ignored` 의 위치 = test runner 인자 (`--` 뒤). cargo args 와 분리
+  - doc-test 의 `#[ignore]` ≠ test 의 `#[ignore]` 다른 마커. doc-test 자체를 빌드/실행 단계에서 제외하려면 `--tests` flag 사용
+
+
+
+- **2026-05-09 (후속²) — G10 Phase 3 4 트랙 진행: Google OAuth + mfa_login happy + signup + CI service container = 18 tests 추가 (36 누적)**
+
+  세션 진입 = 사용자 결정 = 다음 진입점 4개 순차 진행.
+
+  ## #1 Google OAuth (3 tests, `tests/auth_oauth_integration.rs` 신규)
+
+  외부 HTTP 미발생 path 만 커버 (wiremock 미도입 = 별도 트랙):
+
+  - `google_auth_start` 미설정 (Config.google_client_id = None) → `Internal("GOOGLE_CLIENT_ID not configured")`
+  - `google_auth_start` 설정됨 → `Ok(URL)` + Redis `ak:oauth_state:<state>` 저장 검증
+  - `google_auth_callback` invalid state (Redis 미존재) → `Unauthorized("AUTH_401_INVALID_OAUTH_STATE")` (Google API 호출 전 차단)
+
+  ## #2 mfa_login happy path + invalid (2 tests, `tests/auth_login_integration.rs` 확장)
+
+  ### 신규 helper (`tests/common/mod.rs`)
+  - `insert_test_user_with_mfa(state, spec) -> (i64, String)` — `insert_test_user` 후 `totp-rs::Secret::generate_secret()` → 암호화 → `UPDATE users SET user_mfa_secret`. plain base32 secret 함께 반환.
+  - `generate_totp_code(secret_base32) -> String` — `totp-rs::TOTP::generate_current()` 으로 현재 시점 6자리 코드.
+
+  ### 신규 테스트
+  - `mfa_login` valid TOTP code → `Ok((LoginRes, Cookie, ttl, refresh_token))` (refresh_token 비어있지 않음 검증)
+  - `mfa_login` invalid TOTP `"000000"` → `Unauthorized("MFA_INVALID_CODE")` (백업 코드 시도 후 fail)
+
+  ### cleanup_test_user 강화
+  - 기존: `DELETE FROM users` 만
+  - 강화: `login`, `redis_session`, `redis_refresh`, `redis_user_sessions`, `users_log`, `users_setting` 일괄 정리 → users
+  - 이유: mfa_login happy path 의 successful login 이 login + redis_* row INSERT 하므로 cleanup 필수
+
+  ## #3 signup (5 tests, `tests/user_signup_integration.rs` 신규)
+
+  - weak password (5자, < min 8) → `ValidationGeneric`
+  - terms_service=false → `BadRequest("Terms must be accepted")`
+  - EMAIL_PROVIDER=none → 자동 인증 (`check_email=true`) + 이메일 발송 0건 (short-circuit) + `requires_verification=false`
+  - EMAIL_PROVIDER=resend + CapturingEmailSender → 이메일 1건 (subject "이메일 인증") + `check_email=false` + `requires_verification=true`
+  - 이미 verified email 중복 → `Conflict("Email already exists")`
+
+  ## #4 CI service container (`.github/workflows/pr-check.yml` 수정)
+
+  backend/frontend job 사이에 `integration` job 신규:
+
+  ```yaml
+  integration:
+    name: backend integration (postgres + redis services)
+    runs-on: ubuntu-latest
+    services:
+      postgres: postgres:16 (port 5432)
+      redis: redis:7-alpine (port 16379)
+    env:
+      DATABASE_URL, REDIS_URL, JWT_SECRET, EMAIL_PROVIDER=none, PAYMENT_PROVIDER=none, SQLX_OFFLINE
+    steps:
+      - openssl rand → HMAC_KEY + ENCRYPTION_KEY_V1 (ephemeral)
+      - cargo install sqlx-cli
+      - cargo sqlx migrate run
+      - cargo test --workspace --include-ignored --locked
+  ```
+
+  - **G1/G2 부채 해제 가능** (CI 적용 + 안정 확인 후 별도 commit 으로 부채 마킹)
+
+  ## 검증
+
+  ```
+  $ ... cargo test --test auth_oauth_integration -- --ignored
+  test result: ok. 3 passed; 0 failed; ...; finished in 0.19s
+
+  $ ... cargo test --test auth_login_integration -- --ignored
+  test result: ok. 10 passed; 0 failed; ...; finished in 2.88s
+
+  $ ... cargo test --test user_signup_integration -- --ignored
+  test result: ok. 5 passed; 0 failed; ...; finished in 0.89s
+  ```
+
+  - cargo test --lib = 166 passed
+  - cargo clippy --tests --no-deps -- -D warnings = clean
+  - cargo fmt --check = clean
+
+  ### 한계
+  - 로컬 WSL2 메모리 부족으로 `cargo test --include-ignored` (전체 동시 실행) = OOM (exit 137, 6 통합 테스트 바이너리 병렬 컴파일 부담)
+  - 단독 실행 (`--test <name>`) 은 모두 OK
+  - GitHub Actions runner (7GB) 에서 정상 동작 예상 — CI 시 검증
+
+  ## G10 누계 (2026-05-09 후속²)
+
+  - **단위**: 157 신규 / 166 passed
+  - **Phase 1 — repo**: 7
+  - **Phase 2 — service Redis**: 8
+  - **Phase 3 — email** (anti-enum + validation + rate limit + happy): 10
+  - **Phase 3 — login/mfa** (validation + 다양한 거부 + MFA challenge + mfa_login happy/invalid): 10
+  - **Phase 3 — Google OAuth**: 3
+  - **Phase 3 — signup**: 5
+  - **총 206 신규 / 215 passed**
+
+  ## 잔여 트랙
+
+  1. **Google OAuth callback happy path** = `wiremock` crate 도입 + `GoogleOAuthClient` URL configurability refactor (production code 변경)
+  2. **signup 미인증 재가입 path** = check_email=false user 가 signup 재시도 → `overwrite_unverified_user` + 새 이메일 발송
+  3. **모바일 OAuth** (`google_mobile_login` / `apple_mobile_login`) = JWKS 검증 mock 필요
+  4. **다른 도메인 통합** (study / lesson / payment / ebook 등 service.rs)
+  5. **G1/G2 부채 마킹** (CI integration job 안정 확인 후)
+
+- **2026-05-09 (후속) — G10 Phase 3 확장: happy path + login/mfa flow = 12 tests 추가 (18 누적)**
+
+  세션 진입 = 사용자 결정 = Track 1 happy path + Track 2 login/mfa flow.
+
+  ## DB user 헬퍼 (`tests/common/mod.rs` 확장)
+
+  - `TestUserSpec { email, password, name, nickname, country, birthday, check_email, user_state, mfa_enabled, oauth_only }`
+  - `TestUserSpec::random()` — UUID suffix 충돌 방지된 기본 spec
+  - `insert_test_user(state, spec) -> i64` — PII 암호화 (email/name/birthday) + blind index (email_idx/name_idx) + argon2 해시 + `INSERT INTO users`
+  - `cleanup_test_user(state, user_id)` — `DELETE FROM users WHERE user_id = $1` (login_log = ON DELETE SET NULL 자동 처리, 우리 테스트는 successful login 까지 안 가므로 단순 DELETE 충분)
+
+  ## Track 1 — Phase 3 happy path 4 tests (auth_email_integration.rs 확장)
+
+  ### `AuthService::request_password_reset` (1 happy path)
+  - 존재하는 user → 이메일 1건 캡처: `to == email.lowercase()`, subject "비밀번호 재설정" 포함, text body 에 6자리 숫자 코드 (generate_verification_code = 100000~999999)
+
+  ### `AuthService::resend_verification` (2 paths)
+  - 미인증 user (check_email=false) → 이메일 1건 캡처 (subject "이메일 인증")
+  - 이미 인증된 user (check_email=true) → 이메일 0건 (anti-enumeration: 동일 generic 200 응답)
+
+  ### `AuthService::find_password` (1 happy path)
+  - (name, birthday, email) 모두 일치 → 이메일 1건 캡처
+
+  ## Track 2 — login / mfa flow 8 tests (auth_login_integration.rs 신규)
+
+  ### `AuthService::login` (7 paths)
+  1. 5자리 password (< min 6) → `ValidationGeneric`
+  2. 존재하지 않는 user → `Unauthorized("AUTH_401_BAD_CREDENTIALS")` (anti-enumeration + `dummy_password_hash` 타이밍 보호)
+  3. 잘못된 password → `Unauthorized("AUTH_401_BAD_CREDENTIALS")` (login_log fail 기록)
+  4. check_email=false → `Forbidden("AUTH_403_EMAIL_NOT_VERIFIED:<email>")` (재발송 UI 용도로 email 포함)
+  5. user_state=false → `Forbidden("ACCOUNT_DISABLED")`
+  6. mfa_enabled=true → `Ok(LoginOutcome::MfaChallenge { mfa_token, user_id })` + Redis `ak:mfa_pending:<token>` 저장 검증
+  7. oauth_only (user_password=NULL) → `Unauthorized("AUTH_401_SOCIAL_ONLY_ACCOUNT:<providers>")`
+
+  ### `AuthService::mfa_login` (1 path)
+  - unknown mfa_token (Redis 미존재) → `Unauthorized("MFA_TOKEN_EXPIRED")` (1회용 토큰 정책)
+
+  ## Track 2 부분 진행 — Google OAuth / mfa_login happy path 미포함
+
+  - Google OAuth callback = `wiremock` crate 도입 + token endpoint / userinfo endpoint HTTP mock 필요 = 별도 트랙 (작업량 ~0.5일)
+  - mfa_login happy path = TOTP secret 주입 헬퍼 (encryption_ring::encrypt) + Redis `ak:mfa_pending` 시드 + `totp-rs::TOTP::generate_current` 검증 헬퍼 = 별도 트랙
+  - signup_request_email_verify 통합 테스트 = UserService 측 함수 (auth 트랙 외 도메인) = 별도 트랙
+
+  ## 검증
+
+  ```
+  $ ... cargo test --test auth_email_integration --test auth_login_integration -- --ignored
+  test test_find_password_no_email_for_non_matching_user ... ok
+  test test_request_password_reset_anti_enumeration_for_non_existent_user ... ok
+  test test_find_password_validation_rejects_invalid_birthday ... ok
+  test test_resend_verification_anti_enumeration_for_non_existent_user ... ok
+  test test_request_password_reset_rate_limit_429 ... ok
+  test test_resend_verification_no_email_for_already_verified_user ... ok
+  test test_find_password_sends_email_for_matching_user ... ok
+  test test_request_password_reset_sends_email_for_existing_user ... ok
+  test test_resend_verification_sends_email_for_unverified_user ... ok
+  test test_resend_verification_validation_rejects_invalid_email ... ok
+  test result: ok. 10 passed; 0 failed; ... ; finished in 1.51s
+
+  test test_login_anti_enumeration_for_non_existent_user ... ok
+  test test_login_returns_bad_credentials_for_wrong_password ... ok
+  test test_login_returns_account_disabled_for_inactive_user ... ok
+  test test_login_returns_email_not_verified_for_unverified_user ... ok
+  test test_login_validation_rejects_short_password ... ok
+  test test_login_returns_social_only_for_oauth_only_account ... ok
+  test test_mfa_login_returns_token_expired_for_unknown_token ... ok
+  test test_login_returns_mfa_challenge_for_mfa_enabled_user ... ok
+  test result: ok. 8 passed; 0 failed; ... ; finished in 2.65s
+  ```
+
+  - cargo test --lib = 166 passed
+  - cargo clippy --tests --no-deps -- -D warnings = clean
+  - cargo fmt --check = clean
+  - default `cargo test` = 166 passed / 35 ignored / 0 failed
+
+  ## G10 누계 (2026-05-09 후속)
+
+  - **단위 테스트**: 157 신규 / 166 passed
+  - **통합 Phase 1** (repo, Postgres only): 7 passed
+  - **통합 Phase 2** (service Redis 의존): 8 passed
+  - **통합 Phase 3 — email** (anti-enum + validation + rate limit + happy path): 10 passed
+  - **통합 Phase 3 — login/mfa** (validation + anti-enum + 다양한 거부 + MFA challenge): 8 passed
+  - **총 190 신규 / 199 passed**
+
+- **2026-05-09 — G10 Phase 3 진입 + EmailSender mock 인프라 + 6 tests passed**
+
+  세션 진입 = 사용자 결정 = Phase 3 트랙 (signup/login/oauth/mfa = EmailSender mock 의존) 진입.
+
+  ## EmailSender mock 인프라 (`tests/common/mod.rs` 확장)
+
+  - `CapturedEmail { to, subject, html, text }` — 발송 1건 캡처 구조체 (Clone, Debug)
+  - `CapturingEmailSender { sent: Arc<Mutex<Vec<CapturedEmail>>> }` — Mutex 누적, `Ok(())` 반환 (성공 path 검증)
+  - `FailingEmailSender` — 항상 `External("test: forced email failure")` 반환 (rate-limit DECR 롤백 path 검증용)
+  - `make_test_state_with_capturing_email() -> (AppState, Arc<Mutex<Vec<CapturedEmail>>>)` — 캡처 핸들 함께 반환
+  - `make_test_state_with_failing_email() -> AppState` — 에러 path 검증용
+
+  ## Phase 3 첫 진입 함수 3개 (6 tests, anti-enumeration + validation + rate limit)
+
+  모두 DB user 생성 불필요 — anti-enumeration 정책 검증 우선 (존재하지 않는 user 로 generic 200 응답 + 이메일 발송 0건).
+
+  ### `AuthService::request_password_reset` (2 tests)
+
+  - 존재하지 않는 이메일 → `Ok(RequestResetRes)` + 이메일 발송 0건 (anti-enumeration) + cleanup
+  - 11번째 호출 → `TooManyRequests` + 이메일 발송 0건 + cleanup
+
+  ### `AuthService::resend_verification` (2 tests)
+
+  - 존재하지 않는 이메일 → `Ok(ResendVerificationRes)` + 이메일 발송 0건 + cleanup
+  - 잘못된 email 형식 → `ValidationGeneric` (rate-limit INCR 전 차단, cleanup 불필요)
+
+  ### `AuthService::find_password` (2 tests)
+
+  - 잘못된 birthday → `ValidationGeneric` (validation 실패, rate-limit 미진입)
+  - 일치자 없음 (random name+birthday+email) → `Ok(FindPasswordRes)` + 이메일 발송 0건 + IP 기반 cleanup
+
+  ## 검증
+
+  ```
+  $ DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/amazing_korean_db \
+    REDIS_URL=redis://:redis_dev_password@127.0.0.1:16379 \
+    JWT_SECRET=test_jwt_secret_must_be_at_least_32_bytes_long \
+    HMAC_KEY=$(openssl rand -base64 32) \
+    ENCRYPTION_KEY_V1=$(openssl rand -base64 32) \
+    cargo test --test auth_email_integration -- --ignored
+  test test_find_password_validation_rejects_invalid_birthday ... ok
+  test test_find_password_no_email_for_non_matching_user ... ok
+  test test_request_password_reset_anti_enumeration_for_non_existent_user ... ok
+  test test_request_password_reset_rate_limit_429 ... ok
+  test test_resend_verification_anti_enumeration_for_non_existent_user ... ok
+  test test_resend_verification_validation_rejects_invalid_email ... ok
+
+  test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+  ```
+
+  - cargo test --lib = 166 passed
+  - cargo clippy --tests --no-deps = clean
+  - cargo fmt --check = clean
+  - default `cargo test` = 166 passed / 21 ignored (Phase 1 + Phase 2 + Phase 3) / 0 failed
+
+  ## G10 누계 (2026-05-09)
+
+  - **단위 테스트**: 157 신규 / 166 passed
+  - **통합 Phase 1** (repo, Postgres only): 7 passed
+  - **통합 Phase 2** (service Redis 의존, EmailSender 미사용): 8 passed
+  - **통합 Phase 3** (EmailSender mock 의존): 6 passed (anti-enumeration + validation + rate limit)
+  - **총 178 신규 / 187 passed**
+
+  ## 잔여 트랙 (Phase 3 happy path / login·oauth·mfa)
+
+  - happy path (실제 user 생성 + 이메일 캡처 검증) = DB user 생성 헬퍼 필요 (별도 진입점)
+  - login flow (mfa challenge) = MFA secret 주입 헬퍼 필요
+  - Google OAuth = `wiremock` 도입 검토 (HTTP mock)
 
 - **2026-05-10 (후속¹², 일일 종결) — G10 Phase 2 추가 5 tests (8 통합 누적)**
 

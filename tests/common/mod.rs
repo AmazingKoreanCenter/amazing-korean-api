@@ -1,4 +1,4 @@
-//! Phase 2 통합 테스트 공통 helper.
+//! Phase 2/3 통합 테스트 공통 helper.
 //!
 //! ## 셋업
 //!
@@ -13,7 +13,8 @@
 //!
 //! ## 채택 패턴
 //!
-//! - `EMAIL_PROVIDER=none` / `PAYMENT_PROVIDER=none` = mock 불필요
+//! - Phase 2 = `EMAIL_PROVIDER=none` / `PAYMENT_PROVIDER=none` (mock 불필요, email 미사용 함수)
+//! - Phase 3 = `make_test_state_with_capturing_email()` (CapturingEmailSender 주입, 발송 캡처)
 //! - `IpGeoClient::new()` = HTTP 클라이언트 default (test 함수가 ipgeo 호출 안 하면 영향 0)
 //! - `payment` / `revenuecat` / `apple_oauth` = None
 //! - `started_at` = `Instant::now()`
@@ -25,14 +26,18 @@
 //! 테스트 책임).
 
 use amazing_korean_api::config::Config;
+use amazing_korean_api::error::{AppError, AppResult};
+use amazing_korean_api::external::email::EmailSender;
 use amazing_korean_api::external::ipgeo::IpGeoClient;
 use amazing_korean_api::state::AppState;
+use async_trait::async_trait;
 use deadpool_redis::{Config as RedisConfig, Runtime};
 use sqlx::PgPool;
 use std::sync::Arc;
 use std::time::Instant;
+use tokio::sync::Mutex;
 
-/// 테스트용 AppState 생성. dotenv 자동 로드.
+/// 테스트용 AppState 생성. dotenv 자동 로드. `email = None`.
 ///
 /// 호출 시점에 환경변수가 있어야 함 (`.env.test` 또는 `.env`). 없으면 panic.
 pub async fn make_test_state() -> AppState {
@@ -63,4 +68,265 @@ pub async fn make_test_state() -> AppState {
         revenuecat: None,
         apple_oauth: None,
     }
+}
+
+// =============================================================================
+// EmailSender mocks — Phase 3 통합 테스트
+// =============================================================================
+
+/// 캡처된 이메일 발송 1건 (CapturingEmailSender 가 누적).
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub struct CapturedEmail {
+    pub to: String,
+    pub subject: String,
+    pub html: String,
+    pub text: String,
+}
+
+/// 발송 시도를 메모리에 누적하는 mock. `Ok(())` 만 반환 (성공 path 검증용).
+///
+/// 사용:
+/// ```ignore
+/// let (st, sent) = make_test_state_with_capturing_email().await;
+/// // ... 서비스 호출 ...
+/// let captured = sent.lock().await;
+/// assert_eq!(captured.len(), 1);
+/// assert!(captured[0].subject.contains("인증 코드"));
+/// ```
+pub struct CapturingEmailSender {
+    pub sent: Arc<Mutex<Vec<CapturedEmail>>>,
+}
+
+#[async_trait]
+impl EmailSender for CapturingEmailSender {
+    async fn send_email(&self, to: &str, subject: &str, html: &str, text: &str) -> AppResult<()> {
+        self.sent.lock().await.push(CapturedEmail {
+            to: to.to_string(),
+            subject: subject.to_string(),
+            html: html.to_string(),
+            text: text.to_string(),
+        });
+        Ok(())
+    }
+}
+
+/// 항상 `External` 에러를 반환하는 mock. rate-limit DECR 롤백 path 검증용.
+pub struct FailingEmailSender;
+
+#[async_trait]
+impl EmailSender for FailingEmailSender {
+    async fn send_email(
+        &self,
+        _to: &str,
+        _subject: &str,
+        _html: &str,
+        _text: &str,
+    ) -> AppResult<()> {
+        Err(AppError::External("test: forced email failure".to_string()))
+    }
+}
+
+/// `make_test_state()` + CapturingEmailSender 주입. 캡처 핸들 함께 반환.
+#[allow(dead_code)]
+pub async fn make_test_state_with_capturing_email() -> (AppState, Arc<Mutex<Vec<CapturedEmail>>>) {
+    let mut st = make_test_state().await;
+    let sent = Arc::new(Mutex::new(Vec::new()));
+    let sender = Arc::new(CapturingEmailSender { sent: sent.clone() });
+    st.email = Some(sender);
+    (st, sent)
+}
+
+/// `make_test_state()` + FailingEmailSender 주입. 에러 path 검증용.
+#[allow(dead_code)]
+pub async fn make_test_state_with_failing_email() -> AppState {
+    let mut st = make_test_state().await;
+    st.email = Some(Arc::new(FailingEmailSender));
+    st
+}
+
+// =============================================================================
+// 테스트용 user 생성/정리 — Phase 3 happy path + login/mfa
+// =============================================================================
+
+/// 테스트용 user 사양. `random()` 으로 충돌 방지된 기본값 생성, 필드 override 후 사용.
+#[allow(dead_code)]
+pub struct TestUserSpec {
+    pub email: String,
+    /// 평문. `insert_test_user` 가 argon2 해싱.
+    pub password: String,
+    pub name: String,
+    pub nickname: String,
+    pub country: String,
+    /// `YYYY-MM-DD` 형식.
+    pub birthday: String,
+    /// `user_check_email` (true = 인증 완료). login 통과에 필요.
+    pub check_email: bool,
+    /// `user_state` (true = 활성).
+    pub user_state: bool,
+    /// `user_mfa_enabled`. login 시 MFA 챌린지 분기.
+    pub mfa_enabled: bool,
+    /// OAuth 전용 계정 만들 때 `true`. `password` 무시.
+    pub oauth_only: bool,
+}
+
+#[allow(dead_code)]
+impl TestUserSpec {
+    /// UUID suffix 로 충돌 방지된 기본 spec.
+    pub fn random() -> Self {
+        let suffix = uuid::Uuid::new_v4();
+        let short = suffix.to_string()[..8].to_string();
+        Self {
+            email: format!("phase3_{}@example.com", short),
+            password: "TestPass123".to_string(),
+            name: format!("phase3_{}", short),
+            nickname: format!("nick_{}", short),
+            country: "KR".to_string(),
+            birthday: "1990-01-15".to_string(),
+            check_email: true,
+            user_state: true,
+            mfa_enabled: false,
+            oauth_only: false,
+        }
+    }
+}
+
+/// PII 암호화 + blind index + argon2 해시 후 `users` row INSERT. `user_id` 반환.
+///
+/// 다른 테이블 (users_setting/users_log/login 등) 은 INSERT 하지 않음 = `cleanup_test_user`
+/// 가 단순 `DELETE FROM users` 만으로 충분 (login_log = ON DELETE SET NULL 자동 처리).
+#[allow(dead_code)]
+pub async fn insert_test_user(st: &AppState, spec: &TestUserSpec) -> i64 {
+    use amazing_korean_api::crypto::CryptoService;
+    let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let email_lower = spec.email.trim().to_lowercase();
+
+    let email_enc = crypto
+        .encrypt(&email_lower, "users.user_email")
+        .expect("encrypt email");
+    let email_idx = crypto.blind_index(&email_lower).expect("blind email");
+    let name_enc = crypto
+        .encrypt(&spec.name, "users.user_name")
+        .expect("encrypt name");
+    let name_idx = crypto.blind_index(&spec.name).expect("blind name");
+    let birthday_enc = crypto
+        .encrypt(&spec.birthday, "users.user_birthday")
+        .expect("encrypt birthday");
+
+    let password_hash: Option<String> = if spec.oauth_only {
+        None
+    } else {
+        Some(
+            amazing_korean_api::api::auth::password::hash_password(&spec.password)
+                .expect("hash password"),
+        )
+    };
+
+    sqlx::query_scalar::<_, i64>(
+        r#"
+        INSERT INTO users (
+            user_email, user_email_idx, user_password,
+            user_name, user_name_idx, user_nickname,
+            user_language, user_country, user_birthday, user_gender,
+            user_check_email, user_terms_service, user_terms_personal,
+            user_state, user_mfa_enabled
+        )
+        VALUES (
+            $1, $2, $3,
+            $4, $5, $6,
+            'ko'::user_language_enum, $7, $8, 'none'::user_gender_enum,
+            $9, true, true,
+            $10, $11
+        )
+        RETURNING user_id
+        "#,
+    )
+    .bind(email_enc)
+    .bind(email_idx)
+    .bind(password_hash)
+    .bind(name_enc)
+    .bind(name_idx)
+    .bind(spec.nickname.clone())
+    .bind(spec.country.clone())
+    .bind(birthday_enc)
+    .bind(spec.check_email)
+    .bind(spec.user_state)
+    .bind(spec.mfa_enabled)
+    .fetch_one(&st.db)
+    .await
+    .expect("insert test user")
+}
+
+/// MFA 활성 user 삽입. base32 secret 생성 → 암호화 → `user_mfa_secret` UPDATE.
+/// `(user_id, secret_base32_plain)` 반환 (TOTP 코드 생성에 plain secret 필요).
+///
+/// `spec.mfa_enabled` 은 호출 측에서 true 로 설정해야 함 (insert 시 컬럼 반영).
+#[allow(dead_code)]
+pub async fn insert_test_user_with_mfa(st: &AppState, spec: &TestUserSpec) -> (i64, String) {
+    use amazing_korean_api::crypto::CryptoService;
+    let user_id = insert_test_user(st, spec).await;
+
+    // base32 secret 생성 (`totp-rs::Secret::generate_secret()`).
+    let secret_base32 = totp_rs::Secret::generate_secret().to_encoded().to_string();
+
+    let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let secret_enc = crypto
+        .encrypt(&secret_base32, "users.user_mfa_secret")
+        .expect("encrypt mfa secret");
+
+    let _ = sqlx::query("UPDATE users SET user_mfa_secret = $1 WHERE user_id = $2")
+        .bind(&secret_enc)
+        .bind(user_id)
+        .execute(&st.db)
+        .await
+        .expect("update mfa secret");
+
+    (user_id, secret_base32)
+}
+
+/// 주어진 base32 secret 으로 현재 시점 6자리 TOTP 코드 생성.
+#[allow(dead_code)]
+pub fn generate_totp_code(secret_base32: &str) -> String {
+    let secret_bytes = totp_rs::Secret::Encoded(secret_base32.to_string())
+        .to_bytes()
+        .expect("decode TOTP secret");
+    let totp = totp_rs::TOTP::new(
+        totp_rs::Algorithm::SHA1,
+        6,
+        1,
+        30,
+        secret_bytes,
+        None,
+        String::new(),
+    )
+    .expect("create TOTP");
+    totp.generate_current().expect("generate TOTP code")
+}
+
+/// 테스트 종료 후 user 와 child rows 정리.
+///
+/// FK 정리 순서: `login` / `redis_session` / `redis_refresh` / `redis_user_sessions` /
+/// `users_log` / `users_setting` 먼저 → `users`. `login_log` 는 `ON DELETE SET NULL`
+/// 자동 처리 (직접 정리 불필요). user_oauth = `ON DELETE CASCADE` (생략).
+///
+/// 우리 테스트는 학습/결제/책/관리 도메인 row 를 INSERT 하지 않으므로 그쪽 FK 는 미정리.
+#[allow(dead_code)]
+pub async fn cleanup_test_user(st: &AppState, user_id: i64) {
+    for table in [
+        "login",
+        "redis_session",
+        "redis_refresh",
+        "redis_user_sessions",
+        "users_log",
+        "users_setting",
+    ] {
+        let _ = sqlx::query(&format!("DELETE FROM {} WHERE user_id = $1", table))
+            .bind(user_id)
+            .execute(&st.db)
+            .await;
+    }
+    let _ = sqlx::query("DELETE FROM users WHERE user_id = $1")
+        .bind(user_id)
+        .execute(&st.db)
+        .await;
 }
