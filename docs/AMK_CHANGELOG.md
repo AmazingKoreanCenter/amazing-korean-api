@@ -1,8 +1,69 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁴) — G10 Phase 3 B 트랙 deeper coverage (5도메인) = 14 신규 tests. AMK_STATUS §8.1 #100 등재
+updated: 2026-05-10 (후속⁵) — G10 Phase 3 C-textbook (5) + C-admin-rbac (7) = 12 신규 tests + D 트랙 사실확인. AMK_STATUS §8.1 #101 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁵) — C-textbook + C-admin-rbac = 12 신규 / D 트랙 사실확인**
+
+  세션 진입 = 사용자 결정 = "1. 통합 테스트 trailing (B 트랙 잔여) + 2. 인프라 D 카테고리".
+
+  ## C-textbook (5 신규, textbook 3→8)
+  - validation 4: quantity<1 / total<MIN_TOTAL_QUANTITY=10 / duplicate (lang+type) / tax_invoice=true 누락
+  - happy path 1: CreateOrderReq + EmailSender mock → 주문 DB 저장 + 이메일 1건 캡처 (TextbookOrderConfirmation, subject "교재 주문" + order_code)
+  - 신규 helper: `cleanup_textbook_order_by_user_id` (textbook_order_item → textbook_order → users 순서)
+
+  ## C-admin-rbac (7 신규, admin_rbac_integration.rs 신규)
+  - axum::Router + `middleware::from_fn_with_state(admin_role_guard)` + `tower::ServiceExt::oneshot` 패턴
+  - Hymn → 200 / Admin → 200 (허용 역할)
+  - Manager → 403 (class-based access pending)
+  - Learner → 403 (insufficient permissions)
+  - missing Authorization 헤더 → 401
+  - invalid JWT → 401
+  - Bearer prefix 누락 → 401
+
+  ## D 트랙 사실확인 (모두 이미 ✅ 또는 🟡 수용)
+  - **D2 (A4-4 DB·Redis 백업) ✅** 2026-05-07 (`scripts/backup.sh` pg_dump + Redis BGSAVE + tar.gz + 7일 회전, EC2 cron + scp pull)
+  - **D1 (A4-3 디스크 모니터링) ✅** 2026-05-04~05
+  - **D3 (J3 Secrets 정합성 자동 도구) ✅** 2026-05-05 (`scripts/check_env_consistency.sh`)
+  - J4 🟡 수용 (룰 강제 X = 무한 루프 회피, M-008 사고 기록 + feedback_deploy_env_sync.md)
+
+  ## 검증
+
+  ```
+  $ ... cargo test --test textbook_integration -- --ignored = 8 passed (0.79s)
+  $ ... cargo test --test admin_rbac_integration -- --ignored = 7 passed (0.35s)
+  ```
+
+  - cargo test --lib = 166 passed
+  - cargo clippy / fmt clean
+
+  ## G10 누계 (2026-05-10 후속⁵)
+
+  - **단위**: 157 신규 / 166 passed
+  - **Phase 1 — repo**: 7
+  - **Phase 2 — service Redis**: 8
+  - **Phase 3 — auth_email**: 10
+  - **Phase 3 — auth_login**: 26
+  - **Phase 3 — auth_oauth**: 13
+  - **Phase 3 — user_signup**: 6
+  - **Phase 3 — payment**: 8
+  - **Phase 3 — ebook**: 7
+  - **Phase 3 — study**: 6
+  - **Phase 3 — lesson**: 5
+  - **Phase 3 — textbook**: 8 (3 + 5 신규)
+  - **Phase 3 — video**: 4
+  - **Phase 3 — admin_upgrade**: 5
+  - **Phase 3 — admin_rbac**: 7 (신규)
+  - **총 276 신규 / 285 passed**
+
+  ## 잔여 트랙
+
+  - C1 B6 unwrap 50건 정리 (panic 회피)
+  - C-payment process_webhook_event happy (Paddle Event 구성, 별도 1일+)
+  - 외부 트리거 의존
+
+
 
 - **2026-05-10 (후속⁴) — B 트랙 deeper coverage (5도메인) = 14 신규 tests**
 
