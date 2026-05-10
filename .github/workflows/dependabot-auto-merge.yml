@@ -1,0 +1,48 @@
+# Dependabot auto-merge 정책 (2026-05-10, 권장 5단계 [3/5])
+#
+# 정책:
+# - dependabot 이 만든 PR + CI 통과 + patch/minor 업데이트 → 자동 승인 + auto-merge (squash)
+# - major 업데이트 → 수동 머지 유지 (breaking changes 위험 높음)
+# - PR 작성자 검증 = github.actor == 'dependabot[bot]' (다른 사람의 PR 자동 머지 방지)
+#
+# auto-merge 는 branch protection 의 모든 required check 통과 후에만 발동.
+# 즉 pr-check.yml (backend + integration + frontend) 통과 + branch protection
+# linear history 룰 충족 시 자동 머지.
+
+name: Dependabot auto-merge
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge patch + minor
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - name: Fetch dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Approve patch + minor updates
+        if: |
+          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+          steps.meta.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge (squash) for patch + minor updates
+        if: |
+          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+          steps.meta.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
