@@ -60,6 +60,11 @@ jobs:
       SQLX_OFFLINE: "true"
       BIND_ADDR: 127.0.0.1:3100
       RUST_LOG: amazing_korean_api=warn,tower_http=warn
+      # psql step 이 lex order 로 모든 migration 직접 적용 (G16 workaround) →
+      # backend startup 시 sqlx::migrate! 재실행 = `_sqlx_migrations` 테이블이
+      # 비어있어 처음부터 다시 실행 시도 → 'type already exists' 충돌. SKIP=1 으로
+      # backend 측 startup migration 우회.
+      SKIP_STARTUP_MIGRATIONS: "1"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -106,6 +111,7 @@ jobs:
           PAYMENT_PROVIDER: ${{ env.PAYMENT_PROVIDER }}
           BIND_ADDR: ${{ env.BIND_ADDR }}
           RUST_LOG: ${{ env.RUST_LOG }}
+          SKIP_STARTUP_MIGRATIONS: ${{ env.SKIP_STARTUP_MIGRATIONS }}
 
       - name: Wait for backend healthz
         run: |
