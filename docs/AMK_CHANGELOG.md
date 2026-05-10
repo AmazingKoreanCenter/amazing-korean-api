@@ -1,8 +1,47 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹⁰) — G10-frontend Phase 4 = api/client refactor + 18 신규 / 95 누계
+updated: 2026-05-10 (후속¹¹) — G10-frontend Phase 5 = Footer 통합 smoke + 6 신규 / 101 누계 (frontend 100 이정표 돌파)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹¹) — G10-frontend Phase 5 = Footer 통합 smoke + 6 신규 / 101 누계**
+
+  세션 = G10-frontend 트랙 (1-2일) sub-step. 후속¹⁰ 의 (a) 일부 (Footer) 처리. **frontend 100 tests 이정표 돌파** (95 → 101).
+
+  ## Footer 통합 smoke (`src/components/layout/footer.test.tsx`, 6 tests)
+
+  - react-i18next vi.mock + MemoryRouter wrapper (react-router Link 의존)
+  - brand name + description 렌더
+  - mailto link href
+  - quick links (about / videos / studies / lessons) href 매핑
+  - support section legal links (terms / privacy / refund-policy / faq) href 매핑
+  - copyright 라인의 `currentYear` (vi.useFakeTimers 로 2026 시뮬)
+  - 인증 dialog (Radix Dialog) 클릭 → `role="dialog"` 등장 + 이미지 alt = i18n 키 매핑
+
+  Header 는 의존 더 큼 (auth store + useUpdateSettings TanStack mutation + ThemeToggle next-themes + LogoutButton) = 별도 PR.
+
+  ## 검증
+
+  ```
+  $ npm run test
+  Test Files  18 passed (18)
+       Tests  101 passed (101)
+   Duration  10.09s
+
+  $ npm run build
+  ✓ built in 16.88s
+
+  $ npm run lint
+  (clean)
+  ```
+
+  ## 후속 진입점
+
+  G10-frontend 트랙 잔여:
+  (a-2) Header 통합 (auth + useUpdateSettings + ThemeToggle + LogoutButton — provider 세트 부담) /
+  (b) page-level (TanStack Query + MemoryRouter) /
+  (d) msw + axios 인터셉터 통합 /
+  (e) coverage threshold (perFile) 점진 도입.
 
 - **2026-05-10 (후속¹⁰) — G10-frontend Phase 4 = api/client 모듈 분리 + 18 신규 tests / 95 누계**
 
