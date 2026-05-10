@@ -117,10 +117,12 @@ jobs:
             psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$f"
           done
 
-      - name: cargo test --include-ignored (통합 + 단위)
-        # --workspace --locked = cargo flag. `--include-ignored` 는 test runner 인자
-        # → `--` 뒤에 위치. `#[ignore]` 부착 통합 테스트도 함께 실행.
-        run: cargo test --workspace --locked -- --include-ignored
+      - name: cargo test --include-ignored (통합 + 단위, doc-test 제외)
+        # --tests = lib + bin + integration tests 만 (doc-test 제외).
+        # admin_role_guard / admin_ip_guard 의 doc-test 는 의도적으로 #[ignore]
+        # 마커로 보호되어 있으나 `--include-ignored` 가 강제 실행 → 컴파일 fail.
+        # --tests flag 로 doc-test 자체를 빌드/실행 단계에서 제외.
+        run: cargo test --workspace --tests --locked -- --include-ignored
 
   frontend:
     name: frontend (build + lint)
