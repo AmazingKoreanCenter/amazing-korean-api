@@ -118,9 +118,9 @@ jobs:
           done
 
       - name: cargo test --include-ignored (통합 + 단위)
-        # --workspace + --include-ignored = `#[ignore]` 부착 통합 테스트도 실행.
-        # 단위 + 통합 모두 한 번에 검증.
-        run: cargo test --workspace --include-ignored --locked
+        # --workspace --locked = cargo flag. `--include-ignored` 는 test runner 인자
+        # → `--` 뒤에 위치. `#[ignore]` 부착 통합 테스트도 함께 실행.
+        run: cargo test --workspace --locked -- --include-ignored
 
   frontend:
     name: frontend (build + lint)
