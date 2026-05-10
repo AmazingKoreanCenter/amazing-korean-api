@@ -1,8 +1,52 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-09 (후속²) — G10 Phase 3 4 트랙 (Google OAuth + mfa_login happy + signup + CI service container) = 18 tests 추가 (36 누적). AMK_STATUS §8.1 #95 등재
+updated: 2026-05-10 — G1 ✅ CI integration job 안정화 (255 passed / 0 failed). 부채 32 → 31. AMK_DEBTS G1 마킹
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 — G1 ✅ pr-check integration job 안정화 (255 passed / 0 failed)**
+
+  세션 진입 = 사용자 결정 = "권장 조치 우선순위 진행" (CI fix 반복 + push + monitor).
+
+  ## 4 commit fix 시퀀스
+
+  1. `e29203a` — `|| true` 제거 + sqlx-cli prebuilt binary (`taiki-e/install-action@v2`)
+  2. `d3a87fe` — psql lex order workaround (G16 의존성 = `_` 0x5F > `0` 0x30 → 14자리 timestamp 가 8자리보다 lexicographically 먼저, production 시간순 일치)
+  3. `cf50338` — `--include-ignored` 위치 fix (cargo flag → test runner 인자)
+  4. `975d427` — `--tests` flag 로 doc-test 제외 (admin_role_guard / admin_ip_guard 의 `#[ignore]` doc-test 가 `--include-ignored` 로 강제 실행되며 컴파일 fail)
+
+  ## CI run 25616239742 (3분27초)
+
+  - backend (cargo check + clippy): ✅
+  - **backend integration (postgres + redis services): ✅**
+  - frontend (build + lint): ✅
+
+  **Total = 255 passed / 0 failed**:
+  - 166 단위 (lib)
+  - 10 auth_email_integration
+  - 10 auth_login_integration
+  - 3 auth_oauth_integration
+  - 7 repo_integration
+  - 8 service_integration
+  - 5 user_signup_integration
+  - 46 추가 (crypto crate / bin 단위 등)
+
+  ## G1 ✅ 종결
+
+  AMK_DEBTS §G1 = `cargo test` CI 실행 보류 → ✅ 해결 마킹.
+
+  잔여 = G2 (playwright e2e CI 실행 — 별도 결정 대기).
+
+  부채 §0 = 32 → **31** (G 4 → 3).
+
+  ## 학습
+
+  - `gh run watch --exit-status` 와 Monitor tool 조합으로 CI 결과 비동기 대기 가능
+  - sqlx migrate 의 numeric version 정렬 vs production 시간순 = 본 리포 G16 영구 이슈. CI 에서는 psql lex order glob 으로 우회 (간결 + 작업자 의도 정확 일치)
+  - `cargo test --include-ignored` 의 위치 = test runner 인자 (`--` 뒤). cargo args 와 분리
+  - doc-test 의 `#[ignore]` ≠ test 의 `#[ignore]` 다른 마커. doc-test 자체를 빌드/실행 단계에서 제외하려면 `--tests` flag 사용
+
+
 
 - **2026-05-09 (후속²) — G10 Phase 3 4 트랙 진행: Google OAuth + mfa_login happy + signup + CI service container = 18 tests 추가 (36 누적)**
 
