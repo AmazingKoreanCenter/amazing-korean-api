@@ -1,8 +1,92 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속²) — G10 Phase 3 Apple OAuth 보충 = 4 tests 추가 (oauth 9→13). AMK_STATUS §8.1 #98 등재
+updated: 2026-05-10 (후속³) — G10 Phase 3 A6+A7 + B 트랙 7도메인 = 26 신규 / 7 신규 테스트 파일. AMK_STATUS §8.1 #99 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속³) — A6+A7 (login/logout/refresh happy) + B 트랙 7도메인 (B1~B7) = 26 신규 tests**
+
+  세션 진입 = 사용자 결정 = "A 트랙 잔여 (Phase 3 마무리) 순서대로 + B 트랙 순차".
+
+  ## A6 — login happy path (1 test)
+  - LoginOutcome::Success + DB login row state=active + Redis 3 key (session/refresh/user_sessions)
+  - cleanup_test_user 가 login + redis_session/refresh/user_sessions row 일괄 정리
+
+  ## A7 — logout/refresh happy path (2 tests)
+  - login → logout(session_id) → login.login_state=logged_out + Redis 3 key 삭제
+  - login → refresh(token) → 새 refresh_token + 같은 session_id + 이전 hash 무효화
+
+  ## B 트랙 — 7도메인 service 통합 (23 tests, 7 신규 테스트 파일)
+
+  외부 의존 없는 path (DB-only / validation / Redis 미존재) 우선:
+
+  ### B1 payment (4 tests, `tests/payment_integration.rs`)
+  - get_plans payment None → ServiceUnavailable
+  - get_subscription non-existent → Ok(None)
+  - has_active_subscription non-existent → false
+  - cancel_subscription payment None → ServiceUnavailable
+
+  ### B2 ebook (3 tests, `tests/ebook_integration.rs`)
+  - get_my_purchases non-existent → empty
+  - cancel_pending_purchase unknown code → NotFound
+  - verify_session unknown sid → Forbidden("Viewer session expired", anti-enumeration)
+
+  ### B3 study (5 tests, `tests/study_integration.rs`)
+  - list_studies pagination/sort/program validation 5 path
+
+  ### B4 lesson (4 tests, `tests/lesson_integration.rs`)
+  - list_lessons pagination/sort validation + get_lesson_detail NotFound
+
+  ### B5 textbook (3 tests, `tests/textbook_integration.rs`)
+  - get_my_orders empty / get_order_by_code NotFound / get_order_by_id NotFound
+  - **로컬 DB migration 3개 부족 발견** (`20260423` / `20260424` / `20260428`) → 수동 적용 후 통과
+
+  ### B6 video (3 tests, `tests/video_integration.rs`)
+  - list_videos pagination validation + get_video_detail NotFound
+
+  ### B7 admin upgrade (1 test, `tests/admin_upgrade_integration.rs`)
+  - verify_invite unknown code → UPGRADE_401_INVALID_CODE
+
+  ## 검증
+
+  ```
+  $ ... cargo test --test auth_login_integration -- --ignored = 26 passed
+  $ ... cargo test --test payment_integration -- --ignored = 4 passed (0.21s)
+  $ ... cargo test --test ebook_integration -- --ignored = 3 passed
+  $ ... cargo test --test study_integration -- --ignored = 5 passed (0.25s)
+  $ ... cargo test --test lesson_integration -- --ignored = 4 passed (0.17s)
+  $ ... cargo test --test textbook_integration -- --ignored = 3 passed
+  $ ... cargo test --test video_integration -- --ignored = 3 passed (0.14s)
+  $ ... cargo test --test admin_upgrade_integration -- --ignored = 1 passed
+  ```
+
+  - cargo test --lib = 166 passed
+  - cargo clippy / fmt clean
+
+  ## G10 누계 (2026-05-10 후속³)
+
+  - **단위**: 157 신규 / 166 passed
+  - **Phase 1 — repo**: 7
+  - **Phase 2 — service Redis**: 8
+  - **Phase 3 — auth_email**: 10
+  - **Phase 3 — auth_login**: 26 (23 기존 + 3 happy)
+  - **Phase 3 — auth_oauth**: 13
+  - **Phase 3 — user_signup**: 6
+  - **Phase 3 — payment**: 4
+  - **Phase 3 — ebook**: 3
+  - **Phase 3 — study**: 5
+  - **Phase 3 — lesson**: 4
+  - **Phase 3 — textbook**: 3
+  - **Phase 3 — video**: 3
+  - **Phase 3 — admin_upgrade**: 1
+  - **총 250 신규 / 259 passed**
+
+  ## 잔여 트랙
+
+  - 외부 트리거 의존 = Q14/Q15/N-26/E1/E2/E3
+  - 도메인 deeper coverage (각 도메인 happy path / external mock)
+
+
 
 - **2026-05-10 (후속²) — G10 Phase 3 Apple OAuth 보충 (A2 미완) = 4 tests 추가**
 

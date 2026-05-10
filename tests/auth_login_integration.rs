@@ -817,3 +817,212 @@ async fn test_logout_all_with_invalid_refresh_token_returns_unauthorized() {
         Ok(_) => panic!("invalid token → Err expected, got Ok"),
     }
 }
+
+// =============================================================================
+// A6 — login happy path (실 세션 생성 + DB/Redis row 검증)
+// =============================================================================
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_login_happy_path_creates_session_and_redis_keys() {
+    // 정상 user + 올바른 password → LoginOutcome::Success.
+    // DB: login row (state=active) + login_log (success). Redis: 3개 key (session/refresh/user_sessions).
+    let st = common::make_test_state().await;
+
+    let spec = TestUserSpec::random(); // check_email=true (default)
+    let user_id = insert_test_user(&st, &spec).await;
+
+    let req = LoginReq {
+        email: spec.email.clone(),
+        password: spec.password.clone(),
+    };
+    let ip = "10.0.10.1".to_string();
+    let result = AuthService::login(&st, req, ip.clone(), None, parsed_ua_default()).await;
+
+    let success = match result {
+        Ok(LoginOutcome::Success(s)) => s,
+        Ok(_) => panic!("happy path → Success expected, got MfaChallenge"),
+        Err(e) => panic!("happy path → Ok expected, got Err: {:?}", e),
+    };
+
+    assert_eq!(success.login_res.user_id, user_id);
+    assert!(!success.login_res.session_id.is_empty(), "session_id 발급");
+    assert!(!success.refresh_token.is_empty(), "refresh_token 발급");
+    assert!(success.ttl > 0, "ttl > 0, got: {}", success.ttl);
+
+    // Redis 3 key 검증
+    let mut conn = st.redis.get().await.expect("redis");
+    let session_key = format!("ak:session:{}", success.login_res.session_id);
+    let cached_uid: Option<i64> = redis::AsyncCommands::get(&mut conn, &session_key)
+        .await
+        .ok();
+    assert_eq!(cached_uid, Some(user_id), "ak:session 에 user_id 저장됨");
+
+    use sha2::{Digest, Sha256};
+    let refresh_bytes = URL_SAFE_NO_PAD
+        .decode(&success.refresh_token)
+        .expect("decode refresh");
+    let refresh_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(&refresh_bytes));
+    let refresh_key = format!("ak:refresh:{}", refresh_hash);
+    let cached_sid: Option<String> = redis::AsyncCommands::get(&mut conn, &refresh_key)
+        .await
+        .ok();
+    assert_eq!(
+        cached_sid.as_deref(),
+        Some(success.login_res.session_id.as_str()),
+        "ak:refresh → session_id"
+    );
+
+    let is_member: bool = redis::AsyncCommands::sismember(
+        &mut conn,
+        format!("ak:user_sessions:{}", user_id),
+        &success.login_res.session_id,
+    )
+    .await
+    .unwrap_or(false);
+    assert!(is_member, "ak:user_sessions:{} 에 session_id 포함", user_id);
+
+    let login_state: Option<String> =
+        sqlx::query_scalar("SELECT login_state::TEXT FROM login WHERE login_session_id::TEXT = $1")
+            .bind(&success.login_res.session_id)
+            .fetch_optional(&st.db)
+            .await
+            .expect("query login state");
+    assert_eq!(
+        login_state.as_deref(),
+        Some("active"),
+        "login.login_state = active"
+    );
+
+    cleanup_login_rl(&st, &spec.email.to_lowercase(), &ip).await;
+    cleanup_test_user(&st, user_id).await;
+}
+
+// =============================================================================
+// A7 — logout/refresh happy path (login 후 세션 invalidation/rotation 검증)
+// =============================================================================
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_logout_happy_path_invalidates_session_and_redis_keys() {
+    // login → logout(session_id) → DB state=logged_out + Redis 3 key 삭제.
+    let st = common::make_test_state().await;
+
+    let spec = TestUserSpec::random();
+    let user_id = insert_test_user(&st, &spec).await;
+
+    let req = LoginReq {
+        email: spec.email.clone(),
+        password: spec.password.clone(),
+    };
+    let ip = "10.0.10.2".to_string();
+    let success = match AuthService::login(&st, req, ip.clone(), None, parsed_ua_default()).await {
+        Ok(LoginOutcome::Success(s)) => s,
+        Ok(_) => panic!("login → Success expected, got MfaChallenge"),
+        Err(e) => panic!("login → Ok expected, got Err: {:?}", e),
+    };
+    let session_id = success.login_res.session_id.clone();
+
+    let logout_result = AuthService::logout(&st, user_id, &session_id, ip.clone(), None).await;
+    assert!(
+        logout_result.is_ok(),
+        "logout → Ok, got: {:?}",
+        logout_result
+    );
+
+    let login_state: Option<String> =
+        sqlx::query_scalar("SELECT login_state::TEXT FROM login WHERE login_session_id::TEXT = $1")
+            .bind(&session_id)
+            .fetch_optional(&st.db)
+            .await
+            .expect("query login state");
+    assert_eq!(
+        login_state.as_deref(),
+        Some("logged_out"),
+        "login_state = logged_out"
+    );
+
+    let mut conn = st.redis.get().await.expect("redis");
+    let cached_uid: Option<i64> =
+        redis::AsyncCommands::get(&mut conn, format!("ak:session:{}", session_id))
+            .await
+            .ok();
+    assert!(cached_uid.is_none(), "ak:session 삭제됨");
+
+    use sha2::{Digest, Sha256};
+    let refresh_bytes = URL_SAFE_NO_PAD
+        .decode(&success.refresh_token)
+        .expect("decode");
+    let refresh_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(&refresh_bytes));
+    let cached_sid: Option<String> =
+        redis::AsyncCommands::get(&mut conn, format!("ak:refresh:{}", refresh_hash))
+            .await
+            .ok();
+    assert!(cached_sid.is_none(), "ak:refresh 삭제됨");
+
+    cleanup_login_rl(&st, &spec.email.to_lowercase(), &ip).await;
+    cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_refresh_happy_path_rotates_token_and_invalidates_old() {
+    // login → refresh(refresh_token) → 새 refresh_token + 같은 session_id, 이전 hash 무효화.
+    let st = common::make_test_state().await;
+
+    let spec = TestUserSpec::random();
+    let user_id = insert_test_user(&st, &spec).await;
+
+    let ip = "10.0.10.3".to_string();
+    let req = LoginReq {
+        email: spec.email.clone(),
+        password: spec.password.clone(),
+    };
+    let success = match AuthService::login(&st, req, ip.clone(), None, parsed_ua_default()).await {
+        Ok(LoginOutcome::Success(s)) => s,
+        Ok(_) => panic!("login → Success expected, got MfaChallenge"),
+        Err(e) => panic!("login → Ok expected, got Err: {:?}", e),
+    };
+    let session_id = success.login_res.session_id.clone();
+    let old_refresh = success.refresh_token.clone();
+
+    use sha2::{Digest, Sha256};
+    let old_bytes = URL_SAFE_NO_PAD.decode(&old_refresh).expect("decode");
+    let old_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(&old_bytes));
+
+    let (new_login_res, new_refresh, new_ttl) =
+        match AuthService::refresh(&st, &old_refresh, ip.clone(), None).await {
+            Ok(t) => t,
+            Err(e) => panic!("refresh happy → Ok expected, got Err: {:?}", e),
+        };
+
+    assert_eq!(new_login_res.user_id, user_id);
+    assert_eq!(
+        new_login_res.session_id, session_id,
+        "session_id 동일 유지 (rotation 은 refresh hash 만)"
+    );
+    assert_ne!(new_refresh, old_refresh, "새 refresh_token 발급");
+    assert!(new_ttl > 0, "새 ttl > 0");
+
+    let new_bytes = URL_SAFE_NO_PAD.decode(&new_refresh).expect("decode new");
+    let new_hash = URL_SAFE_NO_PAD.encode(Sha256::digest(&new_bytes));
+    let mut conn = st.redis.get().await.expect("redis");
+    let cached_sid: Option<String> =
+        redis::AsyncCommands::get(&mut conn, format!("ak:refresh:{}", new_hash))
+            .await
+            .ok();
+    assert_eq!(
+        cached_sid.as_deref(),
+        Some(session_id.as_str()),
+        "새 hash → session_id"
+    );
+
+    let old_cached: Option<String> =
+        redis::AsyncCommands::get(&mut conn, format!("ak:refresh:{}", old_hash))
+            .await
+            .ok();
+    assert!(old_cached.is_none(), "이전 refresh hash 무효화됨");
+
+    cleanup_login_rl(&st, &spec.email.to_lowercase(), &ip).await;
+    cleanup_test_user(&st, user_id).await;
+}
