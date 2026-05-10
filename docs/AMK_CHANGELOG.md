@@ -1,8 +1,78 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹⁶) — G10-deep-2 = backend dto validators 8 신규 / lib 175 → 183
+updated: 2026-05-10 (후속¹⁷) — [1/5] G10-frontend (VideoListPage) + G10-deep-2 (extractor) 합치기 = 5 frontend + 5 backend (#[ignore])
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹⁷) — [1/5] G10-frontend page-level + G10-deep-2 extractor 합치기 = 5 frontend + 5 backend (#[ignore])**
+
+  사용자 권장 5단계 순서 진입. **[1] G10-frontend (page-level 추가) + G10-deep-2 (extractor) 합치기**.
+
+  ## frontend: VideoListPage page-level smoke (5 tests)
+
+  | # | 검증 영역 |
+  |:-:|----------|
+  | 1 | loading state — handler 50ms 지연 → SkeletonGrid 그리드 렌더 |
+  | 2 | empty state — 빈 data 응답 → EmptyState ("비디오 없음") |
+  | 3 | success — VideoCard 2개 + ListStatsBar `총 2편` |
+  | 4 | totalPages=1 → PaginationBar 미렌더 (Next 버튼 부재) |
+  | 5 | Next 클릭 → query string `page=2` 로 재요청 (msw URL 검사) |
+
+  - `MemoryRouter + QueryClientProvider + react-i18next vi.mock + i18next vi.mock + sonner vi.mock` 패턴
+  - `vitest.config.ts include` 화이트리스트 19 → **20** (`video_list_page.tsx` 추가, 측정 100/93.75/100/100)
+  - 잔여 video 모듈 (video_card / use_video_list / video_api) 화이트리스트 보류 — transitive cover 부족, 단위 test 별도 PR
+
+  ## backend: AuthUser FromRequestParts 통합 5 tests (#[ignore])
+
+  `tests/auth_extractor_integration.rs` 신규 — admin_role_guard 패턴 재사용 (axum::Router + with_state + tower::ServiceExt::oneshot).
+
+  | # | 검증 영역 |
+  |:-:|----------|
+  | 1 | 유효 Bearer JWT → 200 + body `uid={sub},role={role}` |
+  | 2 | Authorization 헤더 누락 → 401 |
+  | 3 | "Bearer " prefix 부재 (raw token) → 401 |
+  | 4 | malformed JWT (`Bearer not.a.jwt`) → 401 |
+  | 5 | 다른 secret 으로 서명된 JWT → 401 |
+
+  로컬 DB/Redis 의존 (`#[ignore]`). 사용자 명시 실행 = `cargo test --test auth_extractor_integration -- --ignored`.
+
+  ## 검증
+
+  ```
+  $ cargo test --lib
+  test result: ok. 183 passed; 0 failed; 0 ignored
+
+  $ cargo clippy --all-targets --locked -- -D warnings
+  Finished (clean)
+
+  $ cargo fmt --check --all
+  (clean)
+
+  $ npm run test
+  Test Files  22 passed (22)
+       Tests  122 passed (122)
+   Duration  14.15s
+
+  $ npm run test:coverage
+  All files  98.72 / 92.48 / 91.30 / 98.72 (perFile thresholds 통과)
+
+  $ npm run build  → 16.67s
+  $ npm run lint   → 0 problems
+  ```
+
+  ## 권장 5단계 순서
+
+  | # | 항목 | 상태 |
+  |:-:|------|:----:|
+  | **1** | G10-frontend + G10-deep-2 합치기 | ✅ 본 PR |
+  | 2 | CI 캐시 최적화 (cargo registry/target + npm cache) | 🔴 다음 |
+  | 3 | Dependabot auto-merge + axios/ip-address 동시 처리 | 🔴 |
+  | 4 | G2 playwright e2e CI | 🔴 |
+  | 5 | B5 expect 45건 핫 path Result 변환 (보안) | 🔴 |
+
+  ## 후속 진입점
+
+  G10-frontend 추가 단위 (video_card / use_video_list / video_api) — 별도 PR 가능. 다음 트랙 [2] CI 캐시 최적화 진입.
 
 - **2026-05-10 (후속¹⁶) — G10-deep-2 트랙 = backend dto validators 8 신규 / lib 175 → 183**
 
