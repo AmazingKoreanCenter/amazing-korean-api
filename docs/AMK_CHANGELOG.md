@@ -1,8 +1,65 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹⁷) — [1/5] G10-frontend (VideoListPage) + G10-deep-2 (extractor) 합치기 = 5 frontend + 5 backend (#[ignore])
+updated: 2026-05-10 (후속¹⁸) — [2/5] CI 캐시 최적화 = pr-check.yml rust-cache shared-key + save-if + cache-on-failure
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹⁸) — [2/5] CI 캐시 최적화 = pr-check.yml rust-cache 옵션 보강**
+
+  사용자 권장 5단계 [2/5] 진입. 인프라 측 작은 PR — 실 코드 변경 0, workflow yaml 측 cache 보강.
+
+  ## 진단
+
+  현재 인프라:
+  - `pr-check.yml` backend + integration job = `Swatinem/rust-cache@v2` (default 옵션 = main 만 save → KKRYOUN 단일 브랜치 정책에서 cache miss 누적)
+  - frontend job = `actions/setup-node@v4 cache: npm` (이미 OK)
+  - `deploy.yml` = `docker/build-push-action cache-from/cache-to=gha` (이미 OK)
+  - `security-audit.yml` = `cargo-deny-action` 자체 캐시 + `setup-node cache: npm` (이미 OK)
+
+  ## 변경: `Swatinem/rust-cache@v2` 옵션 명시
+
+  ```yaml
+  - name: Cargo cache
+    uses: Swatinem/rust-cache@v2
+    with:
+      shared-key: "backend"
+      save-if: ${{ github.ref == 'refs/heads/KKRYOUN' }}
+      cache-on-failure: "true"
+  ```
+
+  | 옵션 | 효과 |
+  |------|------|
+  | `shared-key: "backend"` | backend (cargo check + clippy) ↔ integration (cargo test) job 간 dep cache 재사용. 동일 workspace + lockfile 이므로 build artifact 공유 가능 |
+  | `save-if: KKRYOUN` 명시 | default = main branch 만 save. 본 리포 KKRYOUN 단일 브랜치 정책 → KKRYOUN push 마다 cache 누적 |
+  | `cache-on-failure: "true"` | 컴파일 fail 해도 dep cache 저장. 재시도 시 hit |
+
+  ## 예상 효과
+
+  현재 측정 (PR #265, 2026-05-10):
+  - backend (cargo check + clippy): **54s** → 캐시 적중 시 ~30-40s 추정
+  - integration (postgres + redis): **2m47s** → 캐시 적중 시 ~1m30s 추정 (deps 컴파일 단축)
+  - frontend (build + lint): 1m16s → 변경 없음 (npm cache 이미 적용)
+
+  cache 효과 = **두번째 push 부터** 명확. 첫 push 는 cache 빌드 (저장만). 누적 효과는 권장 5단계 PR 진행 시 점진 측정.
+
+  ## 검증
+
+  ```
+  $ python3 -c "import yaml; yaml.safe_load(open('.github/workflows/pr-check.yml'))"
+  YAML OK
+
+  $ cargo test --lib  →  183 passed (변경 없음, 본 PR 코드 측 변경 0)
+  ```
+
+  ## 권장 5단계 진행 상황
+
+  | # | 항목 | 상태 |
+  |:-:|------|:----:|
+  | 1 | G10-frontend + G10-deep-2 합치기 | ✅ #265 |
+  | **2** | CI 캐시 최적화 | ✅ 본 PR |
+  | 3 | Dependabot auto-merge + axios/ip-address | 🔴 다음 |
+  | 4 | G2 playwright e2e CI | 🔴 |
+  | 5 | B5 expect 45건 핫 path Result 변환 (보안) | 🔴 |
 
 - **2026-05-10 (후속¹⁷) — [1/5] G10-frontend page-level + G10-deep-2 extractor 합치기 = 5 frontend + 5 backend (#[ignore])**
 
