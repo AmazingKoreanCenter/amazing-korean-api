@@ -456,3 +456,56 @@ pub struct AppleMobileLoginReq {
     /// Apple은 최초 인증에만 이름 제공 — 클라이언트에서 캐싱 후 전달
     pub user_name: Option<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_birthday_accepts_iso_format() {
+        assert!(validate_birthday("2000-01-15").is_ok());
+        assert!(validate_birthday("1990-12-31").is_ok());
+        assert!(
+            validate_birthday("2024-02-29").is_ok(),
+            "leap day must pass"
+        );
+    }
+
+    #[test]
+    fn test_validate_birthday_rejects_wrong_length() {
+        assert!(
+            validate_birthday("2000-1-15").is_err(),
+            "single-digit month"
+        );
+        assert!(validate_birthday("00-01-15").is_err(), "two-digit year");
+        assert!(validate_birthday("2000-01-15Z").is_err(), "trailing char");
+        assert!(validate_birthday("").is_err());
+    }
+
+    #[test]
+    fn test_validate_birthday_rejects_invalid_calendar_dates() {
+        assert!(validate_birthday("2000-13-01").is_err(), "month=13");
+        assert!(validate_birthday("2000-02-30").is_err(), "feb 30");
+        assert!(
+            validate_birthday("2023-02-29").is_err(),
+            "non-leap year feb 29"
+        );
+    }
+
+    #[test]
+    fn test_validate_birthday_rejects_non_numeric_segments() {
+        assert!(validate_birthday("abcd-ef-gh").is_err());
+        assert!(validate_birthday("2000-aa-15").is_err());
+    }
+
+    #[test]
+    fn test_validate_birthday_rejects_wrong_separator() {
+        // 길이 10 이지만 chrono parse 가 거부 (slash 가 hyphen 아님)
+        assert!(validate_birthday("2000/01/15").is_err());
+    }
+
+    #[test]
+    fn test_default_true_returns_true() {
+        assert!(default_true());
+    }
+}

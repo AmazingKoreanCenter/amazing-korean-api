@@ -200,3 +200,18 @@ pub struct VideoProgressRes {
     #[sqlx(rename = "video_watch_duration_sec")]
     pub watch_duration_sec: i32,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_page_is_one() {
+        assert_eq!(default_page(), 1);
+    }
+
+    #[test]
+    fn test_default_per_page_is_twenty() {
+        assert_eq!(default_per_page(), 20);
+    }
+}

@@ -1,8 +1,55 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹⁵) — G10-frontend Phase 9 = HealthPage page-level + 4 신규 / 117 누계 (19 모듈 화이트리스트)
+updated: 2026-05-10 (후속¹⁶) — G10-deep-2 = backend dto validators 8 신규 / lib 175 → 183
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹⁶) — G10-deep-2 트랙 = backend dto validators 8 신규 / lib 175 → 183**
+
+  세션 = G10-frontend 9 PR 마무리 후 **순차 #2 G10-deep-2 (backend, 0.3일) 진입**. 컨텍스트 = frontend → backend Rust.
+
+  ## 신규 8 lib tests
+
+  ### `src/api/auth/dto.rs` — 6 신규 (validate_birthday + default_true)
+
+  | # | 검증 영역 |
+  |:-:|----------|
+  | 1 | iso 형식 accept (2000-01-15 / 1990-12-31 / 2024-02-29 leap day) |
+  | 2 | 길이 != 10 reject (2000-1-15 / 00-01-15 / 2000-01-15Z / 빈 문자열) |
+  | 3 | 잘못된 calendar date reject (month=13 / feb 30 / non-leap year feb 29) |
+  | 4 | non-numeric segment reject (abcd-ef-gh / 2000-aa-15) |
+  | 5 | wrong separator reject (2000/01/15 — 길이 10 이지만 chrono parse 거부) |
+  | 6 | `default_true()` returns true |
+
+  ### `src/api/video/dto.rs` — 2 신규 (defaults)
+
+  | # | 검증 영역 |
+  |:-:|----------|
+  | 1 | `default_page()` returns 1 |
+  | 2 | `default_per_page()` returns 20 |
+
+  ## 잔여 G10-deep-2 검토 결과
+
+  G10 누계 측정 시 lib 175 의 거의 전 helpers 가 이미 cover (auth/jwt 7, password 6, refresh helpers 7, mask_email 5, dummy_password_hash 2, generate_verification_code 3, lesson 8, study 6, ebook 11, payment 8, header_utils 10 등). 잔여 = dto validators (module-private fn, mod tests 부재). 본 PR 으로 종결.
+
+  ## 검증
+
+  ```
+  $ cargo test --lib
+  test result: ok. 183 passed (175 + 8). finished in 2.08s
+
+  $ cargo clippy --all-targets --locked -- -D warnings
+  Finished (clean)
+
+  $ cargo fmt --check --all
+  (clean)
+  ```
+
+  ## 후속 진입점 (다음 세션)
+
+  순차 #3 = **C-payment-event** (Paddle Subscription 30+ 필드, ⭐⭐⭐ 1일+) / **B5 expect 45건** (위험도 분류만 됨, ⭐ 0.5일) / **C-doc-sync** (utoipa OpenAPI completeness, ⭐ 0.5일).
+
+  G10-frontend 잔여: 추가 page-level (auth/login_page / video_list_page 등) — 후속 트랙.
 
 - **2026-05-10 (후속¹⁵) — G10-frontend Phase 9 = HealthPage page-level + 4 신규 / 117 누계**
 
