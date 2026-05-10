@@ -26,6 +26,7 @@ export default defineConfig({
         "src/utils/**/*.ts",
         "src/hooks/use_auth_store.ts",
         "src/hooks/use_language_sync.ts",
+        "src/api/client.ts",
         "src/api/parse_error_message.ts",
         "src/api/apply_authorization_header.ts",
         "src/components/blocks/empty_state.tsx",
