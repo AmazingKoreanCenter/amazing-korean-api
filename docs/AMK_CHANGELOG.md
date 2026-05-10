@@ -1,8 +1,45 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁸) — G10-frontend Phase 2 = hook + api + component smoke = 25 신규 tests / 53 누계
+updated: 2026-05-10 (후속⁹) — G10-frontend Phase 3 = block component smoke 5 추가 / 24 신규 / 77 누계
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁹) — G10-frontend Phase 3 = block component smoke 5 / 24 신규 tests / 77 누계**
+
+  세션 = G10-frontend 트랙 (1-2일) 안의 sub-step. 사용자 명시 순차 안에서 자동 진행.
+
+  ## 신규 5 파일 / 24 tests (53 → 77)
+
+  | 파일 | tests | 검증 영역 |
+  |------|:----:|----------|
+  | `src/components/blocks/stat_card.test.tsx` | 5 | label+numeric `toLocaleString` / string value as-is / undefined → "-" / loading skeleton / zero (falsy fallback 없음) |
+  | `src/components/blocks/skeleton_grid.test.tsx` | 6 | count=N children / count=0 / study-card 모양 (no aspect-video) / video·content-card 모양 (aspect-video 있음) / default columns=3 / columns=2·4 override |
+  | `src/components/blocks/section_container.test.tsx` | 5 | default `<section>` / `as` prop tag swap / size=md (default) / size=sm·lg / container=narrow → `max-w-3xl` |
+  | `src/components/blocks/cover_card.test.tsx` | 4 | title+subtitle+actionLabel+img(alt+src) / `loading="lazy"` attribute / button 시멘틱 (type=button) / onClick 호출 |
+  | `src/components/blocks/list_stats_bar.test.tsx` | 4 | react-i18next vi.mock — totalLabel + "current/total {common.page}" / isFetching → loading 표시 / 미설정 시 미렌더 / className merge |
+
+  ## 인프라 보강
+
+  - `eslint.config.js` `globalIgnores(['dist', 'coverage'])` — `npm run test:coverage` 산출물 (`coverage/block-navigation.js` 등) 의 `eslint-disable` 라인을 ESLint 가 검사 → 3 warning. lint 룰의 시맨틱 오탐. ignore 처리.
+
+  ## 검증
+
+  ```
+  $ npm run test
+  Test Files  15 passed (15)
+       Tests  77 passed (77)
+   Duration  8.45s
+
+  $ npm run build
+  ✓ built in 16.56s
+
+  $ npm run lint
+  (clean — 0 problems)
+  ```
+
+  ## 후속 진입점
+
+  본 PR 이후 G10-frontend 트랙 잔여 = (a) Header / Footer 통합 (auth store + i18n + react-router 의존, smoke 가 아닌 경량 통합) / (b) page-level (TanStack Query mock + MemoryRouter — auth/login_page) / (c) `parseErrorMessage` / `applyAuthorizationHeader` 모듈 분리 + 단위 test / (d) msw + axios 인터셉터 통합 / (e) coverage threshold (perFile) 점진 도입.
 
 - **2026-05-10 (후속⁸) — G10-frontend Phase 2 = hook + api + component smoke / 25 신규 tests / 53 누계**
 
