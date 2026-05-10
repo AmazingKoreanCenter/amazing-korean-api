@@ -31,7 +31,10 @@ use amazing_korean_api::api::auth::handler::ParsedUa;
 use amazing_korean_api::api::auth::service::{AuthService, LoginOutcome};
 use amazing_korean_api::crypto::CryptoService;
 use amazing_korean_api::error::AppError;
-use common::{cleanup_test_user, insert_test_user, TestUserSpec};
+use common::{
+    cleanup_test_user, generate_totp_code, insert_test_user, insert_test_user_with_mfa,
+    TestUserSpec,
+};
 
 fn parsed_ua_default() -> ParsedUa {
     ParsedUa {
@@ -292,6 +295,120 @@ async fn test_login_returns_social_only_for_oauth_only_account() {
 // =============================================================================
 // AuthService::mfa_login
 // =============================================================================
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_mfa_login_succeeds_with_valid_totp_code() {
+    // 시나리오: mfa_enabled=true user + ak:mfa_pending Redis 시드 + 현재 TOTP 코드.
+    // 결과: Ok((LoginRes, Cookie, user_id, refresh_token)) + login + redis_session/refresh
+    //       row INSERT (cleanup_test_user 가 일괄 정리).
+    let st = common::make_test_state().await;
+
+    let mut spec = TestUserSpec::random();
+    spec.mfa_enabled = true;
+    let (user_id, secret_base32) = insert_test_user_with_mfa(&st, &spec).await;
+
+    // ak:mfa_pending:<token> 시드 (login 단계가 만들어주는 것을 직접 시뮬레이트)
+    let mfa_token = uuid::Uuid::new_v4().to_string();
+    let pending_data = serde_json::json!({
+        "user_id": user_id,
+        "user_auth": "Learner",
+        "login_ip": "10.0.1.20",
+        "user_agent": null,
+        "device": "other",
+        "browser": null,
+        "os": null,
+        "login_method": "email",
+    });
+
+    let mut conn = st.redis.get().await.expect("redis conn for seed");
+    let _: () = redis::AsyncCommands::set_ex(
+        &mut conn,
+        format!("ak:mfa_pending:{}", mfa_token),
+        pending_data.to_string(),
+        st.cfg.mfa_token_ttl_sec as u64,
+    )
+    .await
+    .expect("seed mfa_pending");
+
+    // 현재 시점 valid TOTP 코드
+    let code = generate_totp_code(&secret_base32);
+
+    let req = MfaLoginReq {
+        mfa_token: mfa_token.clone(),
+        code,
+    };
+    let result = AuthService::mfa_login(&st, req, "10.0.1.20".to_string()).await;
+    match result {
+        // 반환 = (LoginRes, Cookie, ttl_sec, refresh_token). user_id 는 LoginRes 내부에 있지만
+        // public 필드 접근 미보장 → refresh_token 길이만 검증 (성공 path = 비어있지 않음).
+        Ok((_login_res, _cookie, _ttl, refresh_token)) => {
+            assert!(!refresh_token.is_empty(), "refresh_token 비어있지 않음");
+        }
+        Err(e) => panic!("valid TOTP → Ok expected, got Err: {:?}", e),
+    }
+
+    // Cleanup: mfa_pending 은 service 가 즉시 del (1회용). rate limit 도 service 가 코드 검증
+    // 성공 시 del. 따라서 별도 정리 불필요. user + login + redis_session/refresh row 만 정리.
+    cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_mfa_login_rejects_invalid_totp_code() {
+    // 시나리오: mfa_enabled=true user + Redis pending 시드 + 잘못된 6자리 코드.
+    // 결과: MFA_INVALID_CODE (백업 코드 시도 후 fail).
+    let st = common::make_test_state().await;
+
+    let mut spec = TestUserSpec::random();
+    spec.mfa_enabled = true;
+    let (user_id, _secret) = insert_test_user_with_mfa(&st, &spec).await;
+
+    let mfa_token = uuid::Uuid::new_v4().to_string();
+    let pending_data = serde_json::json!({
+        "user_id": user_id,
+        "user_auth": "Learner",
+        "login_ip": "10.0.1.21",
+        "user_agent": null,
+        "device": "other",
+        "browser": null,
+        "os": null,
+        "login_method": "email",
+    });
+
+    let mut conn = st.redis.get().await.expect("redis conn for seed");
+    let _: () = redis::AsyncCommands::set_ex(
+        &mut conn,
+        format!("ak:mfa_pending:{}", mfa_token),
+        pending_data.to_string(),
+        st.cfg.mfa_token_ttl_sec as u64,
+    )
+    .await
+    .expect("seed mfa_pending");
+
+    // 잘못된 코드 (6자리 숫자, but TOTP 미일치 + 백업 코드 fail)
+    let req = MfaLoginReq {
+        mfa_token: mfa_token.clone(),
+        code: "000000".to_string(),
+    };
+    let result = AuthService::mfa_login(&st, req, "10.0.1.21".to_string()).await;
+    match result {
+        Err(AppError::Unauthorized(msg)) => {
+            assert_eq!(msg, "MFA_INVALID_CODE", "got: {}", msg);
+        }
+        Err(e) => panic!("invalid TOTP → MFA_INVALID_CODE expected, got Err: {:?}", e),
+        Ok(_) => panic!("invalid TOTP → MFA_INVALID_CODE expected, got Ok"),
+    }
+
+    // Cleanup
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("ak:mfa_pending:{}", mfa_token))
+        .await
+        .unwrap_or(());
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("rl:mfa:{}:10.0.1.21", user_id))
+        .await
+        .unwrap_or(());
+    cleanup_test_user(&st, user_id).await;
+}
 
 #[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
 #[tokio::test]

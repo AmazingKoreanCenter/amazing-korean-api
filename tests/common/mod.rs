@@ -257,11 +257,74 @@ pub async fn insert_test_user(st: &AppState, spec: &TestUserSpec) -> i64 {
     .expect("insert test user")
 }
 
-/// 테스트 종료 후 user row 삭제. `login_log` 의 user_id 는 ON DELETE SET NULL 자동 처리.
-/// 우리 테스트는 successful login (login/redis_session/redis_refresh row INSERT) 까지 가지
-/// 않으므로 단순 DELETE 가 충분.
+/// MFA 활성 user 삽입. base32 secret 생성 → 암호화 → `user_mfa_secret` UPDATE.
+/// `(user_id, secret_base32_plain)` 반환 (TOTP 코드 생성에 plain secret 필요).
+///
+/// `spec.mfa_enabled` 은 호출 측에서 true 로 설정해야 함 (insert 시 컬럼 반영).
+#[allow(dead_code)]
+pub async fn insert_test_user_with_mfa(st: &AppState, spec: &TestUserSpec) -> (i64, String) {
+    use amazing_korean_api::crypto::CryptoService;
+    let user_id = insert_test_user(st, spec).await;
+
+    // base32 secret 생성 (`totp-rs::Secret::generate_secret()`).
+    let secret_base32 = totp_rs::Secret::generate_secret().to_encoded().to_string();
+
+    let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
+    let secret_enc = crypto
+        .encrypt(&secret_base32, "users.user_mfa_secret")
+        .expect("encrypt mfa secret");
+
+    let _ = sqlx::query("UPDATE users SET user_mfa_secret = $1 WHERE user_id = $2")
+        .bind(&secret_enc)
+        .bind(user_id)
+        .execute(&st.db)
+        .await
+        .expect("update mfa secret");
+
+    (user_id, secret_base32)
+}
+
+/// 주어진 base32 secret 으로 현재 시점 6자리 TOTP 코드 생성.
+#[allow(dead_code)]
+pub fn generate_totp_code(secret_base32: &str) -> String {
+    let secret_bytes = totp_rs::Secret::Encoded(secret_base32.to_string())
+        .to_bytes()
+        .expect("decode TOTP secret");
+    let totp = totp_rs::TOTP::new(
+        totp_rs::Algorithm::SHA1,
+        6,
+        1,
+        30,
+        secret_bytes,
+        None,
+        String::new(),
+    )
+    .expect("create TOTP");
+    totp.generate_current().expect("generate TOTP code")
+}
+
+/// 테스트 종료 후 user 와 child rows 정리.
+///
+/// FK 정리 순서: `login` / `redis_session` / `redis_refresh` / `redis_user_sessions` /
+/// `users_log` / `users_setting` 먼저 → `users`. `login_log` 는 `ON DELETE SET NULL`
+/// 자동 처리 (직접 정리 불필요). user_oauth = `ON DELETE CASCADE` (생략).
+///
+/// 우리 테스트는 학습/결제/책/관리 도메인 row 를 INSERT 하지 않으므로 그쪽 FK 는 미정리.
 #[allow(dead_code)]
 pub async fn cleanup_test_user(st: &AppState, user_id: i64) {
+    for table in [
+        "login",
+        "redis_session",
+        "redis_refresh",
+        "redis_user_sessions",
+        "users_log",
+        "users_setting",
+    ] {
+        let _ = sqlx::query(&format!("DELETE FROM {} WHERE user_id = $1", table))
+            .bind(user_id)
+            .execute(&st.db)
+            .await;
+    }
     let _ = sqlx::query("DELETE FROM users WHERE user_id = $1")
         .bind(user_id)
         .execute(&st.db)

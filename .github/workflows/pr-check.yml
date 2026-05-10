@@ -47,6 +47,71 @@ jobs:
       - name: cargo clippy (-D warnings = warning 도 fail)
         run: cargo clippy --lib --bins --locked -- -D warnings
 
+  # G1/G2 해제 (2026-05-09): postgres + redis service container 도입.
+  # tests/{auth_email_integration, auth_login_integration, auth_oauth_integration,
+  # repo_integration, service_integration, user_signup_integration}.rs 의
+  # `#[ignore]` 부착 통합 테스트를 `--include-ignored` 로 실행. backend job 과
+  # 별도 job 으로 분리해 frontend job 병행 + 인프라 비용 격리.
+  integration:
+    name: backend integration (postgres + redis services)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: amazing_korean_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/amazing_korean_db
+      # CI redis 는 인증 미설정 (로컬 dev = redis_dev_password). URL 도 인증 부분 제거.
+      REDIS_URL: redis://127.0.0.1:16379
+      JWT_SECRET: ci_jwt_secret_must_be_at_least_32_bytes_long
+      EMAIL_PROVIDER: "none"
+      PAYMENT_PROVIDER: "none"
+      SQLX_OFFLINE: "true"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Generate HMAC + ENCRYPTION keys (ephemeral, CI-only)
+        run: |
+          echo "HMAC_KEY=$(openssl rand -base64 32)" >> $GITHUB_ENV
+          echo "ENCRYPTION_KEY_V1=$(openssl rand -base64 32)" >> $GITHUB_ENV
+
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features postgres --locked || true
+
+      - name: Run migrations (sqlx migrate)
+        run: cargo sqlx migrate run
+
+      - name: cargo test --include-ignored (통합 + 단위)
+        # --workspace + --include-ignored = `#[ignore]` 부착 통합 테스트도 실행.
+        # 단위 + 통합 모두 한 번에 검증.
+        run: cargo test --workspace --include-ignored --locked
+
   frontend:
     name: frontend (build + lint)
     runs-on: ubuntu-latest

@@ -1,8 +1,106 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-09 (후속) — G10 Phase 3 확장 happy path + login/mfa = 12 tests 추가 (18 누적). AMK_STATUS §8.1 #94 등재
+updated: 2026-05-09 (후속²) — G10 Phase 3 4 트랙 (Google OAuth + mfa_login happy + signup + CI service container) = 18 tests 추가 (36 누적). AMK_STATUS §8.1 #95 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-09 (후속²) — G10 Phase 3 4 트랙 진행: Google OAuth + mfa_login happy + signup + CI service container = 18 tests 추가 (36 누적)**
+
+  세션 진입 = 사용자 결정 = 다음 진입점 4개 순차 진행.
+
+  ## #1 Google OAuth (3 tests, `tests/auth_oauth_integration.rs` 신규)
+
+  외부 HTTP 미발생 path 만 커버 (wiremock 미도입 = 별도 트랙):
+
+  - `google_auth_start` 미설정 (Config.google_client_id = None) → `Internal("GOOGLE_CLIENT_ID not configured")`
+  - `google_auth_start` 설정됨 → `Ok(URL)` + Redis `ak:oauth_state:<state>` 저장 검증
+  - `google_auth_callback` invalid state (Redis 미존재) → `Unauthorized("AUTH_401_INVALID_OAUTH_STATE")` (Google API 호출 전 차단)
+
+  ## #2 mfa_login happy path + invalid (2 tests, `tests/auth_login_integration.rs` 확장)
+
+  ### 신규 helper (`tests/common/mod.rs`)
+  - `insert_test_user_with_mfa(state, spec) -> (i64, String)` — `insert_test_user` 후 `totp-rs::Secret::generate_secret()` → 암호화 → `UPDATE users SET user_mfa_secret`. plain base32 secret 함께 반환.
+  - `generate_totp_code(secret_base32) -> String` — `totp-rs::TOTP::generate_current()` 으로 현재 시점 6자리 코드.
+
+  ### 신규 테스트
+  - `mfa_login` valid TOTP code → `Ok((LoginRes, Cookie, ttl, refresh_token))` (refresh_token 비어있지 않음 검증)
+  - `mfa_login` invalid TOTP `"000000"` → `Unauthorized("MFA_INVALID_CODE")` (백업 코드 시도 후 fail)
+
+  ### cleanup_test_user 강화
+  - 기존: `DELETE FROM users` 만
+  - 강화: `login`, `redis_session`, `redis_refresh`, `redis_user_sessions`, `users_log`, `users_setting` 일괄 정리 → users
+  - 이유: mfa_login happy path 의 successful login 이 login + redis_* row INSERT 하므로 cleanup 필수
+
+  ## #3 signup (5 tests, `tests/user_signup_integration.rs` 신규)
+
+  - weak password (5자, < min 8) → `ValidationGeneric`
+  - terms_service=false → `BadRequest("Terms must be accepted")`
+  - EMAIL_PROVIDER=none → 자동 인증 (`check_email=true`) + 이메일 발송 0건 (short-circuit) + `requires_verification=false`
+  - EMAIL_PROVIDER=resend + CapturingEmailSender → 이메일 1건 (subject "이메일 인증") + `check_email=false` + `requires_verification=true`
+  - 이미 verified email 중복 → `Conflict("Email already exists")`
+
+  ## #4 CI service container (`.github/workflows/pr-check.yml` 수정)
+
+  backend/frontend job 사이에 `integration` job 신규:
+
+  ```yaml
+  integration:
+    name: backend integration (postgres + redis services)
+    runs-on: ubuntu-latest
+    services:
+      postgres: postgres:16 (port 5432)
+      redis: redis:7-alpine (port 16379)
+    env:
+      DATABASE_URL, REDIS_URL, JWT_SECRET, EMAIL_PROVIDER=none, PAYMENT_PROVIDER=none, SQLX_OFFLINE
+    steps:
+      - openssl rand → HMAC_KEY + ENCRYPTION_KEY_V1 (ephemeral)
+      - cargo install sqlx-cli
+      - cargo sqlx migrate run
+      - cargo test --workspace --include-ignored --locked
+  ```
+
+  - **G1/G2 부채 해제 가능** (CI 적용 + 안정 확인 후 별도 commit 으로 부채 마킹)
+
+  ## 검증
+
+  ```
+  $ ... cargo test --test auth_oauth_integration -- --ignored
+  test result: ok. 3 passed; 0 failed; ...; finished in 0.19s
+
+  $ ... cargo test --test auth_login_integration -- --ignored
+  test result: ok. 10 passed; 0 failed; ...; finished in 2.88s
+
+  $ ... cargo test --test user_signup_integration -- --ignored
+  test result: ok. 5 passed; 0 failed; ...; finished in 0.89s
+  ```
+
+  - cargo test --lib = 166 passed
+  - cargo clippy --tests --no-deps -- -D warnings = clean
+  - cargo fmt --check = clean
+
+  ### 한계
+  - 로컬 WSL2 메모리 부족으로 `cargo test --include-ignored` (전체 동시 실행) = OOM (exit 137, 6 통합 테스트 바이너리 병렬 컴파일 부담)
+  - 단독 실행 (`--test <name>`) 은 모두 OK
+  - GitHub Actions runner (7GB) 에서 정상 동작 예상 — CI 시 검증
+
+  ## G10 누계 (2026-05-09 후속²)
+
+  - **단위**: 157 신규 / 166 passed
+  - **Phase 1 — repo**: 7
+  - **Phase 2 — service Redis**: 8
+  - **Phase 3 — email** (anti-enum + validation + rate limit + happy): 10
+  - **Phase 3 — login/mfa** (validation + 다양한 거부 + MFA challenge + mfa_login happy/invalid): 10
+  - **Phase 3 — Google OAuth**: 3
+  - **Phase 3 — signup**: 5
+  - **총 206 신규 / 215 passed**
+
+  ## 잔여 트랙
+
+  1. **Google OAuth callback happy path** = `wiremock` crate 도입 + `GoogleOAuthClient` URL configurability refactor (production code 변경)
+  2. **signup 미인증 재가입 path** = check_email=false user 가 signup 재시도 → `overwrite_unverified_user` + 새 이메일 발송
+  3. **모바일 OAuth** (`google_mobile_login` / `apple_mobile_login`) = JWKS 검증 mock 필요
+  4. **다른 도메인 통합** (study / lesson / payment / ebook 등 service.rs)
+  5. **G1/G2 부채 마킹** (CI integration job 안정 확인 후)
 
 - **2026-05-09 (후속) — G10 Phase 3 확장: happy path + login/mfa flow = 12 tests 추가 (18 누적)**
 
