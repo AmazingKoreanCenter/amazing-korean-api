@@ -1,8 +1,47 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁷) — G10-frontend 트랙 진입 = vitest + RTL + jsdom 인프라 정착 + pure utils 5 파일 / 28 tests passed
+updated: 2026-05-10 (후속⁸) — G10-frontend Phase 2 = hook + api + component smoke = 25 신규 tests / 53 누계
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁸) — G10-frontend Phase 2 = hook + api + component smoke / 25 신규 tests / 53 누계**
+
+  세션 진입 = 사용자 결정 = "🟢 1. 즉시 작업 가능 순차" (G10-frontend 후속).
+
+  ## 신규 5 파일 / 25 tests (28 → 53)
+
+  | 파일 | tests | 검증 영역 |
+  |------|:----:|----------|
+  | `src/hooks/use_auth_store.test.ts` | 5 | initial state / login() user_id+token 추출 / login() access undefined 시 null fallback / logout() reset / logout() localStorage `auth-storage` clear |
+  | `src/hooks/use_language_sync.test.ts` | 4 | useUserSettings + i18n vi.mock — 로그아웃 시 changeLanguage 미호출 / 로그인+settings → 1회 호출 / appliedRef 가드 (rerender 재호출 X) / 로그아웃→로그인 사이클 시 가드 리셋 후 재적용 |
+  | `src/api/client.test.ts` | 4 | `ApiError` class — Error 상속 / status+message / name="ApiError" / stack 보존 / instanceof 좁히기 |
+  | `src/components/blocks/empty_state.test.tsx` | 5 | role="status" / icon+title 렌더 / description 조건부 / action 조건부 / className merge |
+  | `src/components/blocks/pagination_bar.test.tsx` | 7 | totalPages≤1 → null / Previous·Next aria-disabled / 현재 페이지 aria-current / onPageChange 호출+값 / 같은 페이지 클릭 미호출 / ELLIPSIS 마커 렌더 |
+
+  ## defer (별도 PR)
+
+  - **`api/client.ts` 의 `parseErrorMessage` / `applyAuthorizationHeader`** = module-internal (export 안 됨). 단위 test 위해서는 별도 모듈 분리 또는 export 노출 필요 → 본 PR 범위 밖 ("시킨 것만" 룰).
+  - **axios 인터셉터 통합 test** = `msw` 또는 `axios-mock-adapter` 도입 필요 → 본 PR 범위 밖.
+  - **coverage threshold 도입** = 보류. 현재 전체 = 1.17% (광범위 `src/category/*` 0% 때문) 이지만 커버된 파일은 모두 100%. 점진 확장 후 `perFile` threshold 도입 검토. 무리한 threshold = 점진 도입 어렵게 함.
+
+  ## 검증
+
+  ```
+  $ npm run test
+  Test Files  10 passed (10)
+       Tests  53 passed (53)
+   Duration  6.39s
+
+  $ npm run build
+  ✓ built in 16.60s
+
+  $ npm run lint
+  (clean — 0 problems)
+  ```
+
+  ## 후속 진입점
+
+  (a) `parseErrorMessage` / `applyAuthorizationHeader` 모듈 분리 + 단위 test (별도 PR — refactor) / (b) axios 인터셉터 통합 test (msw 도입) / (c) component smoke 확장 (`Header` / `StatCard` / `ListStatsBar` / `SkeletonGrid`) / (d) page 통합 (TanStack Query mock + MemoryRouter, `auth/login_page` 등) / (e) coverage threshold 점진 도입 (perFile, 커버된 파일만).
 
 - **2026-05-10 (후속⁷) — G10-frontend 트랙 진입 = vitest + RTL + jsdom 인프라 정착 + pure utils 5 / 28 tests**
 

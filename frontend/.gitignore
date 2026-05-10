@@ -26,6 +26,9 @@ perf-audit/artifacts/
 # Playwright 임시 결과
 test-results/
 
+# vitest coverage 산출물 (npm run test:coverage)
+coverage/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
