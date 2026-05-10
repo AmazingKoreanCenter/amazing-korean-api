@@ -1,8 +1,71 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹³) — G10-frontend Phase 7 = Header 통합 smoke + 6 신규 / 107 누계 (15 모듈 화이트리스트)
+updated: 2026-05-10 (후속¹⁴) — G10-frontend Phase 8 = msw + axios 인터셉터 통합 / 6 신규 / 113 누계 (16 모듈 화이트리스트)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹⁴) — G10-frontend Phase 8 = msw + axios 인터셉터 통합 / 6 신규 tests / 113 누계**
+
+  세션 = G10-frontend 트랙 (1-2일) sub-step. 후속⁹ defer (d) 처리. **api/client.ts 인터셉터 (refresh path) 가 처음으로 cover** (97.61% lines).
+
+  ## msw 도입 (네트워크 mock)
+
+  - devDeps 신규 1건: `msw@^2.14.5`
+  - `src/test/server.ts` 신규 — `setupServer()` (per-test 핸들러 등록 패턴)
+  - `src/test/setup.ts` 보강 — `beforeAll(server.listen({ onUnhandledRequest: "error" }))` + `afterEach(server.resetHandlers())` + `afterAll(server.close())`
+  - 기존 18 test 파일 (vi.mock 기반) 영향 0 = msw 는 axios 가 실제 HTTP 요청을 보내는 test 만 가로챔
+
+  ## `client.integration.test.ts` (6 tests)
+
+  | # | 검증 영역 |
+  |:-:|----------|
+  | 1 | request 인터셉터 = auth store accessToken 으로 `Authorization: Bearer <tok>` 자동 부착 |
+  | 2 | 401 → POST /auth/refresh → 신규 토큰 store login 호출 → 원 요청 retry 시 새 Authorization header 적용 (attempt 카운터 + accessToken 검증) |
+  | 3 | refresh 자체가 401 fail → `useAuthStore.logout()` + `window.location.href = "/login"` (window.location stub) |
+  | 4 | 비-2xx 응답 → `ApiError` (status + parsed envelope `error.message` "권한 없음") |
+  | 5 | 204 No Content → `request<T>` 가 `undefined` 반환 |
+  | 6 | `skipAuthRefresh` 옵션 → 401 시 refresh path 우회, 그대로 `ApiError` throw |
+
+  ## vitest.config.ts coverage 보강
+
+  - `include` 화이트리스트 15 → **16** (`src/api/client.ts` 추가)
+  - client.ts 측정 = stmts **97.61** / branches **83.33** / funcs **100** / lines **97.61** (uncovered = `if (axios.isAxiosError(error))` else 분기)
+
+  ## 검증
+
+  ```
+  $ npm run test
+  Test Files  20 passed (20)
+       Tests  113 passed (113)
+   Duration  12.11s
+
+  $ npm run test:coverage
+  All files  98.32 / 91.76 / 87.80 / 98.32 (perFile thresholds 통과)
+
+  $ npm run build  → 16.54s
+  $ npm run lint   → 0 problems
+  ```
+
+  ## G10-frontend 트랙 누적 (본 세션 PR #255~#262)
+
+  | Phase | PR | 신규 | 누계 |
+  |:----:|:--:|:----:|:----:|
+  | 1 | #255 | 28 | 28 |
+  | 2 | #256 | 25 | 53 |
+  | 3 | #257 | 24 | 77 |
+  | 4 | #258 | 18 | 95 |
+  | 5 | #259 | 6 | 101 |
+  | 6 | #260 | 0 (threshold) | 101 |
+  | 7 | #261 | 6 | 107 |
+  | 8 | (예정) | 6 | **113** |
+
+  G10-frontend 트랙 = 본 PR 으로 (b) 제외 모든 sub-step 처리. 잔여 = (b) page-level (TanStack Query + MemoryRouter + msw — auth/login_page 등). msw 인프라는 본 PR 에서 정착했으니 후속 PR 는 기존 인프라 재사용.
+
+  ## 후속 진입점 (다음 세션)
+
+  G10-frontend (b) page-level — auth/login_page / payment/pricing_page / textbook/order_page 등 = msw + QueryClientProvider + MemoryRouter 통합.
+
+  순차 #2 = G10-deep-2 (backend auth/jwt/crypto helpers, 0.3일).
 
 - **2026-05-10 (후속¹³) — G10-frontend Phase 7 = Header 통합 smoke + 6 신규 / 107 누계**
 
