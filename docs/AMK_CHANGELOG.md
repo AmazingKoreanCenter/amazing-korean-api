@@ -1,8 +1,73 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹⁴) — G10-frontend Phase 8 = msw + axios 인터셉터 통합 / 6 신규 / 113 누계 (16 모듈 화이트리스트)
+updated: 2026-05-10 (후속¹⁵) — G10-frontend Phase 9 = HealthPage page-level + 4 신규 / 117 누계 (19 모듈 화이트리스트)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹⁵) — G10-frontend Phase 9 = HealthPage page-level + 4 신규 / 117 누계**
+
+  세션 = G10-frontend 트랙 (1-2일) sub-step. 후속⁹ defer (b) 처리. **page-level 통합 패턴 첫 정착** (TanStack Query + msw 결합).
+
+  ## HealthPage page-level smoke (`src/category/health/page/health_page.test.tsx`, 4 tests)
+
+  ### Wrapper 패턴
+
+  ```tsx
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <HealthPage />
+    </QueryClientProvider>,
+  );
+  ```
+
+  ### 검증 영역
+
+  1. loading state — handler 50ms 지연 → "Checking Server Status..." 표시
+  2. success path — `{status, uptime_ms, version}` 응답 → 12345 / v1.2.3 / "ok" badge 렌더
+  3. error path — 500 응답 + retry: false → "Server Offline" + "offline" badge
+  4. refetch flow — 새로고침 버튼 클릭 → 두번째 응답 (`status: degraded`) → badge label 갱신 + version 갱신 (attempt 카운터)
+
+  ## vitest.config.ts coverage 보강
+
+  - `include` 화이트리스트 16 → **19** (health_api.ts + use_health.ts + health_page.tsx)
+  - 측정 = health_api 100/100/100/100 / use_health 100/100/100/100 / health_page 98.21/94.44/100/98.21 (uncovered = error fallback "Please try again..." 문자열, error instanceof Error else 분기)
+
+  ## 검증
+
+  ```
+  $ npm run test
+  Test Files  21 passed (21)
+       Tests  117 passed (117)
+   Duration  13.50s
+
+  $ npm run test:coverage
+  All files  98.33 / 92.18 / 88.88 / 98.33 (perFile thresholds 통과)
+
+  $ npm run build  → 16.58s
+  $ npm run lint   → 0 problems
+  ```
+
+  ## G10-frontend 트랙 누적 (본 세션 PR #255~#262 + 본 PR)
+
+  | Phase | PR | 신규 | 누계 |
+  |:----:|:--:|:----:|:----:|
+  | 1 | #255 | 28 (인프라+pure utils) | 28 |
+  | 2 | #256 | 25 (hook+api+component) | 53 |
+  | 3 | #257 | 24 (block component) | 77 |
+  | 4 | #258 | 18 (api/client refactor) | 95 |
+  | 5 | #259 | 6 (Footer) | 101 |
+  | 6 | #260 | 0 (threshold) | 101 |
+  | 7 | #261 | 6 (Header) | 107 |
+  | 8 | #262 | 6 (msw + 인터셉터) | 113 |
+  | 9 | (예정) | 4 (HealthPage) | **117** |
+
+  본 PR 으로 **G10-frontend 트랙 모든 sub-step 진입** = 인프라 + utils + hook + api + component + layout + 인터셉터 통합 + page-level. 잔여 페이지 통합 = 후속 PR 에서 동일 패턴 (QueryClientProvider + msw) 재사용.
+
+  ## 후속 진입점
+
+  - 다른 page (auth/login_page = react-hook-form + zod + useLogin mutation + useNavigate, video_list_page = useQuery 단순 패턴) 동일 패턴 재사용
+  - 순차 #2 = G10-deep-2 (backend auth/jwt/crypto helpers, 0.3일)
 
 - **2026-05-10 (후속¹⁴) — G10-frontend Phase 8 = msw + axios 인터셉터 통합 / 6 신규 tests / 113 누계**
 

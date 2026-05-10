@@ -38,6 +38,9 @@ export default defineConfig({
         "src/components/blocks/list_stats_bar.tsx",
         "src/components/layout/footer.tsx",
         "src/components/layout/header.tsx",
+        "src/api/health_api.ts",
+        "src/category/health/hook/use_health.ts",
+        "src/category/health/page/health_page.tsx",
       ],
       exclude: [
         "src/**/*.{test,spec}.{ts,tsx}",
