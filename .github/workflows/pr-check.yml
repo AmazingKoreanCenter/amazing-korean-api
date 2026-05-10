@@ -101,15 +101,21 @@ jobs:
           echo "HMAC_KEY=$(openssl rand -base64 32)" >> $GITHUB_ENV
           echo "ENCRYPTION_KEY_V1=$(openssl rand -base64 32)" >> $GITHUB_ENV
 
-      - name: Install sqlx-cli (prebuilt binary)
-        # taiki-e/install-action = 사전 빌드 binary 다운로드 (cargo install 대비
-        # 1-3분 → 수초로 단축). cache miss 시에도 일관된 빠른 설치 보장.
-        uses: taiki-e/install-action@v2
-        with:
-          tool: sqlx-cli
-
-      - name: Run migrations (sqlx migrate)
-        run: cargo sqlx migrate run
+      - name: Apply migrations (psql + lexicographic order, G16 workaround)
+        # G16 알려진 이슈 = legacy 14자리 timestamp (`20260210000001` 등) 가 sqlx
+        # 의 numeric version 정렬에서 8자리 (`20260210`) 보다 *뒤에* 옴. 그러나
+        # production 시점에는 14자리가 먼저 적용되어 의존성 (예: content_type_enum
+        # 생성) 을 제공. fresh DB 에서 sqlx migrate run = 의존성 부재로 fail.
+        #
+        # 해결책 = bash glob 의 lexicographic 정렬 (`_` 0x5F > `0` 0x30 →
+        # `20260210000001_` 가 `20260210_` 보다 먼저) 이 production 시간순과
+        # 정확히 일치. sqlx-cli 미사용, psql 직접 호출.
+        run: |
+          set -e
+          for f in migrations/*.sql; do
+            echo "Applying: $f"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f "$f"
+          done
 
       - name: cargo test --include-ignored (통합 + 단위)
         # --workspace + --include-ignored = `#[ignore]` 부착 통합 테스트도 실행.
