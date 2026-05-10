@@ -21,11 +21,35 @@ use crate::external::email::EmailTemplate;
 use crate::{
     api::auth::{dto::*, jwt, repo::AuthRepo},
     api::user::repo as user_repo,
+    config::Config,
     error::{AppError, AppResult},
     external::google::{GoogleOAuthClient, GoogleUserInfo},
     state::AppState,
     types::UserAuth,
 };
+
+/// Config 의 token/jwks URL override 가 있으면 적용, 없으면 production URL.
+/// test 환경에서 wiremock 주입 path.
+fn build_google_client(
+    cfg: &Config,
+    client_id: String,
+    client_secret: String,
+    redirect_uri: String,
+) -> GoogleOAuthClient {
+    match (
+        cfg.google_token_url_override.as_deref(),
+        cfg.google_jwks_url_override.as_deref(),
+    ) {
+        (Some(token_url), Some(jwks_url)) => GoogleOAuthClient::with_urls(
+            client_id,
+            client_secret,
+            redirect_uri,
+            token_url.to_string(),
+            jwks_url.to_string(),
+        ),
+        _ => GoogleOAuthClient::new(client_id, client_secret, redirect_uri),
+    }
+}
 
 /// 로그인 결과 (일반 성공 vs MFA 챌린지)
 pub struct LoginSuccess {
@@ -1952,8 +1976,9 @@ impl AuthService {
         // State 사용 후 즉시 삭제 (일회용)
         let _: () = redis_conn.del(&state_key).await.unwrap_or(());
 
-        // [Step 2] Authorization Code → Token 교환
-        let client = GoogleOAuthClient::new(
+        // [Step 2] Authorization Code → Token 교환 (test 시 URL override 적용)
+        let client = build_google_client(
+            &st.cfg,
             client_id.clone(),
             client_secret.clone(),
             redirect_uri.clone(),
@@ -2042,8 +2067,8 @@ impl AuthService {
                 AppError::Internal("GOOGLE_MOBILE_CLIENT_ID not configured".into())
             })?;
 
-        // ID token JWKS 검증 (모바일은 Authorization Code 교환 불필요)
-        let client = GoogleOAuthClient::new(client_id.clone(), String::new(), String::new());
+        // ID token JWKS 검증 (모바일은 Authorization Code 교환 불필요. test 시 URL override 적용)
+        let client = build_google_client(&st.cfg, client_id.clone(), String::new(), String::new());
         let claims = client.decode_id_token(&req.id_token).await?;
         let user_info: OAuthUserInfo = client.extract_user_info(&claims).into();
 

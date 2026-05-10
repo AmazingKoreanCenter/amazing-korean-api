@@ -220,6 +220,79 @@ async fn test_signup_with_email_provider_resend_sends_verification_email() {
 
 #[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
 #[tokio::test]
+async fn test_signup_overwrites_unverified_user_and_sends_new_email() {
+    // 시나리오: check_email=false user 존재 → 동일 email 로 signup 재시도 →
+    // overwrite_unverified_user (비밀번호/프로필 갱신) + 새 인증코드 이메일 1건.
+    // user_id 는 동일 유지 (insert 가 아니라 update path).
+    let (mut st, sent) = common::make_test_state_with_capturing_email().await;
+    st.cfg.email_provider = "resend".to_string();
+
+    // Phase 1: 미인증 user 사전 생성 (check_email=false)
+    let mut existing_spec = TestUserSpec::random();
+    existing_spec.check_email = false;
+    let existing_user_id = insert_test_user(&st, &existing_spec).await;
+
+    // Phase 2: 동일 email 로 signup 재시도 (다른 password/name)
+    let mut req = signup_req(&existing_spec.email);
+    req.password = "DifferentPass456".to_string();
+    req.name = "Updated Name".to_string();
+    req.nickname = "updated_nick".to_string();
+    let ip = "10.0.3.6".to_string();
+
+    let result = UserService::signup(&st, req, ip.clone()).await;
+    let res = match result {
+        Ok(r) => r,
+        Err(e) => panic!("미인증 재가입 → Ok expected, got Err: {:?}", e),
+    };
+
+    assert!(
+        res.requires_verification,
+        "재가입도 인증 필요 (check_email=false 상태 유지)"
+    );
+
+    // 새 인증 이메일 1건 발송됨
+    let captured = sent.lock().await;
+    assert_eq!(
+        captured.len(),
+        1,
+        "재가입 새 이메일 1건, got: {}",
+        captured.len()
+    );
+    let mail = &captured[0];
+    assert_eq!(mail.to, existing_spec.email.to_lowercase());
+    assert!(
+        mail.subject.contains("이메일 인증"),
+        "subject 에 '이메일 인증' 포함, got: {}",
+        mail.subject
+    );
+    drop(captured);
+
+    // user_id 동일 유지 (insert 가 아니라 update)
+    let found_user_id = find_user_id_by_email(&st, &existing_spec.email)
+        .await
+        .expect("user 존재");
+    assert_eq!(
+        found_user_id, existing_user_id,
+        "재가입 = update path, user_id 동일 유지 (got new={}, expected={})",
+        found_user_id, existing_user_id
+    );
+
+    // user_check_email 여전히 false
+    let check_email: bool =
+        sqlx::query_scalar("SELECT user_check_email FROM users WHERE user_id = $1")
+            .bind(existing_user_id)
+            .fetch_one(&st.db)
+            .await
+            .expect("query check_email");
+    assert!(!check_email, "재가입 후에도 check_email=false (인증 대기)");
+
+    // Cleanup
+    cleanup_signup(&st, &existing_spec.email, &ip).await;
+    cleanup_test_user(&st, existing_user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
 async fn test_signup_returns_conflict_for_already_verified_email() {
     // 이미 인증 완료된 user 가 존재하는 email 로 signup → Conflict.
     let st = common::make_test_state().await;
