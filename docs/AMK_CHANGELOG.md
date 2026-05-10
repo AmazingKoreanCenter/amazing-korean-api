@@ -1,8 +1,69 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹⁹) — [3/5] Dependabot auto-merge + axios/ip-address 부채 동시 종결
+updated: 2026-05-10 (후속²⁰) — [4/5] G2 Playwright e2e CI 도입 (별도 workflow + push KKRYOUN trigger)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속²⁰) — [4/5] G2 Playwright e2e CI 도입 = 별도 workflow + 첫 도입 안정화 트랙**
+
+  사용자 권장 5단계 [4/5]. 본 PR 의 **설계 결정 = 별도 workflow** (`.github/workflows/e2e.yml`) — pr-check.yml 통합 X.
+
+  ## 설계 근거
+
+  | 옵션 | 장점 | 단점 | 결정 |
+  |------|------|------|:----:|
+  | (A) pr-check.yml 통합 | 단일 status check / 머지 차단 강제 | pr-check 시간 ~3-5min → ~10-15min, 첫 도입 시 안정성 미검증 → 모든 PR 차단 위험 | ❌ |
+  | (B) 별도 e2e.yml | pr-check 시간 부담 0, branch protection 미등재 시 fail 해도 PR 머지 가능 (안정화 트랙), 누적 측정 용이 | 머지 차단 약함 | ✅ |
+
+  **결론**: (B). 첫 도입 시 안정성 미검증 → required check 미등재 → fail 시에도 머지 가능. 안정화 검증 후 (a) required check 등재 또는 (b) pr-check 통합 결정.
+
+  ## `.github/workflows/e2e.yml` 신규
+
+  | 항목 | 내용 |
+  |------|------|
+  | trigger | `push KKRYOUN` (매 PR 사이클 자동) + `workflow_dispatch` (수동) |
+  | concurrency | `e2e-${{ github.ref }}` cancel-in-progress |
+  | timeout | 20min |
+  | service container | postgres:16 + redis:7-alpine (pr-check.yml integration job 패턴 재사용) |
+  | env | DATABASE_URL / REDIS_URL / JWT_SECRET / EMAIL_PROVIDER=none / PAYMENT_PROVIDER=none / BIND_ADDR=127.0.0.1:3100 / RUST_LOG=warn |
+  | cache | `Swatinem/rust-cache@v2` shared-key="backend" (다른 job 과 dep 공유) |
+
+  ## 단계별 흐름
+
+  1. checkout / Rust toolchain / cargo cache
+  2. HMAC + ENCRYPTION key 생성 (ephemeral)
+  3. migrations 적용 (psql 직접, G16 lex order workaround)
+  4. `cargo build --bin amazing-korean-api --locked` (debug, ~1-2min)
+  5. backend 백그라운드 실행 → `/healthz` 30회 polling
+  6. E2E 테스트 계정 생성 (POST /users, EMAIL_PROVIDER=none → 자동 verified)
+  7. `actions/setup-node@v4` + `npm ci` + `npx playwright install --with-deps chromium`
+  8. Vite dev 백그라운드 실행 (`VITE_PROXY_TARGET=http://127.0.0.1:3100`) → 30회 polling
+  9. `npm run test:e2e` (writing_practice.spec.ts 1 spec)
+  10. fail 시 playwright-report + backend.log artifact 업로드 (retention 7일)
+
+  ## 시나리오
+
+  `frontend/e2e/writing_practice.spec.ts` (P10-C, 1 spec):
+  - 로그인 → 레벨·유형 선택 → 자유 연습 시드 로드 → 타이핑 → 세션 완료 → `GET /studies/writing/stats?days=1` total_sessions +1 검증
+
+  ## 검증
+
+  ```
+  $ python3 -c "import yaml; yaml.safe_load(open('.github/workflows/e2e.yml'))"
+  YAML OK
+  ```
+
+  실 동작 검증 = 본 PR push → GitHub Actions 첫 run 결과 관찰 → 안정화 후 required check 등재 또는 pr-check 통합 결정.
+
+  ## 권장 5단계 진행 상황
+
+  | # | 항목 | 상태 |
+  |:-:|------|:----:|
+  | 1 | G10-frontend + G10-deep-2 | ✅ #265 |
+  | 2 | CI 캐시 최적화 | ✅ #266 |
+  | 3 | Dependabot auto-merge + axios/ip-address | ✅ #267 |
+  | **4** | G2 playwright e2e CI | ✅ 본 PR |
+  | 5 | B5 expect 45건 핫 path | 🔴 다음 |
 
 - **2026-05-10 (후속¹⁹) — [3/5] Dependabot auto-merge + axios/ip-address 부채 동시 종결**
 
