@@ -60,3 +60,114 @@ async fn test_verify_session_returns_unauthorized_for_unknown_session() {
         Ok(_) => panic!("unknown session → Err expected, got Ok"),
     }
 }
+
+// =============================================================================
+// C-ebook — 세션 라이프사이클 happy (register_session → heartbeat → verify_session)
+// =============================================================================
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_register_session_creates_redis_entry_with_hmac_secret() {
+    // register_session → ebook_viewer:<user_id> Redis key 생성 + (session_id, hmac_secret) 반환.
+    let st = common::make_test_state().await;
+
+    let user_id: i64 = 999_999_700;
+    let purchase_code = "phase3-ebook-purchase-test";
+    let (session_id, hmac_secret) = EbookService::register_session(&st, user_id, purchase_code)
+        .await
+        .expect("register_session 성공");
+
+    assert!(!session_id.is_empty(), "session_id 발급");
+    assert_eq!(
+        hmac_secret.len(),
+        64,
+        "HMAC secret 32 bytes (hex 64자), got: {}",
+        hmac_secret.len()
+    );
+
+    // Redis 검증
+    let mut conn = st.redis.get().await.expect("redis");
+    let session_key = format!("ebook_viewer:{}", user_id);
+    let stored: Option<String> = redis::AsyncCommands::get(&mut conn, &session_key)
+        .await
+        .ok();
+    assert!(stored.is_some(), "Redis 에 ebook_viewer:{} 저장됨", user_id);
+
+    let parsed: serde_json::Value = serde_json::from_str(&stored.unwrap()).expect("JSON parse");
+    assert_eq!(parsed["session_id"].as_str(), Some(session_id.as_str()));
+    assert_eq!(parsed["purchase_code"].as_str(), Some(purchase_code));
+
+    // Cleanup
+    let _: () = redis::AsyncCommands::del(&mut conn, &session_key)
+        .await
+        .unwrap_or(());
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_heartbeat_returns_valid_for_matching_session() {
+    // register_session 후 heartbeat (같은 session_id) → valid=true + TTL 갱신.
+    let st = common::make_test_state().await;
+
+    let user_id: i64 = 999_999_701;
+    let (session_id, _secret) = EbookService::register_session(&st, user_id, "phase3-ebook-hb")
+        .await
+        .expect("register");
+
+    let res = EbookService::heartbeat(&st, user_id, &session_id)
+        .await
+        .expect("heartbeat 성공");
+    assert!(res.valid, "matching session → valid=true");
+
+    // Cleanup
+    let mut conn = st.redis.get().await.expect("redis");
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("ebook_viewer:{}", user_id))
+        .await
+        .unwrap_or(());
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_heartbeat_returns_invalid_for_mismatched_session_id() {
+    // 다른 session_id 로 heartbeat → valid=false (세션 탈취 방지 검증).
+    let st = common::make_test_state().await;
+
+    let user_id: i64 = 999_999_702;
+    let (_session_id, _secret) =
+        EbookService::register_session(&st, user_id, "phase3-ebook-mismatch")
+            .await
+            .expect("register");
+
+    let other_sid = uuid::Uuid::new_v4().to_string();
+    let res = EbookService::heartbeat(&st, user_id, &other_sid)
+        .await
+        .expect("heartbeat 호출 자체는 Ok");
+    assert!(!res.valid, "다른 session_id → valid=false");
+
+    // Cleanup
+    let mut conn = st.redis.get().await.expect("redis");
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("ebook_viewer:{}", user_id))
+        .await
+        .unwrap_or(());
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_verify_session_succeeds_for_matching_session() {
+    // register_session 후 verify_session (같은 session_id) → Ok(()) (페이지/타일 요청 통과).
+    let st = common::make_test_state().await;
+
+    let user_id: i64 = 999_999_703;
+    let (session_id, _secret) = EbookService::register_session(&st, user_id, "phase3-ebook-verify")
+        .await
+        .expect("register");
+
+    let result = EbookService::verify_session(&st, user_id, &session_id).await;
+    assert!(result.is_ok(), "matching session → Ok, got: {:?}", result);
+
+    // Cleanup
+    let mut conn = st.redis.get().await.expect("redis");
+    let _: () = redis::AsyncCommands::del(&mut conn, format!("ebook_viewer:{}", user_id))
+        .await
+        .unwrap_or(());
+}

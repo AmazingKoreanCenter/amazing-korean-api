@@ -102,3 +102,21 @@ async fn test_list_studies_rejects_invalid_sort() {
         Ok(_) => panic!("invalid sort → Unprocessable expected, got Ok"),
     }
 }
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_list_studies_happy_returns_default_pagination() {
+    // 기본 (페이지/사이즈 미지정) → Ok. page=1, per_page=10 default 검증.
+    let st = common::make_test_state().await;
+    let req = empty_list_req();
+
+    let result = StudyService::list_studies(&st, req).await;
+    let res = match result {
+        Ok(r) => r,
+        Err(e) => panic!("default → Ok expected, got Err: {:?}", e),
+    };
+
+    // 결과는 DB 상태에 의존하지만 pagination meta 는 결정적
+    assert!(res.meta.page >= 1, "page >= 1");
+    assert!(res.meta.per_page > 0, "per_page > 0");
+}

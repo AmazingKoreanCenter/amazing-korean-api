@@ -83,3 +83,22 @@ async fn test_get_lesson_detail_returns_not_found_for_unknown_id() {
         Ok(_) => panic!("unknown id → Err expected, got Ok"),
     }
 }
+
+// =============================================================================
+// C-lesson — list_lessons happy (default pagination)
+// =============================================================================
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_list_lessons_happy_returns_default_pagination() {
+    let st = common::make_test_state().await;
+    let req = empty_list();
+
+    let result = LessonService::list_lessons(&st.db, req).await;
+    let res = match result {
+        Ok(r) => r,
+        Err(e) => panic!("default → Ok expected, got Err: {:?}", e),
+    };
+    assert_eq!(res.meta.current_page, 1, "default page=1");
+    assert_eq!(res.meta.per_page, 20, "default per_page=20");
+}
