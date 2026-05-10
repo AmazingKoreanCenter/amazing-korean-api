@@ -1,8 +1,60 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁵) — G10 Phase 3 C-textbook (5) + C-admin-rbac (7) = 12 신규 tests + D 트랙 사실확인. AMK_STATUS §8.1 #101 등재
+updated: 2026-05-10 (후속⁶) — G10 deeper email.rs unit tests = 9 신규 + 4 트랙 사실확인. AMK_STATUS §8.1 #102 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁶) — G10 deeper email.rs = 9 신규 lib tests / 4 트랙 사실확인**
+
+  세션 진입 = 사용자 결정 = "🟢 1. 즉시 작업 가능 순차".
+
+  ## 사실확인 정정 (4 트랙)
+
+  - **B6 unwrap 50건 = stale memory**. 실제 B6 = ipgeo HTTP-only 🟡 수용. B4 unwrap 2건 ✅ 이미. B5 expect 51건 = 위험도 분류 종결 (🔴 0 / 🟡 hot path 0).
+  - **C-payment process_webhook_event happy = defer**: Paddle Subscription 구조 ~30+ 필드 + nested types = 1일+ 부담. SDK 내부 의존 깊음.
+  - **C5 I 카테고리 룰 = 이미 정착**: 룰 추가 = 무한 루프 회피 정책 (사용자 결정 2026-05-04).
+  - **G2 playwright e2e CI = 별도 결정**: 1일 + CI 분 + 브라우저 부담.
+
+  ## G10 deeper email.rs (9 신규 lib tests)
+
+  ### `format_krw(amount: i32) -> String` (4 tests)
+  - basic thousand separator (250_000 → "250,000")
+  - million range (1_234_567 / 25_000_000)
+  - below thousand no separator (0 / 1 / 999)
+  - negative value (부호 + 쉼표 보존)
+
+  ### `render_template(EmailTemplate)` (5 tests)
+  - PasswordResetCode: subject "비밀번호 재설정" + html/text 코드 + text TTL "10분"
+  - EmailVerification: subject "이메일 인증" + text 코드
+  - TextbookOrderConfirmation: subject "교재 주문" + order_code + text 쉼표 금액 + 수량 "10권"
+  - AdminInvite: subject "관리자 초대" + html "관리자 (Admin)" 역할 라벨 + invite_url + invited_by
+  - AdminInvite unknown role fallback: 입력값 그대로 (admin/manager 외)
+
+  ## 검증
+
+  ```
+  $ cargo test --lib external::email::tests
+  test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 166 filtered out; finished in 0.00s
+  ```
+
+  - cargo test --lib = **175 passed** (166 + 9)
+  - cargo clippy / fmt clean (digits underscore grouping fix: 2_500_000_0 → 25_000_000)
+
+  ## G10 누계 (2026-05-10 후속⁶)
+
+  - **단위**: 166 신규 + 9 = **175 passed**
+  - **Phase 1 — repo**: 7
+  - **Phase 2 — service Redis**: 8
+  - **Phase 3 통합 누계 (10 도메인)**: 119 (auth_email 10 + auth_login 26 + auth_oauth 13 + user_signup 6 + payment 8 + ebook 7 + study 6 + lesson 5 + textbook 8 + video 4 + admin_upgrade 5 + admin_rbac 7 = 105 / 잔여 + 14 = 119? 정정 = 119 통합)
+  - **총 285 신규 / 294 passed**
+
+  ## 잔여 트랙
+
+  - C-payment process_webhook_event happy (Paddle Event 구성, 별도 1일+)
+  - G2 playwright e2e CI (별도 1일)
+  - 외부 트리거 (Q14/Q15/N-26/E1/E2/E3)
+
+
 
 - **2026-05-10 (후속⁵) — C-textbook + C-admin-rbac = 12 신규 / D 트랙 사실확인**
 

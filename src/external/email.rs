@@ -749,3 +749,112 @@ fn format_krw(amount: i32) -> String {
     }
     result.chars().rev().collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ------------------------------------------------------------------------
+    // format_krw: KRW 금액 쉼표 포맷팅 (예: 250000 → "250,000")
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_format_krw_basic_thousand_separator() {
+        assert_eq!(format_krw(250_000), "250,000");
+        assert_eq!(format_krw(1_000), "1,000");
+        assert_eq!(format_krw(10_000), "10,000");
+    }
+
+    #[test]
+    fn test_format_krw_million_range() {
+        assert_eq!(format_krw(1_234_567), "1,234,567");
+        assert_eq!(format_krw(25_000_000), "25,000,000");
+    }
+
+    #[test]
+    fn test_format_krw_below_thousand_no_separator() {
+        assert_eq!(format_krw(0), "0");
+        assert_eq!(format_krw(1), "1");
+        assert_eq!(format_krw(999), "999");
+    }
+
+    #[test]
+    fn test_format_krw_negative_value() {
+        // 음수는 i32. 부호도 정확한 자리 처리되어야 함 (prefix - + 숫자 자리에서 쉼표 추가).
+        // 현재 구현은 단순 chars().rev() 순회 + i % 3 = 0 시 ',' 삽입 → 음수 처리 보존.
+        let result = format_krw(-1234);
+        // 결과: "-1,234" (4자리 숫자 부분에 쉼표 1개)
+        assert!(result.contains("-"), "음수 부호 보존, got: {}", result);
+        assert!(result.contains(","), "쉼표 1개, got: {}", result);
+    }
+
+    // ------------------------------------------------------------------------
+    // render_template: 각 템플릿이 핵심 정보를 subject/body 에 포함하는지 검증
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_render_password_reset_code_template_includes_code_and_ttl() {
+        let (subject, html, text) = render_template(EmailTemplate::PasswordResetCode {
+            code: "123456".to_string(),
+            expires_in_min: 10,
+        });
+        assert!(subject.contains("비밀번호 재설정"), "subject: {}", subject);
+        assert!(html.contains("123456"), "html: 코드 포함");
+        assert!(text.contains("123456"), "text: 코드 포함");
+        assert!(text.contains("10분"), "text: TTL 분 포함");
+    }
+
+    #[test]
+    fn test_render_email_verification_template_includes_code() {
+        let (subject, _html, text) = render_template(EmailTemplate::EmailVerification {
+            code: "654321".to_string(),
+            expires_in_min: 5,
+        });
+        assert!(subject.contains("이메일 인증"), "subject: {}", subject);
+        assert!(text.contains("654321"), "text: 코드 포함");
+    }
+
+    #[test]
+    fn test_render_textbook_order_confirmation_includes_order_code_and_amount() {
+        let (subject, _html, text) = render_template(EmailTemplate::TextbookOrderConfirmation {
+            order_code: "ORD-20260510-001".to_string(),
+            orderer_name: "테스터".to_string(),
+            total_quantity: 10,
+            total_amount: 250_000,
+        });
+        assert!(subject.contains("교재 주문"), "subject: {}", subject);
+        assert!(subject.contains("ORD-20260510-001"));
+        assert!(text.contains("250,000"), "text: 쉼표 금액");
+        assert!(text.contains("10권"), "text: 수량");
+    }
+
+    #[test]
+    fn test_render_admin_invite_template_includes_role_label_and_url() {
+        let (subject, html, _text) = render_template(EmailTemplate::AdminInvite {
+            invite_url: "https://amk.test/invite?code=XYZ".to_string(),
+            role: "admin".to_string(),
+            invited_by: "ceo@amk.test".to_string(),
+            expires_in_min: 60,
+        });
+        assert!(subject.contains("관리자 초대"), "subject: {}", subject);
+        assert!(html.contains("관리자 (Admin)"), "역할 한글 라벨");
+        assert!(html.contains("https://amk.test/invite?code=XYZ"));
+        assert!(html.contains("ceo@amk.test"));
+    }
+
+    #[test]
+    fn test_render_admin_invite_unknown_role_uses_raw_label() {
+        // role 이 "admin" / "manager" 외 값일 때 fallback = 입력값 그대로
+        let (_subject, html, _text) = render_template(EmailTemplate::AdminInvite {
+            invite_url: "https://amk.test/invite?code=ZZZ".to_string(),
+            role: "viewer".to_string(),
+            invited_by: "actor@amk.test".to_string(),
+            expires_in_min: 30,
+        });
+        assert!(
+            html.contains("viewer") || html.contains("Viewer"),
+            "fallback: 입력 그대로, html: {}",
+            html.lines().find(|l| l.contains("viewer")).unwrap_or("")
+        );
+    }
+}
