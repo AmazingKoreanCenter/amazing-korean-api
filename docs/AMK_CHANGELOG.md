@@ -1,8 +1,73 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹²) — G10-frontend Phase 6 = coverage threshold 점진 도입 (perFile + 화이트리스트 14 모듈)
+updated: 2026-05-10 (후속¹³) — G10-frontend Phase 7 = Header 통합 smoke + 6 신규 / 107 누계 (15 모듈 화이트리스트)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹³) — G10-frontend Phase 7 = Header 통합 smoke + 6 신규 / 107 누계**
+
+  세션 = G10-frontend 트랙 (1-2일) sub-step. 후속⁹ 의 (a-2) 처리. **본 트랙의 가장 큰 컴포넌트 통합 PR**.
+
+  ## Header 통합 smoke (`src/components/layout/header.test.tsx`, 6 tests)
+
+  ### sub-component vi.mock 패턴
+
+  | mock 대상 | 사유 |
+  |----------|------|
+  | `react-i18next` (`useTranslation` + `i18n.language`) | nav i18n 키 매핑 + 언어 selector 현재값 |
+  | `@/i18n` (`changeLanguage` / `SUPPORTED_LANGUAGES` / `TIER_BREAK_INDICES`) | 언어 변경 호출 검증 + dropdown 항목 시드 |
+  | `@/category/user/hook/use_update_settings` | TanStack mutation 의존 격리 (mutate fn 검증) |
+  | `@/category/auth/components/logout_button` | 로그인 분기 sub-component stub (LogoutButton 자체 test 는 별도) |
+  | `@/components/ui/theme_toggle` | next-themes 의존 격리 |
+
+  ### 검증 영역
+
+  1. brand mark + nav 5 link href (`/about` `/book` `/videos` `/studies` `/lessons`) — 모바일/데스크탑 양쪽 렌더로 `getAllByRole`
+  2. 로그아웃 상태 → Login + Signup 링크 / LogoutButton stub 부재
+  3. 로그인 상태 (auth store 직접 set) → MyPage 링크 + LogoutButton stub / Login 링크 부재
+  4. mobile menu 토글 — `max-h-0` ↔ `max-h-[400px]` class 전환 (userEvent click)
+  5. 언어 dropdown 클릭 → `changeLanguage` mutate (로그아웃 시 settings backend 호출 X)
+  6. 로그인 + 언어 변경 → `useUpdateSettings.mutate({ user_set_language })` 호출
+
+  ## vitest.config.ts coverage 보강
+
+  - `include` 화이트리스트 14 → **15** (header.tsx 추가)
+  - thresholds branches 85 → **75** (header NavLink isActive 분기 + tier separator 분기 = 직접 호출 어려움; mock 으로 isActive=false 만 cover)
+
+  현재 측정 = stmts **98.39** / branches **93.19** / funcs **86.48** / lines **98.39** — header.tsx 96.42 / 78.04 / 71.42 / 96.42.
+
+  ## 검증
+
+  ```
+  $ npm run test
+  Test Files  19 passed (19)
+       Tests  107 passed (107)
+   Duration  11.19s
+
+  $ npm run test:coverage
+  All files  98.39 / 93.19 / 86.48 / 98.39 (perFile thresholds 통과)
+
+  $ npm run build  → 16.51s
+  $ npm run lint   → 0 problems
+  ```
+
+  ## G10-frontend 트랙 누적 (본 세션 PR #255~#261)
+
+  | Phase | PR | 신규 tests | 누계 |
+  |:----:|:--:|:----:|:----:|
+  | 1 | #255 | 28 (인프라 + pure utils) | 28 |
+  | 2 | #256 | 25 (hook + api + component) | 53 |
+  | 3 | #257 | 24 (block component smoke) | 77 |
+  | 4 | #258 | 18 (api/client refactor) | 95 |
+  | 5 | #259 | 6 (Footer 통합) | 101 |
+  | 6 | #260 | 0 (coverage threshold 인프라) | 101 |
+  | 7 | (예정) | 6 (Header 통합) | **107** |
+
+  ## 후속 진입점
+
+  G10-frontend 트랙 잔여 (다음 세션) = (b) page-level (TanStack Query + MemoryRouter — auth/login_page 등) / (d) msw + axios 인터셉터 통합.
+
+  순차 #2 = G10-deep-2 (backend auth/jwt/crypto helpers, 0.3일).
 
 - **2026-05-10 (후속¹²) — G10-frontend Phase 6 = coverage threshold 점진 도입 (perFile + 14 모듈 화이트리스트)**
 
