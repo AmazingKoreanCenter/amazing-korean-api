@@ -26,16 +26,18 @@
 
 mod common;
 
-use amazing_korean_api::api::auth::dto::GoogleMobileLoginReq;
+use amazing_korean_api::api::auth::dto::{AppleMobileLoginReq, GoogleMobileLoginReq};
 use amazing_korean_api::api::auth::handler::ParsedUa;
 use amazing_korean_api::api::auth::service::{AuthService, OAuthLoginOutcome};
 use amazing_korean_api::crypto::CryptoService;
 use amazing_korean_api::error::AppError;
+use amazing_korean_api::external::apple::AppleOAuthClient;
 use base64::engine::{general_purpose::URL_SAFE_NO_PAD, Engine};
 use common::cleanup_test_user;
 use rsa::pkcs8::EncodePrivateKey;
 use rsa::traits::PublicKeyParts;
 use rsa::{RsaPrivateKey, RsaPublicKey};
+use std::sync::Arc;
 use std::sync::OnceLock;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -570,5 +572,203 @@ async fn test_google_mobile_login_rejects_wrong_audience() {
             e
         ),
         Ok(_) => panic!("wrong audience → Err expected, got Ok"),
+    }
+}
+
+// =============================================================================
+// apple_mobile_login — wiremock /jwks 재사용 (RSA 동일). issuer = appleid.apple.com.
+// =============================================================================
+
+const APPLE_BUNDLE_ID: &str = "phase3-apple-bundle-id";
+
+/// Apple ID token claims (Google 와 다른 구조 = email_verified="true" 문자열, name 없음).
+fn apple_id_token_claims(aud: &str, sub: &str, email: Option<&str>) -> serde_json::Value {
+    let now = chrono::Utc::now().timestamp();
+    let mut claims = serde_json::json!({
+        "iss": "https://appleid.apple.com",
+        "aud": aud,
+        "sub": sub,
+        "iat": now,
+        "exp": now + 3600,
+    });
+    if let Some(e) = email {
+        claims["email"] = serde_json::Value::String(e.to_string());
+        claims["email_verified"] = serde_json::Value::String("true".to_string());
+    }
+    claims
+}
+
+async fn mount_apple_jwks(server: &MockServer) {
+    Mock::given(method("GET"))
+        .and(path("/apple_jwks"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(test_jwks_json()))
+        .mount(server)
+        .await;
+}
+
+fn inject_apple_test_client(st: &mut amazing_korean_api::state::AppState, mock_uri: &str) {
+    let client = AppleOAuthClient::with_url(
+        APPLE_BUNDLE_ID.to_string(),
+        format!("{}/apple_jwks", mock_uri),
+    );
+    st.apple_oauth = Some(Arc::new(client));
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_apple_mobile_login_returns_internal_when_unconfigured() {
+    // st.apple_oauth = None → Internal (JWKS 호출 전 차단).
+    let st = common::make_test_state().await; // apple_oauth = None default
+
+    let req = AppleMobileLoginReq {
+        id_token: "irrelevant.fake.token".to_string(),
+        user_name: None,
+    };
+    let result = AuthService::apple_mobile_login(
+        &st,
+        req,
+        "10.0.7.1".to_string(),
+        None,
+        ParsedUa {
+            os: None,
+            browser: None,
+            device: "mobile".into(),
+        },
+    )
+    .await;
+
+    match result {
+        Err(AppError::Internal(msg)) => {
+            assert!(
+                msg.contains("APPLE_CLIENT_ID"),
+                "에러 메시지에 APPLE_CLIENT_ID 포함, got: {}",
+                msg
+            );
+        }
+        Err(e) => panic!("unconfigured → Internal expected, got Err: {:?}", e),
+        Ok(_) => panic!("unconfigured → Internal expected, got Ok"),
+    }
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_apple_mobile_login_creates_new_user_with_email() {
+    // wiremock /apple_jwks → 서명된 Apple ID token + email 포함 → 신규 user 생성.
+    let mock = MockServer::start().await;
+    let mut st = common::make_test_state().await;
+    inject_apple_test_client(&mut st, &mock.uri());
+    mount_apple_jwks(&mock).await;
+
+    let apple_email = format!("phase3_apple_{}@example.com", uuid::Uuid::new_v4());
+    let apple_sub = format!("apple-sub-{}", uuid::Uuid::new_v4());
+    let claims = apple_id_token_claims(APPLE_BUNDLE_ID, &apple_sub, Some(&apple_email));
+    let id_token = sign_test_id_token(&claims);
+
+    let req = AppleMobileLoginReq {
+        id_token,
+        user_name: Some("Phase3 Apple User".to_string()),
+    };
+    let result = AuthService::apple_mobile_login(
+        &st,
+        req,
+        "10.0.7.2".to_string(),
+        None,
+        ParsedUa {
+            os: None,
+            browser: None,
+            device: "mobile".into(),
+        },
+    )
+    .await;
+
+    match result {
+        Ok(OAuthLoginOutcome::Success(success)) => {
+            assert!(success.is_new_user, "신규 user 생성, got is_new_user=false");
+            assert!(!success.refresh_token.is_empty(), "refresh_token 발급");
+        }
+        Ok(_) => panic!("MFA challenge unexpected for new user"),
+        Err(e) => panic!("happy path → Ok(Success) expected, got Err: {:?}", e),
+    }
+
+    cleanup_user_by_email(&st, &apple_email).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_apple_mobile_login_rejects_when_email_missing_for_new_user() {
+    // Apple 특이사항: email 은 최초 인증에만 제공. email 없고 + oauth 매핑도 없음 → BadRequest.
+    let mock = MockServer::start().await;
+    let mut st = common::make_test_state().await;
+    inject_apple_test_client(&mut st, &mock.uri());
+    mount_apple_jwks(&mock).await;
+
+    let apple_sub = format!("apple-sub-no-email-{}", uuid::Uuid::new_v4());
+    // email = None → claims 에 email 필드 없음
+    let claims = apple_id_token_claims(APPLE_BUNDLE_ID, &apple_sub, None);
+    let id_token = sign_test_id_token(&claims);
+
+    let req = AppleMobileLoginReq {
+        id_token,
+        user_name: None,
+    };
+    let result = AuthService::apple_mobile_login(
+        &st,
+        req,
+        "10.0.7.3".to_string(),
+        None,
+        ParsedUa {
+            os: None,
+            browser: None,
+            device: "mobile".into(),
+        },
+    )
+    .await;
+
+    match result {
+        Err(AppError::BadRequest(msg)) => {
+            assert!(
+                msg.contains("Apple") || msg.contains("이메일"),
+                "Apple email 안내 메시지, got: {}",
+                msg
+            );
+        }
+        Err(e) => panic!(
+            "missing email + new user → BadRequest expected, got Err: {:?}",
+            e
+        ),
+        Ok(_) => panic!("missing email + new user → BadRequest expected, got Ok"),
+    }
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_apple_mobile_login_rejects_malformed_id_token() {
+    // 형식 깨진 id_token → External (decode header fail).
+    let mock = MockServer::start().await;
+    let mut st = common::make_test_state().await;
+    inject_apple_test_client(&mut st, &mock.uri());
+    mount_apple_jwks(&mock).await;
+
+    let req = AppleMobileLoginReq {
+        id_token: "not-a-valid-jwt".to_string(),
+        user_name: None,
+    };
+    let result = AuthService::apple_mobile_login(
+        &st,
+        req,
+        "10.0.7.4".to_string(),
+        None,
+        ParsedUa {
+            os: None,
+            browser: None,
+            device: "mobile".into(),
+        },
+    )
+    .await;
+
+    match result {
+        Err(AppError::External(_)) => { /* JWT decode header fail */ }
+        Err(e) => panic!("malformed token → External expected, got Err: {:?}", e),
+        Ok(_) => panic!("malformed token → Err expected, got Ok"),
     }
 }
