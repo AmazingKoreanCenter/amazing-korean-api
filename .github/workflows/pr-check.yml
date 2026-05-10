@@ -33,8 +33,17 @@ jobs:
         with:
           components: clippy
 
+      # Cargo cache 최적화 (2026-05-10):
+      # - shared-key = backend / integration job 간 cache 공유 (동일 workspace, 동일 lockfile)
+      # - save-if: always() = KKRYOUN push 마다 cache 누적 (default 는 main 만 save → 본
+      #   리포 KKRYOUN 단일 브랜치 정책에서 cache miss 누적). always() 로 매 PR cache hit ↑
+      # - cache-on-failure = compile fail 시에도 dep cache 저장 → 재시도 시 hit
       - name: Cargo cache
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "backend"
+          save-if: ${{ github.ref == 'refs/heads/KKRYOUN' }}
+          cache-on-failure: "true"
 
       - name: cargo fmt --check --all (rustfmt baseline, 2026-05-04 도입)
         # rust-toolchain.toml 에 rustfmt components 등재됐으나 자동 강제 부재로
@@ -93,8 +102,13 @@ jobs:
       - name: Install Rust toolchain (stable)
         uses: dtolnay/rust-toolchain@stable
 
+      # backend job 과 동일 shared-key = 두 job 간 dep cache 재사용 (workspace + lockfile 동일).
       - name: Cargo cache
         uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "backend"
+          save-if: ${{ github.ref == 'refs/heads/KKRYOUN' }}
+          cache-on-failure: "true"
 
       - name: Generate HMAC + ENCRYPTION keys (ephemeral, CI-only)
         run: |
