@@ -1,8 +1,65 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹¹) — G10-frontend Phase 5 = Footer 통합 smoke + 6 신규 / 101 누계 (frontend 100 이정표 돌파)
+updated: 2026-05-10 (후속¹²) — G10-frontend Phase 6 = coverage threshold 점진 도입 (perFile + 화이트리스트 14 모듈)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹²) — G10-frontend Phase 6 = coverage threshold 점진 도입 (perFile + 14 모듈 화이트리스트)**
+
+  세션 = G10-frontend 트랙 (1-2일) sub-step. 후속⁹ 의 (e) 처리. **본 트랙 인프라 측 마무리 단계** (회귀 방지 자동화).
+
+  ## vitest.config.ts coverage 강화
+
+  ### include 화이트리스트 (14 모듈)
+
+  ```
+  src/lib/**/*.ts
+  src/utils/**/*.ts
+  src/hooks/use_auth_store.ts
+  src/hooks/use_language_sync.ts
+  src/api/parse_error_message.ts
+  src/api/apply_authorization_header.ts
+  src/components/blocks/{empty_state,pagination_bar,stat_card,
+                         skeleton_grid,section_container,cover_card,
+                         list_stats_bar}.tsx
+  src/components/layout/footer.tsx
+  ```
+
+  광범위 미커버 영역 (`src/category/*` ~200 파일) 은 의도적으로 제외 = 측정 시그널 명료화. 신규 모듈 cover 시 본 리스트에 명시적으로 추가.
+
+  ### perFile thresholds
+
+  | 항목 | 값 | 근거 |
+  |------|:--:|------|
+  | statements | 90 | pagination_bar 91.3 (pointer-events-none disabled click 콜백 미커버) |
+  | branches | 85 | parse_error_message 95.65 (line 34 분기) |
+  | functions | 60 | pagination_bar 60 (Previous·Next disabled handler), footer 66.66 (Dialog onOpenChange) |
+  | lines | 90 | pagination_bar 91.3 |
+
+  현재 측정 = stmts 99.07 / branches 99.05 / funcs 90 / lines 99.07. **회귀 방지 floor**. 점진 상향 가능.
+
+  ## 검증
+
+  ```
+  $ npm run test:coverage
+  Test Files  18 passed (18)
+       Tests  101 passed (101)
+  All files  99.07 / 99.05 / 90 / 99.07
+  (thresholds 모두 통과)
+
+  $ npm run test       (default, no coverage)
+  Test Files  18 passed | Tests 101 passed | 9.92s
+
+  $ npm run build      → 16.96s
+  $ npm run lint       → 0 problems
+  ```
+
+  ## 후속 진입점
+
+  G10-frontend 트랙 잔여 (다음 세션):
+  (a-2) Header 통합 (auth + useUpdateSettings + ThemeToggle + LogoutButton — provider 세트 부담 큼) /
+  (b) page-level (TanStack Query + MemoryRouter) /
+  (d) msw + axios 인터셉터 통합.
 
 - **2026-05-10 (후속¹¹) — G10-frontend Phase 5 = Footer 통합 smoke + 6 신규 / 101 누계**
 
