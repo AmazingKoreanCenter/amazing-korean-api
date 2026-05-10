@@ -1,8 +1,51 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁹) — G10-frontend Phase 3 = block component smoke 5 추가 / 24 신규 / 77 누계
+updated: 2026-05-10 (후속¹⁰) — G10-frontend Phase 4 = api/client refactor + 18 신규 / 95 누계
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹⁰) — G10-frontend Phase 4 = api/client 모듈 분리 + 18 신규 tests / 95 누계**
+
+  세션 = G10-frontend 트랙 (1-2일) sub-step. 후속⁹ 의 defer 항목 (c) 처리.
+
+  ## refactor: 모듈 분리
+
+  | 신규 파일 | 추출 대상 | 사유 |
+  |----------|----------|------|
+  | `src/api/parse_error_message.ts` | `parseErrorMessage` (40 lines) | module-internal 이라 단위 test 불가했음 → export 가능한 모듈로 분리 |
+  | `src/api/apply_authorization_header.ts` | `applyAuthorizationHeader` (15 lines) + `AxiosLikeHeaders` 타입 | 동상. axios `AxiosRequestConfig["headers"]` 타입 정렬로 client.ts 와 호환 보장 |
+
+  `src/api/client.ts` 179 → 117 lines 슬림화 (인터셉터 + ApiError + request fn 만 유지).
+
+  ## 신규 18 tests (77 → 95)
+
+  | 파일 | tests | 검증 영역 |
+  |------|:----:|----------|
+  | `parse_error_message.test.ts` | 13 | falsy data 3 (null/undefined/status fallback) + string data 5 (envelope error.message / 평탄 message / 비-JSON raw / parsed but no message → raw / 빈 문자열) + object data 5 (envelope / 평탄 / 미일치 fallback / 비-string error.message ignore / 빈 error.message ignore) |
+  | `apply_authorization_header.test.ts` | 5 | undefined → fresh object / null → fresh object / `set()` 함수형 헤더 in-place + 동일 참조 반환 / plain object 머지 (사본 반환) / 기존 Authorization 덮어쓰기 |
+
+  ## 검증
+
+  ```
+  $ npm run test
+  Test Files  17 passed (17)
+       Tests  95 passed (95)
+   Duration  9.81s
+
+  $ npm run build
+  ✓ built in 17.23s
+
+  $ npm run lint
+  (clean)
+  ```
+
+  ## 후속 진입점
+
+  G10-frontend 트랙 잔여:
+  (a) Header / Footer 통합 (auth + i18n + router 의존, 경량 통합) /
+  (b) page-level (TanStack Query mock + MemoryRouter) /
+  (d) msw + axios 인터셉터 통합 /
+  (e) coverage threshold (perFile) 점진 도입.
 
 - **2026-05-10 (후속⁹) — G10-frontend Phase 3 = block component smoke 5 / 24 신규 tests / 77 누계**
 

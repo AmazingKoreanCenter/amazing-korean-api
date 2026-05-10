@@ -2,6 +2,8 @@ import axios, { type AxiosRequestConfig } from "axios";
 
 import type { LoginRes } from "@/category/auth/types";
 import { useAuthStore } from "@/hooks/use_auth_store";
+import { parseErrorMessage } from "./parse_error_message";
+import { applyAuthorizationHeader } from "./apply_authorization_header";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -23,71 +25,6 @@ export class ApiError extends Error {
     this.status = status;
   }
 }
-
-const parseErrorMessage = (data: unknown, status?: number) => {
-  const fallback = status ? `Request failed with status ${status}` : "Request failed";
-
-  if (!data) {
-    return fallback;
-  }
-
-  if (typeof data === "string") {
-    try {
-      const parsed = JSON.parse(data) as {
-        error?: { message?: string };
-        message?: string;
-      };
-
-      if (typeof parsed?.error?.message === "string" && parsed.error.message) {
-        return parsed.error.message;
-      }
-
-      if (typeof parsed?.message === "string" && parsed.message) {
-        return parsed.message;
-      }
-    } catch {
-      return data;
-    }
-
-    return data || fallback;
-  }
-
-  if (typeof data === "object") {
-    const parsed = data as {
-      error?: { message?: string };
-      message?: string;
-    };
-
-    if (typeof parsed?.error?.message === "string" && parsed.error.message) {
-      return parsed.error.message;
-    }
-
-    if (typeof parsed?.message === "string" && parsed.message) {
-      return parsed.message;
-    }
-  }
-
-  return fallback;
-};
-
-const applyAuthorizationHeader = (
-  headers: RetryableRequestConfig["headers"],
-  token: string
-) => {
-  if (!headers) {
-    return { Authorization: token };
-  }
-
-  if (typeof (headers as { set?: (key: string, value: string) => void }).set === "function") {
-    (headers as { set: (key: string, value: string) => void }).set(
-      "Authorization",
-      token
-    );
-    return headers;
-  }
-
-  return { ...(headers as Record<string, string>), Authorization: token };
-};
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
