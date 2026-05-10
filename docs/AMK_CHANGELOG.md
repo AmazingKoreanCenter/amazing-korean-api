@@ -1,8 +1,64 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속¹⁸) — [2/5] CI 캐시 최적화 = pr-check.yml rust-cache shared-key + save-if + cache-on-failure
+updated: 2026-05-10 (후속¹⁹) — [3/5] Dependabot auto-merge + axios/ip-address 부채 동시 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속¹⁹) — [3/5] Dependabot auto-merge + axios/ip-address 부채 동시 종결**
+
+  사용자 권장 5단계 [3/5]. 두 변경 묶음 = workflow 추가 + 기존 보안 부채 처리.
+
+  ## 1) Dependabot auto-merge workflow 신규
+
+  `.github/workflows/dependabot-auto-merge.yml` 신규 — 표준 패턴 적용.
+
+  | 정책 | 설명 |
+  |------|------|
+  | trigger | `pull_request` (모든 PR 평가, dependabot 만 통과) |
+  | actor 검증 | `github.actor == 'dependabot[bot]'` — 다른 사람 PR 차단 |
+  | metadata | `dependabot/fetch-metadata@v2` 로 update-type 파싱 |
+  | 자동 승인 | patch + minor 업데이트 → `gh pr review --approve` |
+  | 자동 머지 | patch + minor → `gh pr merge --auto --squash` |
+  | major | 자동 처리 X — 수동 머지 (breaking changes 위험) |
+
+  auto-merge 는 branch protection 의 모든 required check (pr-check.yml backend / integration / frontend / Cloudflare Pages) 통과 + linear history 룰 충족 시 발동. CI fail 한 PR 은 자동 머지 안 됨.
+
+  ## 2) axios + ip-address 부채 동시 종결
+
+  본 세션 [1/5] 진입 시 기존 발견된 npm audit 2건 (axios prototype pollution 13개 advisory + ip-address Address6 XSS) → `npm audit fix` 로 transitive resolve.
+
+  | 패키지 | 이전 | 이후 | 경로 |
+  |-------|:----:|:----:|------|
+  | axios | 1.15.0 | 1.16.0 | direct dep |
+  | ip-address | 10.1.0 | 10.2.0 | puppeteer → @puppeteer/browsers → proxy-agent → socks-proxy-agent → socks → ip-address |
+
+  package.json range (`^1.15.0`) 그대로 — package-lock.json 만 업데이트. **0 vulnerabilities** 달성.
+
+  ## 검증
+
+  ```
+  $ python3 -c "import yaml; yaml.safe_load(open('.github/workflows/dependabot-auto-merge.yml'))"
+  YAML OK
+
+  $ npm audit
+  found 0 vulnerabilities
+
+  $ npm run test
+  Test Files  22 passed (22) | Tests 122 passed (122) | 15.53s
+
+  $ npm run build  → 16.32s
+  $ npm run lint   → 0 problems
+  ```
+
+  ## 권장 5단계 진행 상황
+
+  | # | 항목 | 상태 |
+  |:-:|------|:----:|
+  | 1 | G10-frontend + G10-deep-2 | ✅ #265 |
+  | 2 | CI 캐시 최적화 | ✅ #266 |
+  | **3** | Dependabot auto-merge + axios/ip-address | ✅ 본 PR |
+  | 4 | G2 playwright e2e CI | 🔴 다음 |
+  | 5 | B5 expect 45건 | 🔴 |
 
 - **2026-05-10 (후속¹⁸) — [2/5] CI 캐시 최적화 = pr-check.yml rust-cache 옵션 보강**
 
