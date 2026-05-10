@@ -1,8 +1,65 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속) — G10 Phase 3 A 트랙 5 단계 (A1~A5) = 23 tests 추가 (auth_oauth +6 / auth_login +13 / user_signup +1). AMK_STATUS §8.1 #97 등재
+updated: 2026-05-10 (후속²) — G10 Phase 3 Apple OAuth 보충 = 4 tests 추가 (oauth 9→13). AMK_STATUS §8.1 #98 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속²) — G10 Phase 3 Apple OAuth 보충 (A2 미완) = 4 tests 추가**
+
+  A 트랙 A2 단계에서 skip 했던 Apple OAuth (AppleOAuthClient URL refactor 별도 트랙) 보충.
+
+  ## Production refactor (`src/external/apple.rs`)
+
+  - `AppleOAuthClient::with_url(client_id, jwks_url)` 생성자 신규
+  - `AppleOAuthClient::new(client_id)` = `with_url(APPLE_JWKS_URL)` 위임 (production 호환)
+  - `jwks_url` field 추가, `get_decoding_key` 가 hardcoded const 대신 `&self.jwks_url` 사용
+
+  ## 테스트 인프라 추가 (`tests/auth_oauth_integration.rs`)
+
+  - `apple_id_token_claims(aud, sub, email)` = Apple ID token claims (iss=https://appleid.apple.com, email_verified="true" 문자열, name 없음)
+  - `mount_apple_jwks(server)` = 단일 `/apple_jwks` endpoint mock (A1 RSA keypair 재사용 = JWKS 동일 RSA 형식)
+  - `inject_apple_test_client(st, mock_uri)` = `AppleOAuthClient::with_url` 직접 생성 + `Arc` 주입 (Config 우회 = AppleOAuthClient 가 Singleton 으로 AppState 에 직접 보관됨)
+
+  ## 신규 4 tests
+
+  - `st.apple_oauth=None` → `Internal("APPLE_CLIENT_ID not configured")`
+  - happy path: email 포함 + user_name → `Ok(Success { is_new_user=true })`
+  - email 없고 + oauth 매핑 없는 신규 user → `BadRequest` (Apple 한국어 안내: "Apple 계정에서 이메일을 가져올 수 없습니다...")
+  - malformed id_token → `External` (decode header fail)
+
+  ## 검증
+
+  ```
+  $ ... cargo test --test auth_oauth_integration -- --ignored
+  test test_apple_mobile_login_returns_internal_when_unconfigured ... ok
+  test test_apple_mobile_login_rejects_malformed_id_token ... ok
+  test test_apple_mobile_login_rejects_when_email_missing_for_new_user ... ok
+  test test_apple_mobile_login_creates_new_user_with_email ... ok
+  [+ 9 기존 Google OAuth tests]
+  test result: ok. 13 passed; 0 failed; 0 ignored; ... ; finished in 3.51s
+  ```
+
+  - cargo clippy / fmt clean
+  - cargo test --lib = 166 passed (회귀 0)
+
+  ## G10 누계 (2026-05-10 후속²)
+
+  - **단위**: 157 신규 / 166 passed
+  - **Phase 1 — repo**: 7
+  - **Phase 2 — service Redis**: 8
+  - **Phase 3 — auth_email**: 10
+  - **Phase 3 — auth_login**: 23
+  - **Phase 3 — auth_oauth**: 13 (9 기존 + 4 Apple)
+  - **Phase 3 — user_signup**: 6
+  - **총 224 신규 / 239 passed**
+
+  ## 잔여 트랙
+
+  1. **B 트랙** = 도메인 service 통합 (study/lesson/payment/ebook/textbook/video/admin)
+  2. **login happy path** = 실 세션 생성 + cleanup (`cleanup_test_user` 인프라로 가능)
+  3. 외부 트리거 의존
+
+
 
 - **2026-05-10 (후속) — G10 Phase 3 A 트랙 5 단계 (A1~A5) = 23 tests 추가**
 

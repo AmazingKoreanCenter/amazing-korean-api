@@ -7,7 +7,7 @@ use tokio::sync::RwLock;
 use crate::api::auth::service::OAuthUserInfo;
 use crate::error::{AppError, AppResult};
 
-const APPLE_JWKS_URL: &str = "https://appleid.apple.com/auth/keys";
+pub(crate) const APPLE_JWKS_URL: &str = "https://appleid.apple.com/auth/keys";
 const APPLE_ISSUER: &str = "https://appleid.apple.com";
 
 /// Apple OAuth 클라이언트 (Sign in with Apple — 모바일 ID token 직접 검증).
@@ -18,6 +18,8 @@ const APPLE_ISSUER: &str = "https://appleid.apple.com";
 pub struct AppleOAuthClient {
     client: Client,
     client_id: String, // Apple Bundle ID (e.g., net.amazingkorean.app)
+    /// JWKS endpoint URL (default = 공식 Apple. test 시 wiremock 으로 override).
+    jwks_url: String,
     /// kid → DecodingKey 캐시. Apple 이 키 로테이션을 해도 토큰 kid 가 바뀌면
     /// cache miss 로 떨어져 자동으로 새 키를 가져온다.
     jwks_cache: Arc<RwLock<HashMap<String, jsonwebtoken::DecodingKey>>>,
@@ -56,6 +58,11 @@ pub struct AppleIdTokenClaims {
 
 impl AppleOAuthClient {
     pub fn new(client_id: String) -> Self {
+        Self::with_url(client_id, APPLE_JWKS_URL.to_string())
+    }
+
+    /// JWKS URL override 가능한 생성자. test 환경에서 wiremock URL 주입용.
+    pub fn with_url(client_id: String, jwks_url: String) -> Self {
         Self {
             // N-10: 외부 서비스 hang 방지 (timeout 15초)
             client: Client::builder()
@@ -63,6 +70,7 @@ impl AppleOAuthClient {
                 .build()
                 .expect("reqwest client builder must succeed"),
             client_id,
+            jwks_url,
             jwks_cache: Arc::new(RwLock::new(HashMap::new())),
         }
     }
@@ -81,7 +89,7 @@ impl AppleOAuthClient {
         // Cache miss — JWKS 전체를 가져와 캐시에 모두 적재.
         let jwks: AppleJwks = self
             .client
-            .get(APPLE_JWKS_URL)
+            .get(&self.jwks_url)
             .send()
             .await
             .map_err(|e| AppError::External(format!("Failed to fetch Apple JWKS: {}", e)))?
