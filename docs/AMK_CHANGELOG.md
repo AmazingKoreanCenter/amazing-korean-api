@@ -1,8 +1,86 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속²⁰) — [4/5] G2 Playwright e2e CI 도입 (별도 workflow + push KKRYOUN trigger)
+updated: 2026-05-10 (후속²¹) — [5/5] B5 expect 분류 종결 + hot path 1건 변환 (dummy_password_hash)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속²¹) — [5/5] B5 expect 분류 종결 + hot path 1건 변환 (dummy_password_hash)**
+
+  사용자 권장 5단계 [5/5] **마지막**. 본 세션 완전 종결.
+
+  ## B5 분류 결과 (production code 만, mod tests 제외)
+
+  ```
+  $ grep -rnE "\.expect\(" src/ | filter cfg(test) excluded
+  Total: 84  → production: ~46  → mod tests: ~38
+  ```
+
+  | Tier | 위치 | 건수 | 위험도 | 변환 적합 |
+  |:----:|------|:----:|:----:|:----:|
+  | 1 | `src/config.rs` env var parsing | ~36 | 낮음 (startup fail-fast) | ❌ 의도된 panic — 잘못된 설정 즉시 알림 |
+  | 1 | `src/main.rs` init (Redis pool / Resend / Paddle) | 6 | 낮음 (startup fail-fast) | ❌ |
+  | 2 | `src/external/{vimeo,revenuecat,ipgeo}.rs` reqwest Client::builder | 3 | 매우 낮음 (default config 사실상 unreachable) | 🟡 별도 PR |
+  | **3** | `src/api/auth/service.rs:123` `dummy_password_hash` | **1** | **🔴 hot path** (모든 login attempt 의 anti-enumeration path) | ✅ **본 PR 변환** |
+
+  Tier 1 의 `.expect()` = production 안전장치 (`feedback_security_patterns.md` 의 fail-closed 정책 + AMK_DEPLOY_OPS §4 의 `EMAIL_PROVIDER=none + APP_ENV=production` panic 과 동일 의미). 의도된 fail-fast.
+
+  ## 변환: `dummy_password_hash`
+
+  `OnceLock<String>` `get_or_init` 클로저 안의 `.expect("argon2 dummy hash should succeed")` 제거. fallible match 패턴으로 변환 — argon2 fail 시 `AppError::Internal` 전파 (panic 회피).
+
+  ```rust
+  let hash_str = match DUMMY_HASH.get() {
+      Some(s) => s,
+      None => {
+          let salt = SaltString::generate(&mut OsRng);
+          let computed = Argon2::default()
+              .hash_password(b"dummy_password", &salt)
+              .map_err(|e| AppError::Internal(format!("argon2 dummy hash failed: {}", e)))?
+              .to_string();
+          DUMMY_HASH.get_or_init(|| computed)
+      }
+  };
+  ```
+
+  - 기존 fn 시그니처 = `AppResult<PasswordHash<'static>>` 그대로 (호출자 영향 0)
+  - 캐시 동작 동일 = 첫 요청 1회 hash, 이후 cache hit
+  - argon2 default config + 32-byte salt = fail 사실상 unreachable. 단 B5 트랙 정책상 hot path 의 expect 제거 (panic 회피 = future-proof)
+
+  ## 검증
+
+  ```
+  $ cargo test --lib
+  test result: ok. 183 passed (변경 없음)
+
+  $ cargo clippy --lib --bins --locked -- -D warnings  → clean
+  $ cargo fmt --check --all                            → clean
+  ```
+
+  ## 권장 5단계 = 본 세션 완전 종결 ✅
+
+  | # | 항목 | 상태 |
+  |:-:|------|:----:|
+  | 1 | G10-frontend + G10-deep-2 합치기 | ✅ #265 |
+  | 2 | CI 캐시 최적화 | ✅ #266 |
+  | 3 | Dependabot auto-merge + axios/ip-address | ✅ #267 |
+  | 4 | G2 Playwright e2e CI | ✅ #268 |
+  | **5** | B5 expect 분류 종결 + hot path 변환 | ✅ 본 PR |
+
+  ## 본 세션 누계 (2026-05-10, PR #255~#269)
+
+  - **15 PR / 125+ 신규 tests**
+  - **G10-frontend Phase 1~9** (9 PR, frontend 0 → 117 tests, vitest+RTL+jsdom+msw 인프라 + 16 모듈 화이트리스트 + perFile threshold)
+  - **G10-deep-2** (1 PR, lib 175 → 183, dto validators)
+  - **권장 5단계** (5 PR, [1] page-level + extractor / [2] CI 캐시 / [3] Dependabot + axios/ip-address / [4] G2 e2e / [5] B5 expect)
+  - **production 안정** (4 deploy success, /health 200 유지)
+
+  ## 후속 진입점 (다음 세션)
+
+  - **C-payment-event** ⭐⭐⭐ 1일+ — Paddle Subscription 30+ 필드 webhook happy path
+  - **C-doc-sync** ⭐ 0.5일 — utoipa OpenAPI completeness (N-27 ~43건)
+  - **B5 Tier 2 잔여** ⭐ 0.2일 — external/* reqwest Client::builder 3건 변환 (옵션)
+  - **G10-frontend 추가 page-level** — auth/login_page / payment/pricing_page 등 (msw + QueryClientProvider 패턴 재사용)
+  - **G2 e2e 안정화 후속** — required check 등재 또는 pr-check 통합 결정
 
 - **2026-05-10 (후속²⁰) — [4/5] G2 Playwright e2e CI 도입 = 별도 workflow + 첫 도입 안정화 트랙**
 

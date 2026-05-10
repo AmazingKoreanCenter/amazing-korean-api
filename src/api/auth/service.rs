@@ -116,13 +116,20 @@ impl AuthService {
     /// 타이밍 공격 방지를 위한 더미 해시 수행
     fn dummy_password_hash() -> AppResult<PasswordHash<'static>> {
         static DUMMY_HASH: OnceLock<String> = OnceLock::new();
-        let hash_str = DUMMY_HASH.get_or_init(|| {
-            let salt = SaltString::generate(&mut OsRng);
-            Argon2::default()
-                .hash_password(b"dummy_password", &salt)
-                .expect("argon2 dummy hash should succeed")
-                .to_string()
-        });
+        // hot path (모든 login attempt 의 anti-enumeration). 기존 .expect() = panic
+        // 으로 한 요청이 서버 죽이는 위험. argon2 default config + 32-byte salt =
+        // 사실상 fail unreachable 이지만, B5 트랙 정책상 hot path 의 expect 제거.
+        let hash_str = match DUMMY_HASH.get() {
+            Some(s) => s,
+            None => {
+                let salt = SaltString::generate(&mut OsRng);
+                let computed = Argon2::default()
+                    .hash_password(b"dummy_password", &salt)
+                    .map_err(|e| AppError::Internal(format!("argon2 dummy hash failed: {}", e)))?
+                    .to_string();
+                DUMMY_HASH.get_or_init(|| computed)
+            }
+        };
         PasswordHash::new(hash_str)
             .map_err(|_| AppError::Internal("Failed to parse dummy password hash".into()))
     }
