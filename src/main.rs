@@ -50,8 +50,17 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // 3.5) DB 마이그레이션 자동 실행
-    sqlx::migrate!().run(&pool).await?;
-    tracing::info!("📦 Database migrations applied");
+    // SKIP_STARTUP_MIGRATIONS=1 = e2e CI 처럼 외부 도구로 이미 적용한 환경 우회
+    // (psql 직접 적용 = sqlx 의 _sqlx_migrations 테이블 미채움 → 재실행 시 충돌).
+    if std::env::var("SKIP_STARTUP_MIGRATIONS")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+    {
+        tracing::info!("📦 Skipping startup migrations (SKIP_STARTUP_MIGRATIONS=1)");
+    } else {
+        sqlx::migrate!().run(&pool).await?;
+        tracing::info!("📦 Database migrations applied");
+    }
 
     // 4) Redis 풀 생성
     let redis_cfg = deadpool_redis::Config::from_url(cfg.redis_url.clone());
