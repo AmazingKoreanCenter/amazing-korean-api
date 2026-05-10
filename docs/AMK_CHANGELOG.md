@@ -1,8 +1,105 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 — G1 ✅ CI integration job 안정화 (255 passed / 0 failed). 부채 32 → 31. AMK_DEBTS G1 마킹
+updated: 2026-05-10 (후속) — G10 Phase 3 A 트랙 5 단계 (A1~A5) = 23 tests 추가 (auth_oauth +6 / auth_login +13 / user_signup +1). AMK_STATUS §8.1 #97 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속) — G10 Phase 3 A 트랙 5 단계 (A1~A5) = 23 tests 추가**
+
+  세션 진입 = 사용자 결정 = "A 트랙 자연 후속 순차 진행".
+
+  ## A1 — wiremock 도입 + Google OAuth callback happy (3 tests)
+
+  ### Production 코드 refactor
+  - `GoogleOAuthClient::with_urls(client_id, client_secret, redirect_uri, token_url, jwks_url)` 생성자 신규
+  - `GoogleOAuthClient::new()` = `with_urls(GOOGLE_TOKEN_URL, GOOGLE_JWKS_URL)` 위임
+  - `Config.google_token_url_override` / `google_jwks_url_override` 신규 (Optional, env `GOOGLE_TOKEN_URL_OVERRIDE` / `GOOGLE_JWKS_URL_OVERRIDE` 지원, production = None = 공식 URL)
+  - `service.rs::build_google_client()` private helper = override 있으면 with_urls, 없으면 new()
+
+  ### dev-dependencies 신규
+  - `wiremock = "0.6"` — HTTP mock server
+  - `rsa = "0.9"` features=["pem"] — 테스트용 RSA 2048 keypair 생성
+
+  ### 테스트 인프라
+  - `OnceLock<TestKey>` 으로 RSA keypair 1회 생성 (1-2초, 후속 재사용)
+  - `sign_test_id_token(claims)` = RS256 으로 ID token 서명
+  - `test_jwks_json()` = 공개키 (n, e base64url) JWKS 응답
+  - `mount_google_mocks(server, id_token)` = /token + /jwks 한 번에 mount
+  - `inject_google_test_config(st, mock_uri)` = Config 4 fields 한꺼번에 채움
+
+  ### 신규 테스트
+  - happy path = 서명된 ID token → 신규 user 생성 + is_new_user=true + refresh_token 발급
+  - invalid nonce → `AUTH_401_INVALID_NONCE`
+  - wrong audience → `External` (jsonwebtoken validation fail)
+
+  ## A2 — google_mobile_login (3 tests)
+
+  - 미설정 → `Internal("GOOGLE_MOBILE_CLIENT_ID not configured")`
+  - happy = id_token 직접 + /jwks mock (모바일은 /token 호출 없음) → `Ok(Success { is_new_user=true })`
+  - wrong audience → `External`
+
+  *Apple OAuth = `AppleOAuthClient` URL refactor 별도 트랙*
+
+  ## A3 — signup 미인증 재가입 (1 test, `tests/user_signup_integration.rs` 확장)
+
+  - check_email=false user 사전 생성 → 동일 email 로 signup 재시도 (다른 password/name)
+  - 검증: `overwrite_unverified_user` 호출 → user_id 동일 유지 + 새 인증 이메일 1건 + check_email 여전히 false
+
+  ## A4 — MFA setup / verify_setup / disable (7 tests)
+
+  - mfa_setup happy = secret (base32) + qr_code_data_uri (data:image/png;base64,...) + otpauth_uri
+  - mfa_setup already enabled → `Conflict("MFA_ALREADY_ENABLED")`
+  - mfa_verify_setup happy = valid TOTP → enabled=true + backup_codes 10개 (각 8자 영숫자)
+  - mfa_verify_setup invalid code → `Unauthorized("MFA_INVALID_CODE")`
+  - mfa_verify_setup not started → `BadRequest("MFA_SETUP_NOT_STARTED")`
+  - mfa_disable non-HYMN → `Forbidden("MFA_DISABLE_HYMN_ONLY")`
+  - mfa_disable self → `BadRequest("MFA_CANNOT_DISABLE_SELF")`
+
+  ## A5 — refresh / logout / logout_all (6 tests)
+
+  - refresh malformed (not base64url) → `AUTH_401_INVALID_REFRESH`
+  - refresh valid format + unknown session_id → `AUTH_401_INVALID_REFRESH`
+  - refresh empty session_id part → `AUTH_401_INVALID_REFRESH`
+  - logout unknown session_id (UUID 형식) → Ok (no-op, login_record None 이면 DB/Redis 미조작)
+  - logout_all without refresh_token → `AUTH_401_INVALID_REFRESH` (silent fail X)
+  - logout_all with invalid refresh_token → `AUTH_401_INVALID_REFRESH`
+
+  ## 검증
+
+  ```
+  $ ... cargo test --test auth_oauth_integration -- --ignored
+  test result: ok. 9 passed; 0 failed; 0 ignored; ... ; finished in 4.54s
+
+  $ ... cargo test --test auth_login_integration -- --ignored
+  test result: ok. 23 passed; 0 failed; 0 ignored; ... ; finished in 3.90s
+
+  $ ... cargo test --test user_signup_integration -- --ignored
+  test result: ok. 6 passed; 0 failed; 0 ignored; ... ; finished in 1.73s
+  ```
+
+  - cargo test --lib = 166 passed
+  - cargo clippy --tests --no-deps -- -D warnings = clean
+  - cargo fmt --check = clean
+
+  ## G10 누계 (2026-05-10 후속)
+
+  - **단위**: 157 신규 / 166 passed
+  - **Phase 1 — repo**: 7
+  - **Phase 2 — service Redis**: 8
+  - **Phase 3 — auth_email**: 10
+  - **Phase 3 — auth_login**: 23 (10 기존 + 7 MFA + 6 refresh/logout)
+  - **Phase 3 — auth_oauth**: 9 (3 기존 + 3 wiremock + 3 mobile)
+  - **Phase 3 — user_signup**: 6 (5 기존 + 1 overwrite)
+  - **총 226 신규 / 235 passed**
+
+  ## 잔여 트랙
+
+  1. **B 트랙** = 도메인 service 통합 (study/lesson/payment/ebook/textbook/video/admin)
+  2. **Apple OAuth** = `AppleOAuthClient` URL configurability refactor 후 wiremock 적용
+  3. **login happy path** = 실 세션 생성 (login + redis_session/refresh INSERT) + cleanup 부담
+  4. **외부 트리거 의존** = Q14/Q15/N-26/E1/E2/E3/A2/D RDS
+
+
 
 - **2026-05-10 — G1 ✅ pr-check integration job 안정화 (255 passed / 0 failed)**
 

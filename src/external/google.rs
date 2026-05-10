@@ -4,8 +4,8 @@ use serde::Deserialize;
 use crate::error::{AppError, AppResult};
 
 const GOOGLE_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
-const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
-const GOOGLE_JWKS_URL: &str = "https://www.googleapis.com/oauth2/v3/certs";
+pub(crate) const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+pub(crate) const GOOGLE_JWKS_URL: &str = "https://www.googleapis.com/oauth2/v3/certs";
 
 /// Google OAuth 클라이언트
 pub struct GoogleOAuthClient {
@@ -13,6 +13,10 @@ pub struct GoogleOAuthClient {
     client_id: String,
     client_secret: String,
     redirect_uri: String,
+    /// Token 교환 endpoint URL (default = 공식 Google. test 시 wiremock 으로 override).
+    token_url: String,
+    /// JWKS endpoint URL (default = 공식 Google. test 시 wiremock 으로 override).
+    jwks_url: String,
 }
 
 /// Google Token 교환 응답
@@ -80,8 +84,25 @@ pub struct GoogleUserInfo {
 }
 
 impl GoogleOAuthClient {
-    /// 새 Google OAuth 클라이언트 생성
+    /// 새 Google OAuth 클라이언트 생성 (production = 공식 Google URL).
     pub fn new(client_id: String, client_secret: String, redirect_uri: String) -> Self {
+        Self::with_urls(
+            client_id,
+            client_secret,
+            redirect_uri,
+            GOOGLE_TOKEN_URL.to_string(),
+            GOOGLE_JWKS_URL.to_string(),
+        )
+    }
+
+    /// URL override 가능한 생성자. test 환경에서 wiremock URL 주입용.
+    pub fn with_urls(
+        client_id: String,
+        client_secret: String,
+        redirect_uri: String,
+        token_url: String,
+        jwks_url: String,
+    ) -> Self {
         Self {
             // N-10: 외부 서비스 hang 방지 (timeout 15초)
             client: Client::builder()
@@ -91,6 +112,8 @@ impl GoogleOAuthClient {
             client_id,
             client_secret,
             redirect_uri,
+            token_url,
+            jwks_url,
         }
     }
 
@@ -125,7 +148,7 @@ impl GoogleOAuthClient {
 
         let response = self
             .client
-            .post(GOOGLE_TOKEN_URL)
+            .post(&self.token_url)
             .form(&params)
             .send()
             .await
@@ -159,7 +182,7 @@ impl GoogleOAuthClient {
         // Google JWKS에서 공개키 가져오기
         let jwks: GoogleJwks = self
             .client
-            .get(GOOGLE_JWKS_URL)
+            .get(&self.jwks_url)
             .send()
             .await
             .map_err(|e| AppError::External(format!("Failed to fetch Google JWKS: {}", e)))?

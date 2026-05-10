@@ -44,8 +44,12 @@ pub struct Config {
     pub google_client_secret: Option<String>,
     pub google_redirect_uri: Option<String>,
     pub google_mobile_client_id: Option<String>, // 모바일 전용 Google OAuth Client ID (Android/iOS)
-    pub oauth_state_ttl_sec: i64,                // OAuth state 유효시간 (초, 기본 300)
-    pub frontend_url: String,                    // OAuth 콜백 후 리다이렉트할 프론트엔드 URL
+    /// Google token endpoint URL override (test 전용, wiremock 주입). production = None = 공식 URL.
+    pub google_token_url_override: Option<String>,
+    /// Google JWKS endpoint URL override (test 전용, wiremock 주입). production = None = 공식 URL.
+    pub google_jwks_url_override: Option<String>,
+    pub oauth_state_ttl_sec: i64, // OAuth state 유효시간 (초, 기본 300)
+    pub frontend_url: String,     // OAuth 콜백 후 리다이렉트할 프론트엔드 URL
     // Apple OAuth (모바일 Sign in with Apple)
     pub apple_client_id: Option<String>, // Apple Bundle ID (e.g., net.amazingkorean.app)
     pub apple_team_id: Option<String>,   // Apple Team ID
@@ -227,6 +231,13 @@ impl Config {
         let google_client_secret = env::var("GOOGLE_CLIENT_SECRET").ok();
         let google_redirect_uri = env::var("GOOGLE_REDIRECT_URI").ok();
         let google_mobile_client_id = env::var("GOOGLE_MOBILE_CLIENT_ID")
+            .ok()
+            .filter(|s| !s.is_empty());
+        // test 전용 URL override (test 시 wiremock 주입). production = 미설정 = None.
+        let google_token_url_override = env::var("GOOGLE_TOKEN_URL_OVERRIDE")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let google_jwks_url_override = env::var("GOOGLE_JWKS_URL_OVERRIDE")
             .ok()
             .filter(|s| !s.is_empty());
 
@@ -554,6 +565,8 @@ impl Config {
             google_client_secret,
             google_redirect_uri,
             google_mobile_client_id,
+            google_token_url_override,
+            google_jwks_url_override,
             oauth_state_ttl_sec,
             frontend_url,
             apple_client_id,
@@ -792,6 +805,8 @@ impl fmt::Debug for Config {
                 "google_mobile_client_id",
                 &self.google_mobile_client_id.as_ref().map(|_| "***"),
             )
+            .field("google_token_url_override", &self.google_token_url_override)
+            .field("google_jwks_url_override", &self.google_jwks_url_override)
             .field("oauth_state_ttl_sec", &self.oauth_state_ttl_sec)
             .field("frontend_url", &self.frontend_url)
             .field(

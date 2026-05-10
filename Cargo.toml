@@ -80,3 +80,10 @@ imageproc = "0.25"
 [[bin]]
 name = "rekey_encryption"
 path = "src/bin/rekey_encryption.rs"
+
+[dev-dependencies]
+# wiremock = HTTP mock server for OAuth integration tests (Google /token + /jwks)
+wiremock = "0.6"
+# rsa = generate test RSA keypair for signing fake Google ID tokens (JWT RS256).
+# pem feature = export PKCS8 PEM (jsonwebtoken EncodingKey 입력 형식)
+rsa = { version = "0.9", features = ["pem"] }
