@@ -1,8 +1,54 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속⁶) — G10 deeper email.rs unit tests = 9 신규 + 4 트랙 사실확인. AMK_STATUS §8.1 #102 등재
+updated: 2026-05-10 (후속⁷) — G10-frontend 트랙 진입 = vitest + RTL + jsdom 인프라 정착 + pure utils 5 파일 / 28 tests passed
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁷) — G10-frontend 트랙 진입 = vitest + RTL + jsdom 인프라 정착 + pure utils 5 / 28 tests**
+
+  세션 진입 = 사용자 결정 = "🟢 1. 즉시 작업 가능 순차" 의 첫 번째 (`G10-frontend`, 1-2일).
+
+  ## 인프라 정착 (frontend unit/component test 0 → 1)
+
+  - `package.json` devDeps 신규 7건 — `vitest@^3.2.4` / `@vitest/ui` / `@vitest/coverage-v8` / `jsdom@^29` / `@testing-library/react@^16` / `@testing-library/jest-dom@^6.9` / `@testing-library/user-event@^14`.
+  - npm scripts 신규 3건 — `test` (vitest run) / `test:watch` (vitest) / `test:coverage` (vitest run --coverage). 기존 `test:e2e` (playwright) 유지.
+  - `vitest.config.ts` 신규 — environment=jsdom + globals=true + setupFiles + include `src/**/*.{test,spec}.{ts,tsx}` + exclude e2e/dist + coverage v8 (text+html 리포터). `vite.config.ts` 본체 비침범 (plugin-checker/visualizer 가 test runtime 으로 새지 않도록 분리).
+  - `src/test/setup.ts` 신규 — `@testing-library/jest-dom/vitest` import + `afterEach(cleanup)`.
+  - `tsconfig.app.json` types 확장 (vitest/globals + jest-dom matchers) + 빌드 시 `*.test.{ts,tsx}` / `src/test/**` exclude.
+  - `tsconfig.test.json` 신규 — test 파일 전용 (build 와 분리).
+
+  ## 첫 커버 대상 = pure utils 5 파일 (28 tests)
+
+  | 파일 | tests | 검증 영역 |
+  |------|:----:|----------|
+  | `src/lib/pagination.test.ts` | 6 | `getPageItems` ELLIPSIS 경계 (compact / 시작 근접 / 끝 근접 / 중간 양쪽 / siblingCount=2 / 중복 1·N 보호) |
+  | `src/lib/utils.test.ts` | 6 | `cn` (clsx + twMerge) — 다중/falsy/object/Tailwind 충돌 last-wins/non-conflict 보존/no-arg |
+  | `src/utils/language_groups.test.ts` | 9 | isCJK / isTallScript / needsRelaxedTracking / isRTL + LANG_CLASSES 토큰 |
+  | `src/utils/content_lang.test.ts` | 2 | i18next vi.mock — ko=undefined / non-ko=lang 코드 |
+  | `src/utils/font_loader.test.ts` | 5 | DOM `<link>` 주입 — known/unknown/duplicate guard / Nastaliq weight 500 미지원 / Devanagari 공유 |
+
+  ## 검증
+
+  ```
+  $ npm run test
+  Test Files  5 passed (5)
+       Tests  28 passed (28)
+   Duration  3.41s
+
+  $ npm run build
+  ✓ built in 18.19s
+
+  $ npm run lint
+  (clean — 0 problems)
+  ```
+
+  ## 후속 진입점
+
+  본 PR = 인프라 + pure utils 샘플 만. 다음 단계 = (a) hook 단위 테스트 (`use_auth_store` Zustand / `use_language_sync` i18n side-effect) / (b) api util (`api/client` axios interceptor / refresh path) / (c) component smoke test (`components/shared/PaginationBar` / `Header` / `EmptyState`) / (d) coverage threshold 도입 검토.
+
+  ## 별도 트랙 (본 작업 무관)
+
+  `npm audit` = axios + ip-address 2건 (기존 dependencies 측, vitest 설치와 무관). 별도 부채 분리.
 
 - **2026-05-10 (후속⁶) — G10 deeper email.rs = 9 신규 lib tests / 4 트랙 사실확인**
 

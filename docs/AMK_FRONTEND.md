@@ -599,6 +599,23 @@ export function AppRouter() {
 - **개발 서버 실행**
   - `npm run dev` (기본 포트: 5173)
 
+#### 6.6.2 단위/컴포넌트 테스트 (vitest, 2026-05-10 도입)
+
+- **러너**: `vitest@^3.2.4` + `@vitejs/plugin-react` (vite-native, 별도 transform 불필요).
+- **DOM**: `jsdom@^29` + `@testing-library/react@^16` + `@testing-library/jest-dom@^6.9` + `@testing-library/user-event@^14`.
+- **설정 분리**:
+  - `vitest.config.ts` — test 전용 (jsdom + globals + setup + coverage v8). `vite.config.ts` 본체 비침범 (plugin-checker / visualizer 가 test runtime 으로 새지 않도록).
+  - `src/test/setup.ts` — `@testing-library/jest-dom/vitest` import + `afterEach(cleanup)`.
+  - `tsconfig.test.json` — test 전용 (`vitest/globals` + `@testing-library/jest-dom` types). `tsconfig.app.json` 은 빌드 시 `*.test.{ts,tsx}` exclude.
+- **스크립트**:
+  - `npm run test` — 1회 실행 (`vitest run`). CI 기본.
+  - `npm run test:watch` — watch 모드.
+  - `npm run test:coverage` — coverage v8 (text + html 리포터, `dist`/`src/test`/`*.test` 제외).
+  - `npm run test:e2e` — Playwright (별도 트랙).
+- **파일 위치**: 대상 파일과 같은 디렉터리에 `*.test.ts` / `*.test.tsx` co-locate. 예: `src/lib/pagination.ts` ↔ `src/lib/pagination.test.ts`.
+- **첫 커버 (2026-05-10)**: pure utils 5 파일 / 28 tests (`lib/pagination` / `lib/utils` / `utils/language_groups` / `utils/content_lang` / `utils/font_loader`).
+- **권장 우선순위**: pure utils → hook 단위 → api util (axios interceptor) → component smoke → 페이지 통합 (TanStack Query mock + MemoryRouter).
+
 > 빌드, 배포, CI/CD, EC2 유지보수 등은 [`AMK_DEPLOY_OPS.md`](./AMK_DEPLOY_OPS.md) 참조
 
 ---
