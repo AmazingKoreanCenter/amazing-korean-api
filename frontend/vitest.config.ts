@@ -41,6 +41,7 @@ export default defineConfig({
         "src/api/health_api.ts",
         "src/category/health/hook/use_health.ts",
         "src/category/health/page/health_page.tsx",
+        "src/category/video/page/video_list_page.tsx",
       ],
       exclude: [
         "src/**/*.{test,spec}.{ts,tsx}",
