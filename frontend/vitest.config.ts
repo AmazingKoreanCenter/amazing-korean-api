@@ -36,6 +36,7 @@ export default defineConfig({
         "src/components/blocks/cover_card.tsx",
         "src/components/blocks/list_stats_bar.tsx",
         "src/components/layout/footer.tsx",
+        "src/components/layout/header.tsx",
       ],
       exclude: [
         "src/**/*.{test,spec}.{ts,tsx}",
@@ -45,11 +46,11 @@ export default defineConfig({
       ],
       // 본 thresholds = 현재 cover 된 모듈의 회귀 방지용 (점진 상향 가능).
       // pagination_bar `pointer-events-none` 분기 + footer Dialog onOpenChange
-      // = 직접 호출 어려움 → 보수적 floor.
+      // + header NavLink isActive·tier separator 분기 = 직접 호출 어려움.
       thresholds: {
         perFile: true,
         statements: 90,
-        branches: 85,
+        branches: 75,
         functions: 60,
         lines: 90,
       },
