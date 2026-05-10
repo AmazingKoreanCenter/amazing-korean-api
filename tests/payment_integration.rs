@@ -11,8 +11,23 @@
 
 mod common;
 
+use amazing_korean_api::api::payment::handler::handle_webhook;
 use amazing_korean_api::api::payment::service::PaymentService;
 use amazing_korean_api::error::AppError;
+use axum::body::Bytes;
+use axum::extract::State;
+use axum::http::{HeaderMap, HeaderValue, StatusCode};
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
+
+/// Paddle 시그니처 형식 = `ts=<unix_timestamp>;h1=<hex_hmac_sha256(timestamp + ":" + body, secret)>`
+fn paddle_signature(secret: &str, timestamp: i64, body: &str) -> String {
+    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("HMAC key");
+    mac.update(format!("{}:{}", timestamp, body).as_bytes());
+    let sig = mac.finalize().into_bytes();
+    let hex_sig: String = sig.iter().map(|b| format!("{:02x}", b)).collect();
+    format!("ts={};h1={}", timestamp, hex_sig)
+}
 
 #[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
 #[tokio::test]
@@ -90,4 +105,101 @@ async fn test_cancel_subscription_returns_service_unavailable_when_payment_provi
         ),
         Ok(_) => panic!("payment None → Err expected, got Ok"),
     }
+}
+
+// =============================================================================
+// C-payment — Paddle webhook handler signature path (handler 직접 호출)
+// =============================================================================
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_paddle_webhook_returns_bad_request_for_missing_signature() {
+    // Paddle-Signature 헤더 없음 → BadRequest (400).
+    let st = common::make_test_state().await;
+    let headers = HeaderMap::new();
+    let body = Bytes::from(r#"{"event_type":"subscription.created"}"#);
+
+    let status = handle_webhook(State(st), headers, body).await;
+    assert_eq!(
+        status,
+        StatusCode::BAD_REQUEST,
+        "missing signature → 400, got: {}",
+        status
+    );
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_paddle_webhook_returns_ok_when_secret_unconfigured() {
+    // Config.paddle_webhook_secret = None → 200 OK (Paddle 재시도 방지).
+    let mut st = common::make_test_state().await;
+    st.cfg.paddle_webhook_secret = None;
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        "Paddle-Signature",
+        HeaderValue::from_static("ts=1234567890;h1=irrelevant"),
+    );
+    let body = Bytes::from(r#"{"event_type":"subscription.created"}"#);
+
+    let status = handle_webhook(State(st), headers, body).await;
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "secret None → 200 (no-retry), got: {}",
+        status
+    );
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_paddle_webhook_returns_bad_request_for_invalid_signature() {
+    // 임의 (잘못된) HMAC 시그니처 → BadRequest (Paddle::unmarshal verification fail).
+    let mut st = common::make_test_state().await;
+    st.cfg.paddle_webhook_secret = Some("phase3-test-paddle-secret".to_string());
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        "Paddle-Signature",
+        HeaderValue::from_static(
+            "ts=1234567890;h1=0000000000000000000000000000000000000000000000000000000000000000",
+        ),
+    );
+    let body = Bytes::from(r#"{"event_type":"subscription.created","data":{}}"#);
+
+    let status = handle_webhook(State(st), headers, body).await;
+    assert_eq!(
+        status,
+        StatusCode::BAD_REQUEST,
+        "invalid signature → 400, got: {}",
+        status
+    );
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_paddle_webhook_returns_bad_request_for_valid_signature_but_invalid_event_payload() {
+    // 유효 HMAC 시그니처 + Paddle SDK 가 deserialize 할 수 없는 JSON → Paddle::unmarshal Event 파싱 fail → BadRequest.
+    let secret = "phase3-test-paddle-secret";
+    let mut st = common::make_test_state().await;
+    st.cfg.paddle_webhook_secret = Some(secret.to_string());
+
+    let timestamp = chrono::Utc::now().timestamp();
+    let body_str = r#"{"not_a_paddle_event":true}"#;
+    let signature = paddle_signature(secret, timestamp, body_str);
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        "Paddle-Signature",
+        HeaderValue::from_str(&signature).expect("valid header"),
+    );
+    let body = Bytes::from(body_str.to_string());
+
+    let status = handle_webhook(State(st), headers, body).await;
+    assert_eq!(
+        status,
+        StatusCode::BAD_REQUEST,
+        "valid sig + invalid event JSON → 400, got: {}",
+        status
+    );
 }

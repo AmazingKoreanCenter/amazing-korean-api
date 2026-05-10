@@ -1,8 +1,80 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속³) — G10 Phase 3 A6+A7 + B 트랙 7도메인 = 26 신규 / 7 신규 테스트 파일. AMK_STATUS §8.1 #99 등재
+updated: 2026-05-10 (후속⁴) — G10 Phase 3 B 트랙 deeper coverage (5도메인) = 14 신규 tests. AMK_STATUS §8.1 #100 등재
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 (후속⁴) — B 트랙 deeper coverage (5도메인) = 14 신규 tests**
+
+  세션 진입 = 사용자 결정 = "1. 통합 테스트 deeper coverage 순서대로".
+
+  ## C-payment (4 신규, payment 8 누적): Paddle webhook signature path
+  - missing Paddle-Signature → 400
+  - paddle_webhook_secret None → 200 (Paddle 재시도 방지)
+  - 잘못된 HMAC 시그니처 → 400
+  - 유효 HMAC + Paddle SDK deserialize 불가 JSON → 400 (Event 파싱 fail)
+  - **handler 직접 호출** (axum-test 미도입), HMAC-SHA256 시그니처 helper 추가
+
+  ## C-ebook (4 신규, ebook 7 누적): 세션 라이프사이클 happy
+  - register_session → ebook_viewer:<user_id> Redis key 생성 + 32-byte HMAC secret
+  - heartbeat 매칭 session_id → valid=true (TTL 갱신)
+  - heartbeat 다른 session_id → valid=false (세션 탈취 방지)
+  - verify_session 매칭 → Ok(()) (페이지/타일 요청 통과)
+
+  ## C-study/lesson/video (3 신규, 각 +1): default pagination happy
+  - list_studies default → page=1, per_page=10
+  - list_lessons default → page=1, per_page=20
+  - list_videos default → page=1, per_page=20
+
+  ## C-admin-invite (4 신규, admin_upgrade 5 누적): RBAC validation
+  - invalid email → BadRequest
+  - invalid role (admin/manager 외) → BadRequest
+  - actor 미존재 → Unauthorized("Actor user not found")
+  - Learner 가 admin invite 시도 → Forbidden("UPGRADE_403_INSUFFICIENT_PERMISSION")
+
+  ## Skip 트랙 (시간 부담)
+  - **C-textbook** 주문 생성 happy = CreateOrderReq 다수 필드 + 이메일 mock + DB cleanup. 별도 트랙
+  - **C-admin-rbac** = admin_role_guard middleware = axum extractor 통합 부담. 별도 트랙
+
+  ## 검증
+
+  ```
+  $ ... cargo test --test payment_integration -- --ignored = 8 passed (0.42s)
+  $ ... cargo test --test ebook_integration -- --ignored = 7 passed (0.32s)
+  $ ... cargo test --test study_integration -- --ignored = 6 passed (0.38s)
+  $ ... cargo test --test lesson_integration -- --ignored = 5 passed (0.36s)
+  $ ... cargo test --test video_integration -- --ignored = 4 passed (0.30s)
+  $ ... cargo test --test admin_upgrade_integration -- --ignored = 5 passed (0.84s)
+  ```
+
+  - cargo test --lib = 166 passed
+  - cargo clippy / fmt clean
+
+  ## G10 누계 (2026-05-10 후속⁴)
+
+  - **단위**: 157 신규 / 166 passed
+  - **Phase 1 — repo**: 7
+  - **Phase 2 — service Redis**: 8
+  - **Phase 3 — auth_email**: 10
+  - **Phase 3 — auth_login**: 26
+  - **Phase 3 — auth_oauth**: 13
+  - **Phase 3 — user_signup**: 6
+  - **Phase 3 — payment**: 8 (4 + 4 신규)
+  - **Phase 3 — ebook**: 7 (3 + 4 신규)
+  - **Phase 3 — study**: 6 (5 + 1 신규)
+  - **Phase 3 — lesson**: 5 (4 + 1 신규)
+  - **Phase 3 — textbook**: 3
+  - **Phase 3 — video**: 4 (3 + 1 신규)
+  - **Phase 3 — admin_upgrade**: 5 (1 + 4 신규)
+  - **총 264 신규 / 273 passed**
+
+  ## 잔여 트랙
+
+  - C-textbook 주문 생성 happy + 이메일 (별도 1일)
+  - C-admin-rbac middleware (별도 0.5일, axum extractor 통합)
+  - 외부 트리거 의존 (Q14/Q15/N-26/E1/E2/E3)
+
+
 
 - **2026-05-10 (후속³) — A6+A7 (login/logout/refresh happy) + B 트랙 7도메인 (B1~B7) = 26 신규 tests**
 
