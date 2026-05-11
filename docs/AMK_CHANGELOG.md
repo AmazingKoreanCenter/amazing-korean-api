@@ -1,8 +1,50 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속 — G2-1 ✅ 해결 (vite preview 전환, login_flow dormant 해제)
+updated: 2026-05-11 후속² — C-doc-sync (N-27 후 신규 admin 21 endpoint OpenAPI 등록 + 검증 test)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속² ✅ — C-doc-sync: N-27 종결 후 신규 admin 21 endpoint OpenAPI 등록**
+
+  N-27 (2026-05-06 종결) 후 추가된 admin endpoint 가 OpenAPI 에 미등록 = doc-sync hygiene.
+  메모리 노트 "C-doc-sync N-27 ~43건" 은 stale — 실제 scope = 21 endpoint (15 unique path).
+
+  ## 분류 (21 endpoint, 15 unique path)
+
+  | 분류 | endpoint | path 수 |
+  |------|----------|---------|
+  | admin/user logs | 2 (admin_get_user_logs / self_logs) | 2 unique |
+  | admin/video preview | 1 (admin_get_vimeo_preview) | 1 unique |
+  | admin GET detail | 4 (lesson/study/video/study_task) | 0 unique (기존 PATCH 와 같은 URL) |
+  | admin DELETE | 2 (lesson item / bulk) | 0 unique (기존 PATCH 와 같은 URL) |
+  | admin/video stats | 3 (aggregate_daily / summary / top) | 3 unique |
+  | admin/study stats | 3 (daily / summary / top) | 3 unique |
+  | admin/user+login stats | 5 (user summary/signups + login summary/daily/devices) | 5 unique |
+  | webhook 정책 제외 | 1 (handle_webhook = OpenAPI 노출 X) | — |
+
+  ## 변경
+
+  - `src/docs.rs::ApiDoc::paths(...)` = 21 entry 추가 (admin - users/videos/lessons/studies 섹션 확장 + admin - video/study/user stats 신규 섹션 3개)
+  - `src/docs.rs::tests::openapi_spec_includes_doc_sync_paths` 신규 test (13 unique path 표본 검증)
+  - `openapi_spec_summary_sanity` baseline 갱신: paths >= 100 → 130 / schemas >= 130 → 160
+
+  ## OpenAPI spec 변화
+
+  | 지표 | before | after | 증가 |
+  |------|--------|-------|------|
+  | paths | 121 | 136 | +15 |
+  | schemas | 334 | 367 | +33 (신규 stats DTO + admin GET/DELETE DTO auto-resolve) |
+  | tags | 15 | 15 | 0 |
+
+  ## 검증
+
+  - `cargo test --lib openapi_spec` = **6 passed** (기존 5 + 신규 1)
+  - `cargo test --lib` = **184 passed** (이전 183 + 신규 1)
+  - clippy --all-targets / fmt clean
+
+  ## 부채 처리
+
+  - 메모리 "C-doc-sync ⭐ 0.5일 (utoipa OpenAPI N-27 ~43건)" = stale, 실제 작업으로 21 endpoint hygiene maintenance 진행. AMK_DEBTS §0 카운트 변동 없음 (별도 부채 번호 미할당, doc-sync hygiene 카테고리)
 
 - **2026-05-11 후속 ✅ — G2-1 e2e vite cold start 안정화 (login_flow dormant 해제, 옵션 a)**
 
