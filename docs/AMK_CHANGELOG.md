@@ -1,8 +1,36 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속⁹ — G10-frontend T-G10-page-cont (reset_password_page = 4 신규 / 160 passed)
+updated: 2026-05-11 후속¹⁰ — G10-frontend T-G10-deep-ebook (ebook_api 12 함수 + 2 hooks = 21 신규 / 181 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속¹⁰ ✅ — G10-frontend T-G10-deep-ebook: ebook_api + 2 hooks 21 신규 / 181 passed**
+
+  T-G10-deep (#281, textbook) 패턴 ebook 도메인 확장.
+
+  ## 3 신규 파일 (21 tests)
+
+  | 파일 | tests | 검증 |
+  |------|:-:|------|
+  | `ebook_api.test.ts` | 15 | user-facing 6 (catalog/createPurchase/myPurchases/cancelPurchase/viewerMeta/heartbeat) + binary 4 (fetchPageImage/fetchPageTile × no-HMAC/with-HMAC) + admin 4 (list/get/updateStatus/delete) + 5xx ApiError |
+  | `hook/use_ebook_catalog.test.tsx` | 2 | isLoading→isSuccess / isError |
+  | `hook/use_my_purchases.test.tsx` | 4 | enabled=false (idle) / success / error / pending paddle 분기 |
+
+  ## Web Crypto API 검증
+
+  - jsdom 환경에서 `crypto.subtle.importKey` + `sign` 정상 작동
+  - HMAC 헤더 형식 검증 = `X-Ebook-Signature` 64-hex / `X-Ebook-Timestamp` unix-seconds
+
+  ## vitest.config.ts coverage whitelist
+
+  - ebook_api.ts / use_ebook_catalog.ts / use_my_purchases.ts 추가
+
+  ## 검증
+
+  - `vitest run --coverage` = **181 passed** (이전 160 + 신규 21) / 36 파일
+  - category/ebook = **100% all metrics**
+  - thresholds 90/75/60/90 perFile 통과
+  - npm build 16.61s clean / lint 0
 
 - **2026-05-11 후속⁹ ✅ — G10-frontend T-G10-page-cont: reset_password_page 4 신규 / 160 passed**
 
