@@ -1,8 +1,56 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 — B5 Tier 2 reqwest builder 6건 Result 전파 → B5 트랙 완전 종결
+updated: 2026-05-11 — [3/4] G2 e2e 후속 = login_flow.spec.ts 추가 (1 spec → 2 spec)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 — [3/4] G2 e2e 후속 = login_flow.spec.ts 추가 (1 spec → 2 spec)**
+
+  본 세션 권장 4단계 [3/4]. e2e CI 안정화 트랙 — 시나리오 확장.
+
+  ## 신규: `frontend/e2e/login_flow.spec.ts`
+
+  ```
+  test.describe("login flow — happy path", () => {
+    test("이메일·패스워드 입력 → 로그인 성공 → /about 리다이렉트", ...
+  ```
+
+  | 단계 | 검증 |
+  |------|------|
+  | 1 | `/login` 페이지 진입 |
+  | 2 | `input[name="email"]` + `input[name="password"]` 입력 (fixtures TEST_EMAIL/TEST_PASSWORD) |
+  | 3 | `button[type="submit"]` 클릭 |
+  | 4 | `useLogin` mutation onSuccess → `navigate("/about")` → `expect(page).toHaveURL(/\/about$/, timeout: 10s)` |
+
+  ## E2E 수트 현황
+
+  | spec | 시나리오 |
+  |------|---------|
+  | `writing_practice.spec.ts` (P10-C, 2026-04-14) | 로그인 → 레벨/유형 선택 → 자유 연습 1회 완료 → stats total_sessions +1 |
+  | `login_flow.spec.ts` (본 PR) | 로그인 폼 입력 → /about 리다이렉트 |
+
+  ## rate limit 안전
+
+  RATE_LIMIT_LOGIN_MAX=10 / WINDOW=900s. 본 CI run = login_flow 폼 로그인 1회 + writing_practice apiLogin 1회 = **합 2회** → 안전 마진 8.
+
+  ## 검증
+
+  ```
+  $ npm run build  → 17.59s
+  $ npm run lint   → 0 problems
+  $ npm run test   → 122 passed (unit, 영향 0)
+  ```
+
+  실 동작 검증 = 본 PR push 후 e2e.yml workflow run.
+
+  ## 권장 4단계 진행 상황
+
+  | # | 항목 | 상태 |
+  |:-:|------|:----:|
+  | 1 | b71b3e8 docs PR | ✅ #270 |
+  | 2 | B5 Tier 2 → B5 완전 종결 | ✅ #271 |
+  | **3** | G2 e2e 후속 (시나리오 추가) | ✅ 본 PR |
+  | 4 | 본 세션 종결 | 🔴 다음 |
 
 - **2026-05-11 — B5 Tier 2 reqwest builder 6건 Result 전파 = B5 트랙 완전 종결**
 
