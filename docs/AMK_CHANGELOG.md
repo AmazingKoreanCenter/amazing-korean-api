@@ -1,8 +1,44 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속⁵ — C-payment-event T-Subset-Cont (나머지 6 variants = 6 신규 / payment_integration 17 passed)
+updated: 2026-05-11 후속⁶ — C-payment-event T-Subset-Txn (transaction + adjustment + 🐛 실제 버그 수정 = 5 신규 / payment_integration 22 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속⁶ ✅ — C-payment-event T-Subset-Txn: transaction.completed + adjustment + 🐛 실제 버그 수정**
+
+  Track 4 자연 후속². 통합 테스트로 production-affecting 버그 1건 발견 + 수정.
+
+  ## 2 신규 JSON helper
+
+  - `make_transaction_completed_event_json` — Transaction 22 필드 + TransactionDetails (tax_rates_used / totals / adjusted_totals / payout_totals / line_items 모두 nested) + items + payments + checkout 등 80+ 라인
+  - `make_adjustment_created_event_json` — Adjustment 13 필드 + AdjustmentTotals nested
+
+  ## 5 신규 tests
+
+  | test | 검증 |
+  |------|------|
+  | `test_transaction_completed_event_json_deserializes_via_paddle_sdk` | wire-format sanity |
+  | `test_process_webhook_event_transaction_completed_inserts_db_row` | sub 시드 → transaction.completed → `transactions` INSERT |
+  | `test_adjustment_event_json_deserializes_via_paddle_sdk` | wire-format sanity |
+  | `test_process_webhook_event_adjustment_refund_approved_marks_transaction_refunded` | refund + approved → `status=Refunded` |
+  | `test_adjustment_credit_action_is_skipped` | credit action → skip, `status=Completed` 유지 |
+
+  ## 🐛 버그 수정 (통합 테스트 발견)
+
+  - `PaymentRepo::update_transaction_status_by_provider_id` 의 SQL `SET status=$1, updated_at=NOW()` = `transactions` 테이블에 `updated_at` 컬럼이 없음 = 환불 처리 webhook 이 모두 fail 하던 path
+  - 수정 = `SET status=$1` 만 유지 (created_at 만 존재하는 schema 와 정합)
+  - 본 fix 가 없었다면 production Paddle refund webhook = 처리 실패 + Paddle 재전송 무한 루프 가능
+
+  ## 검증
+
+  - `cargo test --test payment_integration -- --ignored` = **22 passed** (이전 17 + 신규 5)
+  - `cargo test --lib` = 184 passed
+  - clippy --all-targets clean (1 `too_many_arguments` allow on helper)
+  - fmt clean
+
+  ## T-Subset 트랙 완전 종결
+
+  Subscription 7 variants (PR #277 created + PR #278 나머지 6) + Transaction (1) + Adjustment (refund + credit skip 2) = 본 PR 5 = **payment_integration 22 passed**. Paddle webhook 처리 happy path coverage 완료. 잔여 = ebook transaction 별도 path (custom_data.type="ebook") = 시드 의존도 ↑ = 별도 트랙.
 
 - **2026-05-11 후속⁵ ✅ — C-payment-event T-Subset-Cont: 나머지 6 Subscription variants 상태 전이 검증**
 
