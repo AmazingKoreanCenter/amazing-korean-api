@@ -1,8 +1,45 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 (후속²¹) — [5/5] B5 expect 분류 종결 + hot path 1건 변환 (dummy_password_hash)
+updated: 2026-05-10 일일 종결 — 15 PR (#255~#269) / 125+ 신규 tests / 부채 31→30 / production 5 deploy success
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-10 일일 종결 ✅ — 15 PR / 125+ 신규 tests / 부채 31→30 / production 5 deploy success**
+
+  KKRYOUN ↔ origin/main = `561baba` 정렬. production /health 200 유지.
+
+  ## 본 세션 누계
+
+  | 트랙 | PR | 변경 |
+  |------|----|------|
+  | G10-frontend Phase 1~9 | #255~#263 (9) | frontend 0 → 117 tests / vitest+RTL+jsdom+msw 인프라 / 16 모듈 화이트리스트 / perFile threshold |
+  | G10-deep-2 | #264 (1) | lib 175 → 183 (dto validators 8) |
+  | 권장 5단계 [1] | #265 (1) | VideoListPage page-level 5 + extractor.rs 5 #[ignore] |
+  | 권장 5단계 [2] | #266 (1) | CI 캐시 = Swatinem/rust-cache shared-key + save-if + cache-on-failure |
+  | 권장 5단계 [3] | #267 (1) | Dependabot auto-merge workflow + axios/ip-address npm audit fix → 0 vulnerabilities |
+  | 권장 5단계 [4] | #268 (1) | G2 Playwright e2e CI 첫 도입 (별도 workflow + SKIP_STARTUP_MIGRATIONS env). 첫 run = 2m26s pass |
+  | 권장 5단계 [5] | #269 (1) | B5 expect Tier 3 dummy_password_hash 변환 (OnceLock get_or_init expect 제거 → fallible match) |
+  | **합계** | **15 PR** | **125+ 신규 tests** |
+
+  ## 부채 변화
+
+  - G2 (playwright e2e CI) ✅ 해결 = #268
+  - B5 auth:99 dummy hash 추가 cleanup = #269 (안전 카운트 45→44, hot path 0건 유지)
+  - **AMK_DEBTS §0 = 31 → 30**
+
+  ## production 영향
+
+  - 5 deploy success (#265 / #266 / #267 / #268 / #269 모두 main 머지 후 자동 deploy)
+  - /health 200 유지 (uptime 22~38s 새 컨테이너 정상 시작)
+  - 본 세션 모든 변경 = 기존 동작 호환 (env 미설정 시 기본 path 유지) → production 영향 0
+
+  ## 다음 세션 진입점
+
+  - **C-payment-event** ⭐⭐⭐ 1일+ (Paddle Subscription 30+ 필드 webhook happy)
+  - **C-doc-sync** ⭐ 0.5일 (utoipa OpenAPI N-27 ~43건 누락)
+  - **B5 Tier 2 잔여** ⭐ 0.2일 (external/{vimeo,revenuecat,ipgeo,apple,email,google}.rs reqwest Client::builder 6건 cold init expect)
+  - **G10-frontend 추가 page-level** (auth/login_page / payment/pricing_page 등 — msw + QueryClientProvider 패턴 재사용)
+  - **G2 e2e 안정화 후속** = required check 등재 / pr-check 통합
 
 - **2026-05-10 (후속²¹) — [5/5] B5 expect 분류 종결 + hot path 1건 변환 (dummy_password_hash)**
 

@@ -26,12 +26,12 @@
 | D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
 | E. 기능 부채 (보류/조건부) | **11** | 9 (E-9~E-19 보류 9건, ~~번들 최적화~~ ✅ C7 해결 2026-05-05) + **신규 2** (콘텐츠 시딩 E-FUTURE-1, SpeechSuper E-TEXTBOOK-1). E-FUTURE-2 발음/조음/TTS 3건 = ai 측 작업 트랙 (`AMK_AI_PRONUNCIATION.md`), 본 리포 능동 작업 0 = 카운트 외 |
 | F. 모바일/데스크탑 앱 부채 | ~~5~~ → **1** | 외부 리포 SSoT. 2026-05-08 stale 정정 = ~~F1/F2/F3~~ ✅ (mobile 리포 Phase 1~3 완료 사실 반영) + ~~F4~~ ✅ (TTL 90→300 본 리포 적용). F5 만 수용 잔존 |
-| G. 자동 검증 부재 (CI 부채) | ~~5~~ → ~~4~~ → ~~5~~ → ~~4~~ → ~~5~~ → ~~4~~ → **3** | ~~G3/G4/G5/G6/G7/G11/G13/G14~~ ✅ 해결 또는 🟡 수용 (2026-05-05) + ~~G8~~ ✅ 해결 (2026-05-08) + ~~G15~~ ✅ 해결 (2026-05-10) + ~~G16~~ ✅ 해결 (2026-05-10 옵션 a 정책 정착, migrations/README.md) + ~~G1~~ ✅ 해결 (2026-05-10, pr-check integration job + 255 passed). 잔여 = G2 (playwright e2e 보류) + 🟡 G10 src 테스트 부족 (광범위 처리, 166 unit + 89 통합 passed) + G12 cargo-geiger (보류) |
+| G. 자동 검증 부재 (CI 부채) | ~~5~~ → ~~4~~ → ~~5~~ → ~~4~~ → ~~5~~ → ~~4~~ → ~~3~~ → **2** | ~~G3/G4/G5/G6/G7/G11/G13/G14~~ ✅ 해결 또는 🟡 수용 (2026-05-05) + ~~G8~~ ✅ 해결 (2026-05-08) + ~~G15~~ ✅ 해결 (2026-05-10) + ~~G16~~ ✅ 해결 (2026-05-10 옵션 a 정책 정착, migrations/README.md) + ~~G1~~ ✅ 해결 (2026-05-10, pr-check integration job + 255 passed) + ~~G2~~ ✅ 해결 (2026-05-10, PR #268 — e2e.yml 별도 workflow 첫 도입, Playwright Chromium 2m26s pass, 안정화 트랙). 잔여 = 🟡 G10 src 테스트 부족 (광범위 처리, frontend 117 + backend lib 183 + 통합 누적) + G12 cargo-geiger (보류) |
 | H. 문서/메모리 부채 | **0** | ~~H1 메모리 stale~~ 🟡 + ~~H2 docs↔코드 자동 도구~~ 🟡 = 수용 결정 (2026-05-05) |
 | I. AI 작업 사고 | **8** | `AMK_AI_MISTAKES.md` SSoT (2026-05-08 M-010 신규 = stale 정정 부분만 + 권고 전 외부 검증 누락) |
 | J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
 
-**총 미해결 부채 = 31건** (카테고리 합산: A 3 + B 1 (B6) + C 0 + D 4 + E 11 + F 1 + G 3 + H 0 + I 8 + J 0. 2026-05-10 ~~G1~~ ✅ 해결 (pr-check.yml integration job 신규, postgres + redis service container, psql lex order migration G16 workaround, `cargo test --workspace --tests --locked -- --include-ignored`. CI run 25616239742 = 255 passed / 0 failed. 4 commit fix sequence) → G 4→3, 32 → **31**. 2026-05-10 후속¹⁰ ~~G16~~ ✅ 해결 (옵션 a 정책 정착, `migrations/README.md` 신규 + `AMK_DEPLOY_OPS §3` cross-link, 8자리 timestamp 통일 강제, legacy 14자리 2건은 production checksum 보호 위해 유지) → G 5→4, 33 → **32**. 2026-05-10 후속⁹ G16 신규 (migration 정렬 비호환 발견, 통합 테스트 fresh DB 셋업 시만 영향) → G 4→5, 32 → 33. 2026-05-10 ~~G15~~ ✅ 해결 (token_utils.rs 삭제, dead code 정리, 사용처 0 = 빌드 영향 없음) → G 5→4, 33 → **32**. 2026-05-10 G15 신규 (dead code 발견, G10 작업 중) → G 4→5, 32 → 33. 2026-05-10 G10 부분 처리 (auth 24 신규 단위 테스트, 33 tests, 메모리 "4건" stale 정정) = 카운트 변동 X (미해결 유지). 2026-05-09 ~~C1~~ ✅ ESLint baseline 종결 (28 → 0 problems, static-components 9 + refs 5 + set-state-in-effect 2 + warnings 12 = 컴포넌트 외부 추출 / useState 변환 / key prop 재마운트 / inline disable 의도 명시) → C 1→0, 33 → 32. 2026-05-08 (오후 후속 6) ~~C2~~ ✅ lint:ui (신규 토큰 highlight + level-1~5 정착, 검증 0 errors) → C 2→1, 34 → 33. 2026-05-08 (오후 후속 5) ~~G8~~ ✅ branch protection → G 5→4, 35 → 34. 2026-05-08 (오후 후속 4) F 카테고리 stale 정정 = F1/F2/F3 ✅ + F4 ✅ → F 5→1, 39 → 35. 2026-05-08 (오후) A1-4 ✅ SPF → A 4→3, 40 → 39. 2026-05-08 (오전 후속) M-010 정정 = A1-1 ✅ + I +1 = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 → 41 → 40. 2026-05-08 A1 stale 정정 → 42 → 41. 2026-05-07 Phase B → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 30건** (카테고리 합산: A 3 + B 1 (B6) + C 0 + D 4 + E 11 + F 1 + G 2 + H 0 + I 8 + J 0. 2026-05-10 ~~G2~~ ✅ 해결 (PR #268 — `.github/workflows/e2e.yml` 별도 workflow 첫 도입. push KKRYOUN + workflow_dispatch trigger / postgres+redis service container / cargo cache shared-key="backend" / cargo build --bin (debug ~1-2min) → backend bg → /healthz polling → 테스트 계정 생성 → playwright install chromium → vite dev bg → npm run test:e2e → fail artifact. 첫 run = Playwright Chromium 2m26s pass. fix: SKIP_STARTUP_MIGRATIONS=1 env 분기로 backend startup migration 우회. pr-check 통합 보류 = 안정화 트랙) → G 3→2, 31 → **30**. 2026-05-10 ~~G1~~ ✅ 해결 (pr-check.yml integration job 신규, postgres + redis service container, psql lex order migration G16 workaround, `cargo test --workspace --tests --locked -- --include-ignored`. CI run 25616239742 = 255 passed / 0 failed. 4 commit fix sequence) → G 4→3, 32 → **31**. 2026-05-10 후속¹⁰ ~~G16~~ ✅ 해결 (옵션 a 정책 정착, `migrations/README.md` 신규 + `AMK_DEPLOY_OPS §3` cross-link, 8자리 timestamp 통일 강제, legacy 14자리 2건은 production checksum 보호 위해 유지) → G 5→4, 33 → **32**. 2026-05-10 후속⁹ G16 신규 (migration 정렬 비호환 발견, 통합 테스트 fresh DB 셋업 시만 영향) → G 4→5, 32 → 33. 2026-05-10 ~~G15~~ ✅ 해결 (token_utils.rs 삭제, dead code 정리, 사용처 0 = 빌드 영향 없음) → G 5→4, 33 → **32**. 2026-05-10 G15 신규 (dead code 발견, G10 작업 중) → G 4→5, 32 → 33. 2026-05-10 G10 부분 처리 (auth 24 신규 단위 테스트, 33 tests, 메모리 "4건" stale 정정) = 카운트 변동 X (미해결 유지). 2026-05-09 ~~C1~~ ✅ ESLint baseline 종결 (28 → 0 problems, static-components 9 + refs 5 + set-state-in-effect 2 + warnings 12 = 컴포넌트 외부 추출 / useState 변환 / key prop 재마운트 / inline disable 의도 명시) → C 1→0, 33 → 32. 2026-05-08 (오후 후속 6) ~~C2~~ ✅ lint:ui (신규 토큰 highlight + level-1~5 정착, 검증 0 errors) → C 2→1, 34 → 33. 2026-05-08 (오후 후속 5) ~~G8~~ ✅ branch protection → G 5→4, 35 → 34. 2026-05-08 (오후 후속 4) F 카테고리 stale 정정 = F1/F2/F3 ✅ + F4 ✅ → F 5→1, 39 → 35. 2026-05-08 (오후) A1-4 ✅ SPF → A 4→3, 40 → 39. 2026-05-08 (오전 후속) M-010 정정 = A1-1 ✅ + I +1 = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 → 41 → 40. 2026-05-08 A1 stale 정정 → 42 → 41. 2026-05-07 Phase B → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
 
 ---
 
@@ -157,7 +157,7 @@
 |------|:--:|------|
 | `src/config.rs` | 37 | 🟢 안전 (부팅 시 환경변수 파싱 panic = production safety gate) |
 | `src/main.rs` | 6 | 🟢 안전 (부팅 시 Redis pool / API key / Paddle client 초기화) |
-| `src/api/auth/service.rs` | 1 | 🟢 안전 (line 99 dummy hash, 정적 입력 = panic 불가능). ~~line 447 invariant~~ ✅ 제거 (2026-05-07, let-else 리팩터) |
+| `src/api/auth/service.rs` | 0 | ~~line 99 dummy hash~~ ✅ 제거 (2026-05-10, PR #269 — OnceLock get_or_init 클로저 안 expect 제거 → fallible match 패턴, AppError::Internal 전파). ~~line 447 invariant~~ ✅ 제거 (2026-05-07, let-else 리팩터) |
 | `src/api/user/service.rs` | 1 | 🟢 안전 (`hmac_key: &[u8; 32]` 타입 보장) |
 | `src/external/email.rs` | 1 | 🟡 cold init (reqwest builder, ResendEmailSender::new) |
 | `src/external/apple.rs` | 1 | 🟡 cold init (reqwest builder) |
@@ -170,7 +170,7 @@
 
 | 분류 | 건수 | 의미 |
 |------|:--:|------|
-| 🟢 안전 | 45 | 부팅 시점 fail-fast 또는 타입/정적 invariant 로 panic 불가능 |
+| 🟢 안전 | 44 | 부팅 시점 fail-fast 또는 타입/정적 invariant 로 panic 불가능. (auth:99 dummy hash 1건 제거 = 2026-05-10 PR #269 → 45→44) |
 | 🟡 회색 | 6 | cold init (reqwest builder 6). ~~논리 invariant 1 (auth:447)~~ ✅ 제거 (2026-05-07) |
 | 🔴 위험 | 0 | hot path runtime panic 가능 expect 없음 |
 
@@ -186,7 +186,7 @@
 - **🟡 reqwest builder 6건** = 수용 권고. `unwrap_or_else` 로 fallback 만들기 어려움 (Client 가 있어야 외부 호출 가능). OnceCell 화 검토 가치 ≪ 비용.
 - ~~🟡 auth:447 1건~~ ✅ **해결 (2026-05-07)**: `if user_info.is_none() || !password_ok` 분기를 `let Some(user_info) = user_info else { ... }` + `if !password_ok { ... }` 두 단계로 분리. expect 제거 = invariant 가 코드로 표현됨. 동작 동등 (anti-enumeration + timing protection 보존).
 
-**결론**: 🔴 0건 + 🟡 hot path 0건 = production 운영 중 unexpected panic 위험 expect 호출은 0. B5 = 위험도 분류 종결 + auth:447 리팩터로 hot path 회색까지 완전 제거.
+**결론**: 🔴 0건 + 🟡 hot path 0건 = production 운영 중 unexpected panic 위험 expect 호출은 0. B5 = 위험도 분류 종결 + auth:447 리팩터 (2026-05-07) + auth:99 dummy hash 추가 cleanup (2026-05-10, PR #269) 로 안전 카운트도 1건 감소 (45→44).
 
 ### ~~B8. SSL Labs B → A+ 강화~~ ✅ **B → A- 해결 (2026-05-07)**
 
@@ -382,7 +382,7 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 | ID | 항목 | 사유 |
 |:--:|------|------|
 | ~~G1~~ | ~~`cargo test` CI 실행~~ ✅ 해결 (2026-05-10, commit `975d427` + 직전 fix 시퀀스) | `.github/workflows/pr-check.yml` 의 `integration` job 신규 = postgres:16 + redis:7-alpine service container + ephemeral HMAC/ENCRYPTION key + psql lex order migration (G16 workaround) + `cargo test --workspace --tests --locked -- --include-ignored`. CI run 25616239742 = **255 passed / 0 failed** (166 단위 + 89 통합 across 6 test binaries). 4 commit fix 시퀀스 = (a) `\|\| true` 제거 + sqlx-cli prebuilt binary, (b) psql lex order workaround (G16 의존성), (c) `--include-ignored` 위치 fix, (d) `--tests` flag 로 doc-test 제외. **G10 누계 = 209 신규 / 215 passed** (Phase 1 7 + Phase 2 8 + Phase 3 28 통합 / 158 단위) |
-| G2 | playwright e2e CI 실행 | 브라우저 + 시나리오 + CI 분 사용 큼. 본 트랙 미해결 유지 (별도 결정 대기) |
+| ~~G2~~ | ~~playwright e2e CI 실행~~ ✅ **해결 (2026-05-10, PR #268)** | `.github/workflows/e2e.yml` 신규 (별도 workflow + 안정화 트랙). trigger=push KKRYOUN + workflow_dispatch / timeout 20min / postgres+redis service container / cargo cache shared-key="backend" / cargo build --bin (debug ~1-2min) → backend bg → /healthz polling → 테스트 계정 생성 → playwright install chromium → vite dev bg → npm run test:e2e → fail 시 playwright-report + backend.log artifact. 첫 run = **Playwright Chromium 2m26s pass** (writing_practice.spec.ts P10-C, 1 spec). fix: `SKIP_STARTUP_MIGRATIONS=1` env 분기 (psql lex order step 과 backend startup sqlx::migrate! 충돌 회피). pr-check.yml 통합 보류 = branch protection required check 미등재 → 안정화 검증 후 (a) required check 등재 또는 (b) pr-check 통합 결정 |
 
 ### G3-G8. 미점검 영역
 
