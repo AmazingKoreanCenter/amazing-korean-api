@@ -1,8 +1,39 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속⁴ — C-payment-event Subset (subscription.created happy path + idempotency = 3 신규 / payment_integration 11 passed)
+updated: 2026-05-11 후속⁵ — C-payment-event T-Subset-Cont (나머지 6 variants = 6 신규 / payment_integration 17 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속⁵ ✅ — C-payment-event T-Subset-Cont: 나머지 6 Subscription variants 상태 전이 검증**
+
+  본 PR (#277 Subset) helper 일반화 + 6 variants 추가.
+
+  ## helper 변경
+
+  - `make_subscription_created_event_json` → `make_subscription_event_json(event_type, status, ...)` = 파라미터화
+  - items[0].status = "active" 하드코딩 (핸들러가 미사용)
+  - 신규 `run_create_then_variant(st, user_id, unique, variant_event_type, variant_status) -> SubscriptionRow` = create + variant 시퀀스 DRY
+
+  ## 6 신규 tests
+
+  | variant | expected SubscriptionStatus |
+  |---------|:-:|
+  | subscription.activated | Active |
+  | subscription.updated | Active (status="active" 전달) |
+  | subscription.canceled | Canceled |
+  | subscription.paused | Paused |
+  | subscription.past_due | PastDue |
+  | subscription.trialing | Trialing |
+
+  ## 검증
+
+  - `cargo test --test payment_integration -- --ignored` = **17 passed** (이전 11 + 신규 6)
+  - clippy --all-targets clean / fmt clean
+
+  ## Defer
+
+  - transaction.completed + adjustment.created/updated = **T-Subset-Txn** (다음 PR)
+  - 핸들러 차이 = TransactionDetails 의 totals/payments/checkout 등 추가 nested 구조 필요
 
 - **2026-05-11 후속⁴ ✅ — C-payment-event Track 4 Subset: subscription.created happy path + DB INSERT + idempotency 3 신규**
 

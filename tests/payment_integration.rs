@@ -217,12 +217,19 @@ async fn test_paddle_webhook_returns_bad_request_for_valid_signature_but_invalid
 // process_webhook_event 직접 호출 (signature path 우회, wire-format은 위 4 tests 가 검증).
 // =============================================================================
 
-/// Track 4 helper — minimal valid subscription.created Event JSON 구성.
+/// Track 4 helper — minimal valid subscription.* Event JSON 구성.
 ///
-/// `user_id` = custom_data 에 stringified i64 로 주입 (extract_user_id_from_custom_data 의 약속).
+/// `event_type` = `subscription.created` / `subscription.activated` / `subscription.updated` /
+///   `subscription.canceled` / `subscription.paused` / `subscription.past_due` /
+///   `subscription.trialing` / `subscription.resumed`.
+/// `status` = paddle SubscriptionStatus snake_case (`trialing` / `active` / `past_due` /
+///   `paused` / `canceled`).
+/// `user_id` = custom_data 에 stringified i64 로 주입.
 /// `provider_sub_id` = subscription.id (DB unique constraint = 테스트마다 random suffix 권장).
 #[allow(dead_code)]
-fn make_subscription_created_event_json(
+fn make_subscription_event_json(
+    event_type: &str,
+    status: &str,
     event_id: &str,
     provider_sub_id: &str,
     customer_id: &str,
@@ -234,10 +241,10 @@ fn make_subscription_created_event_json(
     serde_json::json!({
         "event_id": event_id,
         "occurred_at": now,
-        "event_type": "subscription.created",
+        "event_type": event_type,
         "data": {
             "id": provider_sub_id,
-            "status": "trialing",
+            "status": status,
             "customer_id": customer_id,
             "address_id": "add_test_01",
             "currency_code": "USD",
@@ -262,7 +269,9 @@ fn make_subscription_created_event_json(
             "scheduled_change": null,
             "management_urls": null,
             "items": [{
-                "status": "trialing",
+                // SubscriptionItemStatus = active / inactive / trialing. 핸들러 (handle_subscription_*)
+                // 가 item.status 를 읽지 않음 = 모든 variants 에서 "active" 안전.
+                "status": "active",
                 "quantity": 1,
                 "recurring": true,
                 "created_at": now,
@@ -334,7 +343,9 @@ fn parse_event(value: serde_json::Value) -> Result<Event, serde_json::Error> {
 async fn test_subscription_created_event_json_deserializes_via_paddle_sdk() {
     // wire-format 검증 = JSON 이 Paddle SDK 의 Event 로 deserialize 가능한지 확인.
     // 본 test 가 fail = JSON 필드 누락/형식 오류 → 다른 happy-path test 진입 불가.
-    let value = make_subscription_created_event_json(
+    let value = make_subscription_event_json(
+        "subscription.created",
+        "trialing",
         "evt_test_01",
         "sub_test_01",
         "ctm_test_01",
@@ -371,7 +382,9 @@ async fn test_process_webhook_event_subscription_created_inserts_db_row() {
     let provider_sub_id = format!("sub_track4_{}", unique);
     let event_id = format!("evt_track4_{}", unique);
 
-    let value = make_subscription_created_event_json(
+    let value = make_subscription_event_json(
+        "subscription.created",
+        "trialing",
         &event_id,
         &provider_sub_id,
         &format!("ctm_track4_{}", unique),
@@ -412,7 +425,9 @@ async fn test_process_webhook_event_is_idempotent_for_same_event_id() {
     let unique = uuid::Uuid::new_v4().to_string()[..8].to_string();
     let provider_sub_id = format!("sub_idem_{}", unique);
     let event_id = format!("evt_idem_{}", unique);
-    let value = make_subscription_created_event_json(
+    let value = make_subscription_event_json(
+        "subscription.created",
+        "trialing",
         &event_id,
         &provider_sub_id,
         &format!("ctm_idem_{}", unique),
@@ -438,6 +453,164 @@ async fn test_process_webhook_event_is_idempotent_for_same_event_id() {
         .await
         .expect("find by provider id");
     assert!(existing.is_some(), "subscription 행 1건");
+
+    common::cleanup_test_user(&st, user_id).await;
+}
+
+// =============================================================================
+// T-Subset-Cont (2026-05-11) — 나머지 6 Subscription variants 상태 전이 검증
+// 패턴: subscription.created (INSERT) → variant 이벤트 (UPDATE status) → 상태 verify.
+// =============================================================================
+
+/// T-Subset-Cont helper — create + variant 시퀀스 실행 후 sub row 상태 반환.
+#[allow(dead_code)]
+async fn run_create_then_variant(
+    st: &amazing_korean_api::state::AppState,
+    user_id: i64,
+    unique: &str,
+    variant_event_type: &str,
+    variant_status: &str,
+) -> amazing_korean_api::api::payment::repo::SubscriptionRow {
+    use amazing_korean_api::api::payment::repo::PaymentRepo;
+
+    let provider_sub_id = format!("sub_{}_{}", variant_event_type.replace('.', "_"), unique);
+    let customer_id = format!("ctm_{}_{}", variant_event_type.replace('.', "_"), unique);
+    let price_id = "pri_variant_no_match";
+
+    // 1) create
+    let create_event_id = format!("evt_create_{}", unique);
+    let create_value = make_subscription_event_json(
+        "subscription.created",
+        "trialing",
+        &create_event_id,
+        &provider_sub_id,
+        &customer_id,
+        user_id,
+        price_id,
+    );
+    let create_raw = create_value.to_string();
+    let create_event = parse_event(create_value).expect("create event must deserialize");
+    PaymentService::process_webhook_event(st, create_event, &create_raw)
+        .await
+        .expect("create ok");
+
+    // 2) variant
+    let variant_event_id = format!("evt_variant_{}", unique);
+    let variant_value = make_subscription_event_json(
+        variant_event_type,
+        variant_status,
+        &variant_event_id,
+        &provider_sub_id,
+        &customer_id,
+        user_id,
+        price_id,
+    );
+    let variant_raw = variant_value.to_string();
+    let variant_event = parse_event(variant_value).expect("variant event must deserialize");
+    PaymentService::process_webhook_event(st, variant_event, &variant_raw)
+        .await
+        .expect("variant ok");
+
+    // 3) read back
+    PaymentRepo::get_subscription_by_provider_id(&st.db, &provider_sub_id)
+        .await
+        .expect("find by provider id")
+        .expect("row must exist after create")
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_subscription_activated_transitions_status_to_active() {
+    use amazing_korean_api::types::SubscriptionStatus;
+    let st = common::make_test_state().await;
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await;
+    let unique = uuid::Uuid::new_v4().to_string()[..8].to_string();
+
+    let row =
+        run_create_then_variant(&st, user_id, &unique, "subscription.activated", "active").await;
+    assert_eq!(row.status, SubscriptionStatus::Active);
+
+    common::cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_subscription_updated_transitions_status_to_active() {
+    // subscription.updated = sub.status 값에 따라 SubscriptionStatus 전환 (paddle_status_to_internal).
+    use amazing_korean_api::types::SubscriptionStatus;
+    let st = common::make_test_state().await;
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await;
+    let unique = uuid::Uuid::new_v4().to_string()[..8].to_string();
+
+    let row =
+        run_create_then_variant(&st, user_id, &unique, "subscription.updated", "active").await;
+    assert_eq!(row.status, SubscriptionStatus::Active);
+
+    common::cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_subscription_canceled_transitions_status_to_canceled() {
+    use amazing_korean_api::types::SubscriptionStatus;
+    let st = common::make_test_state().await;
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await;
+    let unique = uuid::Uuid::new_v4().to_string()[..8].to_string();
+
+    let row =
+        run_create_then_variant(&st, user_id, &unique, "subscription.canceled", "canceled").await;
+    assert_eq!(row.status, SubscriptionStatus::Canceled);
+
+    common::cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_subscription_paused_transitions_status_to_paused() {
+    use amazing_korean_api::types::SubscriptionStatus;
+    let st = common::make_test_state().await;
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await;
+    let unique = uuid::Uuid::new_v4().to_string()[..8].to_string();
+
+    let row = run_create_then_variant(&st, user_id, &unique, "subscription.paused", "paused").await;
+    assert_eq!(row.status, SubscriptionStatus::Paused);
+
+    common::cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_subscription_past_due_transitions_status_to_past_due() {
+    use amazing_korean_api::types::SubscriptionStatus;
+    let st = common::make_test_state().await;
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await;
+    let unique = uuid::Uuid::new_v4().to_string()[..8].to_string();
+
+    let row =
+        run_create_then_variant(&st, user_id, &unique, "subscription.past_due", "past_due").await;
+    assert_eq!(row.status, SubscriptionStatus::PastDue);
+
+    common::cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_subscription_trialing_transitions_status_to_trialing() {
+    // create 가 이미 Trialing 으로 INSERT 함. trialing 이벤트는 정확히 Trialing 으로 갱신 (idempotent at state level).
+    use amazing_korean_api::types::SubscriptionStatus;
+    let st = common::make_test_state().await;
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await;
+    let unique = uuid::Uuid::new_v4().to_string()[..8].to_string();
+
+    let row =
+        run_create_then_variant(&st, user_id, &unique, "subscription.trialing", "trialing").await;
+    assert_eq!(row.status, SubscriptionStatus::Trialing);
 
     common::cleanup_test_user(&st, user_id).await;
 }
