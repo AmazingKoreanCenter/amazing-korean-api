@@ -1,8 +1,31 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 세션 종결 — 3 PR (#270~#272) / B5 트랙 완전 종결 + G2 e2e 안정화 트랙 발견
+updated: 2026-05-11 후속 — G2-1 ✅ 해결 (vite preview 전환, login_flow dormant 해제)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속 ✅ — G2-1 e2e vite cold start 안정화 (login_flow dormant 해제, 옵션 a)**
+
+  본 세션 첫 트랙 = 어제 신규 발견된 G2-1 부채 즉시 해결.
+
+  ## 변경
+
+  | 파일 | 변경 |
+  |------|------|
+  | `.github/workflows/e2e.yml` | `npm run build` step 신규 + `npm run dev` → `npm run preview -- --host 0.0.0.0 --port 5173`. CI 만 변경, 로컬 dev 워크플로우 그대로 |
+  | `frontend/vite.config.ts` | `preview.proxy` 추가 (server.proxy mirror). vite preview 는 server.proxy 미사용 = 별도 명시 |
+  | `frontend/e2e/login_flow.spec.ts` | `test.describe.skip` → `test.describe`, 120s setTimeout + 90s waitFor + `domcontentloaded` 모두 제거 → default 회복 |
+
+  ## 부채 변화
+
+  - **G2-1 ✅ 해결** = G 3→2, 30 → **31 → 30** (어제 신규로 등재된 부채 즉시 해결)
+  - 효과 = lazy chunk on-demand compile 경로 자체 제거 → cold path 안정성 보장
+  - trade-off = CI runtime +20s (frontend build, baseline 16.49s) vs cold-compile risk 원천 차단
+
+  ## 검증
+
+  - `npm run build` 16.49s clean
+  - 실 e2e 검증 = 본 PR push 후 e2e.yml workflow run
 
 - **2026-05-11 세션 종결 ✅ — 3 PR (#270~#272) / B5 트랙 완전 종결**
 

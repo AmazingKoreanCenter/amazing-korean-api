@@ -34,6 +34,16 @@ export default defineConfig({
       }
     },
   },
+  preview: {
+    proxy: {
+      "/api": {
+        target: process.env.VITE_PROXY_TARGET ?? "http://127.0.0.1:3000",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      }
+    },
+  },
   build: {
     // 메인 번들에서 무거운 라이브러리를 분리해 첫 페인트 부담 감소.
     // route-level lazy(React.lazy)와 함께 사용. perf-audit/baseline-pre 결과
