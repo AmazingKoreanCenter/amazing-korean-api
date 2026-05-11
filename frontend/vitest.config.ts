@@ -49,6 +49,9 @@ export default defineConfig({
         "src/category/error/page/not_found_page.tsx",
         "src/category/error/page/access_denied_page.tsx",
         "src/category/error/page/error_page.tsx",
+        "src/category/textbook/textbook_api.ts",
+        "src/category/textbook/hook/use_catalog.ts",
+        "src/category/textbook/hook/use_my_orders.ts",
       ],
       exclude: [
         "src/**/*.{test,spec}.{ts,tsx}",

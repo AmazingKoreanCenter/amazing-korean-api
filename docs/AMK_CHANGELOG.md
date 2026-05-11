@@ -1,8 +1,41 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속⁷ — G10-frontend T-G10-page (error pages 3건 smoke = 9 신규 / 147 passed)
+updated: 2026-05-11 후속⁸ — G10-frontend T-G10-deep (textbook api + 2 hooks = 9 신규 / 156 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속⁸ ✅ — G10-frontend T-G10-deep: textbook api util + 2 hooks 9 신규 / 156 passed**
+
+  T-G10-page 자연 후속. #276 (payment) 패턴 textbook 도메인에 재사용.
+
+  ## 3 신규 파일
+
+  | 파일 | tests | 검증 |
+  |------|:-:|------|
+  | `frontend/src/category/textbook/textbook_api.test.ts` | 5 | getTextbookCatalog / createTextbookOrder POST body / getTextbookOrderByCode / getMyTextbookOrders / 5xx ApiError |
+  | `frontend/src/category/textbook/hook/use_catalog.test.tsx` | 2 | isLoading→isSuccess / isError |
+  | `frontend/src/category/textbook/hook/use_my_orders.test.tsx` | 2 | isLoading→isSuccess / isError |
+
+  ## vitest.config.ts coverage whitelist
+
+  - textbook_api.ts / use_catalog.ts / use_my_orders.ts 추가
+
+  ## 검증
+
+  - `vitest run --coverage` = **156 passed** (이전 147 + 신규 9) / 32 파일
+  - category/textbook = **100% Stmts/Branch/Funcs/Lines**
+  - 전체 = Stmts 98.99 / Branches 94.09 / Funcs 93.75 / Lines 98.99
+  - thresholds 90/75/60/90 perFile 통과
+  - `npm run build` 17.08s clean / lint 0 errors
+
+  ## 본 세션 누계 (2026-05-11)
+
+  - **9 PR 진행** (#273 docs / #274 G2-1 / #275 C-doc-sync / #276 Track 3 / #277 C-payment-event Subset / #278 T-Subset-Cont / #279 T-Subset-Txn / #280 T-G10-page / 본 PR T-G10-deep)
+  - frontend tests = 122 → **156** (+34)
+  - backend lib tests = 183 → **184** (+1)
+  - payment_integration tests = 8 → **22** (+14)
+  - 부채 §0 = 31 → **30** (G2-1 ✅)
+  - 🐛 production-affecting 버그 1건 발견 + 수정 (`updated_at` 컬럼)
 
 - **2026-05-11 후속⁷ ✅ — G10-frontend T-G10-page: error pages 3건 smoke 9 신규 / 147 passed**
 
