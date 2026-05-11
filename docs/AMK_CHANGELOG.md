@@ -1,8 +1,47 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속² — C-doc-sync (N-27 후 신규 admin 21 endpoint OpenAPI 등록 + 검증 test)
+updated: 2026-05-11 후속³ — G10-frontend 후속 (component 2 + hook 1 + api util 1 = 16 신규 / 138 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속³ ✅ — G10-frontend Track 3: 컴포넌트 smoke + hook + api util 16 신규 / 138 passed**
+
+  메모리 Track 3 = "hook + api util + component smoke + coverage threshold" 정착.
+
+  ## 신규 4 파일
+
+  | 파일 | tests | 범위 |
+  |------|:-:|------|
+  | `frontend/src/components/blocks/feature_grid.test.tsx` | 3 | 렌더 / empty grid / 반응형 클래스 |
+  | `frontend/src/components/blocks/hero_section.test.tsx` | 6 | variant marketing/list / size sm vs default / badge+subtitle+children optional / className 전파 |
+  | `frontend/src/category/payment/payment_api.test.ts` | 5 | getPaymentPlans / getSubscription / cancelSubscription POST body / 5xx ApiError / error envelope 추출 |
+  | `frontend/src/category/payment/hook/use_payment_plans.test.tsx` | 2 | isLoading→isSuccess / isError |
+
+  ## 변경
+
+  - `frontend/vitest.config.ts` = coverage whitelist 4 추가 (feature_grid / hero_section / payment_api / use_payment_plans)
+  - MSW 패턴 = `server.use(http.get/post(...))` (health_page.test 동일 패턴 재사용)
+
+  ## Coverage 결과
+
+  | 모듈 | Stmts | Branch | Funcs | Lines |
+  |------|:-:|:-:|:-:|:-:|
+  | category/payment/payment_api.ts | 100 | 100 | 100 | 100 |
+  | category/payment/hook/use_payment_plans.ts | 100 | 100 | 100 | 100 |
+  | components/blocks/feature_grid.tsx | 100 | 100 | 100 | 100 |
+  | components/blocks/hero_section.tsx | 100 | 100 | 100 | 100 |
+  | **전체** | **98.83** | **93.10** | **92.30** | **98.83** |
+
+  ## 검증
+
+  - `npx vitest run --coverage` = **138 passed** (이전 122 + 신규 16) / 26 파일
+  - thresholds 90/75/60/90 perFile 전체 통과
+  - `npm run build` 15.88s clean / `npm run lint` 0 errors
+
+  ## 부채
+
+  - AMK_DEBTS §0 = 30 (변동 없음, G10 광범위 처리 누계로 흡수)
+  - 누계 frontend tests = 0 → 122 → **138**
 
 - **2026-05-11 후속² ✅ — C-doc-sync: N-27 종결 후 신규 admin 21 endpoint OpenAPI 등록**
 
