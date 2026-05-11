@@ -16,11 +16,16 @@ test.describe("login flow — happy path", () => {
   test("이메일·패스워드 입력 → 로그인 성공 → /about 리다이렉트", async ({
     page,
   }) => {
-    // 1) /login 페이지 진입
-    await page.goto("/login");
+    // vite dev cold start = 첫 spec 의 login page lazy chunk 컴파일 + JS 로딩이
+    // default 60s 안에 못 끝남 (CI 환경 첫 진입). 본 spec 에 한해 timeout 확장.
+    test.setTimeout(120_000);
 
-    // 2) 폼 입력
+    // 1) /login 페이지 진입 (domcontentloaded 까지만 대기 → react hydration 은 별도)
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
+
+    // 2) 폼 hydration 대기 (locator default timeout 보다 길게 명시)
     const emailInput = page.locator('input[name="email"]');
+    await emailInput.waitFor({ state: "visible", timeout: 90_000 });
     const passwordInput = page.locator('input[name="password"]');
     await emailInput.fill(TEST_EMAIL);
     await passwordInput.fill(TEST_PASSWORD);
@@ -30,6 +35,6 @@ test.describe("login flow — happy path", () => {
 
     // 4) 로그인 성공 후 /about 으로 navigate. URL 변경을 polling 으로 검증.
     //    onSuccess 안의 navigate("/about") 가 호출되면 path 가 즉시 갱신.
-    await expect(page).toHaveURL(/\/about$/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/about$/, { timeout: 15_000 });
   });
 });
