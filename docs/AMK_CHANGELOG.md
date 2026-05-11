@@ -1,8 +1,43 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속¹³ — C-doc-sync-cont (regression test + 3 stale endpoint 발견 + 2 등록 / 185 passed)
+updated: 2026-05-11 후속¹⁴ — G10 backend deeper subset (api::util::extract_client_ip = 10 tests / 195 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속¹⁴ ✅ — G10 backend deeper subset: api::util pure helper 10 tests / 195 passed**
+
+  Track 6 (G10 backend deeper) 의 작은 subset. 전체 service.rs (1d+) 대신 pure helper 1건.
+
+  ## 신규 10 tests in `src/api/util.rs::tests`
+
+  - x-forwarded-for 첫 IP / 단일 IP / 공백 trim
+  - 잘못된 IP → x-real-ip 폴백
+  - x-real-ip 만 사용
+  - 둘 다 없음 + `AK_DEV_IP_FALLBACK=true` → 127.0.0.1
+  - `AK_DEV_IP_FALLBACK=false` → 0.0.0.0
+  - `AK_DEV_IP_FALLBACK="0"` → 0.0.0.0
+  - IPv6 지원 (2001:db8::1)
+  - 빈 첫 segment → x-real-ip 폴백
+
+  ## Rust 2024 unsafe set_var 처리
+
+  - `#[allow(unsafe_code)]` on test module
+  - SAFETY 주석 = "tests 단일 스레드 가정. 병렬 race 시 #[serial_test] 도입 필요"
+
+  ## 검증
+
+  - `cargo test --lib` = **195 passed** (이전 185 + 신규 10)
+  - clippy --all-targets / fmt clean
+
+  ## 본 세션 (2026-05-11) 종결 권고
+
+  - **15 PR** 진행 (#273~#287)
+  - frontend tests 122 → **202** (+80)
+  - backend lib tests 183 → **195** (+12)
+  - payment_integration 8 → **25** (+17)
+  - 부채 §0 31 → 30 (G2-1 ✅)
+  - 🐛 production-affecting bug 1건 fix
+  - Marginal returns 감소 영역 = 다음 세션 fresh context 권고
 
 - **2026-05-11 후속¹³ ✅ — C-doc-sync-cont: 자동 regression test + 3 stale 발견 / 185 passed**
 
