@@ -1,8 +1,46 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속⁶ — C-payment-event T-Subset-Txn (transaction + adjustment + 🐛 실제 버그 수정 = 5 신규 / payment_integration 22 passed)
+updated: 2026-05-11 후속⁷ — G10-frontend T-G10-page (error pages 3건 smoke = 9 신규 / 147 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속⁷ ✅ — G10-frontend T-G10-page: error pages 3건 smoke 9 신규 / 147 passed**
+
+  Track 3 (G10-frontend) 자연 후속.
+
+  ## 3 신규 page-level tests (각 3 tests = 9 합산)
+
+  | 파일 | 검증 |
+  |------|------|
+  | `frontend/src/category/error/page/not_found_page.test.tsx` | 404 badge + title / `useNavigate(-1)` / 홈으로 link |
+  | `frontend/src/category/error/page/access_denied_page.test.tsx` | 403 + title / `useNavigate(-1)` / 홈으로 link |
+  | `frontend/src/category/error/page/error_page.test.tsx` | Error badge + title / `window.location.reload` spy / 홈으로 link |
+
+  ## 패턴 정착
+
+  - `vi.mock("react-router-dom")` = `useNavigate` spy injection
+  - `vi.mock("react-i18next")` = `t()` 인라인 매핑
+  - `MemoryRouter` wrapper for Link/route context
+  - `window.location.reload` spy via `Object.defineProperty(window, "location", ...)`
+
+  ## vitest.config.ts coverage whitelist
+
+  - 3 error pages 추가 (not_found / access_denied / error)
+
+  ## 검증
+
+  - `vitest run --coverage` = **147 passed** (이전 138 + 신규 9) / 29 파일
+  - category/error/page = **100% Stmts/Branch/Funcs/Lines**
+  - 전체 = Stmts 98.97 / Branches 93.44 / Funcs 93.10 / Lines 98.97
+  - thresholds 90/75/60/90 perFile 전체 통과
+  - `npm run build` 17.14s clean / lint 0 errors
+
+  ## Defer
+
+  - pricing_page (348 라인, paddle hook 의존, 시드 부담 ↑)
+  - signup_page (521 라인, form 복잡)
+  - login_page (e2e 가 happy path 이미 cover)
+  - → 별도 트랙 (T-G10-page-cont)
 
 - **2026-05-11 후속⁶ ✅ — C-payment-event T-Subset-Txn: transaction.completed + adjustment + 🐛 실제 버그 수정**
 
