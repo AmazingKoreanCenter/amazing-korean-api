@@ -18,6 +18,9 @@ test.describe("login flow — happy path", () => {
   }) => {
     await page.goto("/login");
 
+    // 이메일 폼은 Collapsible 안에 접혀있다. 트리거 클릭으로 펼쳐야 input 이 노출됨.
+    await page.getByRole("button", { name: "이메일로 로그인" }).click();
+
     const emailInput = page.locator('input[name="email"]');
     await expect(emailInput).toBeVisible();
     const passwordInput = page.locator('input[name="password"]');
