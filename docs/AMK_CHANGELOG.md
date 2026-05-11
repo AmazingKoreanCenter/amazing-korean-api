@@ -1,8 +1,40 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속¹² — C-payment-ebook-txn (ebook transaction.completed + refund = 3 신규 / payment_integration 25 passed)
+updated: 2026-05-11 후속¹³ — C-doc-sync-cont (regression test + 3 stale endpoint 발견 + 2 등록 / 185 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속¹³ ✅ — C-doc-sync-cont: 자동 regression test + 3 stale 발견 / 185 passed**
+
+  C-doc-sync (#275) 자연 후속. 본 PR 머지 후 **신규 endpoint 추가 시 docs.rs 등록 누락 즉시 fail**.
+
+  ## 신규 test = `openapi_paths_match_router_handlers`
+
+  동작:
+  1. `src/api/**/router.rs` 파일 모두 재귀 수집 (`CARGO_MANIFEST_DIR` + `fs::read_dir` 재귀)
+  2. regex `(get|post|put|patch|delete)\(([a-zA-Z_:]+::)?([a-zA-Z_0-9]+)\)` 로 handler 참조 추출
+  3. `src/docs.rs` paths(...) 의 `crate::api::*::handler::name` 참조 추출
+  4. Diff 후 `policy_excluded` (HashSet) 제외하고 missing 검출 → 있으면 fail
+
+  ## 본 test 가 발견한 3 stale endpoint
+
+  | handler | 위치 | 처리 |
+  |---------|------|------|
+  | `admin_create_vimeo_upload_ticket` | admin/video | docs.rs paths() 등록 |
+  | `admin_get_lesson_progress_detail` | admin/lesson | docs.rs paths() 등록 |
+  | `handle_revenuecat_webhook` | payment | `policy_excluded` 추가 (webhook 정책) |
+
+  ## webhook 정책 일관성
+
+  - `handle_webhook` (Paddle) + `handle_revenuecat_webhook` 모두 `src/api/payment/handler.rs` 주석 = "swagger UI 노출 보안적 비권장"
+  - 본 test 의 `policy_excluded` HashSet 에 두 handler 추가
+  - 기존 `openapi_spec_excludes_webhooks_by_policy` test 의 `must_be_excluded` 와 정합 (둘 다 `/payment/webhook/revenuecat` 포함)
+
+  ## 검증
+
+  - `cargo test --lib openapi` = **7 passed** (기존 6 + 신규 1)
+  - `cargo test --lib` = **185 passed** (184 + 1)
+  - clippy --all-targets / fmt clean
 
 - **2026-05-11 후속¹² ✅ — C-payment-ebook-txn: ebook transaction.completed + refund 분기 3 신규 / 25 passed**
 

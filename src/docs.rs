@@ -102,6 +102,7 @@ impl Modify for SecurityAddon {
         // admin - videos
         crate::api::admin::video::handler::admin_list_videos,
         crate::api::admin::video::handler::admin_create_video,
+        crate::api::admin::video::handler::admin_create_vimeo_upload_ticket,
         crate::api::admin::video::handler::admin_bulk_create_videos,
         crate::api::admin::video::handler::admin_get_video,
         crate::api::admin::video::handler::admin_get_vimeo_preview,
@@ -116,6 +117,7 @@ impl Modify for SecurityAddon {
         crate::api::admin::lesson::handler::admin_list_lesson_progress,
         crate::api::admin::lesson::handler::admin_get_lesson,
         crate::api::admin::lesson::handler::admin_get_lesson_items_detail,
+        crate::api::admin::lesson::handler::admin_get_lesson_progress_detail,
         crate::api::admin::lesson::handler::admin_create_lesson_item,
         crate::api::admin::lesson::handler::admin_update_lesson_progress,
         crate::api::admin::lesson::handler::admin_bulk_update_lesson_progress,
@@ -847,6 +849,97 @@ mod tests {
         assert!(
             missing.is_empty(),
             "C-doc-sync paths missing from OpenAPI spec: {:?}",
+            missing
+        );
+    }
+
+    /// 2026-05-11 C-doc-sync-cont — regression prevention.
+    /// `src/api/**/router.rs` 의 모든 handler 참조가 `src/docs.rs::paths(...)` 에
+    /// 등록되어 있는지 자동 비교. **신규 endpoint 추가 시 docs.rs 등록 누락 즉시 fail**.
+    ///
+    /// 정책 제외 (의도적):
+    /// - `handle_webhook` = Paddle webhook (외부 호출만, OpenAPI 노출 보안적 비권장)
+    ///   `src/api/payment/handler.rs::handle_webhook` 의 주석 참조.
+    #[test]
+    fn openapi_paths_match_router_handlers() {
+        use std::collections::HashSet;
+        use std::fs;
+        use std::path::PathBuf;
+
+        // 1) 모든 router.rs 파일 list 수집 (CARGO_MANIFEST_DIR 기준).
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let mut router_files: Vec<PathBuf> = Vec::new();
+        fn collect(path: &std::path::Path, out: &mut Vec<PathBuf>) {
+            if path.is_dir() {
+                if let Ok(entries) = fs::read_dir(path) {
+                    for entry in entries.flatten() {
+                        collect(&entry.path(), out);
+                    }
+                }
+            } else if path.file_name().and_then(|n| n.to_str()) == Some("router.rs") {
+                out.push(path.to_path_buf());
+            }
+        }
+        collect(
+            &PathBuf::from(manifest_dir).join("src/api"),
+            &mut router_files,
+        );
+        assert!(
+            !router_files.is_empty(),
+            "router.rs files should be discoverable"
+        );
+
+        // 2) 모든 router.rs 에서 handler 참조 추출.
+        // 패턴: `(get|post|put|patch|delete)(<optional_path>::<handler_name>)`
+        let handler_re =
+            regex::Regex::new(r"\.?(get|post|put|patch|delete)\(([a-zA-Z_:]+::)?([a-zA-Z_0-9]+)\)")
+                .expect("regex compile");
+        let mut router_handlers: HashSet<String> = HashSet::new();
+        for path in &router_files {
+            let content = fs::read_to_string(path).expect("read router.rs");
+            for caps in handler_re.captures_iter(&content) {
+                router_handlers.insert(caps[3].to_string());
+            }
+        }
+        assert!(
+            router_handlers.len() > 50,
+            "router_handlers 수집이 너무 적음 (regex 실패 가능): {}",
+            router_handlers.len()
+        );
+
+        // 3) docs.rs paths(...) 의 handler 참조 추출.
+        // 패턴: `crate::api::<module_path>::<handler_name>`
+        let docs_content = fs::read_to_string(PathBuf::from(manifest_dir).join("src/docs.rs"))
+            .expect("read docs.rs");
+        let docs_re =
+            regex::Regex::new(r"crate::api::[a-z_:]+::([a-z_0-9]+),").expect("regex compile");
+        let mut docs_handlers: HashSet<String> = HashSet::new();
+        for caps in docs_re.captures_iter(&docs_content) {
+            docs_handlers.insert(caps[1].to_string());
+        }
+
+        // 4) 정책 제외 (webhook).
+        // - handle_webhook = Paddle (외부 호출만)
+        // - handle_revenuecat_webhook = RevenueCat (외부 호출만)
+        // 모두 src/api/payment/handler.rs 의 주석 = "swagger UI 노출 보안적 비권장".
+        let policy_excluded: HashSet<String> = ["handle_webhook", "handle_revenuecat_webhook"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+
+        // 5) Diff: routes 에 있지만 docs.rs 에도 없고 policy_excluded 도 아닌 핸들러.
+        let mut missing: Vec<String> = router_handlers
+            .difference(&docs_handlers)
+            .filter(|h| !policy_excluded.contains(*h))
+            .cloned()
+            .collect();
+        missing.sort();
+
+        assert!(
+            missing.is_empty(),
+            "router 에 등록된 handler 가 docs.rs 에 등록되지 않음 (= OpenAPI 누락): {:?}\n\
+             신규 endpoint 추가 시 src/docs.rs paths(...) 에 등록 필요. \
+             webhook 등 의도 제외 시 본 test 의 `policy_excluded` 에 추가.",
             missing
         );
     }
