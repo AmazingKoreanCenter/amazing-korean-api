@@ -1,8 +1,37 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속¹⁰ — G10-frontend T-G10-deep-ebook (ebook_api 12 함수 + 2 hooks = 21 신규 / 181 passed)
+updated: 2026-05-11 후속¹¹ — G10-frontend T-G10-deep-study (study_api 11 함수 + 2 hooks = 21 신규 / 202 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속¹¹ ✅ — G10-frontend T-G10-deep-study: study_api + 2 hooks 21 신규 / 202 passed**
+
+  T-G10-deep-ebook (#283) 패턴 study 도메인 확장. getErrorMessage 3 분기 모두 cover (vi.spyOn 으로 mockRejectedValueOnce).
+
+  ## 3 신규 파일 (21 tests)
+
+  | 파일 | tests | 검증 |
+  |------|:-:|------|
+  | `study_api.test.ts` | 13 | getStudyList params + sanitize / getStudyDetail / getStudyTask / submitAnswer / getTaskStatus / getTaskExplain / startWritingSession / finishWritingSession PATCH / listWritingSessions / getWritingStats / getWritingPracticeSeed / 5xx ApiError |
+  | `hook/use_study_list.test.tsx` | 4 | isSuccess / ApiError branch / Error branch / 비-Error fallback branch |
+  | `hook/use_writing_stats.test.tsx` | 4 | 같은 패턴 |
+
+  ## getErrorMessage 3 분기 cover 정착
+
+  - `vi.spyOn(studyApi, "getStudyList").mockRejectedValueOnce(new Error(...))` = Error branch
+  - `vi.spyOn(...).mockRejectedValueOnce("string")` = 비-Error fallback branch
+  - 본 패턴 = 다른 도메인 hook 의 getErrorMessage 후속 작업 재사용 가능
+
+  ## vitest.config.ts coverage whitelist
+
+  - study_api.ts / use_study_list.ts / use_writing_stats.ts 추가
+
+  ## 검증
+
+  - `vitest run --coverage` = **202 passed** (이전 181 + 신규 21) / 39 파일
+  - category/study = **100% all metrics**
+  - thresholds 90/75/60/90 perFile 통과
+  - npm build 16.22s clean / lint 0
 
 - **2026-05-11 후속¹⁰ ✅ — G10-frontend T-G10-deep-ebook: ebook_api + 2 hooks 21 신규 / 181 passed**
 
