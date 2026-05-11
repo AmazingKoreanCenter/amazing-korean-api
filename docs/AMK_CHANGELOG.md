@@ -1,8 +1,36 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속¹¹ — G10-frontend T-G10-deep-study (study_api 11 함수 + 2 hooks = 21 신규 / 202 passed)
+updated: 2026-05-11 후속¹² — C-payment-ebook-txn (ebook transaction.completed + refund = 3 신규 / payment_integration 25 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속¹² ✅ — C-payment-ebook-txn: ebook transaction.completed + refund 분기 3 신규 / 25 passed**
+
+  Track 4 자연 후속³. ebook 결제 분기 (subscription_id=null + custom_data.type="ebook") happy path 검증.
+
+  ## helper 변경
+
+  - `make_transaction_completed_event_json_ext` 신규 = custom_data override 가능
+  - 기존 `make_transaction_completed_event_json` 은 wrapper 유지 (None 전달 = 기본 user_id custom_data)
+  - 신규 fixture `insert_test_ebook_purchase(st, user_id, unique) -> String` (purchase_code 반환, status=pending)
+
+  ## 3 신규 tests
+
+  | test | 검증 |
+  |------|------|
+  | `test_process_webhook_event_ebook_transaction_completed_marks_purchase_completed` | purchase_code 매칭 → status=completed + paddle_txn_id 저장 |
+  | `test_process_webhook_event_ebook_transaction_missing_purchase_code_is_skipped` | purchase_code 누락 → handler early return → pending 유지 |
+  | `test_process_webhook_event_adjustment_refund_for_ebook_purchase_marks_refunded` | 사전 결제 완료 + adjustment.created(refund+approved) → status=refunded |
+
+  ## 수정
+
+  - language enum 'en' → 'ja' (textbook_language_enum 에 'en' 미포함, 첫 deserialize 시 발견)
+
+  ## 검증
+
+  - `cargo test --test payment_integration -- --ignored` = **25 passed** (이전 22 + 신규 3)
+  - cargo test --lib = 184 passed
+  - clippy --all-targets clean / fmt clean
 
 - **2026-05-11 후속¹¹ ✅ — G10-frontend T-G10-deep-study: study_api + 2 hooks 21 신규 / 202 passed**
 

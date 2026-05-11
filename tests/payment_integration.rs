@@ -464,6 +464,8 @@ async fn test_process_webhook_event_is_idempotent_for_same_event_id() {
 /// T-Subset-Txn helper — minimal valid transaction.completed Event JSON.
 /// `subscription_id` = 연결된 구독 (None 가능, ebook 결제는 custom_data.type="ebook" 필요).
 /// `total_cents` / `tax_cents` = 정수 문자열 (Paddle 규약).
+/// `custom_data_override` = None → default `{user_id: "<user_id>"}`. ebook 결제는
+/// `Some({type:"ebook", purchase_code:"EB-..."})` 으로 override.
 #[allow(dead_code, clippy::too_many_arguments)]
 fn make_transaction_completed_event_json(
     event_id: &str,
@@ -475,8 +477,36 @@ fn make_transaction_completed_event_json(
     total_cents: &str,
     tax_cents: &str,
 ) -> serde_json::Value {
+    make_transaction_completed_event_json_ext(
+        event_id,
+        txn_id,
+        customer_id,
+        subscription_id,
+        user_id,
+        price_id,
+        total_cents,
+        tax_cents,
+        None,
+    )
+}
+
+/// custom_data override 가능 버전 (T-Subset-Txn-Ebook 2026-05-11 추가).
+#[allow(dead_code, clippy::too_many_arguments)]
+fn make_transaction_completed_event_json_ext(
+    event_id: &str,
+    txn_id: &str,
+    customer_id: &str,
+    subscription_id: Option<&str>,
+    user_id: i64,
+    price_id: &str,
+    total_cents: &str,
+    tax_cents: &str,
+    custom_data_override: Option<serde_json::Value>,
+) -> serde_json::Value {
     let now = chrono::Utc::now().to_rfc3339();
     let line_item_id = format!("txnitm_{}", &txn_id[4..]);
+    let custom_data = custom_data_override
+        .unwrap_or_else(|| serde_json::json!({ "user_id": user_id.to_string() }));
     // Totals (line_items 의 unit_totals/totals) = subtotal/discount/tax/total 4 필드.
     let totals_block = serde_json::json!({
         "subtotal": total_cents,
@@ -494,7 +524,7 @@ fn make_transaction_completed_event_json(
             "customer_id": customer_id,
             "address_id": "add_test_01",
             "business_id": null,
-            "custom_data": { "user_id": user_id.to_string() },
+            "custom_data": custom_data,
             "currency_code": "USD",
             "origin": "web",
             "subscription_id": subscription_id,
@@ -1058,5 +1088,217 @@ async fn test_adjustment_credit_action_is_skipped() {
         "credit adjustment 은 skip → Completed 유지"
     );
 
+    common::cleanup_test_user(&st, user_id).await;
+}
+
+// =============================================================================
+// C-payment-ebook-txn (2026-05-11) — ebook transaction.completed 분기 검증
+// subscription_id=None + custom_data.type="ebook" → handle_ebook_transaction_completed.
+// ebook_purchase 행 상태 = pending → completed 전이 + paddle_txn_id 저장 검증.
+// =============================================================================
+
+/// ebook_purchase 행 시드 (pending 상태). purchase_code 반환.
+#[allow(dead_code)]
+async fn insert_test_ebook_purchase(
+    st: &amazing_korean_api::state::AppState,
+    user_id: i64,
+    unique: &str,
+) -> String {
+    let purchase_code = format!("EB-260511-{}", &unique[..4]);
+    sqlx::query(
+        r#"
+        INSERT INTO ebook_purchase (
+            purchase_code, user_id, language, edition, payment_method,
+            status, price, currency
+        )
+        VALUES ($1, $2, 'ja'::textbook_language_enum, 'student'::ebook_edition_enum,
+                'paddle'::ebook_payment_method_enum, 'pending', 19900, 'KRW')
+        "#,
+    )
+    .bind(&purchase_code)
+    .bind(user_id)
+    .execute(&st.db)
+    .await
+    .expect("insert ebook_purchase");
+    purchase_code
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_process_webhook_event_ebook_transaction_completed_marks_purchase_completed() {
+    // ebook 결제 happy path:
+    // 1. user 시드 → ebook_purchase 시드 (pending)
+    // 2. transaction.completed 이벤트 (subscription_id=null + custom_data.type="ebook")
+    // 3. ebook_purchase.status = completed + paddle_txn_id 저장 검증.
+    let st = common::make_test_state().await;
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await;
+
+    let unique = uuid::Uuid::new_v4().to_string()[..8].to_string();
+    let purchase_code = insert_test_ebook_purchase(&st, user_id, &unique).await;
+    let provider_txn_id = format!("txn_ebook_{}", unique);
+
+    // transaction.completed (subscription_id=null + custom_data.ebook)
+    let value = make_transaction_completed_event_json_ext(
+        &format!("evt_ebook_{}", unique),
+        &provider_txn_id,
+        &format!("ctm_ebook_{}", unique),
+        None, // subscription_id 없음
+        user_id,
+        "pri_ebook",
+        "19900",
+        "0",
+        Some(serde_json::json!({
+            "type": "ebook",
+            "purchase_code": purchase_code,
+        })),
+    );
+    let raw = value.to_string();
+    let event = parse_event(value).expect("ebook txn event must deserialize");
+    PaymentService::process_webhook_event(&st, event, &raw)
+        .await
+        .expect("ebook tx ok");
+
+    // DB 부작용 검증 = status=completed + paddle_txn_id 저장
+    let (status, paddle_txn_id): (String, Option<String>) = sqlx::query_as(
+        "SELECT status::text, paddle_txn_id FROM ebook_purchase WHERE purchase_code = $1",
+    )
+    .bind(&purchase_code)
+    .fetch_one(&st.db)
+    .await
+    .expect("fetch ebook_purchase");
+    assert_eq!(status, "completed", "ebook_purchase.status → completed");
+    assert_eq!(
+        paddle_txn_id.as_deref(),
+        Some(provider_txn_id.as_str()),
+        "paddle_txn_id 저장",
+    );
+
+    // cleanup ebook_purchase + user (ebook_purchase user_id FK)
+    sqlx::query("DELETE FROM ebook_purchase WHERE purchase_code = $1")
+        .bind(&purchase_code)
+        .execute(&st.db)
+        .await
+        .expect("delete ebook_purchase");
+    common::cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_process_webhook_event_ebook_transaction_missing_purchase_code_is_skipped() {
+    // ebook 분기 진입했지만 custom_data.purchase_code 누락 → handler early return (Ok).
+    // ebook_purchase 변화 없음 (status=pending 유지).
+    let st = common::make_test_state().await;
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await;
+
+    let unique = uuid::Uuid::new_v4().to_string()[..8].to_string();
+    let purchase_code = insert_test_ebook_purchase(&st, user_id, &unique).await;
+    let provider_txn_id = format!("txn_ebook_miss_{}", unique);
+
+    let value = make_transaction_completed_event_json_ext(
+        &format!("evt_ebook_miss_{}", unique),
+        &provider_txn_id,
+        &format!("ctm_{}", unique),
+        None,
+        user_id,
+        "pri_x",
+        "19900",
+        "0",
+        Some(serde_json::json!({
+            "type": "ebook",
+            // purchase_code 누락
+        })),
+    );
+    let raw = value.to_string();
+    let event = parse_event(value).expect("ebook event deser");
+    PaymentService::process_webhook_event(&st, event, &raw)
+        .await
+        .expect("ok (handler returns early)");
+
+    let status: String =
+        sqlx::query_scalar("SELECT status::text FROM ebook_purchase WHERE purchase_code = $1")
+            .bind(&purchase_code)
+            .fetch_one(&st.db)
+            .await
+            .expect("fetch status");
+    assert_eq!(status, "pending", "purchase_code 누락 → 변화 없음");
+
+    sqlx::query("DELETE FROM ebook_purchase WHERE purchase_code = $1")
+        .bind(&purchase_code)
+        .execute(&st.db)
+        .await
+        .expect("delete ebook_purchase");
+    common::cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_process_webhook_event_adjustment_refund_for_ebook_purchase_marks_refunded() {
+    // ebook 환불: adjustment.created (refund + approved) +
+    //   transaction_id 가 ebook_purchase.paddle_txn_id 와 매칭
+    //   → ebook::repo::refund_by_paddle_txn → status=refunded.
+    let st = common::make_test_state().await;
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await;
+
+    let unique = uuid::Uuid::new_v4().to_string()[..8].to_string();
+    let purchase_code = insert_test_ebook_purchase(&st, user_id, &unique).await;
+    let provider_txn_id = format!("txn_ebook_ref_{}", unique);
+
+    // 1) ebook 결제 완료 (status=completed + paddle_txn_id 저장)
+    let txn_value = make_transaction_completed_event_json_ext(
+        &format!("evt_etc_{}", unique),
+        &provider_txn_id,
+        &format!("ctm_{}", unique),
+        None,
+        user_id,
+        "pri_x",
+        "19900",
+        "0",
+        Some(serde_json::json!({
+            "type": "ebook",
+            "purchase_code": purchase_code,
+        })),
+    );
+    let txn_raw = txn_value.to_string();
+    let txn_event = parse_event(txn_value).expect("txn deser");
+    PaymentService::process_webhook_event(&st, txn_event, &txn_raw)
+        .await
+        .expect("ebook txn ok");
+
+    // 2) adjustment.created (refund + approved)
+    let adj_value = make_adjustment_created_event_json(
+        &format!("evt_adj_eb_{}", unique),
+        &format!("adj_eb_{}", unique),
+        &provider_txn_id,
+        &format!("ctm_{}", unique),
+        "refund",
+        "approved",
+        "19900",
+    );
+    let adj_raw = adj_value.to_string();
+    let adj_event = parse_event(adj_value).expect("adj deser");
+    PaymentService::process_webhook_event(&st, adj_event, &adj_raw)
+        .await
+        .expect("ebook refund ok");
+
+    // 3) ebook_purchase.status = refunded
+    let status: String =
+        sqlx::query_scalar("SELECT status::text FROM ebook_purchase WHERE purchase_code = $1")
+            .bind(&purchase_code)
+            .fetch_one(&st.db)
+            .await
+            .expect("fetch status");
+    assert_eq!(
+        status, "refunded",
+        "refund + approved → ebook status=refunded"
+    );
+
+    sqlx::query("DELETE FROM ebook_purchase WHERE purchase_code = $1")
+        .bind(&purchase_code)
+        .execute(&st.db)
+        .await
+        .expect("delete ebook_purchase");
     common::cleanup_test_user(&st, user_id).await;
 }
