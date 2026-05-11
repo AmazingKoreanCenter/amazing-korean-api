@@ -94,6 +94,8 @@ impl Modify for SecurityAddon {
         crate::api::admin::user::handler::admin_create_user,
         crate::api::admin::user::handler::admin_create_users_bulk,
         crate::api::admin::user::handler::admin_get_user,
+        crate::api::admin::user::handler::admin_get_user_logs,
+        crate::api::admin::user::handler::admin_get_user_self_logs,
         crate::api::admin::user::handler::admin_update_user,
         crate::api::admin::user::handler::admin_update_users_bulk,
 
@@ -101,6 +103,8 @@ impl Modify for SecurityAddon {
         crate::api::admin::video::handler::admin_list_videos,
         crate::api::admin::video::handler::admin_create_video,
         crate::api::admin::video::handler::admin_bulk_create_videos,
+        crate::api::admin::video::handler::admin_get_video,
+        crate::api::admin::video::handler::admin_get_vimeo_preview,
         crate::api::admin::video::handler::admin_update_video,
         crate::api::admin::video::handler::admin_bulk_update_videos,
         crate::api::admin::video::handler::admin_update_video_tags,
@@ -110,12 +114,16 @@ impl Modify for SecurityAddon {
         crate::api::admin::lesson::handler::admin_list_lessons,
         crate::api::admin::lesson::handler::admin_list_lesson_items,
         crate::api::admin::lesson::handler::admin_list_lesson_progress,
+        crate::api::admin::lesson::handler::admin_get_lesson,
+        crate::api::admin::lesson::handler::admin_get_lesson_items_detail,
         crate::api::admin::lesson::handler::admin_create_lesson_item,
         crate::api::admin::lesson::handler::admin_update_lesson_progress,
         crate::api::admin::lesson::handler::admin_bulk_update_lesson_progress,
         crate::api::admin::lesson::handler::admin_bulk_create_lesson_items,
         crate::api::admin::lesson::handler::admin_bulk_update_lesson_items,
         crate::api::admin::lesson::handler::admin_update_lesson_item,
+        crate::api::admin::lesson::handler::admin_delete_lesson_item,
+        crate::api::admin::lesson::handler::admin_bulk_delete_lesson_items,
         crate::api::admin::lesson::handler::admin_create_lesson,
         crate::api::admin::lesson::handler::admin_bulk_create_lessons,
         crate::api::admin::lesson::handler::admin_bulk_update_lessons,
@@ -125,6 +133,7 @@ impl Modify for SecurityAddon {
         crate::api::admin::study::handler::admin_list_studies,
         crate::api::admin::study::handler::admin_create_study,
         crate::api::admin::study::handler::admin_bulk_create_studies,
+        crate::api::admin::study::handler::admin_get_study,
         crate::api::admin::study::handler::admin_update_study,
         crate::api::admin::study::handler::admin_bulk_update_studies,
         crate::api::admin::study::handler::admin_list_study_tasks,
@@ -136,6 +145,7 @@ impl Modify for SecurityAddon {
         crate::api::admin::study::handler::admin_update_task_explain,
         crate::api::admin::study::handler::admin_bulk_create_task_explains,
         crate::api::admin::study::handler::admin_bulk_update_task_explains,
+        crate::api::admin::study::handler::admin_get_study_task,
         crate::api::admin::study::handler::admin_update_study_task,
         crate::api::admin::study::handler::admin_create_study_task,
         crate::api::admin::study::handler::admin_bulk_create_study_tasks,
@@ -144,6 +154,21 @@ impl Modify for SecurityAddon {
 
         // admin - video stats
         crate::api::admin::video::stats::handler::admin_get_video_daily_stats,
+        crate::api::admin::video::stats::handler::admin_get_aggregate_daily_stats,
+        crate::api::admin::video::stats::handler::admin_get_stats_summary,
+        crate::api::admin::video::stats::handler::admin_get_top_videos,
+
+        // admin - study stats
+        crate::api::admin::study::stats::handler::admin_get_daily_stats,
+        crate::api::admin::study::stats::handler::admin_get_study_stats_summary,
+        crate::api::admin::study::stats::handler::admin_get_top_studies,
+
+        // admin - user stats / login stats
+        crate::api::admin::user::stats::handler::get_user_stats_summary_handler,
+        crate::api::admin::user::stats::handler::get_user_stats_signups_handler,
+        crate::api::admin::user::stats::handler::get_login_stats_summary_handler,
+        crate::api::admin::user::stats::handler::get_login_stats_daily_handler,
+        crate::api::admin::user::stats::handler::get_login_stats_devices_handler,
 
         // admin - translations (번역 관리)
         crate::api::admin::translation::handler::admin_list_translations,
@@ -784,6 +809,48 @@ mod tests {
         );
     }
 
+    /// 2026-05-11 C-doc-sync — N-27 종결 (2026-05-06) 후 신규로 추가된
+    /// admin GET/DELETE/stats endpoint 의 OpenAPI 등록 검증 (path 기준 표본).
+    /// webhook 정책 (handle_webhook OpenAPI 제외) 은 별도 `excludes_webhooks` 테스트가 보장.
+    #[test]
+    fn openapi_spec_includes_doc_sync_paths() {
+        let openapi = ApiDoc::openapi();
+        let paths = &openapi.paths.paths;
+
+        let expected_paths = [
+            // admin/user — log endpoints (신규 unique path)
+            "/admin/users/{user_id}/admin-logs",
+            "/admin/users/{user_id}/user-logs",
+            // admin/video stats (3 신규 unique path)
+            "/admin/videos/stats/summary",
+            "/admin/videos/stats/top",
+            "/admin/videos/stats/daily",
+            // admin/study stats (3 신규 unique path)
+            "/admin/studies/stats/summary",
+            "/admin/studies/stats/top",
+            "/admin/studies/stats/daily",
+            // admin/user stats (2 신규 unique path)
+            "/admin/users/stats/summary",
+            "/admin/users/stats/signups",
+            // admin/login stats (3 신규 unique path)
+            "/admin/logins/stats/summary",
+            "/admin/logins/stats/daily",
+            "/admin/logins/stats/devices",
+        ];
+
+        let mut missing: Vec<&str> = Vec::new();
+        for path in &expected_paths {
+            if !paths.contains_key(*path) {
+                missing.push(*path);
+            }
+        }
+        assert!(
+            missing.is_empty(),
+            "C-doc-sync paths missing from OpenAPI spec: {:?}",
+            missing
+        );
+    }
+
     /// 전체 spec 카운트 sanity check (정확한 수치는 N-27 외 도메인 변경 시 변동 가능).
     #[test]
     fn openapi_spec_summary_sanity() {
@@ -797,13 +864,13 @@ mod tests {
         let tag_count = openapi.tags.as_ref().map(|t| t.len()).unwrap_or(0);
 
         eprintln!(
-            "OpenAPI spec summary (2026-05-06 N-27 후): paths={path_count}, schemas={schema_count}, tags={tag_count}"
+            "OpenAPI spec summary (2026-05-11 C-doc-sync 후): paths={path_count}, schemas={schema_count}, tags={tag_count}"
         );
 
-        // 본 세션 N-27 50 endpoint 등록 후 최소 baseline.
-        // (정확한 카운트는 도메인 추가 시 변동, 너무 적으면 회귀 의심).
-        assert!(path_count >= 100, "paths too few: {path_count}");
-        assert!(schema_count >= 130, "schemas too few: {schema_count}");
+        // 2026-05-11 C-doc-sync 21 endpoint (15 unique path) 추가 후 baseline 상승.
+        // 정확한 카운트는 도메인 추가 시 변동, 너무 적으면 회귀 의심.
+        assert!(path_count >= 130, "paths too few: {path_count}");
+        assert!(schema_count >= 160, "schemas too few: {schema_count}");
         assert!(tag_count >= 14, "tags too few: {tag_count}");
     }
 }
