@@ -61,6 +61,12 @@ export default defineConfig({
         "src/category/study/study_api.ts",
         "src/category/study/hook/use_study_list.ts",
         "src/category/study/hook/use_writing_stats.ts",
+        "src/category/user/user_api.ts",
+        "src/category/user/hook/use_user_me.ts",
+        "src/category/video/video_api.ts",
+        "src/category/video/hook/use_video_list.ts",
+        "src/category/lesson/lesson_api.ts",
+        "src/category/lesson/hook/use_lesson_list.ts",
       ],
       exclude: [
         "src/**/*.{test,spec}.{ts,tsx}",

@@ -1,8 +1,50 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속¹⁵ — T-G10-page-cont batch (signup + pricing = 16 신규 / 218 passed)
+updated: 2026-05-11 후속¹⁶ — T-G10-deep batch (user/video/lesson 도메인 = 29 신규 / 247 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속¹⁶ ✅ — T-G10-deep batch: user/video/lesson 도메인 29 신규 / 247 passed**
+
+  ebook/study/textbook (#281/#283/#284) 패턴 3 도메인 확장. batched PR.
+
+  ## 6 신규 파일 (29 tests)
+
+  | 파일 | tests | 검증 |
+  |------|:-:|------|
+  | `user_api.test.ts` | 5 | getUserMe / updateUserMe POST / getUserSettings / updateUserSettings POST / 5xx ApiError |
+  | `hook/use_user_me.test.tsx` | 3 | success / 404 (retry:false branch) / 500 (retry-then-fail branch) |
+  | `video_api.test.ts` | 6 | getVideoList params+lang / getVideoDetail (with/without lang) / getVideoProgress / updateVideoProgress POST / 5xx ApiError |
+  | `hook/use_video_list.test.tsx` | 4 | success / ApiError branch / Error branch / fallback branch (getErrorMessage 3 분기) |
+  | `lesson_api.test.ts` | 7 | getLessonList sanitize / getLessonDetail (with/without lang) / getLessonItems pagination / getLessonProgress / updateLessonProgress / 5xx |
+  | `hook/use_lesson_list.test.tsx` | 4 | 같은 getErrorMessage 3 분기 패턴 |
+
+  ## 학습 정착
+
+  - **401 path 회피** = axios 인터셉터의 `/auth/refresh` 자동 호출이 jsdom 환경과 충돌. retry:false 분기 검증은 **404** 사용
+  - **QueryClient retry default** = hook 의 retry 함수가 override 함 (default 영향 X)
+  - batched PR 효율 = 동일 패턴 3 도메인 한번에 처리
+
+  ## vitest.config.ts coverage whitelist
+
+  - 6 파일 추가 (user_api / use_user_me / video_api / use_video_list / lesson_api / use_lesson_list)
+
+  ## Coverage 결과
+
+  | 모듈 | Stmts | Branch | Funcs | Lines |
+  |------|:-:|:-:|:-:|:-:|
+  | category/user/user_api.ts | 100 | 100 | 100 | 100 |
+  | category/user/hook/use_user_me.ts | 100 | 100 | 100 | 100 |
+  | category/video/video_api.ts | 100 | 100 | 100 | 100 |
+  | category/video/hook/use_video_list.ts | 100 | 100 | 100 | 100 |
+  | category/lesson/lesson_api.ts | 100 | 100 | 100 | 100 |
+  | category/lesson/hook/use_lesson_list.ts | 100 | 100 | 100 | 100 |
+
+  ## 검증
+
+  - `vitest run --coverage` = **247 passed** (이전 218 + 신규 29) / 47 파일
+  - thresholds 90/75/60/90 perFile 통과
+  - npm build 16.82s clean / lint 0
 
 - **2026-05-11 후속¹⁵ ✅ — T-G10-page-cont batch: signup_page + pricing_page 16 신규 / 218 passed**
 
