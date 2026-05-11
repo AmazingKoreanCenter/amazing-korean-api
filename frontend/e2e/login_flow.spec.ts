@@ -13,7 +13,7 @@ import { TEST_EMAIL, TEST_PASSWORD } from "./fixtures/auth";
 // writing_practice.spec.ts 의 apiLogin 1회 = 합 2회 → 한 CI run 안에서는 안전.
 
 test.describe("login flow — happy path", () => {
-  test("이메일·패스워드 입력 → 로그인 성공 → /about 리다이렉트", async ({
+  test("이메일·패스워드 입력 → 로그인 성공 → 로그인 페이지 이탈 (홈 리다이렉트)", async ({
     page,
   }) => {
     await page.goto("/login");
@@ -30,6 +30,10 @@ test.describe("login flow — happy path", () => {
     // MFA 모달의 submit 와 구분 = 폼 내부 첫 submit.
     await page.locator('button[type="submit"]').first().click();
 
-    await expect(page).toHaveURL(/\/about$/);
+    // 실제 사용자 경험: login_page.tsx 의 useEffect 가 isLoggedIn=true 시
+    // navigate("/", { replace: true }) 를 발사. 본 effect 가 mutation onSuccess 의
+    // navigate("/about") 를 덮어쓰므로 최종 도착 = /. 본 e2e 는 login mutation 성공
+    // (= /login 이탈 + store isLoggedIn=true 반영) 만 검증한다.
+    await expect(page).toHaveURL(/\/$/);
   });
 });
