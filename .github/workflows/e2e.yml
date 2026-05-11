@@ -159,12 +159,20 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Start Vite dev (background, proxy → backend 3100)
+      # G2-1 (2026-05-11): vite dev → preview 전환. dev mode = lazy chunk on-demand
+      # compile = login page React.lazy chunk 가 cold start 시 60-90s timeout 안에
+      # 안정 보장 어려움. preview = production build 결과물 정적 서빙 = compile
+      # 단계 0 = cold 이슈 원천 제거. trade-off = build step (~20s) 추가.
+      - name: Build frontend (production bundle)
+        working-directory: frontend
+        run: npm run build
+
+      - name: Start Vite preview (background, proxy → backend 3100)
         working-directory: frontend
         env:
           VITE_PROXY_TARGET: http://127.0.0.1:3100
         run: |
-          npm run dev > vite.log 2>&1 &
+          npm run preview -- --host 0.0.0.0 --port 5173 > vite.log 2>&1 &
           echo $! > vite.pid
 
       - name: Wait for Vite
