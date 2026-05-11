@@ -1,8 +1,57 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속¹⁴ — G10 backend deeper subset (api::util::extract_client_ip = 10 tests / 195 passed)
+updated: 2026-05-11 후속¹⁵ — T-G10-page-cont batch (signup + pricing = 16 신규 / 218 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속¹⁵ ✅ — T-G10-page-cont batch: signup_page + pricing_page 16 신규 / 218 passed**
+
+  복잡 페이지 2개 batched (효율). 본 세션 첫 batched PR.
+
+  ## 2 신규 파일 (16 tests)
+
+  ### signup_page.test.tsx (7 tests)
+
+  | test | 검증 |
+  |------|------|
+  | 렌더 | title + Google/Apple + Collapsible trigger |
+  | Google 버튼 클릭 | googleLoginMutation 호출 |
+  | Google pending | 버튼 disabled |
+  | Collapsible 펼침 | email input 노출 |
+  | submit (requires_verification=true) | mutate(apiData = ~confirm_password) + navigate /verify-email + state.email |
+  | submit (requires_verification=false) | navigate /login |
+  | submit pending | "auth.signingUp" 버튼 disabled |
+
+  ### pricing_page.test.tsx (9 tests)
+
+  | test | 검증 |
+  |------|------|
+  | skeleton loading | plansLoading=true → animate-pulse 4+ |
+  | plan card 렌더 | $9.90 / $990 표시 |
+  | not logged in | plan 클릭 → navigate /login?redirect=/pricing |
+  | logged in + no sub | plan 클릭 → openCheckout |
+  | active sub | plan 클릭 → toast.info("alreadySubscribed") |
+  | ?success=true | toast.success + setSearchParams({}, replace) |
+  | cancel dialog → period-end | mutate({immediately: false}) |
+  | cancel dialog → immediate | mutate({immediately: true}) |
+  | promo code clear | input value "" 복원 |
+
+  ## vitest.config.ts coverage whitelist
+
+  - signup_page.tsx / pricing_page.tsx 추가
+
+  ## Coverage 결과 (신규 모듈)
+
+  | 모듈 | Stmts | Branch | Funcs | Lines |
+  |------|:-:|:-:|:-:|:-:|
+  | category/auth/page/signup_page.tsx | 100 | 100 | 100 | 100 |
+  | category/payment/page/pricing_page.tsx | 98.94 | 75 | 81.81 | 98.94 |
+
+  ## 검증
+
+  - `vitest run --coverage` = **218 passed** (202 + 16) / 41 파일
+  - thresholds 90/75/60/90 perFile 통과
+  - npm build 18.60s clean / lint 0 (1 unused param 수정 후)
 
 - **2026-05-11 후속¹⁴ ✅ — G10 backend deeper subset: api::util pure helper 10 tests / 195 passed**
 
