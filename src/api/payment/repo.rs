@@ -282,10 +282,14 @@ impl PaymentRepo {
         provider_transaction_id: &str,
         status: TransactionStatus,
     ) -> AppResult<bool> {
+        // 2026-05-11 T-Subset-Txn 통합 테스트로 발견된 schema mismatch fix:
+        // `transactions` 테이블에 `updated_at` 컬럼이 없음 (`created_at` 만 존재).
+        // 이전 SQL `SET status=$1, updated_at=NOW()` = 런타임 fail 가능 path 였음.
+        // 환불 시점 별도 컬럼 필요하면 schema migration 으로 추가 검토.
         let result = sqlx::query(
             r#"
             UPDATE transactions
-            SET status = $1, updated_at = NOW()
+            SET status = $1
             WHERE provider_transaction_id = $2
             "#,
         )
