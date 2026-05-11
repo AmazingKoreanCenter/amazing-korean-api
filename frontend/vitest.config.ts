@@ -67,6 +67,7 @@ export default defineConfig({
         "src/category/video/hook/use_video_list.ts",
         "src/category/lesson/lesson_api.ts",
         "src/category/lesson/hook/use_lesson_list.ts",
+        "src/category/admin/hook/use_admin_email.ts",
       ],
       exclude: [
         "src/**/*.{test,spec}.{ts,tsx}",

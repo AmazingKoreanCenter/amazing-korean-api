@@ -1,8 +1,50 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속¹⁶ — T-G10-deep batch (user/video/lesson 도메인 = 29 신규 / 247 passed)
+updated: 2026-05-11 후속¹⁷ (세션 마무리) — admin subset + error.rs (19 신규 / 249 frontend + 212 lib)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속¹⁷ ✅ — 본 세션 마지막: admin subset + error.rs 19 신규**
+
+  본 세션 18번째 PR. 🟢 즉시 진입 가능 4 트랙 모두 cover (signup/pricing/user/video/lesson/admin subset/G10 backend).
+
+  ## 2 신규 파일
+
+  | 파일 | tests | 검증 |
+  |------|:-:|------|
+  | `frontend/src/category/admin/hook/use_admin_email.test.tsx` | 2 | mutation success / error |
+  | `src/error.rs::tests` | 17 | 13 AppError variants into_response + CryptoError 3 분기 From + ValidationGeneric anti-enumeration |
+
+  ## 본 PR 검증 범위
+
+  ### admin subset (use_admin_email)
+  - admin_api.ts 797 라인 전체는 too big for batched PR
+  - 1 simple mutation hook 만 cover = use_admin_email
+  - 다음 세션에서 admin_api 본격 cover 가능
+
+  ### error.rs (G10 backend deeper)
+  - AppError → HTTP Response 변환 검증
+  - status code: 500 (Internal/HealthInternal) / 400 (BadRequest/ValidationGeneric) / 422 (Unprocessable) / 401 (Unauthorized/Jsonwebtoken) / 403 / 404 / 409 / 429 (TooManyRequests with Retry-After 60s header) / 503 / 502 (External) / 500 (Sqlx DB_ERROR)
+  - error_code: INTERNAL_SERVER_ERROR / HEALTH_INTERNAL / BAD_REQUEST / VALIDATION_ERROR / UNAUTHORIZED / FORBIDDEN / NOT_FOUND / CONFLICT / AUTH_429_TOO_MANY_ATTEMPTS / SERVICE_UNAVAILABLE / EXTERNAL_SERVICE_ERROR / DB_ERROR / JWT_ERROR / UNPROCESSABLE_ENTITY
+  - CryptoError 3 분기 From: InvalidFormat / DecryptionFailed / Internal 모두 AppError::Internal 로 매핑
+
+  ## 검증
+
+  - frontend `vitest run --coverage` = **249 passed** (247 + 2) / 48 파일
+  - backend `cargo test --lib` = **212 passed** (195 + 17 error.rs)
+  - 모든 신규 모듈 100% all metrics
+  - clippy --all-targets / fmt clean
+
+  ## 본 세션 (2026-05-11) 최종 누계
+
+  - **18 PR** 머지 (#273~#290) — 본 세션 최대
+  - frontend tests = 122 → **249** (+127)
+  - backend lib tests = 183 → **212** (+29)
+  - payment_integration tests = 8 → **25** (+17)
+  - 부채 §0 = 31 → **30** (G2-1 ✅)
+  - 🐛 production-affecting bug 1건 fix
+  - regression test 정착 (openapi_paths_match_router_handlers)
+  - 다음 세션 옵션 = admin_api 본격 / 외부 트리거 / G10 backend deeper 본격
 
 - **2026-05-11 후속¹⁶ ✅ — T-G10-deep batch: user/video/lesson 도메인 29 신규 / 247 passed**
 
