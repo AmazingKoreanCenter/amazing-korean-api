@@ -51,7 +51,7 @@ async fn sync_vimeo_meta(
     };
 
     // 3. Vimeo API 호출
-    let client = VimeoClient::new(access_token);
+    let client = VimeoClient::new(access_token)?;
     let meta = match client.get_video_meta(&vimeo_video_id).await {
         Ok(m) => m,
         Err(e) => {
@@ -115,7 +115,7 @@ pub async fn admin_get_vimeo_preview(
         .ok_or_else(|| AppError::BadRequest("Invalid Vimeo URL".into()))?;
 
     // 3. Vimeo API 호출
-    let client = VimeoClient::new(access_token.clone());
+    let client = VimeoClient::new(access_token.clone())?;
     let meta = client.get_video_meta(&vimeo_video_id).await?;
 
     Ok(VimeoPreviewRes {
@@ -144,7 +144,7 @@ pub async fn admin_create_vimeo_upload_ticket(
         .ok_or_else(|| AppError::BadRequest("Vimeo access token not configured".into()))?;
 
     // 2. Vimeo API로 업로드 티켓 생성
-    let client = VimeoClient::new(access_token.clone());
+    let client = VimeoClient::new(access_token.clone())?;
     let (video_uri, vimeo_video_id, upload_link) = client
         .create_upload_ticket(&req.file_name, req.file_size)
         .await?;

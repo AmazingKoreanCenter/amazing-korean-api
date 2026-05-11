@@ -35,7 +35,7 @@ fn build_google_client(
     client_id: String,
     client_secret: String,
     redirect_uri: String,
-) -> GoogleOAuthClient {
+) -> AppResult<GoogleOAuthClient> {
     match (
         cfg.google_token_url_override.as_deref(),
         cfg.google_jwks_url_override.as_deref(),
@@ -1928,7 +1928,7 @@ impl AuthService {
             client_id.clone(),
             client_secret.clone(),
             redirect_uri.clone(),
-        );
+        )?;
 
         let auth_url = client.build_auth_url(&state, &nonce);
 
@@ -1989,7 +1989,7 @@ impl AuthService {
             client_id.clone(),
             client_secret.clone(),
             redirect_uri.clone(),
-        );
+        )?;
 
         let token_response = client.exchange_code(code).await?;
 
@@ -2075,7 +2075,7 @@ impl AuthService {
             })?;
 
         // ID token JWKS 검증 (모바일은 Authorization Code 교환 불필요. test 시 URL override 적용)
-        let client = build_google_client(&st.cfg, client_id.clone(), String::new(), String::new());
+        let client = build_google_client(&st.cfg, client_id.clone(), String::new(), String::new())?;
         let claims = client.decode_id_token(&req.id_token).await?;
         let user_info: OAuthUserInfo = client.extract_user_info(&claims).into();
 

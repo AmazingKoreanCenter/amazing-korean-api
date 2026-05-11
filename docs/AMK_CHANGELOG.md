@@ -1,8 +1,53 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-10 일일 종결 — 15 PR (#255~#269) / 125+ 신규 tests / 부채 31→30 / production 5 deploy success
+updated: 2026-05-11 — B5 Tier 2 reqwest builder 6건 Result 전파 → B5 트랙 완전 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 — B5 Tier 2 reqwest builder 6건 Result 전파 = B5 트랙 완전 종결**
+
+  본 세션 권장 4단계 [2/4]. 어제 [5/5] 에서 hot path 1건 변환 후 남은 Tier 2 cold init 6건 변환.
+
+  ## 변경 (6 파일 시그니처)
+
+  | 파일 | new() 시그니처 | builder fail 변환 |
+  |------|----------------|------|
+  | `src/external/vimeo.rs` | `pub fn new(token) -> AppResult<Self>` | `AppError::Internal("vimeo client init: {e}")` |
+  | `src/external/revenuecat.rs` | `pub fn new(key) -> AppResult<Self>` | `"revenuecat client init"` |
+  | `src/external/ipgeo.rs` | `pub fn new() -> AppResult<Self>` | `"ipgeo client init"` + `Default` impl 제거 (호출처 0) |
+  | `src/external/apple.rs` | `pub fn new / with_url -> AppResult<Self>` | `"apple client init"` |
+  | `src/external/email.rs` | `pub fn new(key, from) -> AppResult<Self>` | `"resend client init"` |
+  | `src/external/google.rs` | `pub fn new / with_urls -> AppResult<Self>` | `"google oauth client init"` |
+
+  ## Caller 전파 (9 군)
+
+  | caller | 패턴 |
+  |--------|------|
+  | `main.rs` startup 3 (Resend / IpGeo / Apple / RevenueCat) | `.expect("... init must succeed at startup")` = Tier 1 fail-fast 의도 |
+  | `src/api/auth/service.rs` runtime 3 (build_google_client wrapper + 2 직접 호출) | `?` 전파 (function 이 `AppResult` 반환) |
+  | `src/api/admin/video/service.rs` runtime 3 (`VimeoClient::new`) | `?` 전파 |
+  | `tests/common/mod.rs` + `tests/auth_oauth_integration.rs` + mod tests 2 | `.expect("...in test")` |
+
+  ## 검증
+
+  ```
+  $ cargo check --tests --locked  → clean
+  $ cargo test --lib              → 183 passed
+  $ cargo clippy --all-targets --locked -- -D warnings  → clean
+  $ cargo fmt --check --all       → clean
+  ```
+
+  ## B5 트랙 완전 종결
+
+  | 분류 | 건수 | 처리 |
+  |------|:---:|------|
+  | 🟢 안전 | 44 | startup fail-fast / 타입 invariant (처리 불요) |
+  | 🟡 회색 | **0** | ~~auth:447 invariant 1~~ ✅ 2026-05-07 / ~~reqwest builder 6~~ ✅ **본 PR** |
+  | 🔴 위험 | 0 | hot path runtime panic 가능 expect 없음 (auth:99 = 2026-05-10 PR #269 처리) |
+
+  **B5 = 위험도 분류 (2026-05-06) + 3 회 cleanup 트랙 (2026-05-07 / 2026-05-10 / 2026-05-11) = 완전 종결**.
+
+- **2026-05-10 일일 종결 — 15 PR (#255~#269) / 125+ 신규 tests / 부채 31→30 / production 5 deploy success**
 
 - **2026-05-10 일일 종결 ✅ — 15 PR / 125+ 신규 tests / 부채 31→30 / production 5 deploy success**
 

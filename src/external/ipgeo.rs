@@ -40,15 +40,18 @@ pub struct IpGeoClient {
 
 impl IpGeoClient {
     /// Create a new IP geolocation client
-    pub fn new() -> Self {
-        Self {
-            client: reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(5))
-                .build()
-                .expect("Failed to build reqwest Client for IpGeoClient"),
+    ///
+    /// B5 Tier 2: builder fail (TLS roots 로드 등) 시 panic 회피 → Result 전파.
+    pub fn new() -> crate::error::AppResult<Self> {
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(5))
+            .build()
+            .map_err(|e| crate::error::AppError::Internal(format!("ipgeo client init: {}", e)))?;
+        Ok(Self {
+            client,
             // ip-api.com free tier is HTTP only
             base_url: "http://ip-api.com/json".to_string(),
-        }
+        })
     }
 
     /// Lookup geolocation for an IP address
@@ -118,11 +121,7 @@ impl IpGeoClient {
     }
 }
 
-impl Default for IpGeoClient {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// Default impl 제거 (호출처 0, B5 Tier 2 시 Result 변환과 호환 불가).
 
 #[cfg(test)]
 mod tests {
@@ -130,7 +129,7 @@ mod tests {
 
     #[test]
     fn test_parse_asn() {
-        let client = IpGeoClient::new();
+        let client = IpGeoClient::new().expect("ipgeo client init in test");
         let response = IpApiResponse {
             status: "success".to_string(),
             country_code: Some("KR".to_string()),

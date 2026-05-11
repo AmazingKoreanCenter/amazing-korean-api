@@ -85,7 +85,7 @@ pub struct GoogleUserInfo {
 
 impl GoogleOAuthClient {
     /// 새 Google OAuth 클라이언트 생성 (production = 공식 Google URL).
-    pub fn new(client_id: String, client_secret: String, redirect_uri: String) -> Self {
+    pub fn new(client_id: String, client_secret: String, redirect_uri: String) -> AppResult<Self> {
         Self::with_urls(
             client_id,
             client_secret,
@@ -96,25 +96,28 @@ impl GoogleOAuthClient {
     }
 
     /// URL override 가능한 생성자. test 환경에서 wiremock URL 주입용.
+    ///
+    /// B5 Tier 2: builder fail 시 panic 회피 → Result 전파.
     pub fn with_urls(
         client_id: String,
         client_secret: String,
         redirect_uri: String,
         token_url: String,
         jwks_url: String,
-    ) -> Self {
-        Self {
-            // N-10: 외부 서비스 hang 방지 (timeout 15초)
-            client: Client::builder()
-                .timeout(std::time::Duration::from_secs(15))
-                .build()
-                .expect("reqwest client builder must succeed"),
+    ) -> AppResult<Self> {
+        // N-10: 외부 서비스 hang 방지 (timeout 15초)
+        let client = Client::builder()
+            .timeout(std::time::Duration::from_secs(15))
+            .build()
+            .map_err(|e| AppError::Internal(format!("google oauth client init: {}", e)))?;
+        Ok(Self {
+            client,
             client_id,
             client_secret,
             redirect_uri,
             token_url,
             jwks_url,
-        }
+        })
     }
 
     /// 1단계: Authorization URL 생성
@@ -242,7 +245,8 @@ mod tests {
             "test-client-id".into(),
             "test-secret".into(),
             "http://localhost:3000/callback".into(),
-        );
+        )
+        .expect("client init in test");
 
         let url = client.build_auth_url("test-state", "test-nonce");
 

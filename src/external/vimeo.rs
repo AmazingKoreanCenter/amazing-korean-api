@@ -42,15 +42,17 @@ struct VimeoPictureSize {
 
 impl VimeoClient {
     /// 새 Vimeo 클라이언트 생성
-    pub fn new(access_token: String) -> Self {
-        Self {
-            // N-10: 외부 서비스 hang 방지 (timeout 15초)
-            client: Client::builder()
-                .timeout(std::time::Duration::from_secs(15))
-                .build()
-                .expect("reqwest client builder must succeed"),
+    pub fn new(access_token: String) -> AppResult<Self> {
+        // N-10: 외부 서비스 hang 방지 (timeout 15초)
+        // B5 Tier 2: builder fail (TLS roots 로드 등) 시 panic 회피 → Result 전파
+        let client = Client::builder()
+            .timeout(std::time::Duration::from_secs(15))
+            .build()
+            .map_err(|e| AppError::Internal(format!("vimeo client init: {}", e)))?;
+        Ok(Self {
+            client,
             access_token,
-        }
+        })
     }
 
     /// Vimeo URL에서 비디오 ID 추출
