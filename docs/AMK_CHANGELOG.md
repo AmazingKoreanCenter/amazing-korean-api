@@ -1,8 +1,43 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속⁸ — G10-frontend T-G10-deep (textbook api + 2 hooks = 9 신규 / 156 passed)
+updated: 2026-05-11 후속⁹ — G10-frontend T-G10-page-cont (reset_password_page = 4 신규 / 160 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속⁹ ✅ — G10-frontend T-G10-page-cont: reset_password_page 4 신규 / 160 passed**
+
+  T-G10-page (#280) 자연 후속. Form + mutation + token guard 패턴 첫 정착.
+
+  ## 1 신규 파일
+
+  - `frontend/src/category/auth/page/reset_password_page.test.tsx` (4 tests)
+
+  ## 4 tests
+
+  | test | 검증 |
+  |------|------|
+  | renders form fields | new-password / confirm-password / submit 버튼 |
+  | token missing → toast + navigate | location.state.token=null → useEffect → toast.error + navigate /login |
+  | submit form → mutation called | Password123 입력 + submit → mutation (reset_token + new_password) + onSuccess navigate /login |
+  | isPending → button disabled | mockIsPending=true → "auth.changingPassword" 버튼 disabled |
+
+  ## mock 전략
+
+  - react-router-dom: useNavigate / useLocation
+  - react-i18next: t() identity
+  - sonner toast: capture
+  - `useResetPassword`: direct hook mock (mutate fn + opts.onSuccess 즉시 호출 패턴)
+
+  ## vitest.config.ts coverage whitelist
+
+  - reset_password_page.tsx 추가
+
+  ## 검증
+
+  - `vitest run` = **160 passed** (이전 156 + 신규 4) / 33 파일
+  - category/auth/page = 97.79 Stmts / 92.3 Branch / 100 Funcs / 97.79 Lines
+  - thresholds 90/75/60/90 perFile 통과
+  - npm build 16.76s clean / lint 0
 
 - **2026-05-11 후속⁸ ✅ — G10-frontend T-G10-deep: textbook api util + 2 hooks 9 신규 / 156 passed**
 
