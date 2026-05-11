@@ -46,6 +46,9 @@ export default defineConfig({
         "src/category/video/page/video_list_page.tsx",
         "src/category/payment/payment_api.ts",
         "src/category/payment/hook/use_payment_plans.ts",
+        "src/category/error/page/not_found_page.tsx",
+        "src/category/error/page/access_denied_page.tsx",
+        "src/category/error/page/error_page.tsx",
       ],
       exclude: [
         "src/**/*.{test,spec}.{ts,tsx}",
