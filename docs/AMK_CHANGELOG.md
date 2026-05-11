@@ -1,8 +1,46 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속³ — G10-frontend 후속 (component 2 + hook 1 + api util 1 = 16 신규 / 138 passed)
+updated: 2026-05-11 후속⁴ — C-payment-event Subset (subscription.created happy path + idempotency = 3 신규 / payment_integration 11 passed)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 후속⁴ ✅ — C-payment-event Track 4 Subset: subscription.created happy path + DB INSERT + idempotency 3 신규**
+
+  메모리 "별도 새 세션 권장" deferral 권고 → 사용자 push (context 65% 여유) → 본 세션 강행.
+  전략 = wire-format JSON yak-shaving 회피, `process_webhook_event` 직접 호출 (signature path 4 tests 가 wire format 검증 담당).
+
+  ## 신규 helper
+
+  - `make_subscription_created_event_json` = minimal-valid Subscription Event JSON. 80+ 라인. 필드:
+    - Subscription 27 필드 (id / status / customer_id / address_id / currency_code / created_at / updated_at / collection_mode / current_billing_period / billing_cycle / items / custom_data 등)
+    - SubscriptionItem 10 필드 (status / quantity / recurring / created_at / updated_at / trial_dates / price / product)
+    - Price 13 필드 (id / product_id / description / type / billing_cycle / tax_mode / unit_price / quantity / status 등)
+    - Product 11 필드 (id / name / type / tax_category / status 등)
+  - `parse_event` = `serde_json::from_value` → `paddle_rust_sdk::entities::Event`
+
+  ## 3 신규 tests
+
+  | test | 검증 |
+  |------|------|
+  | `test_subscription_created_event_json_deserializes_via_paddle_sdk` | wire-format sanity — Paddle SDK Event deserialize 성공 |
+  | `test_process_webhook_event_subscription_created_inserts_db_row` | happy path — User 시드 → Event 처리 → payment_subscription 행 INSERT |
+  | `test_process_webhook_event_is_idempotent_for_same_event_id` | 멱등성 — 동일 event_id 2회 호출 = 1 row |
+
+  ## 인프라
+
+  - `#![recursion_limit = "512"]` = nested `serde_json::json!` macro (default 128 초과)
+  - `.env.test` = gitignored, 32-byte base64 HMAC + ENCRYPTION_KEY_V1 ephemeral keys (`openssl rand -base64 32`)
+
+  ## 검증
+
+  - `cargo test --test payment_integration -- --ignored` = **11 passed** (기존 8 + 신규 3)
+  - `cargo test --lib` = **184 passed**
+  - `cargo clippy --all-targets` clean
+  - `cargo fmt --check` clean
+
+  ## Defer 트랙 (별도 PR 후보)
+
+  나머지 6 Subscription variants + transaction.completed + adjustment.created/updated. 본 PR 의 helper + 패턴 = 후속 트랙에서 재사용 가능 (price_id / user_id 변수만 변경).
 
 - **2026-05-11 후속³ ✅ — G10-frontend Track 3: 컴포넌트 smoke + hook + api util 16 신규 / 138 passed**
 
