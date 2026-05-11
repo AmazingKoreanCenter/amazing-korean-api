@@ -52,6 +52,7 @@ export default defineConfig({
         "src/category/textbook/textbook_api.ts",
         "src/category/textbook/hook/use_catalog.ts",
         "src/category/textbook/hook/use_my_orders.ts",
+        "src/category/auth/page/reset_password_page.tsx",
       ],
       exclude: [
         "src/**/*.{test,spec}.{ts,tsx}",
