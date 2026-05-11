@@ -1,8 +1,43 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 — [3/4] G2 e2e 후속 = login_flow.spec.ts 추가 (1 spec → 2 spec)
+updated: 2026-05-11 세션 종결 — 3 PR (#270~#272) / B5 트랙 완전 종결 + G2 e2e 안정화 트랙 발견
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-11 세션 종결 ✅ — 3 PR (#270~#272) / B5 트랙 완전 종결**
+
+  KKRYOUN ↔ origin/main = `53a3296` 정렬. production /health 200 유지.
+
+  ## 본 세션 누계
+
+  | # | 트랙 | PR | 변경 |
+  |:-:|------|----|------|
+  | 1 | docs 일일 종결 (어제 b71b3e8) | #270 | 어제 종결 commit 머지 사이클 |
+  | 2 | B5 Tier 2 reqwest builder 6건 Result 전파 | #271 | external/* 6 파일 + caller 9군 → **B5 트랙 완전 종결** (🟢 44 + 🟡 0 + 🔴 0) |
+  | 3 | G2 e2e 후속 (login_flow.spec.ts 추가) | #272 | spec 추가 (1 → 2) — login_flow 는 dormant 마킹 (vite cold start 안정화 후 활성) |
+
+  ## 부채 변화
+
+  - **B5 트랙 완전 종결** = 🟡 회색 0건 (~~reqwest 6~~ + ~~auth:447 invariant~~ + ~~auth:99 dummy hash~~ 모두 ✅)
+  - **G2 e2e 안정화 트랙 새 발견** = login page React.lazy chunk cold-compile 이 e2e timeout 안에 안정 보장 어려움. 해제 조건 = vite preview + build + playwright webServer option / dev warmup beforeAll / chunk 사전 컴파일
+
+  ## production deploy
+
+  - #270 (docs): 1m8s
+  - #271 (B5 변환): 4m31s
+  - #272 (e2e spec 추가): 진행 중
+  - /health 200 유지 (uptime 16분 = #271 deploy 이후)
+
+  ## 다음 세션 진입점
+
+  | 트랙 | 추정 | 비고 |
+  |------|:----:|------|
+  | **G2 e2e 안정화** | 0.3-0.5일 | login_flow dormant 해제 = vite preview webServer / dev warmup 패턴 / e2e infra 보강 |
+  | **C-doc-sync** ⭐ 0.5일 | utoipa OpenAPI N-27 ~43건 (도메인별 분할) |
+  | **C-payment-event** ⭐⭐⭐ 1일+ | Paddle Subscription 30+ 필드 webhook happy |
+  | **G10-frontend 추가 page-level** | auth/login_page / payment/pricing_page 등 — msw + QueryClientProvider 패턴 재사용 |
+
+- **2026-05-11 — [3/4] G2 e2e 후속 = login_flow.spec.ts 추가 (1 spec → 2 spec)**
 
 - **2026-05-11 — [3/4] G2 e2e 후속 = login_flow.spec.ts 추가 (1 spec → 2 spec)**
 
