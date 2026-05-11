@@ -43,16 +43,18 @@ pub struct ResendEmailSender {
 }
 
 impl ResendEmailSender {
-    pub fn new(api_key: String, from_address: String) -> Self {
-        Self {
-            // N-10: 외부 서비스 hang 방지 (timeout 15초)
-            http: reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(15))
-                .build()
-                .expect("reqwest client builder must succeed"),
+    pub fn new(api_key: String, from_address: String) -> AppResult<Self> {
+        // N-10: 외부 서비스 hang 방지 (timeout 15초)
+        // B5 Tier 2: builder fail 시 panic 회피 → Result 전파.
+        let http = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(15))
+            .build()
+            .map_err(|e| AppError::Internal(format!("resend client init: {}", e)))?;
+        Ok(Self {
+            http,
             api_key,
             from_address,
-        }
+        })
     }
 }
 

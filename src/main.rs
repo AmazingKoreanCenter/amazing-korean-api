@@ -80,9 +80,10 @@ async fn main() -> anyhow::Result<()> {
                 .clone()
                 .expect("EMAIL_FROM_ADDRESS required for resend provider");
             tracing::info!("📩 Email client enabled: Resend (from: {})", from);
-            Some(Arc::new(external::email::ResendEmailSender::new(
-                api_key, from,
-            )))
+            Some(Arc::new(
+                external::email::ResendEmailSender::new(api_key, from)
+                    .expect("Resend client init must succeed at startup"),
+            ))
         }
         "none" => {
             tracing::info!("Email client disabled (EMAIL_PROVIDER=none)");
@@ -97,7 +98,9 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // 6) IpGeoClient 생성
-    let ipgeo = Arc::new(external::ipgeo::IpGeoClient::new());
+    let ipgeo = Arc::new(
+        external::ipgeo::IpGeoClient::new().expect("IpGeoClient init must succeed at startup"),
+    );
     tracing::info!("🌍 IP Geolocation client enabled (ip-api.com)");
 
     // 6.7) PaymentProvider 생성 (PAYMENT_PROVIDER 설정에 따라 분기)
@@ -144,9 +147,10 @@ async fn main() -> anyhow::Result<()> {
     let revenuecat: Option<Arc<dyn external::revenuecat::RevenueCatClient>> =
         if let Some(api_key) = &cfg.revenuecat_api_key {
             tracing::info!("RevenueCat client initialized");
-            Some(Arc::new(external::revenuecat::RevenueCatApiClient::new(
-                api_key.clone(),
-            )))
+            Some(Arc::new(
+                external::revenuecat::RevenueCatApiClient::new(api_key.clone())
+                    .expect("RevenueCatApiClient init must succeed at startup"),
+            ))
         } else {
             tracing::info!("RevenueCat client disabled (REVENUECAT_API_KEY not set)");
             None
@@ -156,9 +160,10 @@ async fn main() -> anyhow::Result<()> {
     let apple_oauth: Option<Arc<external::apple::AppleOAuthClient>> =
         if let Some(client_id) = &cfg.apple_client_id {
             tracing::info!("Apple OAuth client initialized");
-            Some(Arc::new(external::apple::AppleOAuthClient::new(
-                client_id.clone(),
-            )))
+            Some(Arc::new(
+                external::apple::AppleOAuthClient::new(client_id.clone())
+                    .expect("AppleOAuthClient init must succeed at startup"),
+            ))
         } else {
             tracing::info!("Apple OAuth client disabled (APPLE_CLIENT_ID not set)");
             None

@@ -57,22 +57,25 @@ pub struct AppleIdTokenClaims {
 }
 
 impl AppleOAuthClient {
-    pub fn new(client_id: String) -> Self {
+    pub fn new(client_id: String) -> AppResult<Self> {
         Self::with_url(client_id, APPLE_JWKS_URL.to_string())
     }
 
     /// JWKS URL override 가능한 생성자. test 환경에서 wiremock URL 주입용.
-    pub fn with_url(client_id: String, jwks_url: String) -> Self {
-        Self {
-            // N-10: 외부 서비스 hang 방지 (timeout 15초)
-            client: Client::builder()
-                .timeout(std::time::Duration::from_secs(15))
-                .build()
-                .expect("reqwest client builder must succeed"),
+    ///
+    /// B5 Tier 2: builder fail 시 panic 회피 → Result 전파.
+    pub fn with_url(client_id: String, jwks_url: String) -> AppResult<Self> {
+        // N-10: 외부 서비스 hang 방지 (timeout 15초)
+        let client = Client::builder()
+            .timeout(std::time::Duration::from_secs(15))
+            .build()
+            .map_err(|e| AppError::Internal(format!("apple client init: {}", e)))?;
+        Ok(Self {
+            client,
             client_id,
             jwks_url,
             jwks_cache: Arc::new(RwLock::new(HashMap::new())),
-        }
+        })
     }
 
     /// kid 에 대응하는 DecodingKey 를 캐시에서 조회하거나, miss 시 Apple JWKS 를

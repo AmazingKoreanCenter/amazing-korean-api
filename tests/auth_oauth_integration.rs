@@ -610,7 +610,8 @@ fn inject_apple_test_client(st: &mut amazing_korean_api::state::AppState, mock_u
     let client = AppleOAuthClient::with_url(
         APPLE_BUNDLE_ID.to_string(),
         format!("{}/apple_jwks", mock_uri),
-    );
+    )
+    .expect("AppleOAuthClient init in test");
     st.apple_oauth = Some(Arc::new(client));
 }
 

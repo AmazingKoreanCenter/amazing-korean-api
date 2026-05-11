@@ -55,7 +55,7 @@ pub async fn make_test_state() -> AppState {
         .create_pool(Some(Runtime::Tokio1))
         .expect("RedisPool 생성 실패 — REDIS_URL 확인");
 
-    let ipgeo = Arc::new(IpGeoClient::new());
+    let ipgeo = Arc::new(IpGeoClient::new().expect("IpGeoClient init in test"));
 
     AppState {
         db,

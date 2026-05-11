@@ -171,22 +171,22 @@
 | 분류 | 건수 | 의미 |
 |------|:--:|------|
 | 🟢 안전 | 44 | 부팅 시점 fail-fast 또는 타입/정적 invariant 로 panic 불가능. (auth:99 dummy hash 1건 제거 = 2026-05-10 PR #269 → 45→44) |
-| 🟡 회색 | 6 | cold init (reqwest builder 6). ~~논리 invariant 1 (auth:447)~~ ✅ 제거 (2026-05-07) |
+| 🟡 회색 | ~~6~~ → **0** | ~~cold init (reqwest builder 6)~~ ✅ **제거 (2026-05-11, PR — external/* new() Result 전파)**. ~~논리 invariant 1 (auth:447)~~ ✅ 제거 (2026-05-07) |
 | 🔴 위험 | 0 | hot path runtime panic 가능 expect 없음 |
 
-**🟡 회색 6건 상세**
+**~~🟡 회색 6건~~** ✅ **모두 해결 (2026-05-11)**
 
-| 위치 | 패턴 | panic 트리거 가능성 |
-|------|------|-----|
-| `src/external/{apple,email,google,ipgeo,revenuecat,vimeo}.rs` | `reqwest::Client::builder()…build().expect("…")` | 극히 드묾 (TLS native roots 로드 실패 등). reqwest builder API 가 사실상 무결. 객체 생성 1회성 |
+| 위치 | 처리 |
+|------|------|
+| `src/external/{apple,email,google,ipgeo,revenuecat,vimeo}.rs` | ✅ `pub fn new(...) -> AppResult<Self>` 시그니처 변경. builder fail 시 `AppError::Internal` 전파. caller 측 (`main.rs` startup 3 = `.expect(...)` Tier 1 fail-fast 패턴 / `api/auth/service.rs` runtime 3 = `?` / `api/admin/video/service.rs` runtime 3 = `?`). `IpGeoClient::Default` impl 제거 (호출처 0 + Result 변환 비호환). mod tests 측 `.expect("...in test")` 추가 |
 
-**처리 권고 (별도 트랙)**
+**처리 결과**
 
-- **🟢 안전 45건** = 처리 불요. 의도된 fail-fast 또는 타입 보장.
-- **🟡 reqwest builder 6건** = 수용 권고. `unwrap_or_else` 로 fallback 만들기 어려움 (Client 가 있어야 외부 호출 가능). OnceCell 화 검토 가치 ≪ 비용.
-- ~~🟡 auth:447 1건~~ ✅ **해결 (2026-05-07)**: `if user_info.is_none() || !password_ok` 분기를 `let Some(user_info) = user_info else { ... }` + `if !password_ok { ... }` 두 단계로 분리. expect 제거 = invariant 가 코드로 표현됨. 동작 동등 (anti-enumeration + timing protection 보존).
+- **🟢 안전 44건** = 처리 불요. 의도된 fail-fast 또는 타입 보장.
+- **🟡 reqwest builder ~~6건~~** ✅ 모두 Result 전파 변환 (2026-05-11). runtime caller `?` 전파 / startup caller `.expect` Tier 1 패턴.
+- ~~🟡 auth:447 1건~~ ✅ **해결 (2026-05-07)**: `if user_info.is_none() || !password_ok` 분기를 `let Some(user_info) = user_info else { ... }` + `if !password_ok { ... }` 두 단계로 분리.
 
-**결론**: 🔴 0건 + 🟡 hot path 0건 = production 운영 중 unexpected panic 위험 expect 호출은 0. B5 = 위험도 분류 종결 + auth:447 리팩터 (2026-05-07) + auth:99 dummy hash 추가 cleanup (2026-05-10, PR #269) 로 안전 카운트도 1건 감소 (45→44).
+**결론**: 🔴 0건 + 🟡 0건 + 🟢 44건 = **B5 트랙 완전 종결**. production 운영 중 unexpected panic 위험 expect 호출 0. B5 = 위험도 분류 종결 (2026-05-06) + auth:447 리팩터 (2026-05-07) + auth:99 dummy hash 추가 cleanup (2026-05-10 PR #269) + Tier 2 reqwest builder 6건 Result 전파 (2026-05-11).
 
 ### ~~B8. SSL Labs B → A+ 강화~~ ✅ **B → A- 해결 (2026-05-07)**
 
