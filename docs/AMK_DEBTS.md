@@ -1,37 +1,98 @@
 # AMK_DEBTS — 미해결 부채 카탈로그
 
-> **목적**: amazing-korean-api 의 미해결 부채를 한 곳에 정리. 부채 발견 시 본 문서에 즉시 등재. 작업 우선순위 결정 + 조회 시 진입점.
-> **작성 원칙**: 사실 기반. 가정·해석 배제. 위치(파일:줄/명령어/공식 ID) + 영향 범위 + 처리 시점 명시. **라인 번호는 작성 시점 (HEAD) 기준 — commit 후 stale 가능, 사용 시 grep 재확인**.
-> **작성일**: 2026-05-04 (PR #205 진행 중 일괄 조사 + 5 agent 정합성 검증 + 경로 2 추가 조사 통합)
-> **검증 2회차**: 2026-05-04 (저녁, HEAD `3cad9a3`) — 6 agent 분담 병렬, M-007 사고 후 라인/카운트 stale 정정. A2-1 라인 9곳 / B4 unwrap 358→397, 1123→1396 / B5 47→48 / B6 11~12→50 / C6 233→237 / H1 72→41 / J 카운트 3건 정정.
-> **검증 3회차**: 2026-05-06 — B5 카운트 48 → 52 정정 (PR #212~#218 기간 추가) + 위험도 분류 종결 (🟢 45 / 🟡 7 / 🔴 0). 처리 우선순위 낮음 확정.
-> **갱신 규칙**: 부채 신규 발생 시 해당 카테고리에 추가. 처리 완료 시 행 시작에 `~~취소선~~` + 완료일/PR 명시. 본 문서 직접 갱신 (메모리 미동기화 — 메모리는 본 문서 참조 포인터만).
+> **목적**: amazing-korean-api 의 미해결 부채를 한 곳에 정리. 부채 발견 시 본 문서에 **5필드 게이트 통과 시만** 등재. 작업 우선순위 결정 + 조회 시 진입점.
+> **작성 원칙**: 사실 기반. 가정·해석 배제. 위치(파일:줄/명령어/공식 ID) + 영향 범위 + 처리 시점 명시.
+> **갱신 규칙**: 부채 신규 발생 시 5필드 게이트 적용 후 등재. 처리 완료 시 행 시작에 `~~취소선~~` + 완료일/PR 명시.
 > **참조 SSoT**:
 > - production 인시던트 (INC-NNN): `AMK_CHANGELOG.md` + `feedback_deploy_env_sync.md`
-> - AI 작업 사고 (M-NNN): `AMK_AI_MISTAKES.md`
+> - AI 작업 사고 (M-NNN): `AMK_AI_MISTAKES.md` (= **본 부채 카탈로그 외부 SSoT, 카운팅 분리**)
+> - 관찰 영역 (5필드 미충족): `AMK_OBSERVATIONS.md` (= **부채 아님, 작업 대상 X**)
 > - 본 문서: 그 외 모든 부채 (기능/품질/보안/인프라/자동화)
 
 ---
 
-## 0. 요약 (카테고리별 카운트, 2026-05-04 정합성 검증 후)
+## 부채 등재 정책 (5필드 게이트, 2026-05-12 정착)
+
+> **사용자 결정**: 어제 (2026-05-11) 18 PR busywork 분석 후 결론 = 부채 entry 자체에 가치 명세가 없으면 자동 무한 작업 생성. 게이트 필수.
+
+### 5필드 (모두 채워야 부채 등재)
+
+1. **WHERE** — 구체 파일/path/함수 (예: `src/api/payment/handler.rs::handle_webhook`)
+2. **WHAT** — incident class (회귀 / 보안 / 성능 / 사고 패턴 재발)
+3. **HOW MUCH** — 측정 가능한 종료 조건 (시나리오 N개 / 수치)
+4. **WHY** — 안 하면 발생할 구체 incident
+5. **END** — 충분의 정의 (= 작업 종결 시점, 무한 확장 차단)
+
+### 가치 기준 (2026-05-12 검증)
+
+12 해결 부채 cross-reference 결과 **실제 가치 있던 8/12 패턴**:
+- 실제 발생 incident 또는 incident class 명시 (B3/B4/B7/G1/G2/G2-1/G16/J1-J3)
+- 외부 측 (사용자 / 사업 / 인프라) 영향 측정 가능
+- 일회성 처리 (반복 카테고리 무한 확장 X)
+
+5필드 못 채우는 항목 = **부채 아님** = `AMK_OBSERVATIONS.md` 보관 (작업 X).
+
+### 자동 진입 차단 정책
+
+- AI 가 다음 세션에서 부채 카탈로그 진입 시 = **사용자 명시 결정 없이 자동 #1 처리 금지**
+- 카탈로그 항목 = 모두 외부 트리거 의존 또는 수용 결정 = 능동 처리 항목 0
+- 신규 작업 진입 = 사용자가 새 부채 entry 5필드 명세 또는 외부 트리거 발생 시만
+
+---
+
+## 0. 요약 (2026-05-12 재정리 후 = 5필드 게이트 적용)
+
+> **2026-05-12 재정리 사유**: 부채 자격 미성립 항목 분리 + 중복 카운팅 제거 + I 카테고리 (사고 기록) 외부 SSoT 분리. 30건 → **15건** 정정.
 
 | 카테고리 | 미해결 건수 | 비고 |
 |---------|:---:|------|
-| A. 운영/배포 부채 | ~~10~~ → ~~9~~ → ~~7~~ → ~~6~~ → ~~5~~ → ~~4~~ → **3** | **A1 = 0** (모두 ✅ 해결. ~~A1-1~~ Live Secrets 2026-03-18 + ~~A1-2/A1-3~~ KYB 2026-02 + ~~A1-4~~ SPF 2026-05-08 propagation 검증 + ~~A1-5~~ 통장 2026-05-08) + **A2 = 3** (인프라 이전). ~~A4-3/A4-5/A4-6/A4-7/A4-8~~ ✅ + ~~A4-4~~ ✅ (2026-05-07 옵션 A 수동 정기) + ~~A4-1/A4-2~~ ✅ Phase B 완료 (2026-05-07 HTTPS + Let's Encrypt + Full Strict + 자동 갱신) |
-| 🟡 B. 보안 부채 (취약점) | ~~1~~ → **0** | Rust **1** (rsa Marvin Attack, no upgrade) — 🟡 수용 결정 (2026-05-06, compile-time only + PostgreSQL only = production 영향 0). ~~npm 3건~~ ✅ 해결 (2026-05-04). rustls-webpki 3건 ✅ 해결 (2026-05-04) |
-| 🟡 B. 보안 부채 (unsound/unmaintained) | ~~7~~ → **0** | 🟡 모두 수용 결정 (2026-05-06). core2/paste = unmaintained warning 만 + transitive. imageproc 3 = 텍스트 오버레이 영향 낮음. rand 2 = custom logger 미사용으로 영향 0 |
-| ~~B. 보안 부채 (panic 위험)~~ | ~~2~~ → **0** | ~~unwrap 잠재 위험 2건~~ ✅ B4 해결 (2026-05-04, commit `ad239ed`) |
-| B. 보안 부채 (외부 통신) | **1** | B6 ipgeo HTTP-only. ~~B7 Paddle amount~~ ✅ 해결 (2026-05-04, commit `c744efc`) |
-| C. 코드 품질 부채 | ~~2~~ → ~~1~~ → **0** | ~~C1~~ ✅ ESLint baseline 종결 (2026-05-08 후속 — static-components 9 / refs 5 / set-state-in-effect 2 / warnings 12 모두 처리). ~~C2~~ ✅ lint:ui (2026-05-08 신규 토큰). ~~C3/C4/C5/C6/C7/C8~C13~~ 처리/수용. B5/B6 = B 카테고리 재분류 |
-| D. 인프라 부채 | 4 | RDS 이전 묶음 (A2 와 중복) |
-| E. 기능 부채 (보류/조건부) | **11** | 9 (E-9~E-19 보류 9건, ~~번들 최적화~~ ✅ C7 해결 2026-05-05) + **신규 2** (콘텐츠 시딩 E-FUTURE-1, SpeechSuper E-TEXTBOOK-1). E-FUTURE-2 발음/조음/TTS 3건 = ai 측 작업 트랙 (`AMK_AI_PRONUNCIATION.md`), 본 리포 능동 작업 0 = 카운트 외 |
-| F. 모바일/데스크탑 앱 부채 | ~~5~~ → **1** | 외부 리포 SSoT. 2026-05-08 stale 정정 = ~~F1/F2/F3~~ ✅ (mobile 리포 Phase 1~3 완료 사실 반영) + ~~F4~~ ✅ (TTL 90→300 본 리포 적용). F5 만 수용 잔존 |
-| G. 자동 검증 부재 (CI 부채) | ~~5~~ → ~~4~~ → ~~5~~ → ~~4~~ → ~~5~~ → ~~4~~ → ~~3~~ → ~~2~~ → ~~3~~ → **2** | ~~G3/G4/G5/G6/G7/G11/G13/G14~~ ✅ 해결 또는 🟡 수용 (2026-05-05) + ~~G8~~ ✅ 해결 (2026-05-08) + ~~G15~~ ✅ 해결 (2026-05-10) + ~~G16~~ ✅ 해결 (2026-05-10 옵션 a 정책 정착, migrations/README.md) + ~~G1~~ ✅ 해결 (2026-05-10, pr-check integration job + 255 passed) + ~~G2~~ ✅ 해결 (2026-05-10, PR #268 — e2e.yml 별도 workflow 첫 도입, Playwright Chromium 2m26s pass, 안정화 트랙) + ~~G2-1~~ ✅ 해결 (2026-05-11, vite preview + production build 전환, login_flow dormant 해제). 잔여 = 🟡 G10 src 테스트 부족 (광범위 처리, frontend 117 + backend lib 183 + 통합 누적) + G12 cargo-geiger (보류) |
-| H. 문서/메모리 부채 | **0** | ~~H1 메모리 stale~~ 🟡 + ~~H2 docs↔코드 자동 도구~~ 🟡 = 수용 결정 (2026-05-05) |
-| I. AI 작업 사고 | **8** | `AMK_AI_MISTAKES.md` SSoT (2026-05-08 M-010 신규 = stale 정정 부분만 + 권고 전 외부 검증 누락) |
-| J. 환경변수/Secrets 정합성 | **0** | ~~J1/J2/J3~~ ✅ + ~~J4~~ 🟡 (2026-05-05 모두 처리/수용). J3 도구 발견 신규 차이 14건 → .env.example/deploy.yml 추가 (commit `7aae36a`) = 사실상 정합성 정착. 도구 보강 (docker-compose.prod.yml union + 주석 인식) = 별도 후속 |
+| A. 운영/배포 부채 | **3** | A2-1/A2-2/A2-3 (RDS 이전 묶음). 모두 트리거 의존 = 능동 처리 X |
+| B. 보안 부채 (외부 통신) | **1** | B6 ipgeo HTTP-only. 🟡 수용 결정 (2026-05-07, 수익 발생 후 유료 전환). 능동 작업 X |
+| C. 코드 품질 부채 | **0** | C1~C13 모두 처리/수용 완료 |
+| D. 인프라 부채 | **0** | 2026-05-12: A2 와 중복 항목 = 본 카테고리 카운팅 폐지 (4건 → 0, A2 가 SSoT) |
+| E. 기능 부채 (보류/조건부) | **11** | E-9~E-19 (9건) + E-FUTURE-1 + E-TEXTBOOK-1. 모두 트리거 명시 = 능동 처리 X |
+| F. 모바일/데스크탑 앱 부채 | **0** | 2026-05-12: F5 (Tauri macOS) = 🟡 수용 + 외부 리포 SSoT (`AMK_APP_ROADMAP.md R5`). 본 카탈로그 카운팅 폐지 |
+| G. 자동 검증 부재 (CI 부채) | **0** | 2026-05-12: G10/G12 = 부채 자격 미성립 → `AMK_OBSERVATIONS.md` 이동 |
+| H. 문서/메모리 부채 | **0** | H1/H2 수용 결정 (2026-05-05) |
+| I. AI 작업 사고 | **(분리)** | 2026-05-12: 사고 기록 = `AMK_AI_MISTAKES.md` 외부 SSoT. 본 카탈로그 카운팅 분리 (8건 → 0) |
+| J. 환경변수/Secrets 정합성 | **0** | J1~J4 모두 처리/수용 |
 
-**총 미해결 부채 = 30건** (카테고리 합산: A 3 + B 1 (B6) + C 0 + D 4 + E 11 + F 1 + G 2 + H 0 + I 8 + J 0. 2026-05-11 후속 ~~G2-1~~ ✅ 해결 (vite preview + production build 전환 = login page React.lazy chunk cold-compile 원천 제거. `.github/workflows/e2e.yml` 에 `npm run build` step 추가 + `npm run dev` → `npm run preview -- --host 0.0.0.0 --port 5173`. `vite.config.ts` 에 `preview.proxy` 추가 (server.proxy mirror). `e2e/login_flow.spec.ts` dormant 해제 = `test.describe.skip` → `test.describe`, 120s timeout 확장 / 90s wait timeout 제거 → default. trade-off = CI runtime +20s (build) vs cold-compile risk 0) → G 3→2, 31 → **30**. 2026-05-11 🟡 G2-1 신규 (login_flow.spec dormant, vite cold start 안정화 트랙) → G 2→3, 30 → 31. 2026-05-10 ~~G2~~ ✅ 해결 (PR #268 — `.github/workflows/e2e.yml` 별도 workflow 첫 도입. push KKRYOUN + workflow_dispatch trigger / postgres+redis service container / cargo cache shared-key="backend" / cargo build --bin (debug ~1-2min) → backend bg → /healthz polling → 테스트 계정 생성 → playwright install chromium → vite dev bg → npm run test:e2e → fail artifact. 첫 run = Playwright Chromium 2m26s pass. fix: SKIP_STARTUP_MIGRATIONS=1 env 분기로 backend startup migration 우회. pr-check 통합 보류 = 안정화 트랙) → G 3→2, 31 → **30**. 2026-05-10 ~~G1~~ ✅ 해결 (pr-check.yml integration job 신규, postgres + redis service container, psql lex order migration G16 workaround, `cargo test --workspace --tests --locked -- --include-ignored`. CI run 25616239742 = 255 passed / 0 failed. 4 commit fix sequence) → G 4→3, 32 → **31**. 2026-05-10 후속¹⁰ ~~G16~~ ✅ 해결 (옵션 a 정책 정착, `migrations/README.md` 신규 + `AMK_DEPLOY_OPS §3` cross-link, 8자리 timestamp 통일 강제, legacy 14자리 2건은 production checksum 보호 위해 유지) → G 5→4, 33 → **32**. 2026-05-10 후속⁹ G16 신규 (migration 정렬 비호환 발견, 통합 테스트 fresh DB 셋업 시만 영향) → G 4→5, 32 → 33. 2026-05-10 ~~G15~~ ✅ 해결 (token_utils.rs 삭제, dead code 정리, 사용처 0 = 빌드 영향 없음) → G 5→4, 33 → **32**. 2026-05-10 G15 신규 (dead code 발견, G10 작업 중) → G 4→5, 32 → 33. 2026-05-10 G10 부분 처리 (auth 24 신규 단위 테스트, 33 tests, 메모리 "4건" stale 정정) = 카운트 변동 X (미해결 유지). 2026-05-09 ~~C1~~ ✅ ESLint baseline 종결 (28 → 0 problems, static-components 9 + refs 5 + set-state-in-effect 2 + warnings 12 = 컴포넌트 외부 추출 / useState 변환 / key prop 재마운트 / inline disable 의도 명시) → C 1→0, 33 → 32. 2026-05-08 (오후 후속 6) ~~C2~~ ✅ lint:ui (신규 토큰 highlight + level-1~5 정착, 검증 0 errors) → C 2→1, 34 → 33. 2026-05-08 (오후 후속 5) ~~G8~~ ✅ branch protection → G 5→4, 35 → 34. 2026-05-08 (오후 후속 4) F 카테고리 stale 정정 = F1/F2/F3 ✅ + F4 ✅ → F 5→1, 39 → 35. 2026-05-08 (오후) A1-4 ✅ SPF → A 4→3, 40 → 39. 2026-05-08 (오전 후속) M-010 정정 = A1-1 ✅ + I +1 = 순 변화 0. 2026-05-08 A1-5 ✅ 통장 → 41 → 40. 2026-05-08 A1 stale 정정 → 42 → 41. 2026-05-07 Phase B → 44 → 42. 카테고리 중복 미배제, 단순 카운트).
+**총 미해결 부채 = 15건** (A 3 + B 1 + E 11 = 15).
+
+### 분류
+
+| 분류 | 건수 | 의미 |
+|------|:-:|------|
+| 🟡 트리거 의존 (외부 행동 필요) | **14건** | A2 (RDS 이전) + E (조건 충족) — 능동 처리 0 |
+| 🟡 수용 결정 (작업 안 함) | **1건** | B6 — 수익 후 검토 |
+| ✅ 능동 처리 가능 (본 시점) | **0건** | 모두 외부 의존 |
+
+### 2026-05-12 정리 이력
+
+| 변경 | 사유 |
+|------|------|
+| D1~D4 (4건) → A2 와 통합 | 동일 항목 중복 카운팅 제거 |
+| F5 (1건) → 외부 리포 (`AMK_APP_ROADMAP.md`) 만 참조 | 외부 SSoT 존재 |
+| G10/G12 (2건) → `AMK_OBSERVATIONS.md` | 5필드 미충족 = 부채 자격 미성립 |
+| I 1~8 (8건) → `AMK_AI_MISTAKES.md` SSoT 만 | 사고 기록 = 처리 대상 아님, 카운팅 분리 |
+
+**카운트 변화**: 30 → 15 (= -4 중복 -1 외부 -2 관찰 -8 SSoT 분리).
+
+---
+
+### 이전 카운트 이력 (참조, 2026-05-12 이전)
+
+**stale 카운트 추적 (정리 전, 단순 누계)**:
+- 2026-05-04: 92 (검증 1회차 등재 후)
+- 2026-05-04 (밤): 85 (Phase 1+2 처리 10건)
+- 2026-05-07: 44 → 42 (Phase B HTTPS)
+- 2026-05-08: 42 → 33 (A1 stale 정정 + KYB + 통장 + SPF + F stale + G8 + C2)
+- 2026-05-09: 33 → 32 (C1 ESLint)
+- 2026-05-10: 32 → 31 (G15/G16/G1/G2)
+- 2026-05-11: 31 → 30 (G2-1)
+- **2026-05-12 재정리**: 30 → **15** (D 중복 4 + F 외부 1 + G 관찰 2 + I 분리 8 = -15)
+
+**주의**: 이전 카운트 = 단순 누계 (중복 미배제, 사고 기록 포함). 2026-05-12 부터는 **5필드 게이트 적용 + 외부 SSoT 분리** = 정합 카운트.
 
 ---
 
@@ -318,14 +379,17 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 
 ---
 
-## D. 인프라 부채 (RDS 이전 묶음, A2 + Q9 / Q14 와 중복)
+## D. 인프라 부채 — **2026-05-12 카운팅 폐지 (A2 와 중복)**
 
-| ID | 항목 | 처리 시점 |
-|:--:|------|----------|
-| D1 | E-book 9곳 fs::read → S3 SDK 전환 (Q9) | RDS 이전 시 |
-| D2 | PostgreSQL SSL 미사용 → 강제 | RDS 이전 시 |
-| D3 | Redis AUTH 토큰 부재 → 강제 | ElastiCache 이전 시 |
-| D4 | E-book WebP 페이지 이미지 EC2 → S3 (Q14 + Q9 통합) | RDS 이전 시 |
+> **재정리 (2026-05-12)**: D1~D4 모두 A2-1/A2-2/A2-3 와 동일 항목. 중복 카운팅 제거.
+> SSoT = `### A2. RDS/ElastiCache 이전` 섹션. 본 D 카테고리 = 참조용 매핑 표만 유지, 카운팅 = 0.
+
+| 이전 D ID | A2 매핑 | 비고 |
+|:--:|------|------|
+| D1 | A2-1 (E-book fs::read 9곳) | 동일 항목 |
+| D2 | A2-2 (PostgreSQL SSL) | 동일 항목 |
+| D3 | A2-3 (Redis AUTH) | 동일 항목 |
+| D4 | A2-1 sub (E-book WebP S3) | A2-1 의 sub-task (Q14 트리거) |
 
 ---
 
@@ -371,7 +435,7 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 | ~~F2~~ | ~~Flutter E-book 뷰어 메모리 OOM (14MB/페이지)~~ ✅ **해결 (2026-04-06, mobile 리포 M6)** | — | LRU 10페이지 캐시 + `cacheWidth`/`cacheHeight` 화면 해상도 디코딩. `AMK_APP_ROADMAP.md R7` |
 | ~~F3~~ | ~~Flutter iOS isSecureTextEntry 비공식 API~~ ✅ **해결 (2026-04-06, mobile 리포 M7)** | — | `no_screenshot 1.1.0` 핀닝 + Android FLAG_SECURE + iOS isSecureTextEntry + `UIScreen.isCaptured` fallback + 저작권 경고 다이얼로그. `AMK_APP_ROADMAP.md R2` |
 | ~~F4~~ | ~~Flutter 앱 백그라운드 시 세션 만료 (TTL 90초)~~ ✅ **해결 (2026-05-08, 옵션 C 300초 적용)** | `src/config.rs:91, 375-376` + `.env.example:125` + `docs/AMK_API_EBOOK.md:493` | `EBOOK_SESSION_TTL_SEC = 90 → 300` (모바일 표준 5분). 모바일 측 30s heartbeat (M6 완료) + 300s TTL = 백그라운드 4분 30초 grace. 보안 모델 동일 (heartbeat 갱신 + Redis EXPIRE). `cargo check --lib --bins --locked` ✅ |
-| F5 | Tauri macOS 캡처 방지 불가 (Apple 정책) | MEDIUM (수용) | `AMK_APP_ROADMAP.md R5`. macOS 15+ Apple 의도적 변경, 모든 프레임워크 동일 불가. 워터마크 + 법적 억제력으로 대체 |
+| ~~F5~~ | ~~Tauri macOS 캡처 방지 불가 (Apple 정책)~~ → **2026-05-12 본 카탈로그 카운팅 폐지** (외부 SSoT) | MEDIUM (🟡 수용) | SSoT = `amazing-korean-desktop` 리포 + `AMK_APP_ROADMAP.md R5`. 본 카탈로그에서 카운팅 제외 (외부 SSoT 존재). Apple 의도 변경 = 작업 자체 불가 |
 
 ---
 
@@ -412,9 +476,9 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 
 | ID | 항목 | 사실 |
 |:--:|------|------|
-| 🟡 G10 | src/ 테스트 부족 — **광범위 처리 (2026-05-10 일일 종결): 157 단위 + 15 통합 (Phase 1 + Phase 2) = 172 신규, 166 unit + 15 integration passed** | 2026-05-10 누계 = auth 34 + types 5 + payment 13 + config 8 (billing_interval_from_price_id 8) + user 14 + ebook 11 + study 5 + textbook 5 + video 6 + lesson 10 + admin 47 = **157 신규** + 기존 9 = **166 tests**. **후속⁷ (옵션 B 패턴 확장)**: `Config::billing_interval_for_price` 메서드를 `billing_interval_from_price_id(price_id, m1, m3, m6, m12: Option<&str>)` pure helper 분리 (Config struct 60+ fields mock 비용 회피). test 8 = m1/m3/m6/m12 매칭 4 + unknown None / 모든 None / first match (m1 우선) / partial unset (None 스킵). **event_data_type_name 옵션 B 적용 비효율 = skip 명시**: paddle EventData 가 `#[serde(tag = "event_type", content = "data")]` + `#[serde(rename = "...")]` 16+ variants. serde 직렬화로 event_type 추출 시 paddle SDK 모든 variants 노출 = 우리 화이트리스트 의도 (16종만 처리, 나머지 "unknown") 손실. input 자체가 SDK enum = pure 분리 어려움. **후속⁵**: (1) auth/service.rs 추가 helper test 10 = mask_email 5 (정상 / short local / no @ / long local 2글자 truncate / subdomain 보존) + generate_verification_code 3 (6자리 / digits only / 100000-999999 range 50회 반복) + dummy_password_hash 2 (argon2 prefix / OnceLock 캐시 동일성). (2) **공통 helper 추출**: `src/api/admin/header_utils.rs` 신규 모듈 (`pub fn extract_client_ip` + `pub fn extract_user_agent`). 4 handler (lesson/study/payment/user) 의 inline 함수 제거 + `use crate::api::admin::header_utils::*` 교체. payment 스타일 (trim + USER_AGENT 상수 + `?` operator) 채택 = robust 한 버전. test 10 (lesson 대표 7 → header_utils 이동 + ipv6 / trim x-real-ip / trim forwarded 3 추가). 잔여 = paddle SDK mock + service.rs main 비즈니스 (G1/G2 통합 트랙). G1/G2 (cargo test CI) 보류 별개 |
+| ~~G10~~ | ~~src/ 테스트 부족~~ → **2026-05-12 `AMK_OBSERVATIONS.md` 이동** (부채 자격 미성립, 5필드 미충족) | 5필드 게이트 미통과 = 부채 아님. 자세한 사유 및 누적 처리 이력 = `docs/AMK_OBSERVATIONS.md §1` 참조. 본 카탈로그 카운팅 제외 |
 | ~~G11~~ | ~~`cargo-deny` 미설치 (라이선스 호환성 / 의존성 정책 검증)~~ ✅ 해결 (2026-05-05, commit `ced50c4`) | `deny.toml` 신규 (advisory ignore 7건 / 라이선스 13종 허용 / multi-version warn / sources 정책). `cargo install cargo-deny` 후 `cargo deny check` 사용. CI 자동 통합 = 후속 |
-| G12 | `cargo-geiger` 미설치 (unsafe 코드 분석) | unsafe 0건이라 우선순위 낮음 |
+| ~~G12~~ | ~~`cargo-geiger` 미설치~~ → **2026-05-12 `AMK_OBSERVATIONS.md` 이동** (가설 부채 = unsafe 0건 = 감지 대상 0) | 5필드 미충족. 자세한 사유 = `docs/AMK_OBSERVATIONS.md §2`. unsafe 첫 도입 시 부채 승격 |
 | ~~G13~~ | ~~`.github/CODEOWNERS` 미존재~~ ✅ 해결 (2026-05-05, commit 본 세션) | `.github/CODEOWNERS` 신규 (도메인별 owner = `@AmazingKoreanCenter`) |
 | ~~G14~~ | ~~PR template / issue template 미존재~~ ✅ 해결 (2026-05-05, commit 본 세션) | `.github/PULL_REQUEST_TEMPLATE.md` (변경/부채/검증/SSoT/모니터링 체크리스트) + `.github/ISSUE_TEMPLATE/bug_report.md` + `feature_request.md` 신규 |
 | ~~G15~~ | ~~dead code 발견~~ ✅ **해결 (2026-05-10, 사용자 결정 = 삭제)** | `src/api/auth/token_utils.rs` (43 lines) 삭제. 사용처 0 = 빌드 영향 없음 (`cargo check --lib --bins --locked` ✅ + `cargo test --lib` 33 passed 그대로). service.rs 가 자체 `parse_refresh_token` 유지 |
@@ -431,13 +495,17 @@ A- 도 사실상 보안 충분 (origin Let's Encrypt + end-to-end + TLS 1.2+1.3)
 
 ---
 
-## I. AI 작업 사고 (별도 SSoT)
+## I. AI 작업 사고 — **2026-05-12 카운팅 분리 (외부 SSoT)**
 
-> 본 카테고리는 `docs/AMK_AI_MISTAKES.md` 가 SSoT.
+> **재정리 (2026-05-12)**: AI 사고 = **사실 기록 ≠ 처리 대상 부채**. SSoT 분리:
+> - `docs/AMK_AI_MISTAKES.md` = 사고 기록 SSoT
+> - 본 카탈로그 = 부채 (= 능동 처리 대상) 만 추적
+> - I 카테고리 카운팅 = 0 (사고 기록은 본 카탈로그 카운트에서 제외)
 
-**M-001 ~ M-007 (2026-05-04 누적 7건)**:
-- 사전 상태 미확인 카테고리: M-001, M-003, M-004
-- 추정 단정 카테고리: M-002, M-005, M-006, **M-007** (다른 문서 라인 번호 복사 시 직접 검증 X)
+**사고 회피 정책 (참조용)**:
+- M-001 ~ M-010 사고 기록 + 회피 룰 = `docs/AMK_AI_MISTAKES.md` 본문
+- 사고 신규 발생 시 = 본 카탈로그 X, `AMK_AI_MISTAKES.md` 만 갱신
+- 사고로 인한 부채 (예: 사고 결과 codebase 손상 복구 작업) = 별도 부채 entry 등재 (5필드 게이트)
 
 ---
 
