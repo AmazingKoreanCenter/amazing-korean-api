@@ -1,8 +1,74 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-11 후속¹⁷ (세션 마무리) — admin subset + error.rs (19 신규 / 249 frontend + 212 lib)
+updated: 2026-05-12 — 부채 카탈로그 5필드 게이트 정착 + 카운트 재정리 (30 → 15) + busywork 사고 회피 정책
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-12 ✅ — 부채 카탈로그 5필드 게이트 정착 + 카운트 재정리 (PR #291)**
+
+  어제 (2026-05-11) 18 PR busywork 분석 결과 = 부채 entry 자체에 가치 명세 부재 → AI 자동 무한 작업 생성. 카탈로그 자체를 게이트로 만들어 구조적 차단.
+
+  ## 발견 (사용자 지적 기반)
+
+  | 발견 | 사용자 지적 |
+  |------|-------------|
+  | "src/ 테스트 부족" = 의미 없는 진술 | "부족이라는 단어 자체가 추상명사. 명세 없이는 모든 곳 = 무한" |
+  | G10 entry 가 부채 카탈로그에 (자격 미성립으로) 등재됨 | "부채로 편입하기 위한 단계가 아직 성립 안 되었다" |
+  | 메모리 룰 추가 = 또 다른 메타 작업 | "패턴을 세워도 AI 가 못 읽으면 무용. 이쁘게 꾸미는 것" |
+  | 진짜 문제 = 가치 판단 기준 부재 | "현상 개선보다 근본 문제 파악" |
+
+  ## 12 해결 부채 cross-reference 결과
+
+  실효성 기준 = "해결 후 측정 가능 외부 개선":
+  - **8/12 = 실제 가치** (incident-based): B3 npm vuln / B4 unwrap / B7 amount mismatch / G1 cargo test CI / G2 e2e CI / G2-1 vite cold compile / G16 migration 정책 / J1-J3 env sync
+  - **4/12 = 메타 가치** (개발자 본인용): C1 ESLint / C2 lint:ui / C7 visualizer / G15 dead code
+
+  공통 패턴 (8 가치 항목):
+  - 실제 발생 incident 또는 incident class 명시
+  - 외부 측 (사용자 / 사업 / 인프라) 영향 측정 가능
+  - 일회성 처리 (반복 카테고리 무한 확장 X)
+
+  ## 변경 (PR #291)
+
+  ### docs/AMK_DEBTS.md
+  - 헤더 **5필드 게이트** 정책 명시:
+    1. WHERE (구체 path)
+    2. WHAT (incident class)
+    3. HOW MUCH (측정 가능 종료 조건)
+    4. WHY (구체 incident)
+    5. END (충분의 정의)
+  - 가치 기준 prototype = incident-based
+  - AI 자동 진입 차단 정책
+  - **§0 카운트: 30 → 15**
+    - D1~D4 (4건) = A2 와 중복 → 통합 폐지
+    - F5 (1건) = 외부 SSoT (`AMK_APP_ROADMAP.md`) → 카운팅 폐지
+    - G10/G12 (2건) = 5필드 미충족 → `AMK_OBSERVATIONS.md` 이동
+    - I 1~8 (8건) = `AMK_AI_MISTAKES.md` SSoT → 카운팅 분리
+  - 잔여 = A 3 + B 1 + E 11 = **15건** (모두 외부 트리거 / 수용)
+
+  ### docs/AMK_OBSERVATIONS.md (신규)
+  - "부채 아님, 작업 대상 X" 명시
+  - G10 / G12 이전 + 5필드 미충족 사유 명시
+  - 승격 조건 = 5필드 채워지면 → `AMK_DEBTS.md` 이동
+
+  ### 메모리
+  - `feedback_debts_reference.md` = 5필드 게이트 + AI 자동 진입 차단 정책
+  - `project_status.md` / `MEMORY.md` = 2026-05-12 재정리 사실 반영
+
+  ## 효과 (구조적 차단)
+
+  | 항목 | 변경 전 | 변경 후 |
+  |------|--------|---------|
+  | AI 카탈로그 첫 항목 자동 진입 | 가능 (G10 = #1) | 차단 (잔여 모두 외부 의존) |
+  | 신규 부채 등재 | 라벨만 적으면 등재 | 5필드 게이트 필수 |
+  | 5필드 미충족 항목 | 부채 카탈로그 | `AMK_OBSERVATIONS.md` |
+  | 사고 기록 카운팅 | 부채 §0 inflation | SSoT 분리 |
+
+  ## 본 세션 (2026-05-12) 학습 정착
+
+  - **AI 의 "구조 만들기" 본능 자체가 또 다른 busywork** = 룰 / 정책 / 분류 만들기로 도망. 사용자가 "이쁘게 꾸미는 것" 으로 정확히 지적
+  - **메모리 룰 의존도 = 낮음. 구조적 차단 = 높음** = 카탈로그 자체에서 G10 제거하면 AI 가 자동 진입 못 함 (룰 안 읽어도 무관)
+  - **product purpose 정의는 AI 영역 아님** = CEO 본인이 critical failure mode 정의해야 진짜 가치 작업 가능
 
 - **2026-05-11 후속¹⁷ ✅ — 본 세션 마지막: admin subset + error.rs 19 신규**
 
