@@ -968,6 +968,18 @@ books `i18n_key`(평문 네임스페이스)와 api `content_translations` 튜플
 3. 번역 대상 한정: `lang_invariant != true` 인 LocalizedText만 content_translations 행 생성.
 4. books 산출 형태: `(unit_idx, block_seq|null, field_name, lang, text)` → 로더가 idx→id 해소 (handoff 흐름 step 2 출력 스펙).
 
+#### 점검 결과 (2026-05-17, 커밋 `5897cc8` 전수 대조)
+
+계획 대비 구현 = **누락·이탈 0** (B 무변경 / 전용 2테이블 / enum 정합 / 평면화㉠ / 논리참조FK 없음 / CASCADE / 순서·멱등 / structured JSONB / cargo check / 마이그 네이밍 정책). books Block·Unit 모델 필드 커버리지 전수 대조 완료.
+
+**정직 고지 (오류 아님 — 후속 작업 시 감안할 의도적 선택)**:
+
+1. `20260518_*`은 오늘(05-17) 기준 미래 날짜 파일명 — `migrations/README.md §1` "같은 날 다중 = 다음 날짜" 명시 관례 준수 (날짜=정렬 서수).
+2. `title_en`/`title_ko` **둘 다 nullable** (계획은 ko만 합의). export 샘플상 subtitle.en/ko null 케이스 존재 → 과제약 회피 의도. **권위 텍스트 en NOT NULL 강제 안 함** (사용자 확인 후 현행 유지).
+3. `study_task_idx`는 books `link` 객체에 직접 없는 파생값 — handoff §3 기준 books 시드 생성기가 `amk500-sent-NNN` emit (api 임의 생성 아님).
+4. enum 값 DB↔Rust는 **정적 정합만 확인** — 런타임 실 DB 대조는 시드/통합 시점 (Guide67 명시 rename + snake_case 매핑 코드상 일치).
+5. i18n_key 테이블 미저장 = B 의도 (미사용 컬럼 회피). 런타임 조인키 = 튜플.
+
 #### 알려진 제약 (books handoff §4)
 
 - guide_67 `ko` = 원본 HTML strip 최선치(없으면 null), **권위 텍스트 = en + i18n_key** → 스키마는 ko nullable 허용

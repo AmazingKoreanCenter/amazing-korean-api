@@ -32,6 +32,10 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - `cargo check` ✅ (프론트 미변경 = npm build 생략)
   - `AMK_API_LEARNING.md §5.10` 확정 스키마로 갱신 / `AMK_STATUS.md` #142 / 메모리 `project_explanation_content_handoff`
 
+  ## 점검 (커밋 5897cc8 전수 대조)
+
+  계획 대비 누락·이탈 0. B 무변경 / 전용 2테이블 / enum 정합 / 평면화㉠ / 논리참조 FK 없음 / CASCADE / 순서·멱등 / structured JSONB / cargo check / 마이그 네이밍 정책 + books 모델 필드 커버리지 전수 확인. **정직 고지 5건(의도적 선택)**: ① 20260518 미래 날짜 = README §1 관례 준수 ② title_en/ko 둘 다 nullable(권위 en NOT NULL 비강제, 사용자 확인) ③ study_task_idx = books 파생 emit ④ enum DB↔Rust 정적 정합만(런타임은 시드 시점) ⑤ i18n_key 미저장=B 의도.
+
   ## 다음
 
   books 시드 생성기 변환(books 트랙) → 시드 후 연결키 정합 검증 → 조회 API (repo→service→handler→router)
