@@ -88,7 +88,7 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
 - **문제**: nginx·앱 모두 `Content-Security-Policy` 없음. Swagger UI(`ENABLE_DOCS`) 노출 시 방어선 부족(API 전용이라 위험도 자체는 낮음).
 - **위치**: `nginx/nginx.conf`, `src/main.rs:262`(security_headers 미들웨어)
 - **수정 방향**: 최소 `default-src 'none'; frame-ancestors 'none'`. Swagger 경로만 예외.
-- [ ] 작업 예정
+- [x] **완료 (2026-05-17)** — 앱 `security_headers` 미들웨어(`src/main.rs`)에 CSP 추가. 기본 `default-src 'none'; frame-ancestors 'none'` / `/docs`·`/api-docs` 경로만 `self`+`unsafe-inline` 완화(Swagger UI JS/CSS, ENABLE_DOCS=1 시만 마운트·prod 기본 0). **nginx-level 의도적 미적용**: 앱 미들웨어가 전 프록시 응답에 CSP 부여(nginx 는 proxy_pass) → nginx add_header 는 중복, nginx 자체 생성 에러페이지만 미커버(드묾·API 전용 저위험). nginx.conf 변경=scp+reload 배포 리스크 회피(Karpathy #2 최소). 검증: cargo check/clippy clean (바이너리 크레이트 = 기존 헤더 테스트 인프라 없음, 배포 후 curl 확인 항목).
 
 ### 🟢 장기
 

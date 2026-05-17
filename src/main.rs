@@ -258,6 +258,8 @@ async fn security_headers(
     request: axum::http::Request<axum::body::Body>,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
+    // 2.6: CSP 분기용 — next.run 이 request 를 소비하므로 path 를 먼저 복사
+    let path = request.uri().path().to_owned();
     let mut response = next.run(request).await;
     let headers = response.headers_mut();
     headers.insert(
@@ -286,6 +288,21 @@ async fn security_headers(
     headers.insert(
         HeaderName::from_static("referrer-policy"),
         HeaderValue::from_static("strict-origin-when-cross-origin"),
+    );
+    // 2.6: Content-Security-Policy. API 는 JSON 전용이라 default-src 'none' +
+    // frame-ancestors 'none' (클릭재킹/스크립트 차단). Swagger UI(/docs,
+    // /api-docs — ENABLE_DOCS=1 일 때만 마운트, prod 기본 0) 는 자체 JS/CSS
+    // 필요 → 해당 경로만 self+inline 완화.
+    let csp = if path.starts_with("/docs") || path.starts_with("/api-docs") {
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; \
+         style-src 'self' 'unsafe-inline'; img-src 'self' data:; \
+         frame-ancestors 'none'"
+    } else {
+        "default-src 'none'; frame-ancestors 'none'"
+    };
+    headers.insert(
+        HeaderName::from_static("content-security-policy"),
+        HeaderValue::from_static(csp),
     );
     response
 }
