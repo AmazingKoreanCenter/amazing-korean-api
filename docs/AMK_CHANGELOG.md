@@ -73,9 +73,18 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - docs.rs paths/schemas/tags 등록. `cargo check`/`clippy`/`fmt` ✅ + openapi 회귀 7/7 통과 (`openapi_paths_match_router_handlers` = router↔docs 정합 포함).
   - **정직 고지**: 정적·컴파일·계약 검증만. 런타임 서빙·inherit 재조립 실동작은 DB+시드 환경 실행 시점 (본 세션 DB 미접속).
 
+- **2026-05-17 — 설명 콘텐츠 로컬 DB 런타임 검증 (부분 — 환경 블로커 정직 고지)**
+
+  로컬 dev DB(amk-pg)에 우리 마이그(20260517/20260518)만 psql 직접 적용 → `seed_explanation` 실행:
+
+  - 적재 unit 568/block 1317/translation 4362, **멱등 재실행 동일**(ON CONFLICT), content_translations 전부 `lang=en status=approved` ✓
+  - repo SQL 실측(psql): find_unit_by_idx(enum ::text)/find_translations(en, sent:300 inherit 데이터)/find_units_by_link(amk500-sent-300→sent:300)/갭1 card_{i}_desc end-to-end ✓
+  - 연결키 566/500 미해소 = 정상(로컬 study 시드 없음, 논리 참조 경고)
+  - **환경 블로커 (정직 고지)**: `sqlx migrate run` + 서버 부팅(`sqlx::migrate!`) 둘 다 dev DB **사전 이력 분기 `20260419` 체크섬**("previously applied but has been modified", **우리 코드 무관**)에 차단. feedback_migration_safety 상 강제 우회 미실시 → 우리 2 마이그만 격리 적용. 라이브 HTTP(service i18n 조립/inherit 계승/폴백)는 **미검증** — compile/clippy/코드리뷰 clean + 입력 데이터 실측 정확이나 실 응답 미확인. 정상 마이그 환경 재검증 필요.
+
   ## 다음
 
-  실 DB 환경: `seed_explanation` 실행 → 런타임 서빙·연결키 정합 검증 / 프론트 렌더 연동 / 맥미니 Phase C 35언어 append
+  정상 마이그 환경 서버 기동 → HTTP 응답 검증 / 프론트 렌더 연동 / 맥미니 Phase C 35언어 / 로컬 dev DB 20260419 이력 분기 정리(별도)
 
 - **2026-05-17 🟡 — 설명(해설) 콘텐츠 books→api 인계: 스키마 아키텍처 결정 (코드 0건, 설계 단계)**
 

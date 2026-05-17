@@ -988,7 +988,15 @@ Rust 시드 바이너리 (선례 = `rekey_encryption`). `cargo run --bin seed_ex
 - **번역 조회**: explanation 전용 `find_translations` (admin 공유 코드 무수정). `content_translations` `lang IN (user, 'en') AND status='approved'`, ko 단락 회피(설명 structured 는 ko 원본 없음 → en 폴백). jsonb 는 `::text` 캐스트 fetch 후 파싱 (sqlx json feature 미사용).
 - OpenAPI: docs.rs paths/schemas/tags 등록. 회귀 테스트 `openapi_paths_match_router_handlers` 포함 7/7 통과.
 
-> **검증 한계**: `cargo check`/`clippy`/`fmt`/openapi 회귀 = 정적·컴파일·계약 검증. 실제 서빙·inherit 재조립의 런타임 동작은 DB+시드 환경 실행 시점 (본 세션 DB 미접속).
+#### 로컬 DB 런타임 검증 (2026-05-17)
+
+로컬 dev DB(amk-pg)에 우리 마이그(20260517/20260518)만 직접 적용 → `seed_explanation` 실행:
+
+- 적재: unit 568 / block 1317 / translation 4362, **멱등 재실행 동일**(ON CONFLICT), content_translations 전부 `lang=en status=approved` ✓
+- repo SQL 실측(psql): `find_unit_by_idx`(enum ::text 캐스트) / `find_translations`(en, sent:300 = header·row_0_en·row_0_explanation·row_1_en·row_2_en) / `find_units_by_link`(study_task_idx=amk500-sent-300 → sent:300, OR/NULL 가드 동작) / 갭1 `explanation_block_card_{i}_desc` end-to-end 적재 ✓
+- 연결키 정합: study_idx 566 / study_task_idx 500 미해소 = **정상**(로컬 study 시드 없음, 논리 참조 경고)
+
+> **검증 한계 (정직)**: 라이브 HTTP 경로(service.rs i18n 맵 조립·inherit 계승·폴백)는 미검증 — 서버 부팅이 **dev DB 사전 이력 분기(`20260419` 체크섬, 우리 코드 무관)**에 막힘(`sqlx::migrate!` 부팅 차단, `sqlx migrate run`도 동일). 강제 우회는 feedback_migration_safety 상 미실시. 해당 in-memory 변환은 compile/clippy/코드리뷰 clean + 입력 데이터 실측 정확 = 결정적 동작이나 실 HTTP 응답 미확인. **프로덕션/정상 마이그 환경에서 재검증 필요.**
 
 #### 시드 검증 결과 (2026-05-17) — books `explanation_seed.json` PASS·채택
 
