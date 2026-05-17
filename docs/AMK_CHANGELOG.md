@@ -1,8 +1,40 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — 설명 콘텐츠 books→api 인계 스키마 아키텍처 결정 (서버+API / 전용 테이블)
+updated: 2026-05-17 — 설명 콘텐츠 스키마 확정·적용 (B안 / explanation_unit·explanation_block 마이그레이션)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — 설명(해설) 콘텐츠 스키마 확정·적용 (B안, 마이그레이션 + types.rs)**
+
+  설계 결정(아래 항목) 후 사용자 승인받아 스키마 구현. i18n 조인 = **B 확정**(content_translations 무변경, 변환은 books 시드 생성기+로더). A 기각: 식별 2방식 공존 = 전 학습 도메인 인지 부담 / EAV 약점(고아 번역)은 저심각도·비악화 → 별도 백로그.
+
+  ## 적용
+
+  | 항목 | 내용 |
+  |---|---|
+  | `migrations/20260517_explanation_content_type_values.sql` | content_type_enum += explanation_unit/explanation_block (단독, 선례 20260212) |
+  | `migrations/20260518_explanation_tables.sql` | explanation_unit_kind_enum / explanation_source_enum / explanation_block_type_enum + explanation_unit + explanation_block (같은 날 다중 = 다음 날짜 관례) |
+  | `src/types.rs` | ContentType += ExplanationUnit/ExplanationBlock, 신규 ExplanationUnitKind/ExplanationSource(Guide67 rename)/ExplanationBlockType |
+
+  ## 스키마 결정 (사용자 승인)
+
+  - title/subtitle = `*_ko`/`*_en`/`*_lang_invariant` **평면화(방식 ㉠)**, ko nullable (guide_67 best-effort)
+  - 외부 연결키(study_idx/study_task_idx/sentence_num/section_id) = **논리 참조, FK 강제 안 함** (tense_v1/josa_v1 무링크 / av_307_313 갭 / 시딩 순서 독립) → 시드 후 정합 검증
+  - structured 경계: lang-invariant 골격(role/form) = `structured` JSONB 통째 / 번역 대상(en/explanation/header/note) = content_translations 튜플 행 분리
+  - explanation_block→explanation_unit = hard FK ON DELETE CASCADE (내부 구조, 안전)
+
+  ## B 시드 계약 (api↔books)
+
+  시드 순서 ①api 시딩(PK 확정)→②로더가 unit_idx+block_seq로 PK 해소해 content_translations 적재. 결정적 field_name 규약(`explanation_block_row_{i}_explanation` 등). lang_invariant != true 만 번역 행 생성. books 산출 = `(unit_idx, block_seq|null, field_name, lang, text)`.
+
+  ## 검증·문서
+
+  - `cargo check` ✅ (프론트 미변경 = npm build 생략)
+  - `AMK_API_LEARNING.md §5.10` 확정 스키마로 갱신 / `AMK_STATUS.md` #142 / 메모리 `project_explanation_content_handoff`
+
+  ## 다음
+
+  books 시드 생성기 변환(books 트랙) → 시드 후 연결키 정합 검증 → 조회 API (repo→service→handler→router)
 
 - **2026-05-17 🟡 — 설명(해설) 콘텐츠 books→api 인계: 스키마 아키텍처 결정 (코드 0건, 설계 단계)**
 

@@ -942,12 +942,31 @@ draft → reviewed → approved
 | D4 | **서버 저장 + API 서빙** ✅ (정적 에셋 ❌) | 번역(5,117키×35언어)이 이미 content_translations DB 파이프라인 + status 워크플로 + 서버사이드 user_lang 오버레이([study/service.rs:88](../src/api/study/service.rs)). 콘텐츠만 정적화하면 번역과 소스 분리 = 두 출처·캐시 불일치. study_access 접근 제어 일관성도 서버 필요 |
 | — | 연결키 | `study.study_idx`(pattern_guide 68) / `study_task.study_task_idx`=amk500-sent-NNN(sentence_explain 500, 2026-04-18 [migrations/20260418_study_task_idx.sql](../migrations/20260418_study_task_idx.sql)에서 해설집 시딩 목적 명시 도입) → hard FK 대신 논리 참조 + 시드 후 정합 검증 |
 
-#### 미결정 (다음 결정 포인트)
+#### i18n 조인 결정 = **B 확정** (2026-05-17)
 
-**i18n 조인 임피던스 불일치** — books `i18n_key`는 평문 네임스페이스(`practice.42.explain[3].explanation` 등), api `content_translations` 조인키는 튜플 `(content_type_enum, content_id BIGINT, field_name VARCHAR(100))` + i18n_key 컬럼 없음. 맥미니 번역(books 키 산출)을 어디에 적재할지 미결. 2갈래:
+books `i18n_key`(평문 네임스페이스)와 api `content_translations` 튜플 조인키 임피던스 불일치 → **B 채택**: `content_translations` **무변경**. 설명 번역도 기존 10종과 동일하게 `(content_type, content_id, field_name, lang)` 튜플로 적재. 변환은 books 시드 생성기 + 로더가 담당.
 
-- (A) `content_translations`에 nullable `i18n_key` 컬럼 추가 — 맥미니 무변경, 공유 스키마 변경
-- (B) 시드 시 books 생성기가 `i18n_key → (content_type=explanation_block, content_id, field_name)` 변환 — 공유 스키마 불변, books 생성기에 매핑 단계 추가(흐름 step 2에 이미 예정 범위)
+- A(공유 표에 i18n_key 컬럼 추가) 기각 사유: 운영 위험은 낮으나 한 표에 식별 방식 2개 공존 = 전 학습 도메인 인지/유지보수 부담. EAV 약점(고아 번역)은 저심각도(위생, 비악화) → 이번 인계와 분리한 별도 백로그 저순위 항목으로만 기록(지금 작업 아님).
+
+#### 확정 스키마 (마이그레이션 적용)
+
+- 마이그레이션: `20260517_explanation_content_type_values.sql` (content_type_enum += explanation_unit/explanation_block, 단독) + `20260518_explanation_tables.sql` (3 enum + 2 table)
+- src/types.rs: `ContentType` += ExplanationUnit/ExplanationBlock, 신규 `ExplanationUnitKind`/`ExplanationSource`/`ExplanationBlockType`
+
+**`explanation_unit`** — `explanation_unit_id PK` / `unit_idx`(UNIQUE, books unit_id=재시딩 멱등키) / `unit_seq`(순서) / `unit_kind` / `unit_source` / 연결키 `study_idx`·`study_task_idx`·`sentence_num`·`section_id`(논리 참조, FK 아님) + `link_meta jsonb` / title·subtitle = `*_ko`·`*_en`·`*_lang_invariant` **평면화(방식 ㉠)** (ko nullable).
+
+**`explanation_block`** — `explanation_block_id PK` / `explanation_unit_id`(hard FK, ON DELETE CASCADE) / `block_seq` / `block_type` / `block_level` / `text_ko`·`text_en`·`text_lang_invariant` / `raw`(lang-invariant 원형) / `structured jsonb`(lang-invariant 골격) / UNIQUE(unit_id, block_seq).
+
+**연결키 = 논리 참조** (강제 안 함): tense_v1/josa_v1 무링크, av_307_313 갭, 시딩 순서 독립 → FK 대신 시드 후 정합 검증 쿼리.
+
+**structured 경계**: 번역 안 타는 골격(role/form 등) = `structured` JSONB 통째 / 번역 타는 텍스트(en/explanation/header/note) = content_translations 행 분리. lang-invariant는 번역 파이프라인 미진입.
+
+#### B 시드 계약 (api ↔ books)
+
+1. 시드 순서: ① api가 explanation_unit/block 시딩(PK 확정) → ② 로더가 `unit_idx`+`block_seq`로 PK 해소해 content_translations 적재.
+2. 결정적 field_name 규약(varchar(100) 내): unit `explanation_unit_title`/`explanation_unit_subtitle` / block `explanation_block_text` / structured `explanation_block_row_{i}_explanation`·`_en`·`explanation_block_header`·`_note`.
+3. 번역 대상 한정: `lang_invariant != true` 인 LocalizedText만 content_translations 행 생성.
+4. books 산출 형태: `(unit_idx, block_seq|null, field_name, lang, text)` → 로더가 idx→id 해소 (handoff 흐름 step 2 출력 스펙).
 
 #### 알려진 제약 (books handoff §4)
 

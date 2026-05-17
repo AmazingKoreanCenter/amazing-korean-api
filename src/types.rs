@@ -211,6 +211,8 @@ pub enum ContentType {
     StudyTaskVoice,
     StudyTaskExplain,
     StudyTaskWriting,
+    ExplanationUnit,
+    ExplanationBlock,
 }
 
 /// 번역 상태 (draft → reviewed → approved)
@@ -413,6 +415,45 @@ pub enum LessonAccess {
 pub enum LessonItemKind {
     Video,
     Task,
+}
+
+/// 해설(설명) 콘텐츠 단위 종류 (books→api 인계, AMK_API_LEARNING.md §5.10)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "explanation_unit_kind_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum ExplanationUnitKind {
+    PatternGuide,
+    SentenceExplain,
+}
+
+/// 해설(설명) 콘텐츠 출처
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "explanation_source_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum ExplanationSource {
+    #[sqlx(rename = "guide_67")]
+    #[serde(rename = "guide_67")]
+    Guide67,
+    TenseV1,
+    JosaV1,
+}
+
+/// 해설(설명) 콘텐츠 블록 종류
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "explanation_block_type_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum ExplanationBlockType {
+    Heading,
+    Subtitle,
+    Paragraph,
+    Step,
+    Table,
+    Example,
+    Note,
+    ConceptCard,
+    QwordCard,
+    StructuredExplain,
+    Diagram,
 }
 
 // -----------------------------------------------------------------------------
