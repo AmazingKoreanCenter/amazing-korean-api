@@ -82,7 +82,9 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
 - **문제**: `extract_client_ip` 가 `x-forwarded-for` 첫 값 신뢰. 신뢰 프록시 hop 검증 없음 → 클라가 XFF 위조해 allowlist 우회 가능. (현재 `ADMIN_IP_ALLOWLIST` 비어 미사용 — 활성화 시 위험)
 - **위치**: `src/api/admin/header_utils.rs:14-26`
 - **수정 방향**: nginx 가 단일 신뢰 헤더(`real_ip`)를 덮어쓰게 하고 앱은 그것만 사용, 또는 신뢰 hop 을 우→좌로 건너뛰는 로직. `ADMIN_IP_ALLOWLIST` 활성화 전 필수.
-- [ ] 작업 예정
+- **⚠️ 2026-05-17 재검증 — 감사 인용 오류**: 본 감사가 지목한 `header_utils.rs::extract_client_ip` 는 **admin lesson/payment/study/user 핸들러의 감사 로그용**(접근 통제 아님). 실제 allowlist 강제자 `admin_ip_guard`(`ip_guard.rs`)는 **자체 인라인 XFF-first 추출**을 보유 — 감사 지목 함수 미사용. 진짜 우회 취약점은 `admin_ip_guard` 에 있었음(header_utils 위조 = 로그 오염, 접근 우회 아님 — 별 심각도).
+- [x] **완료 (2026-05-17, scope=ip_guard 만)** — `admin_ip_guard` 의 IP 추출을 `trusted_client_ip()` 순수 fn 으로 분리, **`CF-Connecting-IP` 만 사용**(Cloudflare 가 세팅·덮어써 클라 위조 불가). 클라 위조 가능한 `X-Forwarded-For`/`X-Real-IP` 불신. 부재 시 **fail-closed(거부)** — allowlist 는 명시적 보안 통제이며 `ADMIN_IP_ALLOWLIST` 설정 시에만 작동(미설정 시 early-return 으로 영향 admin 한정, 2.1 의 가용성 우려와 반대로 엄격이 정공법). 단위 테스트 7종(위조 XFF 무시·CF 채택·부재 None 등) 통과. **scope 제외**: `header_utils::extract_client_ip`(로그 경로, 8 단위 테스트 XFF-first 가정·4 핸들러) = 다른 심각도(로그 정확성), 감사가 둘 혼동 → 별도 저순위 후속.
+- **⚠️ 운영 주의 (ADMIN_IP_ALLOWLIST 활성화 시)**: 트래픽이 **반드시 Cloudflare 경유**해야 함(CF-Connecting-IP 존재). origin 직결 경로면 CF 헤더 부재 → fail-closed 로 admin 전면 차단. 활성화 전 CF 경유·헤더 전달 확인 필수.
 
 #### 2.6 CSP 헤더 부재
 - **문제**: nginx·앱 모두 `Content-Security-Policy` 없음. Swagger UI(`ENABLE_DOCS`) 노출 시 방어선 부족(API 전용이라 위험도 자체는 낮음).
@@ -122,10 +124,10 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
   [x] 2.2 JWT iss 강제 + reset 레거시 JWT 폴백 제거(계정 탈취 차단) (2026-05-17 완료, 라이브 검증)
 
 🟡 단기
-  [ ] 2.3 DB 슈퍼유저 → 최소권한 role (docker-compose.prod.yml + migration)
-  [ ] 2.4 cargo deny check 를 PR 워크플로에 추가
-  [ ] 2.5 관리자 IP guard XFF 강화 (header_utils.rs)
-  [ ] 2.6 CSP 헤더 (nginx / main.rs)
+  [ ] 2.3 DB 슈퍼유저 → 최소권한 role (docker-compose.prod.yml + migration) — 별도 신중 트랙
+  [x] 2.4 cargo-deny PR 게이트 (2026-05-17 완료)
+  [x] 2.5 admin_ip_guard CF-Connecting-IP 권위+fail-closed (2026-05-17 완료, 감사 인용 정정·scope=ip_guard)
+  [x] 2.6 CSP 헤더 app 미들웨어 (2026-05-17 완료)
 
 🟢 장기
   [ ] 3.x prod ENABLE_DOCS/SKIP_DB panic 가드
