@@ -20,6 +20,7 @@ COPY crates/crypto/Cargo.toml ./crates/crypto/Cargo.toml
 RUN mkdir -p src/bin && \
     echo "fn main() {}" > src/main.rs && \
     echo "fn main() {}" > src/bin/rekey_encryption.rs && \
+    echo "fn main() {}" > src/bin/seed_explanation.rs && \
     echo "" > src/lib.rs && \
     mkdir -p crates/crypto/src && \
     echo "" > crates/crypto/src/lib.rs
@@ -34,7 +35,7 @@ COPY migrations ./migrations
 COPY .sqlx ./.sqlx
 
 # Build the application
-RUN touch src/main.rs src/lib.rs src/bin/rekey_encryption.rs crates/crypto/src/lib.rs && cargo build --release
+RUN touch src/main.rs src/lib.rs src/bin/rekey_encryption.rs src/bin/seed_explanation.rs crates/crypto/src/lib.rs && cargo build --release
 
 # Stage 2: Runtime
 FROM debian:bookworm-slim
