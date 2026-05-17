@@ -50,8 +50,19 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
 #### 2.2 JWT `iss`/`aud` 미검증 → 토큰 confusion
 - **문제**: 토큰에 `iss: "amk"` 발급하나 `decode_token` 이 `Validation::default()` 사용 → `iss`/`aud` 검증 안 함. 비밀번호 재설정 토큰도 동일 `jwt_secret`+동일 Claims 구조(`service.rs:1127`) → reset 토큰을 인증 토큰으로 혼용할 여지.
 - **위치**: `src/api/auth/jwt.rs:41`(발급), `jwt.rs:71`(검증)
-- **수정 방향**: `Validation::new(Algorithm::HS256)` + `set_issuer(&["amk"])`. reset/MFA 토큰에는 별도 `iss` 또는 `aud`/`token_use` 클레임 부여해 access token 과 구분.
-- [ ] 작업 예정
+- **수정 방향(원안)**: `Validation::new(Algorithm::HS256)` + `set_issuer(&["amk"])`. reset/MFA 토큰에는 별도 `iss`/`aud`/`token_use` 클레임 부여.
+- **⚠️ 2026-05-17 재검증 — 감사 전제 STALE**: 본 감사(2026-05-15) 작성 후 코드 변경됨. 실측:
+  - 활성 reset 토큰 = **불투명 `ak_reset_<uuid>` Redis 토큰**(JWT 아님, `verify_reset_code:1553`, TTL 1800s). 발급은 opaque **전용**.
+  - MFA 토큰 = Redis 랜덤(`ak:mfa_pending:`), JWT 아님 → 혼용 무관.
+  - 즉 "reset=access 동일 JWT 구조" 전제 **틀림**. 진짜 취약점은 다른 곳:
+  - **🔴 실 취약점(계정 탈취)**: 라우터 연결 활성 함수 `reset_password_with_token`(service.rs:1606) 의 else 분기가 `ak_reset_` 미접두 토큰을 `jwt::decode_token` 으로 처리(레거시 하위호환) → **피해자 access token(15분)을 `/reset-pw` reset_token 으로 제출 시 그 사용자 비밀번호 재설정 가능**. 정상 JWT reset 토큰은 발급 0(opaque 전용·30분 TTL) → 이 분기 = 순수 공격면.
+  - `service::reset_password`(1095~1192, JWT 전용) = **dead code**(호출처 0, 핸들러는 `reset_password_with_token` 사용).
+- **확정 수정 (a+b+c, 사용자 승인 2026-05-17 / 감사 원안과 의식적 상이 — token_use 클레임 대신 죽은 분기 제거가 더 단순·완전)**:
+  - **(a)** `jwt.rs decode_token`: `Validation::new(Algorithm::HS256)` + `set_issuer(["amk"])` (iss/알고리즘 강제 — access 인증 하드닝, alg confusion 차단)
+  - **(b)** `reset_password_with_token` 레거시 JWT 폴백 분기 제거 → reset 은 opaque `ak_reset_` 만 허용 (access-token→reset 계정 탈취 차단). 정상 토큰 영향 0
+  - **(c)** dead `service::reset_password`(1095) 삭제 (동일 취약 형태 orphan)
+  - 검증: jwt 단위(iss 불일치 거부) + 통합(access token을 reset 으로 제출 → 401 / opaque reset → 통과) 회귀 테스트
+- [ ] 진행 중 (2026-05-17)
 
 ### 🟡 단기
 
