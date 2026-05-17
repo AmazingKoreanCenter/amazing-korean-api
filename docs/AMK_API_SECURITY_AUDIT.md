@@ -76,7 +76,7 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
 - **문제**: 주간 스케줄+수동만. 신규 취약 의존성이 머지 후 최대 1주 노출.
 - **위치**: `.github/workflows/security-audit.yml:9-13`
 - **수정 방향**: `cargo deny check` 를 PR 워크플로(`pr-check.yml`)에 추가해 머지 전 차단.
-- [ ] 작업 예정
+- [x] **완료 (2026-05-17)** — `pr-check.yml` 에 `cargo-deny` job 신설(`EmbarkStudios/cargo-deny-action@v2`, `check --all-features`, `deny.toml` 정책 공유). KKRYOUN push 게이트에서 신규 취약 의존성 머지 전 차단. CI 워크플로만 — 런타임/prod 영향 0.
 
 #### 2.5 관리자 IP allowlist 의 XFF 신뢰
 - **문제**: `extract_client_ip` 가 `x-forwarded-for` 첫 값 신뢰. 신뢰 프록시 hop 검증 없음 → 클라가 XFF 위조해 allowlist 우회 가능. (현재 `ADMIN_IP_ALLOWLIST` 비어 미사용 — 활성화 시 위험)
