@@ -959,14 +959,14 @@ books `i18n_key`(평문 네임스페이스)와 api `content_translations` 튜플
 
 **연결키 = 논리 참조** (강제 안 함): tense_v1/josa_v1 무링크, av_307_313 갭, 시딩 순서 독립 → FK 대신 시드 후 정합 검증 쿼리.
 
-**structured 경계**: 번역 안 타는 골격(role/form 등) = `structured` JSONB 통째 / 번역 타는 텍스트(en/explanation/header/note) = content_translations 행 분리. lang-invariant는 번역 파이프라인 미진입.
+**structured 경계**: 번역 안 타는 골격(role/form, concept_card 메타, qword_card 표 구조) = `structured` JSONB 통째(index 보존) / 번역 타는 텍스트(row en·explanation, header, note, **concept_card desc, qword_card header**) = content_translations 행 분리. row/item/header index ↔ field_name `{i}` 불변식. lang-invariant·`{inherit:true}`는 번역 파이프라인 미진입.
 
 #### B 시드 계약 (api ↔ books)
 
 1. 시드 순서: ① api가 explanation_unit/block 시딩(PK 확정) → ② 로더가 `unit_idx`+`block_seq`로 PK 해소해 content_translations 적재.
-2. 결정적 field_name 규약(varchar(100) 내): unit `explanation_unit_title`/`explanation_unit_subtitle` / block `explanation_block_text` / structured `explanation_block_row_{i}_explanation`·`_en`·`explanation_block_header`·`_note`.
-3. 번역 대상 한정: `lang_invariant != true` 인 LocalizedText만 content_translations 행 생성.
-4. books 산출 형태: `(unit_idx, block_seq|null, field_name, lang, text)` → 로더가 idx→id 해소 (handoff 흐름 step 2 출력 스펙).
+2. 결정적 field_name 규약(varchar(100) 내): unit `explanation_unit_title`/`explanation_unit_subtitle` / block `explanation_block_text` / structured `explanation_block_row_{i}_explanation`·`_en`·`explanation_block_header`·`_note` / **concept_card `explanation_block_card_{i}_desc` / qword_card `explanation_block_qword_{i}_header`** (2026-05-17 books 회신 갭1 → (a) 채택, structured 경계 동일 규칙 확장).
+3. 번역 대상 한정: `lang_invariant != true` 인 LocalizedText만 content_translations 행 생성. **`{"inherit":true}` row** = structured jsonb 마커 유지 + 행 없음, 렌더 시 **직전 번역대상 row의 explanation 계승** (확인1).
+4. books 산출 형태: `(unit_idx, block_seq|null, field_name, lang, text)` → 로더가 idx→id 해소. **산출 B = `lang='en'` 행만**(en=권위). ko는 산출 A `text_ko`/`title_ko`(도메인 테이블)가 원본 → 서빙 시 `lang=ko`=원본 반환(content_translations 미조회, 기존 study 패턴). 35언어=맥미니 Phase C 후속 append. self-check §4-1=en 기준 (확인2).
 
 #### 점검 결과 (2026-05-17, 커밋 `5897cc8` 전수 대조)
 

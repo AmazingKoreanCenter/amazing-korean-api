@@ -36,6 +36,15 @@ owner: HYMN Co., Ltd. (Amazing Korean)
 
   계획 대비 누락·이탈 0. B 무변경 / 전용 2테이블 / enum 정합 / 평면화㉠ / 논리참조 FK 없음 / CASCADE / 순서·멱등 / structured JSONB / cargo check / 마이그 네이밍 정책 + books 모델 필드 커버리지 전수 확인. **정직 고지 5건(의도적 선택)**: ① 20260518 미래 날짜 = README §1 관례 준수 ② title_en/ko 둘 다 nullable(권위 en NOT NULL 비강제, 사용자 확인) ③ study_task_idx = books 파생 emit ④ enum DB↔Rust 정적 정합만(런타임은 시드 시점) ⑤ i18n_key 미저장=B 의도.
 
+  ## books 핸드오프 + 회신 라운드트립 (2026-05-17)
+
+  `amazing-korean-books/docs/guide/explanation_seed_contract_from_api.md` 작성(api→books 작업 지시서: 산출 A 구조시드 + B 번역행 + field_name 규약 + §2 lang-invariant 경계 + §4 self-check). books 회신(갭1 블로커 + 확인2) → **api 회답**:
+
+  - **갭1 = (a) 채택**: concept_card.items[].desc(2) + qword_card.headers[](8) = 10 번역 대상이 field_name 부재(api §2 누락). `explanation_block_card_{i}_desc` / `explanation_block_qword_{i}_header` 신설, structured 경계·index 불변식 동일 적용. **api 스키마 무변경** (concept_card/qword_card는 block_type enum에 이미 존재, field_name 자유 varchar(100)).
+  - **확인1 수용**: `{"inherit":true}` row = structured jsonb 마커 유지·산출 B 행 없음, 렌더 시 직전 번역대상 row explanation 계승 (api 정의).
+  - **확인2 수용**: 산출 B = `lang='en'` 행만(en=권위). ko=산출 A text_ko 원본(서빙 시 lang=ko=원본 반환). 35언어=맥미니 Phase C 후속. self-check §4-1=en 기준.
+  - 계약 §2/§3 + api §5.10 갱신. books 구현 착수 승인.
+
   ## 다음
 
   books 시드 생성기 변환(books 트랙) → 시드 후 연결키 정합 검증 → 조회 API (repo→service→handler→router)
