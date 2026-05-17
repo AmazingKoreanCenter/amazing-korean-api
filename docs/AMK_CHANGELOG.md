@@ -1,8 +1,18 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — 보안 감사 2.3 Phase 1 완료 (DB superuser→amk_app 프로비저닝, 런타임 영향 0) — Phase 2 게이트 대기
+updated: 2026-05-17 — cargo-deny 2.4 게이트 연쇄 종결 + prod 라이브 검증 (보안 §4 실질 완료, Phase 2만 게이트 대기)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — cargo-deny 2.4 게이트 연쇄 종결 + 로컬 검증 SOP + prod 라이브 검증**
+
+  2.4 게이트(`pr-check.yml` cargo-deny) 가동 시 **기존 deny.toml/의존성 위생 부채 4층이 표면화**(첫 에러에서 멈추는 도구 특성상 한 겹씩) → 전부 해소: ① UNLICENSED exceptions v2 unknown term → `private.ignore=true` (`bc5bf33`) ② `CDLA-Permissive-2.0`/`NCSA` 미허용 → allow 추가, 실 전이 의존(webpki-roots/libfuzzer)·permissive·비배포·사유 인라인 (`94a2765`) ③ 내부 path crate wildcard 오탐 → `allow-wildcard-paths=true` ④ `core2 0.4.0` yanked(image 스택 전이, 업그레이드 경로 없음) → `yanked="warn"` (`e1e3ee3`).
+
+  **본질 판정**(사용자 "현상 아닌 본질" 지적 응답): ①~③ = 메커니즘 교정·명시 정책결정(게이트 본질 무손상). ④ = 회피불가 trade-off지만 실 보안 신호 `RUSTSEC-2026-0105` 는 `advisories.ignore` strict 별도 보존 → 현상 무마 아닌 문서화된 의도적 결정. yanked deny 유지 시 고칠 수 없는 전이 의존이 모든 PR 영구 차단 → 게이트 무력화(순보안 손실)라 비채택.
+
+  **로컬 검증 SOP 정착**: `cargo-deny 0.19.6` 로컬 설치 → 푸시 전 `cargo deny check` advisories/licenses/bans/sources 4종 확정. **blind CI 왕복(push→대기→다음 에러) 종료** — deny.toml 변경 시 로컬 선행 필수. 작업 자체는 설정 몇 줄(소규모)인데 난관 多 = "층층 부채를 느린 원격 루프로 한 겹씩 확인"한 탓, 후자 구조적 제거.
+
+  **prod 라이브 검증** (main `0fab7b2` squash 머지, EC2 deploy success): `/health 200` / CSP `default-src 'none'; frame-ancestors 'none'`(2.6, `/docs` 완화 CSP 분기) / explanation API `sent:300` 실데이터 풀 응답 + `?study_task_idx=` list 200. **보안 §4 = 2.1·2.2·2.4·2.5·2.6 + 2.3 Phase 1 prod 동작 확정** → 🔴/🟡 실질 종결, 2.3 Phase 2 컷오버만 사용자 승인 게이트. 부산물: 응답 `X-Frame-Options` 중복(앱 DENY+nginx SAMEORIGIN) = 무해(CSP 권위), `AMK_OBSERVATIONS §3` 관찰(부채 아님).
 
 - **2026-05-17 ✅ — 보안 감사 2.3 Phase 1: DB 최소권한 role 프로비저닝 (런타임 영향 0)**
 

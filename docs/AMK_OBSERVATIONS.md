@@ -81,7 +81,31 @@
 
 ---
 
-## 3. (향후 추가될 관찰 항목)
+## 3. 응답 헤더 `X-Frame-Options` 중복 (2026-05-17 발견, 2.6 prod 검증 중)
+
+### 미충족 필드
+
+| 필드 | 명세 | 상태 |
+|------|------|:-:|
+| WHERE | prod 응답에 `X-Frame-Options: DENY`(앱 `security_headers`) + `X-Frame-Options: SAMEORIGIN`(nginx) 둘 다 | ✅ |
+| WHAT | 정돈 차원 (보안 incident 아님) | ⚠️ |
+| HOW MUCH | 종료 조건 = 헤더 1개로 통일 (단일 시나리오) | ⚠️ |
+| WHY | 보안 구멍 아님 — CSP `frame-ancestors 'none'` 가 권위라 프레이밍은 이미 차단. 중복 XFO 충돌 시 브라우저는 보수적(차단) 처리 | ❌ |
+| END | "안 고치면 발생할 incident" 없음 = 부채 자격 미성립 | ❌ |
+
+### 현재 사실
+
+- 2.6 CSP 도입 후 prod 헤더 실측에서 발견. 앱 미들웨어 `DENY` + nginx `add_header X-Frame-Options SAMEORIGIN` 동시 출력.
+- 실 보안: `Content-Security-Policy: ... frame-ancestors 'none'` 가 modern 브라우저 권위 — 프레이밍 차단은 보장됨. XFO 중복은 무해(레거시 브라우저도 충돌 시 차단 측).
+- 부채 아님 = 능동 처리 금지. nginx conf 정리 작업이 별건으로 생기면 그때 1줄 제거(앱 `DENY` 가 더 엄격하므로 nginx 측 제거).
+
+### 승격 가능 시점
+
+- nginx conf 리팩터 PR 이 별건으로 발생 시 inline 정리 (단독 작업 가치 없음).
+
+---
+
+## 4. (향후 추가될 관찰 항목)
 
 > 부채 카탈로그 (`AMK_DEBTS.md`) 진입 시도하다 5필드 미충족인 항목은 여기 추가.
 > 예: "성능 개선 가능 영역" / "리팩터링 후보" / "기술 부채 가설" 등.
