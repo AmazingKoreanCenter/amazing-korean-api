@@ -998,6 +998,16 @@ Rust 시드 바이너리 (선례 = `rekey_encryption`). `cargo run --bin seed_ex
 
 > **검증 한계 (정직)**: 라이브 HTTP 경로(service.rs i18n 맵 조립·inherit 계승·폴백)는 미검증 — 서버 부팅이 **dev DB 사전 이력 분기(`20260419` 체크섬, 우리 코드 무관)**에 막힘(`sqlx::migrate!` 부팅 차단, `sqlx migrate run`도 동일). 강제 우회는 feedback_migration_safety 상 미실시. 해당 in-memory 변환은 compile/clippy/코드리뷰 clean + 입력 데이터 실측 정확 = 결정적 동작이나 실 HTTP 응답 미확인. **프로덕션/정상 마이그 환경에서 재검증 필요.**
 
+#### 번역 트랙 적재 계약 (2026-05-17 확정, 구현 대기)
+
+맥미니 Phase C 35언어 산출 → api 적재 경로. books 후속 확인 회답으로 확정 (SSoT = `explanation_seed_contract_from_api.md` §📬 회답):
+
+- **파일** = lang별 분리 `explanation_translations.{lang}.json`, 행 = en 산출 B 와 동일 5-튜플 `(unit_idx, block_seq|null, field_name, lang, translated_text)`. field_name 집합 = en 과 동일(inherit row 도 en 패턴 미러).
+- **적재** = `seed_explanation` **신규 `--translations <path>` 모드** (별도 바이너리 X). 산출 A 스킵 + `unit_idx`(+`block_seq`)→PK **DB 조회** 해소 + content_translations upsert. **구현 시점 = 맥미니 산출 도착 시** (현재 계약만, YAGNI).
+- **멱등 키** = `(content_type, content_id, field_name, lang)` 튜플 유지 (lang 파일 재실행 = 해당 lang 만 upsert).
+- **status = `approved`** (맥미니 검증 4종 통과분, en 일관, 서빙 필터 통과 — 5,117×35 수동검수 비현실).
+- 시드 재생성 통지 프로토콜: 트리거=원문 변경 시만, 통지 주체=books(+구조 변경 포함 여부 명시 요청 → api full vs `--translations` 분기), 평시 무동작.
+
 #### 시드 검증 결과 (2026-05-17) — books `explanation_seed.json` PASS·채택
 
 api 독립 전수 검증(meta.self_check 비신뢰, 직접 재계산): 산출 A unit 568(pattern_guide 68+sentence_explain 500)/block 1,317 + 산출 B en 전용 4,362행. unit_idx·(unit_idx,block_seq) UNIQUE / enum·av_307_313·연습누출·lang-invariant누출·PK해소·study_task_idx(amk500-sent-NNN 500/500)·field_name 9종(갭1 포함) 전 항목 ✅. **계약 정정 1건(api 귀책)**: §2 inherit 문구 모호(row 전체 vs explanation 한정) → explanation 한정으로 정정, books 시드 정상·재작업 불필요. **다음**: 적재 로더(산출 A→PK 확정→산출 B PK 해소→content_translations) + 연결키 정합 검증 + 조회 API.

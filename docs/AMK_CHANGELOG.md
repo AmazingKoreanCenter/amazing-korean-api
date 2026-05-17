@@ -1,8 +1,17 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — explanation PR #297 배포 성공 + 프로덕션 HTTP 검증 ✅ (콘텐츠 서빙은 prod 시딩 후)
+updated: 2026-05-17 — explanation 번역 트랙 적재 계약 확정 (books 후속 회답: lang별 파일 + --translations 모드)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 — explanation 번역 트랙 적재 계약 확정 (books 후속 회답)**
+
+  books 후속 확인 2건 회답 (`explanation_seed_contract_from_api.md` §📬):
+
+  1. **시드 재생성 통지 프로토콜 동의** — 트리거=원문 변경 시만 / books 통지 / api `seed_explanation` 멱등 재실행 / 평시 무동작. +추가 요청: 통지에 "구조(산출 A) 변경 포함 여부" 명시 (api full vs `--translations` 모드 분기용).
+  2. **번역 트랙 적재 계약 확정**: ① 파일=lang별 분리 `explanation_translations.{lang}.json`, 행=en 산출 B 와 동일 5-튜플 (books 권장 (나) 채택) ② 적재=`seed_explanation` 신규 `--translations <path>` 모드 (별도 바이너리 X, 산출 A 스킵 + idx→PK DB 조회, **구현은 맥미니 산출 도착 시** YAGNI) ③ 멱등키=`(content_type,content_id,field_name,lang)` 튜플 유지 ④ status=`approved` (맥미니 검증 통과분, en 일관, 서빙 필터·수동검수 비현실 — books 미질문이나 명시).
+
+  books 단계④(역변환 어댑터) 본 포맷으로 진행 가능. api 는 계약만 확정, 코드 미선반영.
 
 - **2026-05-17 ✅ — explanation PR #297 배포 성공 + 프로덕션 HTTP 검증**
 
