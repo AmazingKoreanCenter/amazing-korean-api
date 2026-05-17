@@ -22,7 +22,11 @@ no-default-features = false
 version = 2
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
-yanked = "deny"
+# yanked = "warn": yanked 는 취약점이 아니라 author 가 해당 버전을 내린 것.
+# 현 트리의 core2 0.4.0(image stack 전이, 업그레이드 경로 없음 — RUSTSEC-2026-0105
+# 로 이미 영향평가·ignore)을 "deny" 로 두면 수정 불가 전이 의존이 전 PR 을 영구
+# 차단. 실 보안 신호(RUSTSEC advisory)는 아래 ignore 외 전부 strict 유지.
+yanked = "warn"
 
 # 본 프로젝트의 알려진 advisory ignore (audit 결과 영향 평가 후)
 # 신규 advisory 발견 시 = 즉시 fail (deny). ignore 추가는 사용자 결정.
@@ -43,6 +47,11 @@ ignore = [
 [licenses]
 version = 2
 confidence-threshold = 0.8
+# 워크스페이스 자체 crate(amazing-korean-api / amazing-korean-crypto) 는
+# license="UNLICENSED" + publish=false (N-16 private). cargo-deny v2 는
+# exceptions.allow 에 비-SPDX "UNLICENSED" 를 거부(unknown term) → publish=false
+# crate 는 라이선스 검사 스킵하는 정식 메커니즘 `private.ignore` 사용.
+private = { ignore = true }
 
 # 허용 라이선스 (OSI approved + commercially permissive)
 allow = [
@@ -59,18 +68,18 @@ allow = [
   "Unicode-3.0",
   "Unicode-DFS-2016",
   "Zlib",
+  # CDLA-Permissive-2.0 = webpki-roots(0.26/1.0, sqlx-core 경유)의 Mozilla CA
+  #   번들 데이터 라이선스. permissive·copyleft 없음·attribution. 본 repo 비배포
+  #   (N-16) + permissive 라 수용. cargo-deny PR 게이트(2.4) 도입 시 표면화.
+  "CDLA-Permissive-2.0",
+  # NCSA = libfuzzer-sys(image→ravif→rav1e, --all-features 시만) 의 LLVM
+  #   libFuzzer 번들. OSI approved·FSF Free·MIT+BSD 동급 permissive. 정상
+  #   빌드 미포함(퍼징 전용), 비배포라 수용.
+  "NCSA",
 ]
 
-# 본 프로젝트는 private (UNLICENSED) = 외부 배포 X (N-16)
-
-# 특수 케이스 (private repo 자체 + crates/crypto)
-[[licenses.exceptions]]
-allow = ["UNLICENSED"]
-crate = "amazing-korean-api"
-
-[[licenses.exceptions]]
-allow = ["UNLICENSED"]
-crate = "amazing-korean-crypto"
+# 본 프로젝트 private(UNLICENSED) crate = 위 [licenses] private.ignore=true 로
+# 처리 (구 [[licenses.exceptions]] allow=["UNLICENSED"] = cargo-deny v2 비호환 제거, N-16)
 
 # OpenSSL 명시 (ring crate 가 사용)
 [[licenses.clarify]]
@@ -86,7 +95,10 @@ license-files = [
 
 [bans]
 multiple-versions = "warn"  # N-18 = transitive 자연 결과, deny X (영향 작음)
-wildcards = "deny"          # version = "*" 차단
+wildcards = "deny"          # version = "*" 차단 (외부 crate)
+# 워크스페이스 내부 path 의존(amazing-korean-crypto = { path = "crates/crypto" })
+# 은 버전 미기재라 wildcard 로 잡히나 실제 "*" 버전 위험 아님 → path 의존만 예외.
+allow-wildcard-paths = true
 highlight = "all"
 
 # =============================================================================

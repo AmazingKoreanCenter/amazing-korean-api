@@ -31,9 +31,13 @@ fn make_router(state: AppState) -> Router {
 }
 
 fn make_token(state: &AppState, role: UserAuth) -> String {
+    make_token_sid(state, role, "extractor-test-session")
+}
+
+fn make_token_sid(state: &AppState, role: UserAuth, session_id: &str) -> String {
     let (token_res, _jti) = jwt::create_token(
         4242,
-        "extractor-test-session",
+        session_id,
         role,
         state.cfg.jwt_access_ttl_min,
         &state.cfg.jwt_secret,
@@ -61,6 +65,8 @@ async fn call_protected(state: AppState, auth_header: Option<&str>) -> (StatusCo
 async fn test_auth_user_accepts_valid_bearer_token() {
     let st = common::make_test_state().await;
     let token = make_token(&st, UserAuth::Learner);
+    // 2.1: extractor 가 토큰 디코드 후 ak:session 존재를 확인 → 유효 세션 셋업
+    common::seed_session(&st, "extractor-test-session", 4242).await;
     let (status, body) = call_protected(st, Some(&format!("Bearer {}", token))).await;
     assert_eq!(status, StatusCode::OK);
     assert!(
@@ -72,6 +78,24 @@ async fn test_auth_user_accepts_valid_bearer_token() {
         body.contains("Learner"),
         "body must include role, got: {}",
         body
+    );
+}
+
+/// 2.1 회귀 — 토큰은 유효하나 세션이 폐기(ak:session 부재)되면 401.
+/// (로그아웃/비번변경/강제퇴장 후 탈취 토큰 차단 검증. Redis 가용 전제 →
+/// fail-open 분기 미발동, EXISTS=false 결정적 401)
+#[ignore = "requires local PostgreSQL + Redis + .env.test"]
+#[tokio::test]
+async fn test_auth_user_rejects_revoked_session() {
+    let st = common::make_test_state().await;
+    // 아무 테스트도 시드하지 않는 고유 session_id → ak:session 부재 = 폐기 상태
+    // (성공 테스트와 sid 공유 시 그쪽 seed_session 이 키를 살려 거짓 통과함)
+    let token = make_token_sid(&st, UserAuth::Learner, "extractor-revoked-never-seeded");
+    let (status, _) = call_protected(st, Some(&format!("Bearer {}", token))).await;
+    assert_eq!(
+        status,
+        StatusCode::UNAUTHORIZED,
+        "폐기된 세션 토큰은 만료 전이라도 401 이어야 함"
     );
 }
 

@@ -1,4 +1,4 @@
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use time::{format_description::well_known::Rfc3339, Duration, OffsetDateTime};
 use uuid::Uuid;
@@ -65,10 +65,14 @@ pub fn create_token(
 }
 
 pub fn decode_token(token: &str, secret: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
+    // 2.2: 알고리즘 명시(alg confusion 차단) + issuer 강제.
+    // Validation::default() 는 alg/iss 미검증 → 다른 용도 토큰 혼용 여지.
+    let mut validation = Validation::new(Algorithm::HS256);
+    validation.set_issuer(&["amk"]);
     decode(
         token,
         &DecodingKey::from_secret(secret.as_bytes()),
-        &Validation::default(),
+        &validation,
     )
     .map(|data| data.claims)
 }
@@ -119,6 +123,32 @@ mod tests {
             create_token(1, "s", UserAuth::Learner, -120, TEST_SECRET).expect("create");
         let result = decode_token(&token_res.access_token, TEST_SECRET);
         assert!(result.is_err(), "expired token must fail validation");
+    }
+
+    #[test]
+    fn test_decode_token_rejects_foreign_issuer() {
+        // 2.2: iss != "amk" 토큰은 서명이 유효해도 거부 (토큰 confusion 차단)
+        let now = OffsetDateTime::now_utc();
+        let claims = Claims {
+            sub: 1,
+            session_id: "s".into(),
+            role: UserAuth::Learner,
+            jti: Uuid::new_v4().to_string(),
+            exp: (now + Duration::minutes(30)).unix_timestamp(),
+            iat: now.unix_timestamp(),
+            iss: "evil-issuer".into(),
+        };
+        let token = encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(TEST_SECRET.as_bytes()),
+        )
+        .expect("encode");
+        let result = decode_token(&token, TEST_SECRET);
+        assert!(
+            result.is_err(),
+            "iss != amk 토큰은 서명 유효해도 거부되어야 함"
+        );
     }
 
     #[test]

@@ -921,6 +921,38 @@ curl -s "https://api.amazingkorean.net/explanations?study_task_idx=amk500-sent-0
 
 > **번역 트랙 (맥미니 Phase C, 미도착)**: 35언어는 `seed_explanation --translations explanation_translations.{lang}.json` 모드로 후속 적재 (계약 = `AMK_API_LEARNING.md §5.10` 번역 트랙, 구현은 산출 도착 시).
 
+##### 13. DB 최소권한 전환 (보안 감사 2.3) — `amk_app` 비-superuser role
+
+> 앱이 PostgreSQL `postgres`(cluster superuser)로 접속하던 것을 비-superuser 소유 role 로 전환. superuser 폭발 반경(COPY PROGRAM=서버 RCE / CREATE ROLE / 타 DB / ALTER SYSTEM) 제거. **2단계** — Phase 1=프로비저닝(런타임 영향 0), Phase 2=컷오버(게이트). SSoT = `AMK_API_SECURITY_AUDIT.md §2.3`.
+
+**Phase 1 — 프로비저닝 (런타임 영향 0, 앱은 계속 postgres 접속)**
+
+- `db-init/10_least_priv_role.sql` (멱등) = `amk_app` LOGIN NOSUPERUSER 생성 + public 스키마 GRANT/ALTER DEFAULT PRIVILEGES + 기존 앱 객체(table/seq/view/enum) OWNER → amk_app.
+- `docker-compose.prod.yml` db 서비스: `./db-init:/docker-entrypoint-initdb.d:ro` 마운트(신규/재생성 DB 자동·멱등) + `APP_DB_PASSWORD` env.
+- **기존 prod 볼륨엔 initdb 미실행** → 1회 수동 적용 (EC2, §12 시딩과 동일 패턴). `APP_DB_PASSWORD` = Phase 2 에서 쓸 신규 비밀번호를 이때 생성·고정:
+
+```bash
+APP_DB_PASSWORD='<생성한-강한-비밀번호>' \
+docker exec -i -e APP_DB_PASSWORD="$APP_DB_PASSWORD" amk-pg \
+  psql -U postgres -d amazing_korean_db -v ON_ERROR_STOP=1 \
+  -f /docker-entrypoint-initdb.d/10_least_priv_role.sql
+# 검증: SELECT rolname,rolsuper FROM pg_roles WHERE rolname='amk_app'; → amk_app|f
+```
+
+> 가드: `APP_DB_PASSWORD` 미설정/빈값이면 스크립트가 중단(빈 비밀번호 role 방지). 멱등 — 재실행 안전.
+
+**Phase 2 — 컷오버 (별도 게이트, 사용자 명시 승인 필요)**
+
+`DATABASE_URL` 의 user 를 `postgres` → `amk_app` 으로 교체. **4곳 동시 반영 필수**(feedback_deploy_env_sync / INC-001 클래스):
+
+1. GitHub Secret `APP_DB_PASSWORD` 추가 (Phase 1 에서 고정한 값)
+2. `docker-compose.prod.yml`: `DATABASE_URL: postgres://amk_app:${APP_DB_PASSWORD}@db:5432/amazing_korean_db`
+3. `.github/workflows/deploy.yml` `.env.prod`: `APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}`
+4. 본 §13 갱신
+
+- 배포 후 검증: `/health` 200 + `SELECT current_user` = `amk_app` + 부팅 sqlx 마이그 정상.
+- **롤백**: `DATABASE_URL` user 를 `postgres` 로 환원(시크릿/compose 1줄) = 즉시 복구. `postgres` 는 break-glass(수동 관리)용으로만 잔존.
+
 ## 5. GitHub Actions CI/CD 파이프라인
 
 > **목적**: EC2에서 Rust 빌드 없이 자동 배포. t2.micro (1GB RAM)로 운영 가능.

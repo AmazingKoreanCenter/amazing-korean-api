@@ -56,6 +56,20 @@ jobs:
       - name: cargo clippy (-D warnings = warning 도 fail)
         run: cargo clippy --lib --bins --locked -- -D warnings
 
+  # 보안 감사 2.4 (2026-05-17): cargo-deny 를 PR(=KKRYOUN push) 게이트에 추가.
+  # security-audit.yml 은 주간 cron + 수동만이라 신규 취약 의존성이 머지 후
+  # 최대 1주 노출됐음. 머지 전 차단으로 노출 창 제거. deny.toml 정책 공유.
+  cargo-deny:
+    name: cargo-deny (advisories + licenses + bans)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+          arguments: --all-features
+
   # G1/G2 해제 (2026-05-09): postgres + redis service container 도입.
   # tests/{auth_email_integration, auth_login_integration, auth_oauth_integration,
   # repo_integration, service_integration, user_signup_integration}.rs 의

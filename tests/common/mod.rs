@@ -70,6 +70,19 @@ pub async fn make_test_state() -> AppState {
     }
 }
 
+/// 2.1 세션 폐기 검증 대응 — `ak:session:{sid}` 를 살아있게 셋업(로그인 시뮬레이션).
+/// extractor/role_guard 가 토큰 디코드 후 Redis 세션 존재를 확인하므로,
+/// `create_token` 으로 토큰만 만드는 통합 테스트는 본 헬퍼로 세션을 셋해야
+/// 성공 경로(200/403) 가 성립한다. 미호출 = 폐기 세션 → 401 (revoked 케이스).
+#[allow(dead_code)]
+pub async fn seed_session(st: &AppState, session_id: &str, user_id: i64) {
+    let mut conn = st.redis.get().await.expect("redis conn (seed_session)");
+    let _: () =
+        redis::AsyncCommands::set_ex(&mut conn, format!("ak:session:{session_id}"), user_id, 900)
+            .await
+            .expect("seed ak:session");
+}
+
 // =============================================================================
 // EmailSender mocks — Phase 3 통합 테스트
 // =============================================================================

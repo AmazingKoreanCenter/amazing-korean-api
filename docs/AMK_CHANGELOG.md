@@ -1,8 +1,59 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — explanation 프로덕션 시딩 준비 (경로 A: seed 파일 seeds/ 커밋 + Dockerfile 바이너리 + DEPLOY_OPS §12)
+updated: 2026-05-17 — 보안 감사 2.3 Phase 1 완료 (DB superuser→amk_app 프로비저닝, 런타임 영향 0) — Phase 2 게이트 대기
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — 보안 감사 2.3 Phase 1: DB 최소권한 role 프로비저닝 (런타임 영향 0)**
+
+  사실 조사: 앱 상시 `postgres` superuser 접속(`docker-compose.prod.yml:14`) + 부팅 `sqlx::migrate!` DDL. superuser-only 연산 0건(불필요) / 악용·사고 이력 0(SQLi 0, IDOR 방어) = 미실현 잠재 폭발반경. 부팅-마이그 동연결이라 순수 DML 최소권한은 부팅 차단 → **단일 NOSUPERUSER 소유 role `amk_app`** 채택(원안 풀 role 분리는 수익체감·고위험으로 비채택, 사용자 결정).
+
+  **Phase 1 (런타임 영향 0 — 앱은 계속 postgres 접속)**:
+  - `db-init/10_least_priv_role.sql` 신규(멱등): env 없음/빈값 가드 → `amk_app` LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION + public `GRANT ALL` + `ALTER DEFAULT PRIVILEGES` + 기존 앱 객체(table/seq/view/enum) `ALTER ... OWNER → amk_app`.
+  - `docker-compose.prod.yml` db: `./db-init:/docker-entrypoint-initdb.d:ro`(신규/재생성 DB 자동·멱등=비재발) + `APP_DB_PASSWORD` env. `DATABASE_URL` **불변**(여전히 postgres) = 동작 무변경.
+  - `AMK_DEPLOY_OPS §13` 신설: Phase 1 1회 수동 적용(기존 볼륨 initdb 미실행) + Phase 2 컷오버 4곳 동시 + 롤백.
+  - **로컬 amk-pg dry-run 검증**: env없음→중단 / 빈값→중단 / 정상 멱등 2회 / table·enum owner=amk_app / amk_app NOSUPERUSER. **dry-run 이 실버그 2건 사전 적발·정정**: ① `REASSIGN OWNED BY postgres` = PG 가 부트스트랩 superuser 라 거부 → public 앱객체 선별 `ALTER OWNER` 로 교체 ② psql 은 `$$...$$` 내 `:'var'` 미치환 → 빈값 가드를 평문 `\gset`+`\if` 로 정정.
+  - **Phase 2 미실행 (사용자 명시 승인 게이트)**: `DATABASE_URL` user `postgres→amk_app` (Secret+compose+deploy.yml+§13 4곳 동시 = feedback_deploy_env_sync/INC-001 클래스). 롤백 = user 환원 즉시. `postgres` break-glass 잔존.
+
+- **2026-05-17 ✅ — 보안 감사 2.4·2.6·2.5 일괄 (항목별 커밋)**
+
+  사용자 결정(나): 2.4+2.6+2.5 한 세션 순차·각 별도 커밋, 2.3 별도 트랙 분리.
+
+  - **2.4 cargo-deny PR 게이트** (`20129f6`): `pr-check.yml` 에 `cargo-deny` job 신설(검증된 `security-audit.yml` job 미러, `deny.toml` 공유). 주간 cron+수동만이던 것 → KKRYOUN push 게이트에서 머지 전 차단. CI만 = 런타임 0.
+  - **2.6 CSP 헤더** (`6b5275d`): app `security_headers` 미들웨어에 `Content-Security-Policy` 추가. 기본 `default-src 'none'; frame-ancestors 'none'`, `/docs`·`/api-docs` 만 `self`+`unsafe-inline`(Swagger, ENABLE_DOCS=1 시만). nginx-level 의도적 미적용(앱 미들웨어가 전 프록시 응답 커버, scp+reload 리스크 회피 — Karpathy #2).
+  - **2.5 admin IP guard XFF 우회 차단** (`8970a4d`): **감사 인용 오류 정정** — 지목된 `header_utils::extract_client_ip` 는 로그용, 실제 allowlist 강제자 `admin_ip_guard` 가 자체 XFF-first 추출로 우회 취약(`X-Forwarded-For: 허용IP` 위조 → allowlist 우회). `trusted_client_ip()` 순수 fn 분리 → **`CF-Connecting-IP` 만 권위**(Cloudflare 세팅·클라 위조 불가), 부재 시 **fail-closed**(allowlist 는 ADMIN_IP_ALLOWLIST 설정 시만 작동 = 영향 admin 한정). 단위 7종(위조 XFF 무시·CF 채택·부재 None) 통과. scope=ip_guard 만(header_utils 로그 경로 별도 저순위). 운영주의: 활성화 시 CF 경유 필수. 현 빈값 = 런타임 영향 0.
+  - 검증: cargo check/clippy/fmt clean, lib(ip_guard 7 + jwt iss 등) pass, pr-check.yml YAML 유효. **이번 세션 3번째 감사 doc↔code 인용 오류를 사전 검증으로 적발·정정**(verify-before-assert).
+  - **보안 §4 현황**: 🔴 2.1·2.2 + 🟡 2.4·2.5·2.6 **완료**. 잔여 = **2.3(DB 슈퍼유저→최소권한)만, prod 자격증명·role 변경이라 별도 신중 트랙으로 분리**.
+
+- **2026-05-17 ✅ — 보안 감사 2.2: JWT iss 강제 + reset 토큰 계정 탈취 차단**
+
+  착수 전 reset 흐름 실측 → 감사(2026-05-15) "reset=access 동일 JWT 구조" 전제 **stale 확인**(활성 reset 토큰은 이미 불투명 `ak_reset_<uuid>` Redis, TTL 1800s). 진짜 취약점 = 라우터 연결 활성 함수 `reset_password_with_token` else 분기가 `ak_reset_` 미접두 토큰을 `jwt::decode_token` 으로 처리 → **피해자 access token(15분)을 `/reset-pw` reset_token 으로 제출 시 비번 재설정(계정 탈취)**.
+
+  **확정 수정 (사용자 승인, 감사 원안 token_use 클레임 대신 — Karpathy #2/#3)**:
+  - **(a)** `jwt.rs decode_token`: `Validation::default()` → `Validation::new(Algorithm::HS256)` + `set_issuer(["amk"])` (알고리즘·issuer 강제, alg/token confusion 차단)
+  - **(b)** `reset_password_with_token` 레거시 JWT 폴백 분기 제거 → reset 은 opaque `ak_reset_` 전용, 비접두 즉시 `AUTH_401_INVALID_RESET_TOKEN`. verify_reset_code 가 opaque 전용 발급(TTL 1800s)이라 정상 토큰 영향 0.
+  - **(c)** dead `service::reset_password`(1095~1193, ~100줄, 호출처 0, JWT 전용 동일 취약 형태) 삭제 (변경 orphan 정리).
+
+  **검증**: jwt 단위 `test_decode_token_rejects_foreign_issuer` 신설 + 기존 roundtrip(iss=amk) 통과 / `lib 213 passed` / clippy·fmt clean / 통합 라이브 `--ignored`: **service_integration 9/9 — `test_reset_password_rejects_access_token_as_reset_token`(실 access JWT→reset → 401, 계정 탈취 차단 실증) 신설** + 기존 reset 3종 호환(에러코드 동일·구식 주석 정정) + auth_extractor 6/6·admin_rbac 8/8(2.1 무회귀, iss 강제 후 정상 토큰 통과). 계획을 사용자 지시대로 사전 문서화(커밋 06cffd7) 후 구현.
+
+- **2026-05-17 ✅ — 보안 감사 2.1: access token 세션 폐기(revocation) 검증**
+
+  `AMK_API_SECURITY_AUDIT.md` §2.1(감사 최우선) 해결. 착수 전 doc↔code 재검증으로 2.1/2.2/2.4 인용 정확성 확인 + explanation 신규 표면 커버리지 보강(별도 커밋).
+
+  - **갭**: `AuthUser`/`OptionalAuthUser` extractor·`admin_role_guard` 가 JWT 서명+만료만 검증 → 로그아웃/비번변경/강제퇴장 후에도 access token 이 만료(15분) 전까지 유효 (탈취·강제퇴장 우회).
+  - **수정**: `src/api/auth/session.rs::ensure_session_active` 신설 — 디코드 직후 Redis `ak:session:{sid}` 존재 검증. `extractor.rs`(AuthUser+OptionalAuthUser)·`role_guard.rs`(role 검사 이전) 연결. 삭제 인프라(service.rs)는 기존 — 검증만 결선.
+  - **정책 = fail-open + 관찰성** (사용자 결정, 감사 기본권고 fail-closed 와 의식적 상이): 단일 Redis(deadpool) SPOF 에서 fail-closed = Redis 장애 시 전면 인증 마비(가용성 사고). fail-open 노출은 access TTL 15분 상한 = 2.1 이전 이미 수용된 베이스라인으로만 후퇴, 그 이상 악화 없음. Redis 정상·키부재→401 / Redis 불가→검증 SKIP + `tracing::warn!(target="security.session_revocation")` (메트릭 facility 부재 → 로그 기반 알림). trade-off 를 session.rs 모듈 doc + 감사 §2.1 에 명문화.
+  - **테스트**: 계약 변경 orphan 전수 정리 — `common::seed_session` 헬퍼 신설, `auth_extractor_integration`/`admin_rbac_integration` 가 유효 세션 셋업하도록 갱신 + **폐기 세션 401 회귀 테스트 신설**(고유 미시드 sid 로 병렬·순서 안전). 토큰 위조→인증경로 테스트는 이 2개뿐 확인(전수). **로컬 라이브 실행 검증**: admin_rbac 8/8·auth_extractor 6/6(시드→200/403, 폐기→401, 미인증→401), lib 212 passed, clippy/fmt clean.
+  - **자기수정 기록**: 재검증 중 2.1 `extractor.rs:42` 를 "라인 드리프트"로 성급히 단정 후, 42행이 정확한 decode 라인임을 확인·정정 (verify-before-assert, `feedback_work_rules` 메모리화).
+
+- **2026-05-17 ✅ — explanation 프로덕션 시딩·라이브 검증 완료 (트랙 완결)**
+
+  PR #298 배포 성공(build/deploy success, Dockerfile seed_explanation 런타임 COPY 포함) → EC2 `docker exec amk-api /app/seed_explanation --input /app/seeds/explanation_seed.json` 수동 1회 실행:
+
+  - `적재 완료: unit=568 block=1317 translation=4362` (멱등, 시드 파일 카운트 정확 일치). 연결키 study_idx 566·study_task_idx 500 미해소 = **정상**(prod study/study_task 매칭 시드 없음, 논리 참조 독립 — explanation 단독 서빙).
+  - **프로덕션 실데이터 HTTP 검증 전부 통과**: ① inherit 계승 — sent:300 row1/2(`inherit:true`)의 `_explanation`이 row0 값으로 **서버 계승** + `_en` 실토큰 보존 ② i18n 맵 조립(header/row_i_en/explanation) ③ 링크 조회 `?study_task_idx=amk500-sent-300`→items=1 ④ 폴백 vi(미적재)→en / ko→ko원본.
+  - **의의**: 로컬 dev DB `20260419` 분기로 막혀 정적 검증만 했던 `service.rs` 변환 로직(i18n 조립·inherit 계승·폴백 체인)을 **프로덕션 실데이터로 end-to-end 확정**. **설명 콘텐츠 books→api 인계 트랙 완결**(설계→스키마→books 협의→로더→API→배포→시딩→라이브 검증).
+  - 남은 건 코드 외: 프론트 렌더 연동(별도 트랙) / 맥미니 Phase C 35언어 도착 시 `--translations` 구현(계약 확정) / (선택) prod study/study_task 시드 시 연결키 재확인.
 
 - **2026-05-17 — explanation 프로덕션 시딩 준비 (경로 A)**
 

@@ -2,6 +2,7 @@ use axum::extract::{FromRef, FromRequestParts};
 use axum::http::{header::AUTHORIZATION, request::Parts};
 
 use crate::api::auth::jwt::{self, Claims};
+use crate::api::auth::session::ensure_session_active;
 use crate::error::AppError;
 use crate::state::AppState;
 
@@ -22,7 +23,7 @@ where
         parts: &mut Parts,
         state: &S,
     ) -> impl core::future::Future<Output = Result<Self, Self::Rejection>> + Send {
-        // AppState는 소유값으로 얻어와 async move 에 캡쳐
+        // AppState는 소유값으로 얻어와 async move 에 캡쳐 (세션 검증에 Redis 필요)
         let app_state = AppState::from_ref(state);
         let secret = app_state.cfg.jwt_secret.clone();
 
@@ -41,6 +42,9 @@ where
             // jwt.rs에 정의된 중앙 검증 로직 사용
             let claims = jwt::decode_token(&token, &secret)
                 .map_err(|_| AppError::Unauthorized("Invalid token".into()))?;
+
+            // 2.1 세션 폐기 검증 (fail-open + 관찰성)
+            ensure_session_active(&app_state, &claims.session_id, claims.sub).await?;
 
             Ok(AuthUser(claims))
         }
@@ -77,6 +81,10 @@ where
 
             let claims = jwt::decode_token(token, &secret)
                 .map_err(|_| AppError::Unauthorized("Invalid token".into()))?;
+
+            // 2.1 세션 폐기 검증 (fail-open + 관찰성). 토큰이 있는데 폐기된
+            // 세션이면 invalid token 과 동일하게 401 (기존 동작 일관).
+            ensure_session_active(&app_state, &claims.session_id, claims.sub).await?;
 
             Ok(OptionalAuthUser(Some(AuthUser(claims))))
         }
