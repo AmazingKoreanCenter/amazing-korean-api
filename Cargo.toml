@@ -81,6 +81,10 @@ imageproc = "0.25"
 name = "rekey_encryption"
 path = "src/bin/rekey_encryption.rs"
 
+[[bin]]
+name = "seed_explanation"
+path = "src/bin/seed_explanation.rs"
+
 [dev-dependencies]
 # wiremock = HTTP mock server for OAuth integration tests (Google /token + /jwks)
 wiremock = "0.6"

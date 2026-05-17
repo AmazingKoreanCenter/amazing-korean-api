@@ -961,6 +961,19 @@ books `i18n_key`(평문 네임스페이스)와 api `content_translations` 튜플
 
 **structured 경계**: 번역 안 타는 골격(role/form, concept_card 메타, qword_card 표 구조) = `structured` JSONB 통째(index 보존) / 번역 타는 텍스트(row en·explanation, header, note, **concept_card desc, qword_card header**) = content_translations 행 분리. row/item/header index ↔ field_name `{i}` 불변식. lang-invariant는 번역 파이프라인 미진입. inherit row = explanation만 미진입(en은 진입).
 
+#### 적재 로더 (2026-05-17) — `src/bin/seed_explanation.rs`
+
+Rust 시드 바이너리 (선례 = `rekey_encryption`). `cargo run --bin seed_explanation -- --input <explanation_seed.json>` (또는 env `EXPLANATION_SEED_PATH`). 단일 트랜잭션 멱등 적재:
+
+1. `explanation_unit` upsert `ON CONFLICT (unit_idx)` → PK 맵
+2. `explanation_block` upsert `ON CONFLICT (explanation_unit_id, block_seq)` → PK 맵
+3. 산출 B → `content_translations` upsert `ON CONFLICT (content_type, content_id, field_name, lang)`. `unit_idx`(+`block_seq`)로 PK 해소. **`lang='en'` + `status='approved'`** (en=권위 텍스트, 서빙 필터 `status='approved'` 통과 위해. 맥미니 35언어는 별도 `upsert_one` 경로 draft→review). 미해소 시 fail-loud.
+4. 연결키 정합 검증 **내장** (작업 #2 흡수): `study_idx`→study / `study_task_idx`→study_task 미해소 count 리포트 (논리 참조 = 경고만, 시드 순서 독립).
+
+**스키마 정정 (마이그 20260518)**: `explanation_unit.updated_by_user_id` `NOT NULL` → **nullable + FK→users(user_id)** = lesson/study 컨벤션 일치(시스템 시드 콘텐츠 = NULL updater). 마이그 미적용·미머지(KKRYOUN) 상태라 정정 안전.
+
+> **실행 환경 주의**: 본 세션은 DB 미접속 — `cargo check`/`clippy`/`fmt` 정적 검증만 통과. 실제 시드 실행 + 연결키 검증 수치는 DB 환경(로컬/배포) 실행 시점.
+
 #### 시드 검증 결과 (2026-05-17) — books `explanation_seed.json` PASS·채택
 
 api 독립 전수 검증(meta.self_check 비신뢰, 직접 재계산): 산출 A unit 568(pattern_guide 68+sentence_explain 500)/block 1,317 + 산출 B en 전용 4,362행. unit_idx·(unit_idx,block_seq) UNIQUE / enum·av_307_313·연습누출·lang-invariant누출·PK해소·study_task_idx(amk500-sent-NNN 500/500)·field_name 9종(갭1 포함) 전 항목 ✅. **계약 정정 1건(api 귀책)**: §2 inherit 문구 모호(row 전체 vs explanation 한정) → explanation 한정으로 정정, books 시드 정상·재작업 불필요. **다음**: 적재 로더(산출 A→PK 확정→산출 B PK 해소→content_translations) + 연결키 정합 검증 + 조회 API.

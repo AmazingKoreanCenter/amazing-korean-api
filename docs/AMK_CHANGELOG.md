@@ -53,9 +53,18 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - **계약 정정 1건 (api 귀책)**: §2 inherit 문구가 "산출 B 행 없음"으로 row 전체를 가리켜 모호. 실제 = inherit 는 **explanation 한정 상속**, row 의 `en` 토큰은 실 콘텐츠라 `_en` 산출 B 행 정상. books 시드가 옳고 계약 텍스트가 틀림 → 계약 §2/§3 + api §5.10 정정. **books 재작업 불필요.**
   - 정직 고지: meta.self_check=PASS 를 그대로 믿지 않고 9종 독립 재계산. inherit "위반" 추적 끝에 결함이 books 아닌 내 계약 문구임을 확인·정정.
 
+- **2026-05-17 — 설명 콘텐츠 적재 로더 구현 (`seed_explanation` 바이너리, 정적 검증)**
+
+  남은 api 트랙 중 적재 로더 + 연결키 정합 검증 구현 (조회 API 는 다음).
+
+  - `src/bin/seed_explanation.rs` 신규 + `Cargo.toml [[bin]]` (선례 `rekey_encryption`). 단일 트랜잭션 멱등: explanation_unit upsert(ON CONFLICT unit_idx)→PK 맵 / explanation_block upsert(ON CONFLICT unit_id,block_seq)→PK 맵 / 산출 B → content_translations upsert(`lang=en` `status=approved` — en=권위, 서빙 필터 통과). `--input` 또는 env `EXPLANATION_SEED_PATH`.
+  - **연결키 정합 검증 내장** (작업 #2 흡수): study_idx/study_task_idx 미해소 count 리포트 (논리 참조 = 경고).
+  - **마이그 20260518 정정**: `explanation_unit.updated_by_user_id` `NOT NULL` → nullable + `FK→users(user_id)` = lesson/study 컨벤션 일치(시스템 시드 = NULL updater). 마이그 미적용·미머지(KKRYOUN)라 정정 안전.
+  - 검증: `cargo check`/`clippy`/`fmt` ✅. **정직 고지**: 본 세션 DB 미접속 = 정적 검증만. 실 시드 실행 + 연결키 검증 수치 = DB 환경(로컬/배포) 실행 시점.
+
   ## 다음
 
-  api 적재 로더 (산출 A → PK 확정 → 산출 B unit_idx+block_seq PK 해소 → content_translations) + 연결키 정합 검증 + 조회 API (repo→service→handler→router)
+  조회 API (repo→service→handler→router): structured 골격 + content_translations 오버레이(user_lang→en→ko, inherit explanation 계승) 재조립 + 실 DB 시드 실행·검증
 
 - **2026-05-17 🟡 — 설명(해설) 콘텐츠 books→api 인계: 스키마 아키텍처 결정 (코드 0건, 설계 단계)**
 
