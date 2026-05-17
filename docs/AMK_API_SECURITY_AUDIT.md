@@ -1,9 +1,13 @@
 # AMK API 보안 감사 보고서
 
-> 작성일: 2026-05-15
+> 작성일: 2026-05-15 / **재검증: 2026-05-17** (explanation 도메인 추가 후 doc↔code 대조)
 > 범위: `/home/kkryo/dev/amazing-korean-api` (Rust 백엔드 — Cargo workspace, Docker, nginx, AWS, SQL migrations)
 > 방식: 읽기 전용 코드/설정 분석. 실제 시크릿 값은 미포함, "노출 위치"만 기록.
 > 비교 기준: 사내 다른 프로젝트(workout)에서 검증된 6개 보안 패턴
+
+> **재검증 메모 (2026-05-17)** — 보안 작업 착수 전 doc↔code 간극 점검:
+> - **actionable 항목 인용 = 정확** (간극 없음, 그대로 신뢰 가능): 2.1 `extractor.rs:42`(AuthUser decode_token 호출 라인 — 이후 Redis 세션 미검증 지점) + `role_guard.rs:51`(decode) / 2.2 `jwt.rs:41`(iss 발급)·`71`(`Validation::default()`) / 2.4 `pr-check.yml`(트리거=`push: KKRYOUN`+`workflow_dispatch`, cargo-deny 부재) 모두 현재 코드 일치 확인.
+> - **신규 커버리지 추가 — explanation 도메인** (감사 작성 후 추가, §1 SQL/IDOR 주장 명시 확장): `src/api/explanation/` 공개 read API (`/explanations`, `/explanations/{unit_idx}`). **인젝션 0** — `repo.rs` 의 `format!` 은 정적 상수 `UNIT_COLS` 만, 사용자 입력(unit_idx/study_idx/study_task_idx/unit_id) 전부 `.bind()`. **인증 = 의도된 공개**(`api/mod.rs:66` nest, 미들웨어 없음 — 읽기 전용 공개 학습 콘텐츠, 사용자 스코프 데이터 없음 → IDOR/우회 무관, 설계 D3). `seed_explanation` 바이너리 = 네트워크 표면 아님. `seeds/explanation_seed.json` = 공개 콘텐츠, 시크릿 없음. → 신규 표면 보안 영향 없음, §2 이슈 목록 불변.
 
 ---
 
