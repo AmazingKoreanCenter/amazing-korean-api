@@ -1,8 +1,119 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — RCE 선행 공격면 검증 (dirtyfrag 후속, 코드 변경 0건 / 이미 양호)
+updated: 2026-05-17 — 설명 콘텐츠 스키마 확정·적용 (B안 / explanation_unit·explanation_block 마이그레이션)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — 설명(해설) 콘텐츠 스키마 확정·적용 (B안, 마이그레이션 + types.rs)**
+
+  설계 결정(아래 항목) 후 사용자 승인받아 스키마 구현. i18n 조인 = **B 확정**(content_translations 무변경, 변환은 books 시드 생성기+로더). A 기각: 식별 2방식 공존 = 전 학습 도메인 인지 부담 / EAV 약점(고아 번역)은 저심각도·비악화 → 별도 백로그.
+
+  ## 적용
+
+  | 항목 | 내용 |
+  |---|---|
+  | `migrations/20260517_explanation_content_type_values.sql` | content_type_enum += explanation_unit/explanation_block (단독, 선례 20260212) |
+  | `migrations/20260518_explanation_tables.sql` | explanation_unit_kind_enum / explanation_source_enum / explanation_block_type_enum + explanation_unit + explanation_block (같은 날 다중 = 다음 날짜 관례) |
+  | `src/types.rs` | ContentType += ExplanationUnit/ExplanationBlock, 신규 ExplanationUnitKind/ExplanationSource(Guide67 rename)/ExplanationBlockType |
+
+  ## 스키마 결정 (사용자 승인)
+
+  - title/subtitle = `*_ko`/`*_en`/`*_lang_invariant` **평면화(방식 ㉠)**, ko nullable (guide_67 best-effort)
+  - 외부 연결키(study_idx/study_task_idx/sentence_num/section_id) = **논리 참조, FK 강제 안 함** (tense_v1/josa_v1 무링크 / av_307_313 갭 / 시딩 순서 독립) → 시드 후 정합 검증
+  - structured 경계: lang-invariant 골격(role/form) = `structured` JSONB 통째 / 번역 대상(en/explanation/header/note) = content_translations 튜플 행 분리
+  - explanation_block→explanation_unit = hard FK ON DELETE CASCADE (내부 구조, 안전)
+
+  ## B 시드 계약 (api↔books)
+
+  시드 순서 ①api 시딩(PK 확정)→②로더가 unit_idx+block_seq로 PK 해소해 content_translations 적재. 결정적 field_name 규약(`explanation_block_row_{i}_explanation` 등). lang_invariant != true 만 번역 행 생성. books 산출 = `(unit_idx, block_seq|null, field_name, lang, text)`.
+
+  ## 검증·문서
+
+  - `cargo check` ✅ (프론트 미변경 = npm build 생략)
+  - `AMK_API_LEARNING.md §5.10` 확정 스키마로 갱신 / `AMK_STATUS.md` #142 / 메모리 `project_explanation_content_handoff`
+
+  ## 점검 (커밋 5897cc8 전수 대조)
+
+  계획 대비 누락·이탈 0. B 무변경 / 전용 2테이블 / enum 정합 / 평면화㉠ / 논리참조 FK 없음 / CASCADE / 순서·멱등 / structured JSONB / cargo check / 마이그 네이밍 정책 + books 모델 필드 커버리지 전수 확인. **정직 고지 5건(의도적 선택)**: ① 20260518 미래 날짜 = README §1 관례 준수 ② title_en/ko 둘 다 nullable(권위 en NOT NULL 비강제, 사용자 확인) ③ study_task_idx = books 파생 emit ④ enum DB↔Rust 정적 정합만(런타임은 시드 시점) ⑤ i18n_key 미저장=B 의도.
+
+  ## books 핸드오프 + 회신 라운드트립 (2026-05-17)
+
+  `amazing-korean-books/docs/guide/explanation_seed_contract_from_api.md` 작성(api→books 작업 지시서: 산출 A 구조시드 + B 번역행 + field_name 규약 + §2 lang-invariant 경계 + §4 self-check). books 회신(갭1 블로커 + 확인2) → **api 회답**:
+
+  - **갭1 = (a) 채택**: concept_card.items[].desc(2) + qword_card.headers[](8) = 10 번역 대상이 field_name 부재(api §2 누락). `explanation_block_card_{i}_desc` / `explanation_block_qword_{i}_header` 신설, structured 경계·index 불변식 동일 적용. **api 스키마 무변경** (concept_card/qword_card는 block_type enum에 이미 존재, field_name 자유 varchar(100)).
+  - **확인1 수용**: `{"inherit":true}` row = structured jsonb 마커 유지·산출 B 행 없음, 렌더 시 직전 번역대상 row explanation 계승 (api 정의).
+  - **확인2 수용**: 산출 B = `lang='en'` 행만(en=권위). ko=산출 A text_ko 원본(서빙 시 lang=ko=원본 반환). 35언어=맥미니 Phase C 후속. self-check §4-1=en 기준.
+  - 계약 §2/§3 + api §5.10 갱신. books 구현 착수 승인.
+
+  ## books 시드 산출 + api 독립 검증 (2026-05-17) — PASS·채택
+
+  books `build_explanation_export.js` 산출 → `explanation_seed.json` (산출 A unit 568[pattern_guide 68+sentence_explain 500]/block 1,317 + 산출 B en 전용 4,362행). api 독립 전수 검증(meta.self_check 비신뢰, 직접 재계산):
+
+  - unit_idx·(unit_idx,block_seq) UNIQUE / unit_source·block_type enum / av_307_313 제외 / 연습·lang-invariant 누출 0 / 산출 B PK 해소 고아 0 / study_task_idx amk500-sent-NNN 500/500 / field_name 9종(갭1 `_card_{i}_desc`·`_qword_{i}_header` 포함) 정합 — **전 항목 ✅**
+  - **계약 정정 1건 (api 귀책)**: §2 inherit 문구가 "산출 B 행 없음"으로 row 전체를 가리켜 모호. 실제 = inherit 는 **explanation 한정 상속**, row 의 `en` 토큰은 실 콘텐츠라 `_en` 산출 B 행 정상. books 시드가 옳고 계약 텍스트가 틀림 → 계약 §2/§3 + api §5.10 정정. **books 재작업 불필요.**
+  - 정직 고지: meta.self_check=PASS 를 그대로 믿지 않고 9종 독립 재계산. inherit "위반" 추적 끝에 결함이 books 아닌 내 계약 문구임을 확인·정정.
+
+- **2026-05-17 — 설명 콘텐츠 적재 로더 구현 (`seed_explanation` 바이너리, 정적 검증)**
+
+  남은 api 트랙 중 적재 로더 + 연결키 정합 검증 구현 (조회 API 는 다음).
+
+  - `src/bin/seed_explanation.rs` 신규 + `Cargo.toml [[bin]]` (선례 `rekey_encryption`). 단일 트랜잭션 멱등: explanation_unit upsert(ON CONFLICT unit_idx)→PK 맵 / explanation_block upsert(ON CONFLICT unit_id,block_seq)→PK 맵 / 산출 B → content_translations upsert(`lang=en` `status=approved` — en=권위, 서빙 필터 통과). `--input` 또는 env `EXPLANATION_SEED_PATH`.
+  - **연결키 정합 검증 내장** (작업 #2 흡수): study_idx/study_task_idx 미해소 count 리포트 (논리 참조 = 경고).
+  - **마이그 20260518 정정**: `explanation_unit.updated_by_user_id` `NOT NULL` → nullable + `FK→users(user_id)` = lesson/study 컨벤션 일치(시스템 시드 = NULL updater). 마이그 미적용·미머지(KKRYOUN)라 정정 안전.
+  - 검증: `cargo check`/`clippy`/`fmt` ✅. **정직 고지**: 본 세션 DB 미접속 = 정적 검증만. 실 시드 실행 + 연결키 검증 수치 = DB 환경(로컬/배포) 실행 시점.
+
+- **2026-05-17 — 설명 콘텐츠 조회 API 구현 (`src/api/explanation/`, 정적 검증)**
+
+  신규 도메인 explanation (dto→repo→service→handler→router, `/explanations` nest, 공개 읽기 — 접근 제어 컬럼 없음 D3).
+
+  - `GET /explanations/{unit_idx}?lang=` (단위+블록) / `GET /explanations?study_idx=&study_task_idx=&lang=` (연결키, 둘 다 없으면 400)
+  - 서빙 모델 = structured **골격 + i18n 해소 맵**. 단순 텍스트 블록 `text` 해소 / structured·concept·qword = `structured`(골격) + `i18n`(field_name→텍스트). 프론트가 index 불변식으로 재조립.
+  - 폴백 체인 요청 lang→tr(user/en)→en→ko. **inherit 계승**: structured_explain rows[i].inherit → 직전 비-inherit row explanation 서버 해소.
+  - explanation 전용 `find_translations` (admin 공유 코드 무수정, ko 단락 회피 — 설명 structured 는 ko 원본 없음). jsonb `::text` 캐스트 fetch (sqlx json feature 미사용).
+  - docs.rs paths/schemas/tags 등록. `cargo check`/`clippy`/`fmt` ✅ + openapi 회귀 7/7 통과 (`openapi_paths_match_router_handlers` = router↔docs 정합 포함).
+  - **정직 고지**: 정적·컴파일·계약 검증만. 런타임 서빙·inherit 재조립 실동작은 DB+시드 환경 실행 시점 (본 세션 DB 미접속).
+
+- **2026-05-17 — 설명 콘텐츠 로컬 DB 런타임 검증 (부분 — 환경 블로커 정직 고지)**
+
+  로컬 dev DB(amk-pg)에 우리 마이그(20260517/20260518)만 psql 직접 적용 → `seed_explanation` 실행:
+
+  - 적재 unit 568/block 1317/translation 4362, **멱등 재실행 동일**(ON CONFLICT), content_translations 전부 `lang=en status=approved` ✓
+  - repo SQL 실측(psql): find_unit_by_idx(enum ::text)/find_translations(en, sent:300 inherit 데이터)/find_units_by_link(amk500-sent-300→sent:300)/갭1 card_{i}_desc end-to-end ✓
+  - 연결키 566/500 미해소 = 정상(로컬 study 시드 없음, 논리 참조 경고)
+  - **환경 블로커 (정직 고지)**: `sqlx migrate run` + 서버 부팅(`sqlx::migrate!`) 둘 다 dev DB **사전 이력 분기 `20260419` 체크섬**("previously applied but has been modified", **우리 코드 무관**)에 차단. feedback_migration_safety 상 강제 우회 미실시 → 우리 2 마이그만 격리 적용. 라이브 HTTP(service i18n 조립/inherit 계승/폴백)는 **미검증** — compile/clippy/코드리뷰 clean + 입력 데이터 실측 정확이나 실 응답 미확인. 정상 마이그 환경 재검증 필요.
+
+  ## 다음
+
+  정상 마이그 환경 서버 기동 → HTTP 응답 검증 / 프론트 렌더 연동 / 맥미니 Phase C 35언어 / 로컬 dev DB 20260419 이력 분기 정리(별도)
+
+- **2026-05-17 🟡 — 설명(해설) 콘텐츠 books→api 인계: 스키마 아키텍처 결정 (코드 0건, 설계 단계)**
+
+  books가 해설집을 api-무관 중립 모델(568 Unit = pattern_guide 68 + sentence_explain 500 / 1,317 block)로 정리해 인계. 계약 = `amazing-korean-books/docs/guide/explanation_handoff_to_api.md` + `explanation_content_model.md`. 연습문제(인터랙티브)는 별도 트랙 — 범위 밖.
+
+  ## 정합성 확인 (books 주장 vs api 실측)
+
+  - study_explain 부적합(task·lang당 1행, varchar(120), 블록 없음) = ✅ 정확
+  - 연결키 `study.study_idx` / `study_task.study_task_idx`(=amk500-sent-NNN, 2026-04-18 해설집 시딩 목적 도입) 존재 = ✅
+  - content_translations 조인 = ⚠️ **구조 불일치 갭** (books 평문 i18n_key vs api 튜플 `(content_type, content_id, field_name)`)
+
+  ## 결정 (D1~D4)
+
+  | # | 결정 |
+  |---|------|
+  | D1 | study_explain 재사용 ❌ |
+  | D2 | lesson_item kind=explanation ❌ (시기상조 — 568 Unit은 study/task 연결이지 lesson 시퀀스 종속 아님) |
+  | D3 | **전용 `explanation_unit` + `explanation_block` 신설 ✅** (Block의 rows/table/diagram = JSONB) |
+  | D4 | **서버 저장 + API 서빙 ✅** (정적 에셋 ❌) — 번역 5,117키×35언어가 이미 content_translations DB 파이프라인 + status 워크플로 + 서버사이드 오버레이. 콘텐츠만 정적화 = 소스 분리·캐시 불일치. study_access 접근 제어 일관성도 서버 필요 |
+
+  ## 미결정 (다음 결정 포인트)
+
+  i18n 조인 임피던스 불일치 → (A) content_translations에 nullable i18n_key 컬럼 추가 (맥미니 무변경, 공유 스키마 변경) / (B) 시드 시 books 생성기가 i18n_key→튜플 변환 (공유 스키마 불변, books 매핑 단계 추가)
+
+  ## 문서 동기화
+
+  - `docs/AMK_API_LEARNING.md` §5.10 신설 (결정/미결정/제약/흐름)
+  - `docs/AMK_STATUS.md` #142
+  - 메모리 신규 `project_explanation_content_handoff.md`
 
 - **2026-05-17 ✅ — RCE 선행 공격면 검증 (dirtyfrag #140 후속, 변경 0건)**
 
