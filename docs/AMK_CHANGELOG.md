@@ -1,8 +1,17 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — explanation 프로덕션 시딩 준비 (경로 A: seed 파일 seeds/ 커밋 + Dockerfile 바이너리 + DEPLOY_OPS §12)
+updated: 2026-05-17 — explanation 프로덕션 시딩·라이브 검증 완료 ✅ (트랙 완결, inherit/i18n/폴백 end-to-end 확정)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — explanation 프로덕션 시딩·라이브 검증 완료 (트랙 완결)**
+
+  PR #298 배포 성공(build/deploy success, Dockerfile seed_explanation 런타임 COPY 포함) → EC2 `docker exec amk-api /app/seed_explanation --input /app/seeds/explanation_seed.json` 수동 1회 실행:
+
+  - `적재 완료: unit=568 block=1317 translation=4362` (멱등, 시드 파일 카운트 정확 일치). 연결키 study_idx 566·study_task_idx 500 미해소 = **정상**(prod study/study_task 매칭 시드 없음, 논리 참조 독립 — explanation 단독 서빙).
+  - **프로덕션 실데이터 HTTP 검증 전부 통과**: ① inherit 계승 — sent:300 row1/2(`inherit:true`)의 `_explanation`이 row0 값으로 **서버 계승** + `_en` 실토큰 보존 ② i18n 맵 조립(header/row_i_en/explanation) ③ 링크 조회 `?study_task_idx=amk500-sent-300`→items=1 ④ 폴백 vi(미적재)→en / ko→ko원본.
+  - **의의**: 로컬 dev DB `20260419` 분기로 막혀 정적 검증만 했던 `service.rs` 변환 로직(i18n 조립·inherit 계승·폴백 체인)을 **프로덕션 실데이터로 end-to-end 확정**. **설명 콘텐츠 books→api 인계 트랙 완결**(설계→스키마→books 협의→로더→API→배포→시딩→라이브 검증).
+  - 남은 건 코드 외: 프론트 렌더 연동(별도 트랙) / 맥미니 Phase C 35언어 도착 시 `--translations` 구현(계약 확정) / (선택) prod study/study_task 시드 시 연결키 재확인.
 
 - **2026-05-17 — explanation 프로덕션 시딩 준비 (경로 A)**
 
