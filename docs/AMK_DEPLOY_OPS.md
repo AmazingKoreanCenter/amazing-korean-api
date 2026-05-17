@@ -819,6 +819,57 @@ docker exec -it amk-pg psql -U postgres -d amazing_korean_db -c "SELECT COUNT(*)
 
 > **주의**: `--exclude-table=_sqlx_migrations`로 마이그레이션 기록 테이블은 제외합니다.
 
+##### 11. EC2 호스트 OS 보안 (커널 mitigation)
+
+> §1~§10 = 네트워크/앱 레이어 (Cloudflare / 인증서 / 데이터). 본 §11 = 호스트 OS / Linux 커널 레이어. distro 보안 패치 백포트 도착 전, modprobe 블랙리스트로 취약 커널 모듈을 차단하는 임시 mitigation 절차.
+
+###### 11-1. dirtyfrag (CVE-2026-43284 xfrm-ESP + CVE-2026-43500 RxRPC) — 2026-05-13 적용
+
+**배경**
+
+- 공개: 2026-05-07 (embargo 깨짐, [V4bel/dirtyfrag](https://github.com/V4bel/dirtyfrag))
+- 영향: Linux 커널 Local Privilege Escalation (LPE) 2 CVE 체인. xfrm-ESP / RxRPC Page-Cache Write
+- 메인라인 패치: 2026-05-05 (`f4c50a4034e6`) / 2026-05-10 (`aa54b1d27fe0`)
+- 영향 distro: Ubuntu 24.04 / RHEL 10 / CentOS Stream 10 / AlmaLinux 10 / Fedora 44 / openSUSE Tumbleweed 등 — 우리 EC2 (Amazon Linux 2023) 도 잠재 영향
+- 전제: 공격자가 **로컬 셸 접근(RCE 선행)** 을 얻은 후 root 권한 탈취. 단독 인터넷 공격 불가
+- 대응 필요성: distro 백포트 도착 전까지 블랙리스트로 1차 방어선 확보
+
+**적용 절차** (EC2 SSH 후 `ec2-user`)
+
+```bash
+sudo sh -c "printf 'install esp4 /bin/false\ninstall esp6 /bin/false\ninstall rxrpc /bin/false\n' > /etc/modprobe.d/dirtyfrag.conf"
+sudo rmmod esp4 esp6 rxrpc 2>/dev/null
+sudo sh -c "echo 3 > /proc/sys/vm/drop_caches"
+```
+
+**검증**
+
+```bash
+cat /etc/modprobe.d/dirtyfrag.conf   # 3 줄: install esp4/esp6/rxrpc /bin/false
+lsmod | grep -E "(esp4|esp6|rxrpc)"  # 빈 결과 (취약 모듈 로드 없음)
+```
+
+**영향 평가**
+
+우리 앱 (Rust/Axum HTTP API + Cloudflare 엣지) 은 IPsec(ESP) / RxRPC 커널 모듈을 미사용. 블랙리스트로 차단해도 기능 영향 0.
+
+**해제 시점**
+
+Amazon Linux 2023 보안 패치 백포트 도착 후 `sudo dnf update` 적용. 블랙리스트는 모듈 미사용이라 그대로 둬도 무해 (지워도 OK).
+
+###### 11-2. 일반 커널 CVE 대응 SOP (재사용)
+
+다른 커널 CVE 공시 시 §11-1 패턴 재사용:
+
+1. **영향 모듈 식별** — CVE writeup 의 affected subsystem / module 명
+2. **우리 앱 사용 여부 확인** — `lsmod | grep <module>` + 코드 grep
+3. **미사용 = 블랙리스트** — `/etc/modprobe.d/<cve-id>.conf` 에 `install <module> /bin/false` 추가
+4. **즉시 적용** — `sudo rmmod <module>` + `echo 3 > /proc/sys/vm/drop_caches`
+5. **distro 패치 도착** — `sudo dnf update` (AL2023) / `sudo apt upgrade` (Ubuntu)
+6. **문서 동기화** — `docs/AMK_DEPLOY_OPS.md §11-N` 신설 + `STATUS` 신규 entry + `CHANGELOG` 기록
+
+> **주의**: 모듈을 우리 앱이 **사용 중**이면 블랙리스트 불가. 그 경우 (a) distro 패치 빠른 적용 / (b) 인스턴스 격리 / (c) WAF/방화벽 추가 룰 중 선택.
+
 ## 5. GitHub Actions CI/CD 파이프라인
 
 > **목적**: EC2에서 Rust 빌드 없이 자동 배포. t2.micro (1GB RAM)로 운영 가능.

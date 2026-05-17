@@ -1,8 +1,48 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-12 — 부채 카탈로그 5필드 게이트 정착 + 카운트 재정리 (30 → 15) + busywork 사고 회피 정책
+updated: 2026-05-13 — EC2 호스트 OS dirtyfrag (CVE-2026-43284 + CVE-2026-43500) mitigation 적용
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-13 ✅ — EC2 호스트 OS dirtyfrag mitigation 적용 (커널 모듈 블랙리스트)**
+
+  Linux 커널 LPE 2 CVE 체인 (`CVE-2026-43284` xfrm-ESP + `CVE-2026-43500` RxRPC, 통칭 dirtyfrag) 의 distro 백포트 도착 전 임시 mitigation 을 EC2 호스트에 적용. 우리 앱은 IPsec(ESP)/RxRPC 미사용 → 모듈 블랙리스트 적용 시 기능 영향 0.
+
+  ## 배경
+
+  - 공개: 2026-05-07 (embargo 깨짐, [V4bel/dirtyfrag](https://github.com/V4bel/dirtyfrag))
+  - 메인라인 패치: `f4c50a4034e6` (2026-05-05, xfrm-ESP) / `aa54b1d27fe0` (2026-05-10, RxRPC)
+  - 영향 distro: Ubuntu 24.04 / RHEL 10 / CentOS Stream 10 / AlmaLinux 10 / Fedora 44 / openSUSE Tumbleweed 등 — Amazon Linux 2023 도 잠재 영향
+  - 전제: 공격자 로컬 셸 접근 (RCE 선행) 후 root 권한 탈취. 단독 인터넷 공격 불가
+  - 카테고리: 호스트 OS / 커널 레이어. Rust/Axum 앱 코드와 무관
+
+  ## 적용
+
+  EC2 (`ip-172-31-33-214`, ec2-user) 에서 다음 3 명령 실행:
+
+  ```bash
+  sudo sh -c "printf 'install esp4 /bin/false\ninstall esp6 /bin/false\ninstall rxrpc /bin/false\n' > /etc/modprobe.d/dirtyfrag.conf"
+  sudo rmmod esp4 esp6 rxrpc 2>/dev/null
+  sudo sh -c "echo 3 > /proc/sys/vm/drop_caches"
+  ```
+
+  ## 검증
+
+  | 확인 명령 | 기대 결과 | 실측 |
+  |-----------|-----------|------|
+  | `cat /etc/modprobe.d/dirtyfrag.conf` | `install esp4/esp6/rxrpc /bin/false` 3 줄 | ✅ |
+  | `lsmod \| grep -E "(esp4\|esp6\|rxrpc)"` | 빈 결과 (취약 모듈 로드 없음) | ✅ |
+
+  ## 문서 동기화
+
+  - `docs/AMK_DEPLOY_OPS.md` §11 신설 (호스트 OS 보안 + 일반 커널 CVE 대응 SOP, §11-1 dirtyfrag + §11-2 재사용 SOP)
+  - `docs/AMK_STATUS.md` #140 entry 추가
+  - 메모리 `project_status.md` + 신규 `reference_kernel_security_sop.md` 갱신
+
+  ## 후속
+
+  - **distro 패치 도착 시**: `sudo dnf update` (AL2023). 블랙리스트는 모듈 미사용이라 그대로 둬도 무해
+  - **별도 트랙 — RCE 공격면 축소** (dirtyfrag 단독으로는 RCE 선행 필요): SSH 비번 로그인 비활성화 확인 / `cargo audit` CI 통합 / Docker socket 외부 노출 점검 / sshd auto-update — 향후 검토
 
 - **2026-05-12 ✅ — 부채 카탈로그 5필드 게이트 정착 + 카운트 재정리 (PR #291)**
 
