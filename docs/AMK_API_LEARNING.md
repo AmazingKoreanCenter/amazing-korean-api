@@ -926,4 +926,40 @@ draft → reviewed → approved
 
 ---
 
+### 5.10 Phase 10 — explanation (해설 콘텐츠) 🟡 설계 중
+
+> 출처: books→api 인계 (2026-05-17). 계약 문서 = `amazing-korean-books/docs/guide/explanation_handoff_to_api.md` + `explanation_content_model.md`. 전달물 = `scripts/guide-v2/data/explanation_export.json` (568 Unit = pattern_guide 68 + sentence_explain 500, 1,317 block).
+
+**배경**: 해설집을 온라인 교육 콘텐츠로 정립. books가 api-무관 중립 모델(Unit/Block/LocalizedText)로 정리 완료. 연습문제(인터랙티브)는 별도 트랙(재구조화 B) — 범위 밖.
+
+#### 결정된 사항 (2026-05-17)
+
+| # | 결정 | 근거 |
+|---|------|------|
+| D1 | `study_explain` 재사용 ❌ | task·lang당 1행, `explain_title varchar(120)`, 블록 구조 없음 — 독립 교육 본문 불가 ([migrations/20260208_AMK_V1.sql:313](../migrations/20260208_AMK_V1.sql)) |
+| D2 | `lesson_item kind=explanation` ❌ (시기상조) | `lesson_item_kind_enum`=video\|task, lesson_item은 video_id/study_task_id 2컬럼. 568 Unit은 study/task 연결이지 lesson 시퀀스 종속 아님 → 불필요 결합 |
+| D3 | **전용 테이블 신설** ✅ `explanation_unit` + `explanation_block` | Unit/Block 모델 1:1 매핑. block의 structured rows/table/diagram = JSONB(과정규화 금지) |
+| D4 | **서버 저장 + API 서빙** ✅ (정적 에셋 ❌) | 번역(5,117키×35언어)이 이미 content_translations DB 파이프라인 + status 워크플로 + 서버사이드 user_lang 오버레이([study/service.rs:88](../src/api/study/service.rs)). 콘텐츠만 정적화하면 번역과 소스 분리 = 두 출처·캐시 불일치. study_access 접근 제어 일관성도 서버 필요 |
+| — | 연결키 | `study.study_idx`(pattern_guide 68) / `study_task.study_task_idx`=amk500-sent-NNN(sentence_explain 500, 2026-04-18 [migrations/20260418_study_task_idx.sql](../migrations/20260418_study_task_idx.sql)에서 해설집 시딩 목적 명시 도입) → hard FK 대신 논리 참조 + 시드 후 정합 검증 |
+
+#### 미결정 (다음 결정 포인트)
+
+**i18n 조인 임피던스 불일치** — books `i18n_key`는 평문 네임스페이스(`practice.42.explain[3].explanation` 등), api `content_translations` 조인키는 튜플 `(content_type_enum, content_id BIGINT, field_name VARCHAR(100))` + i18n_key 컬럼 없음. 맥미니 번역(books 키 산출)을 어디에 적재할지 미결. 2갈래:
+
+- (A) `content_translations`에 nullable `i18n_key` 컬럼 추가 — 맥미니 무변경, 공유 스키마 변경
+- (B) 시드 시 books 생성기가 `i18n_key → (content_type=explanation_block, content_id, field_name)` 변환 — 공유 스키마 불변, books 생성기에 매핑 단계 추가(흐름 step 2에 이미 예정 범위)
+
+#### 알려진 제약 (books handoff §4)
+
+- guide_67 `ko` = 원본 HTML strip 최선치(없으면 null), **권위 텍스트 = en + i18n_key** → 스키마는 ko nullable 허용
+- `av_307_313`(부사어 307~313) 제외 = v9.77 미마이그레이션 legacy (68 = 67 − av_307_313)
+- `sentence_explain.title` = 해설 대상 예문(참조용 컨텍스트, 연습 누출 아님)
+- `lang_invariant:true`(한국어 활용형·표·예문) = 번역 안 함, 전 언어 동일 노출
+
+#### 다음 흐름
+
+api 스키마 확정(미결정 i18n 1건 해소 후) → books가 그 형식으로 시드 생성기 변환 추가 → 맥미니 번역 i18n_key 기준 content_translations 적재.
+
+---
+
 [⬆️ AMK_API_MASTER.md로 돌아가기](./AMK_API_MASTER.md)

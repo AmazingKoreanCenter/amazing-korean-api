@@ -1,8 +1,37 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — RCE 선행 공격면 검증 (dirtyfrag 후속, 코드 변경 0건 / 이미 양호)
+updated: 2026-05-17 — 설명 콘텐츠 books→api 인계 스키마 아키텍처 결정 (서버+API / 전용 테이블)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 🟡 — 설명(해설) 콘텐츠 books→api 인계: 스키마 아키텍처 결정 (코드 0건, 설계 단계)**
+
+  books가 해설집을 api-무관 중립 모델(568 Unit = pattern_guide 68 + sentence_explain 500 / 1,317 block)로 정리해 인계. 계약 = `amazing-korean-books/docs/guide/explanation_handoff_to_api.md` + `explanation_content_model.md`. 연습문제(인터랙티브)는 별도 트랙 — 범위 밖.
+
+  ## 정합성 확인 (books 주장 vs api 실측)
+
+  - study_explain 부적합(task·lang당 1행, varchar(120), 블록 없음) = ✅ 정확
+  - 연결키 `study.study_idx` / `study_task.study_task_idx`(=amk500-sent-NNN, 2026-04-18 해설집 시딩 목적 도입) 존재 = ✅
+  - content_translations 조인 = ⚠️ **구조 불일치 갭** (books 평문 i18n_key vs api 튜플 `(content_type, content_id, field_name)`)
+
+  ## 결정 (D1~D4)
+
+  | # | 결정 |
+  |---|------|
+  | D1 | study_explain 재사용 ❌ |
+  | D2 | lesson_item kind=explanation ❌ (시기상조 — 568 Unit은 study/task 연결이지 lesson 시퀀스 종속 아님) |
+  | D3 | **전용 `explanation_unit` + `explanation_block` 신설 ✅** (Block의 rows/table/diagram = JSONB) |
+  | D4 | **서버 저장 + API 서빙 ✅** (정적 에셋 ❌) — 번역 5,117키×35언어가 이미 content_translations DB 파이프라인 + status 워크플로 + 서버사이드 오버레이. 콘텐츠만 정적화 = 소스 분리·캐시 불일치. study_access 접근 제어 일관성도 서버 필요 |
+
+  ## 미결정 (다음 결정 포인트)
+
+  i18n 조인 임피던스 불일치 → (A) content_translations에 nullable i18n_key 컬럼 추가 (맥미니 무변경, 공유 스키마 변경) / (B) 시드 시 books 생성기가 i18n_key→튜플 변환 (공유 스키마 불변, books 매핑 단계 추가)
+
+  ## 문서 동기화
+
+  - `docs/AMK_API_LEARNING.md` §5.10 신설 (결정/미결정/제약/흐름)
+  - `docs/AMK_STATUS.md` #142
+  - 메모리 신규 `project_explanation_content_handoff.md`
 
 - **2026-05-17 ✅ — RCE 선행 공격면 검증 (dirtyfrag #140 후속, 변경 0건)**
 
