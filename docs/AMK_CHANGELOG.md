@@ -1,8 +1,19 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — 보안 감사 2.1 (access token 세션 폐기 검증) 완료 — fail-open+관찰성, 라이브 검증
+updated: 2026-05-17 — 보안 감사 2.2 (JWT iss 강제 + reset 계정탈취 차단) 완료 — 라이브 검증
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — 보안 감사 2.2: JWT iss 강제 + reset 토큰 계정 탈취 차단**
+
+  착수 전 reset 흐름 실측 → 감사(2026-05-15) "reset=access 동일 JWT 구조" 전제 **stale 확인**(활성 reset 토큰은 이미 불투명 `ak_reset_<uuid>` Redis, TTL 1800s). 진짜 취약점 = 라우터 연결 활성 함수 `reset_password_with_token` else 분기가 `ak_reset_` 미접두 토큰을 `jwt::decode_token` 으로 처리 → **피해자 access token(15분)을 `/reset-pw` reset_token 으로 제출 시 비번 재설정(계정 탈취)**.
+
+  **확정 수정 (사용자 승인, 감사 원안 token_use 클레임 대신 — Karpathy #2/#3)**:
+  - **(a)** `jwt.rs decode_token`: `Validation::default()` → `Validation::new(Algorithm::HS256)` + `set_issuer(["amk"])` (알고리즘·issuer 강제, alg/token confusion 차단)
+  - **(b)** `reset_password_with_token` 레거시 JWT 폴백 분기 제거 → reset 은 opaque `ak_reset_` 전용, 비접두 즉시 `AUTH_401_INVALID_RESET_TOKEN`. verify_reset_code 가 opaque 전용 발급(TTL 1800s)이라 정상 토큰 영향 0.
+  - **(c)** dead `service::reset_password`(1095~1193, ~100줄, 호출처 0, JWT 전용 동일 취약 형태) 삭제 (변경 orphan 정리).
+
+  **검증**: jwt 단위 `test_decode_token_rejects_foreign_issuer` 신설 + 기존 roundtrip(iss=amk) 통과 / `lib 213 passed` / clippy·fmt clean / 통합 라이브 `--ignored`: **service_integration 9/9 — `test_reset_password_rejects_access_token_as_reset_token`(실 access JWT→reset → 401, 계정 탈취 차단 실증) 신설** + 기존 reset 3종 호환(에러코드 동일·구식 주석 정정) + auth_extractor 6/6·admin_rbac 8/8(2.1 무회귀, iss 강제 후 정상 토큰 통과). 계획을 사용자 지시대로 사전 문서화(커밋 06cffd7) 후 구현.
 
 - **2026-05-17 ✅ — 보안 감사 2.1: access token 세션 폐기(revocation) 검증**
 

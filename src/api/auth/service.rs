@@ -1091,107 +1091,6 @@ impl AuthService {
         })
     }
 
-    /// 비밀번호 재설정
-    pub async fn reset_password(
-        st: &AppState,
-        req: ResetPwReq,
-        client_ip: String,
-    ) -> AppResult<ResetPwRes> {
-        if let Err(e) = req.validate() {
-            // N-36: 인증 endpoint = generic 메시지 (룰/필드명 미노출). 내부 진단만 debug 로깅.
-            tracing::debug!(error = %e, "Validation failed (auth endpoint)");
-            return Err(AppError::ValidationGeneric);
-        }
-        if !Self::validate_password_policy(&req.new_password) {
-            return Err(AppError::Unprocessable("password policy violation".into()));
-        }
-
-        // Rate Limiting
-        let rl_key = format!("rl:reset_pw:{}", client_ip);
-        let mut redis_conn = st
-            .redis
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-        let attempts: i64 = redis_conn.incr(&rl_key, 1).await?;
-        let _: () = redis_conn
-            .expire(&rl_key, st.cfg.rate_limit_login_window_sec)
-            .await?;
-        if attempts > st.cfg.rate_limit_login_max {
-            return Err(AppError::TooManyRequests(
-                "AUTH_429_TOO_MANY_ATTEMPTS".into(),
-            ));
-        }
-
-        // Token Decode
-        let claims = jwt::decode_token(&req.reset_token, &st.cfg.jwt_secret)
-            .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_RESET_TOKEN".into()))?;
-        let user_id = claims.sub;
-
-        // Hash New Password
-        let new_password_hash = super::password::hash_password(&req.new_password)?;
-
-        // DB Update (Password + Revoke Sessions)
-        let crypto = CryptoService::new(&st.cfg.encryption_ring, &st.cfg.hmac_key);
-        let mut tx = st.db.begin().await?;
-        AuthRepo::update_user_password_tx(&mut tx, user_id, &new_password_hash).await?;
-        user_repo::insert_user_log_after_tx(
-            &mut tx,
-            &crypto,
-            Some(user_id),
-            user_id,
-            "reset_pw",
-            true,
-        )
-        .await?;
-        AuthRepo::update_login_state_by_user_tx(
-            &mut tx,
-            user_id,
-            "revoked",
-            Some("password_changed"),
-        )
-        .await?;
-        tx.commit().await?;
-
-        // Redis Session Cleanup — 배치 DB 조회 + fail-closed.
-        // DB 는 이미 `update_login_state_by_user_tx` 로 revoked 상태지만, Redis 에 남은
-        // access/refresh 키는 TTL 만료 전까지 유효하게 보이므로 즉시 정리한다.
-        let session_key = format!("ak:user_sessions:{}", user_id);
-        let session_ids: Vec<String> = redis_conn
-            .smembers(&session_key)
-            .await
-            .map_err(|e| AppError::Internal(format!("redis smembers failed: {e}")))?;
-        let refresh_hashes =
-            AuthRepo::find_login_refresh_hashes_by_session_ids(&st.db, &session_ids).await?;
-
-        for sid in &session_ids {
-            if let Some(hash) = refresh_hashes.get(sid) {
-                let _: () = redis_conn
-                    .del(format!("ak:refresh:{}", hash))
-                    .await
-                    .map_err(|e| {
-                        AppError::Internal(format!("redis del(ak:refresh) failed: {e}"))
-                    })?;
-            }
-            let _: () = redis_conn
-                .del(format!("ak:session:{}", sid))
-                .await
-                .map_err(|e| AppError::Internal(format!("redis del(ak:session) failed: {e}")))?;
-            let _: () = redis_conn
-                .srem(&session_key, sid)
-                .await
-                .map_err(|e| AppError::Internal(format!("redis srem failed: {e}")))?;
-        }
-        let _: () = redis_conn
-            .del(&session_key)
-            .await
-            .map_err(|e| AppError::Internal(format!("redis del(user_sessions) failed: {e}")))?;
-
-        Ok(ResetPwRes {
-            message: "Password has been reset. All active sessions are invalidated.".to_string(),
-        })
-    }
-
     /// 로그아웃 (단일 세션)
     pub async fn logout(
         st: &AppState,
@@ -1603,28 +1502,24 @@ impl AuthService {
             ));
         }
 
-        // [Step 3] reset_token 검증 (Redis 기반 or JWT)
-        let user_id = if reset_token.starts_with("ak_reset_") {
-            // Redis 기반 토큰 (새 flow)
-            let token_key = format!("ak:reset_token:{}", reset_token);
-            let stored_user_id: Option<i64> = redis_conn
-                .get(&token_key)
-                .await
-                .map_err(|e| AppError::Internal(e.to_string()))?;
-
-            let uid = stored_user_id.ok_or_else(|| {
-                AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_TOKEN".into())
-            })?;
-
-            // 토큰 삭제 (일회용)
-            let _: () = redis_conn.del(&token_key).await.unwrap_or(());
-            uid
-        } else {
-            // JWT 기반 토큰 (기존 flow - 하위 호환)
-            let claims = jwt::decode_token(reset_token, &st.cfg.jwt_secret)
-                .map_err(|_| AppError::Unauthorized("AUTH_401_INVALID_RESET_TOKEN".into()))?;
-            claims.sub
-        };
+        // [Step 3] reset_token 검증 — opaque Redis 토큰(`ak_reset_`) 전용.
+        // 보안 2.2(b): 레거시 JWT 폴백 제거. 과거엔 비접두 토큰을 jwt::decode_token
+        // 으로 받아 access token 을 reset_token 으로 혼용 → 계정 탈취 가능했음.
+        // verify_reset_code 가 opaque 토큰만 발급(TTL 1800s)하므로 정상 영향 0.
+        if !reset_token.starts_with("ak_reset_") {
+            return Err(AppError::Unauthorized(
+                "AUTH_401_INVALID_RESET_TOKEN".into(),
+            ));
+        }
+        let token_key = format!("ak:reset_token:{}", reset_token);
+        let stored_user_id: Option<i64> = redis_conn
+            .get(&token_key)
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let user_id = stored_user_id
+            .ok_or_else(|| AppError::Unauthorized("AUTH_401_INVALID_OR_EXPIRED_TOKEN".into()))?;
+        // 토큰 삭제 (일회용)
+        let _: () = redis_conn.del(&token_key).await.unwrap_or(());
 
         // [Step 4] 새 비밀번호 해싱
         let new_password_hash = super::password::hash_password(new_password)?;

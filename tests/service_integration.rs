@@ -25,8 +25,10 @@
 mod common;
 
 use amazing_korean_api::api::auth::dto::VerifyEmailReq;
+use amazing_korean_api::api::auth::jwt;
 use amazing_korean_api::api::auth::service::AuthService;
 use amazing_korean_api::error::AppError;
+use amazing_korean_api::types::UserAuth;
 
 // =============================================================================
 // AuthService::verify_email — Redis 의존, EmailSender 미사용
@@ -218,7 +220,8 @@ async fn test_reset_password_rejects_unknown_redis_token() {
 #[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 2 보류 정책)"]
 #[tokio::test]
 async fn test_reset_password_rejects_invalid_jwt_token() {
-    // non-"ak_reset_" prefix = JWT decode 시도 → 잘못된 JWT → AUTH_401_INVALID_RESET_TOKEN
+    // 2.2(b): non-"ak_reset_" prefix = 즉시 AUTH_401_INVALID_RESET_TOKEN
+    // (레거시 JWT 폴백 제거 — 더 이상 jwt::decode_token 시도 안 함)
     let st = common::make_test_state().await;
 
     let result = AuthService::reset_password_with_token(
@@ -233,12 +236,53 @@ async fn test_reset_password_rejects_invalid_jwt_token() {
         Err(AppError::Unauthorized(msg)) => {
             assert_eq!(msg, "AUTH_401_INVALID_RESET_TOKEN");
         }
-        _ => panic!("invalid JWT → AUTH_401_INVALID_RESET_TOKEN expected"),
+        _ => panic!("non-ak_reset_ 토큰 → AUTH_401_INVALID_RESET_TOKEN expected"),
     }
 
     // Cleanup rate limit key
     let mut conn = st.redis.get().await.expect("redis conn for cleanup");
     let _: () = redis::AsyncCommands::del(&mut conn, "rl:reset_pw:10.0.0.45")
+        .await
+        .unwrap_or(());
+}
+
+/// 2.2 회귀 — **계정 탈취 차단**: 유효한 access JWT 를 reset_token 으로
+/// 제출해도 거부(401). 레거시 JWT 폴백 제거 전에는 비번 재설정이 됐음.
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 2 보류 정책)"]
+#[tokio::test]
+async fn test_reset_password_rejects_access_token_as_reset_token() {
+    let st = common::make_test_state().await;
+
+    // 실제 발급되는 형태의 유효 access token (서명·iss=amk 정상)
+    let (token_res, _jti) = jwt::create_token(
+        777,
+        "victim-session",
+        UserAuth::Learner,
+        st.cfg.jwt_access_ttl_min,
+        &st.cfg.jwt_secret,
+    )
+    .expect("create access token");
+
+    let result = AuthService::reset_password_with_token(
+        &st,
+        &token_res.access_token, // access token 을 reset_token 으로 악용 시도
+        "ValidPass1",
+        "10.0.0.46".to_string(),
+    )
+    .await;
+
+    match &result {
+        Err(AppError::Unauthorized(msg)) => {
+            assert_eq!(
+                msg, "AUTH_401_INVALID_RESET_TOKEN",
+                "access token 은 reset_token 으로 거부되어야 함 (계정 탈취 차단)"
+            );
+        }
+        _ => panic!("access token as reset_token → 401 expected (계정 탈취 차단)"),
+    }
+
+    let mut conn = st.redis.get().await.expect("redis conn for cleanup");
+    let _: () = redis::AsyncCommands::del(&mut conn, "rl:reset_pw:10.0.0.46")
         .await
         .unwrap_or(());
 }

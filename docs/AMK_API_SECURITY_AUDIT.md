@@ -15,7 +15,7 @@
 
 SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장 시급한 두 가지는
 **(1) ~~발급된 access token 이 로그아웃/비밀번호 변경 후에도 만료 전까지 유효~~ → 2.1 완료(2026-05-17, fail-open+관찰성)**,
-**(2) DB 슈퍼유저 접속**(2.3, 미해결). → 현재 최우선 = 2.2(JWT iss/aud) + 2.3(DB 최소권한).
+**(2) DB 슈퍼유저 접속**(2.3, 미해결). → 2.1·2.2 완료(2026-05-17). 현재 최우선 = 2.3(DB 최소권한) + 2.4(cargo-deny PR).
 
 ---
 
@@ -62,7 +62,7 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
   - **(b)** `reset_password_with_token` 레거시 JWT 폴백 분기 제거 → reset 은 opaque `ak_reset_` 만 허용 (access-token→reset 계정 탈취 차단). 정상 토큰 영향 0
   - **(c)** dead `service::reset_password`(1095) 삭제 (동일 취약 형태 orphan)
   - 검증: jwt 단위(iss 불일치 거부) + 통합(access token을 reset 으로 제출 → 401 / opaque reset → 통과) 회귀 테스트
-- [ ] 진행 중 (2026-05-17)
+- [x] **완료 (2026-05-17)** — (a) `jwt.rs decode_token` = `Validation::new(Algorithm::HS256)`+`set_issuer(["amk"])` (b) `reset_password_with_token` 레거시 JWT 폴백 분기 제거 → `ak_reset_` opaque 전용, 비접두 즉시 `AUTH_401_INVALID_RESET_TOKEN` (c) dead `service::reset_password`(1095~1193, 약 100줄) 삭제. **검증**: jwt 단위 `test_decode_token_rejects_foreign_issuer` + 기존 roundtrip(iss=amk) 통과 / lib 213 passed / clippy·fmt clean / 통합 라이브 `--ignored`: service_integration 9/9 (**`test_reset_password_rejects_access_token_as_reset_token` = 실 access JWT 를 reset_token 으로 → 401, 계정 탈취 차단 실증**) + auth_extractor 6/6·admin_rbac 8/8 (2.1 무회귀, iss 강제 후에도 정상 토큰 통과). 기존 reset 테스트 호환(에러코드 동일 유지) + 구식 주석 정정.
 
 ### 🟡 단기
 
@@ -119,7 +119,7 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
 ```
 🔴 즉시
   [x] 2.1 access token 세션 폐기 검증 (2026-05-17 완료, fail-open+관찰성, 라이브 검증)
-  [ ] 2.2 JWT iss/aud 검증 + reset 토큰 분리 (jwt.rs:71)
+  [x] 2.2 JWT iss 강제 + reset 레거시 JWT 폴백 제거(계정 탈취 차단) (2026-05-17 완료, 라이브 검증)
 
 🟡 단기
   [ ] 2.3 DB 슈퍼유저 → 최소권한 role (docker-compose.prod.yml + migration)
