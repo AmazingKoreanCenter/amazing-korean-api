@@ -64,6 +64,14 @@ allow = [
   "Unicode-3.0",
   "Unicode-DFS-2016",
   "Zlib",
+  # CDLA-Permissive-2.0 = webpki-roots(0.26/1.0, sqlx-core 경유)의 Mozilla CA
+  #   번들 데이터 라이선스. permissive·copyleft 없음·attribution. 본 repo 비배포
+  #   (N-16) + permissive 라 수용. cargo-deny PR 게이트(2.4) 도입 시 표면화.
+  "CDLA-Permissive-2.0",
+  # NCSA = libfuzzer-sys(image→ravif→rav1e, --all-features 시만) 의 LLVM
+  #   libFuzzer 번들. OSI approved·FSF Free·MIT+BSD 동급 permissive. 정상
+  #   빌드 미포함(퍼징 전용), 비배포라 수용.
+  "NCSA",
 ]
 
 # 본 프로젝트 private(UNLICENSED) crate = 위 [licenses] private.ignore=true 로
