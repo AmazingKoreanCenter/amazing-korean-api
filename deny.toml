@@ -43,6 +43,11 @@ ignore = [
 [licenses]
 version = 2
 confidence-threshold = 0.8
+# 워크스페이스 자체 crate(amazing-korean-api / amazing-korean-crypto) 는
+# license="UNLICENSED" + publish=false (N-16 private). cargo-deny v2 는
+# exceptions.allow 에 비-SPDX "UNLICENSED" 를 거부(unknown term) → publish=false
+# crate 는 라이선스 검사 스킵하는 정식 메커니즘 `private.ignore` 사용.
+private = { ignore = true }
 
 # 허용 라이선스 (OSI approved + commercially permissive)
 allow = [
@@ -61,16 +66,8 @@ allow = [
   "Zlib",
 ]
 
-# 본 프로젝트는 private (UNLICENSED) = 외부 배포 X (N-16)
-
-# 특수 케이스 (private repo 자체 + crates/crypto)
-[[licenses.exceptions]]
-allow = ["UNLICENSED"]
-crate = "amazing-korean-api"
-
-[[licenses.exceptions]]
-allow = ["UNLICENSED"]
-crate = "amazing-korean-crypto"
+# 본 프로젝트 private(UNLICENSED) crate = 위 [licenses] private.ignore=true 로
+# 처리 (구 [[licenses.exceptions]] allow=["UNLICENSED"] = cargo-deny v2 비호환 제거, N-16)
 
 # OpenSSL 명시 (ring crate 가 사용)
 [[licenses.clarify]]
