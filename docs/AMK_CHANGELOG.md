@@ -1,8 +1,16 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — explanation 배포 INC 수정 (미푸시 stale 머지 + Dockerfile [[bin]] 더미) → 재머지 대기
+updated: 2026-05-17 — explanation PR #297 배포 성공 + 프로덕션 HTTP 검증 ✅ (콘텐츠 서빙은 prod 시딩 후)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — explanation PR #297 배포 성공 + 프로덕션 HTTP 검증**
+
+  Dockerfile fix(`1ae7e3a`) 포함 재머지(PR #297, `d4f51e1`). 배포 `build-and-push: success` / `deploy: success`.
+
+  - **프로덕션 마이그 정상 적용**: deploy job 성공 = `sqlx::migrate!` 부팅 통과 = 프로덕션 DB 가 20260422~20260518(우리 20260517/20260518 포함) 적용. **로컬 `20260419` 체크섬 분기는 로컬 dev DB 한정 확정**(프로덕션 무관).
+  - **프로덕션 HTTP 검증** (api.amazingkorean.net): `/health` 200 / `GET /explanations` → 400 `"study_idx 또는 study_task_idx 필요"` / `/explanations/__nope__` → 404 / `?study_idx=foo` → 200 `{"items":[]}`. 라우팅·handler·service·repo·스키마 end-to-end 실검증 (로컬에서 20260419 로 막혔던 HTTP 경로를 프로덕션에서 확정).
+  - **남은 1건 (코드 아님 — 운영/데이터)**: 콘텐츠 서빙(i18n 맵·inherit 계승·폴백)은 프로덕션 시드 데이터 부재로 미확인. `seed_explanation` 을 books `explanation_seed.json` + 프로덕션 DB 접근 환경에서 실행 필요(EC2 에 books 리포 없음). 그 후 실 콘텐츠로 변환 로직 확정.
 
 - **2026-05-17 ⚠️→fix — explanation 배포 INC: 미푸시 stale 머지 + Dockerfile [[bin]] 더미 누락**
 
