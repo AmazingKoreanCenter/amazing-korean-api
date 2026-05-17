@@ -1,8 +1,35 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-13 — EC2 호스트 OS dirtyfrag (CVE-2026-43284 + CVE-2026-43500) mitigation 적용
+updated: 2026-05-17 — RCE 선행 공격면 검증 (dirtyfrag 후속, 코드 변경 0건 / 이미 양호)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — RCE 선행 공격면 검증 (dirtyfrag #140 후속, 변경 0건)**
+
+  #140 dirtyfrag mitigation 은 "공격자 로컬 셸(RCE 선행) 확보 후 root 탈취" 가 전제인 2차 방어선. 1차 방어선(셸 자체를 못 따게)을 실측 검증한 별도 트랙. **결론 = 이미 양호, 코드/구성 변경 0건.**
+
+  ## 점검 결과
+
+  | 영역 | 결과 |
+  |------|------|
+  | Docker socket / privileged / cap_add / host network | 0건 (certbot 주석이 socket 회피 사유 명시) |
+  | 내부 서비스 포트 노출 | db/redis/api 호스트 매핑 없음 — nginx 80/443 만, `amk-network` 격리 |
+  | 의존성 advisory CI | `security-audit.yml` 에 cargo-deny(RUSTSEC)+npm audit **이미 통합** (주간 cron) |
+  | EC2 배포 인증 | SSH 키 인증 (ec2-user, `EC2_SSH_KEY`), 비번 미사용 |
+  | EC2 sshd 실효 (`sudo sshd -T`) | `passwordauthentication no` / `permitemptypasswords no` / `kbdinteractiveauthentication no` / `pubkeyauthentication yes` → 비번 무차별 공격면 0 |
+
+  ## 비채택 hardening (효익 0 수렴 — 기록만)
+
+  - `PermitRootLogin without-password` → `no`: SSH root 경로는 (a) 비번 = `no` 로 차단 / (b) `/root/.ssh/authorized_keys` = AL2023 기본 강제커맨드로 직접 root SSH 무력. `no` 가 막는 건 가상적 미래 시나리오뿐 → 현재 갭 아님. **그대로 둠**
+  - fail2ban 설치: `passwordauthentication no` 라 무차별 표적 자체가 없음 → 가치 낮음. **미설치 유지**
+
+  > AI 판단 메모: hardening 옵션 제시는 defense-in-depth 반사 — 실효 0 확인 후 비채택. busywork 회피 (Karpathy #2).
+
+  ## 문서 동기화
+
+  - `docs/AMK_DEPLOY_OPS.md` §11-3 신설 (검증 표 + 비채택 사유 + 재검증 시점)
+  - `docs/AMK_STATUS.md` #141 entry + #140 후속 칸 "검증 완료" 표기
+  - 메모리 `project_status.md` 갱신
 
 - **2026-05-13 ✅ — EC2 호스트 OS dirtyfrag mitigation 적용 (커널 모듈 블랙리스트)**
 
