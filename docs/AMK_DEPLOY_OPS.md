@@ -819,6 +819,77 @@ docker exec -it amk-pg psql -U postgres -d amazing_korean_db -c "SELECT COUNT(*)
 
 > **주의**: `--exclude-table=_sqlx_migrations`로 마이그레이션 기록 테이블은 제외합니다.
 
+##### 11. EC2 호스트 OS 보안 (커널 mitigation)
+
+> §1~§10 = 네트워크/앱 레이어 (Cloudflare / 인증서 / 데이터). 본 §11 = 호스트 OS / Linux 커널 레이어. distro 보안 패치 백포트 도착 전, modprobe 블랙리스트로 취약 커널 모듈을 차단하는 임시 mitigation 절차.
+
+###### 11-1. dirtyfrag (CVE-2026-43284 xfrm-ESP + CVE-2026-43500 RxRPC) — 2026-05-13 적용
+
+**배경**
+
+- 공개: 2026-05-07 (embargo 깨짐, [V4bel/dirtyfrag](https://github.com/V4bel/dirtyfrag))
+- 영향: Linux 커널 Local Privilege Escalation (LPE) 2 CVE 체인. xfrm-ESP / RxRPC Page-Cache Write
+- 메인라인 패치: 2026-05-05 (`f4c50a4034e6`) / 2026-05-10 (`aa54b1d27fe0`)
+- 영향 distro: Ubuntu 24.04 / RHEL 10 / CentOS Stream 10 / AlmaLinux 10 / Fedora 44 / openSUSE Tumbleweed 등 — 우리 EC2 (Amazon Linux 2023) 도 잠재 영향
+- 전제: 공격자가 **로컬 셸 접근(RCE 선행)** 을 얻은 후 root 권한 탈취. 단독 인터넷 공격 불가
+- 대응 필요성: distro 백포트 도착 전까지 블랙리스트로 1차 방어선 확보
+
+**적용 절차** (EC2 SSH 후 `ec2-user`)
+
+```bash
+sudo sh -c "printf 'install esp4 /bin/false\ninstall esp6 /bin/false\ninstall rxrpc /bin/false\n' > /etc/modprobe.d/dirtyfrag.conf"
+sudo rmmod esp4 esp6 rxrpc 2>/dev/null
+sudo sh -c "echo 3 > /proc/sys/vm/drop_caches"
+```
+
+**검증**
+
+```bash
+cat /etc/modprobe.d/dirtyfrag.conf   # 3 줄: install esp4/esp6/rxrpc /bin/false
+lsmod | grep -E "(esp4|esp6|rxrpc)"  # 빈 결과 (취약 모듈 로드 없음)
+```
+
+**영향 평가**
+
+우리 앱 (Rust/Axum HTTP API + Cloudflare 엣지) 은 IPsec(ESP) / RxRPC 커널 모듈을 미사용. 블랙리스트로 차단해도 기능 영향 0.
+
+**해제 시점**
+
+Amazon Linux 2023 보안 패치 백포트 도착 후 `sudo dnf update` 적용. 블랙리스트는 모듈 미사용이라 그대로 둬도 무해 (지워도 OK).
+
+###### 11-2. 일반 커널 CVE 대응 SOP (재사용)
+
+다른 커널 CVE 공시 시 §11-1 패턴 재사용:
+
+1. **영향 모듈 식별** — CVE writeup 의 affected subsystem / module 명
+2. **우리 앱 사용 여부 확인** — `lsmod | grep <module>` + 코드 grep
+3. **미사용 = 블랙리스트** — `/etc/modprobe.d/<cve-id>.conf` 에 `install <module> /bin/false` 추가
+4. **즉시 적용** — `sudo rmmod <module>` + `echo 3 > /proc/sys/vm/drop_caches`
+5. **distro 패치 도착** — `sudo dnf update` (AL2023) / `sudo apt upgrade` (Ubuntu)
+6. **문서 동기화** — `docs/AMK_DEPLOY_OPS.md §11-N` 신설 + `STATUS` 신규 entry + `CHANGELOG` 기록
+
+> **주의**: 모듈을 우리 앱이 **사용 중**이면 블랙리스트 불가. 그 경우 (a) distro 패치 빠른 적용 / (b) 인스턴스 격리 / (c) WAF/방화벽 추가 룰 중 선택.
+
+###### 11-3. RCE 선행 공격면 검증 (2026-05-17, dirtyfrag 후속)
+
+> §11-1 dirtyfrag mitigation 은 "공격자가 로컬 셸(RCE 선행) 확보 후 root 탈취" 가 전제 — 2차 방어선. 1차 방어선(애초에 셸을 못 따게)이 비어 있으면 반쪽이라, STATUS #140 후속 별도 트랙으로 RCE 선행 공격면을 실측 검증. **결과 = 이미 양호, 코드/구성 변경 0건.**
+
+| 점검 | 도구 | 결과 |
+|------|------|------|
+| Docker socket 마운트 | repo grep | **0건** — certbot 주석이 회피 사유 명시 |
+| privileged / cap_add / host network | repo grep | **0건** |
+| 내부 서비스 포트 노출 | `docker-compose.prod.yml` | db/redis/api 호스트 매핑 없음, nginx만 80/443 (`amk-network` 브리지 격리) |
+| 의존성 advisory CI | `.github/workflows/security-audit.yml` | **이미 통합** — cargo-deny(RUSTSEC) + npm audit, 주간 cron + 수동 |
+| EC2 배포 인증 | `deploy.yml` | SSH **키 인증** (ec2-user, `EC2_SSH_KEY`), 비번 미사용 |
+| EC2 sshd 실효 설정 | `sudo sshd -T` | `passwordauthentication no` / `permitemptypasswords no` / `kbdinteractiveauthentication no` / `pubkeyauthentication yes` — **비번 무차별 공격면 0** |
+
+**비채택 hardening (효익 0 수렴, 기록만)**
+
+- `PermitRootLogin without-password` → `no`: SSH root 로그인 경로는 (a) 비번 = 이미 `no` 로 차단 / (b) `/root/.ssh/authorized_keys` 키 = Amazon Linux 기본값이 강제 커맨드로 직접 root SSH 무력화. `no` 가 막는 건 "미래에 root authorized_keys 에 평키 추가" 가상 시나리오뿐 → 현재 갭 아님. **그대로 둠.**
+- fail2ban 설치: `passwordauthentication no` 라 무차별 표적 자체가 없음 → 가치 낮음. **미설치 유지.**
+
+> **재검증 시점**: sshd_config / docker-compose.prod.yml / 워크플로 보안 관련 변경 시 본 표 항목 재확인.
+
 ## 5. GitHub Actions CI/CD 파이프라인
 
 > **목적**: EC2에서 Rust 빌드 없이 자동 배포. t2.micro (1GB RAM)로 운영 가능.

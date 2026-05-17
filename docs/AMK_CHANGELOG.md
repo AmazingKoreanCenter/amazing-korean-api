@@ -1,8 +1,75 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-12 — 부채 카탈로그 5필드 게이트 정착 + 카운트 재정리 (30 → 15) + busywork 사고 회피 정책
+updated: 2026-05-17 — RCE 선행 공격면 검증 (dirtyfrag 후속, 코드 변경 0건 / 이미 양호)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — RCE 선행 공격면 검증 (dirtyfrag #140 후속, 변경 0건)**
+
+  #140 dirtyfrag mitigation 은 "공격자 로컬 셸(RCE 선행) 확보 후 root 탈취" 가 전제인 2차 방어선. 1차 방어선(셸 자체를 못 따게)을 실측 검증한 별도 트랙. **결론 = 이미 양호, 코드/구성 변경 0건.**
+
+  ## 점검 결과
+
+  | 영역 | 결과 |
+  |------|------|
+  | Docker socket / privileged / cap_add / host network | 0건 (certbot 주석이 socket 회피 사유 명시) |
+  | 내부 서비스 포트 노출 | db/redis/api 호스트 매핑 없음 — nginx 80/443 만, `amk-network` 격리 |
+  | 의존성 advisory CI | `security-audit.yml` 에 cargo-deny(RUSTSEC)+npm audit **이미 통합** (주간 cron) |
+  | EC2 배포 인증 | SSH 키 인증 (ec2-user, `EC2_SSH_KEY`), 비번 미사용 |
+  | EC2 sshd 실효 (`sudo sshd -T`) | `passwordauthentication no` / `permitemptypasswords no` / `kbdinteractiveauthentication no` / `pubkeyauthentication yes` → 비번 무차별 공격면 0 |
+
+  ## 비채택 hardening (효익 0 수렴 — 기록만)
+
+  - `PermitRootLogin without-password` → `no`: SSH root 경로는 (a) 비번 = `no` 로 차단 / (b) `/root/.ssh/authorized_keys` = AL2023 기본 강제커맨드로 직접 root SSH 무력. `no` 가 막는 건 가상적 미래 시나리오뿐 → 현재 갭 아님. **그대로 둠**
+  - fail2ban 설치: `passwordauthentication no` 라 무차별 표적 자체가 없음 → 가치 낮음. **미설치 유지**
+
+  > AI 판단 메모: hardening 옵션 제시는 defense-in-depth 반사 — 실효 0 확인 후 비채택. busywork 회피 (Karpathy #2).
+
+  ## 문서 동기화
+
+  - `docs/AMK_DEPLOY_OPS.md` §11-3 신설 (검증 표 + 비채택 사유 + 재검증 시점)
+  - `docs/AMK_STATUS.md` #141 entry + #140 후속 칸 "검증 완료" 표기
+  - 메모리 `project_status.md` 갱신
+
+- **2026-05-13 ✅ — EC2 호스트 OS dirtyfrag mitigation 적용 (커널 모듈 블랙리스트)**
+
+  Linux 커널 LPE 2 CVE 체인 (`CVE-2026-43284` xfrm-ESP + `CVE-2026-43500` RxRPC, 통칭 dirtyfrag) 의 distro 백포트 도착 전 임시 mitigation 을 EC2 호스트에 적용. 우리 앱은 IPsec(ESP)/RxRPC 미사용 → 모듈 블랙리스트 적용 시 기능 영향 0.
+
+  ## 배경
+
+  - 공개: 2026-05-07 (embargo 깨짐, [V4bel/dirtyfrag](https://github.com/V4bel/dirtyfrag))
+  - 메인라인 패치: `f4c50a4034e6` (2026-05-05, xfrm-ESP) / `aa54b1d27fe0` (2026-05-10, RxRPC)
+  - 영향 distro: Ubuntu 24.04 / RHEL 10 / CentOS Stream 10 / AlmaLinux 10 / Fedora 44 / openSUSE Tumbleweed 등 — Amazon Linux 2023 도 잠재 영향
+  - 전제: 공격자 로컬 셸 접근 (RCE 선행) 후 root 권한 탈취. 단독 인터넷 공격 불가
+  - 카테고리: 호스트 OS / 커널 레이어. Rust/Axum 앱 코드와 무관
+
+  ## 적용
+
+  EC2 (`ip-172-31-33-214`, ec2-user) 에서 다음 3 명령 실행:
+
+  ```bash
+  sudo sh -c "printf 'install esp4 /bin/false\ninstall esp6 /bin/false\ninstall rxrpc /bin/false\n' > /etc/modprobe.d/dirtyfrag.conf"
+  sudo rmmod esp4 esp6 rxrpc 2>/dev/null
+  sudo sh -c "echo 3 > /proc/sys/vm/drop_caches"
+  ```
+
+  ## 검증
+
+  | 확인 명령 | 기대 결과 | 실측 |
+  |-----------|-----------|------|
+  | `cat /etc/modprobe.d/dirtyfrag.conf` | `install esp4/esp6/rxrpc /bin/false` 3 줄 | ✅ |
+  | `lsmod \| grep -E "(esp4\|esp6\|rxrpc)"` | 빈 결과 (취약 모듈 로드 없음) | ✅ |
+
+  ## 문서 동기화
+
+  - `docs/AMK_DEPLOY_OPS.md` §11 신설 (호스트 OS 보안 + 일반 커널 CVE 대응 SOP, §11-1 dirtyfrag + §11-2 재사용 SOP)
+  - `docs/AMK_STATUS.md` #140 entry 추가
+  - 메모리 `project_status.md` + 신규 `reference_kernel_security_sop.md` 갱신
+
+  ## 후속
+
+  - **distro 패치 도착 시**: `sudo dnf update` (AL2023). 블랙리스트는 모듈 미사용이라 그대로 둬도 무해
+  - **별도 트랙 — RCE 공격면 축소** (dirtyfrag 단독으로는 RCE 선행 필요): SSH 비번 로그인 비활성화 확인 / `cargo audit` CI 통합 / Docker socket 외부 노출 점검 / sshd auto-update — 향후 검토
 
 - **2026-05-12 ✅ — 부채 카탈로그 5필드 게이트 정착 + 카운트 재정리 (PR #291)**
 
