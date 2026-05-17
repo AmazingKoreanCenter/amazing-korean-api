@@ -14,8 +14,8 @@
 ## 0. 한 줄 결론
 
 SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장 시급한 두 가지는
-**(1) 발급된 access token 이 로그아웃/비밀번호 변경 후에도 만료 전까지 유효**(세션 revocation 미검증),
-**(2) DB 슈퍼유저 접속**.
+**(1) ~~발급된 access token 이 로그아웃/비밀번호 변경 후에도 만료 전까지 유효~~ → 2.1 완료(2026-05-17, fail-open+관찰성)**,
+**(2) DB 슈퍼유저 접속**(2.3, 미해결). → 현재 최우선 = 2.2(JWT iss/aud) + 2.3(DB 최소권한).
 
 ---
 
@@ -45,7 +45,7 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
 - **문제**: `AuthUser` extractor 와 `admin_role_guard` 가 JWT 서명+만료만 검증. Redis `ak:session:` 키는 로그인/refresh/로그아웃에서만 참조되고 **요청별 검증 경로에 없음**. → 로그아웃·강제 퇴장·비밀번호 변경(`service.rs:1147` `revoked`) 후에도 발급된 access token 이 만료(기본 15분)까지 유효. 탈취 토큰/강제 로그아웃 우회 가능.
 - **위치**: `src/api/auth/extractor.rs:42` (`AuthUser::from_request_parts`), `src/api/admin/role_guard.rs:51`
 - **수정 방향**: 디코드 직후 `claims.session_id` 로 Redis `ak:session:{sid}` 존재(또는 jti 매칭) 확인, 없으면 401. 삭제 인프라는 이미 존재(`service.rs:799,1158`) — 검증만 연결. Redis 장애 시 fail-open/closed 정책 명시(로그아웃 보안 목적이면 fail-closed 권장 + 가용성 trade-off 문서화).
-- [ ] 작업 예정
+- [x] **완료 (2026-05-17)** — `src/api/auth/session.rs::ensure_session_active` 신설, `extractor.rs`(AuthUser/OptionalAuthUser)·`role_guard.rs` 디코드 직후 연결. **정책 = fail-open + 관찰성** (감사 기본권고 fail-closed 와 의식적 상이 — 단일 Redis SPOF 에서 fail-closed 는 전면 인증 마비, 노출은 access TTL 15분 상한 = 2.1 이전 베이스라인 이하로만 후퇴해 악화 없음. 사용자 결정). Redis 정상·키 부재 → 401 / Redis 불가 → 검증 SKIP + `tracing::warn!(target="security.session_revocation")` (메트릭 facility 부재 → 로그 기반 알림). 통합 테스트 갱신(`common::seed_session`) + 폐기 세션 401 회귀 테스트 신설 — 로컬 라이브 검증 admin_rbac 8/8·auth_extractor 6/6 (시드→200/403, 폐기→401, 미인증→401).
 
 #### 2.2 JWT `iss`/`aud` 미검증 → 토큰 confusion
 - **문제**: 토큰에 `iss: "amk"` 발급하나 `decode_token` 이 `Validation::default()` 사용 → `iss`/`aud` 검증 안 함. 비밀번호 재설정 토큰도 동일 `jwt_secret`+동일 Claims 구조(`service.rs:1127`) → reset 토큰을 인증 토큰으로 혼용할 여지.
@@ -107,7 +107,7 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
 
 ```
 🔴 즉시
-  [ ] 2.1 access token 세션 폐기 검증 (extractor.rs:42 / role_guard.rs:51)
+  [x] 2.1 access token 세션 폐기 검증 (2026-05-17 완료, fail-open+관찰성, 라이브 검증)
   [ ] 2.2 JWT iss/aud 검증 + reset 토큰 분리 (jwt.rs:71)
 
 🟡 단기

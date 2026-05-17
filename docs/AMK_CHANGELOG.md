@@ -1,8 +1,18 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — explanation 프로덕션 시딩·라이브 검증 완료 ✅ (트랙 완결, inherit/i18n/폴백 end-to-end 확정)
+updated: 2026-05-17 — 보안 감사 2.1 (access token 세션 폐기 검증) 완료 — fail-open+관찰성, 라이브 검증
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — 보안 감사 2.1: access token 세션 폐기(revocation) 검증**
+
+  `AMK_API_SECURITY_AUDIT.md` §2.1(감사 최우선) 해결. 착수 전 doc↔code 재검증으로 2.1/2.2/2.4 인용 정확성 확인 + explanation 신규 표면 커버리지 보강(별도 커밋).
+
+  - **갭**: `AuthUser`/`OptionalAuthUser` extractor·`admin_role_guard` 가 JWT 서명+만료만 검증 → 로그아웃/비번변경/강제퇴장 후에도 access token 이 만료(15분) 전까지 유효 (탈취·강제퇴장 우회).
+  - **수정**: `src/api/auth/session.rs::ensure_session_active` 신설 — 디코드 직후 Redis `ak:session:{sid}` 존재 검증. `extractor.rs`(AuthUser+OptionalAuthUser)·`role_guard.rs`(role 검사 이전) 연결. 삭제 인프라(service.rs)는 기존 — 검증만 결선.
+  - **정책 = fail-open + 관찰성** (사용자 결정, 감사 기본권고 fail-closed 와 의식적 상이): 단일 Redis(deadpool) SPOF 에서 fail-closed = Redis 장애 시 전면 인증 마비(가용성 사고). fail-open 노출은 access TTL 15분 상한 = 2.1 이전 이미 수용된 베이스라인으로만 후퇴, 그 이상 악화 없음. Redis 정상·키부재→401 / Redis 불가→검증 SKIP + `tracing::warn!(target="security.session_revocation")` (메트릭 facility 부재 → 로그 기반 알림). trade-off 를 session.rs 모듈 doc + 감사 §2.1 에 명문화.
+  - **테스트**: 계약 변경 orphan 전수 정리 — `common::seed_session` 헬퍼 신설, `auth_extractor_integration`/`admin_rbac_integration` 가 유효 세션 셋업하도록 갱신 + **폐기 세션 401 회귀 테스트 신설**(고유 미시드 sid 로 병렬·순서 안전). 토큰 위조→인증경로 테스트는 이 2개뿐 확인(전수). **로컬 라이브 실행 검증**: admin_rbac 8/8·auth_extractor 6/6(시드→200/403, 폐기→401, 미인증→401), lib 212 passed, clippy/fmt clean.
+  - **자기수정 기록**: 재검증 중 2.1 `extractor.rs:42` 를 "라인 드리프트"로 성급히 단정 후, 42행이 정확한 decode 라인임을 확인·정정 (verify-before-assert, `feedback_work_rules` 메모리화).
 
 - **2026-05-17 ✅ — explanation 프로덕션 시딩·라이브 검증 완료 (트랙 완결)**
 

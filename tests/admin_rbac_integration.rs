@@ -31,9 +31,13 @@ fn make_router(state: AppState) -> Router {
 }
 
 fn make_token(state: &AppState, role: UserAuth) -> String {
+    make_token_sid(state, role, "phase3-rbac-session")
+}
+
+fn make_token_sid(state: &AppState, role: UserAuth, session_id: &str) -> String {
     let (token_res, _jti) = jwt::create_token(
         9999, // user_id
-        "phase3-rbac-session",
+        session_id,
         role,
         state.cfg.jwt_access_ttl_min,
         &state.cfg.jwt_secret,
@@ -58,6 +62,7 @@ async fn call_admin_test(state: AppState, auth_header: Option<&str>) -> StatusCo
 async fn test_admin_role_guard_allows_hymn() {
     let st = common::make_test_state().await;
     let token = make_token(&st, UserAuth::Hymn);
+    common::seed_session(&st, "phase3-rbac-session", 9999).await;
     let status = call_admin_test(st, Some(&format!("Bearer {}", token))).await;
     assert_eq!(status, StatusCode::OK, "Hymn → 200, got: {}", status);
 }
@@ -67,6 +72,7 @@ async fn test_admin_role_guard_allows_hymn() {
 async fn test_admin_role_guard_allows_admin() {
     let st = common::make_test_state().await;
     let token = make_token(&st, UserAuth::Admin);
+    common::seed_session(&st, "phase3-rbac-session", 9999).await;
     let status = call_admin_test(st, Some(&format!("Bearer {}", token))).await;
     assert_eq!(status, StatusCode::OK, "Admin → 200, got: {}", status);
 }
@@ -76,6 +82,7 @@ async fn test_admin_role_guard_allows_admin() {
 async fn test_admin_role_guard_blocks_manager() {
     let st = common::make_test_state().await;
     let token = make_token(&st, UserAuth::Manager);
+    common::seed_session(&st, "phase3-rbac-session", 9999).await;
     let status = call_admin_test(st, Some(&format!("Bearer {}", token))).await;
     assert_eq!(
         status,
@@ -90,11 +97,29 @@ async fn test_admin_role_guard_blocks_manager() {
 async fn test_admin_role_guard_blocks_learner() {
     let st = common::make_test_state().await;
     let token = make_token(&st, UserAuth::Learner);
+    common::seed_session(&st, "phase3-rbac-session", 9999).await;
     let status = call_admin_test(st, Some(&format!("Bearer {}", token))).await;
     assert_eq!(
         status,
         StatusCode::FORBIDDEN,
         "Learner → 403, got: {}",
+        status
+    );
+}
+
+/// 2.1 회귀 — admin 토큰이라도 세션 폐기(ak:session 부재) 시 401 (role 검사 이전).
+#[ignore = "requires local PostgreSQL + Redis + .env.test (Phase 3 보류 정책)"]
+#[tokio::test]
+async fn test_admin_role_guard_rejects_revoked_session() {
+    let st = common::make_test_state().await;
+    // 아무 테스트도 시드하지 않는 고유 session_id → ak:session 부재 = 폐기 상태
+    // (다른 테스트와 sid 공유 시 그쪽 seed_session 이 키를 살려 거짓 통과함)
+    let token = make_token_sid(&st, UserAuth::Admin, "rbac-revoked-never-seeded");
+    let status = call_admin_test(st, Some(&format!("Bearer {}", token))).await;
+    assert_eq!(
+        status,
+        StatusCode::UNAUTHORIZED,
+        "폐기된 세션은 admin 이라도 401, got: {}",
         status
     );
 }

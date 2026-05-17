@@ -13,6 +13,7 @@ use axum::{
 };
 
 use crate::api::auth::jwt;
+use crate::api::auth::session::ensure_session_active;
 use crate::error::AppError;
 use crate::state::AppState;
 use crate::types::UserAuth;
@@ -55,6 +56,11 @@ pub async fn admin_role_guard(
             return AppError::Unauthorized("Invalid token".into()).into_response();
         }
     };
+
+    // 2.1 세션 폐기 검증 (fail-open + 관찰성) — 폐기된 세션이면 401
+    if let Err(e) = ensure_session_active(&state, &claims.session_id, claims.sub).await {
+        return e.into_response();
+    }
 
     // 역할 검사: HYMN 또는 admin만 허용
     match claims.role {
