@@ -1,8 +1,34 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — explanation 배포 INC 수정 (미푸시 stale 머지 + Dockerfile [[bin]] 더미) → 재머지 대기
+updated: 2026-05-17 — explanation 프로덕션 시딩 준비 (경로 A: seed 파일 seeds/ 커밋 + Dockerfile 바이너리 + DEPLOY_OPS §12)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 — explanation 프로덕션 시딩 준비 (경로 A)**
+
+  프로덕션 콘텐츠 서빙 게이팅 항목. 런타임 이미지에 `seed_explanation` 바이너리 부재 발견(Dockerfile 52행 = main 바이너리만 COPY) → 인프라 보강:
+
+  - `Dockerfile`: 런타임 스테이지에 `COPY --from=builder /app/target/release/seed_explanation /app/seed_explanation` 1줄 추가 (builder 는 fix `1ae7e3a` 후 정상 빌드)
+  - `seeds/explanation_seed.json` 커밋 (books 산출 1.8MB / 568 unit·1,317 block·4,362 en, self_check PASS) — 경로 A: 기존 `seeds/` 배포 메커니즘·버전관리·재현성. (B)scp/(C)로컬직결 = 비재현·보안 비채택
+  - `AMK_DEPLOY_OPS.md §12` 신설: EC2 배포 후 **수동 1회** `docker exec amk-api /app/seed_explanation --input /app/seeds/explanation_seed.json` + 재시딩 시점(원문 변경 시만) + 검증 curl. 자동 배포 미결합(매 배포 불필요·결합 회피).
+  - 코드 변경 0 (Rust 무관, cargo check 불요). 머지·배포 후 EC2 시딩 실행 시 i18n/inherit/폴백 라이브 검증(로컬 20260419 로 막혔던 마지막 갭) 가능.
+
+- **2026-05-17 — explanation 번역 트랙 적재 계약 확정 (books 후속 회답)**
+
+  books 후속 확인 2건 회답 (`explanation_seed_contract_from_api.md` §📬):
+
+  1. **시드 재생성 통지 프로토콜 동의** — 트리거=원문 변경 시만 / books 통지 / api `seed_explanation` 멱등 재실행 / 평시 무동작. +추가 요청: 통지에 "구조(산출 A) 변경 포함 여부" 명시 (api full vs `--translations` 모드 분기용).
+  2. **번역 트랙 적재 계약 확정**: ① 파일=lang별 분리 `explanation_translations.{lang}.json`, 행=en 산출 B 와 동일 5-튜플 (books 권장 (나) 채택) ② 적재=`seed_explanation` 신규 `--translations <path>` 모드 (별도 바이너리 X, 산출 A 스킵 + idx→PK DB 조회, **구현은 맥미니 산출 도착 시** YAGNI) ③ 멱등키=`(content_type,content_id,field_name,lang)` 튜플 유지 ④ status=`approved` (맥미니 검증 통과분, en 일관, 서빙 필터·수동검수 비현실 — books 미질문이나 명시).
+
+  books 단계④(역변환 어댑터) 본 포맷으로 진행 가능. api 는 계약만 확정, 코드 미선반영.
+
+- **2026-05-17 ✅ — explanation PR #297 배포 성공 + 프로덕션 HTTP 검증**
+
+  Dockerfile fix(`1ae7e3a`) 포함 재머지(PR #297, `d4f51e1`). 배포 `build-and-push: success` / `deploy: success`.
+
+  - **프로덕션 마이그 정상 적용**: deploy job 성공 = `sqlx::migrate!` 부팅 통과 = 프로덕션 DB 가 20260422~20260518(우리 20260517/20260518 포함) 적용. **로컬 `20260419` 체크섬 분기는 로컬 dev DB 한정 확정**(프로덕션 무관).
+  - **프로덕션 HTTP 검증** (api.amazingkorean.net): `/health` 200 / `GET /explanations` → 400 `"study_idx 또는 study_task_idx 필요"` / `/explanations/__nope__` → 404 / `?study_idx=foo` → 200 `{"items":[]}`. 라우팅·handler·service·repo·스키마 end-to-end 실검증 (로컬에서 20260419 로 막혔던 HTTP 경로를 프로덕션에서 확정).
+  - **남은 1건 (코드 아님 — 운영/데이터)**: 콘텐츠 서빙(i18n 맵·inherit 계승·폴백)은 프로덕션 시드 데이터 부재로 미확인. `seed_explanation` 을 books `explanation_seed.json` + 프로덕션 DB 접근 환경에서 실행 필요(EC2 에 books 리포 없음). 그 후 실 콘텐츠로 변환 로직 확정.
 
 - **2026-05-17 ⚠️→fix — explanation 배포 INC: 미푸시 stale 머지 + Dockerfile [[bin]] 더미 누락**
 
