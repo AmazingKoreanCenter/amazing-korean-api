@@ -1,8 +1,18 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — 보안 감사 2.2 (JWT iss 강제 + reset 계정탈취 차단) 완료 — 라이브 검증
+updated: 2026-05-17 — 보안 감사 2.4+2.6+2.5 일괄 완료 (cargo-deny PR / CSP / admin IP XFF) — §4 = 2.3만 잔여
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — 보안 감사 2.4·2.6·2.5 일괄 (항목별 커밋)**
+
+  사용자 결정(나): 2.4+2.6+2.5 한 세션 순차·각 별도 커밋, 2.3 별도 트랙 분리.
+
+  - **2.4 cargo-deny PR 게이트** (`20129f6`): `pr-check.yml` 에 `cargo-deny` job 신설(검증된 `security-audit.yml` job 미러, `deny.toml` 공유). 주간 cron+수동만이던 것 → KKRYOUN push 게이트에서 머지 전 차단. CI만 = 런타임 0.
+  - **2.6 CSP 헤더** (`6b5275d`): app `security_headers` 미들웨어에 `Content-Security-Policy` 추가. 기본 `default-src 'none'; frame-ancestors 'none'`, `/docs`·`/api-docs` 만 `self`+`unsafe-inline`(Swagger, ENABLE_DOCS=1 시만). nginx-level 의도적 미적용(앱 미들웨어가 전 프록시 응답 커버, scp+reload 리스크 회피 — Karpathy #2).
+  - **2.5 admin IP guard XFF 우회 차단** (`8970a4d`): **감사 인용 오류 정정** — 지목된 `header_utils::extract_client_ip` 는 로그용, 실제 allowlist 강제자 `admin_ip_guard` 가 자체 XFF-first 추출로 우회 취약(`X-Forwarded-For: 허용IP` 위조 → allowlist 우회). `trusted_client_ip()` 순수 fn 분리 → **`CF-Connecting-IP` 만 권위**(Cloudflare 세팅·클라 위조 불가), 부재 시 **fail-closed**(allowlist 는 ADMIN_IP_ALLOWLIST 설정 시만 작동 = 영향 admin 한정). 단위 7종(위조 XFF 무시·CF 채택·부재 None) 통과. scope=ip_guard 만(header_utils 로그 경로 별도 저순위). 운영주의: 활성화 시 CF 경유 필수. 현 빈값 = 런타임 영향 0.
+  - 검증: cargo check/clippy/fmt clean, lib(ip_guard 7 + jwt iss 등) pass, pr-check.yml YAML 유효. **이번 세션 3번째 감사 doc↔code 인용 오류를 사전 검증으로 적발·정정**(verify-before-assert).
+  - **보안 §4 현황**: 🔴 2.1·2.2 + 🟡 2.4·2.5·2.6 **완료**. 잔여 = **2.3(DB 슈퍼유저→최소권한)만, prod 자격증명·role 변경이라 별도 신중 트랙으로 분리**.
 
 - **2026-05-17 ✅ — 보안 감사 2.2: JWT iss 강제 + reset 토큰 계정 탈취 차단**
 
