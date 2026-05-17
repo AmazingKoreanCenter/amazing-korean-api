@@ -45,9 +45,17 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - **확인2 수용**: 산출 B = `lang='en'` 행만(en=권위). ko=산출 A text_ko 원본(서빙 시 lang=ko=원본 반환). 35언어=맥미니 Phase C 후속. self-check §4-1=en 기준.
   - 계약 §2/§3 + api §5.10 갱신. books 구현 착수 승인.
 
+  ## books 시드 산출 + api 독립 검증 (2026-05-17) — PASS·채택
+
+  books `build_explanation_export.js` 산출 → `explanation_seed.json` (산출 A unit 568[pattern_guide 68+sentence_explain 500]/block 1,317 + 산출 B en 전용 4,362행). api 독립 전수 검증(meta.self_check 비신뢰, 직접 재계산):
+
+  - unit_idx·(unit_idx,block_seq) UNIQUE / unit_source·block_type enum / av_307_313 제외 / 연습·lang-invariant 누출 0 / 산출 B PK 해소 고아 0 / study_task_idx amk500-sent-NNN 500/500 / field_name 9종(갭1 `_card_{i}_desc`·`_qword_{i}_header` 포함) 정합 — **전 항목 ✅**
+  - **계약 정정 1건 (api 귀책)**: §2 inherit 문구가 "산출 B 행 없음"으로 row 전체를 가리켜 모호. 실제 = inherit 는 **explanation 한정 상속**, row 의 `en` 토큰은 실 콘텐츠라 `_en` 산출 B 행 정상. books 시드가 옳고 계약 텍스트가 틀림 → 계약 §2/§3 + api §5.10 정정. **books 재작업 불필요.**
+  - 정직 고지: meta.self_check=PASS 를 그대로 믿지 않고 9종 독립 재계산. inherit "위반" 추적 끝에 결함이 books 아닌 내 계약 문구임을 확인·정정.
+
   ## 다음
 
-  books 시드 생성기 변환(books 트랙) → 시드 후 연결키 정합 검증 → 조회 API (repo→service→handler→router)
+  api 적재 로더 (산출 A → PK 확정 → 산출 B unit_idx+block_seq PK 해소 → content_translations) + 연결키 정합 검증 + 조회 API (repo→service→handler→router)
 
 - **2026-05-17 🟡 — 설명(해설) 콘텐츠 books→api 인계: 스키마 아키텍처 결정 (코드 0건, 설계 단계)**
 
