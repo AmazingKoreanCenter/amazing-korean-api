@@ -99,8 +99,13 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: amazing_korean_db
+      # 보안 2.3 Phase 1: 신규/재생성 DB 시 db-init 스크립트가 amk_app role 생성에 사용.
+      # 기존 볼륨엔 initdb 미실행 → §13 1회 수동 적용. Phase 2 전엔 secret 미설정 가능(공백).
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # 보안 2.3: 신규/재생성 DB 부트스트랩(멱등). 기존 볼륨엔 미실행(§13 수동).
+      - ./db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s

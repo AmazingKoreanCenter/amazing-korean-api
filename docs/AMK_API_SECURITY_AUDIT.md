@@ -15,7 +15,7 @@
 
 SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장 시급한 두 가지는
 **(1) ~~발급된 access token 이 로그아웃/비밀번호 변경 후에도 만료 전까지 유효~~ → 2.1 완료(2026-05-17, fail-open+관찰성)**,
-**(2) DB 슈퍼유저 접속**(2.3, 미해결). → 2.1·2.2 완료(2026-05-17). 현재 최우선 = 2.3(DB 최소권한) + 2.4(cargo-deny PR).
+**(2) DB 슈퍼유저 접속**(2.3). → **2.1·2.2·2.4·2.5·2.6 완료, 2.3 Phase 1 완료(Phase 2 컷오버만 게이트 대기)** (2026-05-17). 🔴/🟡 실질 종결, 🟢 장기만 잔존.
 
 ---
 
@@ -69,8 +69,11 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
 #### 2.3 DB 최소 권한 미적용 (참고 패턴 1 적용 지점)
 - **문제**: 앱이 PostgreSQL `postgres` 슈퍼유저로 접속. RLS/GRANT/CREATE ROLE 전무. 앱 침해·만일의 SQL 인젝션 시 피해 무제한.
 - **위치**: `docker-compose.prod.yml:14,99`
-- **수정 방향**: 런타임 전용 role 생성 → 필요 테이블에 `SELECT/INSERT/UPDATE/DELETE`만 GRANT, `DATABASE_URL` 을 해당 role 로 변경. 마이그레이션 실행 role 과 런타임 role 분리. (RLS 자체는 Rust 백엔드라 필수성 낮음 — 클라가 DB 직결 안 함. 최소권한이 비용 대비 효과 큼)
-- [ ] 작업 예정
+- **수정 방향(원안)**: 런타임 전용 role + 마이그 role 분리.
+- **2026-05-17 사실 조사**: 앱은 **상시** `postgres` superuser 접속(`docker-compose.prod.yml:14`), 부팅마다 `sqlx::migrate!`(DDL) 실행(`main.rs:61`). superuser-only 연산(EXTENSION/ROLE/SYSTEM/COPY) **0건** = 불필요. **악용·사고 이력 0**(SQLi 0, IDOR 방어) → 잠재 폭발반경 위험(미실현). 부팅-마이그 동연결이라 순수 DML "최소권한"은 부팅 차단 → **단일 NOSUPERUSER 소유 role** 채택(원안의 마이그/런타임 풀분리는 수익체감·고위험으로 비채택, 사용자 결정).
+- **Phase 1 완료 (2026-05-17, 런타임 영향 0)**: `db-init/10_least_priv_role.sql`(멱등) — `amk_app` LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE + public GRANT/ALTER DEFAULT PRIVILEGES + 앱 객체(table/seq/view/enum) OWNER→amk_app. `docker-compose.prod.yml` db 에 `db-init` initdb 마운트(+`APP_DB_PASSWORD` env). 앱은 **계속 postgres 접속**(DATABASE_URL 불변) = 동작 무변경. 로컬 amk-pg dry-run 검증: env없음/빈값 중단·정상 멱등 2회·table/enum owner=amk_app·NOSUPERUSER 확인 (dry-run 이 `REASSIGN OWNED BY postgres` 거부 + psql `$$` 내 `:'var'` 미치환 2버그 사전 적발·정정). 절차 = `AMK_DEPLOY_OPS.md §13`.
+- **Phase 2 미실행 (게이트, 사용자 명시 승인 필요)**: `DATABASE_URL` user `postgres→amk_app` 교체 — Secret+compose+deploy.yml+§13 4곳 동시(INC-001 클래스). 롤백=user 환원 즉시.
+- [~] **Phase 1 완료 / Phase 2 게이트 대기 (2026-05-17)**
 
 #### 2.4 cargo-deny PR 미실행
 - **문제**: 주간 스케줄+수동만. 신규 취약 의존성이 머지 후 최대 1주 노출.
@@ -124,7 +127,7 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
   [x] 2.2 JWT iss 강제 + reset 레거시 JWT 폴백 제거(계정 탈취 차단) (2026-05-17 완료, 라이브 검증)
 
 🟡 단기
-  [ ] 2.3 DB 슈퍼유저 → 최소권한 role (docker-compose.prod.yml + migration) — 별도 신중 트랙
+  [~] 2.3 DB 슈퍼유저 → amk_app NOSUPERUSER (2026-05-17 Phase 1 완료/Phase 2 컷오버 게이트 대기)
   [x] 2.4 cargo-deny PR 게이트 (2026-05-17 완료)
   [x] 2.5 admin_ip_guard CF-Connecting-IP 권위+fail-closed (2026-05-17 완료, 감사 인용 정정·scope=ip_guard)
   [x] 2.6 CSP 헤더 app 미들웨어 (2026-05-17 완료)

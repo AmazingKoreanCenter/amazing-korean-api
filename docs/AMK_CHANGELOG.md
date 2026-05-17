@@ -1,8 +1,19 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — 보안 감사 2.4+2.6+2.5 일괄 완료 (cargo-deny PR / CSP / admin IP XFF) — §4 = 2.3만 잔여
+updated: 2026-05-17 — 보안 감사 2.3 Phase 1 완료 (DB superuser→amk_app 프로비저닝, 런타임 영향 0) — Phase 2 게이트 대기
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ✅ — 보안 감사 2.3 Phase 1: DB 최소권한 role 프로비저닝 (런타임 영향 0)**
+
+  사실 조사: 앱 상시 `postgres` superuser 접속(`docker-compose.prod.yml:14`) + 부팅 `sqlx::migrate!` DDL. superuser-only 연산 0건(불필요) / 악용·사고 이력 0(SQLi 0, IDOR 방어) = 미실현 잠재 폭발반경. 부팅-마이그 동연결이라 순수 DML 최소권한은 부팅 차단 → **단일 NOSUPERUSER 소유 role `amk_app`** 채택(원안 풀 role 분리는 수익체감·고위험으로 비채택, 사용자 결정).
+
+  **Phase 1 (런타임 영향 0 — 앱은 계속 postgres 접속)**:
+  - `db-init/10_least_priv_role.sql` 신규(멱등): env 없음/빈값 가드 → `amk_app` LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION + public `GRANT ALL` + `ALTER DEFAULT PRIVILEGES` + 기존 앱 객체(table/seq/view/enum) `ALTER ... OWNER → amk_app`.
+  - `docker-compose.prod.yml` db: `./db-init:/docker-entrypoint-initdb.d:ro`(신규/재생성 DB 자동·멱등=비재발) + `APP_DB_PASSWORD` env. `DATABASE_URL` **불변**(여전히 postgres) = 동작 무변경.
+  - `AMK_DEPLOY_OPS §13` 신설: Phase 1 1회 수동 적용(기존 볼륨 initdb 미실행) + Phase 2 컷오버 4곳 동시 + 롤백.
+  - **로컬 amk-pg dry-run 검증**: env없음→중단 / 빈값→중단 / 정상 멱등 2회 / table·enum owner=amk_app / amk_app NOSUPERUSER. **dry-run 이 실버그 2건 사전 적발·정정**: ① `REASSIGN OWNED BY postgres` = PG 가 부트스트랩 superuser 라 거부 → public 앱객체 선별 `ALTER OWNER` 로 교체 ② psql 은 `$$...$$` 내 `:'var'` 미치환 → 빈값 가드를 평문 `\gset`+`\if` 로 정정.
+  - **Phase 2 미실행 (사용자 명시 승인 게이트)**: `DATABASE_URL` user `postgres→amk_app` (Secret+compose+deploy.yml+§13 4곳 동시 = feedback_deploy_env_sync/INC-001 클래스). 롤백 = user 환원 즉시. `postgres` break-glass 잔존.
 
 - **2026-05-17 ✅ — 보안 감사 2.4·2.6·2.5 일괄 (항목별 커밋)**
 
