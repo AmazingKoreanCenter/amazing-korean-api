@@ -51,6 +51,8 @@ RUN apt-get update && apt-get install -y \
 
 # Copy binary from builder
 COPY --from=builder /app/target/release/amazing-korean-api /app/amazing-korean-api
+# 해설 콘텐츠 시드 적재용 (수동 1회 docker exec — AMK_DEPLOY_OPS §12)
+COPY --from=builder /app/target/release/seed_explanation /app/seed_explanation
 
 # Copy migrations (sqlx::migrate!() 런타임 자동 실행용은 바이너리에 임베딩됨)
 # 클린 배포 참조용으로 유지

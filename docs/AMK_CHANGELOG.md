@@ -1,8 +1,17 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — explanation 번역 트랙 적재 계약 확정 (books 후속 회답: lang별 파일 + --translations 모드)
+updated: 2026-05-17 — explanation 프로덕션 시딩 준비 (경로 A: seed 파일 seeds/ 커밋 + Dockerfile 바이너리 + DEPLOY_OPS §12)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 — explanation 프로덕션 시딩 준비 (경로 A)**
+
+  프로덕션 콘텐츠 서빙 게이팅 항목. 런타임 이미지에 `seed_explanation` 바이너리 부재 발견(Dockerfile 52행 = main 바이너리만 COPY) → 인프라 보강:
+
+  - `Dockerfile`: 런타임 스테이지에 `COPY --from=builder /app/target/release/seed_explanation /app/seed_explanation` 1줄 추가 (builder 는 fix `1ae7e3a` 후 정상 빌드)
+  - `seeds/explanation_seed.json` 커밋 (books 산출 1.8MB / 568 unit·1,317 block·4,362 en, self_check PASS) — 경로 A: 기존 `seeds/` 배포 메커니즘·버전관리·재현성. (B)scp/(C)로컬직결 = 비재현·보안 비채택
+  - `AMK_DEPLOY_OPS.md §12` 신설: EC2 배포 후 **수동 1회** `docker exec amk-api /app/seed_explanation --input /app/seeds/explanation_seed.json` + 재시딩 시점(원문 변경 시만) + 검증 curl. 자동 배포 미결합(매 배포 불필요·결합 회피).
+  - 코드 변경 0 (Rust 무관, cargo check 불요). 머지·배포 후 EC2 시딩 실행 시 i18n/inherit/폴백 라이브 검증(로컬 20260419 로 막혔던 마지막 갭) 가능.
 
 - **2026-05-17 — explanation 번역 트랙 적재 계약 확정 (books 후속 회답)**
 
