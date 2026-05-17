@@ -62,9 +62,20 @@ owner: HYMN Co., Ltd. (Amazing Korean)
   - **마이그 20260518 정정**: `explanation_unit.updated_by_user_id` `NOT NULL` → nullable + `FK→users(user_id)` = lesson/study 컨벤션 일치(시스템 시드 = NULL updater). 마이그 미적용·미머지(KKRYOUN)라 정정 안전.
   - 검증: `cargo check`/`clippy`/`fmt` ✅. **정직 고지**: 본 세션 DB 미접속 = 정적 검증만. 실 시드 실행 + 연결키 검증 수치 = DB 환경(로컬/배포) 실행 시점.
 
+- **2026-05-17 — 설명 콘텐츠 조회 API 구현 (`src/api/explanation/`, 정적 검증)**
+
+  신규 도메인 explanation (dto→repo→service→handler→router, `/explanations` nest, 공개 읽기 — 접근 제어 컬럼 없음 D3).
+
+  - `GET /explanations/{unit_idx}?lang=` (단위+블록) / `GET /explanations?study_idx=&study_task_idx=&lang=` (연결키, 둘 다 없으면 400)
+  - 서빙 모델 = structured **골격 + i18n 해소 맵**. 단순 텍스트 블록 `text` 해소 / structured·concept·qword = `structured`(골격) + `i18n`(field_name→텍스트). 프론트가 index 불변식으로 재조립.
+  - 폴백 체인 요청 lang→tr(user/en)→en→ko. **inherit 계승**: structured_explain rows[i].inherit → 직전 비-inherit row explanation 서버 해소.
+  - explanation 전용 `find_translations` (admin 공유 코드 무수정, ko 단락 회피 — 설명 structured 는 ko 원본 없음). jsonb `::text` 캐스트 fetch (sqlx json feature 미사용).
+  - docs.rs paths/schemas/tags 등록. `cargo check`/`clippy`/`fmt` ✅ + openapi 회귀 7/7 통과 (`openapi_paths_match_router_handlers` = router↔docs 정합 포함).
+  - **정직 고지**: 정적·컴파일·계약 검증만. 런타임 서빙·inherit 재조립 실동작은 DB+시드 환경 실행 시점 (본 세션 DB 미접속).
+
   ## 다음
 
-  조회 API (repo→service→handler→router): structured 골격 + content_translations 오버레이(user_lang→en→ko, inherit explanation 계승) 재조립 + 실 DB 시드 실행·검증
+  실 DB 환경: `seed_explanation` 실행 → 런타임 서빙·연결키 정합 검증 / 프론트 렌더 연동 / 맥미니 Phase C 35언어 append
 
 - **2026-05-17 🟡 — 설명(해설) 콘텐츠 books→api 인계: 스키마 아키텍처 결정 (코드 0건, 설계 단계)**
 

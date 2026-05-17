@@ -974,6 +974,22 @@ Rust 시드 바이너리 (선례 = `rekey_encryption`). `cargo run --bin seed_ex
 
 > **실행 환경 주의**: 본 세션은 DB 미접속 — `cargo check`/`clippy`/`fmt` 정적 검증만 통과. 실제 시드 실행 + 연결키 검증 수치는 DB 환경(로컬/배포) 실행 시점.
 
+#### 조회 API (2026-05-17) — `src/api/explanation/`
+
+신규 도메인 `explanation` (dto→repo→service→handler→router, `/explanations` nest). **공개 읽기**(접근 제어 컬럼 없음 — D3 설계).
+
+- `GET /explanations/{unit_idx}?lang=` → 단위 + 블록 (unit_idx 예: `guide67:pr_105_114`, `sent:300`)
+- `GET /explanations?study_idx=&study_task_idx=&lang=` → 연결키 조회 (둘 다 없으면 400)
+
+**서빙 모델** = structured **골격 + i18n 해소 맵**. 단순 텍스트 블록(paragraph/heading/subtitle/step) = `text` 해소. structured/concept/qword = `structured`(골격 그대로) + `i18n`(field_name→해소 텍스트). 프론트가 §index 불변식으로 재조립.
+
+- **폴백 체인**: 요청 lang → tr(user/en) → en → ko 중 첫 비어있지 않은 값. ko/none = ko원본 우선(없으면 en). en = en 우선. 기타 = tr(user|en) 우선.
+- **inherit 계승**: structured_explain `rows[i].inherit=true` → 직전 비-inherit row 의 `explanation_block_row_{j}_explanation` 을 i18n 에 채움 (서버 해소).
+- **번역 조회**: explanation 전용 `find_translations` (admin 공유 코드 무수정). `content_translations` `lang IN (user, 'en') AND status='approved'`, ko 단락 회피(설명 structured 는 ko 원본 없음 → en 폴백). jsonb 는 `::text` 캐스트 fetch 후 파싱 (sqlx json feature 미사용).
+- OpenAPI: docs.rs paths/schemas/tags 등록. 회귀 테스트 `openapi_paths_match_router_handlers` 포함 7/7 통과.
+
+> **검증 한계**: `cargo check`/`clippy`/`fmt`/openapi 회귀 = 정적·컴파일·계약 검증. 실제 서빙·inherit 재조립의 런타임 동작은 DB+시드 환경 실행 시점 (본 세션 DB 미접속).
+
 #### 시드 검증 결과 (2026-05-17) — books `explanation_seed.json` PASS·채택
 
 api 독립 전수 검증(meta.self_check 비신뢰, 직접 재계산): 산출 A unit 568(pattern_guide 68+sentence_explain 500)/block 1,317 + 산출 B en 전용 4,362행. unit_idx·(unit_idx,block_seq) UNIQUE / enum·av_307_313·연습누출·lang-invariant누출·PK해소·study_task_idx(amk500-sent-NNN 500/500)·field_name 9종(갭1 포함) 전 항목 ✅. **계약 정정 1건(api 귀책)**: §2 inherit 문구 모호(row 전체 vs explanation 한정) → explanation 한정으로 정정, books 시드 정상·재작업 불필요. **다음**: 적재 로더(산출 A→PK 확정→산출 B PK 해소→content_translations) + 연결키 정합 검증 + 조회 API.
