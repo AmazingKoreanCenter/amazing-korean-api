@@ -1,8 +1,17 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — 설명 콘텐츠 스키마 확정·적용 (B안 / explanation_unit·explanation_block 마이그레이션)
+updated: 2026-05-17 — explanation 배포 INC 수정 (미푸시 stale 머지 + Dockerfile [[bin]] 더미) → 재머지 대기
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-17 ⚠️→fix — explanation 배포 INC: 미푸시 stale 머지 + Dockerfile [[bin]] 더미 누락**
+
+  프로세스 사고 2건 (프로덕션 무영향):
+
+  1. **미푸시 stale 머지**: explanation 9커밋을 로컬 KKRYOUN 에만 두고 origin push 누락 → 사용자가 머지한 PR #294/#295 가 origin/KKRYOUN(50c307a) stale 상태만 머지(explanation 미포함). 복구: KKRYOUN push → `git merge origin/main` 충돌 해소(docs 2파일, KKRYOUN 상위집합 확인 후 채택, main-only 내용 0 검증) `a9812de` → PR #296 머지(explanation 산출물 origin/main 반영 확인).
+  2. **Dockerfile [[bin]] 더미 누락**: PR #296 배포 `build-and-push` 실패 — `cargo build --release` exit 101 `couldn't read src/bin/seed_explanation.rs`. Dockerfile dep-cache 스테이지가 `[[bin]]` 더미를 하드코딩(rekey_encryption만) → 신규 seed_explanation 더미 부재. `cargo check` 로컬 통과해도 CI Docker dep-cache 스테이지만 실패. **프로덕션 무영향**(build 실패 → deploy job skip → 구버전 유지). 수정 `1ae7e3a`: Dockerfile 더미 생성 + touch 목록 2곳에 seed_explanation 추가.
+
+  교훈 메모리화: `feedback_work_rules`(다중 커밋 트랙 머지 전 push 필수) / `feedback_deploy_env_sync`(`[[bin]]` 추가 = Dockerfile 동시 반영). **재머지 필요** → 배포 성공·프로덕션 마이그·HTTP 검증 후속.
 
 - **2026-05-17 ✅ — 설명(해설) 콘텐츠 스키마 확정·적용 (B안, 마이그레이션 + types.rs)**
 
