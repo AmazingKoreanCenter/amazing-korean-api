@@ -20,6 +20,8 @@
 > - **소스**: books `books/{student,teacher}-cover/AMK_*_COVER_{LANG}.pdf` (14언어 전부 존재 확인).
 > - **반영처**: `amazing-korean-api/frontend/public/covers/` (books 생성 → api 리포 수령, explanation 핸드오프 방향과 동일).
 
+> **국기/엠블럼(seal) 에셋 (2026-05-18, 직접 해결 — 핸드오프 불필요)**: 교재 카탈로그 캐러셀(`seal_list.tsx` `SealImage`)은 `/seals/{langcode}.svg` 표시. `SealImage` 는 **onError 폴백 기존 보유**(seal 없으면 언어코드 텍스트 원형 — 깨짐 아님). `frontend/public/seals/` = 22 → 36 available 확장으로 14언어(cover 와 동일 집합) seal 미존재해 텍스트로 degrade. **seal 은 SVG 라 변환 불필요** — books `books/seals/seal_{LANG}.svg` 36개 실재(규격 동일 `viewBox 0 0 204 204` 204px). 14개(am/ar/bn/es_es/fa/it/ky/lo/pl/pt_pt/sw/tr/uk/ur) `books/seals/seal_{LANG}.svg` → `frontend/public/seals/{langcode}.svg` 직접 복사·리네임 완료 → **public/seals = 36, 전 카탈로그 언어 커버, 캐러셀 텍스트 폴백 해소**. (cover 와 달리 PDF→WebP 변환 없어 books 파이프라인 핸드오프 불요.)
+
 <details>
 <summary>📋 Textbook 엔드포인트 상세 (클릭)</summary>
 

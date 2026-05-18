@@ -1,8 +1,14 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-18 — 교재 표지 깨짐 수정(CoverCard 폴백 + books 핸드오프) / 역본 36·숫자 단일소스화 / 시딩 1차 / 보안 §4
+updated: 2026-05-18 — 교재 캐러셀 국기(seal) 14 직접복사 종결 / 표지 CoverCard 폴백+books 핸드오프 / 역본 36 / 시딩 1차 / 보안 §4
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-18 ✅ — 교재 캐러셀 국기(seal) 14개 직접 복사: 텍스트 폴백 해소 (핸드오프 불요·종결)**
+
+  사용자 스크린샷으로 화면 확정 = 교재 카탈로그 **캐러셀**(`seal_list.tsx` `SealImage`, `/seals/{langcode}.svg`). **AI 사고**: 직전 답에서 화면을 `book_landing`/`flags` 로 추측 → 사용자 이미지로 정정. 추측 말고 확인했어야 = verify-before-assert(화면 식별에도 적용). #151 36 확장 부수효과로 cover 와 **동일 14언어**(am/ar/bn/es_es/fa/it/ky/lo/pl/pt_pt/sw/tr/uk/ur) seal 미존재 → `SealImage` 기존 onError 폴백(언어코드 텍스트 원, 깨짐 아님)으로 degrade.
+
+  **seal 은 SVG → 변환 불필요**(cover 는 PDF→WebP 라 books 파이프라인 필요했음). books `books/seals/seal_{LANG}.svg` 36개 실재·규격 동일(`viewBox 0 0 204 204` 204px, `<?xml>` prolog 일치) 검증 → 14개를 `frontend/public/seals/{langcode}.svg` **직접 복사·리네임** (books `ES_ES`→`es_es`/`PT_PT`→`pt_pt`). `public/seals` 22→36 = 전 카탈로그 언어 커버. 캐러셀이 14언어도 텍스트 대신 실제 seal 표시. **코드 변경 0**(`SealImage` 폴백 기존 보유). 14 무결성·SVG 유효·prolog 일관 검증. cover 와 달리 핸드오프 없이 **즉시 종결**(소스 SVG 존재·매칭 = 단순 에셋 배치). 명세 `AMK_API_TEXTBOOK §5.12`. cover WebP 28개 books 핸드오프는 #152 그대로 잔존.
 
 - **2026-05-18 ✅ — 교재 표지 깨짐 수정: CoverCard 폴백(B 완료) + books 표지 핸드오프(A 대기)**
 
