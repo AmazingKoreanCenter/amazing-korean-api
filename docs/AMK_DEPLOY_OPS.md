@@ -945,17 +945,18 @@ docker exec -i -e APP_DB_PASSWORD="$APP_DB_PASSWORD" amk-pg \
 
 > 가드: `APP_DB_PASSWORD` 미설정/빈값이면 스크립트가 중단(빈 비밀번호 role 방지). 멱등 — 재실행 안전. `\getenv` 는 `docker exec -e` 로 주입한 컨테이너 프로세스 env 를 읽으므로 stdin 투입과 무관하게 동작.
 
-**Phase 2 — 컷오버 (별도 게이트, 사용자 명시 승인 필요)**
+**Phase 2 — 컷오버 ✅ 완료 (2026-05-18, 사용자 승인)**
 
-`DATABASE_URL` 의 user 를 `postgres` → `amk_app` 으로 교체. **4곳 동시 반영 필수**(feedback_deploy_env_sync / INC-001 클래스):
+> P1(EC2 prod SQL stdin 적용 → `amk_app|f|t` 검증) + P2(Secret 등록) 선행 완료 후 컷오버. `DATABASE_URL` 의 user 를 `postgres` → `amk_app` 으로 교체. **4곳 동시 반영**(feedback_deploy_env_sync / INC-001 클래스):
 
-1. GitHub Secret `APP_DB_PASSWORD` 추가 (Phase 1 에서 고정한 값)
-2. `docker-compose.prod.yml`: `DATABASE_URL: postgres://amk_app:${APP_DB_PASSWORD}@db:5432/amazing_korean_db`
-3. `.github/workflows/deploy.yml` `.env.prod`: `APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}`
-4. 본 §13 갱신
+1. ✅ GitHub Secret `APP_DB_PASSWORD` 추가 (P1 hex 값, 2026-05-18T01:30Z 등록)
+2. ✅ `docker-compose.prod.yml:14`: `DATABASE_URL: postgres://amk_app:${APP_DB_PASSWORD}@db:5432/amazing_korean_db`
+3. ✅ `.github/workflows/deploy.yml` `.env.prod`: `APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}` (POSTGRES_PASSWORD 다음 줄)
+4. ✅ 본 §13 + SECURITY_AUDIT §2.3/§0 + STATUS + CHANGELOG + 메모리 갱신
 
-- 배포 후 검증: `/health` 200 + `SELECT current_user` = `amk_app` + 부팅 sqlx 마이그 정상.
-- **롤백**: `DATABASE_URL` user 를 `postgres` 로 환원(시크릿/compose 1줄) = 즉시 복구. `postgres` 는 break-glass(수동 관리)용으로만 잔존.
+- **배포 후 검증 (필수)**: `/health` 200 + `docker exec amk-pg psql -U postgres -d amazing_korean_db -c "SELECT usename FROM pg_stat_activity WHERE datname='amazing_korean_db' AND usename IS NOT NULL GROUP BY usename;"` → `amk_app` 만 (postgres 없음) + 부팅 sqlx 마이그 panic 없음(앱 로그).
+- **롤백 (즉시)**: `docker-compose.prod.yml:14` user 를 `postgres`, `${APP_DB_PASSWORD}` → `${POSTGRES_PASSWORD}` 환원(1줄) → 머지·배포 또는 EC2 hotfix. `postgres` superuser 는 break-glass 로 잔존(수동 관리, DATABASE_URL 미사용).
+- **주의**: 부팅 시 `sqlx::migrate!` 가 DDL 실행 — `amk_app` 가 앱 객체 OWNER(Phase 1) 라 신규 마이그 DDL 권한 보유. 신규 마이그가 superuser-only 연산(EXTENSION/ROLE 등) 도입 시 부팅 실패 → 해당 마이그는 별도 수동 적용 필요(현재까지 0건).
 
 ## 5. GitHub Actions CI/CD 파이프라인
 

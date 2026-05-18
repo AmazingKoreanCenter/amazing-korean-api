@@ -89,6 +89,7 @@ jobs:
             cat > .env.prod << 'EOF'
             DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}
             REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             DOMAIN=amazingkorean.net
