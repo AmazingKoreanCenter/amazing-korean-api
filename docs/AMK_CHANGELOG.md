@@ -1,10 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-18 — 콘텐츠 시딩 1차 구현 (HYMN 귀속계정 bin + study/task 숨김 시드, prod 적용 대기) + 보안 §4 종결
+updated: 2026-05-18 — 콘텐츠 시딩 1차 prod 적용·라이브 검증 완료 (HYMN+study/task 숨김 시드, 공개 flip만 대기) + 보안 §4 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
-- **2026-05-18 ✅ — 콘텐츠 시딩 1차 구현: HYMN 귀속계정 bin + study/task 숨김 시드 (커밋 `eff6994`, prod 적용 대기)**
+- **2026-05-18 ✅ — 콘텐츠 시딩 1차 prod 적용·라이브 검증 완료: HYMN 귀속계정 + study/task 숨김 시드 (커밋 `eff6994`, prod `e9568e7`)**
+
+  **prod 적용 (배포 후 docker exec 1회, 멱등)**: `seed_hymn_account` → HYMN `user_id=8` state=false/pw=NULL. studies `INSERT 0 67`, tasks 500 → 검증 `study=67 ready=67 open=0` / `study_task=500 typing=500` / `study_task_typing=500` / task→study FK 500 OK. **라이브 `/studies` 노출 0** = 전부 `ready` → 서빙 `study_state='open'` 필터 차단, 숨김 staged rollout 이 prod 에서 실제 강제됨 확인. 로컬 dry-run 과 완전 일치 = 사전검증 정확. **트랙 1차 종료** — 공개 flip(검증+Mac Mini 번역 후 사용자 게이트)/Mac Mini content_translations/choice·voice·writing·어휘 books 확장/lesson·course 전부 별건·외부·미래.
 
   #149 분석 후속. 사용자 결정: HYMN=귀속전용(로그인 불가) / 숨김 시딩(staged rollout) / 기존 books 파일(20260504/05 — 20260425/26 과 byte-identical·스키마 수동검증)+로컬 dry-run(books 재생성 비요구) / 번역=Mac Mini 정본.
 
