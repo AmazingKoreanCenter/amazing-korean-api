@@ -479,28 +479,50 @@ mod tests {
     }
 
     #[test]
-    fn test_catalog_languages_has_isbn_ready_subset() {
+    fn test_catalog_languages_isbn_ready_is_published_set() {
+        // 2026-05-18 정책: isbn_ready=true = 발간(ISBN+인쇄+납본) 검증 12언어.
+        // ja/zh_cn/vi/th/id/ru/ne/km/tl/en (10, 2026-03-18) + mn(2026-03-27)
+        // + tg(2026-05-11). books ISBN/PRINT/납본 로그 기준. 회귀 가드.
         let langs = catalog_languages();
-        let isbn_ready: Vec<_> = langs.iter().filter(|(_, _, _, _, isbn)| *isbn).collect();
-        // ISBN 발급 완료 9개 (ja, zh_cn, vi, th, ne, ru, km, tl, id) + en (2026-05-07 추가)
-        assert!(
-            isbn_ready.len() >= 9,
-            "expected at least 9 ISBN-ready languages, got {}",
-            isbn_ready.len()
+        let isbn_ready: Vec<_> = langs
+            .iter()
+            .filter(|(_, _, _, _, isbn)| *isbn)
+            .map(|(l, _, _, _, _)| *l)
+            .collect();
+        assert_eq!(
+            isbn_ready.len(),
+            12,
+            "expected exactly 12 ISBN-ready (published) languages, got {}: {:?}",
+            isbn_ready.len(),
+            isbn_ready
         );
+        for l in [
+            TextbookLanguage::Mn, // 몽골어 2026-03-27
+            TextbookLanguage::Tg, // 타지크어 2026-05-11
+            TextbookLanguage::En,
+        ] {
+            assert!(
+                isbn_ready.contains(&l),
+                "{:?} must be isbn_ready (발간 완료)",
+                l
+            );
+        }
     }
 
     #[test]
-    fn test_catalog_languages_has_unavailable_entries() {
-        // 신규 14 (2026-05-03) = 모두 available=false. 카탈로그에 unavailable 항목 존재 검증
+    fn test_catalog_languages_all_available() {
+        // 2026-05-18 정책(사용자 결정): books 가 36개 역본 전부 빌드 →
+        // 전 언어 주문 가능(미발간분은 주문 시 ISBN 후 인쇄). unavailable 0.
         let langs = catalog_languages();
         let unavailable: Vec<_> = langs
             .iter()
             .filter(|(_, _, _, available, _)| !*available)
+            .map(|(l, _, _, _, _)| *l)
             .collect();
         assert!(
-            !unavailable.is_empty(),
-            "expected unavailable entries (new 14 published 미준비)"
+            unavailable.is_empty(),
+            "all 36 must be available=true, but unavailable: {:?}",
+            unavailable
         );
     }
 
