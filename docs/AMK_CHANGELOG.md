@@ -1,8 +1,18 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-18 — 교재 역본 36 반영 + 표시 숫자 단일소스화(드리프트 제거) / 콘텐츠 시딩 1차 prod 완료 / 보안 §4 종결
+updated: 2026-05-18 — 교재 표지 깨짐 수정(CoverCard 폴백 + books 핸드오프) / 역본 36·숫자 단일소스화 / 시딩 1차 / 보안 §4
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-18 ✅ — 교재 표지 깨짐 수정: CoverCard 폴백(B 완료) + books 표지 핸드오프(A 대기)**
+
+  #151 의 36-available 확장 부수효과 — 카탈로그/ebook `CoverCard` 가 `/covers/{type}-{lang}.webp` 표시하나 `frontend/public/covers/` 는 22언어×2=44 만 보유 → **14언어(am/ar/bn/es_es/fa/it/ky/lo/pl/pt_pt/sw/tr/uk/ur) 표지 미존재 → 깨진 이미지**. 정직 귀속: 내 36 확장이 표지 부재를 드러낸 회귀. 사용자 결정 C(A+B), D1=(a) books 파이프라인.
+
+  **B 완료 (this repo)**: `components/blocks/cover_card.tsx` 에 `useState`+`onError` → `ImageOff` 플레이스홀더(깨진 이미지 즉시 제거 + 향후 어떤 언어 추가에도 재발 방어, i18n 키 무추가=Karpathy #2 단순). `book_hub_page` 는 기존 자체 `ImageOff` 폴백 보유(무변경). npm build clean.
+
+  **A 대기 (books 핸드오프 명세 = `AMK_API_TEXTBOOK §5.12`)**: 14언어 × {student,teacher} = **28 WebP**. 규격 = 기존 22 실측 일치 필수 — **WebP lossy VP8, 805×1138 px, ~40KB, 앞표지만**(전체 wrap PDF 아님). 파일명 `{student|teacher}-{langcode}.webp`(books `ES_ES`→`es_es`/`PT_PT`→`pt_pt`, es_es/pt_pt 별도 표지 PDF books 실재 — "es/pt 별칭" 추정 실측 정정). 소스 books `{student,teacher}-cover/AMK_*_COVER_{LANG}.pdf`(14 전부 존재). books `generate_cover_images.js`(기존 22 동일 파이프라인) 사용 → `amazing-korean-api/frontend/public/covers/` 수령(explanation 핸드오프 방향 동일).
+
+  **AI 사고**: es_es/pt_pt "es/pt 별칭" 가정 → books 실폴더서 별도 PDF 확인·정정. 변환 도구 실측(cwebp/Pillow 부재, pdftoppm/gs 존재)으로 ad-hoc 변환의 품질 회귀 위험 판단 → books 파이프라인 권고 채택. = 추측 전 실측(verify-before-assert) 반복 적용.
 
 - **2026-05-18 ✅ — 교재 역본 36 반영 + 표시 숫자 단일소스화 (커밋 `a1ec9be`)**
 
