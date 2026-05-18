@@ -1,8 +1,20 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-17 — cargo-deny 2.4 게이트 연쇄 종결 + prod 라이브 검증 (보안 §4 실질 완료, Phase 2만 게이트 대기)
+updated: 2026-05-18 — 보안 감사 2.3 Phase 2 DB 컷오버(postgres→amk_app NOSUPERUSER) prod 라이브 검증 완료 = 보안 §4 2.1~2.6 전부 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-18 ✅ — 보안 감사 2.3 Phase 2: DB 컷오버 postgres → amk_app NOSUPERUSER (보안 §4 전부 종결)**
+
+  Phase 2 착수 전 prod 실측 → **Phase 1 prod 미적용 발견**(`pg_roles` amk_app 0 rows). **근본 원인 = `deploy.yml` scp 갭 2건**: ① scp `source` 가 `docker-compose.prod.yml,nginx/nginx.conf` 만 — db-init 누락 → 호스트 `~/amazing-korean-api/db-init/` 미생성 → bind 마운트 빈 디렉터리. ② scp source 추가 후 배포 = `tar: db-init/...: Permission denied` — Docker 데몬이 어제 마운트-추가 compose 의 `up -d` 때 없는 bind 소스를 `root:root` 자동 생성 → scp(ec2-user) untar 불가.
+
+  **정직 정정**: 2026-05-17 "2.3 Phase1 prod 동작 확정" 은 **과한 표현**이었음 — 로컬 amk-pg dry-run 만 통과, prod 전달은 검증된 적 없으며 실제 누락. `SECURITY_AUDIT §0/§2.3` 정정. 사용자 "어제 했잖아" 주장에 caving 없이 prod 실측(`pg_roles` 0 rows / `ls` total 0)으로 확정 = verify-before-assert.
+
+  **수정 (재발 불가)**: `deploy.yml` scp `source` 에 `db-init/10_least_priv_role.sql` 추가 + scp **이전** ssh 단계 `mkdir -p ~/amazing-korean-api/db-init && sudo chown -R ec2-user ...`(매 배포 멱등 → fresh EC2/디렉터리 삭제 후에도 안전).
+
+  **컷오버 (P1→P2→Stage D)**: P1 = scp 수정 배포 후 EC2 에서 호스트 SQL stdin 투입(`docker exec -i ... < ~/.../10_least_priv_role.sql`, bind 마운트 무관·무중단) → `amk_app|f|t`(NOSUPERUSER·LOGIN) 검증. **비번 = URL-safe hex**(`openssl rand -hex 24` — base64 의 `/ + =` 가 `DATABASE_URL` 파서 깨뜨림 회피, INC 선제 차단). P2 = GitHub Secret `APP_DB_PASSWORD` 등록. Stage D 4곳 동시: `docker-compose.prod.yml:14` `DATABASE_URL` user `postgres→amk_app`+`${POSTGRES_PASSWORD}→${APP_DB_PASSWORD}` / `deploy.yml .env.prod` `APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}` / `DEPLOY_OPS §13` / `SECURITY_AUDIT §2.3·§0`.
+
+  **prod 라이브 검증** (main `cb60fb1`, EC2 deploy success): `/health 200` + `/explanations?study_task_idx=amk500-sent-300` 200(앱 DB SELECT 경유 = amk_app 인증·GRANT 정상 실증) + `pg_stat_activity` = 앱 `amk_app` 2연결 단독, `postgres` 1 = 진단 psql 자신(break-glass 잔존 확인). superuser 폭발반경(COPY PROGRAM=서버 RCE / CREATE ROLE / 타 DB / ALTER SYSTEM) 제거. 롤백 = compose:14 user→postgres 1줄. **🔴/🟡 보안 §4 = 2.1·2.2·2.3·2.4·2.5·2.6 전부 종결**, 🟢 장기(ENABLE_DOCS guard / typed token claims / nginx rate-limit zones / KMS)만 별도 트랙.
 
 - **2026-05-17 ✅ — cargo-deny 2.4 게이트 연쇄 종결 + 로컬 검증 SOP + prod 라이브 검증**
 
