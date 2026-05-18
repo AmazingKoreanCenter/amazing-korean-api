@@ -1,8 +1,20 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-18 — 콘텐츠 시딩 1차 prod 적용·라이브 검증 완료 (HYMN+study/task 숨김 시드, 공개 flip만 대기) + 보안 §4 종결
+updated: 2026-05-18 — 교재 역본 36 반영 + 표시 숫자 단일소스화(드리프트 제거) / 콘텐츠 시딩 1차 prod 완료 / 보안 §4 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-18 ✅ — 교재 역본 36 반영 + 표시 숫자 단일소스화 (커밋 `a1ec9be`)**
+
+  사용자 보고(발간분 미반영·역본수 stale) → 실측: books 가 **36개 언어 역본 전부 빌드**(student/teacher-inner·cover 각 36). api·프론트·books문서가 옛 숫자(api available 22/isbn_ready 10, 프론트 34·22·20, books MASTER 22×2) 다층 stale. **AI 사고**: 최초 "22=정확" 단정은 api 플래그만 본 미검증 오류 → 사용자가 `books/teacher-inner` 36개 지적 → 실측 정정(verify-before-assert; subagent 보고의 개념혼동도 정정).
+
+  **사실 정정 (api)**: `catalog_languages()` 36 전부 `available=true`(빌드 완료분 전 주문 가능, 미발간=주문 시 ISBN 후 인쇄). `isbn_ready=true`=발간(ISBN+인쇄+납본) 검증 **12언어** (ja/zh_cn/vi/th/id/ru/ne/km/tl/en 2026-03-18 + 몽골어 2026-03-27 + 타지크어 2026-05-11; books ISBN/PRINT/납본 로그). 몽골어·타지크어 isbn_ready 누락 stale 해소.
+
+  **본질 수정 (현상 아닌 — 사용자 B-1 채택, A 현상땜질 거부)**: 숫자가 36 locale json 에 하드코딩돼 드리프트 재발 → 제거. `frontend/src/lib/catalog.ts` 신규 단일소스(`TEXTBOOK_LANGUAGE_COUNT=36`/`TEXTBOOK_EDITION_COUNT=72`) → i18n `interpolation.defaultVariables(langCount/editionCount)` 한 곳서 전 화면·36 locale 해석(PageMeta·slides·컴포넌트 무변경=t() 해석 레벨 적용). 36 locale json 의 하드코딩 언어수(34/22/20/68 + 현지숫자 ৩৪/۳۴/၃၄/३४) → `{{langCount}}`/`{{editionCount}}` 치환(숫자값 매칭=숫자체계 무관, `500문장` 보존). `book_hub_page` specLanguages count 상수화. **413 인스턴스 파라미터화, 잔존 stale 언어수 0**.
+
+  **검증**: cargo check + npm build clean / 전 36 locale 대상키 stale 언어수 0 / specLanguages `{{count}}` plural 36 locale 유지. ne/my 일부 seo·ebook = 번역이 애초 언어수 미포함(Mac Mini 표현 차이, 범위 외 정상 — 번역 SSoT 비침범). 문서 `AMK_API_TEXTBOOK §5.12` 정책 정정. books `MASTER.md:52` "22×2=44 표지"는 books 측 stale(실 36×2=72) → books 트랙 별도.
+
+- **2026-05-18 ✅ — 콘텐츠 시딩 1차 prod 적용·라이브 검증 완료: HYMN 귀속계정 + study/task 숨김 시드 (커밋 `eff6994`, prod `e9568e7`)**
 
 - **2026-05-18 ✅ — 콘텐츠 시딩 1차 prod 적용·라이브 검증 완료: HYMN 귀속계정 + study/task 숨김 시드 (커밋 `eff6994`, prod `e9568e7`)**
 
