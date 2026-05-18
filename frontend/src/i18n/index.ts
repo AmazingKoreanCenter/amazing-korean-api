@@ -1,6 +1,7 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
+import { TEXTBOOK_LANGUAGE_COUNT, TEXTBOOK_EDITION_COUNT } from "@/lib/catalog";
 import { loadFontForLanguage } from "@/utils/font_loader";
 import {
   isCJK,
@@ -85,7 +86,15 @@ i18n.use(initReactI18next).init({
   },
   lng: localStorage.getItem(LANGUAGE_KEY) || DEFAULT_LANGUAGE,
   fallbackLng: ["en", "ko"],
-  interpolation: { escapeValue: false },
+  interpolation: {
+    escapeValue: false,
+    // 교재 역본 수 단일 소스 — locale json 의 {{langCount}}/{{editionCount}} 가
+    // 전부 여기서 해석됨(전 화면·36 locale 동시). lib/catalog.ts 만 바꾸면 끝.
+    defaultVariables: {
+      langCount: TEXTBOOK_LANGUAGE_COUNT,
+      editionCount: TEXTBOOK_EDITION_COUNT,
+    },
+  },
 });
 
 // ── 언어 변경 (async — 동적 로딩 + 폰트 로드) ──────────────────────

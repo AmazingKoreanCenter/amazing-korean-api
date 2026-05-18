@@ -256,7 +256,7 @@
     "heroDescription": "500 वाक्यों से शुरू करें कोरियाई",
     "ctaStart": "शुरू करें",
     "ctaAbout": "Amazing Korean परिचय",
-    "stat1Value": "34",
+    "stat1Value": "{{langCount}}",
     "stat1Label": "समर्थित भाषाएं",
     "stat2Value": "500",
     "stat2Label": "कोरियाई बुनियादी वाक्य",
@@ -272,8 +272,8 @@
     "valueUnderstandingDesc": "कोरियाई समझने के लिए अंग्रेज़ी और\nआपकी भाषा उपलब्ध कराई जाती है।",
     "featureTitle": "Amazing Korean के साथ जुड़ें",
     "textbookTitle": "पाठ्यपुस्तक ऑर्डर",
-    "textbookDesc": "34 भाषाओं की विशेष पाठ्यपुस्तकों से व्यवस्थित रूप से कोरियाई सीखें।",
-    "textbookFeature1": "34 भाषाओं की विशेष पाठ्यपुस्तक",
+    "textbookDesc": "{{langCount}} भाषाओं की विशेष पाठ्यपुस्तकों से व्यवस्थित रूप से कोरियाई सीखें।",
+    "textbookFeature1": "{{langCount}} भाषाओं की विशेष पाठ्यपुस्तक",
     "textbookFeature2": "छात्र और शिक्षक संस्करण",
     "textbookLink": "पाठ्यपुस्तक देखें",
     "ebookTitle": "E-book व्यूअर",
@@ -314,11 +314,11 @@
     "valueEfficiencyTitle": "1/3 समय कैसे संभव है",
     "valueEfficiencyDesc": "पारंपरिक कोरियाई शिक्षण का उद्देश्य केवल कोरियाई सिखाना है। Amazing Korean का लक्ष्य TOPIK और EPS-TOPIK हासिल करना है। सर्वोत्तम दिशा से समय कम करता है। हासिल करने से आगे, Amazing Korean आपको कोरियाई में वाकई निपुण बनाता है।",
     "valueUnderstandingTitle": "मातृभाषा का उपयोग कैसे करें",
-    "valueUnderstandingDesc": "कोरियाई को कोरियाई में सीखना चाहिए। लेकिन अगर कोरियाई नहीं आती तो केवल कोरियाई में सीखना आसान नहीं है। Amazing Korean कोरियाई आसानी से समझने के लिए 34 भाषाओं का समर्थन करता है। अपनी भाषा से कोरियाई समझें और कोरियाई सीखें।",
+    "valueUnderstandingDesc": "कोरियाई को कोरियाई में सीखना चाहिए। लेकिन अगर कोरियाई नहीं आती तो केवल कोरियाई में सीखना आसान नहीं है। Amazing Korean कोरियाई आसानी से समझने के लिए {{langCount}} भाषाओं का समर्थन करता है। अपनी भाषा से कोरियाई समझें और कोरियाई सीखें।",
     "ctaTitle": "अभी शुरू करें",
     "ctaStart": "मुफ्त में शुरू करें",
     "ctaBrowseBooks": "पाठ्यपुस्तक देखें",
-    "stat1Title": "34 भाषाएँ, 68 पाठ्यपुस्तक संस्करण",
+    "stat1Title": "{{langCount}} भाषाएँ, {{editionCount}} पाठ्यपुस्तक संस्करण",
     "stat1Desc": "प्रत्येक भाषा के लिए समर्पित पाठ्यपुस्तकों के साथ अपनी भाषा में कोरियाई सीखें।",
     "stat2Title": "500 आधारभूत वाक्य",
     "stat2Desc": "बुनियादी व्याकरण (काल, पार्टिकल्स) और वाक्य संरचना (विधेय, क्रियाविशेषण) पर आधारित कोरियाई भाषा की बुनियादी शिक्षा।"
@@ -512,7 +512,7 @@
     "catalog": {
       "badge": "ई-बुक",
       "title": "Amazing Korean ई-बुक",
-      "subtitle": "22 भाषाओं में छात्र और शिक्षक ई-बुक्स,\nतुरंत ऑनलाइन पढ़ने के लिए उपलब्ध।",
+      "subtitle": "{{langCount}} भाषाओं में छात्र और शिक्षक ई-बुक्स,\nतुरंत ऑनलाइन पढ़ने के लिए उपलब्ध।",
       "teacherEdition": "शिक्षक",
       "studentEdition": "छात्र",
       "viewGrid": "ग्रिड व्यू",
@@ -577,11 +577,11 @@
   "textbook": {
     "heroBadge": "Amazing Korean पाठ्यपुस्तकें",
     "heroTitle": "पाठ्यपुस्तक ऑर्डर",
-    "heroSubtitle": "22 भाषाओं में पाठ्यपुस्तकें ऑर्डर करें। छात्र और शिक्षक संस्करण उपलब्ध हैं।",
+    "heroSubtitle": "{{langCount}} भाषाओं में पाठ्यपुस्तकें ऑर्डर करें। छात्र और शिक्षक संस्करण उपलब्ध हैं।",
     "catalog": {
       "badge": "पाठ्यपुस्तक",
       "title": "कोरियाई पाठ्यपुस्तक संग्रह",
-      "description": "22 भाषाओं में छात्र और शिक्षक संस्करणों के साथ\nव्यवस्थित कोरियाई सीखने की यात्रा शुरू करें।",
+      "description": "{{langCount}} भाषाओं में छात्र और शिक्षक संस्करणों के साथ\nव्यवस्थित कोरियाई सीखने की यात्रा शुरू करें।",
       "studentSection": "छात्र संस्करण",
       "teacherSection": "शिक्षक संस्करण",
       "orderButton": "ऑर्डर करें",
@@ -849,7 +849,7 @@
     },
     "textbook": {
       "title": "पाठ्यपुस्तक ऑर्डर - Amazing Korean",
-      "description": "Amazing Korean पाठ्यपुस्तकें ऑनलाइन ऑर्डर करें। 20 भाषाओं में उपलब्ध।"
+      "description": "Amazing Korean पाठ्यपुस्तकें ऑनलाइन ऑर्डर करें। {{langCount}} भाषाओं में उपलब्ध।"
     },
     "textbookStatus": {
       "title": "ऑर्डर स्थिति - Amazing Korean",
@@ -865,11 +865,11 @@
   "bookHub": {
     "badge": "Amazing Korean पाठ्यपुस्तक",
     "title": "कोरियाई भाषा पाठ्यपुस्तक",
-    "subtitle": "22 भाषाओं में उपलब्ध कोरियाई सीखने की पाठ्यपुस्तकें खोजें",
+    "subtitle": "{{langCount}} भाषाओं में उपलब्ध कोरियाई सीखने की पाठ्यपुस्तकें खोजें",
     "ctaTextbook": "मुद्रित कैटलॉग",
     "ctaEbook": "E-book कैटलॉग",
     "slideTitle0": "Amazing Korean Basics",
-    "slideDesc0": "Amazing Korean makes learning Korean easy.\nYou can understand Korean in any of 22 languages.\nAmazing Korean Basics is the first step to study TOPIK and EPS-TOPIK.\nFrom pronunciation to basic grammar, sentence structure, and 500 sentences to build your Korean foundation.",
+    "slideDesc0": "Amazing Korean makes learning Korean easy.\nYou can understand Korean in any of {{langCount}} languages.\nAmazing Korean Basics is the first step to study TOPIK and EPS-TOPIK.\nFrom pronunciation to basic grammar, sentence structure, and 500 sentences to build your Korean foundation.",
     "slideTitle1": "Hangul",
     "slideDesc1": "Learn Korean consonants and vowels by writing and speaking them.\nSystematically study the combination principles of 14 consonants and 21 vowels.\nPractice writing with stroke order guides while mastering accurate pronunciation.\nLearn complex characters like double consonants and compound vowels step by step.",
     "slideTitle2": "Pronunciation",
@@ -880,7 +880,7 @@
     "slideDesc4": "500 essential sentences built from commonly used\nKorean expressions to help you master the basics.\nOrganized by frequency and difficulty, learn from\nimportant grammar to complex expressions step by step.",
     "slideTitle5": "Grammar Summary",
     "slideDesc5": "Frequently used and complex grammar points organized in tables for quick reference.\nCovers tricky topics like irregular conjugations, formal/informal speech, and connective endings.\nServes as a grammar dictionary you can refer to anytime during your studies.\nSystematically presents key grammar frequently appearing in Korean language exams.",
-    "slideTags0": "22 Languages,500 Sentences,TOPIK & EPS-TOPIK",
+    "slideTags0": "{{langCount}} Languages,500 Sentences,TOPIK & EPS-TOPIK",
     "slideTags1": "Consonants,Vowels,Writing Practice",
     "slideTags2": "Tense Consonants,Final Consonants,Liaison",
     "slideTags3": "Tenses,Particles,Interrogatives",

@@ -8,6 +8,7 @@ import { PageMeta } from "@/components/page_meta";
 import { HeroSection } from "@/components/blocks/hero_section";
 import { SectionContainer } from "@/components/blocks/section_container";
 import { ImageLightbox } from "@/components/image_lightbox";
+import { TEXTBOOK_LANGUAGE_COUNT } from "@/lib/catalog";
 import { getDefaultLangKey, SAMPLE_PAGES, BOOK_PAGES } from "../book_data";
 
 const SLIDE_COUNT = 6; // cover + 5 sample pages
@@ -157,7 +158,7 @@ export function BookHubPage() {
               </div>
               <div className="flex items-center justify-center gap-2 rounded-lg border bg-muted/50 py-3">
                 <Globe className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-semibold">{t("bookHub.specLanguages", { count: 22 })}</span>
+                <span className="text-sm font-semibold">{t("bookHub.specLanguages", { count: TEXTBOOK_LANGUAGE_COUNT })}</span>
               </div>
               <div className="flex items-center justify-center gap-2 rounded-lg border bg-muted/50 py-3">
                 <BookOpen className="h-5 w-5 text-muted-foreground" />
