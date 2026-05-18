@@ -1,6 +1,6 @@
 # AMK_API_TEXTBOOK — 교재 주문 API 스펙
 
-> 비회원/회원 교재 주문 시스템 (계좌이체, 36언어 × 2종, 신규 14언어는 출판본 미준비로 `available=false`).
+> 비회원/회원 교재 주문 시스템 (계좌이체, 36언어 × 2종 = 72 역본 전부 `available=true`, 발간 12언어만 `isbn_ready=true`).
 > 공통 규칙(인증, 에러, 페이징): [AMK_API_MASTER.md §3](./AMK_API_MASTER.md)
 > DB 스키마: [AMK_SCHEMA_PATCHED.md](./AMK_SCHEMA_PATCHED.md)
 > 코드 패턴: [AMK_CODE_PATTERNS.md](./AMK_CODE_PATTERNS.md)
@@ -9,7 +9,7 @@
 
 ### 5.12 Phase 12 — 교재 주문 (Textbook Ordering)
 
-> 교재 주문 시스템. 계좌이체 기반, 36개 언어 × 2종(학생용/교사용), ₩25,000/권, 최소 10권. 신규 14언어 (am/ar/bn/es_es/fa/it/ky/lo/pl/pt_pt/sw/tr/uk/ur, 2026-05-03 추가) 는 출판본 미준비로 `catalog.available=false` (주문 불가, 향후 활성화). 영어 (en, 2026-05-07 추가) = `available=true` (사용자 보고: 관리자 주문 생성 UI 영어 누락).
+> 교재 주문 시스템. 계좌이체 기반, 36개 언어 × 2종(학생용/교사용), ₩25,000/권, 최소 10권. **2026-05-18 정책 변경 (사용자 결정)**: books 가 36개 역본 전부 빌드(student/teacher-inner·cover 각 36) → `catalog_languages()` **36 전부 `available=true`** (전 언어 주문 가능, 미발간분은 주문 시 ISBN 발급 후 인쇄 안내 = `isbn_ready=false`). **`isbn_ready=true` = 발간(ISBN+인쇄+납본) 완료 12언어**: ja/zh_cn/vi/th/id/ru/ne/km/tl/en (10, 2026-03-18) + mn (몽골어, 2026-03-27) + tg (타지크어, 2026-05-11). books ISBN/PRINT/납본 로그 기준. (이전 "신규 14언어 available=false / mn·tg isbn_ready 누락" stale 정정.)
 > 마이그레이션 (textbook 직접, 8개): `20260226_textbook.sql`, `20260303_textbook_improvements.sql`, `20260323_textbook_tax_fields.sql`, `20260324_textbook_user_id.sql`, `20260423_textbook_order_discount.sql`, `20260424_textbook_orderer_email_optional.sql`, `20260503_textbook_language_expand.sql`, `20260507_textbook_add_english.sql`
 > 관련 마이그레이션 (supported_language): `20260310_add_tl_language.sql` (textbook 직접 X — supported_language enum tl 변형 추가)
 

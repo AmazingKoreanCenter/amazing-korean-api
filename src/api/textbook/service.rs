@@ -355,6 +355,12 @@ fn language_display_name(lang: &TextbookLanguage) -> String {
 /// 신규 1 (2026-05-07, 영어 누락 보고): en — available=true / isbn_ready 추후 정정
 pub(crate) fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'static str, bool, bool)>
 {
+    // 튜플 = (언어, ko명, en명, available, isbn_ready)
+    //  available  : books 가 36개 역본 전부 빌드 완료(student/teacher-inner·cover
+    //               각 36) → 전 언어 주문 가능. 미발간분은 주문 시 ISBN 발급 후 인쇄.
+    //  isbn_ready : ISBN 발급+인쇄+납본 완료분만 true. books ISBN/PRINT/납본 로그
+    //               기준 학생용 12 (10개 2026-03-18 + 몽골어 2026-03-27 +
+    //               타지크어 2026-05-11).
     vec![
         (TextbookLanguage::Ja, "일본어", "Japanese", true, true),
         (
@@ -381,14 +387,14 @@ pub(crate) fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'stat
             true,
         ),
         (TextbookLanguage::My, "미얀마어", "Myanmar", true, false),
-        (TextbookLanguage::Mn, "몽골어", "Mongolian", true, false),
+        (TextbookLanguage::Mn, "몽골어", "Mongolian", true, true),
         (TextbookLanguage::Ru, "러시아어", "Russian", true, true),
         (TextbookLanguage::Es, "스페인어", "Spanish", true, false),
         (
             TextbookLanguage::EsEs,
             "스페인어(스페인)",
             "Spanish (Spain)",
-            false,
+            true,
             false,
         ),
         (
@@ -402,39 +408,37 @@ pub(crate) fn catalog_languages() -> Vec<(TextbookLanguage, &'static str, &'stat
             TextbookLanguage::PtPt,
             "포르투갈어(포르투갈)",
             "Portuguese (Portugal)",
-            false,
+            true,
             false,
         ),
         (TextbookLanguage::Fr, "프랑스어", "French", true, false),
         (TextbookLanguage::De, "독일어", "German", true, false),
-        (TextbookLanguage::It, "이탈리아어", "Italian", false, false),
-        (TextbookLanguage::Pl, "폴란드어", "Polish", false, false),
+        (TextbookLanguage::It, "이탈리아어", "Italian", true, false),
+        (TextbookLanguage::Pl, "폴란드어", "Polish", true, false),
         (
             TextbookLanguage::Uk,
             "우크라이나어",
             "Ukrainian",
-            false,
+            true,
             false,
         ),
-        (TextbookLanguage::Tr, "터키어", "Turkish", false, false),
+        (TextbookLanguage::Tr, "터키어", "Turkish", true, false),
         (TextbookLanguage::Hi, "힌디어", "Hindi", true, false),
         (TextbookLanguage::Ne, "네팔어", "Nepali", true, true),
         (TextbookLanguage::Si, "싱할라어", "Sinhala", true, false),
-        (TextbookLanguage::Bn, "벵골어", "Bengali", false, false),
+        (TextbookLanguage::Bn, "벵골어", "Bengali", true, false),
         (TextbookLanguage::Km, "크메르어", "Khmer", true, true),
-        (TextbookLanguage::Lo, "라오어", "Lao", false, false),
+        (TextbookLanguage::Lo, "라오어", "Lao", true, false),
         (TextbookLanguage::Uz, "우즈베크어", "Uzbek", true, false),
         (TextbookLanguage::Kk, "카자흐어", "Kazakh", true, false),
-        (TextbookLanguage::Ky, "키르기스어", "Kyrgyz", false, false),
-        (TextbookLanguage::Tg, "타지크어", "Tajik", true, false),
+        (TextbookLanguage::Ky, "키르기스어", "Kyrgyz", true, false),
+        (TextbookLanguage::Tg, "타지크어", "Tajik", true, true),
         (TextbookLanguage::Tl, "필리핀어", "Filipino", true, true),
-        (TextbookLanguage::Ar, "아랍어", "Arabic", false, false),
-        (TextbookLanguage::Fa, "페르시아어", "Persian", false, false),
-        (TextbookLanguage::Ur, "우르두어", "Urdu", false, false),
-        (TextbookLanguage::Sw, "스와힐리어", "Swahili", false, false),
-        (TextbookLanguage::Am, "암하라어", "Amharic", false, false),
-        // 2026-05-07 영어 누락 보고 추가. available=true (admin 주문 생성 가능),
-        // isbn_ready 는 추후 사용자 정정. 영어 출판본 ISBN 발급 여부에 따라.
+        (TextbookLanguage::Ar, "아랍어", "Arabic", true, false),
+        (TextbookLanguage::Fa, "페르시아어", "Persian", true, false),
+        (TextbookLanguage::Ur, "우르두어", "Urdu", true, false),
+        (TextbookLanguage::Sw, "스와힐리어", "Swahili", true, false),
+        (TextbookLanguage::Am, "암하라어", "Amharic", true, false),
         (TextbookLanguage::En, "영어", "English", true, true),
     ]
 }
@@ -475,28 +479,50 @@ mod tests {
     }
 
     #[test]
-    fn test_catalog_languages_has_isbn_ready_subset() {
+    fn test_catalog_languages_isbn_ready_is_published_set() {
+        // 2026-05-18 정책: isbn_ready=true = 발간(ISBN+인쇄+납본) 검증 12언어.
+        // ja/zh_cn/vi/th/id/ru/ne/km/tl/en (10, 2026-03-18) + mn(2026-03-27)
+        // + tg(2026-05-11). books ISBN/PRINT/납본 로그 기준. 회귀 가드.
         let langs = catalog_languages();
-        let isbn_ready: Vec<_> = langs.iter().filter(|(_, _, _, _, isbn)| *isbn).collect();
-        // ISBN 발급 완료 9개 (ja, zh_cn, vi, th, ne, ru, km, tl, id) + en (2026-05-07 추가)
-        assert!(
-            isbn_ready.len() >= 9,
-            "expected at least 9 ISBN-ready languages, got {}",
-            isbn_ready.len()
+        let isbn_ready: Vec<_> = langs
+            .iter()
+            .filter(|(_, _, _, _, isbn)| *isbn)
+            .map(|(l, _, _, _, _)| *l)
+            .collect();
+        assert_eq!(
+            isbn_ready.len(),
+            12,
+            "expected exactly 12 ISBN-ready (published) languages, got {}: {:?}",
+            isbn_ready.len(),
+            isbn_ready
         );
+        for l in [
+            TextbookLanguage::Mn, // 몽골어 2026-03-27
+            TextbookLanguage::Tg, // 타지크어 2026-05-11
+            TextbookLanguage::En,
+        ] {
+            assert!(
+                isbn_ready.contains(&l),
+                "{:?} must be isbn_ready (발간 완료)",
+                l
+            );
+        }
     }
 
     #[test]
-    fn test_catalog_languages_has_unavailable_entries() {
-        // 신규 14 (2026-05-03) = 모두 available=false. 카탈로그에 unavailable 항목 존재 검증
+    fn test_catalog_languages_all_available() {
+        // 2026-05-18 정책(사용자 결정): books 가 36개 역본 전부 빌드 →
+        // 전 언어 주문 가능(미발간분은 주문 시 ISBN 후 인쇄). unavailable 0.
         let langs = catalog_languages();
         let unavailable: Vec<_> = langs
             .iter()
             .filter(|(_, _, _, available, _)| !*available)
+            .map(|(l, _, _, _, _)| *l)
             .collect();
         assert!(
-            !unavailable.is_empty(),
-            "expected unavailable entries (new 14 published 미준비)"
+            unavailable.is_empty(),
+            "all 36 must be available=true, but unavailable: {:?}",
+            unavailable
         );
     }
 

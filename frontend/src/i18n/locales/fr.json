@@ -256,7 +256,7 @@
     "heroDescription": "Le coréen en 500 phrases",
     "ctaStart": "Commencer",
     "ctaAbout": "Découvrir Amazing Korean",
-    "stat1Value": "34",
+    "stat1Value": "{{langCount}}",
     "stat1Label": "Langues disponibles",
     "stat2Value": "500",
     "stat2Label": "Phrases de base en coréen",
@@ -272,8 +272,8 @@
     "valueUnderstandingDesc": "Pour mieux comprendre le coréen,\nnous vous proposons l'anglais\net votre langue.",
     "featureTitle": "Découvrez Amazing Korean",
     "textbookTitle": "Commander un manuel",
-    "textbookDesc": "Apprenez le coréen de manière structurée avec des manuels en 34 langues.",
-    "textbookFeature1": "Manuels en 34 langues",
+    "textbookDesc": "Apprenez le coréen de manière structurée avec des manuels en {{langCount}} langues.",
+    "textbookFeature1": "Manuels en {{langCount}} langues",
     "textbookFeature2": "Édition étudiant et enseignant",
     "textbookLink": "Voir les manuels",
     "ebookTitle": "Lecteur E-book",
@@ -314,11 +314,11 @@
     "valueEfficiencyTitle": "Pourquoi 1/3 du temps suffit",
     "valueEfficiencyDesc": "L'apprentissage traditionnel du coréen vise à enseigner la langue. Amazing Korean a pour objectif de réussir TOPIK et EPS-TOPIK. Nous réduisons le temps grâce au parcours optimal. Au-delà de la réussite, Amazing Korean vous permet de vraiment maîtriser le coréen.",
     "valueUnderstandingTitle": "Comment votre langue maternelle est mise à profit",
-    "valueUnderstandingDesc": "Le coréen devrait s'apprendre en coréen. Mais si vous ne parlez pas coréen et que vous apprenez uniquement en coréen, ce n'est pas facile. Amazing Korean prend en charge 34 langues pour faciliter votre compréhension. Comprenez le coréen dans votre langue et apprenez-le.",
+    "valueUnderstandingDesc": "Le coréen devrait s'apprendre en coréen. Mais si vous ne parlez pas coréen et que vous apprenez uniquement en coréen, ce n'est pas facile. Amazing Korean prend en charge {{langCount}} langues pour faciliter votre compréhension. Comprenez le coréen dans votre langue et apprenez-le.",
     "ctaTitle": "Commencez maintenant",
     "ctaStart": "Commencer gratuitement",
     "ctaBrowseBooks": "Parcourir les manuels",
-    "stat1Title": "34 langues, 68 éditions de manuels",
+    "stat1Title": "{{langCount}} langues, {{editionCount}} éditions de manuels",
     "stat1Desc": "Apprenez le coréen dans votre langue grâce à des manuels dédiés pour chaque langue.",
     "stat2Title": "500 phrases fondamentales",
     "stat2Desc": "Un apprentissage des bases du coréen basé sur la grammaire élémentaire (temps, particules) et la structure de la phrase (prédicats, adverbiaux)."
@@ -512,7 +512,7 @@
     "catalog": {
       "badge": "E-book",
       "title": "E-book Amazing Korean",
-      "subtitle": "E-books pour étudiants et professeurs en 22 langues,\ndisponibles pour une lecture en ligne immédiate.",
+      "subtitle": "E-books pour étudiants et professeurs en {{langCount}} langues,\ndisponibles pour une lecture en ligne immédiate.",
       "teacherEdition": "Professeur",
       "studentEdition": "Étudiant",
       "viewGrid": "Vue en grille",
@@ -577,11 +577,11 @@
   "textbook": {
     "heroBadge": "Manuels Amazing Korean",
     "heroTitle": "Commander des manuels",
-    "heroSubtitle": "Commandez des manuels en 22 langues. Éditions étudiant et enseignant disponibles.",
+    "heroSubtitle": "Commandez des manuels en {{langCount}} langues. Éditions étudiant et enseignant disponibles.",
     "catalog": {
       "badge": "Manuel",
       "title": "Collection de manuels de coréen",
-      "description": "Commencez votre apprentissage systématique du coréen\navec des éditions étudiant et enseignant en 22 langues.",
+      "description": "Commencez votre apprentissage systématique du coréen\navec des éditions étudiant et enseignant en {{langCount}} langues.",
       "studentSection": "Édition étudiant",
       "teacherSection": "Édition enseignant",
       "orderButton": "Commander",
@@ -849,7 +849,7 @@
     },
     "textbook": {
       "title": "Commande de manuels - Amazing Korean",
-      "description": "Commandez des manuels Amazing Korean en ligne. Disponibles en 20 langues, éditions étudiant et enseignant."
+      "description": "Commandez des manuels Amazing Korean en ligne. Disponibles en {{langCount}} langues, éditions étudiant et enseignant."
     },
     "textbookStatus": {
       "title": "Suivi de commande - Amazing Korean",
@@ -865,11 +865,11 @@
   "bookHub": {
     "badge": "Manuel Amazing Korean",
     "title": "Manuel de coréen",
-    "subtitle": "Découvrez des manuels de coréen disponibles en 22 langues",
+    "subtitle": "Découvrez des manuels de coréen disponibles en {{langCount}} langues",
     "ctaTextbook": "Catalogue imprimé",
     "ctaEbook": "Catalogue E-book",
     "slideTitle0": "Amazing Korean Basics",
-    "slideDesc0": "Amazing Korean makes learning Korean easy.\nYou can understand Korean in any of 22 languages.\nAmazing Korean Basics is the first step to study TOPIK and EPS-TOPIK.\nFrom pronunciation to basic grammar, sentence structure, and 500 sentences to build your Korean foundation.",
+    "slideDesc0": "Amazing Korean makes learning Korean easy.\nYou can understand Korean in any of {{langCount}} languages.\nAmazing Korean Basics is the first step to study TOPIK and EPS-TOPIK.\nFrom pronunciation to basic grammar, sentence structure, and 500 sentences to build your Korean foundation.",
     "slideTitle1": "Hangul",
     "slideDesc1": "Learn Korean consonants and vowels by writing and speaking them.\nSystematically study the combination principles of 14 consonants and 21 vowels.\nPractice writing with stroke order guides while mastering accurate pronunciation.\nLearn complex characters like double consonants and compound vowels step by step.",
     "slideTitle2": "Pronunciation",
@@ -880,7 +880,7 @@
     "slideDesc4": "500 essential sentences built from commonly used\nKorean expressions to help you master the basics.\nOrganized by frequency and difficulty, learn from\nimportant grammar to complex expressions step by step.",
     "slideTitle5": "Grammar Summary",
     "slideDesc5": "Frequently used and complex grammar points organized in tables for quick reference.\nCovers tricky topics like irregular conjugations, formal/informal speech, and connective endings.\nServes as a grammar dictionary you can refer to anytime during your studies.\nSystematically presents key grammar frequently appearing in Korean language exams.",
-    "slideTags0": "22 Languages,500 Sentences,TOPIK & EPS-TOPIK",
+    "slideTags0": "{{langCount}} Languages,500 Sentences,TOPIK & EPS-TOPIK",
     "slideTags1": "Consonants,Vowels,Writing Practice",
     "slideTags2": "Tense Consonants,Final Consonants,Liaison",
     "slideTags3": "Tenses,Particles,Interrogatives",
