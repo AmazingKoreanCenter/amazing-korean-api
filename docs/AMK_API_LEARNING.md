@@ -600,7 +600,7 @@
 - **Fallback 순서**: 사용자 언어(`?lang=`) → `en` → `ko` (한국어 원본)
 - **공개 조건**: `status = 'approved'` 인 번역만 콘텐츠 API에서 제공
 - **기존 콘텐츠 API 확장**: 레슨, 코스, 학습, 비디오 등 기존 API에 `?lang=` 쿼리 파라미터 추가
-- **번역 인프라**: `content_translations` 의 콘텐츠 번역은 amazing-korean-books seed SQL 로 일괄 생성 후 관리자 검수. **frontend UI locale (`frontend/src/i18n/locales/{lang}.json`) 번역**은 `amazing-korean-ai` 리포의 Mac Mini Wave 1 파이프라인이 SSoT — Ollama `gemma4:26b` + 검증 4종 (E1/M01/Q-prefix/orthography) + 외부 LLM 합의. 자체 도구로 번역 금지. 상세: `amazing-korean-ai/docs/AMK_AI_TRANSLATION_HANDOFF.md`
+- **번역 인프라 (2026-05-18 정정)**: `content_translations` 의 콘텐츠 번역 = **Mac Mini 파이프라인이 정본** (구 amazing-korean-books seed SQL 방식은 폐기 — books `scripts/guide-v2/seed_output/*_translations.sql` 무시). books 는 콘텐츠 **본문(ko 원문)** 만 시드(study/task 테이블 컬럼), 다국어 overlay 는 본문 시드 후 Mac Mini 가 후속 일괄(explanation 선례와 동형). **frontend UI locale (`frontend/src/i18n/locales/{lang}.json`) 번역**도 `amazing-korean-ai` 리포의 Mac Mini Wave 1 파이프라인이 SSoT — Ollama `gemma4:26b` + 검증 4종 (E1/M01/Q-prefix/orthography) + 외부 LLM 합의. 자체 도구로 번역 금지. 상세: `amazing-korean-ai/docs/AMK_AI_TRANSLATION_HANDOFF.md`
 
 **지원 언어 (36개, `ko` 원본 제외, 아랍어 RTL 별도)**
 
@@ -1041,6 +1041,31 @@ api 독립 전수 검증(meta.self_check 비신뢰, 직접 재계산): 산출 A 
 #### 다음 흐름
 
 api 스키마 확정(미결정 i18n 1건 해소 후) → books가 그 형식으로 시드 생성기 변환 추가 → 맥미니 번역 i18n_key 기준 content_translations 적재.
+
+---
+
+### 5.11 Phase 11 — study / study_task 콘텐츠 시딩 트랙 🟡 분석 완료, 구현 대기 (2026-05-18)
+
+> 보안 §4 종결 후 사용자 명시 차기 트랙. explanation(§5.10, prod 완료) 외 학습 본문 콘텐츠 시딩. SSoT 메모리 = `project_content_seeding_track`.
+
+**스코프**: study / study_task **텍스트 콘텐츠**. video 제외(TTS·자막 = Phase 16 별건, 사용자 결정). lesson/course = study/task 정착 후 후속.
+
+**소스 (실재 — 별도 생성 불필요)**: `amazing-korean-books/scripts/guide-v2/seed_output/`
+- `20260504_seed_textbook_studies.sql` — study 행
+- `20260505_seed_textbook_tasks.sql` (448KB) — study_task 행
+- `20260506_seed_textbook_translations.sql` — **무시** (번역=Mac Mini 정본, §5.9 정정)
+- books `놀라운 한국어 500 해설집_완성/*.html`(76개) = 사람용 렌더링 뷰(어휘·플래시카드·연습 인터랙티브 포함). **실제 구조 데이터 SSoT = `scripts/guide-v2/` 파이프라인** (HTML 직접 파싱 아님).
+
+**번역**: 본문(ko 원문)은 study/study_task 테이블 컬럼에 직접 저장. 다국어 overlay = 본문 시드 후 Mac Mini 후속 일괄(explanation 선례 동형). books `_translations.sql` 정본 아님.
+
+**검증된 패턴 (explanation 선례, §5.10)**: api 스키마 확정 → books export(계약 `amazing-korean-books/docs/guide/explanation_seed_contract_from_api.md`) → `JSON + src/bin/seed_*.rs 멱등 로더 + 연결키/FK 검증`. study/task 도 동형 계약 필요할 수 있음.
+
+**api 인프라 상태**: study/study_task/course = 스키마·서빙 API·i18n 폴백 완성(§5.5/§5.8/§5.9). lesson = i18n 폴백 미연결 가능성(소규모, 구현 시 실측). study/task 테이블 = 테스트 데이터(~2/19건)만, 본 콘텐츠 비어있음.
+
+**다음 세션 본작업 2건**:
+1. **스키마 정합 검증** — books `20260504/05` SQL(5/3~14 생성) ↔ 현재 api 스키마. 그 사이 `study_task_idx`([migrations/20260418_study_task_idx.sql](../migrations/20260418_study_task_idx.sql)) / writing 종류([migrations/20260412](../migrations/)) 추가 → drift 가능.
+2. **적재 방식 결정** — raw SQL 직접 실행 vs explanation식 `seed_study.rs` 멱등 로더(재실행 안전·FK 검증). raw INSERT = 재시딩 시 중복/깨짐 위험.
+- 착수 순서: **study 먼저** (`study_task_idx`가 이미 prod live explanation 과 연결 → 정합 기준 명확).
 
 ---
 
