@@ -13,6 +13,13 @@
 > 마이그레이션 (textbook 직접, 8개): `20260226_textbook.sql`, `20260303_textbook_improvements.sql`, `20260323_textbook_tax_fields.sql`, `20260324_textbook_user_id.sql`, `20260423_textbook_order_discount.sql`, `20260424_textbook_orderer_email_optional.sql`, `20260503_textbook_language_expand.sql`, `20260507_textbook_add_english.sql`
 > 관련 마이그레이션 (supported_language): `20260310_add_tl_language.sql` (textbook 직접 X — supported_language enum tl 변형 추가)
 
+> **표지 에셋 (2026-05-18)**: 카탈로그/ebook 페이지는 `CoverCard` 가 `/covers/{student|teacher}-{langcode}.webp` 표시. `frontend/public/covers/` = 22언어×2=44 보유. 36 available 확장으로 **14언어 표지 미존재 → 깨짐**(am/ar/bn/es_es/fa/it/ky/lo/pl/pt_pt/sw/tr/uk/ur). **B 적용 완료**: `CoverCard` `onError` → `ImageOff` 플레이스홀더(깨진 이미지 제거·재발 방어, i18n 키 무추가). **A = books 핸드오프 대기 (사용자 결정 books 파이프라인)**:
+> - **산출 요청**: 위 14언어 × {student,teacher} = **28 WebP**. books `generate_cover_images.js`(기존 22 동일 파이프라인) 사용.
+> - **규격 (기존 22 실측 일치 필수)**: WebP lossy(VP8), **805×1138 px**, ~40KB, **앞표지만**(전체 wrap PDF 아님).
+> - **파일명**: `{student|teacher}-{langcode}.webp`, langcode = api `TextbookLanguage` snake_case (books `ES_ES`→`es_es`, `PT_PT`→`pt_pt`; es_es/pt_pt 별도 표지 PDF books 실재).
+> - **소스**: books `books/{student,teacher}-cover/AMK_*_COVER_{LANG}.pdf` (14언어 전부 존재 확인).
+> - **반영처**: `amazing-korean-api/frontend/public/covers/` (books 생성 → api 리포 수령, explanation 핸드오프 방향과 동일).
+
 <details>
 <summary>📋 Textbook 엔드포인트 상세 (클릭)</summary>
 
