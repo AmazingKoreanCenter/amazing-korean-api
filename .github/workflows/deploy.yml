@@ -45,6 +45,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # scp(ec2-user) 이전에 bind 마운트 소스 디렉터리 소유권 보정.
+      # Docker 데몬(root)이 compose 의 ./db-init 소스가 없으면 root 소유로
+      # 자동 생성 → scp untar 가 Permission denied 로 실패(2026-05-18 INC).
+      # 매 배포 멱등 교정 = 재발 불가(fresh EC2 / 디렉터리 삭제 후에도 안전).
+      - name: Prepare EC2 sync dirs (db-init owner fix)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            mkdir -p ~/amazing-korean-api/db-init
+            sudo chown -R ec2-user:ec2-user ~/amazing-korean-api/db-init
+
       - name: Sync docker-compose.prod.yml + nginx config to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
