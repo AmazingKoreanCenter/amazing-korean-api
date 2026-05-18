@@ -1,8 +1,20 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-18 — 광범위 온라인 콘텐츠 시딩 트랙 현황 분석 완료 (study/task, 구현=다음 세션) + 보안 §4 종결
+updated: 2026-05-18 — 콘텐츠 시딩 1차 구현 (HYMN 귀속계정 bin + study/task 숨김 시드, prod 적용 대기) + 보안 §4 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-18 ✅ — 콘텐츠 시딩 1차 구현: HYMN 귀속계정 bin + study/task 숨김 시드 (커밋 `eff6994`, prod 적용 대기)**
+
+  #149 분석 후속. 사용자 결정: HYMN=귀속전용(로그인 불가) / 숨김 시딩(staged rollout) / 기존 books 파일(20260504/05 — 20260425/26 과 byte-identical·스키마 수동검증)+로컬 dry-run(books 재생성 비요구) / 번역=Mac Mini 정본.
+
+  **HYMN 선행 계정** (`src/bin/seed_hymn_account.rs` 신규): books studies SQL 이 `user_auth='HYMN'` 없으면 RAISE EXCEPTION abort → 콘텐츠 시딩 선행 조건. **raw SQL 불가** — `user_email`/`user_name`/`user_birthday` = 앱 KeyRing(AES-256-GCM) + HMAC blind index 컬럼이라 prod 앱 키로 암호화해야만 함 → 앱 `CryptoService`(AAD `users.user_email` 등 read 경로 정확 일치) 사용하는 bin 필수(explanation/rekey 선례). 귀속 전용 = `user_state=false`·`user_password=NULL`(로그인 차단, FK 대상으로만). 멱등(`user_auth='HYMN'` 존재 skip + `ON CONFLICT(user_email_idx) DO NOTHING`). 신원 `system@amazingkorean.net`/`HYMN`/KR (사실상 영구 — 콘텐츠 FK 귀속). Dockerfile 3곳(더미+touch+런타임 COPY, bin 동시수정 규칙).
+
+  **시드 파일**: `seeds/20260518_seed_textbook_studies.sql` = books guide-v2 `20260504` 복사, **유일 차이 `study_state` 'open'→'ready' 67행**(숨김 시딩). `_tasks.sql` = books `20260505` 무변경(study_task 500 typing + study_task_typing 500). 번역 행 0(ko 원문만, content_translations=Mac Mini 후속). `seeds/` 는 Dockerfile `COPY seeds` 로 이미지 반입(deploy.yml scp 불요).
+
+  **숨김 근거 (검증)**: 서빙 전 경로가 `study_state='open'` 필터(`src/api/study/repo.rs:169/216/290/442`) → `ready`=전 사용자 비노출. study_task 가시성=부모 study JOIN→자동 숨김. studies UPSERT `DO UPDATE SET`=title/subtitle/desc 만(study_state 미포함) → 후속 공개 flip(`UPDATE study SET study_state='open' WHERE study_idx LIKE 'amk500-%'`) 한 값을 재시딩이 안 되돌림(footgun 없음).
+
+  **검증**: cargo check/clippy/fmt clean + **로컬 전체체인 dry-run**(fresh DB 현 마이그 30 → hymn → studies → tasks): HYMN state=false/pw=NULL·멱등 skip / study 67 전부 ready·open 0 / task 500 typing / typing 500 q&a / task→study FK 500 · updated_by=HYMN study67·task500 전부 / 멱등 재시딩 행수 불변 / flip(open) 후 재시딩 open 보존 — 전부 PASS. dry-run 이 로컬 `.env` 빈 crypto 키(EBOOK_IMAGE/HMAC) 적발 = 버그 아님(prod 실 키, 앱 자체 Config::from_env 정상 가동), prod 전 사전검증 = 세션 교훈 적용. **prod 적용 런북 = `AMK_API_LEARNING §5.11`** (머지·배포 → `docker exec amk-api /app/seed_hymn_account` → studies/tasks SQL 파이프 → 검증, 멱등). 후속(별건): Mac Mini content_translations / choice·voice·writing·어휘 books 확장 / lesson·course.
 
 - **2026-05-18 📋 — 광범위 온라인 콘텐츠 시딩 트랙 현황 분석 (구현=다음 세션)**
 
