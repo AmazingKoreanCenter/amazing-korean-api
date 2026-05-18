@@ -82,7 +82,7 @@
 - 각 항목 수량: 1~9999
 - 중복 항목 거부 (같은 language + textbook_type 조합 불가)
 - 비활성 언어 주문 차단 (카탈로그 `available=false`)
-- `isbn_ready`: ISBN 발급 완료 여부. false인 언어는 ISBN 발급 후 인쇄 → 배송 약 1주 추가 소요. 발급 완료 9개: ja, zh_cn, vi, th, ne, ru, km, tl, id
+- `isbn_ready`: ISBN 발급+인쇄+납본 완료 여부. false인 언어는 ISBN 발급 후 인쇄 → 배송 약 1주 추가 소요. **발급 완료 12개** (2026-05-18 정정, books ISBN/PRINT/납본 로그): ja, zh_cn, vi, th, id, ru, ne, km, tl, en (10, 2026-03-18) + mn (2026-03-27) + tg (2026-05-11)
 - tax_invoice=true일 때 tax_biz_number + tax_email 필수
 - IP 기반 Rate Limiting (Redis, 기본 5회/시간)
 
