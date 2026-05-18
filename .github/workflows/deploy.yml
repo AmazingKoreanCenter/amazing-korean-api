@@ -51,9 +51,12 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          # docker-compose.prod.yml → ~/amazing-korean-api/
-          # nginx/nginx.conf     → ~/amazing-korean-api/nginx/nginx.conf (경로 보존)
-          source: "docker-compose.prod.yml,nginx/nginx.conf"
+          # docker-compose.prod.yml      → ~/amazing-korean-api/
+          # nginx/nginx.conf             → ~/amazing-korean-api/nginx/nginx.conf (경로 보존)
+          # db-init/10_least_priv_role.sql → ~/amazing-korean-api/db-init/... (경로 보존)
+          #   ↑ 보안 2.3: compose 의 ./db-init bind 마운트 소스. 이 줄 없으면 호스트
+          #     db-init/ 가 비어 컨테이너 /docker-entrypoint-initdb.d/ 도 빈 채로 마운트됨.
+          source: "docker-compose.prod.yml,nginx/nginx.conf,db-init/10_least_priv_role.sql"
           target: "~/amazing-korean-api/"
 
       - name: Deploy to EC2

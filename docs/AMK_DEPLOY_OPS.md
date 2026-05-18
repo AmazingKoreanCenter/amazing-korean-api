@@ -930,17 +930,20 @@ curl -s "https://api.amazingkorean.net/explanations?study_task_idx=amk500-sent-0
 
 - `db-init/10_least_priv_role.sql` (멱등) = `amk_app` LOGIN NOSUPERUSER 생성 + public 스키마 GRANT/ALTER DEFAULT PRIVILEGES + 기존 앱 객체(table/seq/view/enum) OWNER → amk_app.
 - `docker-compose.prod.yml` db 서비스: `./db-init:/docker-entrypoint-initdb.d:ro` 마운트(신규/재생성 DB 자동·멱등) + `APP_DB_PASSWORD` env.
-- **기존 prod 볼륨엔 initdb 미실행** → 1회 수동 적용 (EC2, §12 시딩과 동일 패턴). `APP_DB_PASSWORD` = Phase 2 에서 쓸 신규 비밀번호를 이때 생성·고정:
+- **⚠️ deploy.yml scp 필수 (2026-05-18 갭 수정)**: EC2 배포는 `deploy.yml` 의 scp step 이 나열한 파일만 호스트에 전달한다. `source` 에 **`db-init/10_least_priv_role.sql` 가 포함돼 있어야** 호스트 `~/amazing-korean-api/db-init/` 가 생성되어 bind 마운트가 빈 디렉터리가 되지 않는다. (이 줄 누락으로 2026-05-17 Phase 1 의 prod 적용이 성립 못 했음 — `amk_app` 0 rows.) scp 수정 = 머지·배포 후 효력.
+- **비밀번호 = URL-safe 영숫자만** (예 `openssl rand -hex 24`). `DATABASE_URL=postgres://amk_app:<pw>@db:5432/...` 에 들어가므로 `/ + = @ : # ?` 포함 시 URL 파서 오파싱 → 컷오버 시 접속 실패. base64 금지.
+- **기존 prod 볼륨엔 initdb 미실행** → 1회 수동 적용. scp 수정 배포 후, **호스트 파일을 stdin 으로 투입**(bind 마운트 상태와 무관 — 컨테이너 재생성 불필요·무중단). `APP_DB_PASSWORD` = Phase 2 에서 쓸 값을 이때 생성·고정:
 
 ```bash
-APP_DB_PASSWORD='<생성한-강한-비밀번호>' \
+# EC2 에서 (scp 수정 배포로 ~/amazing-korean-api/db-init/10_least_priv_role.sql 존재 후)
+APP_DB_PASSWORD="$(openssl rand -hex 24)"; echo "$APP_DB_PASSWORD"   # 복사·보관
 docker exec -i -e APP_DB_PASSWORD="$APP_DB_PASSWORD" amk-pg \
   psql -U postgres -d amazing_korean_db -v ON_ERROR_STOP=1 \
-  -f /docker-entrypoint-initdb.d/10_least_priv_role.sql
-# 검증: SELECT rolname,rolsuper FROM pg_roles WHERE rolname='amk_app'; → amk_app|f
+  < ~/amazing-korean-api/db-init/10_least_priv_role.sql
+# 검증: SELECT rolname,rolsuper,rolcanlogin FROM pg_roles WHERE rolname='amk_app'; → amk_app|f|t
 ```
 
-> 가드: `APP_DB_PASSWORD` 미설정/빈값이면 스크립트가 중단(빈 비밀번호 role 방지). 멱등 — 재실행 안전.
+> 가드: `APP_DB_PASSWORD` 미설정/빈값이면 스크립트가 중단(빈 비밀번호 role 방지). 멱등 — 재실행 안전. `\getenv` 는 `docker exec -e` 로 주입한 컨테이너 프로세스 env 를 읽으므로 stdin 투입과 무관하게 동작.
 
 **Phase 2 — 컷오버 (별도 게이트, 사용자 명시 승인 필요)**
 

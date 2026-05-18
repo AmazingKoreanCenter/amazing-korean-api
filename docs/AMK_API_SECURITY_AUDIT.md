@@ -15,7 +15,7 @@
 
 SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장 시급한 두 가지는
 **(1) ~~발급된 access token 이 로그아웃/비밀번호 변경 후에도 만료 전까지 유효~~ → 2.1 완료(2026-05-17, fail-open+관찰성)**,
-**(2) DB 슈퍼유저 접속**(2.3). → **2.1·2.2·2.4·2.5·2.6 완료, 2.3 Phase 1 완료(Phase 2 컷오버만 게이트 대기)** (2026-05-17). 🔴/🟡 실질 종결, 🟢 장기만 잔존.
+**(2) DB 슈퍼유저 접속**(2.3). → **2.1·2.2·2.4·2.5·2.6 완료(prod 검증)**. **2.3 = (2026-05-18 정정) Phase 1 prod 미적용** — deploy.yml scp 가 db-init 누락해 SQL 이 EC2 에 전달된 적 없음(아래 §2.3). scp 수정 후 P1→P2→Phase 2 순. 🔴/🟡 거의 종결(2.3 prod 실적용만 잔존), 🟢 장기만 별도.
 
 ---
 
@@ -72,8 +72,9 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
 - **수정 방향(원안)**: 런타임 전용 role + 마이그 role 분리.
 - **2026-05-17 사실 조사**: 앱은 **상시** `postgres` superuser 접속(`docker-compose.prod.yml:14`), 부팅마다 `sqlx::migrate!`(DDL) 실행(`main.rs:61`). superuser-only 연산(EXTENSION/ROLE/SYSTEM/COPY) **0건** = 불필요. **악용·사고 이력 0**(SQLi 0, IDOR 방어) → 잠재 폭발반경 위험(미실현). 부팅-마이그 동연결이라 순수 DML "최소권한"은 부팅 차단 → **단일 NOSUPERUSER 소유 role** 채택(원안의 마이그/런타임 풀분리는 수익체감·고위험으로 비채택, 사용자 결정).
 - **Phase 1 완료 (2026-05-17, 런타임 영향 0)**: `db-init/10_least_priv_role.sql`(멱등) — `amk_app` LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE + public GRANT/ALTER DEFAULT PRIVILEGES + 앱 객체(table/seq/view/enum) OWNER→amk_app. `docker-compose.prod.yml` db 에 `db-init` initdb 마운트(+`APP_DB_PASSWORD` env). 앱은 **계속 postgres 접속**(DATABASE_URL 불변) = 동작 무변경. 로컬 amk-pg dry-run 검증: env없음/빈값 중단·정상 멱등 2회·table/enum owner=amk_app·NOSUPERUSER 확인 (dry-run 이 `REASSIGN OWNED BY postgres` 거부 + psql `$$` 내 `:'var'` 미치환 2버그 사전 적발·정정). 절차 = `AMK_DEPLOY_OPS.md §13`.
+- **🐛 Phase 1 배포 갭 발견·수정 (2026-05-18)**: Phase 2 착수 전 prod 실측 → `pg_roles` 에 `amk_app` **0 rows**(미생성), `docker exec amk-pg ls /docker-entrypoint-initdb.d/` = 비어 있음(`total 0`). **근본 원인**: `deploy.yml` scp step 의 `source` 가 `docker-compose.prod.yml,nginx/nginx.conf` 2개만 — `db-init/` 누락 → 호스트 `~/amazing-korean-api/db-init/` 미생성 → compose 의 `./db-init` bind 마운트가 빈 디렉터리로 마운트. **Phase 1 의 prod 실 적용은 한 번도 성립한 적 없음**(로컬 dry-run 만 통과한 상태로 "완료" 표기됨 = 검증 깊이 부족). **수정**: `deploy.yml` scp `source` 에 `db-init/10_least_priv_role.sql` 추가(경로 보존, nginx.conf 와 동일 메커니즘). 이후 정식 절차 = scp 수정 머지·배포 → 파일 EC2 도달 → P1(SQL stdin 실행, bind 마운트 무관) → P2(Secret) → Phase 2 컷오버. SSoT 절차 = `AMK_DEPLOY_OPS §13`(갱신).
 - **Phase 2 미실행 (게이트, 사용자 명시 승인 필요)**: `DATABASE_URL` user `postgres→amk_app` 교체 — Secret+compose+deploy.yml+§13 4곳 동시(INC-001 클래스). 롤백=user 환원 즉시.
-- [~] **Phase 1 완료 / Phase 2 게이트 대기 (2026-05-17)**
+- [~] **Phase 1 = scp 갭 수정 후 prod 실적용 대기 / Phase 2 게이트 대기 (2026-05-18 정정)**
 
 #### 2.4 cargo-deny PR 미실행
 - **문제**: 주간 스케줄+수동만. 신규 취약 의존성이 머지 후 최대 1주 노출.
@@ -87,7 +88,7 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
   4. `core2 0.4.0` yanked (image→ravif→rav1e→bitstream-io 전이, 업그레이드 경로 없음) → `[advisories] yanked="deny"→"warn"`
 - **본질 판정**: 1~3 = 메커니즘 교정·명시 정책결정(게이트 본질 무손상). 4 = 회피불가 trade-off지만 실 보안 신호 `RUSTSEC-2026-0105` 는 `advisories.ignore` 에서 영향평가 후 strict 별도 보존 → 현상 무마 아닌 문서화된 의도적 결정. yanked deny 유지 시 고칠 수 없는 전이 의존이 **모든 PR 영구 차단 → 게이트 무력화/우회**(순보안 손실)라 채택 불가.
 - **로컬 검증 SOP 정착**: `cargo-deny 0.19.6` 로컬 설치 → 푸시 전 `cargo deny check` 로 advisories/licenses/bans/sources 4종 확정 검증. 더는 blind CI 왕복(push→대기→다음 에러) 없음. **deny.toml 변경 시 = 로컬 `cargo deny check` 선행 필수.**
-- **프로덕션 라이브 검증 (2026-05-17, main `0fab7b2`)** — KKRYOUN→main squash 머지 후 EC2 deploy success. `/health 200` / CSP `default-src 'none'; frame-ancestors 'none'`(2.6, `/docs` 완화) / explanation API `sent:300` 실데이터 풀 응답 + `?study_task_idx=` list 200. 보안 §4 (2.1·2.2·2.4·2.5·2.6 + 2.3 Phase 1) prod 동작 확정.
+- **프로덕션 라이브 검증 (2026-05-17, main `0fab7b2`)** — KKRYOUN→main squash 머지 후 EC2 deploy success. `/health 200` / CSP `default-src 'none'; frame-ancestors 'none'`(2.6, `/docs` 완화) / explanation API `sent:300` 실데이터 풀 응답 + `?study_task_idx=` list 200. **prod 동작 확정 범위 = 2.1·2.2·2.4·2.5·2.6 한정.** (정정 2026-05-18) "2.3 Phase 1 prod 동작 확정"은 **과한 표현이었음** — 확정된 것은 DATABASE_URL 불변이라 배포해도 런타임 무변경뿐이고, `db-init/10_least_priv_role.sql` 의 EC2 전달은 검증된 적 없으며 실제로 누락(아래 §2.3 scp 갭) 이었다.
 
 #### 2.5 관리자 IP allowlist 의 XFF 신뢰
 - **문제**: `extract_client_ip` 가 `x-forwarded-for` 첫 값 신뢰. 신뢰 프록시 hop 검증 없음 → 클라가 XFF 위조해 allowlist 우회 가능. (현재 `ADMIN_IP_ALLOWLIST` 비어 미사용 — 활성화 시 위험)
