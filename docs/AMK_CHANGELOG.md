@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-18 — 보안 감사 2.3 Phase 2 DB 컷오버(postgres→amk_app NOSUPERUSER) prod 라이브 검증 완료 = 보안 §4 2.1~2.6 전부 종결
+updated: 2026-05-18 — 광범위 온라인 콘텐츠 시딩 트랙 현황 분석 완료 (study/task, 구현=다음 세션) + 보안 §4 종결
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-18 📋 — 광범위 온라인 콘텐츠 시딩 트랙 현황 분석 (구현=다음 세션)**
+
+  보안 §4 종결 후 사용자 명시 차기 트랙. 착수 전 api 관점 현황 파악. **스코프**: study/study_task 텍스트(video 제외=Phase 16). **소스 실재 — 지난 "시드 비어있음" 판단 정정**: books `scripts/guide-v2/seed_output/20260504_seed_textbook_studies.sql`+`20260505_..._tasks.sql`(448KB) 이미 생성됨. books `놀라운 한국어 500 해설집_완성/*.html`(76)=사람용 렌더링 뷰, 실 구조 데이터 SSoT=`scripts/guide-v2/` 파이프라인(HTML 직접 파싱 아님). **번역=Mac Mini 정본**(사용자 확정 — 원래 books, 맥미니 도입 후 일괄 이관): books `20260506_..._translations.sql` **무시**. 본문 ko=study/task 테이블 컬럼, 다국어 overlay=본문 시드 후 맥미니 후속(explanation §5.10 동형). **explanation 평가**: 우리가 한 추출 = 스펙 부합·계약(`books/docs/guide/explanation_seed_contract_from_api.md`) 기반·재작업 0(books HTML 의 exp-table → structured 충실 추출 확인). **문서**: `AMK_API_LEARNING §5.11` 신설 + `§5.9` 번역 인프라 정정(books seed SQL→Mac Mini), `AMK_STATUS #149`, 메모리 `project_content_seeding_track` 신규. **다음 세션 본작업 2건**: ① books SQL↔현 api 스키마(study_task_idx 20260418/writing 20260412 이후) 정합 검증 ② 적재 방식(raw SQL vs `seed_study.rs` 멱등 로더), study 먼저. **AI 사고**: Explore subagent 2 오류("explanation 메인 대기"/"시드 비어있음")를 메모리·prod·books 실측 교차로 정정 = subagent 결과 verify-before-assert.
 
 - **2026-05-18 ✅ — 보안 감사 2.3 Phase 2: DB 컷오버 postgres → amk_app NOSUPERUSER (보안 §4 전부 종결)**
 
