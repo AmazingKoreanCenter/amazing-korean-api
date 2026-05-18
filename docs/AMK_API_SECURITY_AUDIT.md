@@ -15,7 +15,7 @@
 
 SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장 시급한 두 가지는
 **(1) ~~발급된 access token 이 로그아웃/비밀번호 변경 후에도 만료 전까지 유효~~ → 2.1 완료(2026-05-17, fail-open+관찰성)**,
-**(2) DB 슈퍼유저 접속**(2.3). → **2.1·2.2·2.4·2.5·2.6 완료(prod 검증)**. **2.3 = (2026-05-18 정정) Phase 1 prod 미적용** — deploy.yml scp 가 db-init 누락해 SQL 이 EC2 에 전달된 적 없음(아래 §2.3). scp 수정 후 P1→P2→Phase 2 순. 🔴/🟡 거의 종결(2.3 prod 실적용만 잔존), 🟢 장기만 별도.
+**(2) DB 슈퍼유저 접속**(2.3). → **2.1~2.6 전부 완료**(2026-05-18). 2.3 = scp 갭 2건 수정 → P1 prod SQL → P2 Secret → Phase 2 컷오버(`DATABASE_URL` user `postgres→amk_app` NOSUPERUSER). **🔴/🟡 전부 종결**, 🟢 장기만 별도 트랙.
 
 ---
 
@@ -74,7 +74,7 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
 - **Phase 1 완료 (2026-05-17, 런타임 영향 0)**: `db-init/10_least_priv_role.sql`(멱등) — `amk_app` LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE + public GRANT/ALTER DEFAULT PRIVILEGES + 앱 객체(table/seq/view/enum) OWNER→amk_app. `docker-compose.prod.yml` db 에 `db-init` initdb 마운트(+`APP_DB_PASSWORD` env). 앱은 **계속 postgres 접속**(DATABASE_URL 불변) = 동작 무변경. 로컬 amk-pg dry-run 검증: env없음/빈값 중단·정상 멱등 2회·table/enum owner=amk_app·NOSUPERUSER 확인 (dry-run 이 `REASSIGN OWNED BY postgres` 거부 + psql `$$` 내 `:'var'` 미치환 2버그 사전 적발·정정). 절차 = `AMK_DEPLOY_OPS.md §13`.
 - **🐛 Phase 1 배포 갭 발견·수정 (2026-05-18)**: Phase 2 착수 전 prod 실측 → `pg_roles` 에 `amk_app` **0 rows**(미생성), `docker exec amk-pg ls /docker-entrypoint-initdb.d/` = 비어 있음(`total 0`). **근본 원인**: `deploy.yml` scp step 의 `source` 가 `docker-compose.prod.yml,nginx/nginx.conf` 2개만 — `db-init/` 누락 → 호스트 `~/amazing-korean-api/db-init/` 미생성 → compose 의 `./db-init` bind 마운트가 빈 디렉터리로 마운트. **Phase 1 의 prod 실 적용은 한 번도 성립한 적 없음**(로컬 dry-run 만 통과한 상태로 "완료" 표기됨 = 검증 깊이 부족). **수정 1**: `deploy.yml` scp `source` 에 `db-init/10_least_priv_role.sql` 추가(경로 보존). **2차 실패 (2026-05-18, 같은 추적)**: scp 머지 후 배포 = `tar: db-init/10_least_priv_role.sql: Cannot open: Permission denied`. 실측 = 호스트 `~/amazing-korean-api/db-init` 가 `root:root` 소유(어제 마운트-추가 compose 의 `docker compose up -d` 때 Docker 데몬이 없는 bind 소스를 root 로 자동 생성) → scp(ec2-user) 가 그 안에 못 씀. **수정 2**: `deploy.yml` scp 단계 **이전에** ssh 단계 추가 — `mkdir -p ~/amazing-korean-api/db-init && sudo chown -R ec2-user:ec2-user ...`(매 배포 멱등 = fresh EC2/디렉터리 삭제 후에도 재발 불가). 이후 정식 절차 = 수정 머지·배포 → 파일 EC2 도달 → P1(SQL stdin 실행, bind 마운트 무관) → P2(Secret) → Phase 2 컷오버. SSoT 절차 = `AMK_DEPLOY_OPS §13`(갱신).
 - **Phase 2 미실행 (게이트, 사용자 명시 승인 필요)**: `DATABASE_URL` user `postgres→amk_app` 교체 — Secret+compose+deploy.yml+§13 4곳 동시(INC-001 클래스). 롤백=user 환원 즉시.
-- [~] **Phase 1 = scp 갭 수정 후 prod 실적용 대기 / Phase 2 게이트 대기 (2026-05-18 정정)**
+- [x] **2.3 완료 (2026-05-18)** — scp 갭 2건 수정(source+chown) 배포 → P1 EC2 prod SQL stdin 적용(`amk_app|f|t` 검증) → P2 Secret 등록 → Phase 2 컷오버(compose `DATABASE_URL` user `postgres→amk_app` + deploy.yml `.env.prod` `APP_DB_PASSWORD`). 앱이 NOSUPERUSER role 로 DB 접속 = superuser 폭발반경(COPY PROGRAM RCE/CREATE ROLE/타 DB/ALTER SYSTEM) 제거. `postgres` = break-glass 잔존. 배포 후 라이브 검증 = `pg_stat_activity` usename `amk_app` 단독 + `/health 200` + 부팅 마이그 정상.
 
 #### 2.4 cargo-deny PR 미실행
 - **문제**: 주간 스케줄+수동만. 신규 취약 의존성이 머지 후 최대 1주 노출.
@@ -136,7 +136,7 @@ SQL 인젝션·IDOR·시크릿 노출·비밀번호 저장은 **견고**. 가장
   [x] 2.2 JWT iss 강제 + reset 레거시 JWT 폴백 제거(계정 탈취 차단) (2026-05-17 완료, 라이브 검증)
 
 🟡 단기
-  [~] 2.3 DB 슈퍼유저 → amk_app NOSUPERUSER (2026-05-17 Phase 1 완료/Phase 2 컷오버 게이트 대기)
+  [x] 2.3 DB 슈퍼유저 → amk_app NOSUPERUSER (2026-05-18 Phase 1+2 완료, 컷오버 배포)
   [x] 2.4 cargo-deny PR 게이트 (2026-05-17 완료)
   [x] 2.5 admin_ip_guard CF-Connecting-IP 권위+fail-closed (2026-05-17 완료, 감사 인용 정정·scope=ip_guard)
   [x] 2.6 CSP 헤더 app 미들웨어 (2026-05-17 완료)
