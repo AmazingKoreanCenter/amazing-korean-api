@@ -646,7 +646,7 @@ impl AuthRepo {
         let rows = sqlx::query_scalar::<_, String>(
             r#"
             SELECT oauth_provider::text
-            FROM user_oauth
+            FROM users_oauth
             WHERE user_id = $1
         "#,
         )
@@ -671,7 +671,7 @@ impl AuthRepo {
     ) -> AppResult<i64> {
         let oauth_id = sqlx::query_scalar::<_, i64>(
             r#"
-            INSERT INTO user_oauth (
+            INSERT INTO users_oauth (
                 user_id, oauth_provider, oauth_subject,
                 oauth_email, oauth_name, oauth_picture_url,
                 oauth_last_login_at,
@@ -698,7 +698,7 @@ impl AuthRepo {
     pub async fn update_oauth_last_login(pool: &PgPool, user_oauth_id: i64) -> AppResult<()> {
         sqlx::query(
             r#"
-            UPDATE user_oauth
+            UPDATE users_oauth
             SET oauth_last_login_at = NOW()
             WHERE user_oauth_id = $1
         "#,
@@ -978,7 +978,7 @@ impl AuthRepo {
                 oauth_provider::text as oauth_provider,
                 oauth_subject,
                 oauth_email
-            FROM user_oauth
+            FROM users_oauth
             WHERE oauth_provider = $1::login_method_enum
               AND oauth_subject_idx = $2
         "#,

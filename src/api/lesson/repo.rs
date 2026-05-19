@@ -110,14 +110,14 @@ impl LessonRepo {
     }
 
     /// 사용자가 특정 레슨에 대한 수강권이 있는지 확인
-    /// (Course 도메인 구현 후 user_course 테이블과 연동)
+    /// (Course 도메인 구현 후 users_course 테이블과 연동)
     pub async fn has_course_access(pool: &PgPool, user_id: i64, lesson_id: i64) -> AppResult<bool> {
-        // user_course 테이블과 course_lesson 매핑을 통해 확인
+        // users_course 테이블과 course_lesson 매핑을 통해 확인
         let has_access = sqlx::query_scalar::<_, bool>(
             r#"
             SELECT EXISTS(
                 SELECT 1
-                FROM user_course uc
+                FROM users_course uc
                 JOIN course_lesson cl ON cl.course_id = uc.course_id
                 WHERE uc.user_id = $1
                   AND cl.lesson_id = $2
