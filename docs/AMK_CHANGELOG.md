@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-19 — 스키마 명명 트랙 2단계 ①②③+검증패스(결함2 정정) 완료(④ 보류·커밋/PR 대기) / 교재 이미지 종결 / 역본 36 / 시딩 1차 / 보안 §4
+updated: 2026-05-19 — 스키마 명명 트랙 2단계 ①②③ + PR #314(CI적발 결함2 정정·main머지) / ④ 보류 / 교재 이미지 종결 / 역본 36 / 시딩 1차 / 보안 §4
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-19 🛠️ — 스키마 명명 트랙 PR #314 CI 적발 결함 2건 정정 + main 머지**
+
+  사용자 머지 시도 → PR #314 CI(pr-check) backend/integration/Playwright FAILURE = 검증 패스도 못 잡은 신규 클래스 2건. **③ 마이그 제약 RENAME 에 `user_export_data_user_id_fkey1`(손패치 로컬 amk-pg 에만 있던 중복 FK; 원본 20260208 은 FK 1회 정의 → clean/prod `_fkey` 단일) 포함** → fresh/CI DB `constraint "..._fkey1" does not exist` 로 마이그 실패. 원인 = 제약명을 SoT(마이그 원본) 아닌 오염된 런타임 DB 스캔으로 작성. **④ `cargo fmt --check` 실패**(리네임으로 길어진 문자열 폭 초과, `cargo fmt` 미실행 = M-008 재발). **정정**: 마이그 3개를 **존재 가드 재작성**(`DO`+`pg_constraint` IF EXISTS / `ALTER INDEX IF EXISTS`) = clean CI·prod 증분·손패치 로컬 모두 안전(환경별 객체집합 차이 가정) + `cargo fmt --all`. **진짜 경로 재현 검증**: fresh DB 에 CI 동일 lexicographic psql 루프로 전체 마이그 → 우리 3 무에러·`_fkey1` 정상 skip·8테이블 전환·구명 0 / backend `cargo fmt --check`+`SQLX_OFFLINE cargo check --locked`+`clippy -D warnings` 0. main(#313) 머지: STATUS/CHANGELOG 충돌만(코드 0) HEAD 상위호환 채택 해소. 사고=`AMK_AI_MISTAKES M-013`(스키마 객체명 SoT=마이그 원본이지 런타임 DB 아님), 상세=`AMK_SCHEMA_NAMING_AUDIT §10.4`. STATUS #154.
 
 - **2026-05-19 🔎 — 스키마 명명 트랙 2단계 커밋 전 검증 패스 (사용자 요구, 결함 2건 적발·정정)**
 

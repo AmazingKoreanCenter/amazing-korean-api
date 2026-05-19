@@ -757,8 +757,9 @@ impl StudyRepo {
         let finished_only = req.finished_only.unwrap_or(false);
 
         // Count
-        let mut qb_count =
-            QueryBuilder::new("SELECT COUNT(*) FROM study_writing_practice_session WHERE user_id = ");
+        let mut qb_count = QueryBuilder::new(
+            "SELECT COUNT(*) FROM study_writing_practice_session WHERE user_id = ",
+        );
         qb_count.push_bind(user_id);
         if let Some(level) = req.level {
             qb_count.push(" AND writing_level = ").push_bind(level);
