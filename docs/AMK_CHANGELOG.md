@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-19 — 스키마 명명 트랙 2단계 ①②③ + PR #314(CI적발 결함2 정정·main머지) / ④ 보류 / 교재 이미지 종결 / 역본 36 / 시딩 1차 / 보안 §4
+updated: 2026-05-19 — 스키마 명명 ①②③ prod 안착 + AUD-1 안착 + KKRYOUN 충돌 근본해소 / 그룹 ④ 분석(R1 다음 세션) / 교재 이미지 종결 / 보안 §4
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-19 🔧 — KKRYOUN PR 충돌 근본해소 + AUD-1 prod 안착 + 그룹 ④ 분석 (R1 다음 세션)**
+
+  **① AUD-1 prod 안착**: PR #315 머지(`ccb6002`)·`Deploy to EC2` success·prod `/health` 200·리네임 테이블 스모크(`study_writing_practice_seed`) 200. **② KKRYOUN 충돌 근본해소**: 반복 PR 충돌(CHANGELOG/STATUS/AUDIT/rekey) 원인 = GitHub **squash 머지**(main `(#NNN)` 단일 새 SHA) + KKRYOUN 머지 후 미리셋 → 71커밋 분기 누적 → 매 PR 같은 high-churn 파일 충돌 재발·악화. 과거 `Merge origin/main into KKRYOUN`은 미봉책(분기 안 없앰). **영구해소**: (a) `feedback_git_branching` 메모리에 "머지 후 즉시 `git reset --hard origin/main`+`--force-with-lease` push" 규칙 정착 (b) `.claude/settings.local.json` 에 `Bash(git push --force-with-lease origin KKRYOUN:*)`·`Bash(git reset --hard origin/main:*)` 권한 2개 추가(분류기 마찰 제거, 사용자 승인) (c) KKRYOUN=origin/main(`ccb6002`) 분기 0 확정. force-push/self-config 가드는 사용자 명시 지시로만 통과(설계상 정상, 우회 안 함). **③ 그룹 ④ 정밀 분석**(`AMK_SCHEMA_NAMING_AUDIT §11`): 이중모델 실측(`study_explain` 0행→학습자 해설 0 / `explanation_*` 568·1317·content_translations 4362 / `/explanations` 클라이언트 소비 전무 — api프론트·mobile·desktop 0). **R3 확정 = R3-a**(`/explanations`→`/study-contents`, 소비처 0 → 계약파손 0). **R1**(A2 순수리네임=저비용·가치0·churn / A1 비권장 / A3 통합후리네임=고비용·트랙본질·학습자 가치) = **다음 세션 결정**(사용자 "내일"). 사고 = `AMK_AI_MISTAKES M-013`. STATUS #154.
 
 - **2026-05-19 🐛 — AUD-1 정정: `rekey_encryption.rs` PK 표기 오류 (별건, 사전존재)**
 
