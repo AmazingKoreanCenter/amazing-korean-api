@@ -77,7 +77,7 @@ fn rekey_targets() -> Vec<RekeyTarget> {
         },
         RekeyTarget {
             table: "users_oauth",
-            pk: "oauth_id",
+            pk: "user_oauth_id",
             columns: vec![
                 RekeyColumn {
                     name: "oauth_email",
