@@ -142,11 +142,37 @@
 
 ---
 
-## 카테고리 분포 (M-001 ~ M-011)
+### M-012 — 마이그 검증을 진짜 경로 대신 대용물로 + 문서 sweep 범위를 판단으로 한정
+
+| 항목 | 내용 |
+|------|------|
+| 발생일 | 2026-05-19 (스키마 명명 2단계 그룹 ①②③ 작업 중) |
+| AI 행위 | 신규 마이그 3개 검증을 `sqlx migrate run`(prod/CI 실제 경로) 대신 `psql` 수동 적용(대용물)으로 수행. 문서 동기화는 SCHEMA_PATCHED/MASTER/LEARNING 등 AI 가 관련 있다고 판단한 문서만 sweep |
+| 누락 행위 | (a) 마이그 파일 3개 버전 prefix 가 전부 `20260519` 동일(`migrations/README.md §1.3` "같은날 복수=연속날짜" 위반) 미검출 — psql 수동적용은 sqlx 버전중복을 안 탐 (b) `docs/` 전역 grep 미실시 → `AMK_APP_ROADMAP.md:134` 구명 `subscriptions` 잔존 미검출 |
+| 사용자 응답 | "커밋하기 전에 ... 추측하지 말고 실제 코드들을 바탕으로 검증해서 보고해" → 이후 "다른 결함은 없는거야?" 재압박 |
+| 결과 | 사용자 요구로 검증 패스 실행, 결함 2건(버전충돌=CI/prod 마이그 실패 유발 / 문서 sweep 누락) 적발·정정. fresh DB `sqlx migrate run` 게이트로 수정 유효 확인(+ 사전존재 G16 부채로 로컬 fresh 검증 천장 확인). 검증 안 했으면 2건 미검출 상태로 커밋될 뻔함 |
+| 후속 | 처방 = "더 정독"이 아니라 판단 기반 샘플링 → 결정론적 전수 게이트 전환(실제 경로 실행 / 전역 grep / 컴파일러 oracle). 잔여 = 명명된 3개(prod checksum 등록·런타임 쿼리 통합테스트·prod 스모크)로 환원, 기존 배포 게이트로 닫음. 상세 = `docs/AMK_SCHEMA_NAMING_AUDIT.md §10` |
+
+---
+
+### M-013 — 손패치 로컬 DB의 제약명을 진실로 신뢰 + cargo fmt 미실행 (CI 적발)
+
+| 항목 | 내용 |
+|------|------|
+| 발생일 | 2026-05-19 (스키마 명명 2단계 커밋·PR #314 후, 사용자 머지 시도 시점) |
+| AI 행위 | M-012 정정 후에도 (a) 마이그 제약 RENAME 대상명을 손패치 로컬 amk-pg `pg_constraint` 스캔 결과로 작성 — 그 DB에만 있던 중복 FK `user_export_data_user_id_fkey1`(원본 20260208 은 FK 1회만 정의, clean/prod 엔 `_fkey` 단일) 포함 (b) 리네임으로 길어진 문자열 편집 후 `cargo fmt` 미실행 |
+| 사용자 응답 | "내가 머지를 시도할테니 모니터링하고 있어" → PR #314 CI = backend/integration/Playwright FAILURE |
+| 누락 행위 | (a) 제약명을 마이그 원본(SoT)에서 도출하지 않고 오염된 런타임 DB 신뢰 — fresh DB 재현 검증을 커밋 전 미실시 (b) `cargo fmt --check` 커밋 전 미실행 (M-008 동일 카테고리 재발) |
+| 결과 | CI 가 차단: `psql:20260519:..: ERROR: constraint "user_export_data_user_id_fkey1" ... does not exist`(integration/Playwright) + `cargo fmt --check` FAILURE(backend). 머지 불가. 사용자 머지 시도가 실제 게이트 역할. 미검출 시 prod 배포 마이그 실패 가능 |
+| 후속 | 마이그 3개 = 존재 가드(DO + `pg_constraint` IF EXISTS + `ALTER INDEX IF EXISTS`) 환경독립 재작성. `cargo fmt --all` 적용. **fresh DB 에 CI 동일 lexicographic psql 루프로 전체 마이그 재현 검증**(우리 3 무에러·`_fkey1` 정상 skip·8테이블 전환 확인) = 대용물 아닌 진짜 경로. 교훈: 스키마 객체명 SoT = 마이그 원본이지 런타임 DB 아님(특히 손패치 환경). 상세 = `AMK_SCHEMA_NAMING_AUDIT.md §10` |
+
+---
+
+## 카테고리 분포 (M-001 ~ M-013)
 
 | 카테고리 | 사고 ID | 공통 행위 |
 |----------|---------|----------|
-| 사전 상태 미확인 | M-001, M-003, M-004, **M-008**, **M-010** | 작업 시작 전 현재 상태 (origin / git status / baseline / CI step 활성 여부 / **외부 API 응답**) 확인 누락 |
+| 사전 상태 미확인 | M-001, M-003, M-004, **M-008**, **M-010**, **M-012**, **M-013** | 작업 시작 전/검증 시 현재 상태 (origin / git status / baseline / CI step / 외부 API / **실제 적용 경로·전역 범위·SoT 출처**) 확인 누락. M-012 = 진짜 경로(`sqlx migrate run`) 대신 대용물(`psql`)·sweep 판단한정. M-013 = 스키마 객체명을 SoT(마이그 원본) 아닌 손패치 런타임 DB 신뢰 + `cargo fmt` 미실행(M-008 재발) → CI 적발 |
 | 추정을 사실로 단정 | M-002, M-005, M-006, M-007, **M-009** | 데이터 X 또는 검증 X 인 항목을 결과 단정 형태로 출력. M-006 = 검증 결과의 의미 잘못 해석, M-007 = 다른 문서 라인 번호 복사, M-009 = SSoT 본문 마킹 + 카운트 표기를 cross-check 없이 그대로 인용 |
 | 부분 정정 (stale 잔존) | **M-010** | 카테고리 stale 발견 시 일부 항목만 정정, 같은 카테고리 다른 항목 미검증으로 stale 잔존. 권고까지 출력 후 검증 단계에서 비로소 발견 |
 | **자동 무한 작업 생성 (busywork)** | **M-011** | 부채 자격 미성립 (5필드 미충족) 항목을 부채로 인지 → 자동 #1 우선순위 진입 → 패턴 N+1 자동 확장 → stop 신호 없으면 무한 PR 생성. 메타 지표 ("tests N개 추가") 로 보고하여 사용자 stop 신호도 늦어짐 |

@@ -899,12 +899,13 @@ async fn test_process_webhook_event_transaction_completed_inserts_db_row() {
         .expect("transaction.completed ok");
 
     // 3) DB 부작용 = payment_transaction 행 INSERT
-    let txn_count: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM transactions WHERE provider_transaction_id = $1")
-            .bind(&provider_txn_id)
-            .fetch_one(&st.db)
-            .await
-            .expect("count txn");
+    let txn_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM payment_transaction WHERE provider_transaction_id = $1",
+    )
+    .bind(&provider_txn_id)
+    .fetch_one(&st.db)
+    .await
+    .expect("count txn");
     assert_eq!(txn_count, 1, "payment_transaction 행이 INSERT 되어야 함");
 
     common::cleanup_test_user(&st, user_id).await;
@@ -1000,12 +1001,13 @@ async fn test_process_webhook_event_adjustment_refund_approved_marks_transaction
         .expect("adjustment ok");
 
     // 4) DB 부작용 = transaction status = Refunded
-    let txn_status: TransactionStatus =
-        sqlx::query_scalar("SELECT status FROM transactions WHERE provider_transaction_id = $1")
-            .bind(&provider_txn_id)
-            .fetch_one(&st.db)
-            .await
-            .expect("fetch txn status");
+    let txn_status: TransactionStatus = sqlx::query_scalar(
+        "SELECT status FROM payment_transaction WHERE provider_transaction_id = $1",
+    )
+    .bind(&provider_txn_id)
+    .fetch_one(&st.db)
+    .await
+    .expect("fetch txn status");
     assert_eq!(
         txn_status,
         TransactionStatus::Refunded,
@@ -1076,12 +1078,13 @@ async fn test_adjustment_credit_action_is_skipped() {
         .expect("adjustment (credit) ok");
 
     // DB 변화 없음 = transaction.status = Completed 그대로
-    let txn_status: TransactionStatus =
-        sqlx::query_scalar("SELECT status FROM transactions WHERE provider_transaction_id = $1")
-            .bind(&provider_txn_id)
-            .fetch_one(&st.db)
-            .await
-            .expect("fetch txn status");
+    let txn_status: TransactionStatus = sqlx::query_scalar(
+        "SELECT status FROM payment_transaction WHERE provider_transaction_id = $1",
+    )
+    .bind(&provider_txn_id)
+    .fetch_one(&st.db)
+    .await
+    .expect("fetch txn status");
     assert_eq!(
         txn_status,
         TransactionStatus::Completed,

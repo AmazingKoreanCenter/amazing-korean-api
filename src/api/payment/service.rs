@@ -357,7 +357,7 @@ impl PaymentService {
         )
         .await?;
 
-        // user_course 수강권 부여
+        // users_course 수강권 부여
         let existing =
             PaymentRepo::get_subscription_by_provider_id(&st.db, &provider_sub_id).await?;
         if let Some(row) = existing {

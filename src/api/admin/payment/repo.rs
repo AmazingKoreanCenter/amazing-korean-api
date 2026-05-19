@@ -37,14 +37,14 @@ impl AdminPaymentRepo {
         let sort = query.sort;
         let order = query.order;
         let mut count_sql = String::from(
-            "SELECT COUNT(*) FROM subscriptions s JOIN users u ON s.user_id = u.user_id WHERE 1=1",
+            "SELECT COUNT(*) FROM payment_subscription s JOIN users u ON s.user_id = u.user_id WHERE 1=1",
         );
         let mut select_sql = String::from(
             r#"
             SELECT s.subscription_id, s.user_id, u.user_email as user_email,
                    s.status, s.billing_interval, s.current_price_cents,
                    s.current_period_end, s.created_at
-            FROM subscriptions s
+            FROM payment_subscription s
             JOIN users u ON s.user_id = u.user_id
             WHERE 1=1
             "#,
@@ -129,7 +129,7 @@ impl AdminPaymentRepo {
                    current_price_cents, trial_started_at, trial_ends_at,
                    current_period_start, current_period_end,
                    canceled_at, paused_at, created_at, updated_at
-            FROM subscriptions
+            FROM payment_subscription
             WHERE subscription_id = $1
             "#,
         )
@@ -174,7 +174,7 @@ impl AdminPaymentRepo {
                    u.user_email as user_email,
                    t.status, t.amount_cents, t.tax_cents, t.currency,
                    t.billing_interval, t.occurred_at
-            FROM transactions t
+            FROM payment_transaction t
             JOIN users u ON t.user_id = u.user_id
             WHERE t.subscription_id = $1
             ORDER BY t.occurred_at DESC
@@ -198,7 +198,7 @@ impl AdminPaymentRepo {
         order: &str,
     ) -> AppResult<(i64, Vec<AdminTxnSummary>)> {
         let mut count_sql = String::from(
-            "SELECT COUNT(*) FROM transactions t JOIN users u ON t.user_id = u.user_id WHERE 1=1",
+            "SELECT COUNT(*) FROM payment_transaction t JOIN users u ON t.user_id = u.user_id WHERE 1=1",
         );
         let mut select_sql = String::from(
             r#"
@@ -206,7 +206,7 @@ impl AdminPaymentRepo {
                    u.user_email as user_email,
                    t.status, t.amount_cents, t.tax_cents, t.currency,
                    t.billing_interval, t.occurred_at
-            FROM transactions t
+            FROM payment_transaction t
             JOIN users u ON t.user_id = u.user_id
             WHERE 1=1
             "#,
@@ -277,8 +277,8 @@ impl AdminPaymentRepo {
         let count = sqlx::query_scalar::<_, i64>(
             r#"
             SELECT COUNT(DISTINCT uc.user_id)
-            FROM user_course uc
-            LEFT JOIN subscriptions s ON uc.user_id = s.user_id
+            FROM users_course uc
+            LEFT JOIN payment_subscription s ON uc.user_id = s.user_id
                 AND s.status IN ('trialing', 'active', 'past_due')
             WHERE uc.user_course_active = true
             AND s.subscription_id IS NULL
@@ -292,9 +292,9 @@ impl AdminPaymentRepo {
             SELECT uc.user_id, u.user_email as user_email,
                    MAX(uc.user_course_expire_at) as expire_at,
                    COUNT(uc.course_id) as course_count
-            FROM user_course uc
+            FROM users_course uc
             JOIN users u ON uc.user_id = u.user_id
-            LEFT JOIN subscriptions s ON uc.user_id = s.user_id
+            LEFT JOIN payment_subscription s ON uc.user_id = s.user_id
                 AND s.status IN ('trialing', 'active', 'past_due')
             WHERE uc.user_course_active = true
             AND s.subscription_id IS NULL

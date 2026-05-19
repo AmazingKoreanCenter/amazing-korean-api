@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                writing_practice_seed_id AS seed_id,\n                seq,\n                prompt,\n                answer,\n                hint\n            FROM writing_practice_seed\n            WHERE writing_level = $1\n              AND writing_practice_type = $2\n            ORDER BY seq ASC\n            LIMIT $3\n            ",
+  "query": "\n            SELECT\n                writing_practice_seed_id AS seed_id,\n                seq,\n                prompt,\n                answer,\n                hint\n            FROM study_writing_practice_seed\n            WHERE writing_level = $1\n              AND writing_practice_type = $2\n            ORDER BY seq ASC\n            LIMIT $3\n            ",
   "describe": {
     "columns": [
       {
@@ -68,5 +68,5 @@
       true
     ]
   },
-  "hash": "4d4e4b933fe9b9e91e67c4ff20bd5e837b0ec8a7e69fae0a2a96912e0b4caad5"
+  "hash": "adeae112896f7114ccc23c996317bacb4c9d8e45328679cd52d0e351d0415391"
 }

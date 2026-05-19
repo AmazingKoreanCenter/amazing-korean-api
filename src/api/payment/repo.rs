@@ -104,7 +104,7 @@ impl PaymentRepo {
                    current_period_start, current_period_end,
                    canceled_at, paused_at, provider_data,
                    created_at, updated_at
-            FROM subscriptions
+            FROM payment_subscription
             WHERE user_id = $1
               AND status IN ('trialing', 'active', 'past_due')
             ORDER BY created_at DESC
@@ -132,7 +132,7 @@ impl PaymentRepo {
                    current_period_start, current_period_end,
                    canceled_at, paused_at, provider_data,
                    created_at, updated_at
-            FROM subscriptions
+            FROM payment_subscription
             WHERE user_id = $1
             ORDER BY created_at DESC
             LIMIT 1
@@ -159,7 +159,7 @@ impl PaymentRepo {
                    current_period_start, current_period_end,
                    canceled_at, paused_at, provider_data,
                    created_at, updated_at
-            FROM subscriptions
+            FROM payment_subscription
             WHERE provider_subscription_id = $1
             LIMIT 1
             "#,
@@ -178,7 +178,7 @@ impl PaymentRepo {
     ) -> AppResult<i64> {
         let id = sqlx::query_scalar::<_, i64>(
             r#"
-            INSERT INTO subscriptions (
+            INSERT INTO payment_subscription (
                 user_id, payment_provider, provider_subscription_id,
                 provider_customer_id, status, billing_interval,
                 current_price_cents, trial_started_at, trial_ends_at,
@@ -217,7 +217,7 @@ impl PaymentRepo {
     ) -> AppResult<()> {
         sqlx::query(
             r#"
-            UPDATE subscriptions
+            UPDATE payment_subscription
             SET status = $2,
                 current_period_start = COALESCE($3, current_period_start),
                 current_period_end = COALESCE($4, current_period_end),
@@ -250,7 +250,7 @@ impl PaymentRepo {
     ) -> AppResult<i64> {
         let id = sqlx::query_scalar::<_, i64>(
             r#"
-            INSERT INTO transactions (
+            INSERT INTO payment_transaction (
                 subscription_id, user_id, payment_provider,
                 provider_transaction_id, status,
                 amount_cents, tax_cents, currency,
@@ -288,7 +288,7 @@ impl PaymentRepo {
         // 환불 시점 별도 컬럼 필요하면 schema migration 으로 추가 검토.
         let result = sqlx::query(
             r#"
-            UPDATE transactions
+            UPDATE payment_transaction
             SET status = $1
             WHERE provider_transaction_id = $2
             "#,
@@ -314,7 +314,7 @@ impl PaymentRepo {
         let exists = sqlx::query_scalar::<_, bool>(
             r#"
             SELECT EXISTS(
-                SELECT 1 FROM webhook_events
+                SELECT 1 FROM payment_webhook_event
                 WHERE payment_provider = $1 AND provider_event_id = $2
             )
             "#,
@@ -332,7 +332,7 @@ impl PaymentRepo {
     // =========================================================================
 
     /// 활성 코스 전체에 수강권 부여 (UPSERT)
-    /// 구독 활성화 시 호출 — 모든 active 코스에 user_course 레코드 생성/갱신
+    /// 구독 활성화 시 호출 — 모든 active 코스에 users_course 레코드 생성/갱신
     pub async fn grant_all_courses(
         pool: &PgPool,
         user_id: i64,
@@ -340,7 +340,7 @@ impl PaymentRepo {
     ) -> AppResult<u64> {
         let result = sqlx::query(
             r#"
-            INSERT INTO user_course (user_id, course_id, user_course_active, user_course_expire_at)
+            INSERT INTO users_course (user_id, course_id, user_course_active, user_course_expire_at)
             SELECT $1, course_id, true, $2
             FROM course WHERE course_state = 'active'
             ON CONFLICT (user_id, course_id) DO UPDATE SET
@@ -361,7 +361,7 @@ impl PaymentRepo {
     pub async fn revoke_all_courses(pool: &PgPool, user_id: i64) -> AppResult<u64> {
         let result = sqlx::query(
             r#"
-            UPDATE user_course
+            UPDATE users_course
             SET user_course_active = false,
                 user_course_updated_at = NOW()
             WHERE user_id = $1 AND user_course_active = true
@@ -382,7 +382,7 @@ impl PaymentRepo {
     ) -> AppResult<u64> {
         let result = sqlx::query(
             r#"
-            UPDATE user_course
+            UPDATE users_course
             SET user_course_expire_at = $2,
                 user_course_updated_at = NOW()
             WHERE user_id = $1 AND user_course_active = true
@@ -406,7 +406,7 @@ impl PaymentRepo {
     ) -> AppResult<()> {
         sqlx::query(
             r#"
-            INSERT INTO webhook_events (payment_provider, provider_event_id, event_type, payload)
+            INSERT INTO payment_webhook_event (payment_provider, provider_event_id, event_type, payload)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (payment_provider, provider_event_id) DO NOTHING
             "#,

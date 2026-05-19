@@ -627,7 +627,7 @@ impl StudyRepo {
     ) -> AppResult<WritingSessionRes> {
         let row = sqlx::query!(
             r#"
-            INSERT INTO writing_practice_session (
+            INSERT INTO study_writing_practice_session (
                 user_id,
                 study_task_id,
                 writing_level,
@@ -689,7 +689,7 @@ impl StudyRepo {
     ) -> AppResult<Option<WritingSessionRes>> {
         let row = sqlx::query!(
             r#"
-            UPDATE writing_practice_session
+            UPDATE study_writing_practice_session
             SET finished_at = NOW(),
                 total_chars = $3,
                 correct_chars = $4,
@@ -757,8 +757,9 @@ impl StudyRepo {
         let finished_only = req.finished_only.unwrap_or(false);
 
         // Count
-        let mut qb_count =
-            QueryBuilder::new("SELECT COUNT(*) FROM writing_practice_session WHERE user_id = ");
+        let mut qb_count = QueryBuilder::new(
+            "SELECT COUNT(*) FROM study_writing_practice_session WHERE user_id = ",
+        );
         qb_count.push_bind(user_id);
         if let Some(level) = req.level {
             qb_count.push(" AND writing_level = ").push_bind(level);
@@ -785,7 +786,7 @@ impl StudyRepo {
                 accuracy_rate::float8 AS accuracy_rate,
                 chars_per_minute::float8 AS chars_per_minute,
                 mistakes
-            FROM writing_practice_session
+            FROM study_writing_practice_session
             WHERE user_id = "#,
         );
         qb.push_bind(user_id);
@@ -839,7 +840,7 @@ impl StudyRepo {
                 COUNT(*)::BIGINT AS "total!",
                 COALESCE(AVG(accuracy_rate)::float8, 0.0) AS "avg_accuracy!",
                 COALESCE(AVG(chars_per_minute)::float8, 0.0) AS "avg_cpm!"
-            FROM writing_practice_session
+            FROM study_writing_practice_session
             WHERE user_id = $1
               AND finished_at IS NOT NULL
               AND started_at >= NOW() - make_interval(days => $2)
@@ -866,7 +867,7 @@ impl StudyRepo {
                 COUNT(*)::BIGINT AS "sessions!",
                 COALESCE(AVG(accuracy_rate)::float8, 0.0) AS "avg_accuracy!",
                 COALESCE(AVG(chars_per_minute)::float8, 0.0) AS "avg_cpm!"
-            FROM writing_practice_session
+            FROM study_writing_practice_session
             WHERE user_id = $1
               AND finished_at IS NOT NULL
               AND started_at >= NOW() - make_interval(days => $2)
@@ -903,7 +904,7 @@ impl StudyRepo {
                 COUNT(*)::BIGINT AS "sessions!",
                 COALESCE(AVG(accuracy_rate)::float8, 0.0) AS "avg_accuracy!",
                 COALESCE(AVG(chars_per_minute)::float8, 0.0) AS "avg_cpm!"
-            FROM writing_practice_session
+            FROM study_writing_practice_session
             WHERE user_id = $1
               AND finished_at IS NOT NULL
               AND started_at >= NOW() - make_interval(days => $2)
@@ -939,7 +940,7 @@ impl StudyRepo {
             SELECT
                 m.value->>'expected' AS "expected?",
                 COUNT(*)::BIGINT AS "miss_count!"
-            FROM writing_practice_session s
+            FROM study_writing_practice_session s
             CROSS JOIN LATERAL jsonb_array_elements(s.mistakes) AS m(value)
             WHERE s.user_id = $1
               AND s.finished_at IS NOT NULL
@@ -986,7 +987,7 @@ impl StudyRepo {
                 prompt,
                 answer,
                 hint
-            FROM writing_practice_seed
+            FROM study_writing_practice_seed
             WHERE writing_level = $1
               AND writing_practice_type = $2
             ORDER BY seq ASC

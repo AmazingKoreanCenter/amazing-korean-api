@@ -188,7 +188,7 @@ impl LessonService {
                         ));
                     }
                     Some(uid) => {
-                        // 수강권 확인 (user_course 테이블 연동)
+                        // 수강권 확인 (users_course 테이블 연동)
                         let has_access =
                             LessonRepo::has_course_access(&st.db, uid, lesson_id).await?;
                         if !has_access {
