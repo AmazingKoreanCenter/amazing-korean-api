@@ -900,7 +900,7 @@ async fn test_process_webhook_event_transaction_completed_inserts_db_row() {
 
     // 3) DB 부작용 = payment_transaction 행 INSERT
     let txn_count: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM transactions WHERE provider_transaction_id = $1")
+        sqlx::query_scalar("SELECT COUNT(*) FROM payment_transaction WHERE provider_transaction_id = $1")
             .bind(&provider_txn_id)
             .fetch_one(&st.db)
             .await
@@ -1001,7 +1001,7 @@ async fn test_process_webhook_event_adjustment_refund_approved_marks_transaction
 
     // 4) DB 부작용 = transaction status = Refunded
     let txn_status: TransactionStatus =
-        sqlx::query_scalar("SELECT status FROM transactions WHERE provider_transaction_id = $1")
+        sqlx::query_scalar("SELECT status FROM payment_transaction WHERE provider_transaction_id = $1")
             .bind(&provider_txn_id)
             .fetch_one(&st.db)
             .await
@@ -1077,7 +1077,7 @@ async fn test_adjustment_credit_action_is_skipped() {
 
     // DB 변화 없음 = transaction.status = Completed 그대로
     let txn_status: TransactionStatus =
-        sqlx::query_scalar("SELECT status FROM transactions WHERE provider_transaction_id = $1")
+        sqlx::query_scalar("SELECT status FROM payment_transaction WHERE provider_transaction_id = $1")
             .bind(&provider_txn_id)
             .fetch_one(&st.db)
             .await
