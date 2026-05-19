@@ -1,8 +1,20 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-18 — 교재 캐러셀 국기(seal) 14 직접복사 종결 / 표지 CoverCard 폴백+books 핸드오프 / 역본 36 / 시딩 1차 / 보안 §4
+updated: 2026-05-18 — 스키마 명명 SSoT 정리 트랙 1a 감사 완료(2~3 대기) / 교재 이미지 종결 / 역본 36 / 시딩 1차 / 보안 §4
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-18 📋 — 스키마 명명 SSoT 정리 트랙 착수: 1a 감사 완료 (2 마이그·3 study 역할조정 다음 세션)**
+
+  사용자 발견: 테이블명 중구난방, 부채 즉시 처리 지시("쌓이면 감당 불가"). **SSoT 확정 = `AMK_API_MASTER §3.2.1`**(테이블=`<도메인(단수)>_<의미>...`, 도메인 접두사 필수, `users`만 PG 예약어 예외, `ADMIN_<도메인복수>_..._LOG`). **1a 감사(49 테이블 §3.2.1 대비)**: 🔴 `explanation_unit`/`explanation_block`(도메인 아님)·`subscriptions`/`transactions`/`webhook_events`(payment 무접두사+복수 이중위반)·`writing_practice_seed`/`writing_practice_session` / 🟡 `user_oauth`/`user_export_data`/`user_course`(user_↔users_ 혼용) / 🟠 `content_translations`(폴리모픽 i18n 경계). 메타부채: 규칙은 §3.2.1에 있으나 신규 마이그 강제 게이트 없어 드리프트(explanation_*가 증거).
+
+  **핵심 = explanation_* ↔ study_explain 이중 해설 모델 미통합**: `study_explain`(레거시 평면, 20260208:313, 이 콘텐츠엔 빈, 5파일 배선 — 학습 `/studies/tasks/{id}/explain`→`find_task_explain`→`FROM study_explain`(빈)→**학습자 해설 0**, admin/study CRUD 8곳, admin/translation JOIN) vs `explanation_unit`/`explanation_block`(신·구조화·prod 적재 SoT, PR #298 5/17, 568/1317, `/explanations` 라이브). 평면 모델이 해설집 표현 불가라 의도적 신설(설계근거 `AMK_API_LEARNING §5.10` D1/D3), 단 학습/관리자 재배선 미완. 어제(20260518) 시드=study/study_task/study_task_typing(study 테이블 맞음); explanation_*는 5/17(어제 아님).
+
+  **확정 결정(사용자)**: `explanation_unit/block`→**`study_contents`**(도메인 접두사 준수, 충돌 없음 실측 — `study_description`은 `study.study_description` 컬럼 충돌로 폐기). 레거시 `study_explain` 흡수/폐기 + 학습·관리자 흐름 study_contents 배선 + `content_type_enum`(4362 content_translations 참조) 처리. `video_/lesson_` 병렬테이블=YAGNI(콘텐츠 없음). enum 값 리네임=**INC-004 클래스**(이미 적용 enum 수정 시 sqlx checksum crash·prod 다운 선례) → 계획된 마이그 필수, 타이밍은 지금 적기(프론트 미통합·flip 전).
+
+  **사용자 작업순서**: ①전수조사+사용파악(1a✅, 1b 코드 사용처 매핑 다음) ②정리+마이그 ③study 테이블 역할조정. 통합(study_explain→study_contents 배선) 후 리네임이 본질(리네임 선행 시 churn). **AI 자인**: SSoT Core 문서 사용자 2회 지적까지 미확인 / 충돌 이름 제시 / 오너 가독성(테이블명으로 디렉션 가능)이 의미정밀성보다 1순위임을 놓침. SSoT=메모리 `project_schema_naming_cleanup` / STATUS #154.
+
+- **2026-05-18 ✅ — 교재 표지 28 WebP books 수령·검증 (cover 트랙 종결, 교재 이미지 트랙 닫음)**
 
 - **2026-05-18 ✅ — 교재 표지 28 WebP books 수령·검증 (cover 트랙 종결, 교재 이미지 트랙 닫음)**
 
