@@ -226,7 +226,7 @@
 | 5-8 | `PATCH /studies/writing/sessions/{id}` | `/study/writing/:level/:type/:taskId` | 한글 자판 연습 세션 완료 | ***client 측정 total_chars/correct_chars/duration_ms/mistakes → 서버에서 accuracy_rate/CPM 계산 후 finished_at 저장***<br>400: total_chars/correct_chars/duration_ms 음수<br>422: correct_chars > total_chars<br>404: 타인 세션 또는 미존재 | [✅🆗] |
 | 5-9 | `GET /studies/writing/sessions` | `/study/writing/history` | 내 세션 목록 | ***user_id 기반 페이지네이션, level/finished_only 필터*** | [✅🆗] |
 | 5-10 | `GET /studies/writing/stats` | `/study/writing/stats` | 통계 대시보드 | ***days 파라미터(기본 30, 최대 365) 범위에서 total/avg_accuracy/avg_cpm + 레벨별 + 일별 추이 + 취약 글자 Top 10*** | [✅🆗] |
-| 5-11 | `GET /studies/writing/practice` | `/studies/writing/:level/:type` | 자유 연습 시드 컨텐츠 | ***level+practice_type 필터, seq 오름차순, 기본 20 / 최대 100, 비인증 허용. `writing_practice_seed` 테이블에서 prompt/answer/hint 반환*** | [✅🆗] |
+| 5-11 | `GET /studies/writing/practice` | `/studies/writing/:level/:type` | 자유 연습 시드 컨텐츠 | ***level+practice_type 필터, seq 오름차순, 기본 20 / 최대 100, 비인증 허용. `study_writing_practice_seed` 테이블에서 prompt/answer/hint 반환*** | [✅🆗] |
 
 ---
 
@@ -315,7 +315,7 @@
     1. study_task_typing : 타이핑 시도 → **STUDY_TASK_LOG** `start` 업데이트 → 타이핑 완료 → **STUDY_TASK_LOG** `answer` 업데이트
     2. study_task_choice : 선택지 클릭 → **STUDY_TASK_LOG** `answer` 업데이트
     3. study_task_voice : 녹음 버튼 클릭 → **STUDY_TASK_LOG** `start` 업데이트 → 녹음 버튼 재클릭 → **STUDY_TASK_LOG** `answer` 업데이트
-    4. study_task_writing : 한글 자판 타이핑 → **STUDY_TASK_LOG** `start` 업데이트 → 제출 → **STUDY_TASK_LOG** `answer` 업데이트 (세션 단위 통계는 P4 `writing_practice_session` API로 별도 집계)
+    4. study_task_writing : 한글 자판 타이핑 → **STUDY_TASK_LOG** `start` 업데이트 → 제출 → **STUDY_TASK_LOG** `answer` 업데이트 (세션 단위 통계는 P4 `study_writing_practice_session` API로 별도 집계)
   - Then: **200**,
     1. study_task_typing : 채점 → **STUDY_TASK_TYPING** `study_task_typing_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트
     2. study_task_choice : 채점 → **STUDY_TASK_CHOICE** `study_task_choice_answer` 대조 → **STUDY_TASK_STATUS** 결과 업데이트 → **STUDY_TASK_LOG** `finish` 업데이트
@@ -456,7 +456,7 @@
     ]
   }
   ```
-  - `writing_practice_seed` 테이블에서 `(level, practice_type)` 필터로 `seq` 오름차순 조회
+  - `study_writing_practice_seed` 테이블에서 `(level, practice_type)` 필터로 `seq` 오름차순 조회
   - `prompt` = 화면에 표시할 텍스트, `answer` = 학습자가 입력해야 할 정답 (대부분 동일)
   - `hint`는 optional (초급 jamo만 로마자 표기 포함)
 - 실패(형식/누락) → **400** (`limit=0`)

@@ -131,7 +131,7 @@ amazing-korean-mobile/              # 별도 리포지토리
 - [`purchases_flutter`](https://pub.dev/packages/purchases_flutter) — StoreKit 2 + Google Play Billing을 단일 SDK로 래핑
 - 월 매출 $2,500 미만 **무료**, 이상 $19/월
 - Apple ASN V2 / Google RTDN 웹훅 직접 구현 불필요 → RevenueCat 단일 웹훅으로 통합
-- 백엔드 `subscriptions` 테이블의 `payment_provider` enum에 `apple`, `google` 추가 필요는 동일
+- 백엔드 `payment_subscription` 테이블의 `payment_provider` enum에 `apple`, `google` 추가 필요는 동일
 
 ### 2.5 작업 목록
 

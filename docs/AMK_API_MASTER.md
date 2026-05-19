@@ -484,7 +484,7 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
 
 **Webhook 보안**
 - 서명 검증: `Paddle::unmarshal()` (HMAC-SHA256, 300초 MaximumVariance)
-- 멱등성: `webhook_events` 테이블 UNIQUE(payment_provider, provider_event_id)
+- 멱등성: `payment_webhook_event` 테이블 UNIQUE(payment_provider, provider_event_id)
 
 ### 2.5 User-Agent 서버사이드 파싱 (woothee)
 
@@ -551,6 +551,7 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
     - `USERS` (PostgreSQL에 `USER` 예약어가 있어 복수형 사용)
     - `VIDEO_TAG`, `VIDEO_TAG_MAP`
     - `USERS_LOG`, `ADMIN_USERS_LOG`, `STUDY_TASK_LOG`
+  - **user 도메인 토큰 = `USERS` (보강 2026-05-19)**: `USER` 예약어 회피로 도메인 토큰 자체가 복수형 `USERS`. 따라서 user 도메인의 **모든** 종속 테이블은 `USERS_<의미>` (예: `USERS_OAUTH`, `USERS_COURSE`, `USERS_EXPORT_DATA`). `USER_*` (단수형 접두사) **금지** — 과거 `user_oauth`/`user_course`/`user_export_data` 드리프트는 `20260519` 마이그로 `users_*` 정정됨. SSoT 정리 트랙 = `docs/AMK_SCHEMA_NAMING_AUDIT.md`.
 
 - **enum 명**
   - 형식: `<도메인(단수형, 소문자)>_<의미 1(소문자)>_<의미 2(소문자)>..._enum`
@@ -689,7 +690,7 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
 
 - **감사 로그 (`admin_action_log`) 값 규칙**
   - `action_type`: **대문자 SNAKE_CASE** — 예: `"CREATE_VIDEO"`, `"BULK_UPDATE_USERS"`, `"LIST_LESSONS"`
-  - `target_table`: **소문자 snake_case** (실제 DB 테이블명과 일치) — 예: `"video"`, `"study_task"`, `"lesson_item"`, `"users"`, `"subscriptions"`
+  - `target_table`: **소문자 snake_case** (실제 DB 테이블명과 일치) — 예: `"video"`, `"study_task"`, `"lesson_item"`, `"users"`, `"payment_subscription"`
   - `target_id`: 단건 조회/수정/삭제 시 `Some(id)`, 목록/벌크 작업 시 `None`
   - `ip_address`: AES-256-GCM 암호화 저장 (평문 금지)
   - `details`: 변경 내역 JSON (`before`/`after` 또는 요약)
@@ -1186,7 +1187,7 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
   - 사용자 관련 관리자 활동 기록
   - `admin_action_enum` ('create', 'update', 'banned', 'reorder', 'publish', 'unpublish') 관리자 활동 이력
   - `ip_address` (TEXT) — 관리자 IP 주소 (AES-256-GCM 암호화 저장)
-- `user_export_data`
+- `users_export_data`
   - 개인정보 내보내기/백업 요청 상태 및 결과 관리(비동기 처리용)
 
 ### 4.2 인증 로그인 도메인 (AUTH LOGIN)
@@ -1218,7 +1219,7 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
 - `redis_user_sessions`
   - Key: ak:user_sessions:< uid > (set/list 모델을 행 단위로 전개)
   - 실제 Redis에서는 set/list로 보관. dbdiagram 문서화를 위해 행 형태로 표현.
-- `user_oauth`
+- `users_oauth`
   - OAuth 소셜 로그인 연동 정보 (Google, Apple 등)
   - `login_method_enum` ('email', 'google', 'apple') OAuth 제공자
   - `oauth_subject` — OAuth 제공자의 고유 사용자 ID (sub claim)
@@ -1295,7 +1296,7 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
   - `course_state` ('active', 'inactive', 'deleted')
 - `course_lesson`
   - 코스-레슨 맵핑 (순서, 접근 권한)
-- `user_course`
+- `users_course`
   - 사용자별 수강 정보 (구매/체험/만료 상태)
 - `admin_course_log`
   - 코스 관련 관리자 활동 기록
@@ -1337,7 +1338,7 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
 
 > Paddle Billing 기반 구독 결제 시스템. 구독, 트랜잭션, Webhook 이벤트를 관리한다.
 
-- `subscriptions`
+- `payment_subscription`
   - 사용자 구독 정보: Paddle 구독 ID, 상태, 결제 주기, 가격, 기간
   - `subscription_id` (PK, BIGSERIAL)
   - `user_id` (BIGINT, FK → users)
@@ -1352,7 +1353,7 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
   - `provider_data` (JSONB): Paddle 원본 데이터
   - **UNIQUE**: `provider_subscription_id`
 
-- `transactions`
+- `payment_transaction`
   - 결제 트랜잭션 기록: Paddle 트랜잭션 ID, 금액, 세금
   - `transaction_id` (PK, BIGSERIAL)
   - `subscription_id` (BIGINT, FK → subscriptions)
@@ -1367,7 +1368,7 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
   - `occurred_at` (TIMESTAMPTZ): 결제 발생 시간
   - `provider_data` (JSONB): Paddle 원본 데이터
 
-- `webhook_events`
+- `payment_webhook_event`
   - Webhook 이벤트 멱등성 관리: 중복 처리 방지
   - `webhook_event_id` (PK, BIGSERIAL)
   - `payment_provider` (payment_provider_enum)

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                writing_level AS \"writing_level!: WritingLevel\",\n                COUNT(*)::BIGINT AS \"sessions!\",\n                COALESCE(AVG(accuracy_rate)::float8, 0.0) AS \"avg_accuracy!\",\n                COALESCE(AVG(chars_per_minute)::float8, 0.0) AS \"avg_cpm!\"\n            FROM writing_practice_session\n            WHERE user_id = $1\n              AND finished_at IS NOT NULL\n              AND started_at >= NOW() - make_interval(days => $2)\n            GROUP BY writing_level\n            ORDER BY writing_level\n            ",
+  "query": "\n            SELECT\n                writing_level AS \"writing_level!: WritingLevel\",\n                COUNT(*)::BIGINT AS \"sessions!\",\n                COALESCE(AVG(accuracy_rate)::float8, 0.0) AS \"avg_accuracy!\",\n                COALESCE(AVG(chars_per_minute)::float8, 0.0) AS \"avg_cpm!\"\n            FROM study_writing_practice_session\n            WHERE user_id = $1\n              AND finished_at IS NOT NULL\n              AND started_at >= NOW() - make_interval(days => $2)\n            GROUP BY writing_level\n            ORDER BY writing_level\n            ",
   "describe": {
     "columns": [
       {
@@ -48,5 +48,5 @@
       null
     ]
   },
-  "hash": "31284b44bbd17c63f07ac1a154271e939eb564d666e3ff0783f0073f348616d8"
+  "hash": "1dc13a110f9d916124abb11a73f05d4a9aced4b465ece77eff12188b826763e6"
 }

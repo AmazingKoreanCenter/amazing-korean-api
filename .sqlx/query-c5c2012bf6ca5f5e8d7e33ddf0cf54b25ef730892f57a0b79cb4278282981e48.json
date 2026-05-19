@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO writing_practice_session (\n                user_id,\n                study_task_id,\n                writing_level,\n                writing_practice_type\n            )\n            VALUES ($1, $2, $3, $4)\n            RETURNING\n                session_id,\n                user_id,\n                study_task_id,\n                writing_level AS \"writing_level!: WritingLevel\",\n                writing_practice_type AS \"writing_practice_type!: WritingPracticeType\",\n                started_at,\n                finished_at,\n                total_chars,\n                correct_chars,\n                accuracy_rate::float8 AS \"accuracy_rate!\",\n                chars_per_minute::float8 AS \"chars_per_minute!\",\n                mistakes\n            ",
+  "query": "\n            UPDATE study_writing_practice_session\n            SET finished_at = NOW(),\n                total_chars = $3,\n                correct_chars = $4,\n                accuracy_rate = $5::float8::numeric,\n                chars_per_minute = $6::float8::numeric,\n                mistakes = $7\n            WHERE session_id = $1\n              AND user_id = $2\n            RETURNING\n                session_id,\n                user_id,\n                study_task_id,\n                writing_level AS \"writing_level!: WritingLevel\",\n                writing_practice_type AS \"writing_practice_type!: WritingPracticeType\",\n                started_at,\n                finished_at,\n                total_chars,\n                correct_chars,\n                accuracy_rate::float8 AS \"accuracy_rate!\",\n                chars_per_minute::float8 AS \"chars_per_minute!\",\n                mistakes\n            ",
   "describe": {
     "columns": [
       {
@@ -91,33 +91,12 @@
     "parameters": {
       "Left": [
         "Int8",
+        "Int8",
         "Int4",
-        {
-          "Custom": {
-            "name": "writing_level_enum",
-            "kind": {
-              "Enum": [
-                "beginner",
-                "intermediate",
-                "advanced"
-              ]
-            }
-          }
-        },
-        {
-          "Custom": {
-            "name": "writing_practice_type_enum",
-            "kind": {
-              "Enum": [
-                "jamo",
-                "syllable",
-                "word",
-                "sentence",
-                "paragraph"
-              ]
-            }
-          }
-        }
+        "Int4",
+        "Float8",
+        "Float8",
+        "Jsonb"
       ]
     },
     "nullable": [
@@ -135,5 +114,5 @@
       false
     ]
   },
-  "hash": "f35b5279e0ee152e32af999ef0f40250a02587ba8d304db344faf8b94a0f7e2c"
+  "hash": "c5c2012bf6ca5f5e8d7e33ddf0cf54b25ef730892f57a0b79cb4278282981e48"
 }
