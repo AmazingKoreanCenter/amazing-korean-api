@@ -5,6 +5,7 @@ pub mod docs;
 pub mod error;
 pub mod external;
 pub mod extract;
+pub mod jobs;
 pub mod state;
 pub mod trace_id;
 pub mod types;

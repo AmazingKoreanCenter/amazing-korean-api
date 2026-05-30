@@ -69,6 +69,8 @@ pub struct Config {
     pub max_sessions_manager: i64, // Manager 최대 동시 세션 (기본: 3, 초과 시 로그인 거부)
     pub max_sessions_admin: i64,   // Admin 최대 동시 세션 (기본: 2, 초과 시 로그인 거부)
     pub max_sessions_hymn: i64,    // HYMN 최대 동시 세션 (기본: 2, 초과 시 로그인 거부)
+    // 세션 reaper: login_expire_at 지난 active 행을 주기적으로 expired 정리 (초, 기본 300, <=0 비활성)
+    pub session_reaper_interval_sec: i64,
     // RevenueCat (모바일 IAP)
     pub revenuecat_api_key: Option<String>, // RevenueCat 서버 API 키
     pub revenuecat_webhook_auth_token: Option<String>, // RevenueCat 웹훅 Bearer 토큰
@@ -301,6 +303,11 @@ impl Config {
             .unwrap_or_else(|_| "2".into())
             .parse::<i64>()
             .expect("MAX_SESSIONS_HYMN must be a number");
+        // 세션 reaper 주기 (초). 기본 300. <=0 이면 reaper 비활성(panic 게이트 없음 — 부팅 안전).
+        let session_reaper_interval_sec = env::var("SESSION_REAPER_INTERVAL_SEC")
+            .unwrap_or_else(|_| "300".into())
+            .parse::<i64>()
+            .expect("SESSION_REAPER_INTERVAL_SEC must be a number");
 
         // RevenueCat (모바일 IAP)
         let revenuecat_api_key = env::var("REVENUECAT_API_KEY")
@@ -583,6 +590,7 @@ impl Config {
             max_sessions_manager,
             max_sessions_admin,
             max_sessions_hymn,
+            session_reaper_interval_sec,
             revenuecat_api_key,
             revenuecat_webhook_auth_token,
             payment_provider,
@@ -829,6 +837,10 @@ impl fmt::Debug for Config {
             .field("max_sessions_manager", &self.max_sessions_manager)
             .field("max_sessions_admin", &self.max_sessions_admin)
             .field("max_sessions_hymn", &self.max_sessions_hymn)
+            .field(
+                "session_reaper_interval_sec",
+                &self.session_reaper_interval_sec,
+            )
             .field(
                 "revenuecat_api_key",
                 &self.revenuecat_api_key.as_ref().map(|_| "***"),

@@ -24,7 +24,7 @@ workspace = true
 [dependencies]
 amazing-korean-crypto = { path = "crates/crypto" }
 axum = { version = "0.8.4", features =  ["macros", "tokio", "http1", "http2"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "time"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15"

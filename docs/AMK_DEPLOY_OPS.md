@@ -148,6 +148,9 @@ REVENUECAT_WEBHOOK_AUTH_TOKEN=<token>     # RevenueCat 웹훅 Bearer 토큰
 # MAX_SESSIONS_MANAGER=3           # 기본: 3 (초과 시 로그인 거부)
 # MAX_SESSIONS_ADMIN=2             # 기본: 2 (초과 시 로그인 거부)
 # MAX_SESSIONS_HYMN=2              # 기본: 2 (초과 시 로그인 거부)
+# SESSION_REAPER_INTERVAL_SEC=300  # 기본: 300. login_expire_at 지난 active 행을 주기 정리.
+                                   #   <=0 이면 reaper 비활성(panic 게이트 없음 — 부팅 안전).
+                                   #   amk_app UPDATE 권한 내, 마이그레이션 불필요. (2026-05-30 세션 정합 패치)
 
 # ─── Email (Resend) ───
 EMAIL_PROVIDER=resend              # resend | none (프로덕션에서 none 사용 시 서버 부팅 실패)

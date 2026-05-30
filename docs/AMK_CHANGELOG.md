@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-30 — MFA 세션 limit 사건 즉시 조치(영구 패치 다음 세션) / 스키마 명명 ①②③ prod 안착(5/19) / 그룹 ④ R1 다음 세션 / 보안 §4
+updated: 2026-05-30 — MFA 세션 limit 영구 패치 구현 완료(6축, 빌드/테스트 통과·검토 대기) / 즉시 조치(동일일) / 스키마 명명 ①②③ prod 안착(5/19)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-30 🔧 — MFA 세션 limit 영구 패치 구현 (6축, 빌드·회귀테스트 통과 — 검토/배포 대기)**
+
+  코드 트레이싱 + 전수 정합 감사(워크플로) + prod 실측으로 근본원인 확정 후 6축 통합 패치 구현. **근본원인**: 세션 생존상태가 DB(`login_state`/`login_expire_at`)·Redis per-key TTL·TTL 없는 SET `ak:user_sessions`(SCARD)에 원자경계 없이 분산 + 시간기반 reconciler 부재 → enforce 내부 lazy cleanup으로만 화해. prod 실측 결정타: DB는 user_1 active=0인데 Redis SCARD가 8로 발산. **6축**: **A+C**(한 묶음) — 동시세션 카운트를 Redis SCARD → DB(`login_state='active' AND login_expire_at>now()`)로 전환(`AuthRepo::count_active_sessions`), 로그인 tx 안 `pg_advisory_xact_lock(2,user_id)` + in-tx 카운트(`enforce_admission_in_tx`)로 TOCTOU 원자화. `enforce_session_limit`의 SCARD 게이트·reject-role 403 제거(=거짓 403 근절). **B** — ghost-cleanup을 Redis 위생 전용으로 강등. **D** — 시간기반 reaper(`src/jobs/session_reaper.rs`, `main.rs` spawn, `SESSION_REAPER_INTERVAL_SEC` 기본 300·`<=0` 비활성, 마이그 불필요). **E** — reuse-detection Redis 정리 fail-closed(`let _ =`→`?`). **F** — ban/탈퇴 우회 차단: `refresh()`에 `user_state` 게이트 + `AuthService::invalidate_all_sessions` 헬퍼(mfa_disable에서 추출) → admin 비활성화 단일+벌크 경로에 wire. **검증**: cargo check/clippy/fmt + npm build + 회귀 테스트 2건(phantom 제외·reaper) 라이브 DB 통과(`tests/auth_session_limit_integration.rs`). **마이그레이션 0**(컬럼·인덱스·enum 기존재). 설계·근거 SoT=`docs/AMK_INCIDENT_2026-05-30_MFA_REFRESH_REUSE.md §6~§8`. 잔여=사용자 검토 → 커밋/PR/배포 → prod 스모크(막혔던 Admin 로그인). STATUS #155.
 
 - **2026-05-30 🚨 — MFA 세션 limit 사건: 즉시 조치 완료, 영구 패치 다음 세션 (단일 SoT 신규)**
 

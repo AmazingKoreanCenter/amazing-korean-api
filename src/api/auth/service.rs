@@ -280,16 +280,22 @@ impl AuthService {
             .await?;
         }
 
-        // 2. 정리 후 현재 활성 세션 수 확인
-        let active_count: i64 = redis_conn
-            .scard(&session_key)
-            .await
-            .map_err(|e| AppError::Internal(format!("redis scard failed: {e}")))?;
+        // 2. reject-role(Admin/Manager/HYMN)의 최종 admission 판정은 로그인 트랜잭션 안의
+        //    enforce_admission_in_tx(advisory lock + DB count)로 이관됨 — 여기서는
+        //    ghost-cleanup(Redis SET 위생)만 수행하고 통과시킨다. Learner 만 아래에서
+        //    DB 권위 카운트로 FIFO 퇴장을 처리한다.
+        if !st.cfg.is_session_evict_role(&user_auth) {
+            return Ok(());
+        }
+
+        // 활성 세션 수는 DB(권위 소스, login_expire_at 기준)로 센다.
+        // Redis SCARD 는 TTL 없는 SET 을 over-count 하므로 사용 금지(2026-05-30 INC).
+        let active_count: i64 = AuthRepo::count_active_sessions(&st.db, user_id).await?;
         if active_count < max_sessions {
             return Ok(()); // 여유 있음
         }
 
-        // 3. 초과 시 정책 분기
+        // 3. Learner 초과 시 FIFO 퇴장 (위에서 reject-role 은 이미 return).
         if st.cfg.is_session_evict_role(&user_auth) {
             // Learner: 가장 오래된 세션 자동 퇴장 (FIFO).
             // find_active_sessions_oldest 가 refresh_hash 를 함께 반환하므로
@@ -351,13 +357,36 @@ impl AuthService {
                 "Session limit: evicted oldest sessions for Learner"
             );
         } else {
-            // Admin/Manager/HYMN: 로그인 거부
+            // 도달 불가(위에서 reject-role 은 이미 return). 방어적으로 통과.
+            return Ok(());
+        }
+
+        Ok(())
+    }
+
+    /// reject-role(Admin/Manager/HYMN)의 동시 세션 admission 을 로그인 트랜잭션 안에서
+    /// advisory lock 으로 직렬화해 원자적으로 판정한다. check(count)-then-insert TOCTOU 차단:
+    /// 같은 사용자의 동시 로그인은 lock 에서 직렬화되어, 두 번째 요청은 첫 번째 commit 후
+    /// 갱신된 카운트를 읽고 정확히 거부된다. Learner(evict role)는 enforce_session_limit 의
+    /// FIFO 퇴장으로 이미 자리를 확보하므로 여기선 통과한다.
+    async fn enforce_admission_in_tx(
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        st: &AppState,
+        user_id: i64,
+        user_auth: UserAuth,
+    ) -> AppResult<()> {
+        if st.cfg.is_session_evict_role(&user_auth) {
+            return Ok(());
+        }
+        AuthRepo::acquire_user_session_lock_tx(tx, user_id).await?;
+        let active_count = AuthRepo::count_active_sessions_tx(tx, user_id).await?;
+        let max_sessions = st.cfg.max_sessions_for_role(&user_auth);
+        if active_count >= max_sessions {
             return Err(AppError::Forbidden(format!(
                 "AUTH_403_SESSION_LIMIT:{}",
                 max_sessions
             )));
         }
-
         Ok(())
     }
 
@@ -622,6 +651,9 @@ impl AuthService {
         // [Step 6] DB Transaction (Login Record)
         let mut tx = st.db.begin().await?;
 
+        // 동시 세션 admission 을 tx 안에서 원자적으로 재판정 (advisory lock, TOCTOU 차단).
+        Self::enforce_admission_in_tx(&mut tx, st, user_info.user_id, user_info.user_auth).await?;
+
         AuthRepo::insert_login_record_tx(
             &mut tx,
             user_info.user_id,
@@ -791,19 +823,25 @@ impl AuthService {
             .await?;
             tx.commit().await?;
 
-            // 2-2. Invalidate Redis keys immediately
-            let _ = redis_conn
-                .del::<_, ()>(format!("ak:refresh:{}", login_record.refresh_hash))
-                .await;
-            let _ = redis_conn
-                .del::<_, ()>(format!("ak:session:{}", session_id))
-                .await;
-            let _ = redis_conn
-                .srem::<_, _, ()>(
+            // 2-2. Invalidate Redis keys immediately — fail-closed.
+            // 에러를 무시하면(let _ =) reuse 로 compromised 처리된 세션의 키가 살아남아
+            // SCARD over-count(2026-05-30 INC)에 기여하므로, rotation/logout 과 동일하게
+            // map_err(?) 로 전파한다. tx 는 이미 commit 되어(위) 중복 commit 위험 없음.
+            let _: () = redis_conn
+                .del(format!("ak:refresh:{}", login_record.refresh_hash))
+                .await
+                .map_err(|e| AppError::Internal(format!("redis del(ak:refresh) failed: {e}")))?;
+            let _: () = redis_conn
+                .del(format!("ak:session:{}", session_id))
+                .await
+                .map_err(|e| AppError::Internal(format!("redis del(ak:session) failed: {e}")))?;
+            let _: () = redis_conn
+                .srem(
                     format!("ak:user_sessions:{}", login_record.user_id),
                     &session_id,
                 )
-                .await;
+                .await
+                .map_err(|e| AppError::Internal(format!("redis srem failed: {e}")))?;
 
             return Err(AppError::Conflict("AUTH_409_REUSE_DETECTED".into()));
         }
@@ -817,6 +855,13 @@ impl AuthService {
         let user = user_repo::find_user(&st.db, login_record.user_id)
             .await?
             .ok_or(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()))?;
+
+        // 비활성화(정지/탈퇴)된 계정은 토큰 재발급 거부 — refresh 만으로 영구 접근이
+        // 유지되던 ban 우회 차단. anti-enumeration 위해 동일한 generic 401 반환.
+        // (reuse 감지(위)·state 게이트 뒤에 위치하여 compromised 처리는 영향 없음.)
+        if !user.user_state {
+            return Err(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()));
+        }
         let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;
 
         // [Step 5] Rotate Token & Issue new Access Token
@@ -2286,6 +2331,9 @@ impl AuthService {
         // DB 기록
         let mut tx = st.db.begin().await?;
 
+        // 동시 세션 admission 을 tx 안에서 원자적으로 재판정 (advisory lock, TOCTOU 차단).
+        Self::enforce_admission_in_tx(&mut tx, st, user_id, user_auth).await?;
+
         AuthRepo::insert_login_record_oauth_tx(
             &mut tx,
             user_id,
@@ -2710,6 +2758,39 @@ impl AuthService {
         }
     }
 
+    /// 사용자의 모든 세션을 무효화한다 — DB login 행을 revoked(reason)로, Redis 의 모든
+    /// ak:refresh / ak:session 키와 ak:user_sessions SET 을 일괄 삭제. mfa_disable 과
+    /// 계정 비활성화(ban/탈퇴, admin_update_user) 경로가 공유한다.
+    pub async fn invalidate_all_sessions(
+        st: &AppState,
+        user_id: i64,
+        reason: &str,
+    ) -> AppResult<()> {
+        let mut tx = st.db.begin().await?;
+        let sessions = AuthRepo::find_user_sessions_with_refresh_tx(&mut tx, user_id).await?;
+        AuthRepo::update_login_state_by_user_tx(&mut tx, user_id, "revoked", Some(reason)).await?;
+        tx.commit().await?;
+
+        // Redis 세션 + 리프레시 토큰 일괄 정리 (단일 DEL 명령, best-effort).
+        let mut redis_conn = st
+            .redis
+            .get()
+            .await
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let mut keys: Vec<String> = sessions
+            .iter()
+            .flat_map(|(sid, refresh_hash)| {
+                [
+                    format!("ak:refresh:{}", refresh_hash),
+                    format!("ak:session:{}", sid),
+                ]
+            })
+            .collect();
+        keys.push(format!("ak:user_sessions:{}", user_id));
+        let _: () = redis_conn.del(keys).await.unwrap_or(());
+        Ok(())
+    }
+
     /// MFA 비활성화 (HYMN 전용 — 다른 사용자의 MFA 해제)
     pub async fn mfa_disable(
         st: &AppState,
@@ -2745,36 +2826,8 @@ impl AuthService {
         // 대상 사용자 MFA 비활성화
         AuthRepo::disable_mfa(&st.db, target_user_id).await?;
 
-        // 대상 사용자의 모든 세션 무효화 (보안)
-        let mut tx = st.db.begin().await?;
-        let sessions =
-            AuthRepo::find_user_sessions_with_refresh_tx(&mut tx, target_user_id).await?;
-        AuthRepo::update_login_state_by_user_tx(
-            &mut tx,
-            target_user_id,
-            "revoked",
-            Some("mfa_disabled"),
-        )
-        .await?;
-        tx.commit().await?;
-
-        // Redis 세션 + 리프레시 토큰 일괄 정리 (단일 DEL 명령)
-        let mut redis_conn = st
-            .redis
-            .get()
-            .await
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-        let mut keys: Vec<String> = sessions
-            .iter()
-            .flat_map(|(sid, refresh_hash)| {
-                [
-                    format!("ak:refresh:{}", refresh_hash),
-                    format!("ak:session:{}", sid),
-                ]
-            })
-            .collect();
-        keys.push(format!("ak:user_sessions:{}", target_user_id));
-        let _: () = redis_conn.del(keys).await.unwrap_or(());
+        // 대상 사용자의 모든 세션 무효화 (보안) — 계정 비활성화/탈퇴와 공유하는 헬퍼.
+        Self::invalidate_all_sessions(st, target_user_id, "mfa_disabled").await?;
 
         info!(
             "MFA disabled for user {} by HYMN user {}",

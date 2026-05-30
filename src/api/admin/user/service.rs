@@ -636,6 +636,20 @@ impl AdminUserService {
                 {
                     warn!(error=?le, actor_user_id = actor_user_id, target_user_id = user_id, "public.users_log(admin_state_change) insert failed");
                 }
+
+                // 계정 비활성화(활성→비활성) 시 모든 세션 무효화 — 정지 사용자가
+                // refresh 로 영구 접근을 유지하던 ban 우회 차단(2026-05-30 감사).
+                if !new_state {
+                    if let Err(e) = crate::api::auth::service::AuthService::invalidate_all_sessions(
+                        st,
+                        updated.id,
+                        "account_deactivated",
+                    )
+                    .await
+                    {
+                        warn!(error=?e, actor_user_id = actor_user_id, target_user_id = user_id, "account_deactivated session invalidation failed");
+                    }
+                }
             }
         }
 
@@ -754,6 +768,19 @@ impl AdminUserService {
 
                 // 2-5. 커밋
                 tx.commit().await?;
+
+                // 계정 비활성화(활성→비활성) 전이 시에만 모든 세션 무효화 — ban 우회 차단.
+                if matches!(item.user_state, Some(false)) && target_user.user_state {
+                    if let Err(e) = crate::api::auth::service::AuthService::invalidate_all_sessions(
+                        st,
+                        updated_user.id,
+                        "account_deactivated",
+                    )
+                    .await
+                    {
+                        warn!(error=?e, target_user_id = item.id, "bulk account_deactivated session invalidation failed");
+                    }
+                }
 
                 Ok(updated_user)
             }

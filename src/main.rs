@@ -221,7 +221,11 @@ async fn main() -> anyhow::Result<()> {
         .expose_headers([HeaderName::from_static("x-request-id")])
         .allow_credentials(true); // 쿠키(Refresh Token) 교환을 위해 필수
 
-    // 8) 라우터에 trace_id → CORS → 보안 헤더 레이어 적용
+    // 8) 백그라운드 세션 reaper 기동 (app_state 가 router 로 move 되기 전 db 핸들 확보)
+    let reaper_db = app_state.db.clone();
+    amazing_korean_api::jobs::session_reaper::spawn(reaper_db, cfg.session_reaper_interval_sec);
+
+    // 9) 라우터에 trace_id → CORS → 보안 헤더 레이어 적용
     //    trace_id 는 가장 바깥쪽 (요청 진입 시 먼저 주입 · 응답 헤더 최종 에코)
     let app = api::app_router(app_state)
         .layer(cors)
@@ -230,7 +234,7 @@ async fn main() -> anyhow::Result<()> {
             amazing_korean_api::trace_id::middleware,
         ));
 
-    // 9) 서버 시작
+    // 10) 서버 시작
     let listener = TcpListener::bind(&cfg.bind_addr).await?;
     tracing::info!(
         "✅ Server listening on http://{} (pid={})",
