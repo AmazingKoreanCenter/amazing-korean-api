@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-19 — 스키마 명명 ①②③ prod 안착 + AUD-1 안착 + KKRYOUN 충돌 근본해소 / 그룹 ④ 분석(R1 다음 세션) / 교재 이미지 종결 / 보안 §4
+updated: 2026-05-30 — MFA 세션 limit 사건 즉시 조치(영구 패치 다음 세션) / 스키마 명명 ①②③ prod 안착(5/19) / 그룹 ④ R1 다음 세션 / 보안 §4
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-30 🚨 — MFA 세션 limit 사건: 즉시 조치 완료, 영구 패치 다음 세션 (단일 SoT 신규)**
+
+  사용자(Admin) Google OAuth → MFA 6자리 입력 시 `AUTH_403_SESSION_LIMIT:2` + `MFA_TOKEN_EXPIRED` 반복(어제까지 정상). **진단**: prod 정상(redis 3주 uptime·evicted=0·maxmemory_policy=noeviction·api 10일·EC2 123일 uptime·서버시계 0초 정합), 코드/배포 변경 0건(마지막 5/19 #316 doc-only) → **런타임 누적이 원인**. **메커니즘 확정**: `enforce_session_limit`(`src/api/auth/service.rs:198`)은 `ak:refresh:{hash}` 살아있으면 ghost cleanup 1c에서 판정 실패 → 활성 카운트 포함. 사건시점 `ak:refresh:*` **8개 누적** → active_count=8 ≫ `MAX_SESSIONS_ADMIN=2` → 403. 두 번째 시도가 `MFA_TOKEN_EXPIRED`로 보인 이유: mfa_token이 1차에서 일회용 소비됨(부산물). **즉시 조치**: prod Redis `ak:refresh:*` 8개 수동 DEL → 정상 복구 검증(ak:session=1·ak:refresh=1·DB login_state active=1·TTL 정책치, 다음 OAuth 시 유령 cleanup이 5/29 row를 expired 자동 정리). **재발 위험 🔴 7일 내 보장**(refresh TTL=7일, 동일 누적 메커니즘 재현). DB login_state 분포: compromised=24·logged_out=17·expired=6·active=1 = 매일 reuse detection 발동 패턴(클라이언트 다중탭/캐시 추정·별도 트랙). **누적 정확 경로**(reuse detection은 Redis 정리 코드 보유 `service.rs:759-805`이며 호출도 정상인데 왜 누적됐는지)는 미스터리·다음 세션 1단계 조사. **영구 패치 단일 SoT 신규 = `docs/AMK_INCIDENT_2026-05-30_MFA_REFRESH_REUSE.md`**(원인/현상/결과/패치계획 분류). 후보 A(카운팅 SoT를 DB로 통일, 권장1순위) / B(유령 cleanup 강화·state 검사 추가) / C(정기 background 정리). SSoT=메모리 `project_mfa_session_limit_patch`. STATUS #155.
 
 - **2026-05-19 🔧 — KKRYOUN PR 충돌 근본해소 + AUD-1 prod 안착 + 그룹 ④ 분석 (R1 다음 세션)**
 
