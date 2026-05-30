@@ -1,8 +1,16 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-19 — 스키마 명명 ①②③ prod 안착 + AUD-1 안착 + KKRYOUN 충돌 근본해소 / 그룹 ④ 분석(R1 다음 세션) / 교재 이미지 종결 / 보안 §4
+updated: 2026-05-30 — MFA 세션 limit 영구 패치 구현 완료(6축, 빌드/테스트 통과·검토 대기) / 즉시 조치(동일일) / 스키마 명명 ①②③ prod 안착(5/19)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-05-30 🔧 — MFA 세션 limit 영구 패치 구현 (6축, 빌드·회귀테스트 통과 — 검토/배포 대기)**
+
+  코드 트레이싱 + 전수 정합 감사(워크플로) + prod 실측으로 근본원인 확정 후 6축 통합 패치 구현. **근본원인**: 세션 생존상태가 DB(`login_state`/`login_expire_at`)·Redis per-key TTL·TTL 없는 SET `ak:user_sessions`(SCARD)에 원자경계 없이 분산 + 시간기반 reconciler 부재 → enforce 내부 lazy cleanup으로만 화해. prod 실측 결정타: DB는 user_1 active=0인데 Redis SCARD가 8로 발산. **6축**: **A+C**(한 묶음) — 동시세션 카운트를 Redis SCARD → DB(`login_state='active' AND login_expire_at>now()`)로 전환(`AuthRepo::count_active_sessions`), 로그인 tx 안 `pg_advisory_xact_lock(2,user_id)` + in-tx 카운트(`enforce_admission_in_tx`)로 TOCTOU 원자화. `enforce_session_limit`의 SCARD 게이트·reject-role 403 제거(=거짓 403 근절). **B** — ghost-cleanup을 Redis 위생 전용으로 강등. **D** — 시간기반 reaper(`src/jobs/session_reaper.rs`, `main.rs` spawn, `SESSION_REAPER_INTERVAL_SEC` 기본 300·`<=0` 비활성, 마이그 불필요). **E** — reuse-detection Redis 정리 fail-closed(`let _ =`→`?`). **F** — ban/탈퇴 우회 차단: `refresh()`에 `user_state` 게이트 + `AuthService::invalidate_all_sessions` 헬퍼(mfa_disable에서 추출) → admin 비활성화 단일+벌크 경로에 wire. **검증**: cargo check/clippy/fmt + npm build + 회귀 테스트 2건(phantom 제외·reaper) 라이브 DB 통과(`tests/auth_session_limit_integration.rs`). **마이그레이션 0**(컬럼·인덱스·enum 기존재). 설계·근거 SoT=`docs/AMK_INCIDENT_2026-05-30_MFA_REFRESH_REUSE.md §6~§8`. 잔여=사용자 검토 → 커밋/PR/배포 → prod 스모크(막혔던 Admin 로그인). STATUS #155.
+
+- **2026-05-30 🚨 — MFA 세션 limit 사건: 즉시 조치 완료, 영구 패치 다음 세션 (단일 SoT 신규)**
+
+  사용자(Admin) Google OAuth → MFA 6자리 입력 시 `AUTH_403_SESSION_LIMIT:2` + `MFA_TOKEN_EXPIRED` 반복(어제까지 정상). **진단**: prod 정상(redis 3주 uptime·evicted=0·maxmemory_policy=noeviction·api 10일·EC2 123일 uptime·서버시계 0초 정합), 코드/배포 변경 0건(마지막 5/19 #316 doc-only) → **런타임 누적이 원인**. **메커니즘 확정**: `enforce_session_limit`(`src/api/auth/service.rs:198`)은 `ak:refresh:{hash}` 살아있으면 ghost cleanup 1c에서 판정 실패 → 활성 카운트 포함. 사건시점 `ak:refresh:*` **8개 누적** → active_count=8 ≫ `MAX_SESSIONS_ADMIN=2` → 403. 두 번째 시도가 `MFA_TOKEN_EXPIRED`로 보인 이유: mfa_token이 1차에서 일회용 소비됨(부산물). **즉시 조치**: prod Redis `ak:refresh:*` 8개 수동 DEL → 정상 복구 검증(ak:session=1·ak:refresh=1·DB login_state active=1·TTL 정책치, 다음 OAuth 시 유령 cleanup이 5/29 row를 expired 자동 정리). **재발 위험 🔴 7일 내 보장**(refresh TTL=7일, 동일 누적 메커니즘 재현). DB login_state 분포: compromised=24·logged_out=17·expired=6·active=1 = 매일 reuse detection 발동 패턴(클라이언트 다중탭/캐시 추정·별도 트랙). **누적 정확 경로**(reuse detection은 Redis 정리 코드 보유 `service.rs:759-805`이며 호출도 정상인데 왜 누적됐는지)는 미스터리·다음 세션 1단계 조사. **영구 패치 단일 SoT 신규 = `docs/AMK_INCIDENT_2026-05-30_MFA_REFRESH_REUSE.md`**(원인/현상/결과/패치계획 분류). 후보 A(카운팅 SoT를 DB로 통일, 권장1순위) / B(유령 cleanup 강화·state 검사 추가) / C(정기 background 정리). SSoT=메모리 `project_mfa_session_limit_patch`. STATUS #155.
 
 - **2026-05-19 🔧 — KKRYOUN PR 충돌 근본해소 + AUD-1 prod 안착 + 그룹 ④ 분석 (R1 다음 세션)**
 

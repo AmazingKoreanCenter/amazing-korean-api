@@ -571,7 +571,9 @@ impl AuthRepo {
             r#"
             SELECT login_session_id::text, login_refresh_hash
             FROM public.login
-            WHERE user_id = $1 AND login_state = 'active'::login_state_enum
+            WHERE user_id = $1
+              AND login_state = 'active'::login_state_enum
+              AND login_expire_at > now()
             ORDER BY login_begin_at ASC
             LIMIT $2
         "#,
@@ -582,6 +584,90 @@ impl AuthRepo {
         .await?;
 
         Ok(rows)
+    }
+
+    /// 사용자의 현재 활성 세션 수 (동시 세션 제한 판정의 권위 소스).
+    /// Redis SCARD(ak:user_sessions)는 TTL이 없어 만료 세션을 over-count 하므로
+    /// (2026-05-30 INC) DB의 login_expire_at을 기준으로 시간 기반 진실을 센다.
+    /// index_login_active_by_user(user_id, login_state) + index_login_expire_at 사용.
+    pub async fn count_active_sessions(pool: &PgPool, user_id: i64) -> AppResult<i64> {
+        let count = sqlx::query_scalar::<_, i64>(
+            r#"
+            SELECT count(*)
+            FROM public.login
+            WHERE user_id = $1
+              AND login_state = 'active'::login_state_enum
+              AND login_expire_at > now()
+        "#,
+        )
+        .bind(user_id)
+        .fetch_one(pool)
+        .await?;
+
+        Ok(count)
+    }
+
+    /// `count_active_sessions` 의 트랜잭션 버전 — 동시 세션 admission 을 advisory lock
+    /// 안에서 원자적으로 카운트하기 위함 (check-then-insert TOCTOU 차단).
+    pub async fn count_active_sessions_tx(
+        tx: &mut Transaction<'_, Postgres>,
+        user_id: i64,
+    ) -> AppResult<i64> {
+        let count = sqlx::query_scalar::<_, i64>(
+            r#"
+            SELECT count(*)
+            FROM public.login
+            WHERE user_id = $1
+              AND login_state = 'active'::login_state_enum
+              AND login_expire_at > now()
+        "#,
+        )
+        .bind(user_id)
+        .fetch_one(&mut **tx)
+        .await?;
+
+        Ok(count)
+    }
+
+    /// 사용자별 세션 admission 직렬화용 transaction-scoped advisory lock.
+    /// 2-인자 형식(namespace=2, user_id)으로 textbook/ebook 의 1-인자 lock 과
+    /// 키 공간이 완전히 분리됨 (Postgres 는 1-arg int8 / 2-arg int4 lock 을 별개로 취급).
+    /// 트랜잭션 종료(commit/rollback) 시 자동 해제.
+    pub async fn acquire_user_session_lock_tx(
+        tx: &mut Transaction<'_, Postgres>,
+        user_id: i64,
+    ) -> AppResult<()> {
+        // login PK 는 bigint(IDENTITY). advisory_xact_lock 2-arg 는 int4 이므로 truncate 하지만,
+        // 한도 판정 카운트는 full i64(count_active_sessions_tx)를 쓰므로 정확하다. truncation 은
+        // user_id 가 2^31 을 넘어야 발생하고, 그때도 두 user 가 같은 lock 슬롯을 공유해 직렬화가
+        // 약화될 뿐(드문 perf 히컵) 카운트/보안엔 영향이 없다. 현 규모에선 1:1 정확.
+        sqlx::query("SELECT pg_advisory_xact_lock($1, $2)")
+            .bind(2_i32) // namespace: session admission
+            .bind(user_id as i32)
+            .execute(&mut **tx)
+            .await?;
+        Ok(())
+    }
+
+    /// 시간 기반 세션 reaper — login_expire_at 이 지난 active 행을 expired 로 정리.
+    /// 백그라운드 task(jobs::session_reaper)가 주기적으로 호출. 반환 = 정리된 행 수.
+    /// Redis 키는 각자의 TTL 로 자연 만료되므로 여기서 건드리지 않는다.
+    pub async fn reap_expired_sessions(pool: &PgPool) -> AppResult<u64> {
+        let res = sqlx::query(
+            r#"
+            UPDATE public.login
+            SET login_state = 'expired'::login_state_enum,
+                login_revoked_reason = 'ttl_reaped',
+                login_updated_at = now()
+            WHERE login_state = 'active'::login_state_enum
+              AND login_expire_at IS NOT NULL
+              AND login_expire_at < now()
+        "#,
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(res.rows_affected())
     }
 
     /// 세션 ID 배치로 refresh_hash 조회 (유령 세션 정리 루프의 N+1 제거용).
