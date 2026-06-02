@@ -8,9 +8,13 @@
 > ## 0. 구현 진행 상태 (2026-06-02 갱신)
 > - **§4.1 refresh TTL 단위 = 확정**: 옵션 ②(초 반환 일반화) 채택. `refresh_ttl_days_for_role` → **`refresh_ttl_secs_for_role(role) -> i64`** 로 교체(Hymn/Admin/Manager = 신규 `REFRESH_TTL_SECS_ADMIN` 기본 3600 / Learner = `refresh_ttl_days * 86400`). 호출 3곳(`service.rs:628`·`:865`·`:2299`)의 `* 24 * 3600` 제거. dead 필드 `refresh_ttl_days_admin/_hymn` 제거. 근거: 하류 `repo.rs:439 make_interval(secs => $3)`가 이미 초 기반 → 변환점 소멸.
 > - **§4.2 evict 범위 = 확정**: HYMN/Admin/Manager만 evict 추가. **reject 경로(`enforce_admission_in_tx`)는 유지(dormant)** — `is_session_evict_role` true면 자동 우회, 삭제 안 함(회귀 안전망). 단 evict 경로(`enforce_session_limit`)에 advisory lock 추가 필수.
-> - **§4.3 ak:session 즉시강퇴 범위 = 확정**: **관리자 라우트 한정**(Learner 트래픽 매 요청 Redis 비용 회피).
-> - **PR #1(완료 구현·`npm build` 통과)**: `frontend/src/api/client.ts` single-flight(설계 §3.2 ⑥). 모듈 `refreshPromise` 게이트 + `refreshAccessToken()`. → 분리 선배포.
-> - **PR #2(진행)**: 백엔드 ①~⑤ + 프론트 단일탭 ⑦.
+> - **§4.3 ak:session 즉시강퇴 = ⚠️ 설계 §3.1 #5 STALE 정정 (구현 시 발견 2026-06-02)**: "현재 요청별 검증이 ak:session 을 안 봐서 15분 잔존"은 **이미 해소됨**. **보안 audit 2.1(`AMK_API_SECURITY_AUDIT.md:45` `[x] 완료 2026-05-17`)** 가 `session.rs::ensure_session_active` 를 `extractor.rs`(AuthUser/OptionalAuthUser) + `role_guard.rs:61` 에 전역 wiring → ak:session 부재 시 즉시 401. evict 가 `ak:session` 키를 삭제하므로 퇴장 기기 다음 요청 = 즉시 401 이 **이미 동작**. → **PR #2 무코드**(재구현/축소 안 함. "관리자 한정 축소"는 Learner extractor 검사 제거=보안 다운그레이드라 미채택).
+> - **PR #1(완료·배포·prod 라이브)**: `frontend/src/api/client.ts` single-flight(설계 §3.2 ⑥). PR #318 머지(main `ea9bf59`)·Cloudflare Pages success.
+> - **PR #2(구현 완료·검증 통과)**: 백엔드 ①②③④(#5는 위 무코드) + 프론트 단일탭 ⑦.
+>   - **①②③ config**: `refresh_ttl_secs_for_role`(초)·`REFRESH_TTL_SECS_ADMIN=3600`·`MAX_SESSIONS_*=1`·`is_session_evict_role` 전 역할 true. dead 필드 제거.
+>   - **④ 원자 evict (위험 최소화 범위)**: Learner 경로 **무변경**(pre-tx FIFO 유지). HYMN/Admin/Manager 만 `enforce_admission_in_tx` 에서 advisory lock 안에 count→`evict_oldest_sessions_tx`(in-tx UPDATE…RETURNING)→insert 원자화. 퇴장분은 commit 후 `cleanup_evicted_sessions_redis` 로 정리(즉시 강퇴).
+>   - **⑦ 단일탭**: `useAdminSingleTab`(BroadcastChannel hello/present) + `AdminLayout` 차단 화면. AdminRoute(admin/HYMN/manager 전용)로만 진입 → 자동 스코프.
+>   - **검증**: cargo check/clippy(-D warnings)/fmt + 통합테스트 3/3(신규 `evict_oldest_sessions_tx_revokes_only_oldest_n` 실DB 통과) + npm build/eslint/lint:ui.
 
 ---
 
@@ -62,7 +66,7 @@ Phase 1(2026-05-30, PR #317)에서 동시 세션 카운팅을 **Redis SCARD → 
 2. **evict로 전환** — `is_session_evict_role`이 현재 `matches!(Learner)`만 true. → HYMN/Admin/Manager도 evict 대상에 포함. (max=1 + evict = "기존 전부 퇴출 후 새 1개" = 단일 세션·last-login-wins. `enforce_session_limit`의 FIFO 로직 그대로 재사용: `evict_count = active_count - 1 + 1 = active_count` → 전부 퇴출.)
 3. **refresh TTL 1시간(sliding)** — 사용/회전 시 `login_expire_at = now()+1h` 갱신(기존 `update_login_refresh_hash_tx` 동작이 이미 sliding) → idle 1시간이면 만료.
 4. **동시 로그인 정확히 1** — Phase 1에서 만든 `acquire_user_session_lock_tx`(advisory lock)를 **evict 경로(`enforce_session_limit`)에도** 적용. (현재는 reject 경로 `enforce_admission_in_tx`에만 있음.)
-5. **즉시 강퇴(요청별 `ak:session` 검증)** — extractor/`ensure_session_active`가 요청마다 `ak:session:{sid}` 존재 확인 → 퇴출/로그아웃 즉시 access token 무효. (관리자 영역 라우트로 범위 한정 검토 — Learner 트래픽에 매 요청 비용 부과 회피.)
+5. **즉시 강퇴(요청별 `ak:session` 검증)** — ⚠️ **STALE(2026-06-02 구현 시 정정, §0 참조)**: 이미 audit 2.1(`[x] 완료 2026-05-17`)가 `ensure_session_active` 를 extractor + role_guard 에 전역 wiring 완료 → 본 항목은 **이미 구현됨, PR #2 무코드**. 아래 "현재 ~ 안 봐서 15분 잔존" 서술은 audit 2.1 이전 기준의 오래된 인용이었다. ~~extractor/`ensure_session_active`가 요청마다 `ak:session:{sid}` 존재 확인 → 퇴출/로그아웃 즉시 access token 무효.~~
 
 ### 3.2 프론트엔드
 6. **🔑 single-flight refresh** (`src/api/client.ts`) — 동시 401이 와도 `/auth/refresh`는 **1번만** 실행, 나머지 요청은 그 결과를 기다렸다 재시도. (현재 큐/플래그 없음 = 근본 버그.) → "재오픈/몇시간 뒤 로그아웃" 근본 해결.

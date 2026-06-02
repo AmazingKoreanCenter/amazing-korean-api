@@ -21,9 +21,8 @@ pub struct Config {
     #[allow(dead_code)]
     pub skip_db: bool,
     pub jwt_access_ttl_min: i64,
-    pub refresh_ttl_days: i64,
-    pub refresh_ttl_days_admin: i64, // HYMN, Admin, Manager용 (더 짧은 TTL)
-    pub refresh_ttl_days_hymn: i64,  // HYMN 전용 (가장 짧은 TTL)
+    pub refresh_ttl_days: i64,       // Learner용 (일 단위, 기본 30일)
+    pub refresh_ttl_secs_admin: i64, // HYMN/Admin/Manager용 (초 단위, 기본 3600 = 1시간 sliding)
     pub refresh_cookie_name: String,
     pub refresh_cookie_domain: Option<String>,
     pub refresh_cookie_secure: bool,
@@ -66,9 +65,9 @@ pub struct Config {
     pub rate_limit_mfa_window_sec: i64, // MFA 코드 검증 레이트리밋 윈도우 (초, 기본: 300)
     // 동시 세션 수 제한 (역할별)
     pub max_sessions_learner: i64, // Learner 최대 동시 세션 (기본: 5, 초과 시 FIFO 자동 퇴장)
-    pub max_sessions_manager: i64, // Manager 최대 동시 세션 (기본: 3, 초과 시 로그인 거부)
-    pub max_sessions_admin: i64,   // Admin 최대 동시 세션 (기본: 2, 초과 시 로그인 거부)
-    pub max_sessions_hymn: i64,    // HYMN 최대 동시 세션 (기본: 2, 초과 시 로그인 거부)
+    pub max_sessions_manager: i64, // Manager 최대 동시 세션 (기본: 1, 초과 시 evict=last-login-wins)
+    pub max_sessions_admin: i64,   // Admin 최대 동시 세션 (기본: 1, 초과 시 evict=last-login-wins)
+    pub max_sessions_hymn: i64,    // HYMN 최대 동시 세션 (기본: 1, 초과 시 evict=last-login-wins)
     // 세션 reaper: login_expire_at 지난 active 행을 주기적으로 expired 정리 (초, 기본 300, <=0 비활성)
     pub session_reaper_interval_sec: i64,
     // RevenueCat (모바일 IAP)
@@ -140,14 +139,12 @@ impl Config {
             .unwrap_or_else(|_| "30".into())
             .parse::<i64>()
             .expect("REFRESH_TTL_DAYS must be a number");
-        let refresh_ttl_days_admin = env::var("REFRESH_TTL_DAYS_ADMIN")
-            .unwrap_or_else(|_| "7".into())
+        // HYMN/Admin/Manager refresh TTL — 초 단위(1시간 sliding, 관리자 세션 v2).
+        // 일 단위로는 1시간을 표현 불가 → 초 필드 신설(Learner 의 일 단위와 혼재).
+        let refresh_ttl_secs_admin = env::var("REFRESH_TTL_SECS_ADMIN")
+            .unwrap_or_else(|_| "3600".into())
             .parse::<i64>()
-            .expect("REFRESH_TTL_DAYS_ADMIN must be a number");
-        let refresh_ttl_days_hymn = env::var("REFRESH_TTL_DAYS_HYMN")
-            .unwrap_or_else(|_| "1".into())
-            .parse::<i64>()
-            .expect("REFRESH_TTL_DAYS_HYMN must be a number");
+            .expect("REFRESH_TTL_SECS_ADMIN must be a number");
         let refresh_cookie_name =
             env::var("REFRESH_COOKIE_NAME").unwrap_or_else(|_| "ak_refresh".into());
         let refresh_cookie_domain = env::var("REFRESH_COOKIE_DOMAIN")
@@ -291,16 +288,17 @@ impl Config {
             .unwrap_or_else(|_| "5".into())
             .parse::<i64>()
             .expect("MAX_SESSIONS_LEARNER must be a number");
+        // 관리자 세션 v2: HYMN/Admin/Manager = 1 (단일 기기, evict=last-login-wins).
         let max_sessions_manager = env::var("MAX_SESSIONS_MANAGER")
-            .unwrap_or_else(|_| "3".into())
+            .unwrap_or_else(|_| "1".into())
             .parse::<i64>()
             .expect("MAX_SESSIONS_MANAGER must be a number");
         let max_sessions_admin = env::var("MAX_SESSIONS_ADMIN")
-            .unwrap_or_else(|_| "2".into())
+            .unwrap_or_else(|_| "1".into())
             .parse::<i64>()
             .expect("MAX_SESSIONS_ADMIN must be a number");
         let max_sessions_hymn = env::var("MAX_SESSIONS_HYMN")
-            .unwrap_or_else(|_| "2".into())
+            .unwrap_or_else(|_| "1".into())
             .parse::<i64>()
             .expect("MAX_SESSIONS_HYMN must be a number");
         // 세션 reaper 주기 (초). 기본 300. <=0 이면 reaper 비활성(panic 게이트 없음 — 부팅 안전).
@@ -551,8 +549,7 @@ impl Config {
             skip_db,
             jwt_access_ttl_min,
             refresh_ttl_days,
-            refresh_ttl_days_admin,
-            refresh_ttl_days_hymn,
+            refresh_ttl_secs_admin,
             refresh_cookie_name,
             refresh_cookie_domain,
             refresh_cookie_secure,
@@ -633,17 +630,18 @@ impl Config {
         }
     }
 
-    /// 역할에 따른 Refresh Token TTL (days) 반환
-    /// - HYMN: 1일 (기본)
-    /// - Admin/Manager: 7일 (기본)
-    /// - Learner: 30일 (기본)
-    pub fn refresh_ttl_days_for_role(&self, role: &crate::types::UserAuth) -> i64 {
+    /// 역할에 따른 Refresh Token TTL (초) 반환. 관리자 세션 v2:
+    /// - HYMN/Admin/Manager: `refresh_ttl_secs_admin` (기본 3600초 = 1시간 sliding)
+    /// - Learner: `refresh_ttl_days` × 86400 (기본 30일)
+    ///
+    /// 하류(`repo.rs` `make_interval(secs => $3)` / Redis TTL)가 이미 초 기반이라
+    /// 호출부의 `* 24 * 3600` 변환 없이 그대로 사용한다.
+    pub fn refresh_ttl_secs_for_role(&self, role: &crate::types::UserAuth) -> i64 {
         match role {
-            crate::types::UserAuth::Hymn => self.refresh_ttl_days_hymn,
-            crate::types::UserAuth::Admin | crate::types::UserAuth::Manager => {
-                self.refresh_ttl_days_admin
-            }
-            crate::types::UserAuth::Learner => self.refresh_ttl_days,
+            crate::types::UserAuth::Hymn
+            | crate::types::UserAuth::Admin
+            | crate::types::UserAuth::Manager => self.refresh_ttl_secs_admin,
+            crate::types::UserAuth::Learner => self.refresh_ttl_days * 86400,
         }
     }
 
@@ -657,9 +655,17 @@ impl Config {
         }
     }
 
-    /// Learner 역할인지 확인 (세션 초과 시 FIFO 자동 퇴장 대상)
+    /// 세션 초과 시 기존 세션을 퇴장(evict)시키는 역할인지 확인.
+    /// 관리자 세션 v2: 전 역할 evict (HYMN/Admin/Manager = max1 evict=last-login-wins,
+    /// Learner = max5 FIFO). → reject 경로(`enforce_admission_in_tx` 의 403 분기)는
+    /// dormant(도달 불가) 안전망으로만 유지. 새 역할 추가 시 match 가 결정을 강제한다.
     pub fn is_session_evict_role(&self, role: &crate::types::UserAuth) -> bool {
-        matches!(role, crate::types::UserAuth::Learner)
+        match role {
+            crate::types::UserAuth::Learner
+            | crate::types::UserAuth::Hymn
+            | crate::types::UserAuth::Admin
+            | crate::types::UserAuth::Manager => true,
+        }
     }
 
     /// Admin IP allowlist 확인
@@ -768,8 +774,7 @@ impl fmt::Debug for Config {
             .field("skip_db", &self.skip_db)
             .field("jwt_access_ttl_min", &self.jwt_access_ttl_min)
             .field("refresh_ttl_days", &self.refresh_ttl_days)
-            .field("refresh_ttl_days_admin", &self.refresh_ttl_days_admin)
-            .field("refresh_ttl_days_hymn", &self.refresh_ttl_days_hymn)
+            .field("refresh_ttl_secs_admin", &self.refresh_ttl_secs_admin)
             .field("refresh_cookie_name", &self.refresh_cookie_name)
             .field("refresh_cookie_domain", &self.refresh_cookie_domain)
             .field("refresh_cookie_secure", &self.refresh_cookie_secure)

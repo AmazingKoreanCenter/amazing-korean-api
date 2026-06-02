@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-02 — 관리자 세션 v2 Phase 2 PR #1: 프론트 single-flight refresh 구현·빌드통과 / 관리자 세션 모델 v2 설계 확정(Phase 2) / MFA 세션 limit Phase 1(#317)
+updated: 2026-06-02 — 관리자 세션 v2 Phase 2 PR #2(BE 세션모델+단일탭) 구현·검증 / PR #1 single-flight prod 라이브 / 설계 확정 / MFA Phase 1(#317)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-02 🔧 — 관리자 세션 v2 Phase 2 / PR #2: BE 세션모델(max1·evict·1h sliding·원자 lock) + 프론트 단일탭 차단**
+
+  HYMN/Admin/Manager 의 동시 세션 정책을 **reject(403)→evict(last-login-wins)** 로 전환. **①②③ config**: `refresh_ttl_days_for_role`→`refresh_ttl_secs_for_role`(초 반환, 하류 `make_interval(secs)`가 이미 초라 호출 3곳 `* 24 * 3600` 제거) + 신규 `REFRESH_TTL_SECS_ADMIN`(기본 3600=1h sliding, Learner 30일 유지) + `MAX_SESSIONS_{HYMN,ADMIN,MANAGER}` 기본 1 + `is_session_evict_role` 전 역할 true(reject 경로 dormant 안전망) + dead 필드(`refresh_ttl_days_admin/_hymn`) 제거. **④ 원자 evict**: 위험 최소화 위해 **Learner 경로 무변경**(pre-tx FIFO 유지), HYMN/Admin/Manager 만 `enforce_admission_in_tx` 에서 advisory lock 안에 count→`evict_oldest_sessions_tx`(신규 repo, in-tx `UPDATE…WHERE login_id IN (oldest N)…RETURNING`)→insert 로 원자화(동시 로그인도 최종 active 정확히 1). 퇴장 세션은 commit 후 `cleanup_evicted_sessions_redis`(ak:session/refresh/user_sessions 배치 정리)로 다음 요청 즉시 401. **⑦ 프론트 단일탭**: `useAdminSingleTab`(BroadcastChannel hello/present, 새 탭만 차단·기존 탭 유지) + `AdminLayout` 차단 화면. AdminRoute(admin/HYMN/manager 전용) 진입이라 자동 스코프. **🔎 구현 중 발견(verify-before-assert)**: 설계 §3.1 #5(요청별 ak:session 즉시강퇴)는 **이미 보안 audit 2.1(`[x] 2026-05-17`)이 `ensure_session_active` 를 extractor + role_guard 에 전역 wiring 완료** → PR #2 무코드(설계의 "15분 잔존" 서술은 audit 2.1 이전 stale, 정정). evict 가 ak:session 삭제 → 즉시강퇴 이미 성립. **검증**: cargo check/clippy(-D warnings)/fmt + 통합테스트 3/3(신규 `evict_oldest_sessions_tx_revokes_only_oldest_n` FIFO 선택성 실DB 통과) + npm build/eslint/lint:ui. env 동기화 4(docker-compose.prod.yml·.env.example·DEPLOY_OPS·API_MASTER §동시세션 표). SoT=`docs/AMK_ADMIN_SESSION_MODEL_V2.md §0`. STATUS #156.
 
 - **2026-06-02 🔧 — 관리자 세션 v2 Phase 2 / PR #1: 프론트 single-flight refresh (재오픈·다발요청 강제 로그아웃 근본수정)**
 

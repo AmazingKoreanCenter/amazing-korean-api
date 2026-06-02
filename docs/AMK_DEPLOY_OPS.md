@@ -143,11 +143,13 @@ FRONTEND_URL=https://amazingkorean.net
 REVENUECAT_API_KEY=<api-key>              # RevenueCat 서버 API 키
 REVENUECAT_WEBHOOK_AUTH_TOKEN=<token>     # RevenueCat 웹훅 Bearer 토큰
 
-# ─── 동시 세션 수 제한 (역할별) ───
-# MAX_SESSIONS_LEARNER=5           # 기본: 5 (초과 시 가장 오래된 세션 자동 퇴장)
-# MAX_SESSIONS_MANAGER=3           # 기본: 3 (초과 시 로그인 거부)
-# MAX_SESSIONS_ADMIN=2             # 기본: 2 (초과 시 로그인 거부)
-# MAX_SESSIONS_HYMN=2              # 기본: 2 (초과 시 로그인 거부)
+# ─── 동시 세션 수 제한 (역할별) — 관리자 세션 v2 ───
+# MAX_SESSIONS_LEARNER=5           # 기본: 5 (초과 시 가장 오래된 세션 자동 퇴장 FIFO)
+# MAX_SESSIONS_MANAGER=1           # 기본: 1 (초과 시 evict=last-login-wins, advisory lock)
+# MAX_SESSIONS_ADMIN=1             # 기본: 1 (초과 시 evict=last-login-wins, advisory lock)
+# MAX_SESSIONS_HYMN=1              # 기본: 1 (초과 시 evict=last-login-wins, advisory lock)
+# REFRESH_TTL_SECS_ADMIN=3600      # 기본: 3600 (HYMN/Admin/Manager refresh TTL 초, 1시간 sliding)
+#                                  #   Learner 는 REFRESH_TTL_DAYS(기본 30일) 유지.
 # SESSION_REAPER_INTERVAL_SEC=300  # 기본: 300. login_expire_at 지난 active 행을 주기 정리.
                                    #   <=0 이면 reaper 비활성(panic 게이트 없음 — 부팅 안전).
                                    #   amk_app UPDATE 권한 내, 마이그레이션 불필요. (2026-05-30 세션 정합 패치)

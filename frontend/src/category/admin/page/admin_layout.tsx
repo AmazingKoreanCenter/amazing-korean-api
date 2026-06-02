@@ -1,7 +1,8 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { Users, Video, BookOpen, GraduationCap, LayoutDashboard, Mail, Languages, CreditCard, BookText, Tablet } from "lucide-react";
+import { Users, Video, BookOpen, GraduationCap, LayoutDashboard, Mail, Languages, CreditCard, BookText, Tablet, Copy } from "lucide-react";
 
 import { ThemeToggle } from "@/components/ui/theme_toggle";
+import { useAdminSingleTab } from "@/category/admin/hook/use_admin_single_tab";
 
 const navItems = [
   { path: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -18,6 +19,12 @@ const navItems = [
 
 export function AdminLayout() {
   const location = useLocation();
+  const blocked = useAdminSingleTab();
+
+  // 관리자 단일 탭 강제: 우리 사이트가 이미 다른 탭에서 열려 있으면 이 새 탭만 차단.
+  if (blocked) {
+    return <AdminTabBlocked />;
+  }
 
   const isActive = (path: string, exact?: boolean, prefix?: string) => {
     if (exact) {
@@ -88,6 +95,41 @@ export function AdminLayout() {
         <main className="flex-1 p-6 overflow-auto print:p-0 print:overflow-visible">
           <Outlet />
         </main>
+      </div>
+    </div>
+  );
+}
+
+/** 관리자 단일 탭 강제 — 2번째 탭에서만 표시되는 차단 화면 (기존 탭은 영향 없음). */
+function AdminTabBlocked() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-muted p-6">
+      <div className="max-w-md w-full bg-card border border-border rounded-xl p-8 text-center space-y-4">
+        <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <Copy className="w-6 h-6 text-primary" />
+        </div>
+        <h1 className="text-lg font-semibold text-foreground">
+          이미 다른 탭에서 사용 중입니다
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          관리자 페이지는 한 번에 한 탭에서만 열 수 있습니다. 기존 탭에서 계속 작업하세요.
+          그 탭을 닫았다면 아래에서 새로고침하면 이 탭에서 이어집니다.
+        </p>
+        <div className="flex flex-col gap-2 pt-2">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="w-full px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            이 탭에서 새로고침
+          </button>
+          <Link
+            to="/"
+            className="w-full px-4 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground"
+          >
+            사이트로 돌아가기
+          </Link>
+        </div>
       </div>
     </div>
   );

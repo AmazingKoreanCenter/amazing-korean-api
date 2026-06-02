@@ -102,3 +102,77 @@ async fn reap_expired_sessions_flips_only_stale_active() {
 
     cleanup_test_user(&st, user_id).await;
 }
+
+/// refresh_hash 와 login_begin_at(FIFO 순서 결정용)까지 지정하는 확장 insert (evict 테스트 전용).
+async fn insert_login_row_full(
+    st: &amazing_korean_api::state::AppState,
+    user_id: i64,
+    state: &str,
+    expire_offset_secs: i64,
+    begin_offset_secs: i64,
+    refresh_hash: &str,
+) {
+    sqlx::query(
+        r#"
+        INSERT INTO public.login
+            (user_id, login_country, login_asn, login_org,
+             login_session_id, login_refresh_hash, login_state,
+             login_begin_at, login_expire_at)
+        VALUES
+            ($1, 'LC', 0, 'local',
+             gen_random_uuid(), $2, $3::login_state_enum,
+             now() + make_interval(secs => $4),
+             now() + make_interval(secs => $5))
+        "#,
+    )
+    .bind(user_id)
+    .bind(refresh_hash)
+    .bind(state)
+    .bind(begin_offset_secs as f64)
+    .bind(expire_offset_secs as f64)
+    .execute(&st.db)
+    .await
+    .expect("insert test login row (full)");
+}
+
+/// 관리자 세션 v2: `evict_oldest_sessions_tx` 가 가장 오래된 N개 active 세션만 revoked 로
+/// 전환하고 `(session_id, refresh_hash)` 를 반환한다 (동시 로그인 정확히 1 의 핵심 연산).
+/// ORDER BY login_begin_at ASC(FIFO) 선택성 검증 — oldest/mid 퇴장, newest 유지.
+#[tokio::test]
+#[ignore]
+async fn evict_oldest_sessions_tx_revokes_only_oldest_n() {
+    let st = common::make_test_state().await;
+    let spec = TestUserSpec::random();
+    let user_id = insert_test_user(&st, &spec).await;
+
+    // login_refresh_hash 전역 unique 제약 회피 위해 user_id 접미.
+    let h_old = format!("h_old_{user_id}");
+    let h_mid = format!("h_mid_{user_id}");
+    let h_new = format!("h_new_{user_id}");
+
+    // begin_offset 오름차순 = old < mid < new (전부 미래 만료 active).
+    insert_login_row_full(&st, user_id, "active", 3600, -300, &h_old).await;
+    insert_login_row_full(&st, user_id, "active", 3600, -200, &h_mid).await;
+    insert_login_row_full(&st, user_id, "active", 3600, -100, &h_new).await;
+
+    // 가장 오래된 2개 퇴장 (limit=2). ORDER BY ASC → old, mid.
+    let mut tx = st.db.begin().await.expect("begin tx");
+    let evicted = AuthRepo::evict_oldest_sessions_tx(&mut tx, user_id, 2, "session_limit_evicted")
+        .await
+        .expect("evict_oldest_sessions_tx");
+    tx.commit().await.expect("commit");
+
+    assert_eq!(evicted.len(), 2, "가장 오래된 2개만 퇴장");
+    let evicted_hashes: Vec<&str> = evicted.iter().map(|(_, h)| h.as_str()).collect();
+    assert!(evicted_hashes.contains(&h_old.as_str()), "oldest 퇴장 포함");
+    assert!(evicted_hashes.contains(&h_mid.as_str()), "mid 퇴장 포함");
+    assert!(!evicted_hashes.contains(&h_new.as_str()), "newest 미퇴장");
+
+    // 최신 1개만 active 잔존 (이후 새 세션 insert 로 정확히 1 = last-login-wins).
+    let live = AuthRepo::count_active_sessions(&st.db, user_id)
+        .await
+        .expect("count after evict");
+    assert_eq!(live, 1, "최신 active 1건만 유지");
+
+    cleanup_test_user(&st, user_id).await;
+}
