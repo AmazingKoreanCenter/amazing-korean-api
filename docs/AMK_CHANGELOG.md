@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-02 — 관리자 세션 v2 Phase 2 PR #2(BE 세션모델+단일탭) 구현·검증 / PR #1 single-flight prod 라이브 / 설계 확정 / MFA Phase 1(#317)
+updated: 2026-06-02 — 관리자 세션 v2 Phase 2 PR #3(핵심 동작 회귀 테스트) / PR #2(BE 세션모델+단일탭) / PR #1 single-flight prod 라이브 / MFA Phase 1(#317)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-02 🧪 — 관리자 세션 v2 Phase 2 / PR #3: 핵심 동작 회귀 테스트 (코드 무변경, #320 main `18ed243`)**
+
+  PR #1·#2 의 "핵심 동작 자체"를 자동 검증(기존 테스트는 해피패스/단일 401 만 커버). **계기**: 사용자가 "할 수 있는 테스트 다 했나" 질문 → 점검 결과 **프론트 vitest 를 한 번도 안 돌렸음**(CI frontend 잡도 vitest 미실행) 발견 → 실행해 253/253 통과(`client.integration.test.ts` 가 PR #1 single-flight 코드를 직접 커버). **추가 테스트**: BE `admin_over_limit_login_evicts_instead_of_rejecting`(`AuthService::login` 전체 경로로 초과 로그인=evict≠403, **config 무관** self-calibrate) + BE `evict_oldest_sessions_tx_revokes_only_oldest_n`(FIFO 선택성) + FE single-flight(동시 401 3건→`/auth/refresh` 1회) + FE `useAdminSingleTab`(2번째 탭만 차단). **적대적 검증 2명**(독립 subagent): 테스트 validity(BE evict·single-flight=GENUINE / 단일탭=WEAK mock-bound) + 백엔드 correctness=**NONE(실버그 0, advisory lock 원자성 트레이스 확인)**. **🔑 정직 사례**: 동시성(advisory lock) 테스트를 작성해 돌려봤으나 argon2 비번검증이 로그인을 시간차로 벌려 **lock 제거해도 통과(경험적 확인)=vacuous** → 출하 안 하고 사유를 테스트 NOTE 로 기록. **자동 커버리지 한계(정직)**: CI frontend 잡 vitest 미실행 → FE 테스트는 로컬만 / 단일탭 mock-bound / 동시성·행동지표는 비자동. 검증: cargo test 통합 4/4 실DB + clippy(-D)/fmt + vitest 253. SoT=`AMK_ADMIN_SESSION_MODEL_V2.md §0·§7`. STATUS #156.
 
 - **2026-06-02 🔧 — 관리자 세션 v2 Phase 2 / PR #2: BE 세션모델(max1·evict·1h sliding·원자 lock) + 프론트 단일탭 차단**
 
