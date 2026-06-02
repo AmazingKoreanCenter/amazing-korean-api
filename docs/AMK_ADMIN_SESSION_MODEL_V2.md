@@ -23,6 +23,7 @@
 >   - **적대적 검증 2명**: 테스트 validity(BE evict·single-flight=GENUINE / 단일탭=WEAK mock-bound) + 백엔드 correctness=**NONE(실버그 0)**.
 >   - **🔑 정직 사례 — 동시성 테스트 미채택**: advisory lock TOCTOU 직렬화는 자동 테스트로 신뢰성 있게 검증 불가. `tokio::spawn` N 동시 로그인을 띄워도 argon2 비번검증이 로그인을 시간차로 벌려 count→insert 임계구역이 거의 안 겹침 → **lock 제거해도 통과(경험적 확인)=vacuous**. 출하 대신 사유를 테스트 파일 NOTE 로 기록. lock 원자성은 코드리뷰 트레이스 + Phase 1 기존 prod 메커니즘으로 보증.
 > - **자동 테스트 커버리지 한계(정직)**: ⓐ 동시성/lock = 위 NOTE(미자동). ⓑ **CI frontend 잡(`pr-check.yml`)은 vitest 미실행**(build+lint+eslint만) → FE 테스트(single-flight/단일탭)는 **로컬 vitest 253/253 으로만 검증**, CI 게이트 아님. ⓒ 단일탭 실 BroadcastChannel async 전달 미검증(mock). ⓓ §7 의 행동 지표(실 admin 로그인·1h idle·멀티기기·prod compromised 로그 소거)는 자격증명+시간 필요 = 운영자 확인 영역.
+> - **🟢 prod 실측 검증 완료 (2026-06-02, 사용자 운영자 직접)**: ✅ **단일탭 차단**(2번째 탭 차단화면, 첫 탭 유지 — 스샷) / ✅ **evict·last-login-wins**(`login_id 84`가 `83`을 `session_limit_evicted`, 기존 기기 즉시 로그아웃) / ✅ **max=1 정상 enforce**(현재 admin active 정확히 1) / ✅ **1h sliding TTL 라이브**(`login_expire_at − login_begin_at = 정확히 1h`) / ✅ **env 정합**(`docker exec amk-api printenv`: `MAX_SESSIONS_ADMIN=1`·`REFRESH_TTL_SECS_ADMIN=3600`) / ✅ **compromised 깨끗**(A-1 최근 7일 2건, Phase 1 후 0). **관찰**: 테스트 중 admin active 가 찰나 `2`로 보였다가 **다음 로그인 evict 로 1 로 self-heal** — §7 의 "동시성=자동 미검증" 영역의 과도상태로, 정상상태(1)는 유지(1인 관리자 환경 실무 위험 0). **진단 오류 1건**: active=2 원인을 printenv 전 "stale .env.prod" 로 단정 → 반증(`AMK_AI_MISTAKES.md M-015`).
 
 ---
 
@@ -46,7 +47,7 @@ Phase 1(2026-05-30, PR #317)에서 동시 세션 카운팅을 **Redis SCARD → 
 - **원인 = 멀티탭이 아니라, 프론트 refresh가 single-flight가 아님.** `frontend/src/api/client.ts:42-89` 401 인터셉터에 **`isRefreshing` 플래그·대기 큐가 없음**.
 - 메커니즘: 여러 API 요청이 동시에 401(access token 15분 만료 — 예: 재오픈 시 첫 화면이 호출 다발) → **각 요청이 *따로* `/auth/refresh` 동시 호출** → 서버는 첫 refresh에서 토큰 회전(`repo.rs update_login_refresh_hash_tx`) → 나머지가 옛 토큰 제시 → **reuse 감지(`service.rs:792~`) → 세션 compromised → 409 → 프론트 catch(`client.ts:80-83`) → 로그아웃**.
 - **단일 탭에서도 발생**(동시 요청만으로 충분). 멀티탭은 *추가* 트리거.
-- prod 증거: incident §1.4의 **compromised 24건(매일)** = 이 현상.
+- prod 증거: incident 시점 DB `login_state` **누적** `compromised=24`(테이블 전체) = 이 현상의 흔적. ⚠️ **정정(2026-06-02 prod 실측)**: 이 "24"는 **누적값**이지 발생률이 아니다. 일별 분포(A-1) 실측 = 최근 7일간 compromised **2건**(05-28·05-30), **Phase 1(#317, 05-30) 이후 0**. 즉 본 현상은 single-flight 배포(06-02) *이전에 이미 Phase 1로 잦아든* 상태였고, 발생률은 1~2일당 1건 수준이었다(이전 문서·PR의 "24건/일"은 `AMK_AI_MISTAKES.md M-014` 과장 — 정정). single-flight 는 메커니즘상 올바른 예방 수정이나 baseline 이 이미 ~0 이라 prod 지표로 효과 증명은 불가.
 - 이전에 "멀티탭"으로 단정했던 설명은 **부정확 → 정정**(2026-06-02). 진짜 근본 수정 = `client.ts` single-flight화.
 
 ---
@@ -109,12 +110,12 @@ Phase 1(2026-05-30, PR #317)에서 동시 세션 카운팅을 **Redis SCARD → 
 
 ## 7. 검증 기준 (성공 정의) + 검증 방법 (2026-06-02 갱신)
 각 기준 뒤 `[검증]` = 실제로 어떻게 확인됐는지(자동테스트 / 코드리뷰 / 운영관찰).
-- Admin이 2번째 기기/로그인 시 **기존 세션 퇴출 + 본인 admit**(403 없음). `[검증]` ✅ **자동** = BE 통합 `admin_over_limit_login_evicts_instead_of_rejecting`(초과 로그인=evict≠403, 실DB).
-- 순차 초과 로그인 → **최종 active = max**. `[검증]` ✅ **자동** = 위 + `evict_oldest_sessions_tx_revokes_only_oldest_n`.
-- **동시** 로그인 다발 → 최종 active 정확히 max(TOCTOU). `[검증]` 🔶 **코드리뷰만**(자동 불가 — §0 정직 사례, argon2 staggering 으로 race 미재현. lock 은 Phase 1 prod 메커니즘).
+- Admin이 2번째 기기/로그인 시 **기존 세션 퇴출 + 본인 admit**(403 없음). `[검증]` ✅ **자동 + 🟢 prod 실측(06-02)** = BE 통합 + prod `login 84`가 `83`을 evict·기존 기기 즉시 로그아웃.
+- 순차 초과 로그인 → **최종 active = max**. `[검증]` ✅ **자동 + 🟢 prod 실측** = 위 + prod 현재 admin active 정확히 1.
+- **동시** 로그인 다발 → 최종 active 정확히 max(TOCTOU). `[검증]` 🔶 **코드리뷰만**(자동 불가 — §0 정직 사례, argon2 staggering 으로 race 미재현. lock 은 Phase 1 prod 메커니즘). 🟢 prod 관찰: 찰나 `2` → 다음 로그인 evict 로 **self-heal to 1**(정상상태 유지).
 - 퇴출된 기기의 다음 요청 → **즉시 401**. `[검증]` 🔶 코드리뷰(evict→ak:session del→`ensure_session_active` 401, audit 2.1 wiring 기존검증). ⚠️ ak:session TTL 15분이라 즉시성은 ≤15분 윈도우 내.
-- 관리자 1시간 미사용 → 세션 만료. `[검증]` 🔶 코드(`refresh_ttl_secs_admin=3600` sliding) — 행동 관찰은 운영자.
-- 관리자 2번째 탭 → **차단**(기존 탭 유지). `[검증]` 🔶 **로컬 vitest만**(`use_admin_single_tab.test.ts`, mock-bound·CI 미실행).
+- 관리자 1시간 미사용 → 세션 만료. `[검증]` ✅ **🟢 prod 실측** = `login_expire_at − login_begin_at = 정확히 1h`(login 84). (idle 만료 자체의 행동 관찰은 운영자.)
+- 관리자 2번째 탭 → **차단**(기존 탭 유지). `[검증]` 🔶 로컬 vitest(mock·CI 미실행) **+ 🟢 prod 실측(스샷 — 차단화면)**.
 - 탭 닫고 재오픈 / 동시 다발 요청 → **single-flight로 reuse 안 터짐**. `[검증]` 🔶 **로컬 vitest만**(`client.integration.test.ts` 동시 401→refresh 1회·CI 미실행) + prod 로그 `reuse detected` 소거 = **운영 관찰(시간경과)**.
 
 ---
