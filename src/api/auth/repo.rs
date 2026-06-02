@@ -720,6 +720,44 @@ impl AuthRepo {
         Ok(())
     }
 
+    /// 관리자 세션 v2: 가장 오래된 `limit` 개의 active 세션을 **tx 안에서** 'revoked' 처리하고
+    /// 퇴장된 `(session_id, refresh_hash)` 를 반환한다(호출부가 commit 후 Redis 키 정리).
+    /// `enforce_admission_in_tx` 의 advisory lock 안에서 호출되어 동시 로그인과 직렬화되므로
+    /// count→evict→insert 가 원자적이다(동시 로그인 정확히 1 = last-login-wins).
+    /// `login_begin_at ASC` = FIFO(가장 오래된 것부터). `find_active_sessions_oldest` 와 동일 조건.
+    pub async fn evict_oldest_sessions_tx(
+        tx: &mut Transaction<'_, Postgres>,
+        user_id: i64,
+        limit: i64,
+        revoked_reason: &str,
+    ) -> AppResult<Vec<(String, String)>> {
+        let rows = sqlx::query_as::<_, (String, String)>(
+            r#"
+            UPDATE public.login
+            SET login_state = 'revoked'::login_state_enum,
+                login_revoked_reason = $3,
+                login_updated_at = now()
+            WHERE login_id IN (
+                SELECT login_id
+                FROM public.login
+                WHERE user_id = $1
+                  AND login_state = 'active'::login_state_enum
+                  AND login_expire_at > now()
+                ORDER BY login_begin_at ASC
+                LIMIT $2
+            )
+            RETURNING login_session_id::text, login_refresh_hash
+        "#,
+        )
+        .bind(user_id)
+        .bind(limit)
+        .bind(revoked_reason)
+        .fetch_all(&mut **tx)
+        .await?;
+
+        Ok(rows)
+    }
+
     // ---------------------------------------------------------------------
     // OAuth Related
     // ---------------------------------------------------------------------

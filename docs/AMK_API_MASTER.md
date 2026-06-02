@@ -979,12 +979,14 @@ PADDLE_PRICE_EBOOK=pri_xxx           # E-book 일회성 Price ID ($10 USD)
 
 로그인 시 `enforce_session_limit()`가 활성 세션 수를 검증한다.
 
-| 역할 | 최대 세션 | 초과 시 정책 | 환경변수 |
-|------|:---------:|-------------|---------|
-| HYMN | 2 | 로그인 거부 (403) | `MAX_SESSIONS_HYMN` |
-| Admin | 2 | 로그인 거부 (403) | `MAX_SESSIONS_ADMIN` |
-| Manager | 3 | 로그인 거부 (403) | `MAX_SESSIONS_MANAGER` |
-| Learner | 5 | 가장 오래된 세션 자동 퇴장 (FIFO) | `MAX_SESSIONS_LEARNER` |
+| 역할 | 최대 세션 | refresh TTL | 초과 시 정책 | 환경변수 |
+|------|:---------:|:-----------:|-------------|---------|
+| HYMN | 1 | 1시간 sliding | evict=last-login-wins (in-tx, advisory lock) | `MAX_SESSIONS_HYMN` |
+| Admin | 1 | 1시간 sliding | evict=last-login-wins (in-tx, advisory lock) | `MAX_SESSIONS_ADMIN` |
+| Manager | 1 | 1시간 sliding | evict=last-login-wins (in-tx, advisory lock) | `MAX_SESSIONS_MANAGER` |
+| Learner | 5 | 30일 | 가장 오래된 세션 자동 퇴장 (FIFO, pre-tx) | `MAX_SESSIONS_LEARNER` |
+
+> **관리자 세션 v2 (2026-06-02)**: HYMN/Admin/Manager 는 reject(403)→**evict** 전환. max 1 + evict = 단일 기기 last-login-wins. 새 로그인이 advisory lock(`enforce_admission_in_tx`) 안에서 기존 세션을 in-tx 퇴장(`evict_oldest_sessions_tx`) 후 새 세션 insert → 동시 로그인도 최종 active 정확히 1. refresh TTL 은 `REFRESH_TTL_SECS_ADMIN`(초, 기본 3600). 퇴장 세션은 commit 후 Redis(`ak:session` 등) 정리로 다음 요청 즉시 401(`ensure_session_active`). reject 경로는 dormant 안전망. 설계 SoT=`docs/AMK_ADMIN_SESSION_MODEL_V2.md`.
 
 - **유령 세션 정리**: `SMEMBERS` + `EXISTS` 체크 후 만료된 세션 자동 제거.
   - refresh_hash 는 `find_login_refresh_hashes_by_session_ids` 로 **배치 조회** (N+1 제거).

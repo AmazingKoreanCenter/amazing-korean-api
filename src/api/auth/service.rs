@@ -280,11 +280,11 @@ impl AuthService {
             .await?;
         }
 
-        // 2. reject-role(Admin/Manager/HYMN)의 최종 admission 판정은 로그인 트랜잭션 안의
-        //    enforce_admission_in_tx(advisory lock + DB count)로 이관됨 — 여기서는
-        //    ghost-cleanup(Redis SET 위생)만 수행하고 통과시킨다. Learner 만 아래에서
-        //    DB 권위 카운트로 FIFO 퇴장을 처리한다.
-        if !st.cfg.is_session_evict_role(&user_auth) {
+        // 2. pre-tx FIFO 퇴장은 Learner 만. HYMN/Admin/Manager(관리자 세션 v2)는
+        //    로그인 트랜잭션 안의 enforce_admission_in_tx(advisory lock + count + evict)
+        //    로 원자 퇴장하므로(동시 로그인 정확히 1), 여기서는 ghost-cleanup(Redis SET
+        //    위생)만 하고 통과한다. Learner 만 아래에서 DB 권위 카운트로 FIFO 퇴장.
+        if !matches!(user_auth, UserAuth::Learner) {
             return Ok(());
         }
 
@@ -364,30 +364,97 @@ impl AuthService {
         Ok(())
     }
 
-    /// reject-role(Admin/Manager/HYMN)의 동시 세션 admission 을 로그인 트랜잭션 안에서
-    /// advisory lock 으로 직렬화해 원자적으로 판정한다. check(count)-then-insert TOCTOU 차단:
-    /// 같은 사용자의 동시 로그인은 lock 에서 직렬화되어, 두 번째 요청은 첫 번째 commit 후
-    /// 갱신된 카운트를 읽고 정확히 거부된다. Learner(evict role)는 enforce_session_limit 의
-    /// FIFO 퇴장으로 이미 자리를 확보하므로 여기선 통과한다.
+    /// 로그인 트랜잭션 안에서 동시 세션 admission 을 advisory lock 으로 직렬화해 원자 판정한다.
+    /// 반환 = **이 admission 때문에 in-tx 에서 퇴장(revoked)된 세션 (session_id, refresh_hash)**
+    /// 목록 — 호출부가 commit 후 Redis 키(`ak:session`/`ak:refresh`/`ak:user_sessions`)를 정리한다.
+    ///
+    /// 역할별 처리:
+    /// - **Learner**: `enforce_session_limit` 의 pre-tx FIFO 퇴장으로 이미 자리를 확보하므로
+    ///   여기선 lock 없이 통과(고트래픽 경로 무변경).
+    /// - **HYMN/Admin/Manager (관리자 세션 v2)**: lock 안에서 count → 초과 시 가장 오래된
+    ///   `(active - max + 1)` 세션을 in-tx 퇴장 → 새 세션 1자리 확보. 동시 로그인은 lock 에서
+    ///   직렬화되어 최종 active 가 정확히 max(=1) 로 수렴(last-login-wins, TOCTOU 차단).
+    /// - **reject 경로**(`is_session_evict_role`==false): 현재 전 역할 evict 라 도달 불가.
+    ///   dormant 안전망으로 403 분기를 보존한다.
     async fn enforce_admission_in_tx(
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         st: &AppState,
         user_id: i64,
         user_auth: UserAuth,
-    ) -> AppResult<()> {
-        if st.cfg.is_session_evict_role(&user_auth) {
-            return Ok(());
+    ) -> AppResult<Vec<(String, String)>> {
+        // Learner 는 pre-tx FIFO 로 처리됨 → lock 미획득, 통과.
+        if matches!(user_auth, UserAuth::Learner) {
+            return Ok(Vec::new());
         }
+
+        // 비-Learner: 같은 사용자의 동시 로그인을 tx-scoped advisory lock 으로 직렬화.
         AuthRepo::acquire_user_session_lock_tx(tx, user_id).await?;
-        let active_count = AuthRepo::count_active_sessions_tx(tx, user_id).await?;
         let max_sessions = st.cfg.max_sessions_for_role(&user_auth);
-        if active_count >= max_sessions {
-            return Err(AppError::Forbidden(format!(
-                "AUTH_403_SESSION_LIMIT:{}",
-                max_sessions
-            )));
+        let active_count = AuthRepo::count_active_sessions_tx(tx, user_id).await?;
+
+        // dormant reject 안전망 (현재 전 역할 evict → 도달 불가).
+        if !st.cfg.is_session_evict_role(&user_auth) {
+            if active_count >= max_sessions {
+                return Err(AppError::Forbidden(format!(
+                    "AUTH_403_SESSION_LIMIT:{}",
+                    max_sessions
+                )));
+            }
+            return Ok(Vec::new());
         }
-        Ok(())
+
+        // evict (HYMN/Admin/Manager): 새 세션 1자리 확보 위해 초과분(가장 오래된 N) in-tx 퇴장.
+        if active_count >= max_sessions {
+            let evict_n = active_count - max_sessions + 1;
+            let evicted =
+                AuthRepo::evict_oldest_sessions_tx(tx, user_id, evict_n, "session_limit_evicted")
+                    .await?;
+            return Ok(evicted);
+        }
+        Ok(Vec::new())
+    }
+
+    /// `enforce_admission_in_tx` 가 in-tx 퇴장시킨 세션들의 Redis 키를 commit 후 일괄 정리한다.
+    /// best-effort: 실패해도 DB(`login_state='revoked'`)가 권위 소스이며, `ak:session` 은 자체
+    /// TTL(≤15분)로 자연 만료된다. 다만 정상 시 `ak:session` 삭제로 퇴장 기기의 다음 요청이
+    /// 즉시 401(`ensure_session_active`) → "즉시 강퇴"가 15분 잔존 없이 성립한다.
+    async fn cleanup_evicted_sessions_redis(
+        redis_conn: &mut deadpool_redis::redis::aio::MultiplexedConnection,
+        user_id: i64,
+        evicted: &[(String, String)],
+    ) {
+        if evicted.is_empty() {
+            return;
+        }
+        let keys: Vec<String> = evicted
+            .iter()
+            .flat_map(|(sid, hash)| {
+                [
+                    format!("ak:session:{}", sid),
+                    format!("ak:refresh:{}", hash),
+                ]
+            })
+            .collect();
+        let sids: Vec<String> = evicted.iter().map(|(sid, _)| sid.clone()).collect();
+
+        let del_res: Result<(), _> = redis_conn.del(&keys).await;
+        if let Err(e) = del_res {
+            tracing::warn!(
+                target: "security.session_revocation",
+                user_id, error = %e,
+                "evicted 세션 Redis del 실패 (best-effort) — ak:session TTL(≤15분)로 자연 만료"
+            );
+        }
+        let srem_res: Result<(), _> = redis_conn
+            .srem(format!("ak:user_sessions:{}", user_id), &sids)
+            .await;
+        if let Err(e) = srem_res {
+            tracing::warn!(
+                target: "security.session_revocation",
+                user_id, error = %e,
+                "evicted 세션 ak:user_sessions srem 실패 (best-effort)"
+            );
+        }
     }
 
     // =========================================================================
@@ -624,8 +691,8 @@ impl AuthService {
         let session_id = Uuid::new_v4().to_string();
         let (refresh_token_value, refresh_hash) =
             Self::generate_refresh_token_and_hash(&session_id);
-        // 역할별 세션 TTL 적용 (HYMN: 1일, Admin/Manager: 7일, Learner: 30일)
-        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user_info.user_auth) * 24 * 3600;
+        // 역할별 세션 TTL 적용 (HYMN/Admin/Manager: 1시간 sliding, Learner: 30일)
+        let refresh_ttl_secs = st.cfg.refresh_ttl_secs_for_role(&user_info.user_auth);
 
         // JWT Access Token (role 포함)
         let (access_token_res, jti) = jwt::create_token(
@@ -651,8 +718,10 @@ impl AuthService {
         // [Step 6] DB Transaction (Login Record)
         let mut tx = st.db.begin().await?;
 
-        // 동시 세션 admission 을 tx 안에서 원자적으로 재판정 (advisory lock, TOCTOU 차단).
-        Self::enforce_admission_in_tx(&mut tx, st, user_info.user_id, user_info.user_auth).await?;
+        // 동시 세션 admission 을 tx 안에서 원자적으로 재판정 (advisory lock + evict, TOCTOU 차단).
+        let evicted_sessions =
+            Self::enforce_admission_in_tx(&mut tx, st, user_info.user_id, user_info.user_auth)
+                .await?;
 
         AuthRepo::insert_login_record_tx(
             &mut tx,
@@ -724,6 +793,10 @@ impl AuthService {
             )
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // 4. 관리자 세션 v2: 이 로그인이 in-tx 퇴장시킨 기존 세션의 Redis 키 정리(즉시 강퇴).
+        Self::cleanup_evicted_sessions_redis(&mut redis_conn, user_info.user_id, &evicted_sessions)
+            .await;
 
         let mut refresh_cookie = Cookie::new(
             st.cfg.refresh_cookie_name.clone(),
@@ -862,7 +935,8 @@ impl AuthService {
         if !user.user_state {
             return Err(AppError::Unauthorized("AUTH_401_INVALID_REFRESH".into()));
         }
-        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user.user_auth) * 24 * 3600;
+        // refresh 회전 시 역할별 TTL 로 sliding 갱신 (HYMN/Admin/Manager 1h, Learner 30일).
+        let refresh_ttl_secs = st.cfg.refresh_ttl_secs_for_role(&user.user_auth);
 
         // [Step 5] Rotate Token & Issue new Access Token
         let (new_refresh_token_value, new_refresh_hash) =
@@ -2296,7 +2370,7 @@ impl AuthService {
         let session_id = Uuid::new_v4().to_string();
         let (refresh_token_value, refresh_hash) =
             Self::generate_refresh_token_and_hash(&session_id);
-        let refresh_ttl_secs = st.cfg.refresh_ttl_days_for_role(&user_auth) * 24 * 3600;
+        let refresh_ttl_secs = st.cfg.refresh_ttl_secs_for_role(&user_auth);
 
         // Access Token 생성
         let (access_token_res, jti) = jwt::create_token(
@@ -2331,8 +2405,9 @@ impl AuthService {
         // DB 기록
         let mut tx = st.db.begin().await?;
 
-        // 동시 세션 admission 을 tx 안에서 원자적으로 재판정 (advisory lock, TOCTOU 차단).
-        Self::enforce_admission_in_tx(&mut tx, st, user_id, user_auth).await?;
+        // 동시 세션 admission 을 tx 안에서 원자적으로 재판정 (advisory lock + evict, TOCTOU 차단).
+        let evicted_sessions =
+            Self::enforce_admission_in_tx(&mut tx, st, user_id, user_auth).await?;
 
         AuthRepo::insert_login_record_oauth_tx(
             &mut tx,
@@ -2409,6 +2484,9 @@ impl AuthService {
             .sadd(format!("ak:user_sessions:{}", user_id), &session_id)
             .await
             .map_err(|e| AppError::Internal(e.to_string()))?;
+
+        // 4. 관리자 세션 v2: 이 로그인이 in-tx 퇴장시킨 기존 세션의 Redis 키 정리(즉시 강퇴).
+        Self::cleanup_evicted_sessions_redis(&mut redis_conn, user_id, &evicted_sessions).await;
 
         // Cookie 생성
         let refresh_token_for_mobile = refresh_token_value.clone();
