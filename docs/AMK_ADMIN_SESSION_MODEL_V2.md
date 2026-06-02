@@ -14,7 +14,15 @@
 >   - **①②③ config**: `refresh_ttl_secs_for_role`(초)·`REFRESH_TTL_SECS_ADMIN=3600`·`MAX_SESSIONS_*=1`·`is_session_evict_role` 전 역할 true. dead 필드 제거.
 >   - **④ 원자 evict (위험 최소화 범위)**: Learner 경로 **무변경**(pre-tx FIFO 유지). HYMN/Admin/Manager 만 `enforce_admission_in_tx` 에서 advisory lock 안에 count→`evict_oldest_sessions_tx`(in-tx UPDATE…RETURNING)→insert 원자화. 퇴장분은 commit 후 `cleanup_evicted_sessions_redis` 로 정리(즉시 강퇴).
 >   - **⑦ 단일탭**: `useAdminSingleTab`(BroadcastChannel hello/present) + `AdminLayout` 차단 화면. AdminRoute(admin/HYMN/manager 전용)로만 진입 → 자동 스코프.
->   - **검증**: cargo check/clippy(-D warnings)/fmt + 통합테스트 3/3(신규 `evict_oldest_sessions_tx_revokes_only_oldest_n` 실DB 통과) + npm build/eslint/lint:ui.
+>   - **PR #2 머지**: main `74634fd`(#319)·EC2 deploy success·health 200·CF success.
+> - **PR #3(테스트 하드닝, main `18ed243` #320, 코드 무변경)**: 핵심 동작 회귀 테스트.
+>   - BE `admin_over_limit_login_evicts_instead_of_rejecting`: `AuthService::login` 전체 경로로 "초과 로그인=evict(≠403)" 검증. **config 무관**(`st.cfg.max_sessions_admin` self-calibrate, CI max=1·로컬 max=2 모두 결정적). 구 reject 정책이면 over-login 403 → `.expect` 패닉 = 회귀 적발.
+>   - BE `evict_oldest_sessions_tx_revokes_only_oldest_n`: FIFO 선택성·RETURNING·revoke·count.
+>   - FE `client.integration.test.ts` single-flight: 동시 401 3건 → `/auth/refresh` 정확히 1회(게이트 없으면 3).
+>   - FE `use_admin_single_tab.test.ts`: 2번째 탭만 차단·첫 탭 유지·미지원 graceful. **mock-bound**(jsdom 에 BroadcastChannel 부재 → 상태머신만 검증).
+>   - **적대적 검증 2명**: 테스트 validity(BE evict·single-flight=GENUINE / 단일탭=WEAK mock-bound) + 백엔드 correctness=**NONE(실버그 0)**.
+>   - **🔑 정직 사례 — 동시성 테스트 미채택**: advisory lock TOCTOU 직렬화는 자동 테스트로 신뢰성 있게 검증 불가. `tokio::spawn` N 동시 로그인을 띄워도 argon2 비번검증이 로그인을 시간차로 벌려 count→insert 임계구역이 거의 안 겹침 → **lock 제거해도 통과(경험적 확인)=vacuous**. 출하 대신 사유를 테스트 파일 NOTE 로 기록. lock 원자성은 코드리뷰 트레이스 + Phase 1 기존 prod 메커니즘으로 보증.
+> - **자동 테스트 커버리지 한계(정직)**: ⓐ 동시성/lock = 위 NOTE(미자동). ⓑ **CI frontend 잡(`pr-check.yml`)은 vitest 미실행**(build+lint+eslint만) → FE 테스트(single-flight/단일탭)는 **로컬 vitest 253/253 으로만 검증**, CI 게이트 아님. ⓒ 단일탭 실 BroadcastChannel async 전달 미검증(mock). ⓓ §7 의 행동 지표(실 admin 로그인·1h idle·멀티기기·prod compromised 로그 소거)는 자격증명+시간 필요 = 운영자 확인 영역.
 
 ---
 
@@ -99,12 +107,15 @@ Phase 1(2026-05-30, PR #317)에서 동시 세션 카운팅을 **Redis SCARD → 
 - Phase 1 산출물(DB 권위 카운트·reaper·ban 무효화·reuse fail-closed)은 **이미 prod 동작** — 건드리지 말고 위에 얹을 것.
 - 머지 후 KKRYOUN 리셋 규칙(`feedback_git_branching`) 필수.
 
-## 7. 검증 기준 (성공 정의)
-- Admin이 2번째 기기/로그인 시 **기존 세션 퇴출 + 본인 admit**(403 없음). 동시 로그인 2건 → **최종 active 정확히 1**.
-- 퇴출된 기기의 다음 요청 → **즉시 401**(15분 안 기다림).
-- 관리자 1시간 미사용 → 세션 만료(재로그인). 사용 중엔 안 끊김.
-- 관리자 우리 사이트 2번째 탭 → **차단**(기존 탭 유지).
-- 탭 닫고 재오픈 / 동시 다발 요청 → **single-flight로 reuse 안 터짐 → 로그아웃 안 됨**(prod 로그 `reuse detected` 소거 확인).
+## 7. 검증 기준 (성공 정의) + 검증 방법 (2026-06-02 갱신)
+각 기준 뒤 `[검증]` = 실제로 어떻게 확인됐는지(자동테스트 / 코드리뷰 / 운영관찰).
+- Admin이 2번째 기기/로그인 시 **기존 세션 퇴출 + 본인 admit**(403 없음). `[검증]` ✅ **자동** = BE 통합 `admin_over_limit_login_evicts_instead_of_rejecting`(초과 로그인=evict≠403, 실DB).
+- 순차 초과 로그인 → **최종 active = max**. `[검증]` ✅ **자동** = 위 + `evict_oldest_sessions_tx_revokes_only_oldest_n`.
+- **동시** 로그인 다발 → 최종 active 정확히 max(TOCTOU). `[검증]` 🔶 **코드리뷰만**(자동 불가 — §0 정직 사례, argon2 staggering 으로 race 미재현. lock 은 Phase 1 prod 메커니즘).
+- 퇴출된 기기의 다음 요청 → **즉시 401**. `[검증]` 🔶 코드리뷰(evict→ak:session del→`ensure_session_active` 401, audit 2.1 wiring 기존검증). ⚠️ ak:session TTL 15분이라 즉시성은 ≤15분 윈도우 내.
+- 관리자 1시간 미사용 → 세션 만료. `[검증]` 🔶 코드(`refresh_ttl_secs_admin=3600` sliding) — 행동 관찰은 운영자.
+- 관리자 2번째 탭 → **차단**(기존 탭 유지). `[검증]` 🔶 **로컬 vitest만**(`use_admin_single_tab.test.ts`, mock-bound·CI 미실행).
+- 탭 닫고 재오픈 / 동시 다발 요청 → **single-flight로 reuse 안 터짐**. `[검증]` 🔶 **로컬 vitest만**(`client.integration.test.ts` 동시 401→refresh 1회·CI 미실행) + prod 로그 `reuse detected` 소거 = **운영 관찰(시간경과)**.
 
 ---
 
