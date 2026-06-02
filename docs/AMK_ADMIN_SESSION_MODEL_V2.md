@@ -1,9 +1,16 @@
 # AMK 관리자 세션 보안 모델 v2 — 설계·구현 핸드오프
 
 > **목적**: 다음 세션이 추측 없이 바로 구현 착수하도록, **왜 / 무엇을 / 어떻게**를 확정 기록.
-> **상태**: 설계 확정(2026-06-02 사용자와 합의). **구현 미착수 — 이 문서가 다음 세션 진입점.**
+> **상태**: 설계 확정 + **구현 착수(2026-06-02)**. PR 분할 = **PR #1 프론트 single-flight refresh(분리 선배포·저위험·BE무관)** / **PR #2 BE 세션모델 + 프론트 단일탭 차단**. 둘 다 prod까지(머지=Deploy to EC2 자동).
 > **선행(완료·배포됨)**: `docs/AMK_INCIDENT_2026-05-30_MFA_REFRESH_REUSE.md` (Phase 1, PR #317 `fa1ae2e` prod 안착·검증). 본 문서 = **Phase 2**.
 > **모든 항목은 코드/이력 실측 기반. 추측은 "추론"으로 명시 표기.**
+
+> ## 0. 구현 진행 상태 (2026-06-02 갱신)
+> - **§4.1 refresh TTL 단위 = 확정**: 옵션 ②(초 반환 일반화) 채택. `refresh_ttl_days_for_role` → **`refresh_ttl_secs_for_role(role) -> i64`** 로 교체(Hymn/Admin/Manager = 신규 `REFRESH_TTL_SECS_ADMIN` 기본 3600 / Learner = `refresh_ttl_days * 86400`). 호출 3곳(`service.rs:628`·`:865`·`:2299`)의 `* 24 * 3600` 제거. dead 필드 `refresh_ttl_days_admin/_hymn` 제거. 근거: 하류 `repo.rs:439 make_interval(secs => $3)`가 이미 초 기반 → 변환점 소멸.
+> - **§4.2 evict 범위 = 확정**: HYMN/Admin/Manager만 evict 추가. **reject 경로(`enforce_admission_in_tx`)는 유지(dormant)** — `is_session_evict_role` true면 자동 우회, 삭제 안 함(회귀 안전망). 단 evict 경로(`enforce_session_limit`)에 advisory lock 추가 필수.
+> - **§4.3 ak:session 즉시강퇴 범위 = 확정**: **관리자 라우트 한정**(Learner 트래픽 매 요청 Redis 비용 회피).
+> - **PR #1(완료 구현·`npm build` 통과)**: `frontend/src/api/client.ts` single-flight(설계 §3.2 ⑥). 모듈 `refreshPromise` 게이트 + `refreshAccessToken()`. → 분리 선배포.
+> - **PR #2(진행)**: 백엔드 ①~⑤ + 프론트 단일탭 ⑦.
 
 ---
 

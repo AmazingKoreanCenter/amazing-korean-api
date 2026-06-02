@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-02 — 관리자 세션 모델 v2 설계 확정(Phase 2, 구현 다음 세션) / MFA 세션 limit Phase 1 머지·배포·prod검증 완료(#317) / 즉시 조치(5/30)
+updated: 2026-06-02 — 관리자 세션 v2 Phase 2 PR #1: 프론트 single-flight refresh 구현·빌드통과 / 관리자 세션 모델 v2 설계 확정(Phase 2) / MFA 세션 limit Phase 1(#317)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-02 🔧 — 관리자 세션 v2 Phase 2 / PR #1: 프론트 single-flight refresh (재오픈·다발요청 강제 로그아웃 근본수정)**
+
+  `frontend/src/api/client.ts` 401 인터셉터를 single-flight 로 전환. 모듈 레벨 `refreshPromise` 게이트 + `refreshAccessToken()` 헬퍼로, 동시 401 다발이 와도 `/auth/refresh` 를 **1번만** 호출하고 나머지 요청은 그 결과를 기다렸다 새 토큰으로 재시도. 종전엔 게이트가 없어 각 요청이 따로 refresh → 서버 토큰 회전(`update_login_refresh_hash_tx`) 후 나머지가 옛 토큰 제시 → reuse 감지(409) → 세션 compromised → 강제 로그아웃(**단일 탭에서도 발생**). = prod `login_state` compromised 24건/일·"탭 닫고 재오픈 시 재로그인" 증상의 진짜 원인(`AMK_ADMIN_SESSION_MODEL_V2.md §1.3`). BE 무관·독립 저위험 → 분리 선배포(설계 SoT ⑥ single-flight). 잔여 ①~⑤(BE 세션모델: max1·evict·TTL 1h·advisory lock·ak:session 즉시강퇴)·⑦(관리자 단일탭)은 PR #2. 검증 `npm run build` 통과. STATUS #156.
 
 - **2026-06-02 📐 — 관리자 세션 보안 모델 v2 설계 확정 (Phase 2, 구현 미착수 — 다음 세션)**
 

@@ -408,6 +408,7 @@ export function AppRouter() {
 - **역할**
   - `fetch` API 기반의 Singleton 인스턴스.
   - **Interceptor**: 요청 시 헤더에 `Authorization: Bearer {token}` 자동 주입.
+  - **401 single-flight refresh**: access 토큰 만료(401)로 동시에 여러 요청이 실패해도 `/auth/refresh` 는 **1번만** 호출(모듈 레벨 `refreshPromise` 게이트). 나머지 요청은 그 결과를 기다렸다 새 토큰으로 재시도. (게이트가 없으면 동시 401 → 각자 refresh → 서버 토큰 회전 후 나머지가 옛 토큰 제시 → reuse 감지(409) → 세션 compromised → 강제 로그아웃; **단일 탭에서도 발생**.) refresh 실패 시 1회 로그아웃 후 `/login` 이동.
   - **Error Handling**: HTTP 에러를 `AppError` 객체로 변환하여 throw.
 
 - **네이밍 규칙 (Strict)**
