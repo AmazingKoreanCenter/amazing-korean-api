@@ -1,8 +1,16 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-05-30 — MFA 세션 limit 영구 패치 구현 완료(6축, 빌드/테스트 통과·검토 대기) / 즉시 조치(동일일) / 스키마 명명 ①②③ prod 안착(5/19)
+updated: 2026-06-02 — 관리자 세션 v2 Phase 2 PR #1: 프론트 single-flight refresh 구현·빌드통과 / 관리자 세션 모델 v2 설계 확정(Phase 2) / MFA 세션 limit Phase 1(#317)
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-02 🔧 — 관리자 세션 v2 Phase 2 / PR #1: 프론트 single-flight refresh (재오픈·다발요청 강제 로그아웃 근본수정)**
+
+  `frontend/src/api/client.ts` 401 인터셉터를 single-flight 로 전환. 모듈 레벨 `refreshPromise` 게이트 + `refreshAccessToken()` 헬퍼로, 동시 401 다발이 와도 `/auth/refresh` 를 **1번만** 호출하고 나머지 요청은 그 결과를 기다렸다 새 토큰으로 재시도. 종전엔 게이트가 없어 각 요청이 따로 refresh → 서버 토큰 회전(`update_login_refresh_hash_tx`) 후 나머지가 옛 토큰 제시 → reuse 감지(409) → 세션 compromised → 강제 로그아웃(**단일 탭에서도 발생**). = prod `login_state` compromised 24건/일·"탭 닫고 재오픈 시 재로그인" 증상의 진짜 원인(`AMK_ADMIN_SESSION_MODEL_V2.md §1.3`). BE 무관·독립 저위험 → 분리 선배포(설계 SoT ⑥ single-flight). 잔여 ①~⑤(BE 세션모델: max1·evict·TTL 1h·advisory lock·ak:session 즉시강퇴)·⑦(관리자 단일탭)은 PR #2. 검증 `npm run build` 통과. STATUS #156.
+
+- **2026-06-02 📐 — 관리자 세션 보안 모델 v2 설계 확정 (Phase 2, 구현 미착수 — 다음 세션)**
+
+  Phase 1(#317) 배포로 동시세션 카운팅이 정확해지자, 기존 **"초과 시 거부(reject)" 정책이 관리자를 자기 세션에 락아웃**시키는 결함이 드러남. 추적 결과 reject는 **사용자 미지시·근거문서 0의 미문서화 AI 기본값**(커밋 `0d85b19` 2026-04-08 Claude Opus 4.6 도입, git 확정) → evict로 정정 결정. 부수로 "재오픈/몇시간뒤 로그아웃"의 진짜 원인 = **멀티탭이 아니라 `frontend/src/api/client.ts:42-89` refresh가 single-flight 아님**(동시 401→동시 `/auth/refresh`→reuse 감지→compromised→로그아웃, 단일탭만으로 발생) 코드 확정. **확정 설계(HYMN/Admin/Manager)**: 최대세션 1 · evict(기존 퇴출) · refresh TTL 1시간 sliding · 동시로그인 정확히 1(advisory lock을 evict 경로에) · 요청별 `ak:session` 검증=즉시강퇴 + 프론트 single-flight refresh · 관리자 단일탭(2번째 탭 차단). Learner 현행 유지. **선결=refresh TTL 일→분/초 단위.** 설계·근거·고려사항·선택·계획 SoT=`docs/AMK_ADMIN_SESSION_MODEL_V2.md`. 메모리 `project_admin_session_model_v2`. STATUS #156.
 
 - **2026-05-30 🔧 — MFA 세션 limit 영구 패치 구현 (6축, 빌드·회귀테스트 통과 — 검토/배포 대기)**
 
