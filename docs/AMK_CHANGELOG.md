@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-02 — 관리자 세션 v2 Phase 2 prod 실측 검증 완료(단일탭/evict/max1/1h TTL ✅) + "24건/일" 정정(M-014)·진단오류(M-015) / PR #1·#2·#3 머지
+updated: 2026-06-04 — 온라인 콘텐츠 세그먼트 포맷 스펙 신설(번역·DB 적재 계약, DRAFT) + explanation 컨텍스트 통합 1차 / (06-02) 관리자 세션 v2 prod 검증
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-04 📐 — 온라인 콘텐츠 세그먼트 포맷 스펙 신설 (번역·DB 적재 계약, DRAFT/잠정)**
+
+  온라인 콘텐츠 트랙 착수. 두 트랙(콘텐츠/e-book) 실측 감사 → 둘 다 메모리보다 완성도 높음 확인(콘텐츠: study/4유형 채점·프론트 대부분 있음, 갭=course화면·explanation화면·어휘·voice녹음 / e-book: 웹 production-ready, 실블로커=WebP 이미지 미업로드). 우선순위 = 병행·콘텐츠 풀스코프·e-book 웹먼저(사용자). **explanation 컨텍스트 통합 1차 구현**: 프론트 `category/explanation/` 모듈(types/api/hook/`ExplanationSection` 렌더러) + study 상세에 pattern_guide 접이식 통합, prod 실데이터 대조 + eslint/build 통과(런타임 클릭검증은 로컬 DB stale로 보류). **핵심 전환** — 사용자가 콘텐츠 원본(`amazing-korean-books/해설집/*.txt` 33파일) 제시: 콘텐츠를 번역 최소단위(블록)로 쪼개 KO/EN 부여한 세그먼트가 **콘텐츠 SSoT**. 전수 집계로 **타입 12종**(TITLE·PARAGRAPH·PATTERN·SECTION·VOCAB·UI·NOTE·BLOCKQUOTE·OTHER·TABLE_HEADER·TABLE_CELL·PRACTICE) + **마커 6종**(`(empty)`/`(symbol_only)`/`(ko_learning)`류 불역 / `(table_content_en)` 번역) 파악 — 마커가 셀별 실내용쪽+번역여부를 명시. **확정 결정**: ① 모든 항목 번역(역할 Subject/Predicate 포함, 현 모델 lang-invariant라 정렬 필요) ② 표 재조립 로직(좌표 Tn_Rr_Cc→격자) 필수 구현 ③ **콘텐츠 확정 시 DB 대폭/전면 재설계 가능 → 현 explanation/study + 프론트 모듈 전부 잠정**(확정 전 무거운 DB작업 안 박음) ④ UI/PRACTICE 라벨=메타, content vs UI i18n 배치 추후. 단일 SoT=`docs/AMK_CONTENT_SEGMENT_SPEC.md`, 메모리=`project_content_segment_spec`. 다음=e-book 논의(사용자 순서). STATUS #157.
 
 - **2026-06-02 🟢 — 관리자 세션 v2 Phase 2 / prod 실측 검증 완료 + 수치·진단 정정 (운영자 직접)**
 
