@@ -424,9 +424,10 @@ node scripts/textbook/generate_page_images.js all all       # 전체
 
 **페이지 이미지 저장 위치 정책 (2026-05-03 결정)**:
 
-| 시점 | `${EBOOK_PAGE_IMAGES_DIR}` 위치 | 트리거 |
+| 시점 | `EBOOK_PAGE_IMAGES_DIR` 위치 | 트리거 |
 |------|------|------|
-| **현재 ~ RDS 이전 전** | EC2 local fs (`docs/textbook/page-images` 기본값) | 본 정책 |
+| **로컬 dev** | `docs/textbook/page-images` (config.rs 기본값, gitignored) | — |
+| **현재 prod ~ RDS 이전 전** | EC2 local fs — 컨테이너 `/data/ebook-pages` (호스트 `~/amazing-korean-api/ebook-pages` bind 마운트 `:ro`) | 본 정책 (2026-06-04 배선) |
 | **RDS 이전 시점 (Q9 동시 처리)** | AWS S3 + CloudFront signed URL | RDS/ElastiCache 이전 시 (`AMK_STATUS §8.2 #6`) |
 
 **현재 EC2 정책 채택 근거**:
@@ -440,7 +441,11 @@ node scripts/textbook/generate_page_images.js all all       # 전체
 - **단일 장애점 (백업 부재)**: EC2 단일 디스크 = 콘텐츠 유실 위험. 일일 S3 cold storage 백업 스크립트 별도 트랙
 - **업로드 자동화 부재**: books 측 빌드 후 books → EC2 동기화 = 수동 `rsync` 또는 cron 자동화 (books 세션 작업 범위)
 
-**`books-api-bridge` plan §3 Stage 2 #3-B** 가 본 정책 실행 단계. books 측 `dist/ebook_pages/` → EC2 `${EBOOK_PAGE_IMAGES_DIR}` 동기화 스크립트 작성 + 사용자 트리거 시 진행.
+**prod 배선 (2026-06-04, books 36언어 빌드 완료 트리거)**:
+- `docker-compose.prod.yml` api 서비스에 `volumes: - ./ebook-pages:/data/ebook-pages:ro` + `EBOOK_PAGE_IMAGES_DIR: ${EBOOK_PAGE_IMAGES_DIR:-/data/ebook-pages}`. 이미지 없어도 dormant·안전(catalog 가 매 요청 manifest 존재 검사 → `available=false`).
+- `deploy.yml` 이 매 배포 호스트 `ebook-pages` dir mkdir+chown(소유권 보정) + 워터마크 폰트 `NotoSans-Regular.ttf` scp(레포 `ebook-pages/` 에 커밋, 멱등).
+- **남은 1단계 (사용자)**: books `dist/ebook_pages/` (711MB · webp 8,928 · manifest 72 = 36 lang × 2 edition) → EC2 `~/amazing-korean-api/ebook-pages/` `rsync` (`--delete` 금지). 도착 즉시 catalog `available=true` (재배포 불요).
+- **정합 검증 완료**: books 36 lang ↔ `catalog_languages()` 36 1:1, `es_es`/`pt_pt` 디렉터리 ↔ `to_code()` 일치, `page-{:03}.webp` 네이밍 일치, 평문 webp ↔ `ebook_images_encrypted=false` 기본값 일치.
 
 **프론트엔드 페이지**:
 - `/ebook` — e-book 카탈로그 (언어/에디션 선택, 가격, 결제방식 선택(계좌이체/Paddle 카드), 샘플 미리보기, 환불정책 링크 — 로그인 필수)

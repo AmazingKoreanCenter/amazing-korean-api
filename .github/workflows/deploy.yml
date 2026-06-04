@@ -49,7 +49,7 @@ jobs:
       # Docker 데몬(root)이 compose 의 ./db-init 소스가 없으면 root 소유로
       # 자동 생성 → scp untar 가 Permission denied 로 실패(2026-05-18 INC).
       # 매 배포 멱등 교정 = 재발 불가(fresh EC2 / 디렉터리 삭제 후에도 안전).
-      - name: Prepare EC2 sync dirs (db-init owner fix)
+      - name: Prepare EC2 sync dirs (db-init + ebook-pages owner fix)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -58,6 +58,12 @@ jobs:
           script: |
             mkdir -p ~/amazing-korean-api/db-init
             sudo chown -R ec2-user:ec2-user ~/amazing-korean-api/db-init
+            # E-book 페이지 이미지 bind 마운트(compose ./ebook-pages) 소스 dir 선생성.
+            # 없으면 Docker(root)가 root 소유로 자동 생성 → 폰트 scp/콘텐츠 rsync 가
+            # Permission denied (db-init 와 동일 INC 패턴). 비재귀 chown = 콘텐츠(711MB)
+            # 매 배포 재소유 회피, mount 소스 dir 소유권만 보정으로 충분.
+            mkdir -p ~/amazing-korean-api/ebook-pages
+            sudo chown ec2-user:ec2-user ~/amazing-korean-api/ebook-pages
 
       - name: Sync docker-compose.prod.yml + nginx config to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -70,7 +76,10 @@ jobs:
           # db-init/10_least_priv_role.sql → ~/amazing-korean-api/db-init/... (경로 보존)
           #   ↑ 보안 2.3: compose 의 ./db-init bind 마운트 소스. 이 줄 없으면 호스트
           #     db-init/ 가 비어 컨테이너 /docker-entrypoint-initdb.d/ 도 빈 채로 마운트됨.
-          source: "docker-compose.prod.yml,nginx/nginx.conf,db-init/10_least_priv_role.sql"
+          # ebook-pages/NotoSans-Regular.ttf → ~/amazing-korean-api/ebook-pages/... (경로 보존)
+          #   ↑ E-book 워터마크 폰트(compose ./ebook-pages 마운트 소스). 매 배포 멱등 전달
+          #     → 가시 풋터 워터마크 항상 활성(없으면 LSB+마이크로도트만, 가시 억지력 손실).
+          source: "docker-compose.prod.yml,nginx/nginx.conf,db-init/10_least_priv_role.sql,ebook-pages/NotoSans-Regular.ttf"
           target: "~/amazing-korean-api/"
 
       - name: Deploy to EC2
@@ -122,7 +131,7 @@ jobs:
             REVENUECAT_API_KEY=${{ secrets.REVENUECAT_API_KEY }}
             REVENUECAT_WEBHOOK_AUTH_TOKEN=${{ secrets.REVENUECAT_WEBHOOK_AUTH_TOKEN }}
             RUST_LOG=amazing_korean_api=info,tower_http=info
-            EBOOK_PAGE_IMAGES_DIR=docs/textbook/page-images
+            EBOOK_PAGE_IMAGES_DIR=/data/ebook-pages
             RATE_LIMIT_TEXTBOOK_WINDOW_SEC=3600
             RATE_LIMIT_TEXTBOOK_MAX=5
             VERIFICATION_CODE_TTL_SEC=600

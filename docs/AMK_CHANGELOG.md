@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-04 — 콘텐츠 UX 증거 기반 설계 원칙(딥리서치) + 세그먼트 포맷 스펙 + explanation 통합 1차 / (06-02) 관리자 세션 v2 prod 검증
+updated: 2026-06-04 — E-book 36언어 웹 라이브 인프라 배선(compose mount + 워터마크 폰트 + TTL 교정) / 콘텐츠 UX 증거 기반 설계 원칙(딥리서치) + 세그먼트 포맷 스펙 / (06-02) 관리자 세션 v2 prod 검증
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-04 📦 — E-book 36언어 웹 라이브 인프라 배선 (compose mount + 워터마크 폰트 + TTL 교정)**
+
+  books 36언어 e-book 빌드 완료(사용자 트리거) → prod 라이브 인프라 배선. **정합 전수 검증**: books `dist/ebook_pages/`(711MB·webp **8,928**·manifest **72** = 36 lang × 2 edition) ↔ api `catalog_languages()` **36 1:1 일치** / `es_es`·`pt_pt` 디렉터리(언더스코어) ↔ `to_code()` 일치 / `page-{:03}.webp` 네이밍 일치 / 평문 webp ↔ `ebook_images_encrypted=false` 기본값 일치 / manifest `total_pages`·`toc` 구조 일치. **배선**: ① `docker-compose.prod.yml` api 서비스에 `volumes: - ./ebook-pages:/data/ebook-pages:ro` + `EBOOK_PAGE_IMAGES_DIR: ${EBOOK_PAGE_IMAGES_DIR:-/data/ebook-pages}` (기존 deploy 가 .env.prod 에 쓰던 값이 compose 미참조로 죽어 있던 것 활성화) ② `deploy.yml` 매 배포 `ebook-pages` dir mkdir+chown(db-init 와 동일 root 마운트 footgun 회피) + 워터마크 폰트 `NotoSans-Regular.ttf`(레포 `ebook-pages/` 신규 커밋, 569KB, 멱등 scp) + `.env.prod` 경로 `docs/textbook/page-images`→`/data/ebook-pages` 교정. **드리프트 1건 교정**: `EBOOK_SESSION_TTL_SEC` compose 기본 `:-90` → `:-300` (config.rs·.env.example·문서와 일치, 2026-05-08 모바일 표준이 prod 에서 90 으로 덮여 있던 갭). **폰트 갭 발견·해소(정직)**: books 산출물·api 레포·Docker 이미지 어디에도 `NotoSans-Regular.ttf` 없어 [watermark.rs:43](../src/api/ebook/watermark.rs#L43) 분기로 **가시 풋터 워터마크가 silent 비활성**(마이크로도트 user_id·LSB purchase_code·접근로그 = 포렌식 추적은 생존, "추적 가능·가시 억지력만 손실")이던 것 → 레포 추가 + deploy 멱등 전달. 실수 커밋 가드 `ebook-pages/.gitignore`(폰트만 추적, webp 711MB 차단). **검증**: `docker compose config`(volume bind/`read_only:true`/target `/data/ebook-pages` 렌더, env-file 미설정 시 default `/data/ebook-pages`, TTL 300) + 폰트 TTF 유효성. **src/·frontend 무변경**(인프라/문서/에셋만). **남은 1단계(사용자)**: books `dist/ebook_pages/` → EC2 `~/amazing-korean-api/ebook-pages/` `rsync`(`--delete` 금지 — 폰트 보존) → 도착 즉시 catalog `available=true`(매 요청 manifest 검사라 재배포 불요). SoT=`AMK_API_EBOOK.md "페이지 이미지 저장 위치 정책"`·`AMK_DEPLOY_OPS §6`, 메모리=`project_ebook_webp_upload`. STATUS #158.
 
 - **2026-06-04 📐 — 콘텐츠 학습 UX 증거 기반 설계 원칙 (딥리서치, 인용 검증)**
 

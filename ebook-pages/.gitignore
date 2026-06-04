@@ -1,0 +1,6 @@
+# E-book 워터마크 폰트만 추적. 페이지 이미지(webp)·manifest 등 콘텐츠는
+# 절대 커밋 금지(711MB+). 콘텐츠는 books dist/ebook_pages/ → EC2 rsync 로만 전달.
+# deploy.yml 이 이 디렉터리의 NotoSans-Regular.ttf 를 EC2 호스트 마운트 소스로 scp 한다.
+*
+!.gitignore
+!NotoSans-Regular.ttf

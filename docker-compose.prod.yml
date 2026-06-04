@@ -80,12 +80,22 @@ services:
       RATE_LIMIT_EBOOK_PAGE_WINDOW_SEC: ${RATE_LIMIT_EBOOK_PAGE_WINDOW_SEC:-60}
       RATE_LIMIT_EBOOK_PURCHASE_MAX: ${RATE_LIMIT_EBOOK_PURCHASE_MAX:-5}
       RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC: ${RATE_LIMIT_EBOOK_PURCHASE_WINDOW_SEC:-3600}
-      EBOOK_SESSION_TTL_SEC: ${EBOOK_SESSION_TTL_SEC:-90}
+      EBOOK_SESSION_TTL_SEC: ${EBOOK_SESSION_TTL_SEC:-300}
+      # 페이지 이미지 루트 = 호스트 ./ebook-pages bind 마운트(아래 volumes). 미설정 시
+      # config.rs 기본값(docs/textbook/page-images, 컨테이너 내부·비어있음)으로 fallback →
+      # catalog 전부 available=false. 마운트와 짝지어야 활성.
+      EBOOK_PAGE_IMAGES_DIR: ${EBOOK_PAGE_IMAGES_DIR:-/data/ebook-pages}
       EBOOK_TILE_MODE: ${EBOOK_TILE_MODE:-false}
       EBOOK_TILE_GRID_ROWS: ${EBOOK_TILE_GRID_ROWS:-3}
       EBOOK_TILE_GRID_COLS: ${EBOOK_TILE_GRID_COLS:-3}
       RATE_LIMIT_EBOOK_TILE_MAX: ${RATE_LIMIT_EBOOK_TILE_MAX:-270}
       RATE_LIMIT_EBOOK_TILE_WINDOW_SEC: ${RATE_LIMIT_EBOOK_TILE_WINDOW_SEC:-60}
+    volumes:
+      # E-book 페이지 이미지(webp)·manifest·워터마크 폰트(NotoSans-Regular.ttf) 소스.
+      # 호스트 ./ebook-pages = deploy.yml 이 mkdir+chown(소유권 보정) 후 폰트 scp,
+      # 콘텐츠(711MB)는 books dist/ebook_pages/ → 사용자 rsync. read-only.
+      # 비어 있어도 안전(dormant): catalog 가 매 요청 manifest 존재를 검사 → available=false.
+      - ./ebook-pages:/data/ebook-pages:ro
     depends_on:
       db:
         condition: service_healthy
