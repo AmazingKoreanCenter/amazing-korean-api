@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-04 — E-book 36언어 웹 라이브 인프라 배선(compose mount + 워터마크 폰트 + TTL 교정) / 콘텐츠 UX 증거 기반 설계 원칙(딥리서치) + 세그먼트 포맷 스펙 / (06-02) 관리자 세션 v2 prod 검증
+updated: 2026-06-09 — 주간 Security Audit 실패 대응(npm 7건 0 vuln 패치 + cargo-deny RUSTSEC-2026-0173 ignore) / (06-04) E-book 36언어 웹 라이브 인프라 배선 / 콘텐츠 UX·세그먼트 스펙
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-09 🔒 — 주간 Security Audit 실패 대응 (npm advisory 패치 + cargo-deny 신규 advisory ignore)**
+
+  매주 월요일 Security Audit(스케줄)이 main(`b48191d`)에서 양쪽 잡 실패 — **코드 변경 아님, 신규 advisory 게시로 인한 시한폭탄형**. **npm audit (high+)**: react-router-dom 7.14.0(HIGH — turbo-stream 역직렬화 RCE·open redirect·DoS) + vitest 3.2.4(CRITICAL — @vitest/ui 파일 read/exec, devDependency·UI 서버 가동 시만·prod 무관) + ws·brace-expansion(moderate). → **`npm audit fix`(비파괴, --force 불요)로 7건 전부 해소 → 0 vulnerabilities**: react-router-dom 7.14.0→**7.17.0**(^7 내), vitest/@vitest/ui/@vitest/coverage-v8 3.2.4→**3.2.6**. 검증: `npm run build` ✓ + `vitest run` **253/253**(49 파일) ✓ 회귀 0. (메일은 vitest 4.1.8 --force 라 했으나 advisory DB 갱신으로 3.2.x 패치 경로 존재 = 비파괴 처리.) **cargo-deny**: RUSTSEC-2026-0173 `proc-macro-error2` unmaintained — transitive(validator 0.20 → validator_derive 0.20), **빌드타임 proc-macro 전용(런타임 바이너리 미포함)·informational(취약점 아님)·업그레이드 경로 없음**(validator 0.20 = crates.io 최신, 0.21+ 부재). `paste`(RUSTSEC-2024-0436)와 동일 클래스 → `deny.toml` ignore 추가(인라인 근거). 검증: `cargo deny check` → **advisories/bans/licenses/sources ok**. deny.toml 정책상 ignore 추가 = 사용자 결정 항목.
 
 - **2026-06-04 📦 — E-book 36언어 웹 라이브 인프라 배선 (compose mount + 워터마크 폰트 + TTL 교정)**
 

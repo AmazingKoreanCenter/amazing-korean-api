@@ -33,6 +33,9 @@ yanked = "warn"
 ignore = [
   "RUSTSEC-2023-0071", # rsa Marvin Attack — no fixed upgrade, B1 (영향 = timing sidechannel, 결제/인증 흐름 영향 검토 별도)
   "RUSTSEC-2024-0436", # paste unmaintained — transitive (simba/nalgebra → imageproc)
+  "RUSTSEC-2026-0173", # proc-macro-error2 unmaintained — transitive (validator 0.20 → validator_derive 0.20).
+                       #   빌드타임 proc-macro 전용(런타임 바이너리 미포함)·informational(취약점 아님)·
+                       #   업그레이드 경로 없음(validator 0.20 = crates.io 최신, 0.21+ 부재). paste(2024-0436)와 동일 클래스.
   "RUSTSEC-2026-0105", # core2 yanked — transitive (image stack)
   "RUSTSEC-2026-0115", # imageproc unsound (sampling)
   "RUSTSEC-2026-0116", # imageproc unsound (bounds check)
