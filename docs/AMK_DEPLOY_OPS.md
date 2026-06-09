@@ -1128,13 +1128,17 @@ docker system df
 docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
 
 # E-book 페이지 이미지 디렉터리 (RDS 이전 전까지 EC2 local fs)
-du -sh "${EBOOK_PAGE_IMAGES_DIR:-docs/textbook/page-images}"
-ls "${EBOOK_PAGE_IMAGES_DIR:-docs/textbook/page-images}/student" 2>/dev/null | wc -l   # 언어 디렉터리 수
+# 호스트 bind 마운트 소스 = ~/amazing-korean-api/ebook-pages (컨테이너 내부는 /data/ebook-pages).
+du -sh ~/amazing-korean-api/ebook-pages
+ls ~/amazing-korean-api/ebook-pages/student 2>/dev/null | wc -l   # 언어 디렉터리 수 (36 기대)
+ls ~/amazing-korean-api/ebook-pages/NotoSans-Regular.ttf 2>/dev/null   # 워터마크 폰트 존재 (deploy scp)
 ```
 
-##### E-book 페이지 이미지 모니터링 (2026-05-03 정책)
+##### E-book 페이지 이미지 모니터링 (2026-05-03 정책, 2026-06-04 prod 배선)
 
-`${EBOOK_PAGE_IMAGES_DIR}` 은 books 측 빌드 결과 (`dist/ebook_pages/`) 가 EC2 로 동기화되는 디렉터리. RDS 이전 전까지 EC2 local fs 정책 (`AMK_API_EBOOK.md` "페이지 이미지 저장 위치 정책" 참조).
+호스트 `~/amazing-korean-api/ebook-pages` 가 books 빌드 결과 (`dist/ebook_pages/`) 의 동기화 대상이자 compose `./ebook-pages:/data/ebook-pages:ro` bind 마운트 소스. 컨테이너는 `EBOOK_PAGE_IMAGES_DIR=/data/ebook-pages` 로 읽음. RDS 이전 전까지 EC2 local fs 정책 (`AMK_API_EBOOK.md` "페이지 이미지 저장 위치 정책" 참조).
+
+> **배선 (2026-06-04)**: deploy.yml 이 매 배포 ① `ebook-pages` dir mkdir+chown(소유권 보정, root 마운트 footgun 회피) ② `NotoSans-Regular.ttf` scp(워터마크 폰트, 멱등). 페이지 콘텐츠(711MB)만 사용자 1회 `rsync` (deploy 와 독립). **rsync 시 `--delete` 금지** — 폰트가 콘텐츠와 같은 dir 에 있어 삭제될 수 있음(다음 배포에 복구되나 그 사이 가시 워터마크 손실).
 
 | 항목 | 임계값 | 액션 |
 |------|--------|------|
