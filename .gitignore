@@ -16,6 +16,9 @@ seeds/0_ko_source_reference.json
 seeds/1_en_source_reference.json
 seeds/2_zh_cn_translated.json
 seeds/3_id_translated.json
+# guide 시드 산출물 (콘텐츠 포함 — 커밋 금지, prod 전달 = scp)
+seeds/guide_seed.json
+seeds/guide_seed_report.txt
 
 # Secrets (절대 커밋 금지)
 .env
@@ -686,6 +689,7 @@ scripts/*
 !scripts/backup.sh
 !scripts/dev_preflight.sh
 !scripts/mk-support-bundle.sh
+!scripts/build_guide_seed.py
 
 # 루트 node_modules (교재 puppeteer용, frontend와 별도)
 /node_modules/

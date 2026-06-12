@@ -926,6 +926,47 @@ curl -s "https://api.amazingkorean.net/explanations?study_task_idx=amk500-sent-0
 ```
 
 > **번역 트랙 (맥미니 Phase C, 미도착)**: 35언어는 `seed_explanation --translations explanation_translations.{lang}.json` 모드로 후속 적재 (계약 = `AMK_API_LEARNING.md §5.10` 번역 트랙, 구현은 산출 도착 시).
+>
+> ⚠️ **2026-06-12 — 본 §12 트랙은 guide 도메인으로 대체 예정** (D-1 전면 교체, `AMK_GUIDE_CONTENT_DESIGN.md` §5): explanation 테이블·시드는 guide PR-4에서 제거된다. 위 번역 트랙(--translations 5-튜플)은 폐기 — 실제 도착한 산출물은 guidev2 세그먼트 체계라 §12-A 로 적재.
+
+##### 12-A. guide(온라인 콘텐츠/해설집) 프로덕션 시딩
+
+> guide 도메인(`guide`/`guide_block`/`guide_sentence` + `content_translations`)의 1회성 부트스트랩. **D-0: 시딩 후 DB가 편집 가능한 SoT** — admin 편집 흔적이 생기면 시드 바이너리가 재실행을 **거부**한다(덮어쓰기 사고 차단). 설계 SSoT = `AMK_GUIDE_CONTENT_DESIGN.md §4`.
+
+**구성 — explanation 과 달리 시드 파일이 리포에 없음 (콘텐츠 유출 방지, gitignore)**
+
+- 시드 파일 4종 (로컬 `seeds/`, **커밋 금지**): `guide_seed.json`(구조+ko/en, `scripts/build_guide_seed.py` 산출 — 67 guide · 16,375 block · 500 sentence) + `2_zh_cn_translated.json`/`3_id_translated.json`(맥미니 번역 납품본, 각 11,797건). `0_ko`/`1_en` 참조본은 적재 대상 아님(바이너리가 lang=ko/en 거부).
+- 적재 바이너리: `seed_guide` (Dockerfile builder→runtime COPY, `/app/seed_guide`).
+
+**실행 (EC2, 배포 후 1회 — 수동, scp 전달)**
+
+```bash
+# ① 로컬(WSL)에서 시드 파일 전송 — 이미지 COPY 불가(gitignored)
+scp seeds/guide_seed.json seeds/2_zh_cn_translated.json seeds/3_id_translated.json \
+    <EC2>:~/amazing-korean-api/seeds-guide/
+
+# ② EC2 에서 컨테이너로 복사 후 적재 (구조 → 번역 순서 필수)
+docker cp ~/amazing-korean-api/seeds-guide amk-api:/tmp/seeds-guide
+docker exec amk-api /app/seed_guide --input /tmp/seeds-guide/guide_seed.json
+docker exec amk-api /app/seed_guide --translations /tmp/seeds-guide/2_zh_cn_translated.json
+docker exec amk-api /app/seed_guide --translations /tmp/seeds-guide/3_id_translated.json
+docker exec amk-api rm -rf /tmp/seeds-guide   # 잔존 파일 정리
+```
+
+기대 출력: `적재 완료: guide=67 block=16375 sentence=500` / 번역 각 `applied=11797 찌꺼기제거=1`(zh `18_002`·id `24_234` 트레일링 `},` — 의도된 결함 규칙). 전부 단일 트랜잭션·fail-loud(키 미해소 시 전체 롤백). `guide_state` 기본 `ready` = **숨김**(공개 flip = 사용자 트리거).
+
+**검증 (psql)**
+
+```bash
+docker exec -i amk-pg psql -U postgres -d amazing_korean_db -c \
+  "SELECT (SELECT count(*) FROM guide), (SELECT count(*) FROM guide_block),
+          (SELECT count(*) FROM guide_sentence),
+          (SELECT count(*) FROM content_translations WHERE content_type='guide_block' AND lang='zh_cn'),
+          (SELECT count(*) FROM content_translations WHERE content_type='guide_block' AND lang='id');"
+# 기대: 67 | 16375 | 500 | 11797 | 11797
+```
+
+**재시딩**: 편집 개시 전(updated_by_user_id 전부 NULL)에만 가능(멱등 upsert). 편집 개시 후엔 바이너리가 거부 — 수정은 admin 경로(PR-3)로.
 
 ##### 13. DB 최소권한 전환 (보안 감사 2.3) — `amk_app` 비-superuser role
 

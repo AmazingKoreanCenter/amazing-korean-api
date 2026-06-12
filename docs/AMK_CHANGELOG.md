@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-12 — 온라인 콘텐츠 guide 도메인 설계 확정 + zh_cn/id 번역 납품본 검증 / (06-09) 주간 Security Audit 실패 대응 / (06-04) E-book 36언어 웹 라이브 인프라 배선
+updated: 2026-06-12 — guide PR-1 구현(마이그+변환기+로더, 런타임 DB 검증 보류) / 설계 확정 + 납품본 검증 / (06-09) 주간 Security Audit 실패 대응
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-12 🛠 — guide PR-1: 마이그레이션 + 시드 변환기 + seed_guide 로더 (🟡 런타임 DB 검증 보류)**
+
+  #161 설계(D-0~D-8)대로 PR-1 구현. **마이그 2건**: `20260612_guide_content_type_value.sql`(content_type_enum `guide_block` 단독 추가 — 설계의 'guide' 값은 단원 title/subtitle 이 블록 비정규화 사본이라 미사용 → 미추가 정정) + `20260613_guide_tables.sql`(guide 67단원·guide_block 세그먼트 전체·guide_sentence 500 학습항목 오버레이·guide_sentence_log/_status 학습기록 + enum 6종(state/category/theme 10색/block_type 13값/activity/log_action) + `content_translations.source_version` 컬럼 = 편집 후 번역 stale 판정). **변환기** `scripts/build_guide_seed.py`: 해설집 .txt 67(전 세그먼트, 마커 분리) + HTML 67(표 병합메타 colspan/rowspan 1회 추출 + 드리프트 대조) + sentences.json(교재 10색 테마 유도, 별칭/순환 해석) + guide_sections.json(카테고리) → `guide_seed.json`. 산출 = **67 guide · 16,375 block · 500 sentence**(문장 1~500 완전 커버). **정합 검증**: 납품 참조본 교차검증 en 복원본·ko 권위원문 **각 11,797 전부 키 존재 + 텍스트 차이 0**(번역 적재 legacy_key 해소 100% 보장) / 문장 KO 정답 ↔ HTML data-ans **드리프트 0** / 표 구조 정합 100%(셀 없음 0·개수 불일치 0, span 547 부여) — 표 텍스트 차이 404건은 HTML(6/6 빌드)이 의미 감사(6/11) **이전** 산출물인 예상된 stale(텍스트 원천=.txt, 무영향). **실측 변칙 6건 전부 변환기 흡수**: `LIST_ITEM` 13번째 세그먼트 타입(스펙 "12종"=표본 누락, 47_044/045 번역셋 포함 → enum 수용) / TITLE 부재 3단원(441/449/462~, 첫 PARAGRAPH 채택) / 문장 61·71 PARAGRAPH 타이핑 변칙(HTML h3 확인 → section 정규화, 범위 제약으로 OTHER 노트 번호 오탐 차단) / .txt↔HTML 파일명 드리프트 1건(366~369 기타/부사어 — 범위 매칭 전환). **로더** `src/bin/seed_guide.rs`(Cargo [[bin]] + Dockerfile 3곳): `--input`(guide/block/sentence upsert, meta 카운트 대조) / `--translations`(meta.target_lang, `{{koN}}` 복원 후 완성문 저장, 트레일링 `},` 결함 규칙(zh 18_002·id 24_234), status=approved, source_version=1, lang=ko/en 거부) / **재실행 가드** = `updated_by_user_id NOT NULL` 흔적 존재 시 거부(D-0 — DB가 SoT 전환 후 시드가 편집을 덮어쓰는 사고 차단, explanation 식 상시 멱등 재시딩 관행의 의도적 역전). 단일 tx·fail-loud. 시드 4종+guide_seed 산출물 = gitignore(콘텐츠 유출 방지) → prod 전달 = scp, **`AMK_DEPLOY_OPS.md` §12-A 런북 신설**(§12 explanation 트랙은 PR-4 대체 예정 마킹). 검증: `SQLX_OFFLINE cargo check`/`clippy -D warnings`/`fmt` ✓. **🟡 정직 — 런타임 DB 검증 미수행**: 이 WSL 환경에 postgres 서버 부재(클라이언트만 설치) + Docker Desktop 연동 off + sudo 불가 → fresh DB 전체 마이그→시딩→멱등 재실행→가드 동작 검증은 Docker 가용 환경에서 후속 필수(머지 전 권장, M-012 실경로 검증 원칙). SoT=`AMK_GUIDE_CONTENT_DESIGN.md §3 구현 정정·§4`, STATUS #162.
 
 - **2026-06-12 📐 — 온라인 콘텐츠 guide 도메인 설계 확정 + zh_cn/id 번역 납품본 검증 통과 (구현 전 체크포인트)**
 
