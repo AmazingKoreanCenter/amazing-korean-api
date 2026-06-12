@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-09 — 주간 Security Audit 실패 대응(npm 7건 0 vuln 패치 + cargo-deny RUSTSEC-2026-0173 ignore) / (06-04) E-book 36언어 웹 라이브 인프라 배선 / 콘텐츠 UX·세그먼트 스펙
+updated: 2026-06-12 — 온라인 콘텐츠 guide 도메인 설계 확정 + zh_cn/id 번역 납품본 검증 / (06-09) 주간 Security Audit 실패 대응 / (06-04) E-book 36언어 웹 라이브 인프라 배선
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-12 📐 — 온라인 콘텐츠 guide 도메인 설계 확정 + zh_cn/id 번역 납품본 검증 통과 (구현 전 체크포인트)**
+
+  맥미니 첫 생산물(해설집 zh_cn+id 본번역, v6 `731dce3` 기준 11,797건×2) 도착 계기로 온라인 콘텐츠 트랙 본격화. **조사 1(워크플로 7 agent)**: 적재 경로 부재 확정 — 구 `--translations` 계약(5-튜플)은 2026-05-29 deprecated + 산출물 키 체계(`guidev2:NN_MMM`)와 호환 불가 + DB 적재 대상 미결(스펙 §8). **조사 2(워크플로 5 agent)**: 해설집 HTML 67단원 전수 분석 — 공통 스켈레톤(이중언어 헤더→문법 도입[gstep/패턴/활용표]→문장 사이클[영문→어휘 토글→쓰기 즉시채점→정답+브라우저TTS→해설표 성분분해]→복습 4종[Read Along/플래시카드/매칭/Writing Test]→축하 모달), 한 문장 6곳 재사용(정규화 근거), JS=Web Speech API TTS+공백·문장부호 제거 완전일치 채점, 복잡표 병합 메타는 .txt에 없어 HTML 1회 추출 필요(Cc=행 내 순번≠시각 열). **사용자 결정 8건(D-0~D-7)**: DB=편집 가능 SoT(books .txt/HTML 핸드오프 = 1회성 부트스트랩으로 종료, v6 동결 안 함 — 이후 수정은 admin에서) / 기존 자산 전면 교체(전부 더미, 단 네이밍 컨벤션 준수 + 간결·유연) / 어휘=출현 단위(lemma 정규화 안 함) / 채점=완전일치(점수화 후속) / zh_cn+id 먼저(안정화 후 언어권별) / 인쇄본 별개(books 영역) / 오디오=브라우저 TTS(자산 후속) / 표 재조립=api. **스키마 확정**: `guide`(67)+`guide_block`(~11.3k, 세그먼트 전체+좌표+병합메타+marker+`source_version`+`legacy_key`)+`guide_sentence`(500, 학습항목 오버레이: 발음형·화계 2축·audio_url 자리)+`guide_sentence_log`/`_status` + enum 4 + content_translations 확장(content_type `guide`/`guide_block` + `source_version` 컬럼=편집 후 번역 stale 자동판정). **납품본 4종 독립 전수 검증 통과**(`seeds/0~3_*.json` — gitignore 처리·커밋 금지): 4×11,797, id·source_text·ko_preserve=v6 완전일치, {{koN}} 1,405 전부 보존, 한글 혼입 0, en 복원본 누락 0, ko 권위원문 9,824+ko_none 1,973 사유분류 정합. 결함 2건(트레일링 `},`: zh `18_002`·id `24_234`)=로더 제거 규칙으로 처리(원본 무수정). 단일 SoT=`docs/AMK_GUIDE_CONTENT_DESIGN.md`(결정·DDL·시딩·정리목록·PR 4분할·프론트 UI 계획), 메모리=`project_guide_content_track`. STATUS #161. **다음=PR-1**(마이그+변환 스크립트+seed_guide+검증).
 
 - **2026-06-09 🔒 — 주간 Security Audit 실패 대응 (npm advisory 패치 + cargo-deny 신규 advisory ignore)**
 

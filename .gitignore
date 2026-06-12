@@ -11,6 +11,12 @@
 # Windows 경로명을 가진 디렉터리가 frontend/ 에 생성됨)
 frontend/C:\\*
 
+# 온라인 콘텐츠 번역 납품본 (맥미니 산출, 커밋 금지 — 사용자 지시 2026-06-12)
+seeds/0_ko_source_reference.json
+seeds/1_en_source_reference.json
+seeds/2_zh_cn_translated.json
+seeds/3_id_translated.json
+
 # Secrets (절대 커밋 금지)
 .env
 .env.local
