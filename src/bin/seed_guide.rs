@@ -129,13 +129,10 @@ async fn assert_no_edits(pool: &PgPool) -> anyhow::Result<()> {
 
 /// {{koN}} 자리표시자 복원 + 트레일링 LLM 찌꺼기("},") 제거
 fn restore_text(item: &TransItem) -> anyhow::Result<(String, bool)> {
-    let mut text = item.translated_text.clone();
     // 결함 규칙: 번역문 끝 "}," 이 원문에 없으면 LLM 산출 찌꺼기 (zh 18_002 / id 24_234)
-    let stripped = if text.ends_with("},") && !item.source_text.ends_with('}') {
-        text.truncate(text.len() - 2);
-        true
-    } else {
-        false
+    let (mut text, stripped) = match item.translated_text.strip_suffix("},") {
+        Some(t) if !item.source_text.ends_with('}') => (t.to_string(), true),
+        _ => (item.translated_text.clone(), false),
     };
     for (key, value) in &item.ko_preserve {
         text = text.replace(&format!("{{{{{key}}}}}"), value);
