@@ -1090,4 +1090,24 @@ docker exec amk-api cat /app/seeds/20260518_seed_textbook_tasks.sql | \
 
 ---
 
+### 5.12 Phase 12 — guide (온라인 콘텐츠/해설집) 🟢 PR-1 시딩 + PR-2 서빙·뷰어 (2026-06-13)
+
+> 해설집(놀라운 한국어 500문장) 기반 온라인 콘텐츠. 설계·시딩 SoT = `docs/AMK_GUIDE_CONTENT_DESIGN.md`(결정 D-0~D-8). §5.10 explanation / §5.11 study·task 더미는 PR-4에서 정리 예정(D-1 전면 교체).
+
+**데이터 모델** (마이그 `20260612`/`20260613`): `guide`(67단원, guide_idx·guide_seq·guide_state·guide_category·guide_theme 10색) → `guide_block`(세그먼트 전체 스트림, block_seq·block_type 13종·sentence_no 논리키·표 좌표(table_no/row_no/col_no)+병합(col_span/row_span)·marker·source_version·legacy_key) + `guide_sentence`(500 학습항목 오버레이, section 블록 참조·발음형·화계 2축·audio_url) + `guide_sentence_log`/`_status`(학습 기록, FK CASCADE). 번역 = `content_translations` content_type `guide_block`(field `text`) + `source_version`(편집 후 stale 판정).
+
+**서빙 API** (공개 읽기, `state='open'` 게이트):
+- `GET /guides?lang=` → 공개 단원 목록(guide_seq 순, 제목 번역 LATERAL 해소). 응답 `{items: GuideSummary[], lang}`.
+- `GET /guides/{guide_idx}?lang=` → 단원 상세 `{..., items: GuideItem[], sentences: GuideSentence[]}`. `items` = block_seq 순 스트림, 표는 `kind:"table"` + `rows: GuideCell[][]` 격자로 **서버 재조립(D-7)**. `sentences` = 문장 학습항목(채점용 한국어 `text_ko` + 영어 프롬프트 `text`).
+- **i18n 폴백** = ko 요청 ko→tr→en / en 요청 en→tr→ko / 제3언어 tr→en→ko(셀 단위). en 셀=zh/id 번역, 한국어 학습칸=ko 폴백. lang 라벨은 응답에 echo.
+- 미존재/비공개(`ready`) = 404. 라우터 `.nest("/guides")`, OpenAPI DTO 7종.
+
+**프론트** `frontend/src/category/guide/`: 목록(`/guides`, 10색 카드) + 학습(`/guides/:guideIdx`, 도입부→문장사이클[작문 즉시채점·정답+TTS·해설]→복습[Read Along·플래시카드·Writing Test]). 브라우저 TTS(`speakKorean`, D-6) + 완전일치 채점(`normalizeAnswer`, D-3). 콘텐츠 언어 = `getContentLang()` → ?lang=.
+
+**검증된 패턴 (explanation 선례 확장)**: 도메인 5파일(dto→repo→service→handler→router) + `::text` enum 캐스트 + 통합 테스트(자체 격리 데이터 삽입→서비스 호출→정리, `#[ignore]` CI backend integration). 표 재조립·폴백은 service 단위 테스트 + 실 DB 통합 테스트 양면 커버.
+
+**후속**: PR-3 admin 편집(블록·문장·표 셀 + source_version 증가 + stale 대시보드 + 디프 export) / PR-4 학습 로그 배선(guide_sentence_log/status) + §5.10·5.11 정리. 공개 flip(`UPDATE guide SET guide_state='open'`) = 사용자 트리거.
+
+---
+
 [⬆️ AMK_API_MASTER.md로 돌아가기](./AMK_API_MASTER.md)

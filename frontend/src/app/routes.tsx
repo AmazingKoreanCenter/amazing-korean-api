@@ -32,6 +32,8 @@ const SettingsPage = lazy(() => import("@/category/user/page/settings_page").the
 const WritingLevelSelectPage = lazy(() => import("@/category/study/page/writing_level_select_page").then((m) => ({ default: m.WritingLevelSelectPage })));
 const WritingPracticePage = lazy(() => import("@/category/study/page/writing_practice_page").then((m) => ({ default: m.WritingPracticePage })));
 const WritingStatsPage = lazy(() => import("@/category/study/page/writing_stats_page").then((m) => ({ default: m.WritingStatsPage })));
+const GuideListPage = lazy(() => import("@/category/guide/page/guide_list_page").then((m) => ({ default: m.GuideListPage })));
+const GuideLearnPage = lazy(() => import("@/category/guide/page/guide_learn_page").then((m) => ({ default: m.GuideLearnPage })));
 
 import PrivateRoute from "@/routes/private_route";
 
@@ -152,6 +154,10 @@ export function AppRoutes() {
         <Route path="/lessons" element={<ComingSoonPage />} />
         <Route path="/lessons/:lessonId" element={<ComingSoonPage />} />
         <Route path="/pricing" element={<ComingSoonPage />} />
+
+        {/* 온라인 콘텐츠(해설집) — 공개 읽기 (state=open 게이트는 백엔드) */}
+        <Route path="/guides" element={<GuideListPage />} />
+        <Route path="/guides/:guideIdx" element={<GuideLearnPage />} />
 
         {/* Book 허브 + 카탈로그 (Public) */}
         <Route path="/book" element={<BookHubPage />} />

@@ -665,6 +665,28 @@
     "exploreEbook": "Browse E-book Textbooks",
     "exploreTextbook": "Order Print Textbooks"
   },
+  "guide": {
+    "listTitle": "Learn Korean Online",
+    "listSubtitle": "Korean grammar through 500 sentences — pick a unit to begin.",
+    "loadError": "Failed to load content.",
+    "empty": "No units are published yet.",
+    "backToList": "All units",
+    "practice": "Practice: Make Korean sentences!",
+    "writePlaceholder": "Write in Korean...",
+    "correct": "Correct!",
+    "showAnswer": "Show Answer",
+    "hideAnswer": "Hide Answer",
+    "listen": "Listen",
+    "explanation": "Explanation",
+    "review": {
+      "title": "Review",
+      "readAlong": "1. Read Along",
+      "lookSpeak": "2. Look & Speak",
+      "writingTest": "3. Writing Test",
+      "reset": "Reset",
+      "grade": "Grade"
+    }
+  },
   "error": {
     "errorPageTitle": "Something went wrong",
     "errorPageDescription": "A temporary server error has occurred.\nPlease try again later.",

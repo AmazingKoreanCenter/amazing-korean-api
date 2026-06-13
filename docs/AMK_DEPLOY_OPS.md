@@ -950,8 +950,11 @@ docker cp ~/amazing-korean-api/seeds-guide amk-api:/tmp/seeds-guide
 docker exec amk-api /app/seed_guide --input /tmp/seeds-guide/guide_seed.json
 docker exec amk-api /app/seed_guide --translations /tmp/seeds-guide/2_zh_cn_translated.json
 docker exec amk-api /app/seed_guide --translations /tmp/seeds-guide/3_id_translated.json
-docker exec amk-api rm -rf /tmp/seeds-guide   # 잔존 파일 정리
+docker exec -u root amk-api rm -rf /tmp/seeds-guide   # 잔존 정리 — ⚠️ -u root 필수
+rm -rf ~/amazing-korean-api/seeds-guide               # 호스트 업로드분 정리
 ```
+
+> ⚠️ **정리 시 `-u root` 필수** (2026-06-13 prod 실측): `docker cp`가 파일을 root 소유로 복사하는데 amk-api 컨테이너는 비루트 사용자로 실행 → 일반 `docker exec rm`은 Permission denied. 읽기(시딩)는 영향 없음.
 
 기대 출력: `적재 완료: guide=67 block=16375 sentence=500` / 번역 각 `applied=11797 찌꺼기제거=1`(zh `18_002`·id `24_234` 트레일링 `},` — 의도된 결함 규칙). 전부 단일 트랜잭션·fail-loud(키 미해소 시 전체 롤백). `guide_state` 기본 `ready` = **숨김**(공개 flip = 사용자 트리거).
 
