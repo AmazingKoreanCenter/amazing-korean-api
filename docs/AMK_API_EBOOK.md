@@ -444,7 +444,7 @@ node scripts/textbook/generate_page_images.js all all       # 전체
 **prod 배선 (2026-06-04, books 36언어 빌드 완료 트리거)**:
 - `docker-compose.prod.yml` api 서비스에 `volumes: - ./ebook-pages:/data/ebook-pages:ro` + `EBOOK_PAGE_IMAGES_DIR: ${EBOOK_PAGE_IMAGES_DIR:-/data/ebook-pages}`. 이미지 없어도 dormant·안전(catalog 가 매 요청 manifest 존재 검사 → `available=false`).
 - `deploy.yml` 이 매 배포 호스트 `ebook-pages` dir mkdir+chown(소유권 보정) + 워터마크 폰트 `NotoSans-Regular.ttf` scp(레포 `ebook-pages/` 에 커밋, 멱등).
-- **남은 1단계 (사용자)**: books `dist/ebook_pages/` (711MB · webp 8,928 · manifest 72 = 36 lang × 2 edition) → EC2 `~/amazing-korean-api/ebook-pages/` `rsync` (`--delete` 금지). 도착 즉시 catalog `available=true` (재배포 불요).
+- **남은 1단계 (사용자)**: books `dist/ebook_pages/` (711MB · webp 8,928 · manifest 72 = 36 lang × 2 edition) → EC2 `~/amazing-korean-api/ebook-pages/` `rsync`. 초기 적재는 `--delete` 불요, 레거시 정리 시 `--delete --exclude='NotoSans-Regular.ttf'`(폰트 보호). 도착 즉시 catalog `available=true` (재배포 불요).
 - **정합 검증 완료**: books 36 lang ↔ `catalog_languages()` 36 1:1, `es_es`/`pt_pt` 디렉터리 ↔ `to_code()` 일치, `page-{:03}.webp` 네이밍 일치, 평문 webp ↔ `ebook_images_encrypted=false` 기본값 일치.
 
 **프론트엔드 페이지**:
