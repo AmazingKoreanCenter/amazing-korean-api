@@ -656,6 +656,28 @@
     "exploreEbook": "E-book 교재 보기",
     "exploreTextbook": "인쇄 교재 주문"
   },
+  "guide": {
+    "listTitle": "온라인 한국어 학습",
+    "listSubtitle": "500문장으로 배우는 한국어 문법 — 단원을 골라 시작하세요.",
+    "loadError": "콘텐츠를 불러오지 못했습니다.",
+    "empty": "아직 공개된 단원이 없습니다.",
+    "backToList": "단원 목록",
+    "practice": "연습: 한국어 문장을 만들어 보세요!",
+    "writePlaceholder": "한국어로 입력하세요...",
+    "correct": "정답!",
+    "showAnswer": "정답 보기",
+    "hideAnswer": "정답 숨기기",
+    "listen": "듣기",
+    "explanation": "해설",
+    "review": {
+      "title": "복습",
+      "readAlong": "1. 듣고 따라 읽기",
+      "lookSpeak": "2. 보고 말하기",
+      "writingTest": "3. 쓰기 시험",
+      "reset": "초기화",
+      "grade": "채점"
+    }
+  },
   "error": {
     "errorPageTitle": "문제가 발생했습니다",
     "errorPageDescription": "서버에 일시적인 문제가 발생했습니다.\n잠시 후 다시 시도해 주세요.",

@@ -93,6 +93,10 @@ impl Modify for SecurityAddon {
         crate::api::explanation::handler::list_explanations,
         crate::api::explanation::handler::get_explanation,
 
+        // guide (온라인 콘텐츠/해설집)
+        crate::api::guide::handler::list_guides,
+        crate::api::guide::handler::get_guide,
+
         // admin - users
         crate::api::admin::user::handler::admin_list_users,
         crate::api::admin::user::handler::admin_create_user,
@@ -350,6 +354,13 @@ impl Modify for SecurityAddon {
             crate::api::explanation::dto::ExplanationBlockRes,
             crate::api::explanation::dto::ExplanationUnitRes,
             crate::api::explanation::dto::ExplanationListRes,
+            crate::api::guide::dto::GuideLangReq,
+            crate::api::guide::dto::GuideSummaryRes,
+            crate::api::guide::dto::GuideListRes,
+            crate::api::guide::dto::GuideCellRes,
+            crate::api::guide::dto::GuideItemRes,
+            crate::api::guide::dto::GuideSentenceRes,
+            crate::api::guide::dto::GuideDetailRes,
             crate::api::study::dto::StudyTaskSummaryDto,
             crate::api::study::dto::StudyTaskDetailRes,
             crate::api::study::dto::TaskPayload,
