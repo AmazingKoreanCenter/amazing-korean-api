@@ -2,12 +2,14 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+use crate::api::auth::extractor::AuthUser;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
-use crate::types::SupportedLanguage;
+use crate::types::{GuideLogAction, SupportedLanguage};
 
 use super::dto::{
-    GuideCellRes, GuideDetailRes, GuideItemRes, GuideListRes, GuideSentenceRes, GuideSummaryRes,
+    GuideCellRes, GuideDetailRes, GuideItemRes, GuideListRes, GuideLogReq, GuideProgressItemRes,
+    GuideProgressRes, GuideSentenceRes, GuideSentenceStatusRes, GuideSummaryRes,
 };
 use super::repo::{BlockRow, GuideRepo};
 
@@ -108,6 +110,70 @@ impl GuideService {
             items,
             sentences,
         })
+    }
+
+    /// 문장 학습 로그 기록(시도/정오). 정/오 액션만 status(try_count/is_solved) 갱신.
+    /// 반환 = 기록 직후 권위 상태(프론트 낙관적 업데이트 정합용).
+    pub async fn log_sentence(
+        state: &AppState,
+        auth_user: AuthUser,
+        guide_idx: &str,
+        sentence_no: i32,
+        req: GuideLogReq,
+    ) -> AppResult<GuideSentenceStatusRes> {
+        let AuthUser(claims) = auth_user;
+
+        let sentence_id = GuideRepo::find_open_sentence_id(&state.db, guide_idx, sentence_no)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        // 비즈니스 규칙: 채점 결과(correct/wrong)만 status 반영, correct 만 해결 처리.
+        let affects_status = matches!(req.action, GuideLogAction::Correct | GuideLogAction::Wrong);
+        let is_solved = matches!(req.action, GuideLogAction::Correct);
+
+        let status = GuideRepo::record_log_tx(
+            &state.db,
+            claims.sub,
+            &claims.session_id,
+            sentence_id,
+            req.activity,
+            req.action,
+            req.answer.as_ref(),
+            affects_status,
+            is_solved,
+        )
+        .await?;
+
+        Ok(GuideSentenceStatusRes {
+            try_count: status.try_count,
+            is_solved: status.is_solved,
+            last_attempt_at: status.last_attempt_at,
+        })
+    }
+
+    /// 내 단원 진행 상황(공개 단원 한정). status 행이 있는 문장만 sentence_no 순.
+    pub async fn progress(
+        state: &AppState,
+        auth_user: AuthUser,
+        guide_idx: &str,
+    ) -> AppResult<GuideProgressRes> {
+        let AuthUser(claims) = auth_user;
+
+        let g = GuideRepo::find_open_by_idx(&state.db, guide_idx)
+            .await?
+            .ok_or(AppError::NotFound)?;
+
+        let rows = GuideRepo::find_progress(&state.db, claims.sub, g.guide_id).await?;
+        let items = rows
+            .into_iter()
+            .map(|r| GuideProgressItemRes {
+                sentence_no: r.sentence_no,
+                try_count: r.try_count,
+                is_solved: r.is_solved,
+                last_attempt_at: r.last_attempt_at,
+            })
+            .collect();
+        Ok(GuideProgressRes { items })
     }
 }
 

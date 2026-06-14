@@ -1,20 +1,48 @@
+import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthStore } from "@/hooks/use_auth_store";
 
 import { GuideIntro } from "../component/GuideBlockStream";
 import { GuideReview } from "../component/GuideReview";
 import { GuideSentenceCard } from "../component/GuideSentenceCard";
-import { useGuide } from "../hook/use_guide";
-import { guideThemeColors } from "../types";
+import { useGuide, useGuideLog, useGuideProgress } from "../hook/use_guide";
+import { guideThemeColors, type GuideLogAction } from "../types";
 
 /** 단원 학습 페이지 — 도입부 → 문장별 사이클 → 복습 (해설집 HTML 동등) */
 export function GuideLearnPage() {
   const { t } = useTranslation();
   const { guideIdx } = useParams<{ guideIdx: string }>();
   const { data, isLoading, isError } = useGuide(guideIdx);
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const { data: progress } = useGuideProgress(guideIdx);
+  const logMutation = useGuideLog(guideIdx);
+
+  // 서버 진행 = 해결한 문장 집합
+  const solvedSet = useMemo(
+    () =>
+      new Set(
+        (progress?.items ?? [])
+          .filter((p) => p.is_solved)
+          .map((p) => p.sentence_no)
+      ),
+    [progress]
+  );
+
+  // 학습 로그 (로그인 시에만 기록 — 비로그인은 조용히 무시)
+  const handleLog = useCallback(
+    (sentenceNo: number, action: GuideLogAction, answer?: unknown) => {
+      if (!isLoggedIn) return;
+      logMutation.mutate({
+        sentenceNo,
+        body: { activity: "sentence_write", action, answer },
+      });
+    },
+    [isLoggedIn, logMutation]
+  );
 
   if (isLoading) {
     return (
@@ -72,6 +100,40 @@ export function GuideLearnPage() {
         )}
       </header>
 
+      {/* 진행 (로그인 시) */}
+      {isLoggedIn && data.sentences.length > 0 && (
+        <div className="mb-6">
+          {(() => {
+            const total = data.sentences.length;
+            const done = data.sentences.filter((s) => solvedSet.has(s.sentence_no)).length;
+            return (
+              <>
+                <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{t("guide.progress")}</span>
+                  <span>{t("guide.solvedCount", { done, total })}</span>
+                </div>
+                <div
+                  className="h-2 w-full overflow-hidden rounded-full"
+                  style={{ backgroundColor: theme.bg }}
+                  role="progressbar"
+                  aria-valuenow={done}
+                  aria-valuemin={0}
+                  aria-valuemax={total}
+                >
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${total > 0 ? (done / total) * 100 : 0}%`,
+                      backgroundColor: theme.color,
+                    }}
+                  />
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
       {/* 문법 도입부 */}
       <GuideIntro items={data.items} />
 
@@ -81,7 +143,13 @@ export function GuideLearnPage() {
           <h2 className="mb-3 text-sm font-semibold text-foreground">{t("guide.practice")}</h2>
           <div className="space-y-3">
             {data.sentences.map((s) => (
-              <GuideSentenceCard key={s.sentence_no} sentence={s} items={data.items} />
+              <GuideSentenceCard
+                key={s.sentence_no}
+                sentence={s}
+                items={data.items}
+                solved={solvedSet.has(s.sentence_no)}
+                onLog={handleLog}
+              />
             ))}
           </div>
         </section>

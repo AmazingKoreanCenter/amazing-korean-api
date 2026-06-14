@@ -2,10 +2,12 @@
 
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
+use serde_json::Value;
 use sqlx::PgPool;
 
-use crate::error::AppResult;
-use crate::types::SupportedLanguage;
+use crate::error::{AppError, AppResult};
+use crate::types::{GuideActivity, GuideLogAction, SupportedLanguage};
 
 /// guide 행 (enum 은 ::text 캐스트 — explanation 선례)
 #[derive(Debug, sqlx::FromRow)]
@@ -67,6 +69,23 @@ pub struct SentenceRow {
 struct TrRow {
     content_id: i64,
     translated_text: String,
+}
+
+/// 문장 학습 상태 (status 테이블 컬럼 별칭)
+#[derive(Debug, sqlx::FromRow)]
+pub struct GuideStatusRow {
+    pub try_count: i32,
+    pub is_solved: bool,
+    pub last_attempt_at: Option<DateTime<Utc>>,
+}
+
+/// 단원 진행 항목 (문장 번호 + 상태)
+#[derive(Debug, sqlx::FromRow)]
+pub struct GuideProgressRow {
+    pub sentence_no: i32,
+    pub try_count: i32,
+    pub is_solved: bool,
+    pub last_attempt_at: Option<DateTime<Utc>>,
 }
 
 const GUIDE_COLS: &str = r#"
@@ -187,5 +206,148 @@ impl GuideRepo {
             .into_iter()
             .map(|r| (r.content_id, r.translated_text))
             .collect())
+    }
+
+    /// (guide_idx, sentence_no) → guide_sentence_id. 공개(open) 단원만 — 비공개/미존재 = None.
+    pub async fn find_open_sentence_id(
+        pool: &PgPool,
+        guide_idx: &str,
+        sentence_no: i32,
+    ) -> AppResult<Option<i64>> {
+        Ok(sqlx::query_scalar::<_, i64>(
+            r#"
+            SELECT gs.guide_sentence_id
+            FROM guide_sentence gs
+            JOIN guide g ON g.guide_id = gs.guide_id
+            WHERE g.guide_idx = $1
+              AND gs.sentence_no = $2
+              AND g.guide_state = 'open'
+            "#,
+        )
+        .bind(guide_idx)
+        .bind(sentence_no)
+        .fetch_optional(pool)
+        .await?)
+    }
+
+    /// 학습 로그 1건 기록 (단일 tx, study_task 선례):
+    /// - `affects_status` = true(정/오)면 status upsert(try_count++ / is_solved |= solved), 반환=갱신값
+    /// - false면 status 미변경, 현재값 조회(없으면 0/false/None)
+    /// - log 는 항상 insert. login_id 는 세션(session_id)에서 유도(session_id 필수화 정책).
+    #[allow(clippy::too_many_arguments)]
+    pub async fn record_log_tx(
+        pool: &PgPool,
+        user_id: i64,
+        session_id: &str,
+        guide_sentence_id: i64,
+        activity: GuideActivity,
+        action: GuideLogAction,
+        answer: Option<&Value>,
+        affects_status: bool,
+        is_solved: bool,
+    ) -> AppResult<GuideStatusRow> {
+        let mut tx = pool.begin().await?;
+
+        let status: GuideStatusRow = if affects_status {
+            sqlx::query_as::<_, GuideStatusRow>(
+                r#"
+                INSERT INTO guide_sentence_status (
+                    guide_sentence_id, user_id,
+                    guide_sentence_status_try_count,
+                    guide_sentence_status_is_solved,
+                    guide_sentence_status_last_attempt_at
+                )
+                VALUES ($1, $2, 1, $3, NOW())
+                ON CONFLICT (user_id, guide_sentence_id) DO UPDATE
+                SET guide_sentence_status_try_count =
+                        guide_sentence_status.guide_sentence_status_try_count + 1,
+                    guide_sentence_status_is_solved =
+                        guide_sentence_status.guide_sentence_status_is_solved
+                        OR EXCLUDED.guide_sentence_status_is_solved,
+                    guide_sentence_status_last_attempt_at = NOW()
+                RETURNING guide_sentence_status_try_count       AS try_count,
+                          guide_sentence_status_is_solved       AS is_solved,
+                          guide_sentence_status_last_attempt_at AS last_attempt_at
+                "#,
+            )
+            .bind(guide_sentence_id)
+            .bind(user_id)
+            .bind(is_solved)
+            .fetch_one(&mut *tx)
+            .await?
+        } else {
+            sqlx::query_as::<_, GuideStatusRow>(
+                r#"
+                SELECT guide_sentence_status_try_count       AS try_count,
+                       guide_sentence_status_is_solved       AS is_solved,
+                       guide_sentence_status_last_attempt_at AS last_attempt_at
+                FROM guide_sentence_status
+                WHERE user_id = $1 AND guide_sentence_id = $2
+                "#,
+            )
+            .bind(user_id)
+            .bind(guide_sentence_id)
+            .fetch_optional(&mut *tx)
+            .await?
+            .unwrap_or(GuideStatusRow {
+                try_count: 0,
+                is_solved: false,
+                last_attempt_at: None,
+            })
+        };
+
+        let log_res = sqlx::query(
+            r#"
+            INSERT INTO guide_sentence_log (
+                guide_sentence_id, user_id, login_id,
+                guide_sentence_activity_log,
+                guide_sentence_action_log,
+                guide_sentence_answer_log
+            )
+            SELECT $1, $2, l.login_id, $3, $4, $5
+            FROM login l
+            WHERE l.login_session_id = CAST($6 AS uuid)
+              AND l.user_id = $2
+            "#,
+        )
+        .bind(guide_sentence_id)
+        .bind(user_id)
+        .bind(activity)
+        .bind(action)
+        .bind(answer)
+        .bind(session_id)
+        .execute(&mut *tx)
+        .await?;
+
+        if log_res.rows_affected() == 0 {
+            return Err(AppError::Internal("Login record not found".into()));
+        }
+
+        tx.commit().await?;
+        Ok(status)
+    }
+
+    /// 단원 진행 상황 — status 행이 있는 문장만(희소), sentence_no 순.
+    pub async fn find_progress(
+        pool: &PgPool,
+        user_id: i64,
+        guide_id: i64,
+    ) -> AppResult<Vec<GuideProgressRow>> {
+        Ok(sqlx::query_as::<_, GuideProgressRow>(
+            r#"
+            SELECT gs.sentence_no,
+                   st.guide_sentence_status_try_count       AS try_count,
+                   st.guide_sentence_status_is_solved       AS is_solved,
+                   st.guide_sentence_status_last_attempt_at AS last_attempt_at
+            FROM guide_sentence_status st
+            JOIN guide_sentence gs ON gs.guide_sentence_id = st.guide_sentence_id
+            WHERE st.user_id = $1 AND gs.guide_id = $2
+            ORDER BY gs.sentence_no
+            "#,
+        )
+        .bind(user_id)
+        .bind(guide_id)
+        .fetch_all(pool)
+        .await?)
     }
 }

@@ -93,6 +93,8 @@ impl Modify for SecurityAddon {
         // guide (온라인 콘텐츠/해설집)
         crate::api::guide::handler::list_guides,
         crate::api::guide::handler::get_guide,
+        crate::api::guide::handler::log_sentence,
+        crate::api::guide::handler::get_progress,
 
         // admin - guide (편집)
         crate::api::admin::guide::handler::admin_list_guides,
@@ -362,6 +364,12 @@ impl Modify for SecurityAddon {
             crate::api::guide::dto::GuideItemRes,
             crate::api::guide::dto::GuideSentenceRes,
             crate::api::guide::dto::GuideDetailRes,
+            crate::api::guide::dto::GuideLogReq,
+            crate::api::guide::dto::GuideSentenceStatusRes,
+            crate::api::guide::dto::GuideProgressItemRes,
+            crate::api::guide::dto::GuideProgressRes,
+            crate::types::GuideActivity,
+            crate::types::GuideLogAction,
             crate::api::admin::guide::dto::AdminGuideSummary,
             crate::api::admin::guide::dto::AdminGuideListRes,
             crate::api::admin::guide::dto::AdminGuideBlock,

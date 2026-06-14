@@ -421,6 +421,32 @@ pub enum LessonItemKind {
 // 대체되어 제거 (PR-4a, 2026-06-14). DB enum 타입은 20260615 마이그로 DROP.
 // content_type_enum 의 explanation_unit/block 값은 PG 제약상 휴면 잔존 (AMK_GUIDE_CONTENT_DESIGN §5).
 
+/// guide 학습 활동 종류 (`guide_sentence_log.guide_sentence_activity_log`)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "guide_activity_enum", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum GuideActivity {
+    SentenceWrite,
+    ReadAlong,
+    Flashcard,
+    Matching,
+    WritingTest,
+}
+
+/// guide 학습 로그 액션 (`guide_sentence_log.guide_sentence_action_log`).
+/// 정/오(correct/wrong)만 status(try_count/is_solved) 갱신 — 나머지는 로그 전용.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
+#[sqlx(type_name = "guide_log_action_enum", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum GuideLogAction {
+    View,
+    Attempt,
+    Correct,
+    Wrong,
+    Reveal,
+    Complete,
+}
+
 // -----------------------------------------------------------------------------
 // 6. Payment & Subscription Enums
 // -----------------------------------------------------------------------------

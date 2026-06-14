@@ -4,10 +4,11 @@
 //! 텍스트 해소: `text` = 표시 언어(번역 → en → ko 폴백), `text_ko` = 언어불변
 //! 한국어 학습 콘텐츠(항상 병기 — 해설집 이중언어 구조 승계).
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::types::SupportedLanguage;
+use crate::types::{GuideActivity, GuideLogAction, SupportedLanguage};
 
 /// `GET /guides` · `GET /guides/{guide_idx}` 쿼리
 #[derive(Debug, Deserialize, ToSchema)]
@@ -86,6 +87,39 @@ pub struct GuideSentenceRes {
     pub text: Option<String>,
     pub pron_ko: Option<String>,
     pub audio_url: Option<String>,
+}
+
+/// `POST /guides/{guide_idx}/sentences/{sentence_no}/log` 요청.
+/// 채점은 프론트(D-3 완전일치) → 서버는 결과(action)를 수신·기록만.
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct GuideLogReq {
+    pub activity: GuideActivity,
+    pub action: GuideLogAction,
+    /// 제출 답안(선택) — 향후 점수화/FSRS 데이터 원천
+    #[serde(default)]
+    pub answer: Option<serde_json::Value>,
+}
+
+/// 문장 학습 상태 — POST 응답 echo(기록 직후 권위 try_count).
+#[derive(Debug, Serialize, ToSchema)]
+pub struct GuideSentenceStatusRes {
+    pub try_count: i32,
+    pub is_solved: bool,
+    pub last_attempt_at: Option<DateTime<Utc>>,
+}
+
+/// `GET /guides/{guide_idx}/progress` 항목 — status 행이 있는 문장만 노출(희소).
+#[derive(Debug, Serialize, ToSchema)]
+pub struct GuideProgressItemRes {
+    pub sentence_no: i32,
+    pub try_count: i32,
+    pub is_solved: bool,
+    pub last_attempt_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct GuideProgressRes {
+    pub items: Vec<GuideProgressItemRes>,
 }
 
 /// 단원 상세 (학습 페이지 전체 데이터)
