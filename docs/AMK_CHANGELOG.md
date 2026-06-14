@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-14 — GitHub Actions Node.js 20 deprecation 대응(액션 버전업) / guide PR-3 admin 편집 / PR-2 Gemini 리뷰 6건
+updated: 2026-06-14 — guide PR-4a 구 explanation 코드 정리 / Node.js 20 액션 버전업 / guide PR-3 admin 편집
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-14 🧹 — guide PR-4a: 구 explanation 자산 코드 정리 (DB 삭제는 PR-4b 분리)**
+
+  guide 도메인(§5.12)이 explanation을 전면 대체함에 따라 구 자산 정리. 사용자 결정으로 **A(코드, 되돌리기 쉬움)와 B(prod DB 삭제, 되돌리기 어려움) PR 분리** → 본 PR은 A만. **백엔드 제거**: `src/api/explanation/`(dto/handler/repo/router/service) + `src/bin/seed_explanation.rs` + Cargo.toml `[[bin]]` + Dockerfile 3곳(dummy·touch·COPY) + `src/api/mod.rs`(mod·router nest) + `src/docs.rs`(path 2·schema 5·tag 1) + `src/types.rs` explanation enum 3종(`ExplanationUnitKind`/`ExplanationSource`/`ExplanationBlockType`). **외과적 보존(중요)**: study_task의 `explain` 기능은 **study 도메인** 소속(explanation_unit/block 도메인과 별개)이라 유지 / study·study_task 테이블 유지 / HYMN 계정(user_id=8) 유지. **프론트 제거**: `frontend/src/category/explanation/`(types/api/hook/ExplanationSection) + `study_detail_page.tsx` 연결(import 2·`useExplanationByStudy`·`ExplanationSection` 렌더 블록). **seeds 구 3종 삭제**: `explanation_seed.json`·`20260518_seed_textbook_studies.sql`·`_tasks.sql`. **문서 폐기 표시**: LEARNING §5.10·DEPLOY_OPS §12(⛔ guide로 대체). **검증 ✅**: `cargo clippy --all-targets -D warnings`·openapi 회귀 7·`fmt` / `npm run lint`·`build`(잔여 explanation 참조 grep 0). **다음 = PR-4a 머지 → PR-4b(마이그 20260615 — explanation 테이블/enum DROP + content_translations explanation행 DELETE + study/task 더미 `amk500-%` DELETE, prod 영구 삭제·사용자 승인 필요)**. content_type_enum의 explanation_unit/block 값은 PG 제약상 휴면 잔존. STATUS #165.
 
 - **2026-06-14 🔧 — GitHub Actions Node.js 20 deprecation 대응 (JS 액션 Node 24 메이저 버전업)**
 

@@ -17,7 +17,6 @@ pub mod admin;
 pub mod auth;
 pub mod course;
 pub mod ebook;
-pub mod explanation;
 pub mod guide;
 pub mod health;
 pub mod lesson;
@@ -34,7 +33,6 @@ use self::admin::router::admin_router;
 use self::auth::router::auth_router;
 use self::course::router::course_router;
 use self::ebook::router::ebook_router;
-use self::explanation::router::router as explanation_router;
 use self::guide::router::router as guide_router;
 use self::lesson::router::router as lesson_router;
 use self::payment::router::payment_router;
@@ -65,7 +63,6 @@ pub fn app_router(state: AppState) -> axum::Router {
         .nest("/lessons", lesson_router())
         .nest("/videos", video_router())
         .nest("/studies", study_router())
-        .nest("/explanations", explanation_router())
         .nest("/guides", guide_router())
         .nest("/payment", payment_router())
         .nest("/textbook", textbook_router())
