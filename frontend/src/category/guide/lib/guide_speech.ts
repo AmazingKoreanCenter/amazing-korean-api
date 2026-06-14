@@ -7,6 +7,14 @@ const PREFERRED_VOICES = ["Yuna", "SunHi", "Heami", "Google 한국의"];
 
 let cachedVoice: SpeechSynthesisVoice | null = null;
 
+// Chrome 등은 로드 시점 getVoices()가 빈 배열 → voiceschanged 후 비동기 채워짐.
+// 목록 변경 시 캐시를 비워 다음 재생에서 한국어 음성을 재선택하게 한다.
+if (typeof window !== "undefined" && window.speechSynthesis) {
+  window.speechSynthesis.addEventListener("voiceschanged", () => {
+    cachedVoice = null;
+  });
+}
+
 function pickKoreanVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !window.speechSynthesis) return null;
   if (cachedVoice) return cachedVoice;
