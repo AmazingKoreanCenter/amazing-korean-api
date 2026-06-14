@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-14 — guide PR-3 admin 편집 API+UI / PR-2 Gemini 리뷰 6건 / (06-13) PR-2 서빙 API + 뷰어
+updated: 2026-06-14 — GitHub Actions Node.js 20 deprecation 대응(액션 버전업) / guide PR-3 admin 편집 / PR-2 Gemini 리뷰 6건
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-14 🔧 — GitHub Actions Node.js 20 deprecation 대응 (JS 액션 Node 24 메이저 버전업)**
+
+  배포 로그 경고: 2026-06-16부터 GitHub Actions 러너가 Node.js 20 액션을 **Node 24로 강제 전환**(checkout@v4/build-push-action@v5/login-action@v3/setup-buildx-action@v3 등 지목). 선제 대응 — **JS 기반 액션만** 영향(Docker 컨테이너 액션·composite 액션 무관)이라 정확히 가려 첫 Node-24 메이저로 버전업: `actions/checkout@v4→v5` · `actions/setup-node@v4→v5` · `actions/upload-artifact@v4→v5` · `docker/build-push-action@v5→v6` · `docker/login-action@v3→v4` · `docker/setup-buildx-action@v3→v4` · `dependabot/fetch-metadata@v2→v3`(5개 워크플로 전수). **제외(Node 무관)**: `EmbarkStudios/cargo-deny-action@v2`(Docker 액션)·`appleboy/scp-action`·`appleboy/ssh-action`(Docker)·`dtolnay/rust-toolchain`(composite)·`Swatinem/rust-cache@v2`(이미 최신 메이저). 보수적 선택(절대 최신 아닌 첫 Node-24 메이저, 검증 충분) — 우리 사용은 전부 표준 파라미터(setup-node node-version/cache, upload-artifact name/path/retention, docker login username/password·build-push context/push/tags/cache)라 breaking 표면 최소. moving 메이저 태그 실재 `gh api`로 확인, YAML 파싱 5/5 OK. DEPLOY_OPS §deploy.yml 예시 블록도 동기화. **CI(pr-check·e2e·security-audit)가 checkout/setup-node/upload-artifact 검증**, deploy.yml docker 액션은 인터페이스 안정(다음 실배포에서 최종 확인).
 
 - **2026-06-14 🛠 — guide PR-3: admin 편집 API + 핵심 편집 UI (공개 flip·블록 텍스트·stale 대시보드·디프 export)**
 
