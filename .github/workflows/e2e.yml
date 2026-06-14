@@ -67,7 +67,7 @@ jobs:
       SKIP_STARTUP_MIGRATIONS: "1"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Rust toolchain (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -145,7 +145,7 @@ jobs:
             }'
 
       - name: Setup Node.js 20 (with npm cache)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: "npm"
@@ -195,7 +195,7 @@ jobs:
 
       - name: Upload Playwright report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: playwright-report
           path: frontend/test-results/
@@ -204,7 +204,7 @@ jobs:
 
       - name: Upload backend log on failure (debugging)
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: backend-log
           path: backend.log
