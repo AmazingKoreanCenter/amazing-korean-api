@@ -54,6 +54,8 @@ const AdminUserStatsPage = lazy(() => import("@/category/admin/page/admin_user_s
 const AdminLoginStatsPage = lazy(() => import("@/category/admin/page/admin_login_stats_page").then((m) => ({ default: m.AdminLoginStatsPage })));
 const AdminStudiesPage = lazy(() => import("@/category/admin/page/admin_studies_page").then((m) => ({ default: m.AdminStudiesPage })));
 const AdminStudyDetail = lazy(() => import("@/category/admin/page/admin_study_detail").then((m) => ({ default: m.AdminStudyDetail })));
+const AdminGuidesPage = lazy(() => import("@/category/admin/guide/page/admin_guides_page").then((m) => ({ default: m.AdminGuidesPage })));
+const AdminGuideDetail = lazy(() => import("@/category/admin/guide/page/admin_guide_detail").then((m) => ({ default: m.AdminGuideDetail })));
 const AdminStudyCreate = lazy(() => import("@/category/admin/page/admin_study_create").then((m) => ({ default: m.AdminStudyCreate })));
 const AdminStudyStatsPage = lazy(() => import("@/category/admin/page/admin_study_stats_page").then((m) => ({ default: m.AdminStudyStatsPage })));
 const AdminStudyBulkCreate = lazy(() => import("@/category/admin/page/admin_study_bulk_create").then((m) => ({ default: m.AdminStudyBulkCreate })));
@@ -232,6 +234,8 @@ export function AppRoutes() {
           <Route path="studies/new" element={<AdminStudyCreate />} />
           <Route path="studies/bulk-create" element={<AdminStudyBulkCreate />} />
           <Route path="studies/:studyId" element={<AdminStudyDetail />} />
+          <Route path="guides" element={<AdminGuidesPage />} />
+          <Route path="guides/:guideIdx" element={<AdminGuideDetail />} />
           <Route path="lessons" element={<AdminLessonsPage />} />
           <Route path="lessons/new" element={<AdminLessonCreate />} />
           <Route path="lessons/bulk-create" element={<AdminLessonBulkCreate />} />

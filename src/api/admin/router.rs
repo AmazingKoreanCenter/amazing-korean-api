@@ -4,6 +4,7 @@ use crate::state::AppState;
 
 use super::ebook::router::admin_ebook_router;
 use super::email::router::admin_email_router;
+use super::guide::router::admin_guide_router;
 use super::lesson::router::admin_lesson_router;
 use super::payment::router::admin_payment_router;
 use super::study::router::admin_study_router;
@@ -27,6 +28,7 @@ pub fn admin_router() -> Router<AppState> {
         .nest("/lessons", admin_lesson_router())
         .nest("/videos", admin_video_router())
         .nest("/studies", admin_study_router())
+        .nest("/guides", admin_guide_router())
         .nest("/email", admin_email_router())
         .nest("/translations", admin_translation_router())
         .nest("/upgrade", admin_upgrade_router())

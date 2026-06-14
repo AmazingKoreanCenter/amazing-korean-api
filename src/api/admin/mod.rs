@@ -1,5 +1,6 @@
 pub mod ebook;
 pub mod email;
+pub mod guide;
 pub mod header_utils;
 pub mod ip_guard;
 pub mod lesson;

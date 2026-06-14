@@ -9,6 +9,7 @@ const navItems = [
   { path: "/admin/users", label: "Users", icon: Users },
   { path: "/admin/videos", label: "Videos", icon: Video },
   { path: "/admin/studies", label: "Studies", icon: BookOpen },
+  { path: "/admin/guides", label: "Guides", icon: BookOpen },
   { path: "/admin/lessons", label: "Lessons", icon: GraduationCap },
   { path: "/admin/payment/subscriptions", label: "Payments", icon: CreditCard, prefix: "/admin/payment" },
   { path: "/admin/textbook/orders", label: "Textbook", icon: BookText, prefix: "/admin/textbook" },

@@ -1106,7 +1106,9 @@ docker exec amk-api cat /app/seeds/20260518_seed_textbook_tasks.sql | \
 
 **검증된 패턴 (explanation 선례 확장)**: 도메인 5파일(dto→repo→service→handler→router) + `::text` enum 캐스트 + 통합 테스트(자체 격리 데이터 삽입→서비스 호출→정리, `#[ignore]` CI backend integration). 표 재조립·폴백은 service 단위 테스트 + 실 DB 통합 테스트 양면 커버.
 
-**후속**: PR-3 admin 편집(블록·문장·표 셀 + source_version 증가 + stale 대시보드 + 디프 export) / PR-4 학습 로그 배선(guide_sentence_log/status) + §5.10·5.11 정리. 공개 flip(`UPDATE guide SET guide_state='open'`) = 사용자 트리거.
+**admin 편집(PR-3, 2026-06-14)** — `/admin/guides` 하위(role_guard+ip_guard): 목록(+stale수) / 편집용 상세(원본 셀·source_version) / 메타 PATCH(공개 flip·테마·제목) / 블록 텍스트 PATCH(**source_version++ → 번역 stale**) / 문장 메타 PATCH / stale 대시보드(`GET /stale`) / 디프 export(`GET /diff-export?lang=` → 맥미니 재번역). 편집=write_audit_log(`UPDATE_GUIDE_*`)+updated_by_user_id. 프론트 `category/admin/guide/`(목록·공개토글·stale·블록 인라인 편집). 공개 flip은 admin UI 토글.
+
+**후속**: PR-4 학습 로그 배선(guide_sentence_log/status) + §5.10·5.11 정리. 표 셀 WYSIWYG·블록 삽입삭제·디프 맥미니 직송 = 후속.
 
 ---
 
