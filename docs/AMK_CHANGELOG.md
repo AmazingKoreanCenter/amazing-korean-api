@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-14 — guide PR-4b 구 explanation/study 더미 prod DB 삭제 / PR-4a 코드 정리 / Node.js 20 액션 버전업
+updated: 2026-06-14 — guide PR-4b prod DB 삭제(+ 마이그 FK INC 복구 hotfix) / PR-4a 코드 정리 / Node.js 20 액션 버전업
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-14 🚨→✅ — guide PR-4b 마이그 FK INC (prod 502) 복구 hotfix (#333)**
+
+  PR-4b(#332, 마이그 20260615) 배포 직후 **prod 502 크래시루프**. 원인 = 서버 부팅 시 `sqlx::migrate!`가 마이그 적용 → study 더미 DELETE가 `admin_study_log_admin_pick_study_id_fkey` FK 위반 fail → 부팅 중단·재시도 반복. **데이터 무손상**(sqlx 마이그=트랜잭션 → 실패 시 전체 롤백, 삭제 0행, explanation 테이블·study 더미 그대로). 진단: prod 컨테이너 로그(사용자 ssh)로 정확한 FK명 확인 → study/study_task FK 전수 재확인 → **fresh DB·CI엔 없던 prod 감사 로그 2종이 더미 참조**(admin_study_log.admin_pick_study_id=NOT NULL FK, admin_lesson_log.admin_pick_task_id=nullable FK)가 1차 검증에서 누락 확정. **hotfix**: 마이그에 `admin_study_log` 더미행 DELETE + `admin_lesson_log` admin_pick_task_id SET NULL(레슨 감사행 보존) 추가. **재검증(이번엔 prod blocker 재현)**: 감사 로그가 더미 study/task 참조하는 prod-유사 픽스처를 fresh DB에 심고 마이그 적용 → 통과·비-더미 study/레슨 보존·admin_lesson_log 행 보존(task만 NULL). #333 squash 머지(main `aa3e11a`)·CI 7종·배포 success → **prod 복구: health 200·`/guides` 200·`/explanations` 404(explanation DROP 확정)·`/studies` 200**. **교훈 = `AMK_AI_MISTAKES.md` M-016**: fresh DB 검증이 prod 실데이터(audit/log FK)를 대표 못 함 — "감사라 안 건드린다" 판단이 곧 FK blocker. prod 데이터 마이그는 prod-유사 fixture 사전 검증 필수, FK 전수 grep 1차에 끝까지. STATUS #166.
 
 - **2026-06-14 🗑 — guide PR-4b: 구 explanation/study 더미 prod DB 영구 삭제 (마이그 20260615)**
 

@@ -192,9 +192,20 @@
 | 결과 | 오진. 다만 "먼저 printenv로 확정하자"며 검증 쿼리를 함께 제시해 1왕복에 교정. 실제 원인 = 테스트 중 찰나의 과도상태(self-heal to 1) |
 | 후속 | 교훈: 이상 징후 원인은 **추정 전 런타임 실측(env/state)으로 먼저 좁힌다**. hedge("거의 확실히")해도 데이터 전 결론 제시는 오진 리스크. M-001/M-012(사전 상태 미확인) 동일 |
 
+### M-016 — fresh DB 검증이 prod 실데이터(감사 로그 FK)를 재현 못 해 prod-down INC 유발
+
+| 항목 | 내용 |
+|------|------|
+| 발생일 | 2026-06-14 (guide PR-4b — explanation/study 더미 DROP 마이그 20260615 배포) |
+| AI 행위 | study 더미 DELETE 마이그 작성 시 FK 전수 grep으로 자식 테이블을 찾았으나, **`admin_study_log`/`admin_lesson_log`(감사 로그)는 "감사라 안 건드린다"고 판단**해 명시 삭제에서 제외. fresh DB 검증은 통과(더미+비-더미 보존·통합 6) → 배포 |
+| 누락 행위 | fresh DB엔 감사 로그가 **0행**이라 blocker가 재현 안 됨. **prod에는 더미 study/task를 참조하는 admin_study_log 행이 실재**(admin_pick_study_id NOT NULL FK). 즉 검증 환경이 prod 실데이터를 대표하지 못함을 알고도 보완(prod-유사 픽스처) 안 함 |
+| 결과 | **prod 502 크래시루프** — 서버 부팅 시 `sqlx::migrate!`가 마이그 적용 시도 → `admin_study_log_admin_pick_study_id_fkey` 위반 fail → 부팅 중단·재시도 반복. **단 sqlx 마이그는 트랜잭션 → 전체 롤백 = 데이터 삭제 0행, DB 온전**(부분 손상 0이 유일한 다행) |
+| 복구 | prod 로그(사용자 ssh)로 정확한 FK명 확인 → FK 전수 재확인으로 빠진 blocker 2개(admin_study_log·admin_lesson_log) 확정 → hotfix(admin_study_log DELETE·admin_lesson_log SET NULL) → **prod와 동일한 blocker(감사 로그가 더미 참조)를 fresh DB에 재현해 재검증** → #333 머지·배포 |
+| 후속 | 교훈 ①: **prod 데이터 삭제/마이그 검증은 fresh DB만으로 불충분 — prod의 audit/log/연관 테이블 데이터를 fixture로 재현**하거나 prod 스냅샷에 dry-run. "감사라 안 건드린다"는 판단이 곧 FK blocker. ②: **FK 전수 grep은 1차에 끝까지** (admin_lesson_log는 1차 grep에 있었으나 처리 누락). ③: 되돌리기 어려운 prod 마이그는 트랜잭션 롤백 안전망에 기대지 말고 사전 prod-유사 검증 필수. M-001/M-012(사전 상태 미확인) 계열 |
+
 ---
 
-## 카테고리 분포 (M-001 ~ M-015)
+## 카테고리 분포 (M-001 ~ M-016)
 
 | 카테고리 | 사고 ID | 공통 행위 |
 |----------|---------|----------|
