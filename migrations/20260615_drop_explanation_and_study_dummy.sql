@@ -44,6 +44,15 @@ DELETE FROM study_explain      WHERE study_task_id IN
 DELETE FROM lesson_item        WHERE study_task_id IN
   (SELECT st.study_task_id FROM study_task st JOIN study s ON s.study_id=st.study_id WHERE s.study_idx LIKE 'amk500-%');
 
+-- admin 감사 로그의 더미 참조 정리 (prod 실데이터 — fresh DB 미존재로 1차 INC 원인, 2026-06-14).
+-- admin_study_log.admin_pick_study_id = NOT NULL → 더미 study 전용 감사행 DELETE.
+DELETE FROM admin_study_log
+  WHERE admin_pick_study_id IN (SELECT study_id FROM study WHERE study_idx LIKE 'amk500-%')
+     OR admin_pick_task_id  IN (SELECT st.study_task_id FROM study_task st JOIN study s ON s.study_id=st.study_id WHERE s.study_idx LIKE 'amk500-%');
+-- admin_lesson_log.admin_pick_task_id = nullable → 레슨 감사행 보존하며 더미 task 참조만 해제.
+UPDATE admin_lesson_log SET admin_pick_task_id = NULL
+  WHERE admin_pick_task_id IN (SELECT st.study_task_id FROM study_task st JOIN study s ON s.study_id=st.study_id WHERE s.study_idx LIKE 'amk500-%');
+
 -- study_task (status/log ON DELETE CASCADE 자동 정리)
 DELETE FROM study_task WHERE study_id IN (SELECT study_id FROM study WHERE study_idx LIKE 'amk500-%');
 
