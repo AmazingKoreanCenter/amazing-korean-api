@@ -1,14 +1,18 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-14 — guide PR-4 학습 로그 배선 백엔드(POST/GET) + 프론트 연동(채점→기록·테마 진행바, 미머지) / PR-4b prod DB 삭제(+ 마이그 FK INC 복구 hotfix) / PR-4a 코드 정리 / Node.js 20 액션 버전업
+updated: 2026-06-14 — guide PR-4 학습 로그 배선(#334 머지·배포·prod 검증 완료) 백엔드(POST/GET) + 프론트 연동(채점→기록·테마 진행바) / PR-4b prod DB 삭제(+ 마이그 FK INC 복구 hotfix) / PR-4a 코드 정리 / Node.js 20 액션 버전업
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
 
-- **2026-06-14 🔌 — guide PR-4 학습 로그 배선: 프론트 연동 (채점→기록·진행 저장/표시) — 구현 완료·미머지**
+- **2026-06-14 ✅ — guide PR-4 머지·배포·prod 검증 완료 (#334, main `caae29a`)**
+
+  PR-4(백엔드 POST/GET + 프론트 연동) 머지·배포·검증. PR #334 squash 머지(CI 7종 통과 — backend integration 3m26s에서 신규 통합 테스트 3종 CI fresh DB 재검) → KKRYOUN 리셋(분기 0) → Deploy to EC2 success(build 4m41s·deploy 1m5s). **마이그 없음**(테이블·enum PR-1 `20260613`에 이미 존재) → PR-4b류 부팅 마이그 FK INC 위험 원천 무관. **prod 검증**: `/health` 200 · `GET /guides` 200(`{items:[],lang:ko}` — 전 단원 ready=숨김, 서빙 정상) · `POST /guides/{idx}/sentences/{no}/log` 비인증 **401** · `GET /guides/{idx}/progress` 비인증 **401**(라우트 라이브 + 인증 게이트) · `GET /guides/guidev2-05` 404(비공개 게이트). **Gemini 리뷰 = 지적 없음**. **다음 = 공개 flip(사용자 트리거, admin UI 토글)** 시 진행 저장 라이브 동작. STATUS #167.
+
+- **2026-06-14 🔌 — guide PR-4 학습 로그 배선: 프론트 연동 (채점→기록·진행 저장/표시)**
 
   백엔드 PR-4(아래 커밋 `864cc34`) 후속 — 학습자 뷰어를 로그 API에 연결. `frontend/src/category/guide/`: **api** `logGuideSentence`(POST)·`getGuideProgress`(GET) + **hook** `useGuideProgress`(로그인 시에만 조회·staleTime 60s)·`useGuideLog`(성공 시 `["guide-progress", guideIdx]` 무효화, **실패는 best-effort silent**=진행 저장 실패가 학습 흐름을 막지 않음·토스트 없음, 의도적) + **GuideSentenceCard**(입력이 처음 정답 되는 순간 1회 `correct` 기록[ref 가드로 키 입력마다 POST 방지]·미해결 상태에서 정답 공개 시 `reveal`[포기] 1회 기록·서버 `solved` 배지) + **guide_learn_page**(progress 로드 → solved 집합 → **테마색 진행바**[solved/total, 페이지 헤더와 동일 인라인 테마 방식, shadcn Progress는 bg-primary 하드코딩이라 미사용]·카드별 `solved` 전달·`handleLog`은 비로그인 no-op). **비로그인** = 진행 추적 없음(공개 읽기·로컬 즉시 채점은 유지). 채점 로직은 기존 `normalizeAnswer`(D-3 완전일치) 그대로 — POST는 결과(action)만 전송. i18n `guide.progress`/`solved`/`solvedCount`(ko/en 대칭). 활동 = `sentence_write`(복습 read_along/flashcard/writing_test 로그는 is_solved 무관 부가 텔레메트리라 후속). **검증 ✅**: `npm run build`(tsc 타입체크 통과)·`eslint`(guide 모듈 클린)·`vitest`(guide 7). 프론트 dev 서버 실 브라우저 왕복은 단원 공개 flip 후(prod 전 단원 ready=숨김). **다음 = PR-4 머지·배포·prod 검증 → 공개 flip(사용자 트리거)**. STATUS #167.
 
-- **2026-06-14 📝 — guide PR-4 학습 로그 배선: 백엔드 (시도/정오 POST + 진행 GET) — 구현 완료·미머지**
+- **2026-06-14 📝 — guide PR-4 학습 로그 배선: 백엔드 (시도/정오 POST + 진행 GET)**
 
   guide 트랙 마지막 갈래의 백엔드 절반(사용자 결정 = "백엔드 전체 1갈래", 프론트 연동은 다음 세션). study_task `submit_grade_tx` 선례 1:1 이식. **추가 엔드포인트(둘 다 인증·open 게이트)**: ① `POST /guides/{guide_idx}/sentences/{sentence_no}/log` — 바디 `{activity, action, answer?}`. 단일 tx: **정/오(correct/wrong) 액션만** `guide_sentence_status` upsert(`try_count++` / `is_solved |= (action=correct)` / `last_attempt_at=NOW()`), view·attempt·reveal·complete는 로그만. `guide_sentence_log` 항상 insert — `login_id`는 `claims.session_id`→`login` 테이블에서 유도(유효 세션 없으면 `Internal` fail-closed → tx 롤백으로 status도 미반영=원자성). 응답=기록 직후 권위 상태 `{try_count, is_solved, last_attempt_at}`(프론트 낙관적 업데이트 정합). **채점은 프론트(D-3 완전일치)** — 서버는 결과 수신·기록만(점수화는 후속). ② `GET /guides/{guide_idx}/progress` — status 행 있는 문장만(희소) `sentence_no` 순 `[{sentence_no, try_count, is_solved, last_attempt_at}]`. 비공개(`ready`)/미존재 = 404. **파일**: `src/types.rs` enum 2(`GuideActivity` snake_case 5종 / `GuideLogAction` lowercase 6종) + `src/api/guide/`(dto 4·repo `find_open_sentence_id`/`record_log_tx`/`find_progress`[비즈니스 규칙=정/오 판정은 service]·service `log_sentence`/`progress`·handler·router post/get) + `src/docs.rs`(path 2·schema 6). 마이그 불필요(테이블·enum은 PR-1 `20260613`에 이미 존재, prod 적재 완료). **검증 ✅**: `cargo check --lib`·`clippy --all-targets -D warnings`·`fmt` / `cargo test --lib` 222(OpenAPI 회귀 = 새 라우트↔utoipa path 정합) / **실 DB 통합 6/6**(fresh `amk_loglane_verify` 생성 → CI psql lexicographic 36 마이그 적용[`sqlx migrate run`은 G16 fail, CI 경로가 정본] → guide_integration `--include-ignored`): 기존 guide 3 회귀 + 신규 3(정→오→뷰 왕복 try_count 1→2→2·solved 유지·진행 희소 1건 / 비공개 404 / 세션없음 Internal+status 롤백). ⚠️ 로컬 환경 빈 `EBOOK_IMAGE_ENCRYPTION_KEY` 주입(부모 .env) → 유효 64-hex export 우회. 프론트 무변경(npm build 불요). **다음 = 프론트 연동(SentenceCard 채점→POST·마운트 progress 로드→solved 배지/진행바) → PR-4 머지·배포·prod 검증 → 공개 flip(사용자 트리거)**. 선택 후속: log POST rate-limit(study 선례, 현재 미적용). STATUS #167.
 
