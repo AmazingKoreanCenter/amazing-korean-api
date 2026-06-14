@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-14 — guide PR-4a 구 explanation 코드 정리 / Node.js 20 액션 버전업 / guide PR-3 admin 편집
+updated: 2026-06-14 — guide PR-4b 구 explanation/study 더미 prod DB 삭제 / PR-4a 코드 정리 / Node.js 20 액션 버전업
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-14 🗑 — guide PR-4b: 구 explanation/study 더미 prod DB 영구 삭제 (마이그 20260615)**
+
+  PR-4a(코드 제거) 후속 — guide 트랙 구 자산 정리 완결. ⚠️ **prod 데이터 영구 삭제(사용자 승인, 되돌리기 불가, 서버 부팅 시 자동 적용)**. 마이그 `20260615_drop_explanation_and_study_dummy.sql`. **Part 1 explanation**: `content_translations` explanation 행 DELETE(prod 4,362) + `explanation_block`→`explanation_unit` DROP(block이 unit을 ON DELETE CASCADE) + enum 3종(`explanation_source_enum`/`unit_kind`/`block_type`) DROP. **Part 2 study 더미**: `amk500-%` study 의 자식 명시 삭제(choice/typing/voice/writing/explain·lesson_item = 무-cascade FK, status/log = ON DELETE CASCADE 자동) → study_task → study DELETE(prod 67/500). **보존(외과적)**: study·study_task **테이블**·HYMN 계정(user_id=8)·study_task의 `explain` 기능(study 도메인) 전부 유지. **fresh DB 검증 ✅**: 더미(explanation unit/block/번역 + study/task/typing) + 비-더미 study 심고 마이그 적용 → FK 에러 0 / explanation 테이블·enum DROP / 번역·더미 0 / **비-더미 study(`real-study-keep`) 보존** / 전체 마이그 체인(빈 테이블 DROP·DELETE 0행 안전) / guide+admin_guide 통합 테스트 6 통과(explanation 제거 후 guide 정상). **CI psql autocommit 대응**: 최초 `CREATE TEMP TABLE ON COMMIT DROP`이 psql autocommit(CI 정본 경로)에서 즉시 소멸 → 인라인 서브쿼리로 교체(sqlx tx·psql 양쪽 동작). content_type_enum의 `explanation_unit`/`explanation_block` 값은 PG 제약상 enum 값 DROP 불가 → 미사용 휴면 잔존(문서 명기). 문서 폐기 완료(설계 §5·LEARNING §5.10·DEPLOY_OPS §12). **다음 = 머지 → 배포(자동 적용) → prod 실측(explanation 테이블 사라짐·guide 정상) → 학습 로그 배선(guide 트랙 잔여 갈래)**. STATUS #166.
 
 - **2026-06-14 🧹 — guide PR-4a: 구 explanation 자산 코드 정리 (DB 삭제는 PR-4b 분리)**
 
