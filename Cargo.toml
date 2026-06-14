@@ -82,10 +82,6 @@ name = "rekey_encryption"
 path = "src/bin/rekey_encryption.rs"
 
 [[bin]]
-name = "seed_explanation"
-path = "src/bin/seed_explanation.rs"
-
-[[bin]]
 name = "seed_guide"
 path = "src/bin/seed_guide.rs"
 

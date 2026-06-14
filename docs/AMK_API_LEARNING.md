@@ -926,7 +926,9 @@ draft → reviewed → approved
 
 ---
 
-### 5.10 Phase 10 — explanation (해설 콘텐츠) 🟡 설계 중
+### 5.10 Phase 10 — explanation (해설 콘텐츠) ⛔ 폐기 — guide(§5.12)로 대체 (2026-06-14)
+
+> **폐기됨(PR-4a)**: explanation 도메인(unit/block + 번역)은 guide 도메인(§5.12)으로 전면 대체. 코드(src/api/explanation·seed_explanation·frontend category/explanation) 제거 완료, prod 데이터 DROP은 PR-4b 마이그(20260615). 이하 내용은 역사적 기록.
 
 > 출처: books→api 인계 (2026-05-17). 계약 문서 = `amazing-korean-books/docs/guide/explanation_handoff_to_api.md` + `explanation_content_model.md`. 전달물 = `scripts/guide-v2/data/explanation_export.json` (568 Unit = pattern_guide 68 + sentence_explain 500, 1,317 block).
 

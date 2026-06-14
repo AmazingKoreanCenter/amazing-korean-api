@@ -417,44 +417,9 @@ pub enum LessonItemKind {
     Task,
 }
 
-/// 해설(설명) 콘텐츠 단위 종류 (books→api 인계, AMK_API_LEARNING.md §5.10)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
-#[sqlx(type_name = "explanation_unit_kind_enum", rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-pub enum ExplanationUnitKind {
-    PatternGuide,
-    SentenceExplain,
-}
-
-/// 해설(설명) 콘텐츠 출처
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
-#[sqlx(type_name = "explanation_source_enum", rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-pub enum ExplanationSource {
-    #[sqlx(rename = "guide_67")]
-    #[serde(rename = "guide_67")]
-    Guide67,
-    TenseV1,
-    JosaV1,
-}
-
-/// 해설(설명) 콘텐츠 블록 종류
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type, ToSchema)]
-#[sqlx(type_name = "explanation_block_type_enum", rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-pub enum ExplanationBlockType {
-    Heading,
-    Subtitle,
-    Paragraph,
-    Step,
-    Table,
-    Example,
-    Note,
-    ConceptCard,
-    QwordCard,
-    StructuredExplain,
-    Diagram,
-}
+// 해설(explanation) 콘텐츠 enum 3종(unit_kind/source/block_type) → guide 도메인으로
+// 대체되어 제거 (PR-4a, 2026-06-14). DB enum 타입은 20260615 마이그로 DROP.
+// content_type_enum 의 explanation_unit/block 값은 PG 제약상 휴면 잔존 (AMK_GUIDE_CONTENT_DESIGN §5).
 
 // -----------------------------------------------------------------------------
 // 6. Payment & Subscription Enums

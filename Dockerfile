@@ -20,7 +20,6 @@ COPY crates/crypto/Cargo.toml ./crates/crypto/Cargo.toml
 RUN mkdir -p src/bin && \
     echo "fn main() {}" > src/main.rs && \
     echo "fn main() {}" > src/bin/rekey_encryption.rs && \
-    echo "fn main() {}" > src/bin/seed_explanation.rs && \
     echo "fn main() {}" > src/bin/seed_guide.rs && \
     echo "fn main() {}" > src/bin/seed_hymn_account.rs && \
     echo "" > src/lib.rs && \
@@ -37,7 +36,7 @@ COPY migrations ./migrations
 COPY .sqlx ./.sqlx
 
 # Build the application
-RUN touch src/main.rs src/lib.rs src/bin/rekey_encryption.rs src/bin/seed_explanation.rs src/bin/seed_guide.rs src/bin/seed_hymn_account.rs crates/crypto/src/lib.rs && cargo build --release
+RUN touch src/main.rs src/lib.rs src/bin/rekey_encryption.rs src/bin/seed_guide.rs src/bin/seed_hymn_account.rs crates/crypto/src/lib.rs && cargo build --release
 
 # Stage 2: Runtime
 FROM debian:bookworm-slim
@@ -53,8 +52,6 @@ RUN apt-get update && apt-get install -y \
 
 # Copy binary from builder
 COPY --from=builder /app/target/release/amazing-korean-api /app/amazing-korean-api
-# 해설 콘텐츠 시드 적재용 (수동 1회 docker exec — AMK_DEPLOY_OPS §12)
-COPY --from=builder /app/target/release/seed_explanation /app/seed_explanation
 # guide(온라인 콘텐츠) 시드 적재용 — 시드 파일은 커밋 금지(scp 전달), AMK_GUIDE_CONTENT_DESIGN §4
 COPY --from=builder /app/target/release/seed_guide /app/seed_guide
 # HYMN 시스템 계정 시드용 (콘텐츠 시딩 선행, 수동 1회 docker exec)

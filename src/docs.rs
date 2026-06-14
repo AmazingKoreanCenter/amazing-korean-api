@@ -89,9 +89,6 @@ impl Modify for SecurityAddon {
         crate::api::study::handler::get_writing_stats,
         crate::api::study::handler::list_writing_practice_seed,
 
-        // explanation (해설 콘텐츠)
-        crate::api::explanation::handler::list_explanations,
-        crate::api::explanation::handler::get_explanation,
 
         // guide (온라인 콘텐츠/해설집)
         crate::api::guide::handler::list_guides,
@@ -358,11 +355,6 @@ impl Modify for SecurityAddon {
             crate::api::study::dto::StudySummaryDto,
             crate::api::study::dto::StudyDetailReq,
             crate::api::study::dto::StudyDetailRes,
-            crate::api::explanation::dto::ExplanationDetailReq,
-            crate::api::explanation::dto::ExplanationListReq,
-            crate::api::explanation::dto::ExplanationBlockRes,
-            crate::api::explanation::dto::ExplanationUnitRes,
-            crate::api::explanation::dto::ExplanationListRes,
             crate::api::guide::dto::GuideLangReq,
             crate::api::guide::dto::GuideSummaryRes,
             crate::api::guide::dto::GuideListRes,
@@ -648,7 +640,6 @@ impl Modify for SecurityAddon {
         (name = "user", description = "User management"),
         (name = "videos", description = "Video APIs"),
         (name = "study", description = "Study APIs"),
-        (name = "explanation", description = "Explanation (해설) content APIs"),
         (name = "lesson", description = "Lesson APIs"),
         (name = "admin", description = "Admin user & content management"),
         (name = "admin_translation", description = "Admin translation management"),

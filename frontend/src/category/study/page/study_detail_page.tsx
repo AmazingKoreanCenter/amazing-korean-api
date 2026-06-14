@@ -11,8 +11,6 @@ import { SectionContainer } from "@/components/blocks/section_container";
 import { PaginationBar } from "@/components/blocks/pagination_bar";
 import { SkeletonGrid } from "@/components/blocks/skeleton_grid";
 import type { StudyDetailReq, StudyProgram, StudyTaskKind } from "@/category/study/types";
-import { useExplanationByStudy } from "@/category/explanation/hook/use_explanation";
-import { ExplanationSection } from "@/category/explanation/component/ExplanationSection";
 
 import { useStudyDetail } from "../hook/use_study_detail";
 
@@ -57,7 +55,6 @@ export function StudyDetailPage() {
   }, [page]);
 
   const { data, isPending, isFetching } = useStudyDetail(studyId, params);
-  const { data: explanation } = useExplanationByStudy(data?.study_idx ?? undefined);
 
   const tasks = data?.tasks ?? [];
   const meta = data?.meta;
@@ -153,13 +150,6 @@ export function StudyDetailPage() {
               )}
             </div>
           )}
-
-          {/* 문법 해설 (pattern_guide, study_idx 연결 — 컨텍스트 통합) */}
-          {explanation?.items?.length ? (
-            <div className="mb-8">
-              <ExplanationSection units={explanation.items} />
-            </div>
-          ) : null}
 
           {/* Loading State */}
           {isPending ? (
