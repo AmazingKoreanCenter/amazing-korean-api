@@ -1092,7 +1092,7 @@ docker exec amk-api cat /app/seeds/20260518_seed_textbook_tasks.sql | \
 
 ---
 
-### 5.12 Phase 12 — guide (온라인 콘텐츠/해설집) 🟢 PR-1 시딩 + PR-2 서빙·뷰어 (2026-06-13)
+### 5.12 Phase 12 — guide (온라인 콘텐츠/해설집) 🟢 PR-1 시딩 + PR-2 서빙·뷰어 + PR-3 admin 편집 + PR-4 학습로그(백엔드) (2026-06-14)
 
 > 해설집(놀라운 한국어 500문장) 기반 온라인 콘텐츠. 설계·시딩 SoT = `docs/AMK_GUIDE_CONTENT_DESIGN.md`(결정 D-0~D-8). §5.10 explanation / §5.11 study·task 더미는 PR-4에서 정리 예정(D-1 전면 교체).
 
@@ -1110,7 +1110,12 @@ docker exec amk-api cat /app/seeds/20260518_seed_textbook_tasks.sql | \
 
 **admin 편집(PR-3, 2026-06-14)** — `/admin/guides` 하위(role_guard+ip_guard): 목록(+stale수) / 편집용 상세(원본 셀·source_version) / 메타 PATCH(공개 flip·테마·제목) / 블록 텍스트 PATCH(**source_version++ → 번역 stale**) / 문장 메타 PATCH / stale 대시보드(`GET /stale`) / 디프 export(`GET /diff-export?lang=` → 맥미니 재번역). 편집=write_audit_log(`UPDATE_GUIDE_*`)+updated_by_user_id. 프론트 `category/admin/guide/`(목록·공개토글·stale·블록 인라인 편집). 공개 flip은 admin UI 토글.
 
-**후속**: PR-4 학습 로그 배선(guide_sentence_log/status) + §5.10·5.11 정리. 표 셀 WYSIWYG·블록 삽입삭제·디프 맥미니 직송 = 후속.
+**학습 로그 배선(PR-4 백엔드, 2026-06-14)** — 인증 필요(`AuthUser`), study_task 선례 이식:
+- `POST /guides/{guide_idx}/sentences/{sentence_no}/log` — 시도/정오 기록. 바디 `{activity, action, answer?}`(`activity`=`guide_activity_enum` 5종, `action`=`guide_log_action_enum` 6종). 단일 tx: **정/오(correct/wrong) 액션만** `guide_sentence_status` upsert(`try_count++`, `is_solved |= (action=correct)`, `last_attempt_at`), 그 외(view/attempt/reveal/complete)는 로그만. `guide_sentence_log` 항상 insert — `login_id`는 세션(`claims.session_id`)→`login` 테이블에서 유도(없으면 `Internal` fail-closed, tx 롤백). 응답 = 기록 직후 권위 상태(`{try_count, is_solved, last_attempt_at}`, 프론트 낙관적 업데이트 정합). 채점 자체는 프론트(D-3 완전일치) — 서버는 결과 수신·기록만. 비공개/미존재 단원·문장 = 404(open 게이트).
+- `GET /guides/{guide_idx}/progress` — 내 단원 진행. status 행이 있는 문장만(희소) `sentence_no` 순 `[{sentence_no, try_count, is_solved, last_attempt_at}]`. open 게이트, 비공개/미존재 = 404.
+- enum 2종(`GuideActivity`/`GuideLogAction`) `src/types.rs`. OpenAPI path 2·DTO 4(`GuideLogReq`/`GuideSentenceStatusRes`/`GuideProgressItemRes`/`GuideProgressRes`)·enum 2 등록. 통합 테스트 3(정/오/뷰 왕복+진행 희소 / 비공개 404 / 세션없음 fail-closed+status 롤백, 실 DB).
+
+**후속**: PR-4 프론트 연동(SentenceCard 채점→POST, 마운트 시 progress 로드→solved 배지/진행바) + §5.10·5.11 정리(DB). 표 셀 WYSIWYG·블록 삽입삭제·디프 맥미니 직송 = 후속.
 
 ---
 

@@ -6,9 +6,49 @@
 
 mod common;
 
+use amazing_korean_api::api::auth::extractor::AuthUser;
+use amazing_korean_api::api::auth::jwt::Claims;
+use amazing_korean_api::api::guide::dto::GuideLogReq;
 use amazing_korean_api::api::guide::service::GuideService;
 use amazing_korean_api::state::AppState;
-use amazing_korean_api::types::SupportedLanguage;
+use amazing_korean_api::types::{GuideActivity, GuideLogAction, SupportedLanguage, UserAuth};
+
+/// session_id → login_id 유도용 활성 login 행 삽입 (record_log_tx 가 세션에서 login_id 유도).
+async fn insert_login_session(st: &AppState, user_id: i64, session_id: &str) {
+    sqlx::query(
+        r#"INSERT INTO login
+              (user_id, login_country, login_asn, login_org,
+               login_session_id, login_state, login_expire_at)
+           VALUES ($1, 'LC', 0, 'local',
+               CAST($2 AS uuid), 'active', now() + interval '1 hour')"#,
+    )
+    .bind(user_id)
+    .bind(session_id)
+    .execute(&st.db)
+    .await
+    .expect("insert login session");
+}
+
+/// 서비스 직접 호출용 AuthUser (extractor 우회 — 세션 활성 검증은 통합 외 범위).
+fn auth(user_id: i64, session_id: &str) -> AuthUser {
+    AuthUser(Claims {
+        sub: user_id,
+        session_id: session_id.to_string(),
+        role: UserAuth::Learner,
+        jti: "test-jti".to_string(),
+        exp: 0,
+        iat: 0,
+        iss: "test".to_string(),
+    })
+}
+
+fn log_req(action: GuideLogAction) -> GuideLogReq {
+    GuideLogReq {
+        activity: GuideActivity::SentenceWrite,
+        action,
+        answer: Some(serde_json::json!({ "text": "저는 행복합니다." })),
+    }
+}
 
 /// 격리 테스트 단원 삽입 (단원 + 제목 블록 + 표 4셀 + 문장 + zh_cn 번역).
 /// 병렬 실행 격리를 위해 idx/seq 는 테스트별 고유값. 반환 = guide_id.
@@ -255,4 +295,138 @@ async fn guide_list_only_returns_open_units() {
     );
 
     cleanup(&st, idx).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis (.env.test) — CI backend integration"]
+#[tokio::test]
+async fn guide_log_records_attempts_and_progress_round_trip() {
+    let idx = "guidev2-test-it-log";
+    let sn = 904;
+    let st = common::make_test_state().await;
+    seed_test_guide(&st, idx, 9004, sn, "open").await;
+
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await;
+    let session_id = uuid::Uuid::new_v4().to_string();
+    insert_login_session(&st, user_id, &session_id).await;
+
+    // 정답: try_count 1, 해결 true, last_attempt 기록
+    let s1 = GuideService::log_sentence(
+        &st,
+        auth(user_id, &session_id),
+        idx,
+        sn,
+        log_req(GuideLogAction::Correct),
+    )
+    .await
+    .expect("log correct");
+    assert_eq!(s1.try_count, 1, "정답 1회 → try_count 1");
+    assert!(s1.is_solved, "정답 → is_solved true");
+    assert!(s1.last_attempt_at.is_some(), "정답 → last_attempt 기록");
+
+    // 오답: try_count 2, 해결 true 유지(OR 누적)
+    let s2 = GuideService::log_sentence(
+        &st,
+        auth(user_id, &session_id),
+        idx,
+        sn,
+        log_req(GuideLogAction::Wrong),
+    )
+    .await
+    .expect("log wrong");
+    assert_eq!(s2.try_count, 2, "오답 추가 → try_count 2");
+    assert!(s2.is_solved, "오답이어도 기존 해결 유지");
+
+    // 뷰(비채점): status 미변경, 현재값 그대로 반환
+    let s3 = GuideService::log_sentence(
+        &st,
+        auth(user_id, &session_id),
+        idx,
+        sn,
+        log_req(GuideLogAction::View),
+    )
+    .await
+    .expect("log view");
+    assert_eq!(s3.try_count, 2, "view 는 try_count 미변경");
+    assert!(s3.is_solved, "view 는 is_solved 미변경");
+
+    // 진행 조회: 기록 있는 문장 1건, 최종 상태 반영
+    let prog = GuideService::progress(&st, auth(user_id, &session_id), idx)
+        .await
+        .expect("progress");
+    assert_eq!(prog.items.len(), 1, "status 행 있는 문장만(희소) 1건");
+    assert_eq!(prog.items[0].sentence_no, sn);
+    assert_eq!(prog.items[0].try_count, 2);
+    assert!(prog.items[0].is_solved);
+
+    cleanup(&st, idx).await;
+    common::cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis (.env.test) — CI backend integration"]
+#[tokio::test]
+async fn guide_log_404_when_not_open() {
+    let idx = "guidev2-test-it-log404";
+    let sn = 905;
+    let st = common::make_test_state().await;
+    seed_test_guide(&st, idx, 9005, sn, "ready").await; // 숨김
+
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await;
+    let session_id = uuid::Uuid::new_v4().to_string();
+    insert_login_session(&st, user_id, &session_id).await;
+
+    let res = GuideService::log_sentence(
+        &st,
+        auth(user_id, &session_id),
+        idx,
+        sn,
+        log_req(GuideLogAction::Correct),
+    )
+    .await;
+    assert!(
+        matches!(res, Err(amazing_korean_api::error::AppError::NotFound)),
+        "비공개(ready) 단원 문장 로그는 404"
+    );
+
+    cleanup(&st, idx).await;
+    common::cleanup_test_user(&st, user_id).await;
+}
+
+#[ignore = "requires local PostgreSQL + Redis (.env.test) — CI backend integration"]
+#[tokio::test]
+async fn guide_log_fails_closed_and_rolls_back_without_login_session() {
+    let idx = "guidev2-test-it-log-nosession";
+    let sn = 906;
+    let st = common::make_test_state().await;
+    seed_test_guide(&st, idx, 9006, sn, "open").await;
+
+    let spec = common::TestUserSpec::random();
+    let user_id = common::insert_test_user(&st, &spec).await; // login 행은 의도적으로 미삽입
+    let bogus_session = uuid::Uuid::new_v4().to_string();
+
+    let res = GuideService::log_sentence(
+        &st,
+        auth(user_id, &bogus_session),
+        idx,
+        sn,
+        log_req(GuideLogAction::Correct),
+    )
+    .await;
+    assert!(
+        matches!(res, Err(amazing_korean_api::error::AppError::Internal(_))),
+        "유효 login 세션 없으면 Internal(fail-closed)"
+    );
+
+    // tx 롤백: status 행이 남지 않아야 함(원자성)
+    let cnt: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM guide_sentence_status WHERE user_id = $1")
+            .bind(user_id)
+            .fetch_one(&st.db)
+            .await
+            .expect("count status");
+    assert_eq!(cnt, 0, "log 실패 시 status upsert 도 롤백");
+
+    cleanup(&st, idx).await;
+    common::cleanup_test_user(&st, user_id).await;
 }

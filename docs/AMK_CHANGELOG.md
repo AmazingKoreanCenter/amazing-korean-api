@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-14 — guide PR-4b prod DB 삭제(+ 마이그 FK INC 복구 hotfix) / PR-4a 코드 정리 / Node.js 20 액션 버전업
+updated: 2026-06-14 — guide PR-4 학습 로그 배선 백엔드(시도/정오 POST + 진행 GET, 미머지) / PR-4b prod DB 삭제(+ 마이그 FK INC 복구 hotfix) / PR-4a 코드 정리 / Node.js 20 액션 버전업
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-14 📝 — guide PR-4 학습 로그 배선: 백엔드 (시도/정오 POST + 진행 GET) — 구현 완료·미머지**
+
+  guide 트랙 마지막 갈래의 백엔드 절반(사용자 결정 = "백엔드 전체 1갈래", 프론트 연동은 다음 세션). study_task `submit_grade_tx` 선례 1:1 이식. **추가 엔드포인트(둘 다 인증·open 게이트)**: ① `POST /guides/{guide_idx}/sentences/{sentence_no}/log` — 바디 `{activity, action, answer?}`. 단일 tx: **정/오(correct/wrong) 액션만** `guide_sentence_status` upsert(`try_count++` / `is_solved |= (action=correct)` / `last_attempt_at=NOW()`), view·attempt·reveal·complete는 로그만. `guide_sentence_log` 항상 insert — `login_id`는 `claims.session_id`→`login` 테이블에서 유도(유효 세션 없으면 `Internal` fail-closed → tx 롤백으로 status도 미반영=원자성). 응답=기록 직후 권위 상태 `{try_count, is_solved, last_attempt_at}`(프론트 낙관적 업데이트 정합). **채점은 프론트(D-3 완전일치)** — 서버는 결과 수신·기록만(점수화는 후속). ② `GET /guides/{guide_idx}/progress` — status 행 있는 문장만(희소) `sentence_no` 순 `[{sentence_no, try_count, is_solved, last_attempt_at}]`. 비공개(`ready`)/미존재 = 404. **파일**: `src/types.rs` enum 2(`GuideActivity` snake_case 5종 / `GuideLogAction` lowercase 6종) + `src/api/guide/`(dto 4·repo `find_open_sentence_id`/`record_log_tx`/`find_progress`[비즈니스 규칙=정/오 판정은 service]·service `log_sentence`/`progress`·handler·router post/get) + `src/docs.rs`(path 2·schema 6). 마이그 불필요(테이블·enum은 PR-1 `20260613`에 이미 존재, prod 적재 완료). **검증 ✅**: `cargo check --lib`·`clippy --all-targets -D warnings`·`fmt` / `cargo test --lib` 222(OpenAPI 회귀 = 새 라우트↔utoipa path 정합) / **실 DB 통합 6/6**(fresh `amk_loglane_verify` 생성 → CI psql lexicographic 36 마이그 적용[`sqlx migrate run`은 G16 fail, CI 경로가 정본] → guide_integration `--include-ignored`): 기존 guide 3 회귀 + 신규 3(정→오→뷰 왕복 try_count 1→2→2·solved 유지·진행 희소 1건 / 비공개 404 / 세션없음 Internal+status 롤백). ⚠️ 로컬 환경 빈 `EBOOK_IMAGE_ENCRYPTION_KEY` 주입(부모 .env) → 유효 64-hex export 우회. 프론트 무변경(npm build 불요). **다음 = 프론트 연동(SentenceCard 채점→POST·마운트 progress 로드→solved 배지/진행바) → PR-4 머지·배포·prod 검증 → 공개 flip(사용자 트리거)**. 선택 후속: log POST rate-limit(study 선례, 현재 미적용). STATUS #167.
 
 - **2026-06-14 🚨→✅ — guide PR-4b 마이그 FK INC (prod 502) 복구 hotfix (#333)**
 
