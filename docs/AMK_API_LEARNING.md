@@ -1092,7 +1092,7 @@ docker exec amk-api cat /app/seeds/20260518_seed_textbook_tasks.sql | \
 
 ---
 
-### 5.12 Phase 12 — guide (온라인 콘텐츠/해설집) 🟢 PR-1 시딩 + PR-2 서빙·뷰어 + PR-3 admin 편집 + PR-4 학습로그(백엔드) (2026-06-14)
+### 5.12 Phase 12 — guide (온라인 콘텐츠/해설집) 🟢 PR-1 시딩 + PR-2 서빙·뷰어 + PR-3 admin 편집 + PR-4 학습로그(백엔드+프론트) (2026-06-14)
 
 > 해설집(놀라운 한국어 500문장) 기반 온라인 콘텐츠. 설계·시딩 SoT = `docs/AMK_GUIDE_CONTENT_DESIGN.md`(결정 D-0~D-8). §5.10 explanation / §5.11 study·task 더미는 PR-4에서 정리 예정(D-1 전면 교체).
 
@@ -1115,7 +1115,9 @@ docker exec amk-api cat /app/seeds/20260518_seed_textbook_tasks.sql | \
 - `GET /guides/{guide_idx}/progress` — 내 단원 진행. status 행이 있는 문장만(희소) `sentence_no` 순 `[{sentence_no, try_count, is_solved, last_attempt_at}]`. open 게이트, 비공개/미존재 = 404.
 - enum 2종(`GuideActivity`/`GuideLogAction`) `src/types.rs`. OpenAPI path 2·DTO 4(`GuideLogReq`/`GuideSentenceStatusRes`/`GuideProgressItemRes`/`GuideProgressRes`)·enum 2 등록. 통합 테스트 3(정/오/뷰 왕복+진행 희소 / 비공개 404 / 세션없음 fail-closed+status 롤백, 실 DB).
 
-**후속**: PR-4 프론트 연동(SentenceCard 채점→POST, 마운트 시 progress 로드→solved 배지/진행바) + §5.10·5.11 정리(DB). 표 셀 WYSIWYG·블록 삽입삭제·디프 맥미니 직송 = 후속.
+**학습 로그 프론트 연동(PR-4 프론트, 2026-06-14)** — `category/guide/`: `guide_api`(`logGuideSentence`·`getGuideProgress`) + hook(`useGuideProgress` 로그인 시만 조회·`useGuideLog` 성공 시 progress 캐시 무효화·**실패는 best-effort silent**=학습 흐름 비차단) + `GuideSentenceCard`(입력이 처음 정답 되는 순간 1회 `correct` 기록[ref 가드]·미해결 정답공개 시 `reveal` 기록·서버 `solved` 배지) + `guide_learn_page`(progress 로드→**테마색 진행바**[solved/total]+카드별 solved 전달, `handleLog`은 비로그인 no-op). 비로그인 = 진행 추적 없음(공개 읽기·로컬 채점은 유지). 채점은 기존 `normalizeAnswer`(D-3) 그대로 — POST는 결과만 전송. i18n `guide.progress`/`solved`/`solvedCount`(ko/en).
+
+**후속**: 복습(GuideReview) 활동 로그(read_along/flashcard/writing_test — is_solved 무관 부가 텔레메트리) + §5.10·5.11 정리(DB·이미 PR-4a/4b 완료). 표 셀 WYSIWYG·블록 삽입삭제·디프 맥미니 직송·log POST rate-limit(선택) = 후속.
 
 ---
 

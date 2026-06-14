@@ -79,6 +79,52 @@ export type GuideItem = z.infer<typeof guideItemSchema>;
 export type GuideSentence = z.infer<typeof guideSentenceSchema>;
 export type GuideDetail = z.infer<typeof guideDetailSchema>;
 
+/**
+ * 학습 로그 배선 (백엔드 `guide_sentence_log`/`_status`).
+ * 채점은 프론트(완전일치) — 서버는 결과(action) 수신·기록. 정/오만 status 갱신.
+ */
+export type GuideActivity =
+  | "sentence_write"
+  | "read_along"
+  | "flashcard"
+  | "matching"
+  | "writing_test";
+export type GuideLogAction =
+  | "view"
+  | "attempt"
+  | "correct"
+  | "wrong"
+  | "reveal"
+  | "complete";
+
+export interface GuideLogReq {
+  activity: GuideActivity;
+  action: GuideLogAction;
+  /** 제출 답안(선택) — 향후 점수화 데이터 */
+  answer?: unknown;
+}
+
+export const guideSentenceStatusSchema = z.object({
+  try_count: z.number(),
+  is_solved: z.boolean(),
+  last_attempt_at: z.string().nullable().optional(),
+});
+
+export const guideProgressItemSchema = z.object({
+  sentence_no: z.number(),
+  try_count: z.number(),
+  is_solved: z.boolean(),
+  last_attempt_at: z.string().nullable().optional(),
+});
+
+export const guideProgressSchema = z.object({
+  items: z.array(guideProgressItemSchema),
+});
+
+export type GuideSentenceStatus = z.infer<typeof guideSentenceStatusSchema>;
+export type GuideProgressItem = z.infer<typeof guideProgressItemSchema>;
+export type GuideProgress = z.infer<typeof guideProgressSchema>;
+
 /** 교재 10색 테마 → CSS 변수 쌍 (books scripts/textbook/css/themes.css 동기) */
 export const GUIDE_THEME_COLORS: Record<string, { color: string; bg: string }> = {
   blue: { color: "#2184fc", bg: "#eef5ff" },

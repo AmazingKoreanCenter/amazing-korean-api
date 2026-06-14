@@ -669,6 +669,9 @@
     "hideAnswer": "정답 숨기기",
     "listen": "듣기",
     "explanation": "해설",
+    "progress": "진행",
+    "solved": "완료",
+    "solvedCount": "{{done}} / {{total}} 문장 완료",
     "review": {
       "title": "복습",
       "readAlong": "1. 듣고 따라 읽기",

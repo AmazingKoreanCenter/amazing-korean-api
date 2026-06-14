@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-14 — guide PR-4 학습 로그 배선 백엔드(시도/정오 POST + 진행 GET, 미머지) / PR-4b prod DB 삭제(+ 마이그 FK INC 복구 hotfix) / PR-4a 코드 정리 / Node.js 20 액션 버전업
+updated: 2026-06-14 — guide PR-4 학습 로그 배선 백엔드(POST/GET) + 프론트 연동(채점→기록·테마 진행바, 미머지) / PR-4b prod DB 삭제(+ 마이그 FK INC 복구 hotfix) / PR-4a 코드 정리 / Node.js 20 액션 버전업
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-14 🔌 — guide PR-4 학습 로그 배선: 프론트 연동 (채점→기록·진행 저장/표시) — 구현 완료·미머지**
+
+  백엔드 PR-4(아래 커밋 `864cc34`) 후속 — 학습자 뷰어를 로그 API에 연결. `frontend/src/category/guide/`: **api** `logGuideSentence`(POST)·`getGuideProgress`(GET) + **hook** `useGuideProgress`(로그인 시에만 조회·staleTime 60s)·`useGuideLog`(성공 시 `["guide-progress", guideIdx]` 무효화, **실패는 best-effort silent**=진행 저장 실패가 학습 흐름을 막지 않음·토스트 없음, 의도적) + **GuideSentenceCard**(입력이 처음 정답 되는 순간 1회 `correct` 기록[ref 가드로 키 입력마다 POST 방지]·미해결 상태에서 정답 공개 시 `reveal`[포기] 1회 기록·서버 `solved` 배지) + **guide_learn_page**(progress 로드 → solved 집합 → **테마색 진행바**[solved/total, 페이지 헤더와 동일 인라인 테마 방식, shadcn Progress는 bg-primary 하드코딩이라 미사용]·카드별 `solved` 전달·`handleLog`은 비로그인 no-op). **비로그인** = 진행 추적 없음(공개 읽기·로컬 즉시 채점은 유지). 채점 로직은 기존 `normalizeAnswer`(D-3 완전일치) 그대로 — POST는 결과(action)만 전송. i18n `guide.progress`/`solved`/`solvedCount`(ko/en 대칭). 활동 = `sentence_write`(복습 read_along/flashcard/writing_test 로그는 is_solved 무관 부가 텔레메트리라 후속). **검증 ✅**: `npm run build`(tsc 타입체크 통과)·`eslint`(guide 모듈 클린)·`vitest`(guide 7). 프론트 dev 서버 실 브라우저 왕복은 단원 공개 flip 후(prod 전 단원 ready=숨김). **다음 = PR-4 머지·배포·prod 검증 → 공개 flip(사용자 트리거)**. STATUS #167.
 
 - **2026-06-14 📝 — guide PR-4 학습 로그 배선: 백엔드 (시도/정오 POST + 진행 GET) — 구현 완료·미머지**
 

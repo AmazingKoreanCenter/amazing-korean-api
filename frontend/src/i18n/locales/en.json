@@ -678,6 +678,9 @@
     "hideAnswer": "Hide Answer",
     "listen": "Listen",
     "explanation": "Explanation",
+    "progress": "Progress",
+    "solved": "Solved",
+    "solvedCount": "{{done}} / {{total}} sentences solved",
     "review": {
       "title": "Review",
       "readAlong": "1. Read Along",
