@@ -6,7 +6,8 @@
 const STRIP = /[?？!.。,，、\s]/g;
 
 export function normalizeAnswer(s: string): string {
-  return s.replace(STRIP, "");
+  // NFC: macOS/일부 IME 의 분해형(NFD) 한글 입력을 조합형으로 통일 → 채점 오답 방지
+  return s.normalize("NFC").replace(STRIP, "");
 }
 
 /** 입력이 정답과 일치하는가 (정규화 후 완전일치) */

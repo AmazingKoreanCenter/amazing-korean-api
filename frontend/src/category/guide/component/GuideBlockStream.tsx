@@ -44,8 +44,12 @@ function BlockView({ item }: { item: GuideItem }) {
         </div>
       ) : null;
     case "list_item":
+      // 플랫 스트림이라 <ul> 부모가 없음 → div+불릿으로 HTML 유효성 유지
       return text ? (
-        <li className="text-sm text-muted-foreground ml-4 list-disc">{text}</li>
+        <div className="my-1 ml-4 flex items-start gap-1.5 text-sm text-muted-foreground">
+          <span className="select-none">•</span>
+          <span>{text}</span>
+        </div>
       ) : null;
     case "other":
     default:

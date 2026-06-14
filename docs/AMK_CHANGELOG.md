@@ -1,8 +1,12 @@
 ---
 title: AMK_CHANGELOG — Amazing Korean API 변경 이력
-updated: 2026-06-13 — guide PR-2 서빙 API(/guides) + 학습자 뷰어 / PR-1 검증·머지·prod 시딩 / (06-12) PR-1 구현·설계 확정
+updated: 2026-06-14 — guide PR-2 Gemini 리뷰 6건 반영 / (06-13) PR-2 서빙 API + 뷰어 / PR-1 검증·머지·prod 시딩
 owner: HYMN Co., Ltd. (Amazing Korean)
 ---
+
+- **2026-06-14 🩹 — guide PR-2 Gemini 리뷰 6건 반영 (프론트 뷰어 위생·접근성·채점 정확성)**
+
+  PR #327 머지 후 Gemini 리뷰(HIGH 1·MEDIUM 5) 전부 타당 → 반영(머지 후 즉시 반영 규칙). **HIGH**: `GuideReview` 플래시카드 — `<button>` 내부에 듣기 `<button>` 중첩(HTML 위반·클릭 오작동) → 외곽을 `div role="button" tabIndex` + onKeyDown(Enter/Space)로, 내부 듣기는 독립 `<button aria-label>`. **MED ×5**: ① `guide_grade.normalizeAnswer` — **한글 NFD(분해형) 입력 채점 오답** 방지 위해 `.normalize("NFC")` 추가(macOS/IME, vitest NFD 케이스 추가) ② `guide_speech` — Chrome `getVoices()` 로드 시점 빈 배열 레이스 → `voiceschanged` 리스너로 보이스 캐시 무효화 ③ `GuideReview` Writing Test score — 매 키입력마다 전수 채점 → `graded` 일 때만 계산(useMemo deps에 graded) ④ `<label htmlFor>`↔`<input id>` 연결(접근성) ⑤ `GuideBlockStream` list_item — `<ul>` 부모 없는 `<li>` → div+불릿(•) 구조. 검증: vitest 7(NFD +1)·eslint·`npm run build` ✓. 백엔드 무변경. prod 노출 0(전 단원 숨김) 유지.
 
 - **2026-06-13 🖥 — guide PR-2: 서빙 API(/guides) + 학습자 뷰어 (표 재조립·i18n 폴백·브라우저 TTS·완전일치 채점)**
 

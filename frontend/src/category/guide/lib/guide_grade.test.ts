@@ -7,6 +7,12 @@ describe("normalizeAnswer", () => {
     expect(normalizeAnswer("저는 행복합니다.")).toBe("저는행복합니다");
     expect(normalizeAnswer("저는  행복합니다 ?")).toBe("저는행복합니다");
   });
+  it("NFD(분해형) 한글을 NFC 로 통일", () => {
+    // 동일 글자의 NFD 입력(macOS) ↔ NFC 정답이 일치해야
+    const nfd = "저는 행복합니다.".normalize("NFD");
+    expect(nfd).not.toBe("저는 행복합니다."); // 실제로 분해형임을 확인
+    expect(normalizeAnswer(nfd)).toBe(normalizeAnswer("저는 행복합니다."));
+  });
 });
 
 describe("isCorrect", () => {

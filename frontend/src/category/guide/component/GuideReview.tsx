@@ -59,29 +59,40 @@ function Flashcards({ sentences }: { sentences: GuideSentence[] }) {
         {sentences.map((s) => {
           const isFlipped = flipped.has(s.sentence_no);
           return (
-            <button
+            <div
               key={s.sentence_no}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => toggle(s.sentence_no)}
-              className="min-h-[72px] rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-primary"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  toggle(s.sentence_no);
+                }
+              }}
+              className="min-h-[72px] cursor-pointer rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {isFlipped ? (
                 <span className="flex items-center justify-between gap-1">
                   <span className="text-sm font-medium text-foreground">{s.text_ko}</span>
                   {isSpeechSupported() && (
-                    <Volume2
-                      className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                    <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         speakKorean(s.text_ko ?? "");
                       }}
-                    />
+                      className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      aria-label={t("guide.listen")}
+                    >
+                      <Volume2 className="h-3.5 w-3.5 shrink-0" />
+                    </button>
                   )}
                 </span>
               ) : (
                 <span className="text-sm text-muted-foreground">{stripPrefix(s.text)}</span>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -96,8 +107,11 @@ function WritingTest({ sentences }: { sentences: GuideSentence[] }) {
   const [graded, setGraded] = useState(false);
 
   const score = useMemo(
-    () => sentences.filter((s) => isCorrect(answers[s.sentence_no] ?? "", s.text_ko)).length,
-    [answers, sentences]
+    () =>
+      graded
+        ? sentences.filter((s) => isCorrect(answers[s.sentence_no] ?? "", s.text_ko)).length
+        : 0,
+    [answers, sentences, graded]
   );
 
   return (
@@ -136,10 +150,14 @@ function WritingTest({ sentences }: { sentences: GuideSentence[] }) {
           const wrong = graded && !ok;
           return (
             <li key={s.sentence_no}>
-              <label className="block text-xs text-muted-foreground mb-0.5">
+              <label
+                htmlFor={`guide-wt-${s.sentence_no}`}
+                className="block text-xs text-muted-foreground mb-0.5"
+              >
                 {stripPrefix(s.text)}
               </label>
               <input
+                id={`guide-wt-${s.sentence_no}`}
                 type="text"
                 value={val}
                 onChange={(e) =>
